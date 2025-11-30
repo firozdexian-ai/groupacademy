@@ -20,6 +20,7 @@ const ContentNew = () => {
     content_type: "free_video" as "free_video" | "recorded_course" | "live_webinar" | "batch_class" | "offline_seminar",
     description: "",
     price: 0,
+    thumbnail_url: "",
     youtube_url: "",
     duration_hours: 0,
     modules_count: 0,
@@ -44,8 +45,10 @@ const ContentNew = () => {
         {
           ...formData,
           slug,
+          // Thumbnail and video URLs are available for all content types
+          thumbnail_url: formData.thumbnail_url || null,
+          youtube_url: formData.youtube_url || null,
           // Only include relevant fields based on content type
-          youtube_url: formData.content_type === "free_video" ? formData.youtube_url : null,
           duration_hours: formData.content_type === "recorded_course" ? formData.duration_hours : null,
           modules_count: formData.content_type === "recorded_course" ? formData.modules_count : null,
           event_date: ["live_webinar", "batch_class", "offline_seminar"].includes(formData.content_type)
@@ -156,18 +159,44 @@ const ContentNew = () => {
                   </div>
                 </div>
 
+                {/* Thumbnail Image - Available for all content types */}
+                <div className="space-y-2">
+                  <Label htmlFor="thumbnail_url">Course/Event Image (URL)</Label>
+                  <Input
+                    id="thumbnail_url"
+                    type="url"
+                    placeholder="https://example.com/image.jpg"
+                    value={formData.thumbnail_url}
+                    onChange={(e) => setFormData({ ...formData, thumbnail_url: e.target.value })}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Add a banner image for your course (recommended 16:9 aspect ratio)
+                  </p>
+                </div>
+
+                {/* Promo/Trailer Video - Available for all content types */}
+                <div className="space-y-2">
+                  <Label htmlFor="youtube_url">
+                    {formData.content_type === "free_video" 
+                      ? "YouTube Video URL *" 
+                      : "Promo/Trailer Video (YouTube URL)"}
+                  </Label>
+                  <Input
+                    id="youtube_url"
+                    type="url"
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    value={formData.youtube_url}
+                    onChange={(e) => setFormData({ ...formData, youtube_url: e.target.value })}
+                    required={formData.content_type === "free_video"}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {formData.content_type === "free_video" 
+                      ? "YouTube URL for the main video content" 
+                      : "Add a promotional or preview video (optional)"}
+                  </p>
+                </div>
+
                 {/* Content Type Specific Fields */}
-                {formData.content_type === "free_video" && (
-                  <div className="space-y-2">
-                    <Label htmlFor="youtube_url">YouTube URL</Label>
-                    <Input
-                      id="youtube_url"
-                      type="url"
-                      value={formData.youtube_url}
-                      onChange={(e) => setFormData({ ...formData, youtube_url: e.target.value })}
-                    />
-                  </div>
-                )}
 
                 {formData.content_type === "recorded_course" && (
                   <div className="grid grid-cols-2 gap-4">

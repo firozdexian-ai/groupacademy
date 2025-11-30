@@ -7,7 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { GraduationCap, Video, BookOpen, Calendar, Users, MapPin, Clock, ArrowLeft, CheckCircle } from "lucide-react";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
+import { CourseShareButtons } from "@/components/CourseShareButtons";
+import { GraduationCap, Video, BookOpen, Calendar, Users, MapPin, Clock, ArrowLeft, CheckCircle, Play } from "lucide-react";
 import { toast } from "sonner";
 
 type ContentType = "free_video" | "recorded_course" | "live_webinar" | "batch_class" | "offline_seminar";
@@ -20,13 +22,14 @@ interface Course {
   content_type: ContentType;
   price: number;
   instructor_name: string;
+  thumbnail_url: string | null;
+  youtube_url: string | null;
   event_date: string | null;
   event_duration_minutes: number | null;
   max_capacity: number | null;
   current_enrollment: number;
   venue_name: string | null;
   venue_address: string | null;
-  youtube_url: string | null;
   duration_hours: number | null;
   modules_count: number | null;
 }
@@ -224,9 +227,16 @@ const CourseDetail = () => {
     }
   };
 
+  // Convert YouTube URL to embed URL
+  const getYouTubeEmbedUrl = (url: string | null) => {
+    if (!url) return null;
+    const videoIdMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/);
+    return videoIdMatch ? `https://www.youtube.com/embed/${videoIdMatch[1]}` : null;
+  };
+
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
@@ -238,137 +248,246 @@ const CourseDetail = () => {
   const Icon = config.icon;
   const isFull = course.max_capacity && course.current_enrollment >= course.max_capacity;
   const spotsRemaining = course.max_capacity ? course.max_capacity - course.current_enrollment : null;
+  const currentUrl = window.location.href;
+  const embedUrl = getYouTubeEmbedUrl(course.youtube_url);
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-6 py-4">
-          <Button variant="ghost" onClick={() => navigate("/courses")}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Courses
-          </Button>
-        </div>
-      </header>
-
-      <main className="container mx-auto px-6 py-12">
-        <div className="max-w-5xl mx-auto grid md:grid-cols-3 gap-8">
-          {/* Course Details */}
-          <div className="md:col-span-2 space-y-6">
-            <div>
-              <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${config.color} flex items-center justify-center mb-6 shadow-lg`}>
-                <Icon className="w-8 h-8 text-white" />
-              </div>
-              
-              <div className="flex flex-wrap gap-2 mb-4">
-                <Badge variant="secondary" className="text-sm">{config.label}</Badge>
-                {course.price === 0 ? (
-                  <Badge className="bg-green-500 text-sm">Free</Badge>
-                ) : (
-                  <Badge variant="outline" className="text-sm">BDT {course.price}</Badge>
-                )}
-              </div>
-
-              <h1 className="text-4xl font-bold mb-4">{course.title}</h1>
-              <p className="text-lg text-muted-foreground">{course.description}</p>
+    <div className="min-h-screen bg-gradient-muted">
+      {/* Hero Section with Gradient Background */}
+      <div className="relative bg-gradient-primary overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary via-secondary to-accent opacity-90" />
+        
+        <div className="relative container mx-auto px-6">
+          <div className="pt-6 pb-4">
+            <Button 
+              variant="ghost" 
+              onClick={() => navigate("/courses")}
+              className="text-primary-foreground hover:bg-primary-foreground/10"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Courses
+            </Button>
+          </div>
+          
+          <div className="pb-12">
+            <div className="flex items-center gap-2 mb-4">
+              <Badge variant="secondary" className="bg-primary-foreground/20 text-primary-foreground border-0 backdrop-blur-sm">
+                <Icon className="mr-1 h-3 w-3" />
+                {config.label}
+              </Badge>
+              {course.price === 0 ? (
+                <Badge className="bg-success text-success-foreground border-0">Free</Badge>
+              ) : (
+                <Badge className="bg-primary-foreground/20 text-primary-foreground border-0 backdrop-blur-sm">
+                  BDT {course.price}
+                </Badge>
+              )}
             </div>
-
-            <Separator />
-
-            <div className="grid md:grid-cols-2 gap-6">
+            
+            <h1 className="text-4xl md:text-5xl font-bold text-primary-foreground mb-6 max-w-4xl">
+              {course.title}
+            </h1>
+            
+            <div className="flex flex-wrap gap-6 text-sm text-primary-foreground/90 mb-8">
               {course.instructor_name && (
-                <div className="flex items-start gap-3">
-                  <Users className="w-5 h-5 text-primary mt-1" />
-                  <div>
-                    <p className="font-semibold">Instructor</p>
-                    <p className="text-muted-foreground">{course.instructor_name}</p>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  <span>{course.instructor_name}</span>
                 </div>
               )}
-
               {course.event_date && (
-                <div className="flex items-start gap-3">
-                  <Calendar className="w-5 h-5 text-primary mt-1" />
-                  <div>
-                    <p className="font-semibold">Date & Time</p>
-                    <p className="text-muted-foreground">
-                      {new Date(course.event_date).toLocaleDateString("en-US", {
-                        weekday: "long",
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(course.event_date).toLocaleTimeString("en-US", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </p>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  <span>{new Date(course.event_date).toLocaleDateString()}</span>
                 </div>
               )}
-
-              {course.event_duration_minutes && (
-                <div className="flex items-start gap-3">
-                  <Clock className="w-5 h-5 text-primary mt-1" />
-                  <div>
-                    <p className="font-semibold">Duration</p>
-                    <p className="text-muted-foreground">{course.event_duration_minutes} minutes</p>
-                  </div>
-                </div>
-              )}
-
               {course.duration_hours && (
-                <div className="flex items-start gap-3">
-                  <Clock className="w-5 h-5 text-primary mt-1" />
-                  <div>
-                    <p className="font-semibold">Course Duration</p>
-                    <p className="text-muted-foreground">{course.duration_hours} hours</p>
-                  </div>
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  <span>{course.duration_hours} hours</span>
                 </div>
               )}
-
-              {course.modules_count && (
-                <div className="flex items-start gap-3">
-                  <BookOpen className="w-5 h-5 text-primary mt-1" />
-                  <div>
-                    <p className="font-semibold">Modules</p>
-                    <p className="text-muted-foreground">{course.modules_count} modules</p>
-                  </div>
-                </div>
-              )}
-
-              {course.venue_name && (
-                <div className="flex items-start gap-3">
-                  <MapPin className="w-5 h-5 text-primary mt-1" />
-                  <div>
-                    <p className="font-semibold">Venue</p>
-                    <p className="text-muted-foreground">{course.venue_name}</p>
-                    {course.venue_address && (
-                      <p className="text-sm text-muted-foreground">{course.venue_address}</p>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {spotsRemaining !== null && (
-                <div className="flex items-start gap-3">
-                  <Users className="w-5 h-5 text-primary mt-1" />
-                  <div>
-                    <p className="font-semibold">Availability</p>
-                    <p className="text-muted-foreground">
-                      {spotsRemaining} spots remaining
-                    </p>
-                  </div>
+              {course.event_duration_minutes && (
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  <span>{course.event_duration_minutes} minutes</span>
                 </div>
               )}
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Hero Media Section */}
+      {(course.thumbnail_url || embedUrl) && (
+        <div className="bg-card border-b">
+          <div className="container mx-auto px-6 py-8">
+            <AspectRatio ratio={16 / 9} className="bg-muted rounded-lg overflow-hidden shadow-xl">
+              {embedUrl ? (
+                <div className="relative w-full h-full group">
+                  <iframe
+                    src={embedUrl}
+                    title={course.title}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="w-full h-full"
+                  />
+                </div>
+              ) : course.thumbnail_url ? (
+                <div className="relative w-full h-full group cursor-pointer">
+                  <img
+                    src={course.thumbnail_url}
+                    alt={course.title}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-background/20 to-transparent" />
+                  {course.youtube_url && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-20 h-20 rounded-full bg-primary flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
+                        <Play className="h-10 w-10 text-primary-foreground ml-1" fill="currentColor" />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : null}
+            </AspectRatio>
+          </div>
+        </div>
+      )}
+
+      {/* Main Content */}
+      <main className="container mx-auto px-6 py-12">
+        <div className="max-w-5xl mx-auto grid md:grid-cols-3 gap-8">
+          {/* Course Details */}
+          <div className="md:col-span-2 space-y-6">
+            {course.description && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>About This Course</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                    {course.description}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Course Details</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid md:grid-cols-2 gap-6">
+                  {course.instructor_name && (
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <Users className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-semibold">Instructor</p>
+                        <p className="text-muted-foreground">{course.instructor_name}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {course.event_date && (
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <Calendar className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-semibold">Date & Time</p>
+                        <p className="text-muted-foreground">
+                          {new Date(course.event_date).toLocaleDateString("en-US", {
+                            weekday: "long",
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          })}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(course.event_date).toLocaleTimeString("en-US", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {course.event_duration_minutes && (
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <Clock className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-semibold">Duration</p>
+                        <p className="text-muted-foreground">{course.event_duration_minutes} minutes</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {course.duration_hours && (
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <Clock className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-semibold">Course Duration</p>
+                        <p className="text-muted-foreground">{course.duration_hours} hours</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {course.modules_count && (
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <BookOpen className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-semibold">Modules</p>
+                        <p className="text-muted-foreground">{course.modules_count} modules</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {course.venue_name && (
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <MapPin className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-semibold">Venue</p>
+                        <p className="text-muted-foreground">{course.venue_name}</p>
+                        {course.venue_address && (
+                          <p className="text-sm text-muted-foreground">{course.venue_address}</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {spotsRemaining !== null && (
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <Users className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-semibold">Availability</p>
+                        <p className="text-muted-foreground">
+                          {spotsRemaining} spots remaining
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
           {/* Registration Card */}
           <div className="md:col-span-1">
-            <Card className="sticky top-24">
+            <Card className="sticky top-24 shadow-xl">
               <CardHeader>
                 <CardTitle>
                   {isEnrolled ? "You're Enrolled!" : user ? "Enroll Now" : "Register to Enroll"}
@@ -383,88 +502,99 @@ const CourseDetail = () => {
                     : "Create your account to get started"}
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
                 {isEnrolled ? (
-                  <div className="space-y-4">
+                  <>
                     <div className="flex items-center justify-center py-6">
-                      <CheckCircle className="w-16 h-16 text-green-500" />
+                      <CheckCircle className="w-16 h-16 text-success" />
                     </div>
                     <Button className="w-full" onClick={() => navigate("/dashboard")}>
                       Go to Dashboard
                     </Button>
-                  </div>
+                    <Separator />
+                    <CourseShareButtons title={course.title} url={currentUrl} />
+                  </>
                 ) : user ? (
-                  <Button 
-                    className="w-full" 
-                    onClick={handleQuickEnroll} 
-                    disabled={isEnrolling || isFull}
-                  >
-                    {isEnrolling ? "Enrolling..." : isFull ? "Course Full" : "Enroll Now"}
-                  </Button>
-                ) : (
-                  <form onSubmit={handleSignupAndEnroll} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="fullName">Full Name *</Label>
-                      <Input
-                        id="fullName"
-                        required
-                        value={registrationData.fullName}
-                        onChange={(e) =>
-                          setRegistrationData({ ...registrationData, fullName: e.target.value })
-                        }
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email *</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        required
-                        value={registrationData.email}
-                        onChange={(e) =>
-                          setRegistrationData({ ...registrationData, email: e.target.value })
-                        }
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="phone">Phone</Label>
-                      <Input
-                        id="phone"
-                        type="tel"
-                        value={registrationData.phone}
-                        onChange={(e) =>
-                          setRegistrationData({ ...registrationData, phone: e.target.value })
-                        }
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="password">Password *</Label>
-                      <Input
-                        id="password"
-                        type="password"
-                        required
-                        minLength={6}
-                        value={registrationData.password}
-                        onChange={(e) =>
-                          setRegistrationData({ ...registrationData, password: e.target.value })
-                        }
-                      />
-                    </div>
-
-                    <Button type="submit" className="w-full" disabled={isEnrolling || isFull}>
-                      {isEnrolling ? "Processing..." : isFull ? "Course Full" : "Sign Up & Enroll"}
+                  <>
+                    <Button 
+                      className="w-full" 
+                      onClick={handleQuickEnroll} 
+                      disabled={isEnrolling || isFull}
+                    >
+                      {isEnrolling ? "Enrolling..." : isFull ? "Course Full" : "Enroll Now"}
                     </Button>
+                    <Separator />
+                    <CourseShareButtons title={course.title} url={currentUrl} />
+                  </>
+                ) : (
+                  <>
+                    <form onSubmit={handleSignupAndEnroll} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="fullName">Full Name *</Label>
+                        <Input
+                          id="fullName"
+                          required
+                          value={registrationData.fullName}
+                          onChange={(e) =>
+                            setRegistrationData({ ...registrationData, fullName: e.target.value })
+                          }
+                        />
+                      </div>
 
-                    <p className="text-xs text-center text-muted-foreground">
-                      Already have an account?{" "}
-                      <Button variant="link" className="p-0 h-auto" onClick={() => navigate("/auth")}>
-                        Sign in
+                      <div className="space-y-2">
+                        <Label htmlFor="email">Email *</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          required
+                          value={registrationData.email}
+                          onChange={(e) =>
+                            setRegistrationData({ ...registrationData, email: e.target.value })
+                          }
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="phone">Phone</Label>
+                        <Input
+                          id="phone"
+                          type="tel"
+                          value={registrationData.phone}
+                          onChange={(e) =>
+                            setRegistrationData({ ...registrationData, phone: e.target.value })
+                          }
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="password">Password *</Label>
+                        <Input
+                          id="password"
+                          type="password"
+                          required
+                          minLength={6}
+                          value={registrationData.password}
+                          onChange={(e) =>
+                            setRegistrationData({ ...registrationData, password: e.target.value })
+                          }
+                        />
+                      </div>
+
+                      <Button type="submit" className="w-full" disabled={isEnrolling || isFull}>
+                        {isEnrolling ? "Processing..." : isFull ? "Course Full" : "Sign Up & Enroll"}
                       </Button>
-                    </p>
-                  </form>
+
+                      <p className="text-xs text-center text-muted-foreground">
+                        Already have an account?{" "}
+                        <Button variant="link" className="p-0 h-auto" onClick={() => navigate("/auth")}>
+                          Sign in
+                        </Button>
+                      </p>
+                    </form>
+                    
+                    <Separator />
+                    <CourseShareButtons title={course.title} url={currentUrl} />
+                  </>
                 )}
               </CardContent>
             </Card>
