@@ -15,6 +15,7 @@ import {
 import { Card } from "@/components/ui/card";
 import { ArrowLeft, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { ImageUpload } from "@/components/ImageUpload";
 
 export default function ContentEdit() {
   const { id } = useParams();
@@ -38,6 +39,7 @@ export default function ContentEdit() {
     event_duration_minutes: "",
     max_capacity: "",
     youtube_url: "",
+    cover_image_url: "",
     is_published: true,
   });
 
@@ -76,6 +78,7 @@ export default function ContentEdit() {
         event_duration_minutes: data.event_duration_minutes?.toString() || "",
         max_capacity: data.max_capacity?.toString() || "",
         youtube_url: data.youtube_url || "",
+        cover_image_url: data.cover_image_url || "",
         is_published: data.is_published ?? true,
       });
     } catch (error: any) {
@@ -121,6 +124,7 @@ export default function ContentEdit() {
             ? parseInt(formData.max_capacity)
             : null,
           youtube_url: formData.youtube_url || null,
+          cover_image_url: formData.cover_image_url || null,
           is_published: formData.is_published,
         })
         .eq("id", id);
@@ -167,6 +171,13 @@ export default function ContentEdit() {
           <h1 className="text-3xl font-bold mb-6">Edit Content</h1>
 
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Cover Image Upload */}
+            <ImageUpload
+              value={formData.cover_image_url}
+              onUpload={(url) => setFormData({ ...formData, cover_image_url: url })}
+              onRemove={() => setFormData({ ...formData, cover_image_url: "" })}
+            />
+
             <div className="space-y-2">
               <Label htmlFor="title">Title *</Label>
               <Input

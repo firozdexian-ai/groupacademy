@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
+import { ImageUpload } from "@/components/ImageUpload";
 
 const ContentNew = () => {
   const navigate = useNavigate();
@@ -21,6 +22,7 @@ const ContentNew = () => {
     description: "",
     price: 0,
     youtube_url: "",
+    cover_image_url: "",
     duration_hours: 0,
     modules_count: 0,
     event_date: "",
@@ -47,6 +49,8 @@ const ContentNew = () => {
           slug,
           // YouTube URL available for all content types
           youtube_url: formData.youtube_url || null,
+          // Cover image URL
+          cover_image_url: formData.cover_image_url || null,
           // Only include relevant fields based on content type
           duration_hours: formData.content_type === "recorded_course" ? formData.duration_hours : null,
           modules_count: formData.content_type === "recorded_course" ? formData.modules_count : null,
@@ -94,6 +98,13 @@ const ContentNew = () => {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Cover Image Upload */}
+              <ImageUpload
+                value={formData.cover_image_url}
+                onUpload={(url) => setFormData({ ...formData, cover_image_url: url })}
+                onRemove={() => setFormData({ ...formData, cover_image_url: "" })}
+              />
+
               {/* Basic Info */}
               <div className="space-y-4">
                 <div className="space-y-2">

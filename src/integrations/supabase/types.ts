@@ -64,6 +64,7 @@ export type Database = {
       content: {
         Row: {
           content_type: Database["public"]["Enums"]["content_type"]
+          cover_image_url: string | null
           created_at: string | null
           currency: string | null
           current_enrollment: number | null
@@ -88,6 +89,7 @@ export type Database = {
         }
         Insert: {
           content_type: Database["public"]["Enums"]["content_type"]
+          cover_image_url?: string | null
           created_at?: string | null
           currency?: string | null
           current_enrollment?: number | null
@@ -112,6 +114,7 @@ export type Database = {
         }
         Update: {
           content_type?: Database["public"]["Enums"]["content_type"]
+          cover_image_url?: string | null
           created_at?: string | null
           currency?: string | null
           current_enrollment?: number | null

@@ -21,7 +21,7 @@ interface Course {
   event_date: string | null;
   max_capacity: number | null;
   current_enrollment: number;
-  thumbnail_url: string | null;
+  cover_image_url: string | null;
 }
 
 const contentTypeConfig = {
@@ -145,20 +145,38 @@ const Courses = () => {
                 return (
                   <Card
                     key={course.id}
-                    className="group hover:shadow-xl transition-all duration-300 border-2 hover:border-primary/20 cursor-pointer"
+                    className="group hover:shadow-xl transition-all duration-300 border-2 hover:border-primary/20 cursor-pointer overflow-hidden"
                     onClick={() => navigate(`/courses/${course.slug}`)}
                   >
-                    <CardHeader>
-                      <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${config.color} flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform`}>
-                        <Icon className="w-7 h-7 text-white" />
+                    {course.cover_image_url ? (
+                      <div className="aspect-video w-full overflow-hidden relative">
+                        <img 
+                          src={course.cover_image_url} 
+                          alt={course.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                        <div className="absolute top-3 left-3">
+                          <Badge variant="secondary" className="backdrop-blur-sm bg-background/80">
+                            {config.label}
+                          </Badge>
+                        </div>
                       </div>
+                    ) : (
+                      <div className={`w-full h-32 bg-gradient-to-br ${config.color} flex items-center justify-center`}>
+                        <Icon className="w-12 h-12 text-white/90" />
+                      </div>
+                    )}
+                    
+                    <CardHeader>
                       
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <CardTitle className="text-xl line-clamp-2">{course.title}</CardTitle>
                       </div>
 
                       <div className="flex flex-wrap gap-2 mb-3">
-                        <Badge variant="secondary">{config.label}</Badge>
+                        {!course.cover_image_url && (
+                          <Badge variant="secondary">{config.label}</Badge>
+                        )}
                         {course.price === 0 ? (
                           <Badge variant="default" className="bg-green-500">Free</Badge>
                         ) : (

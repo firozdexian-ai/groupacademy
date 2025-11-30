@@ -24,6 +24,7 @@ interface Course {
   price: number;
   instructor_name: string;
   youtube_url: string | null;
+  cover_image_url: string | null;
   event_date: string | null;
   event_duration_minutes: number | null;
   max_capacity: number | null;
@@ -263,11 +264,24 @@ const CourseDetail = () => {
 
   return (
     <div className="min-h-screen bg-gradient-muted">
-      {/* Hero Section with Gradient Background */}
-      <div className="relative bg-gradient-primary overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary via-secondary to-accent opacity-90" />
+      {/* Hero Section with Cover Image or Gradient Background */}
+      <div className="relative overflow-hidden">
+        {course.cover_image_url ? (
+          <div className="relative h-[400px]">
+            <img 
+              src={course.cover_image_url} 
+              alt={course.title}
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-background/40 via-background/70 to-background" />
+          </div>
+        ) : (
+          <div className="relative bg-gradient-primary">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary via-secondary to-accent opacity-90" />
+          </div>
+        )}
         
-        <div className="relative container mx-auto px-6">
+        <div className={`relative container mx-auto px-6 ${course.cover_image_url ? 'absolute inset-0' : ''}`}>
           <div className="pt-6 pb-4">
             <Button 
               variant="ghost" 
