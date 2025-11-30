@@ -20,7 +20,6 @@ const ContentNew = () => {
     content_type: "free_video" as "free_video" | "recorded_course" | "live_webinar" | "batch_class" | "offline_seminar",
     description: "",
     price: 0,
-    thumbnail_url: "",
     youtube_url: "",
     duration_hours: 0,
     modules_count: 0,
@@ -46,8 +45,7 @@ const ContentNew = () => {
         {
           ...formData,
           slug,
-          // Thumbnail and video URLs are available for all content types
-          thumbnail_url: formData.thumbnail_url || null,
+          // YouTube URL available for all content types
           youtube_url: formData.youtube_url || null,
           // Only include relevant fields based on content type
           duration_hours: formData.content_type === "recorded_course" ? formData.duration_hours : null,
@@ -163,27 +161,12 @@ const ContentNew = () => {
                   </div>
                 </div>
 
-                {/* Thumbnail Image - Available for all content types */}
-                <div className="space-y-2">
-                  <Label htmlFor="thumbnail_url">Course/Event Image (URL)</Label>
-                  <Input
-                    id="thumbnail_url"
-                    type="url"
-                    placeholder="https://example.com/image.jpg"
-                    value={formData.thumbnail_url}
-                    onChange={(e) => setFormData({ ...formData, thumbnail_url: e.target.value })}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Add a banner image for your course (recommended 16:9 aspect ratio)
-                  </p>
-                </div>
-
-                {/* Promo/Trailer Video - Available for all content types */}
+                {/* YouTube Video - Available for all content types */}
                 <div className="space-y-2">
                   <Label htmlFor="youtube_url">
                     {formData.content_type === "free_video" 
                       ? "YouTube Video URL *" 
-                      : "Promo/Trailer Video (YouTube URL)"}
+                      : "Trailer Video (YouTube URL)"}
                   </Label>
                   <Input
                     id="youtube_url"
@@ -196,7 +179,7 @@ const ContentNew = () => {
                   <p className="text-xs text-muted-foreground">
                     {formData.content_type === "free_video" 
                       ? "YouTube URL for the main video content" 
-                      : "Add a promotional or preview video (optional)"}
+                      : "Add a trailer or preview video (optional)"}
                   </p>
                 </div>
 
