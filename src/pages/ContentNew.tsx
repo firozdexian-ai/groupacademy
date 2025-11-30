@@ -31,6 +31,7 @@ const ContentNew = () => {
     venue_address: "",
     instructor_name: "",
     is_published: true,
+    is_private: false,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -147,15 +148,18 @@ const ContentNew = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="price">Price (USD)</Label>
+                    <Label htmlFor="price">Price (BDT)</Label>
                     <Input
                       id="price"
                       type="number"
                       min="0"
-                      step="0.01"
+                      step="1"
                       value={formData.price}
                       onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
                     />
+                    <p className="text-xs text-muted-foreground">
+                      Set to 0 for free courses
+                    </p>
                   </div>
                 </div>
 
@@ -284,13 +288,29 @@ const ContentNew = () => {
                   </>
                 )}
 
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="published"
-                    checked={formData.is_published}
-                    onCheckedChange={(checked) => setFormData({ ...formData, is_published: checked })}
-                  />
-                  <Label htmlFor="published">Publish immediately</Label>
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="published"
+                      checked={formData.is_published}
+                      onCheckedChange={(checked) => setFormData({ ...formData, is_published: checked })}
+                    />
+                    <Label htmlFor="published">Publish immediately</Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="private"
+                      checked={formData.is_private}
+                      onCheckedChange={(checked) => setFormData({ ...formData, is_private: checked })}
+                    />
+                    <Label htmlFor="private" className="flex flex-col gap-1">
+                      <span>Private (B2B Only)</span>
+                      <span className="text-xs text-muted-foreground font-normal">
+                        Hide from public catalog - accessible only via direct link
+                      </span>
+                    </Label>
+                  </div>
                 </div>
               </div>
 
