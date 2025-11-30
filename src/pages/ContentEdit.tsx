@@ -38,7 +38,6 @@ export default function ContentEdit() {
     event_duration_minutes: "",
     max_capacity: "",
     youtube_url: "",
-    thumbnail_url: "",
     is_published: true,
   });
 
@@ -65,7 +64,7 @@ export default function ContentEdit() {
         description: data.description || "",
         content_type: data.content_type,
         price: data.price?.toString() || "",
-        currency: data.currency || "USD",
+        currency: data.currency || "BDT",
         duration_hours: data.duration_hours?.toString() || "",
         modules_count: data.modules_count?.toString() || "",
         instructor_name: data.instructor_name || "",
@@ -77,7 +76,6 @@ export default function ContentEdit() {
         event_duration_minutes: data.event_duration_minutes?.toString() || "",
         max_capacity: data.max_capacity?.toString() || "",
         youtube_url: data.youtube_url || "",
-        thumbnail_url: data.thumbnail_url || "",
         is_published: data.is_published ?? true,
       });
     } catch (error: any) {
@@ -123,7 +121,6 @@ export default function ContentEdit() {
             ? parseInt(formData.max_capacity)
             : null,
           youtube_url: formData.youtube_url || null,
-          thumbnail_url: formData.thumbnail_url || null,
           is_published: formData.is_published,
         })
         .eq("id", id);
@@ -249,8 +246,32 @@ export default function ContentEdit() {
                   onChange={(e) =>
                     setFormData({ ...formData, currency: e.target.value })
                   }
+                  placeholder="BDT"
                 />
               </div>
+            </div>
+
+            {/* YouTube URL - Available for ALL content types */}
+            <div className="space-y-2">
+              <Label htmlFor="youtube_url">
+                {formData.content_type === "free_video" 
+                  ? "YouTube Video URL *" 
+                  : "Trailer Video (YouTube URL)"}
+              </Label>
+              <Input
+                id="youtube_url"
+                value={formData.youtube_url}
+                onChange={(e) =>
+                  setFormData({ ...formData, youtube_url: e.target.value })
+                }
+                placeholder="https://www.youtube.com/watch?v=..."
+                required={formData.content_type === "free_video"}
+              />
+              <p className="text-xs text-muted-foreground">
+                {formData.content_type === "free_video" 
+                  ? "YouTube URL for the main video content" 
+                  : "Add a trailer or preview video (optional)"}
+              </p>
             </div>
 
             {(formData.content_type === "recorded_course" ||
@@ -377,30 +398,6 @@ export default function ContentEdit() {
                 </div>
               </>
             )}
-
-            {formData.content_type === "free_video" && (
-              <div className="space-y-2">
-                <Label htmlFor="youtube_url">YouTube URL</Label>
-                <Input
-                  id="youtube_url"
-                  value={formData.youtube_url}
-                  onChange={(e) =>
-                    setFormData({ ...formData, youtube_url: e.target.value })
-                  }
-                />
-              </div>
-            )}
-
-            <div className="space-y-2">
-              <Label htmlFor="thumbnail_url">Thumbnail URL</Label>
-              <Input
-                id="thumbnail_url"
-                value={formData.thumbnail_url}
-                onChange={(e) =>
-                  setFormData({ ...formData, thumbnail_url: e.target.value })
-                }
-              />
-            </div>
 
             <Button type="submit" className="w-full" disabled={saving}>
               <Save className="mr-2 h-4 w-4" />

@@ -23,7 +23,6 @@ interface Course {
   content_type: ContentType;
   price: number;
   instructor_name: string;
-  thumbnail_url: string | null;
   youtube_url: string | null;
   event_date: string | null;
   event_duration_minutes: number | null;
@@ -330,41 +329,25 @@ const CourseDetail = () => {
       </div>
 
       {/* Hero Media Section */}
-      {(course.thumbnail_url || embedUrl) && (
-        <div className="bg-card border-b">
-          <div className="container mx-auto px-6 py-8">
-            <AspectRatio ratio={16 / 9} className="bg-muted rounded-lg overflow-hidden shadow-xl">
-              {embedUrl ? (
-                <div className="relative w-full h-full group">
-                  <iframe
-                    src={embedUrl}
-                    title={course.title}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    className="w-full h-full"
-                  />
-                </div>
-              ) : course.thumbnail_url ? (
-                <div className="relative w-full h-full group cursor-pointer">
-                  <img
-                    src={course.thumbnail_url}
-                    alt={course.title}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-background/20 to-transparent" />
-                  {course.youtube_url && (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="w-20 h-20 rounded-full bg-primary flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
-                        <Play className="h-10 w-10 text-primary-foreground ml-1" fill="currentColor" />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : null}
-            </AspectRatio>
-          </div>
+      <div className="bg-card border-b">
+        <div className="container mx-auto px-6 py-8">
+          <AspectRatio ratio={16 / 9} className="bg-muted rounded-lg overflow-hidden shadow-xl">
+            {embedUrl ? (
+              <iframe
+                src={embedUrl}
+                title={course.title}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                className="w-full h-full"
+              />
+            ) : (
+              <div className={`relative w-full h-full bg-gradient-to-br ${config.color} flex items-center justify-center`}>
+                <Icon className="w-24 h-24 text-white/30" />
+              </div>
+            )}
+          </AspectRatio>
         </div>
-      )}
+      </div>
 
       {/* Main Content */}
       <main className="container mx-auto px-6 py-12">
