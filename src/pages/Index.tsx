@@ -59,12 +59,12 @@ const Index = () => {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center animate-in fade-in slide-in-from-bottom-7 duration-1000 delay-300">
-              <Button size="lg" onClick={() => navigate("/auth")} className="text-lg">
-                Get Started
+              <Button size="lg" onClick={() => navigate("/courses")} className="text-lg">
+                Browse Courses
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
-              <Button size="lg" variant="outline" onClick={() => navigate("/dashboard")}>
-                Student Portal
+              <Button size="lg" variant="outline" onClick={() => navigate("/auth")}>
+                Sign In
               </Button>
             </div>
           </div>

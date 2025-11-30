@@ -54,7 +54,7 @@ const ContentNew = () => {
           event_duration_minutes: ["live_webinar", "batch_class", "offline_seminar"].includes(formData.content_type)
             ? formData.event_duration_minutes
             : null,
-          max_capacity: ["batch_class", "offline_seminar"].includes(formData.content_type)
+          max_capacity: ["live_webinar", "batch_class", "offline_seminar"].includes(formData.content_type)
             ? formData.max_capacity
             : null,
           venue_name: formData.content_type === "offline_seminar" ? formData.venue_name : null,
@@ -220,7 +220,7 @@ const ContentNew = () => {
                   </div>
                 )}
 
-                {["batch_class", "offline_seminar"].includes(formData.content_type) && (
+                {["live_webinar", "batch_class", "offline_seminar"].includes(formData.content_type) && (
                   <div className="space-y-2">
                     <Label htmlFor="capacity">Max Capacity</Label>
                     <Input
