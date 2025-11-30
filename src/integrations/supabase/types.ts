@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_codes: {
+        Row: {
+          code: string
+          content_id: string
+          created_at: string | null
+          created_by: string
+          current_uses: number | null
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          max_uses: number | null
+          notes: string | null
+        }
+        Insert: {
+          code: string
+          content_id: string
+          created_at?: string | null
+          created_by: string
+          current_uses?: number | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_uses?: number | null
+          notes?: string | null
+        }
+        Update: {
+          code?: string
+          content_id?: string
+          created_at?: string | null
+          created_by?: string
+          current_uses?: number | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_uses?: number | null
+          notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "access_codes_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       content: {
         Row: {
           content_type: Database["public"]["Enums"]["content_type"]
@@ -26,6 +73,7 @@ export type Database = {
           event_duration_minutes: number | null
           id: string
           instructor_name: string | null
+          is_private: boolean | null
           is_published: boolean | null
           max_capacity: number | null
           modules_count: number | null
@@ -49,6 +97,7 @@ export type Database = {
           event_duration_minutes?: number | null
           id?: string
           instructor_name?: string | null
+          is_private?: boolean | null
           is_published?: boolean | null
           max_capacity?: number | null
           modules_count?: number | null
@@ -72,6 +121,7 @@ export type Database = {
           event_duration_minutes?: number | null
           id?: string
           instructor_name?: string | null
+          is_private?: boolean | null
           is_published?: boolean | null
           max_capacity?: number | null
           modules_count?: number | null

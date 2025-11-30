@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { LogOut, Users, BookOpen, DollarSign, Video, Plus } from "lucide-react";
+import { LogOut, Users, BookOpen, DollarSign, Video, Plus, Key } from "lucide-react";
 import StatsCard from "@/components/dashboard/StatsCard";
 import ContentList from "@/components/dashboard/ContentList";
+import { AccessCodeManager } from "@/components/AccessCodeManager";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -133,7 +134,7 @@ const Dashboard = () => {
           />
           <StatsCard
             title="Revenue (Month)"
-            value={`$${stats.revenue.toLocaleString()}`}
+            value={`BDT ${stats.revenue.toLocaleString()}`}
             icon={DollarSign}
             trend="+23%"
             trendLabel="from last month"
@@ -159,6 +160,10 @@ const Dashboard = () => {
               <TabsTrigger value="webinars">Webinars</TabsTrigger>
               <TabsTrigger value="batches">Batch Classes</TabsTrigger>
               <TabsTrigger value="seminars">Seminars</TabsTrigger>
+              <TabsTrigger value="codes">
+                <Key className="w-4 h-4 mr-2" />
+                Access Codes
+              </TabsTrigger>
             </TabsList>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => navigate("/students")}>
@@ -193,6 +198,9 @@ const Dashboard = () => {
           </TabsContent>
           <TabsContent value="seminars">
             <ContentList filter="offline_seminar" />
+          </TabsContent>
+          <TabsContent value="codes">
+            <AccessCodeManager />
           </TabsContent>
         </Tabs>
       </main>

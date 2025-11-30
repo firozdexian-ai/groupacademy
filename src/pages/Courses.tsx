@@ -48,6 +48,7 @@ const Courses = () => {
         .from("content")
         .select("*")
         .eq("is_published", true)
+        .eq("is_private", false)
         .order("created_at", { ascending: false });
 
       if (error) throw error;

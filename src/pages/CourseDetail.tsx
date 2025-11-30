@@ -9,7 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { CourseShareButtons } from "@/components/CourseShareButtons";
-import { GraduationCap, Video, BookOpen, Calendar, Users, MapPin, Clock, ArrowLeft, CheckCircle, Play } from "lucide-react";
+import { AccessCodeDialog } from "@/components/AccessCodeDialog";
+import { GraduationCap, Video, BookOpen, Calendar, Users, MapPin, Clock, ArrowLeft, CheckCircle, Play, MessageCircle, Key } from "lucide-react";
 import { toast } from "sonner";
 
 type ContentType = "free_video" | "recorded_course" | "live_webinar" | "batch_class" | "offline_seminar";
@@ -51,6 +52,7 @@ const CourseDetail = () => {
   const [user, setUser] = useState<any>(null);
   const [studentProfile, setStudentProfile] = useState<any>(null);
   const [isEnrolled, setIsEnrolled] = useState(false);
+  const [showAccessCodeDialog, setShowAccessCodeDialog] = useState(false);
 
   // Registration form for new users
   const [registrationData, setRegistrationData] = useState({
@@ -98,12 +100,13 @@ const CourseDetail = () => {
 
       setCourse(data);
 
-      // Check if already enrolled
-      if (user) {
+      // Check if user is already enrolled
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
         const { data: student } = await supabase
           .from("students")
           .select("id")
-          .eq("user_id", user.id)
+          .eq("user_id", session.user.id)
           .maybeSingle();
 
         if (student) {
@@ -118,11 +121,19 @@ const CourseDetail = () => {
         }
       }
     } catch (error: any) {
+      console.error("Error fetching course:", error);
       toast.error("Failed to load course");
-      console.error(error);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleWhatsAppClick = () => {
+    const message = encodeURIComponent(
+      `Hi! I want to enroll in "${course?.title}" (BDT ${course?.price}). Please send me the access code after payment confirmation.`
+    );
+    const whatsappUrl = `https://wa.me/8801708459008?text=${message}`;
+    window.open(whatsappUrl, "_blank");
   };
 
   const handleSignupAndEnroll = async (e: React.FormEvent) => {
@@ -514,20 +525,61 @@ const CourseDetail = () => {
                     <Separator />
                     <CourseShareButtons title={course.title} url={currentUrl} />
                   </>
-                ) : user ? (
+                 ) : user ? (
                   <>
-                    <Button 
-                      className="w-full" 
-                      onClick={handleQuickEnroll} 
-                      disabled={isEnrolling || isFull}
-                    >
-                      {isEnrolling ? "Enrolling..." : isFull ? "Course Full" : "Enroll Now"}
-                    </Button>
+                    {course.price > 0 ? (
+                      <>
+                        <div className="space-y-3">
+                          <div className="p-4 bg-muted rounded-lg">
+                            <p className="text-sm font-medium mb-2">This is a paid course</p>
+                            <p className="text-sm text-muted-foreground mb-3">
+                              Contact admin via WhatsApp to complete payment and receive your access code
+                            </p>
+                            <Button 
+                              className="w-full gap-2" 
+                              onClick={handleWhatsAppClick}
+                              variant="default"
+                            >
+                              <MessageCircle className="w-4 h-4" />
+                              Get Access Code via WhatsApp
+                            </Button>
+                          </div>
+                          
+                          <Separator />
+                          
+                          <Button 
+                            className="w-full gap-2" 
+                            variant="outline"
+                            onClick={() => setShowAccessCodeDialog(true)}
+                          >
+                            <Key className="w-4 h-4" />
+                            I Have an Access Code
+                          </Button>
+                        </div>
+                      </>
+                    ) : (
+                      <Button 
+                        className="w-full" 
+                        onClick={handleQuickEnroll} 
+                        disabled={isEnrolling || isFull}
+                      >
+                        {isEnrolling ? "Enrolling..." : isFull ? "Course Full" : "Enroll Now"}
+                      </Button>
+                    )}
                     <Separator />
                     <CourseShareButtons title={course.title} url={currentUrl} />
                   </>
                 ) : (
                   <>
+                    {course.price > 0 && (
+                      <div className="mb-4 p-4 bg-muted rounded-lg">
+                        <p className="text-sm font-medium mb-2">Paid Course - BDT {course.price}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Sign up first, then contact admin via WhatsApp to get your access code
+                        </p>
+                      </div>
+                    )}
+                    
                     <form onSubmit={handleSignupAndEnroll} className="space-y-4">
                       <div className="space-y-2">
                         <Label htmlFor="fullName">Full Name *</Label>
@@ -601,6 +653,20 @@ const CourseDetail = () => {
           </div>
         </div>
       </main>
+
+      {/* Access Code Dialog */}
+      {course && (
+        <AccessCodeDialog
+          open={showAccessCodeDialog}
+          onOpenChange={setShowAccessCodeDialog}
+          contentId={course.id}
+          contentTitle={course.title}
+          onSuccess={() => {
+            setIsEnrolled(true);
+            fetchCourse();
+          }}
+        />
+      )}
     </div>
   );
 };
