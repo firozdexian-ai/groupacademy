@@ -33,6 +33,7 @@ const ContentNew = () => {
     instructor_name: "",
     is_published: true,
     is_private: false,
+    display_order: 0,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -51,6 +52,8 @@ const ContentNew = () => {
           youtube_url: formData.youtube_url || null,
           // Cover image URL
           cover_image_url: formData.cover_image_url || null,
+          // Display order
+          display_order: formData.display_order,
           // Only include relevant fields based on content type
           duration_hours: formData.content_type === "recorded_course" ? formData.duration_hours : null,
           modules_count: formData.content_type === "recorded_course" ? formData.modules_count : null,
@@ -281,6 +284,22 @@ const ContentNew = () => {
                     </div>
                   </>
                 )}
+
+                <div className="space-y-2">
+                  <Label htmlFor="display_order">Display Order</Label>
+                  <Input
+                    id="display_order"
+                    type="number"
+                    value={formData.display_order}
+                    onChange={(e) =>
+                      setFormData({ ...formData, display_order: parseInt(e.target.value) || 0 })
+                    }
+                    placeholder="0"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Lower numbers appear first in the course catalog
+                  </p>
+                </div>
 
                 <div className="space-y-3">
                   <div className="flex items-center space-x-2">

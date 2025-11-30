@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { LogOut, Users, BookOpen, DollarSign, Video, Plus, Key } from "lucide-react";
+import { LogOut, Users, BookOpen, DollarSign, Video, Plus, Key, Image } from "lucide-react";
 import StatsCard from "@/components/dashboard/StatsCard";
 import ContentList from "@/components/dashboard/ContentList";
 import { AccessCodeManager } from "@/components/AccessCodeManager";
+import { BannerManager } from "@/components/dashboard/BannerManager";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -164,6 +165,10 @@ const Dashboard = () => {
                 <Key className="w-4 h-4 mr-2" />
                 Access Codes
               </TabsTrigger>
+              <TabsTrigger value="banners">
+                <Image className="w-4 h-4 mr-2" />
+                Banners
+              </TabsTrigger>
             </TabsList>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => navigate("/students")}>
@@ -201,6 +206,9 @@ const Dashboard = () => {
           </TabsContent>
           <TabsContent value="codes">
             <AccessCodeManager />
+          </TabsContent>
+          <TabsContent value="banners">
+            <BannerManager />
           </TabsContent>
         </Tabs>
       </main>

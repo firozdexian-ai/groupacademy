@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GraduationCap, Video, BookOpen, Calendar, Users, MapPin, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
+import { BannerCarousel } from "@/components/BannerCarousel";
 
 type ContentType = "free_video" | "recorded_course" | "live_webinar" | "batch_class" | "offline_seminar";
 
@@ -49,6 +50,7 @@ const Courses = () => {
         .select("*")
         .eq("is_published", true)
         .eq("is_private", false)
+        .order("display_order", { ascending: true })
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -61,9 +63,10 @@ const Courses = () => {
     }
   };
 
-  const filteredCourses = selectedType === "all" 
-    ? courses 
-    : courses.filter(c => c.content_type === selectedType);
+  const filteredCourses =
+    selectedType === "all"
+      ? courses.filter((course) => course.content_type !== "free_video") // Exclude free videos from All tab
+      : courses.filter((course) => course.content_type === selectedType);
 
   const getCapacityStatus = (course: Course) => {
     if (!course.max_capacity) return null;
@@ -100,6 +103,9 @@ const Courses = () => {
 
       {/* Main Content */}
       <main className="container mx-auto px-6 py-12">
+        {/* Banner Carousel */}
+        <BannerCarousel />
+
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold mb-4">Explore Our Courses</h2>

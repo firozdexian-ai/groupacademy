@@ -61,6 +61,44 @@ export type Database = {
           },
         ]
       }
+      banners: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          display_order: number | null
+          id: string
+          image_url: string
+          is_active: boolean | null
+          link_content_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          display_order?: number | null
+          id?: string
+          image_url: string
+          is_active?: boolean | null
+          link_content_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          display_order?: number | null
+          id?: string
+          image_url?: string
+          is_active?: boolean | null
+          link_content_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "banners_link_content_id_fkey"
+            columns: ["link_content_id"]
+            isOneToOne: false
+            referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       content: {
         Row: {
           content_type: Database["public"]["Enums"]["content_type"]
@@ -69,6 +107,7 @@ export type Database = {
           currency: string | null
           current_enrollment: number | null
           description: string | null
+          display_order: number | null
           duration_hours: number | null
           event_date: string | null
           event_duration_minutes: number | null
@@ -94,6 +133,7 @@ export type Database = {
           currency?: string | null
           current_enrollment?: number | null
           description?: string | null
+          display_order?: number | null
           duration_hours?: number | null
           event_date?: string | null
           event_duration_minutes?: number | null
@@ -119,6 +159,7 @@ export type Database = {
           currency?: string | null
           current_enrollment?: number | null
           description?: string | null
+          display_order?: number | null
           duration_hours?: number | null
           event_date?: string | null
           event_duration_minutes?: number | null
