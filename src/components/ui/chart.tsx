@@ -1,5 +1,6 @@
 import * as React from "react";
 import * as RechartsPrimitive from "recharts";
+import type { TooltipProps } from "recharts";
 
 import { cn } from "@/lib/utils";
 
@@ -91,8 +92,11 @@ const ChartTooltip = RechartsPrimitive.Tooltip;
 
 const ChartTooltipContent = React.forwardRef<
   HTMLDivElement,
-  React.ComponentProps<typeof RechartsPrimitive.Tooltip> &
+  Omit<TooltipProps<any, any>, 'content'> &
     React.ComponentProps<"div"> & {
+      active?: boolean;
+      payload?: Array<any>;
+      label?: any;
       hideLabel?: boolean;
       hideIndicator?: boolean;
       indicator?: "line" | "dot" | "dashed";
@@ -229,11 +233,12 @@ const ChartLegend = RechartsPrimitive.Legend;
 
 const ChartLegendContent = React.forwardRef<
   HTMLDivElement,
-  React.ComponentProps<"div"> &
-    Pick<RechartsPrimitive.LegendProps, "payload" | "verticalAlign"> & {
-      hideIcon?: boolean;
-      nameKey?: string;
-    }
+  React.ComponentProps<"div"> & {
+    payload?: Array<{ value: string; type?: string; id?: string; dataKey?: string; color?: string }>;
+    verticalAlign?: "top" | "bottom" | "middle";
+    hideIcon?: boolean;
+    nameKey?: string;
+  }
 >(({ className, hideIcon = false, payload, verticalAlign = "bottom", nameKey }, ref) => {
   const { config } = useChart();
 
