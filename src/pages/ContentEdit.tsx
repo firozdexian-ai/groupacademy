@@ -12,8 +12,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Card } from "@/components/ui/card";
-import { ArrowLeft, Save } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowLeft, Save, Copy, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ImageUpload } from "@/components/ImageUpload";
 
@@ -23,6 +23,7 @@ export default function ContentEdit() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     slug: "",
@@ -41,6 +42,8 @@ export default function ContentEdit() {
     youtube_url: "",
     cover_image_url: "",
     is_published: true,
+    is_private: false,
+    display_order: 0,
   });
 
   useEffect(() => {
@@ -80,6 +83,8 @@ export default function ContentEdit() {
         youtube_url: data.youtube_url || "",
         cover_image_url: data.cover_image_url || "",
         is_published: data.is_published ?? true,
+        is_private: data.is_private ?? false,
+        display_order: data.display_order ?? 0,
       });
     } catch (error: any) {
       toast({
@@ -126,6 +131,7 @@ export default function ContentEdit() {
           youtube_url: formData.youtube_url || null,
           cover_image_url: formData.cover_image_url || null,
           is_published: formData.is_published,
+          display_order: formData.display_order,
         })
         .eq("id", id);
 
@@ -407,8 +413,24 @@ export default function ContentEdit() {
                     />
                   </div>
                 </div>
-              </>
+            </>
             )}
+
+            {/* Display Order */}
+            <div className="space-y-2">
+              <Label htmlFor="display_order">Display Order</Label>
+              <Input
+                id="display_order"
+                type="number"
+                value={formData.display_order}
+                onChange={(e) =>
+                  setFormData({ ...formData, display_order: parseInt(e.target.value) || 0 })
+                }
+              />
+              <p className="text-xs text-muted-foreground">
+                Lower numbers appear first in the course catalog
+              </p>
+            </div>
 
             <Button type="submit" className="w-full" disabled={saving}>
               <Save className="mr-2 h-4 w-4" />
@@ -416,6 +438,46 @@ export default function ContentEdit() {
             </Button>
           </form>
         </Card>
+
+        {/* B2B Private Link Card */}
+        {formData.is_private && (
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle>Private Course Link</CardTitle>
+              <CardDescription>
+                Share this link with your B2B clients to access this course
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex gap-2">
+                <Input
+                  value={`${window.location.origin}/courses/${formData.slug}`}
+                  readOnly
+                  className="flex-1"
+                />
+                <Button
+                  onClick={() => {
+                    navigator.clipboard.writeText(
+                      `${window.location.origin}/courses/${formData.slug}`
+                    );
+                    setCopiedLink(true);
+                    toast({
+                      title: "Link copied!",
+                      description: "Private course link copied to clipboard",
+                    });
+                    setTimeout(() => setCopiedLink(false), 2000);
+                  }}
+                >
+                  {copiedLink ? (
+                    <Check className="w-4 h-4" />
+                  ) : (
+                    <Copy className="w-4 h-4" />
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

@@ -8,6 +8,7 @@ import Auth from "./pages/Auth";
 import Courses from "./pages/Courses";
 import CourseDetail from "./pages/CourseDetail";
 import Dashboard from "./pages/Dashboard";
+import MyLearning from "./pages/MyLearning";
 import Students from "./pages/Students";
 import Enrollments from "./pages/Enrollments";
 import ContentNew from "./pages/ContentNew";
@@ -28,7 +29,8 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/courses" element={<Courses />} />
           <Route path="/courses/:slug" element={<CourseDetail />} />
-          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/dashboard" element={<ProtectedRoute requireAdmin><Dashboard /></ProtectedRoute>} />
+          <Route path="/my-learning" element={<ProtectedRoute><MyLearning /></ProtectedRoute>} />
           <Route path="/students" element={<ProtectedRoute requireAdmin><Students /></ProtectedRoute>} />
           <Route path="/enrollments" element={<ProtectedRoute requireAdmin><Enrollments /></ProtectedRoute>} />
           <Route path="/content/new" element={<ProtectedRoute requireAdmin><ContentNew /></ProtectedRoute>} />

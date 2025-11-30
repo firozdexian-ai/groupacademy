@@ -34,7 +34,7 @@ export const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRout
 
           if (!roleData) {
             toast.error("Admin access required");
-            navigate("/dashboard");
+            navigate("/my-learning");
             return;
           }
         }
