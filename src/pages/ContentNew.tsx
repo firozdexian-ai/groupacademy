@@ -1,0 +1,284 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { toast } from "sonner";
+import { ArrowLeft } from "lucide-react";
+
+const ContentNew = () => {
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    title: "",
+    slug: "",
+    content_type: "free_video" as "free_video" | "recorded_course" | "live_webinar" | "batch_class" | "offline_seminar",
+    description: "",
+    price: 0,
+    youtube_url: "",
+    duration_hours: 0,
+    modules_count: 0,
+    event_date: "",
+    event_duration_minutes: 0,
+    max_capacity: 0,
+    venue_name: "",
+    venue_address: "",
+    instructor_name: "",
+    is_published: true,
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      // Generate slug from title if not provided
+      const slug = formData.slug || formData.title.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+
+      const { error } = await supabase.from("content").insert([
+        {
+          ...formData,
+          slug,
+          // Only include relevant fields based on content type
+          youtube_url: formData.content_type === "free_video" ? formData.youtube_url : null,
+          duration_hours: formData.content_type === "recorded_course" ? formData.duration_hours : null,
+          modules_count: formData.content_type === "recorded_course" ? formData.modules_count : null,
+          event_date: ["live_webinar", "batch_class", "offline_seminar"].includes(formData.content_type)
+            ? formData.event_date || null
+            : null,
+          event_duration_minutes: ["live_webinar", "batch_class", "offline_seminar"].includes(formData.content_type)
+            ? formData.event_duration_minutes
+            : null,
+          max_capacity: ["batch_class", "offline_seminar"].includes(formData.content_type)
+            ? formData.max_capacity
+            : null,
+          venue_name: formData.content_type === "offline_seminar" ? formData.venue_name : null,
+          venue_address: formData.content_type === "offline_seminar" ? formData.venue_address : null,
+        },
+      ]);
+
+      if (error) throw error;
+
+      toast.success("Content created successfully!");
+      navigate("/dashboard");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to create content");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+        <div className="container mx-auto px-6 py-4">
+          <Button variant="ghost" onClick={() => navigate("/dashboard")}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Dashboard
+          </Button>
+        </div>
+      </header>
+
+      <main className="container mx-auto px-6 py-8 max-w-3xl">
+        <Card>
+          <CardHeader>
+            <CardTitle>Create New Content</CardTitle>
+            <CardDescription>Add new educational content to the platform</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Basic Info */}
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="title">Title *</Label>
+                  <Input
+                    id="title"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="content_type">Content Type *</Label>
+                  <Select
+                    value={formData.content_type}
+                    onValueChange={(value: any) => setFormData({ ...formData, content_type: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="free_video">Free Video</SelectItem>
+                      <SelectItem value="recorded_course">Recorded Course</SelectItem>
+                      <SelectItem value="live_webinar">Live Webinar</SelectItem>
+                      <SelectItem value="batch_class">Batch Class</SelectItem>
+                      <SelectItem value="offline_seminar">Offline Seminar</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    rows={4}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="instructor">Instructor/Speaker</Label>
+                    <Input
+                      id="instructor"
+                      value={formData.instructor_name}
+                      onChange={(e) => setFormData({ ...formData, instructor_name: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="price">Price (USD)</Label>
+                    <Input
+                      id="price"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={formData.price}
+                      onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
+                    />
+                  </div>
+                </div>
+
+                {/* Content Type Specific Fields */}
+                {formData.content_type === "free_video" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="youtube_url">YouTube URL</Label>
+                    <Input
+                      id="youtube_url"
+                      type="url"
+                      value={formData.youtube_url}
+                      onChange={(e) => setFormData({ ...formData, youtube_url: e.target.value })}
+                    />
+                  </div>
+                )}
+
+                {formData.content_type === "recorded_course" && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="duration">Duration (Hours)</Label>
+                      <Input
+                        id="duration"
+                        type="number"
+                        min="0"
+                        value={formData.duration_hours}
+                        onChange={(e) => setFormData({ ...formData, duration_hours: parseInt(e.target.value) || 0 })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="modules">Number of Modules</Label>
+                      <Input
+                        id="modules"
+                        type="number"
+                        min="0"
+                        value={formData.modules_count}
+                        onChange={(e) => setFormData({ ...formData, modules_count: parseInt(e.target.value) || 0 })}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {["live_webinar", "batch_class", "offline_seminar"].includes(formData.content_type) && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="event_date">Event Date & Time</Label>
+                      <Input
+                        id="event_date"
+                        type="datetime-local"
+                        value={formData.event_date}
+                        onChange={(e) => setFormData({ ...formData, event_date: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="duration_minutes">Duration (Minutes)</Label>
+                      <Input
+                        id="duration_minutes"
+                        type="number"
+                        min="0"
+                        value={formData.event_duration_minutes}
+                        onChange={(e) =>
+                          setFormData({ ...formData, event_duration_minutes: parseInt(e.target.value) || 0 })
+                        }
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {["batch_class", "offline_seminar"].includes(formData.content_type) && (
+                  <div className="space-y-2">
+                    <Label htmlFor="capacity">Max Capacity</Label>
+                    <Input
+                      id="capacity"
+                      type="number"
+                      min="0"
+                      value={formData.max_capacity}
+                      onChange={(e) => setFormData({ ...formData, max_capacity: parseInt(e.target.value) || 0 })}
+                    />
+                  </div>
+                )}
+
+                {formData.content_type === "offline_seminar" && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="venue_name">Venue Name</Label>
+                      <Input
+                        id="venue_name"
+                        value={formData.venue_name}
+                        onChange={(e) => setFormData({ ...formData, venue_name: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="venue_address">Venue Address</Label>
+                      <Textarea
+                        id="venue_address"
+                        value={formData.venue_address}
+                        onChange={(e) => setFormData({ ...formData, venue_address: e.target.value })}
+                        rows={2}
+                      />
+                    </div>
+                  </>
+                )}
+
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="published"
+                    checked={formData.is_published}
+                    onCheckedChange={(checked) => setFormData({ ...formData, is_published: checked })}
+                  />
+                  <Label htmlFor="published">Publish immediately</Label>
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <Button type="submit" disabled={isLoading} className="flex-1">
+                  {isLoading ? "Creating..." : "Create Content"}
+                </Button>
+                <Button type="button" variant="outline" onClick={() => navigate("/dashboard")}>
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </main>
+    </div>
+  );
+};
+
+export default ContentNew;
