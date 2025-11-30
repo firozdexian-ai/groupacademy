@@ -33,7 +33,7 @@ export const BannerManager = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [newBanner, setNewBanner] = useState({
     image_url: "",
-    link_content_id: "",
+    link_content_id: "none",
     display_order: 0,
   });
 
@@ -94,7 +94,7 @@ export const BannerManager = () => {
       const { error } = await supabase.from("banners").insert([
         {
           image_url: newBanner.image_url,
-          link_content_id: newBanner.link_content_id || null,
+          link_content_id: newBanner.link_content_id === "none" ? null : newBanner.link_content_id,
           display_order: newBanner.display_order,
           created_by: user.id,
         },
@@ -103,7 +103,7 @@ export const BannerManager = () => {
       if (error) throw error;
 
       toast.success("Banner created successfully");
-      setNewBanner({ image_url: "", link_content_id: "", display_order: 0 });
+      setNewBanner({ image_url: "", link_content_id: "none", display_order: 0 });
       loadData();
     } catch (error: any) {
       console.error("Error creating banner:", error);
@@ -182,7 +182,7 @@ export const BannerManager = () => {
                   <SelectValue placeholder="Select a course to link..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No link</SelectItem>
+                  <SelectItem value="none">No link</SelectItem>
                   {availableContent.map((content) => (
                     <SelectItem key={content.id} value={content.id}>
                       {content.title}
