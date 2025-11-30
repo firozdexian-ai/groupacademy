@@ -34,6 +34,7 @@ const ContentNew = () => {
     is_published: true,
     is_private: false,
     display_order: 0,
+    whatsapp_group_link: "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -52,6 +53,8 @@ const ContentNew = () => {
           youtube_url: formData.youtube_url || null,
           // Cover image URL
           cover_image_url: formData.cover_image_url || null,
+          // WhatsApp group link
+          whatsapp_group_link: formData.whatsapp_group_link || null,
           // Display order
           display_order: formData.display_order,
           // Only include relevant fields based on content type
@@ -194,6 +197,21 @@ const ContentNew = () => {
                     {formData.content_type === "free_video" 
                       ? "YouTube URL for the main video content" 
                       : "Add a trailer or preview video (optional)"}
+                  </p>
+                </div>
+
+                {/* WhatsApp Group Link */}
+                <div className="space-y-2">
+                  <Label htmlFor="whatsapp_group_link">WhatsApp Group Link</Label>
+                  <Input
+                    id="whatsapp_group_link"
+                    type="url"
+                    placeholder="https://chat.whatsapp.com/..."
+                    value={formData.whatsapp_group_link}
+                    onChange={(e) => setFormData({ ...formData, whatsapp_group_link: e.target.value })}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Share your course WhatsApp group link with enrolled students
                   </p>
                 </div>
 

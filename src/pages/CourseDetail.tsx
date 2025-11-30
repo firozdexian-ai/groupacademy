@@ -33,6 +33,7 @@ interface Course {
   venue_address: string | null;
   duration_hours: number | null;
   modules_count: number | null;
+  whatsapp_group_link: string | null;
 }
 
 const contentTypeConfig = {
@@ -577,7 +578,15 @@ const CourseDetail = () => {
                          ✓ You're enrolled in this course
                        </p>
                      </div>
-                     <Button className="w-full" onClick={() => navigate("/my-learning")}>
+                     {course.whatsapp_group_link && (
+                       <a href={course.whatsapp_group_link} target="_blank" rel="noopener noreferrer">
+                         <Button className="w-full bg-green-600 hover:bg-green-700 text-white" size="lg">
+                           <MessageCircle className="w-5 h-5 mr-2" />
+                           Join Course WhatsApp Group
+                         </Button>
+                       </a>
+                     )}
+                     <Button className="w-full" onClick={() => navigate("/my-learning")} variant={course.whatsapp_group_link ? "outline" : "default"}>
                        Go to My Learning
                      </Button>
                      <Separator />

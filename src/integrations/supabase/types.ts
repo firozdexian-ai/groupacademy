@@ -124,6 +124,7 @@ export type Database = {
           updated_at: string | null
           venue_address: string | null
           venue_name: string | null
+          whatsapp_group_link: string | null
           youtube_url: string | null
         }
         Insert: {
@@ -150,6 +151,7 @@ export type Database = {
           updated_at?: string | null
           venue_address?: string | null
           venue_name?: string | null
+          whatsapp_group_link?: string | null
           youtube_url?: string | null
         }
         Update: {
@@ -176,6 +178,7 @@ export type Database = {
           updated_at?: string | null
           venue_address?: string | null
           venue_name?: string | null
+          whatsapp_group_link?: string | null
           youtube_url?: string | null
         }
         Relationships: []

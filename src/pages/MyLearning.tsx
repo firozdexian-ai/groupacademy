@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { LogOut, BookOpen, Calendar, CheckCircle, Clock } from "lucide-react";
+import { LogOut, BookOpen, Calendar, CheckCircle, Clock, MessageCircle } from "lucide-react";
 
 interface Enrollment {
   id: string;
@@ -20,6 +20,7 @@ interface Enrollment {
     cover_image_url: string | null;
     instructor_name: string | null;
     event_date: string | null;
+    whatsapp_group_link: string | null;
   };
 }
 
@@ -70,7 +71,8 @@ const MyLearning = () => {
             content_type,
             cover_image_url,
             instructor_name,
-            event_date
+            event_date,
+            whatsapp_group_link
           )
         `)
         .eq("student_id", student.id)
@@ -151,12 +153,25 @@ const MyLearning = () => {
               </div>
             )}
 
-            <Button
-              onClick={() => navigate(`/courses/${enrollment.content.slug}`)}
-              size="sm"
-            >
-              View Course
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => navigate(`/courses/${enrollment.content.slug}`)}
+                size="sm"
+              >
+                View Course
+              </Button>
+              {enrollment.content.whatsapp_group_link && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+                  onClick={() => window.open(enrollment.content.whatsapp_group_link, '_blank')}
+                >
+                  <MessageCircle className="w-4 h-4 mr-1" />
+                  Join Group
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </CardContent>

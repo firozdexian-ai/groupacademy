@@ -44,6 +44,7 @@ export default function ContentEdit() {
     is_published: true,
     is_private: false,
     display_order: 0,
+    whatsapp_group_link: "",
   });
 
   useEffect(() => {
@@ -85,6 +86,7 @@ export default function ContentEdit() {
         is_published: data.is_published ?? true,
         is_private: data.is_private ?? false,
         display_order: data.display_order ?? 0,
+        whatsapp_group_link: data.whatsapp_group_link || "",
       });
     } catch (error: any) {
       toast({
@@ -130,6 +132,7 @@ export default function ContentEdit() {
             : null,
           youtube_url: formData.youtube_url || null,
           cover_image_url: formData.cover_image_url || null,
+          whatsapp_group_link: formData.whatsapp_group_link || null,
           is_published: formData.is_published,
           display_order: formData.display_order,
         })
@@ -288,6 +291,23 @@ export default function ContentEdit() {
                 {formData.content_type === "free_video" 
                   ? "YouTube URL for the main video content" 
                   : "Add a trailer or preview video (optional)"}
+              </p>
+            </div>
+
+            {/* WhatsApp Group Link */}
+            <div className="space-y-2">
+              <Label htmlFor="whatsapp_group_link">WhatsApp Group Link</Label>
+              <Input
+                id="whatsapp_group_link"
+                type="url"
+                placeholder="https://chat.whatsapp.com/..."
+                value={formData.whatsapp_group_link}
+                onChange={(e) =>
+                  setFormData({ ...formData, whatsapp_group_link: e.target.value })
+                }
+              />
+              <p className="text-xs text-muted-foreground">
+                Share your course WhatsApp group link with enrolled students
               </p>
             </div>
 
