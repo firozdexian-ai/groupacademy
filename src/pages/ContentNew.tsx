@@ -36,6 +36,7 @@ const ContentNew = () => {
     is_private: false,
     display_order: 0,
     whatsapp_group_link: "",
+    quiz_enabled: false,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -359,6 +360,20 @@ const ContentNew = () => {
                       <span>Private (B2B Only)</span>
                       <span className="text-xs text-muted-foreground font-normal">
                         Hide from public catalog - accessible only via direct link
+                      </span>
+                    </Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="quiz_enabled"
+                      checked={formData.quiz_enabled}
+                      onCheckedChange={(checked) => setFormData({ ...formData, quiz_enabled: checked })}
+                    />
+                    <Label htmlFor="quiz_enabled" className="flex flex-col gap-1">
+                      <span>Enable Quiz</span>
+                      <span className="text-xs text-muted-foreground font-normal">
+                        Require students to pass a quiz to complete this course
                       </span>
                     </Label>
                   </div>

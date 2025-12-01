@@ -160,6 +160,15 @@ const MyLearning = () => {
               >
                 Continue Learning
               </Button>
+              {enrollment.status === "completed" && (
+                <Button
+                  onClick={() => navigate(`/report-card/${enrollment.id}`)}
+                  variant="outline"
+                  size="sm"
+                >
+                  Download Report Card
+                </Button>
+              )}
               {enrollment.content.whatsapp_group_link && (
                 <Button
                   variant="outline"
