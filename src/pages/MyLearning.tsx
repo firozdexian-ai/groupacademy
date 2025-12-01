@@ -155,10 +155,10 @@ const MyLearning = () => {
 
             <div className="flex gap-2">
               <Button
-                onClick={() => navigate(`/courses/${enrollment.content.slug}`)}
+                onClick={() => navigate(`/learn/${enrollment.content.slug}`)}
                 size="sm"
               >
-                View Course
+                Continue Learning
               </Button>
               {enrollment.content.whatsapp_group_link && (
                 <Button

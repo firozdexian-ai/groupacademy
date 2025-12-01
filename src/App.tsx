@@ -13,6 +13,11 @@ import Students from "./pages/Students";
 import Enrollments from "./pages/Enrollments";
 import ContentNew from "./pages/ContentNew";
 import ContentEdit from "./pages/ContentEdit";
+import CoursePlayer from "./pages/CoursePlayer";
+import Quiz from "./pages/Quiz";
+import QuizManagement from "./pages/QuizManagement";
+import ModuleManagement from "./pages/ModuleManagement";
+import ReportCard from "./pages/ReportCard";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
@@ -31,6 +36,11 @@ const App = () => (
           <Route path="/courses/:slug" element={<CourseDetail />} />
           <Route path="/dashboard" element={<ProtectedRoute requireAdmin><Dashboard /></ProtectedRoute>} />
           <Route path="/my-learning" element={<ProtectedRoute><MyLearning /></ProtectedRoute>} />
+          <Route path="/learn/:slug" element={<ProtectedRoute><CoursePlayer /></ProtectedRoute>} />
+          <Route path="/quiz/:slug" element={<ProtectedRoute><Quiz /></ProtectedRoute>} />
+          <Route path="/quiz-manage/:contentId" element={<ProtectedRoute requireAdmin><QuizManagement /></ProtectedRoute>} />
+          <Route path="/content/:contentId/modules" element={<ProtectedRoute requireAdmin><ModuleManagement /></ProtectedRoute>} />
+          <Route path="/report-card/:enrollmentId" element={<ProtectedRoute><ReportCard /></ProtectedRoute>} />
           <Route path="/students" element={<ProtectedRoute requireAdmin><Students /></ProtectedRoute>} />
           <Route path="/enrollments" element={<ProtectedRoute requireAdmin><Enrollments /></ProtectedRoute>} />
           <Route path="/content/new" element={<ProtectedRoute requireAdmin><ContentNew /></ProtectedRoute>} />

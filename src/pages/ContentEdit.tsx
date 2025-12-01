@@ -515,6 +515,45 @@ export default function ContentEdit() {
           </form>
         </Card>
 
+        {/* Course Management Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Course Modules</CardTitle>
+              <CardDescription>
+                Add and manage video lessons for this course
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => navigate(`/content/${id}/modules`)}
+              >
+                Manage Modules
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Quiz Assessment</CardTitle>
+              <CardDescription>
+                Create 10 MCQs to assess student learning
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button 
+                variant="outline" 
+                className="w-full"
+                onClick={() => navigate(`/quiz-manage/${id}`)}
+              >
+                Manage Quiz
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* B2B Private Link Card */}
         {formData.is_private && (
           <Card className="mt-6">
