@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
 import { ImageUpload } from "@/components/ImageUpload";
+import { youtubeUrlSchema, whatsappUrlSchema } from "@/lib/validations";
 
 const ContentNew = () => {
   const navigate = useNavigate();
@@ -42,6 +43,25 @@ const ContentNew = () => {
     setIsLoading(true);
 
     try {
+      // Validate URLs if provided
+      if (formData.youtube_url) {
+        const ytValidation = youtubeUrlSchema.safeParse(formData.youtube_url);
+        if (!ytValidation.success) {
+          toast.error(ytValidation.error.errors[0].message);
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      if (formData.whatsapp_group_link) {
+        const waValidation = whatsappUrlSchema.safeParse(formData.whatsapp_group_link);
+        if (!waValidation.success) {
+          toast.error(waValidation.error.errors[0].message);
+          setIsLoading(false);
+          return;
+        }
+      }
+
       // Generate slug from title if not provided
       const slug = formData.slug || formData.title.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
 

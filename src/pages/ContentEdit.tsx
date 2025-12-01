@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -16,6 +17,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ArrowLeft, Save, Copy, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ImageUpload } from "@/components/ImageUpload";
+import { youtubeUrlSchema, whatsappUrlSchema } from "@/lib/validations";
 
 export default function ContentEdit() {
   const { id } = useParams();
@@ -105,6 +107,33 @@ export default function ContentEdit() {
     setSaving(true);
 
     try {
+      // Validate URLs if provided
+      if (formData.youtube_url) {
+        const ytValidation = youtubeUrlSchema.safeParse(formData.youtube_url);
+        if (!ytValidation.success) {
+          toast({
+            title: "Invalid YouTube URL",
+            description: ytValidation.error.errors[0].message,
+            variant: "destructive",
+          });
+          setSaving(false);
+          return;
+        }
+      }
+
+      if (formData.whatsapp_group_link) {
+        const waValidation = whatsappUrlSchema.safeParse(formData.whatsapp_group_link);
+        if (!waValidation.success) {
+          toast({
+            title: "Invalid WhatsApp Link",
+            description: waValidation.error.errors[0].message,
+            variant: "destructive",
+          });
+          setSaving(false);
+          return;
+        }
+      }
+
       const { error } = await supabase
         .from("content")
         .update({
@@ -134,6 +163,7 @@ export default function ContentEdit() {
           cover_image_url: formData.cover_image_url || null,
           whatsapp_group_link: formData.whatsapp_group_link || null,
           is_published: formData.is_published,
+          is_private: formData.is_private,
           display_order: formData.display_order,
         })
         .eq("id", id);
@@ -450,6 +480,32 @@ export default function ContentEdit() {
               <p className="text-xs text-muted-foreground">
                 Lower numbers appear first in the course catalog
               </p>
+            </div>
+
+            {/* Publish & Private Toggles */}
+            <div className="space-y-3">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="published"
+                  checked={formData.is_published}
+                  onCheckedChange={(checked) => setFormData({ ...formData, is_published: checked })}
+                />
+                <Label htmlFor="published">Publish</Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="private"
+                  checked={formData.is_private}
+                  onCheckedChange={(checked) => setFormData({ ...formData, is_private: checked })}
+                />
+                <Label htmlFor="private" className="flex flex-col gap-1">
+                  <span>Private (B2B Only)</span>
+                  <span className="text-xs text-muted-foreground font-normal">
+                    Hide from public catalog - accessible only via direct link
+                  </span>
+                </Label>
+              </div>
             </div>
 
             <Button type="submit" className="w-full" disabled={saving}>

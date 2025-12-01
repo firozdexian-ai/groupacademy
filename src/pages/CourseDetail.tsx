@@ -64,6 +64,7 @@ const CourseDetail = () => {
     phone: "",
     password: "",
   });
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     checkAuth();
@@ -802,57 +803,67 @@ const CourseDetail = () => {
                       </div>
                     )}
                     
-                    <form onSubmit={handleSignupAndEnroll} className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="fullName">Full Name *</Label>
-                        <Input
-                          id="fullName"
-                          required
-                          value={registrationData.fullName}
-                          onChange={(e) =>
-                            setRegistrationData({ ...registrationData, fullName: e.target.value })
-                          }
-                        />
-                      </div>
+                     <form onSubmit={handleSignupAndEnroll} className="space-y-4">
+                       <div className="space-y-2">
+                         <Label htmlFor="fullName">Full Name *</Label>
+                         <Input
+                           id="fullName"
+                           required
+                           value={registrationData.fullName}
+                           onChange={(e) =>
+                             setRegistrationData({ ...registrationData, fullName: e.target.value })
+                           }
+                         />
+                         {validationErrors.fullName && (
+                           <p className="text-sm text-destructive">{validationErrors.fullName}</p>
+                         )}
+                       </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="email">Email *</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          required
-                          value={registrationData.email}
-                          onChange={(e) =>
-                            setRegistrationData({ ...registrationData, email: e.target.value })
-                          }
-                        />
-                      </div>
+                       <div className="space-y-2">
+                         <Label htmlFor="email">Email *</Label>
+                         <Input
+                           id="email"
+                           type="email"
+                           required
+                           value={registrationData.email}
+                           onChange={(e) =>
+                             setRegistrationData({ ...registrationData, email: e.target.value })
+                           }
+                         />
+                         {validationErrors.email && (
+                           <p className="text-sm text-destructive">{validationErrors.email}</p>
+                         )}
+                       </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="phone">Phone</Label>
-                        <Input
-                          id="phone"
-                          type="tel"
-                          value={registrationData.phone}
-                          onChange={(e) =>
-                            setRegistrationData({ ...registrationData, phone: e.target.value })
-                          }
-                        />
-                      </div>
+                       <div className="space-y-2">
+                         <Label htmlFor="phone">Phone</Label>
+                         <Input
+                           id="phone"
+                           type="tel"
+                           value={registrationData.phone}
+                           onChange={(e) =>
+                             setRegistrationData({ ...registrationData, phone: e.target.value })
+                           }
+                         />
+                       </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="password">Password *</Label>
-                        <Input
-                          id="password"
-                          type="password"
-                          required
-                          minLength={6}
-                          value={registrationData.password}
-                          onChange={(e) =>
-                            setRegistrationData({ ...registrationData, password: e.target.value })
-                          }
-                        />
-                      </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="password">Password *</Label>
+                          <Input
+                            id="password"
+                            type="password"
+                            required
+                            minLength={8}
+                           value={registrationData.password}
+                           onChange={(e) =>
+                             setRegistrationData({ ...registrationData, password: e.target.value })
+                           }
+                         />
+                         {validationErrors.password && (
+                           <p className="text-sm text-destructive">{validationErrors.password}</p>
+                         )}
+                         <p className="text-xs text-muted-foreground">Minimum 8 characters</p>
+                       </div>
 
                       <Button type="submit" className="w-full" disabled={isEnrolling || isFull}>
                         {isEnrolling ? "Processing..." : isFull ? "Course Full" : "Sign Up & Enroll"}

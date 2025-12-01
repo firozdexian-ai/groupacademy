@@ -8,20 +8,36 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { GraduationCap } from "lucide-react";
+import { loginSchema, signupSchema } from "@/lib/validations";
 
 const Auth = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [loginData, setLoginData] = useState({ email: "", password: "" });
   const [signupData, setSignupData] = useState({ fullName: "", email: "", password: "", phone: "" });
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setValidationErrors({});
+    
+    // Validate input
+    const validation = loginSchema.safeParse(loginData);
+    if (!validation.success) {
+      const errors: Record<string, string> = {};
+      validation.error.errors.forEach((err) => {
+        if (err.path[0]) errors[err.path[0] as string] = err.message;
+      });
+      setValidationErrors(errors);
+      toast.error("Please fix the validation errors");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
-        email: loginData.email,
+        email: loginData.email.trim(),
         password: loginData.password,
       });
 
@@ -42,12 +58,26 @@ const Auth = () => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    setValidationErrors({});
+    
+    // Validate input
+    const validation = signupSchema.safeParse(signupData);
+    if (!validation.success) {
+      const errors: Record<string, string> = {};
+      validation.error.errors.forEach((err) => {
+        if (err.path[0]) errors[err.path[0] as string] = err.message;
+      });
+      setValidationErrors(errors);
+      toast.error("Please fix the validation errors");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       // Sign up the user
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
-        email: signupData.email,
+        email: signupData.email.trim(),
         password: signupData.password,
         options: {
           emailRedirectTo: `${window.location.origin}/my-learning`,
@@ -169,6 +199,9 @@ const Auth = () => {
                       onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
                       required
                     />
+                    {validationErrors.email && (
+                      <p className="text-sm text-destructive">{validationErrors.email}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="login-password">Password</Label>
@@ -178,7 +211,11 @@ const Auth = () => {
                       value={loginData.password}
                       onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
                       required
+                      minLength={8}
                     />
+                    {validationErrors.password && (
+                      <p className="text-sm text-destructive">{validationErrors.password}</p>
+                    )}
                   </div>
                   <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading ? "Signing in..." : "Sign In"}
@@ -206,6 +243,9 @@ const Auth = () => {
                       onChange={(e) => setSignupData({ ...signupData, fullName: e.target.value })}
                       required
                     />
+                    {validationErrors.fullName && (
+                      <p className="text-sm text-destructive">{validationErrors.fullName}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-email">Email</Label>
@@ -217,6 +257,9 @@ const Auth = () => {
                       onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
                       required
                     />
+                    {validationErrors.email && (
+                      <p className="text-sm text-destructive">{validationErrors.email}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-phone">Phone (Optional)</Label>
@@ -236,7 +279,12 @@ const Auth = () => {
                       value={signupData.password}
                       onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
                       required
+                      minLength={8}
                     />
+                    {validationErrors.password && (
+                      <p className="text-sm text-destructive">{validationErrors.password}</p>
+                    )}
+                    <p className="text-xs text-muted-foreground">Minimum 8 characters</p>
                   </div>
                   <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading ? "Creating account..." : "Create Account"}
