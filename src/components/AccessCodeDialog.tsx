@@ -65,22 +65,43 @@ export const AccessCodeDialog = ({
         return;
       }
 
-      // Get current user and student profile
+      // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         toast.error("Please sign in first");
         return;
       }
 
-      const { data: student } = await supabase
+      // Get or create student profile
+      let student;
+      const { data: existingStudent } = await supabase
         .from("students")
         .select("id")
         .eq("user_id", user.id)
         .maybeSingle();
 
-      if (!student) {
-        toast.error("Student profile not found");
-        return;
+      if (existingStudent) {
+        student = existingStudent;
+      } else {
+        // Auto-create student profile if missing
+        const { data: newStudent, error: studentError } = await supabase
+          .from("students")
+          .insert([{
+            user_id: user.id,
+            full_name: user.email?.split('@')[0] || 'Student',
+            email: user.email || '',
+            phone: '',
+            student_id: '',
+            status: "free_learner",
+          }])
+          .select("id")
+          .single();
+
+        if (studentError) {
+          toast.error("Failed to create profile. Please complete your profile first.");
+          return;
+        }
+        student = newStudent;
       }
 
       // Create enrollment
@@ -126,7 +147,7 @@ export const AccessCodeDialog = ({
       setCode("");
     } catch (error: any) {
       console.error("Error validating access code:", error);
-      toast.error("Failed to validate access code");
+      toast.error("Failed to validate access code. Please try again.");
     } finally {
       setIsValidating(false);
     }

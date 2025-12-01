@@ -55,9 +55,21 @@ const Auth = () => {
       });
 
       if (signUpError) throw signUpError;
+      if (!authData.user) throw new Error("Signup failed");
 
-      // Create student profile
-      if (authData.user) {
+      // Wait for session to establish (fixes race condition)
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      // Verify session exists before creating profile
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.warning("Account created! Please sign in to continue.");
+        navigate('/auth');
+        return;
+      }
+
+      // Create student profile with retry logic
+      try {
         const { error: profileError } = await supabase.from("students").insert([
           {
             user_id: authData.user.id,
@@ -69,7 +81,26 @@ const Auth = () => {
           },
         ]);
 
-        if (profileError) throw profileError;
+        if (profileError) {
+          // Check if profile already exists (rare race condition)
+          if (profileError.code === '23505') {
+            const { data: existingProfile } = await supabase
+              .from("students")
+              .select("id")
+              .eq("user_id", authData.user.id)
+              .maybeSingle();
+            
+            if (!existingProfile) {
+              throw profileError;
+            }
+            // Profile exists, continue silently
+          } else {
+            throw profileError;
+          }
+        }
+      } catch (profileError: any) {
+        console.error("Profile creation error:", profileError);
+        toast.error("Account created but profile setup failed. Please complete your profile.");
       }
 
       toast.success("Account created successfully!");
@@ -79,7 +110,11 @@ const Auth = () => {
       const returnTo = params.get('returnTo') || '/my-learning';
       navigate(returnTo);
     } catch (error: any) {
-      toast.error(error.message || "Failed to create account");
+      if (error.message.includes("already registered") || error.code === "23505") {
+        toast.error("This email is already registered. Please sign in instead.");
+      } else {
+        toast.error(error.message || "Failed to create account");
+      }
     } finally {
       setIsLoading(false);
     }

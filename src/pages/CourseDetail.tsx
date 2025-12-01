@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { CourseShareButtons } from "@/components/CourseShareButtons";
 import { AccessCodeDialog } from "@/components/AccessCodeDialog";
+import { ProfileCompletionForm } from "@/components/ProfileCompletionForm";
 import { GraduationCap, Video, BookOpen, Calendar, Users, MapPin, Clock, ArrowLeft, CheckCircle, Play, MessageCircle, Key, Youtube } from "lucide-react";
 import { toast } from "sonner";
 
@@ -278,42 +279,32 @@ const CourseDetail = () => {
       return;
     }
 
+    // Check if profile exists first
+    if (!studentProfile) {
+      toast.error("Please complete your profile below to continue");
+      return;
+    }
+
     setIsEnrolling(true);
 
     try {
-      // If no student profile, create one
-      let profile = studentProfile;
-      if (!profile) {
-        const { data: newProfile, error: profileError } = await supabase
-          .from("students")
-          .insert([{
-            user_id: user.id,
-            full_name: user.email?.split('@')[0] || 'Student',
-            email: user.email || '',
-            phone: '',
-            student_id: '',
-          }])
-          .select()
-          .single();
-        
-        if (profileError) {
-          toast.error("Please complete your profile first");
-          return;
-        }
-        profile = newProfile;
-        setStudentProfile(newProfile);
-      }
-
       const { error } = await supabase.from("enrollments").insert([
         {
-          student_id: profile.id,
+          student_id: studentProfile.id,
           content_id: course.id,
           status: course.price && course.price > 0 ? "pending_payment" : "active",
           payment_amount: course.price || 0,
         },
       ]);
 
-      if (error) throw error;
+      if (error) {
+        if (error.code === '23505') {
+          toast.error("You are already enrolled in this course");
+        } else {
+          throw error;
+        }
+        return;
+      }
 
       toast.success(
         course.price && course.price > 0
@@ -326,9 +317,19 @@ const CourseDetail = () => {
       // Redirect to student learning portal
       navigate("/my-learning");
     } catch (error: any) {
-      toast.error(error.message || "Failed to enroll");
+      toast.error(error.message || "Failed to enroll. Please try again.");
     } finally {
       setIsEnrolling(false);
+    }
+  };
+
+  const handleProfileComplete = async (profile: any) => {
+    setStudentProfile(profile);
+    
+    // Auto-trigger enrollment after profile completion for free courses
+    if (course && course.price === 0) {
+      await new Promise(resolve => setTimeout(resolve, 300));
+      await handleQuickEnroll();
     }
   };
 
@@ -707,51 +708,53 @@ const CourseDetail = () => {
                      <Separator />
                      <CourseShareButtons title={course.title} url={currentUrl} />
                    </div>
-                 ) : user ? (
-                  <>
-                    {course.price > 0 ? (
-                      <>
-                        <div className="space-y-3">
-                          <div className="p-4 bg-muted rounded-lg">
-                            <p className="text-sm font-medium mb-2">This is a paid course</p>
-                            <p className="text-sm text-muted-foreground mb-3">
-                              Contact admin via WhatsApp to complete payment and receive your access code
-                            </p>
-                            <Button 
-                              className="w-full gap-2" 
-                              onClick={handleWhatsAppClick}
-                              variant="default"
-                            >
-                              <MessageCircle className="w-4 h-4" />
-                              Get Access Code via WhatsApp
-                            </Button>
-                          </div>
-                          
-                          <Separator />
-                          
-                          <Button 
-                            className="w-full gap-2" 
-                            variant="outline"
-                            onClick={() => setShowAccessCodeDialog(true)}
-                          >
-                            <Key className="w-4 h-4" />
-                            I Have an Access Code
-                          </Button>
-                        </div>
-                      </>
-                    ) : (
-                      <Button 
-                        className="w-full" 
-                        onClick={handleQuickEnroll} 
-                        disabled={isEnrolling || isFull}
-                      >
-                        {isEnrolling ? "Enrolling..." : isFull ? "Course Full" : "Enroll Now"}
-                      </Button>
-                    )}
-                    <Separator />
-                    <CourseShareButtons title={course.title} url={currentUrl} />
-                  </>
-                ) : (
+                  ) : user ? (
+                   <>
+                     {!studentProfile ? (
+                       <ProfileCompletionForm user={user} onComplete={handleProfileComplete} />
+                     ) : course.price > 0 ? (
+                       <>
+                         <div className="space-y-3">
+                           <div className="p-4 bg-muted rounded-lg">
+                             <p className="text-sm font-medium mb-2">This is a paid course</p>
+                             <p className="text-sm text-muted-foreground mb-3">
+                               Contact admin via WhatsApp to complete payment and receive your access code
+                             </p>
+                             <Button 
+                               className="w-full gap-2" 
+                               onClick={handleWhatsAppClick}
+                               variant="default"
+                             >
+                               <MessageCircle className="w-4 h-4" />
+                               Get Access Code via WhatsApp
+                             </Button>
+                           </div>
+                           
+                           <Separator />
+                           
+                           <Button 
+                             className="w-full gap-2" 
+                             variant="outline"
+                             onClick={() => setShowAccessCodeDialog(true)}
+                           >
+                             <Key className="w-4 h-4" />
+                             I Have an Access Code
+                           </Button>
+                         </div>
+                       </>
+                     ) : (
+                       <Button 
+                         className="w-full" 
+                         onClick={handleQuickEnroll} 
+                         disabled={isEnrolling || isFull}
+                       >
+                         {isEnrolling ? "Enrolling..." : isFull ? "Course Full" : "Enroll Now"}
+                       </Button>
+                     )}
+                     <Separator />
+                     <CourseShareButtons title={course.title} url={currentUrl} />
+                   </>
+                 ) : (
                   <>
                     {course.price > 0 && (
                       <div className="mb-4 p-4 bg-muted rounded-lg">

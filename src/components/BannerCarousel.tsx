@@ -17,6 +17,7 @@ export const BannerCarousel = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [contentSlugs, setContentSlugs] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   useEffect(() => {
     loadBanners();
@@ -31,6 +32,11 @@ export const BannerCarousel = () => {
       return () => clearInterval(interval);
     }
   }, [banners.length]);
+
+  // Reset image loaded state when index changes
+  useEffect(() => {
+    setImageLoaded(false);
+  }, [currentIndex]);
 
   const loadBanners = async () => {
     try {
@@ -92,12 +98,23 @@ export const BannerCarousel = () => {
 
   return (
     <div className="relative w-full h-64 sm:h-72 md:h-80 lg:h-[400px] rounded-xl overflow-hidden bg-muted mb-8 group">
-      {/* Banner Image */}
-      <div
-        className="w-full h-full bg-cover bg-center transition-all duration-500 cursor-pointer"
-        style={{ backgroundImage: `url(${banners[currentIndex].image_url})` }}
+      {/* Banner Image with optimized loading */}
+      <img
+        src={banners[currentIndex].image_url}
+        alt={`Banner ${currentIndex + 1}`}
+        loading="lazy"
+        className={`w-full h-full object-cover transition-opacity duration-500 ${
+          imageLoaded ? 'opacity-100' : 'opacity-0'
+        }`}
+        onLoad={() => setImageLoaded(true)}
         onClick={() => handleBannerClick(banners[currentIndex])}
+        style={{ cursor: banners[currentIndex].link_content_id ? 'pointer' : 'default' }}
       />
+
+      {/* Loading skeleton */}
+      {!imageLoaded && (
+        <div className="absolute inset-0 bg-muted animate-pulse" />
+      )}
 
       {/* Navigation Arrows */}
       {banners.length > 1 && (
@@ -130,6 +147,7 @@ export const BannerCarousel = () => {
                     : "bg-white/50 hover:bg-white/75"
                 }`}
                 onClick={() => setCurrentIndex(index)}
+                aria-label={`Go to banner ${index + 1}`}
               />
             ))}
           </div>
