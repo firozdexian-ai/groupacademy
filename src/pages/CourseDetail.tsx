@@ -55,6 +55,7 @@ const CourseDetail = () => {
   const [studentProfile, setStudentProfile] = useState<any>(null);
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [showAccessCodeDialog, setShowAccessCodeDialog] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Registration form for new users
   const [registrationData, setRegistrationData] = useState({
@@ -159,6 +160,7 @@ const CourseDetail = () => {
       }
     } catch (error: any) {
       console.error("Error fetching course:", error);
+      setError("Failed to load course. Please try again later.");
       toast.error("Failed to load course");
     } finally {
       setIsLoading(false);
@@ -369,7 +371,21 @@ const CourseDetail = () => {
     );
   }
 
-  if (!course) return null;
+  if (!course) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background px-6">
+        <div className="text-center max-w-md">
+          <h1 className="text-3xl font-bold mb-4">Course Not Found</h1>
+          <p className="text-muted-foreground mb-6">
+            {error || "The course you're looking for doesn't exist or has been removed."}
+          </p>
+          <Button onClick={() => navigate("/courses")} size="lg">
+            Browse Courses
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   const config = contentTypeConfig[course.content_type];
   const Icon = config.icon;
