@@ -28,7 +28,11 @@ const Auth = () => {
       if (error) throw error;
       
       toast.success("Welcome back!");
-      navigate("/dashboard");
+      
+      // Handle returnTo parameter
+      const params = new URLSearchParams(window.location.search);
+      const returnTo = params.get('returnTo') || '/my-learning';
+      navigate(returnTo);
     } catch (error: any) {
       toast.error(error.message || "Failed to sign in");
     } finally {
@@ -46,7 +50,7 @@ const Auth = () => {
         email: signupData.email,
         password: signupData.password,
         options: {
-          emailRedirectTo: `${window.location.origin}/dashboard`,
+          emailRedirectTo: `${window.location.origin}/my-learning`,
         },
       });
 
@@ -69,7 +73,11 @@ const Auth = () => {
       }
 
       toast.success("Account created successfully!");
-      navigate("/dashboard");
+      
+      // Handle returnTo parameter
+      const params = new URLSearchParams(window.location.search);
+      const returnTo = params.get('returnTo') || '/my-learning';
+      navigate(returnTo);
     } catch (error: any) {
       toast.error(error.message || "Failed to create account");
     } finally {
