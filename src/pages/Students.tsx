@@ -44,6 +44,7 @@ interface Student {
 
 const statusConfig = {
   lead: { label: "Lead", color: "bg-slate-500" },
+  free_learner: { label: "Free Learner", color: "bg-blue-500" },
   enrolled: { label: "Enrolled", color: "bg-primary" },
   completed: { label: "Completed", color: "bg-green-500" },
   dropped: { label: "Dropped", color: "bg-destructive" },

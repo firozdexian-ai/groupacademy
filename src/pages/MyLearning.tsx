@@ -47,7 +47,7 @@ const MyLearning = () => {
         .from("students")
         .select("*")
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
 
       if (!student) {
         toast.error("Student profile not found");

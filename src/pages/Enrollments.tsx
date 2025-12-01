@@ -29,8 +29,9 @@ interface Enrollment {
 
 const statusConfig = {
   pending_payment: { label: "Pending Payment", color: "bg-amber-500" },
+  active: { label: "Active", color: "bg-green-500" },
   confirmed: { label: "Confirmed", color: "bg-primary" },
-  completed: { label: "Completed", color: "bg-green-500" },
+  completed: { label: "Completed", color: "bg-green-600" },
   cancelled: { label: "Cancelled", color: "bg-destructive" },
 };
 
@@ -217,7 +218,7 @@ export default function Enrollments() {
                           {enrollment.payment_amount && (
                             <div className="flex items-center gap-2">
                               <DollarSign className="h-4 w-4 text-muted-foreground" />
-                              <span>${enrollment.payment_amount}</span>
+                              <span>BDT {enrollment.payment_amount}</span>
                             </div>
                           )}
                           {enrollment.content.max_capacity && (

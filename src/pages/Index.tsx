@@ -159,7 +159,7 @@ const Index = () => {
               </div>
               <span className="font-bold">GroUp Academy</span>
             </div>
-            <p className="text-sm text-muted-foreground">© 2024 GroUp Academy. All rights reserved.</p>
+            <p className="text-sm text-muted-foreground">© 2025 GroUp Academy. All rights reserved.</p>
           </div>
         </div>
       </footer>
