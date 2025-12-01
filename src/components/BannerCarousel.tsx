@@ -91,7 +91,7 @@ export const BannerCarousel = () => {
   }
 
   return (
-    <div className="relative w-full h-[400px] rounded-xl overflow-hidden bg-muted mb-8 group">
+    <div className="relative w-full h-48 sm:h-64 md:h-80 lg:h-[400px] rounded-xl overflow-hidden bg-muted mb-8 group">
       {/* Banner Image */}
       <div
         className="w-full h-full bg-cover bg-center transition-all duration-500 cursor-pointer"
