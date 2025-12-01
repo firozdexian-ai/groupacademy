@@ -38,10 +38,17 @@ const Courses = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedType, setSelectedType] = useState<ContentType | "all">("all");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
+    checkAuth();
     fetchCourses();
   }, []);
+
+  const checkAuth = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    setIsLoggedIn(!!user);
+  };
 
   const fetchCourses = async () => {
     try {
@@ -95,7 +102,11 @@ const Courses = () => {
             </div>
             <div className="flex gap-2">
               <Button variant="ghost" onClick={() => navigate("/")}>Home</Button>
-              <Button onClick={() => navigate("/auth")}>Sign In</Button>
+              {isLoggedIn ? (
+                <Button onClick={() => navigate("/my-learning")}>My Learning</Button>
+              ) : (
+                <Button onClick={() => navigate("/auth")}>Sign In</Button>
+              )}
             </div>
           </div>
         </div>

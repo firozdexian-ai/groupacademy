@@ -122,31 +122,23 @@ const Dashboard = () => {
             title="Total Learners"
             value={stats.totalLearners}
             icon={Users}
-            trend="+12%"
-            trendLabel="from last month"
           />
           <StatsCard
             title="Active Enrollments"
             value={stats.activeEnrollments}
             icon={BookOpen}
-            trend="+8%"
-            trendLabel="from last month"
             variant="secondary"
           />
           <StatsCard
             title="Revenue (Month)"
             value={`BDT ${stats.revenue.toLocaleString()}`}
             icon={DollarSign}
-            trend="+23%"
-            trendLabel="from last month"
             variant="success"
           />
           <StatsCard
             title="Free Video Views"
             value={stats.freeVideoViews}
             icon={Video}
-            trend="+15%"
-            trendLabel="from last month"
             variant="accent"
           />
         </div>
