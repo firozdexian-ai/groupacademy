@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { LogOut, Users, BookOpen, DollarSign, Video, Plus, Key, Image } from "lucide-react";
+import { LogOut, Users, BookOpen, DollarSign, Video, Plus, Key, Image, Calendar } from "lucide-react";
 import StatsCard from "@/components/dashboard/StatsCard";
 import ContentList from "@/components/dashboard/ContentList";
 import { AccessCodeManager } from "@/components/AccessCodeManager";
@@ -174,6 +174,10 @@ const Dashboard = () => {
               <Button variant="outline" onClick={() => navigate("/instructors")}>
                 <Users className="w-4 h-4 mr-2" />
                 Instructors
+              </Button>
+              <Button variant="outline" onClick={() => navigate("/sessions")}>
+                <Calendar className="w-4 h-4 mr-2" />
+                Sessions
               </Button>
               <Button onClick={() => navigate("/content/new")}>
                 <Plus className="w-4 h-4 mr-2" />

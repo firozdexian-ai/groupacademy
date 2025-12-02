@@ -275,6 +275,66 @@ export type Database = {
           },
         ]
       }
+      course_sessions: {
+        Row: {
+          content_id: string
+          created_at: string
+          description: string | null
+          duration_minutes: number | null
+          id: string
+          instructor_id: string | null
+          meeting_link: string | null
+          recording_link: string | null
+          scheduled_date: string
+          status: Database["public"]["Enums"]["session_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content_id: string
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          instructor_id?: string | null
+          meeting_link?: string | null
+          recording_link?: string | null
+          scheduled_date: string
+          status?: Database["public"]["Enums"]["session_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          content_id?: string
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          instructor_id?: string | null
+          meeting_link?: string | null
+          recording_link?: string | null
+          scheduled_date?: string
+          status?: Database["public"]["Enums"]["session_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_sessions_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_sessions_instructor_id_fkey"
+            columns: ["instructor_id"]
+            isOneToOne: false
+            referencedRelation: "instructors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       enrollments: {
         Row: {
           completed_at: string | null
@@ -621,6 +681,7 @@ export type Database = {
         | "batch_class"
         | "offline_seminar"
       enrollment_status: "pending_payment" | "active" | "completed"
+      session_status: "scheduled" | "ongoing" | "completed" | "cancelled"
       student_status: "lead" | "free_learner" | "enrolled" | "graduated"
     }
     CompositeTypes: {
@@ -758,6 +819,7 @@ export const Constants = {
         "offline_seminar",
       ],
       enrollment_status: ["pending_payment", "active", "completed"],
+      session_status: ["scheduled", "ongoing", "completed", "cancelled"],
       student_status: ["lead", "free_learner", "enrolled", "graduated"],
     },
   },
