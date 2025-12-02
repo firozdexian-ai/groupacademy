@@ -11,6 +11,8 @@ import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { CourseShareButtons } from "@/components/CourseShareButtons";
 import { AccessCodeDialog } from "@/components/AccessCodeDialog";
 import { ProfileCompletionForm } from "@/components/ProfileCompletionForm";
+import { Navbar } from "@/components/Navbar";
+import { Footer } from "@/components/Footer";
 import { GraduationCap, Video, BookOpen, Calendar, Users, MapPin, Clock, ArrowLeft, CheckCircle, Play, MessageCircle, Key, Youtube } from "lucide-react";
 import { toast } from "sonner";
 
@@ -396,7 +398,9 @@ const CourseDetail = () => {
   const embedUrl = getYouTubeEmbedUrl(course.youtube_url);
 
   return (
-    <div className="min-h-screen bg-gradient-muted">
+    <div className="min-h-screen bg-gradient-muted flex flex-col">
+      <Navbar />
+      
       {/* Hero Section with Cover Image or Gradient Background */}
       <div className="relative overflow-hidden">
         {course.cover_image_url ? (
@@ -904,6 +908,8 @@ const CourseDetail = () => {
           }}
         />
       )}
+
+      <Footer />
     </div>
   );
 };

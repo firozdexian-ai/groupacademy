@@ -8,6 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GraduationCap, Video, BookOpen, Calendar, Users, MapPin, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import { BannerCarousel } from "@/components/BannerCarousel";
+import { Navbar } from "@/components/Navbar";
+import { Footer } from "@/components/Footer";
 
 type ContentType = "free_video" | "recorded_course" | "live_webinar" | "batch_class" | "offline_seminar";
 
@@ -38,17 +40,10 @@ const Courses = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedType, setSelectedType] = useState<ContentType | "all">("all");
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
-    checkAuth();
     fetchCourses();
   }, []);
-
-  const checkAuth = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    setIsLoggedIn(!!user);
-  };
 
   const fetchCourses = async () => {
     try {
@@ -86,31 +81,8 @@ const Courses = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-primary rounded-xl flex items-center justify-center">
-                <GraduationCap className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold">GroUp Academy</h1>
-                <p className="text-sm text-muted-foreground">Course Catalog</p>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="ghost" onClick={() => navigate("/")}>Home</Button>
-              {isLoggedIn ? (
-                <Button onClick={() => navigate("/my-learning")}>My Learning</Button>
-              ) : (
-                <Button onClick={() => navigate("/auth")}>Sign In</Button>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-background flex flex-col">
+      <Navbar />
 
       {/* Main Content */}
       <main className="container mx-auto px-6 py-12">
@@ -237,6 +209,8 @@ const Courses = () => {
           )}
         </div>
       </main>
+
+      <Footer />
     </div>
   );
 };
