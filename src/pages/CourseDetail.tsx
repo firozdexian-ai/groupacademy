@@ -878,7 +878,7 @@ const CourseDetail = () => {
                         <Button 
                           variant="link" 
                           className="p-0 h-auto" 
-                          onClick={() => navigate(`/auth?returnTo=${encodeURIComponent(window.location.pathname)}`)}
+                          onClick={() => navigate(`/auth?tab=login&returnTo=${encodeURIComponent(window.location.pathname)}`)}
                         >
                           Sign in
                         </Button>

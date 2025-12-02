@@ -21,6 +21,19 @@ export const registrationSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters"),
 });
 
+// Password reset schema
+export const resetPasswordSchema = z.object({
+  email: z.string().trim().email("Invalid email address"),
+});
+
+export const newPasswordSchema = z.object({
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
 // URL validation schemas
 export const youtubeUrlSchema = z.string().trim().refine(
   val => !val || /^https?:\/\/(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)[a-zA-Z0-9_-]+/.test(val),

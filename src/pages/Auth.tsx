@@ -1,27 +1,50 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { GraduationCap } from "lucide-react";
-import { loginSchema, signupSchema } from "@/lib/validations";
+import { GraduationCap, Eye, EyeOff, Loader2 } from "lucide-react";
+import { loginSchema, signupSchema, resetPasswordSchema } from "@/lib/validations";
 
 const Auth = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { user, isLoading: authLoading, signIn, signUp, resetPassword } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "login");
   const [loginData, setLoginData] = useState({ email: "", password: "" });
   const [signupData, setSignupData] = useState({ fullName: "", email: "", password: "", phone: "" });
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [showPassword, setShowPassword] = useState(false);
+  const [showSignupPassword, setShowSignupPassword] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (!authLoading && user) {
+      const returnTo = searchParams.get('returnTo') || '/my-learning';
+      navigate(returnTo);
+    }
+  }, [user, authLoading, navigate, searchParams]);
+
+  // Update tab based on URL param
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab === "signup" || tab === "login") {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setValidationErrors({});
     
-    // Validate input
     const validation = loginSchema.safeParse(loginData);
     if (!validation.success) {
       const errors: Record<string, string> = {};
@@ -36,18 +59,8 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: loginData.email.trim(),
-        password: loginData.password,
-      });
-
-      if (error) throw error;
-      
-      toast.success("Welcome back!");
-      
-      // Handle returnTo parameter
-      const params = new URLSearchParams(window.location.search);
-      const returnTo = params.get('returnTo') || '/my-learning';
+      await signIn(loginData.email, loginData.password);
+      const returnTo = searchParams.get('returnTo') || '/my-learning';
       navigate(returnTo);
     } catch (error: any) {
       toast.error(error.message || "Failed to sign in");
@@ -60,7 +73,6 @@ const Auth = () => {
     e.preventDefault();
     setValidationErrors({});
     
-    // Validate input
     const validation = signupSchema.safeParse(signupData);
     if (!validation.success) {
       const errors: Record<string, string> = {};
@@ -75,87 +87,32 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
-      // Sign up the user
-      const { data: authData, error: signUpError } = await supabase.auth.signUp({
-        email: signupData.email.trim(),
-        password: signupData.password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/my-learning`,
-        },
-      });
+      const success = await signUp(
+        signupData.fullName,
+        signupData.email,
+        signupData.password,
+        signupData.phone
+      );
 
-      if (signUpError) throw signUpError;
-      if (!authData.user) throw new Error("Signup failed");
-
-      // Wait for session to establish (fixes race condition)
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      // Verify session exists before creating profile
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast.warning("Account created! Please sign in to continue.");
-        navigate('/auth');
-        return;
+      if (success) {
+        const returnTo = searchParams.get('returnTo') || '/my-learning';
+        navigate(returnTo);
+      } else {
+        setActiveTab("login");
       }
-
-      // Create student profile with retry logic and exponential backoff
-      const maxRetries = 3;
-      const delays = [500, 1000, 2000];
-      let profileCreated = false;
-
-      for (let attempt = 0; attempt < maxRetries; attempt++) {
-        try {
-          const { error: profileError } = await supabase.from("students").insert([
-            {
-              user_id: authData.user.id,
-              student_id: '', // Will be auto-generated by trigger
-              full_name: signupData.fullName,
-              email: signupData.email,
-              phone: signupData.phone,
-              status: "free_learner",
-            },
-          ]);
-
-          if (profileError) {
-            if (profileError.code === '23505') {
-              await new Promise(resolve => setTimeout(resolve, 300));
-              const { data: existingProfile } = await supabase
-                .from("students")
-                .select("id")
-                .eq("user_id", authData.user.id)
-                .maybeSingle();
-              
-              if (existingProfile) {
-                profileCreated = true;
-                break;
-              }
-            }
-            throw profileError;
-          }
-
-          profileCreated = true;
-          break;
-        } catch (error: any) {
-          console.error(`Profile creation attempt ${attempt + 1} failed:`, error);
-          if (attempt < maxRetries - 1) {
-            await new Promise(resolve => setTimeout(resolve, delays[attempt]));
-          }
-        }
-      }
-
-      if (!profileCreated) {
-        toast.warning("Account created! Please complete your profile.");
-      }
-
-      toast.success("Account created successfully!");
-      
-      // Handle returnTo parameter
-      const params = new URLSearchParams(window.location.search);
-      const returnTo = params.get('returnTo') || '/my-learning';
-      navigate(returnTo);
     } catch (error: any) {
-      if (error.message.includes("already registered") || error.code === "23505") {
-        toast.error("This email is already registered. Please sign in instead.");
+      if (error.message.includes("already registered")) {
+        toast.error(
+          <div className="flex flex-col gap-1">
+            <p className="font-semibold">Email already registered</p>
+            <button
+              onClick={() => setActiveTab("login")}
+              className="text-xs underline text-left"
+            >
+              Click here to sign in instead
+            </button>
+          </div>
+        );
       } else {
         toast.error(error.message || "Failed to create account");
       }
@@ -163,6 +120,53 @@ const Auth = () => {
       setIsLoading(false);
     }
   };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const validation = resetPasswordSchema.safeParse({ email: resetEmail });
+    if (!validation.success) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      await resetPassword(resetEmail);
+      setShowForgotPassword(false);
+      setResetEmail("");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to send reset link");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const getPasswordStrength = (password: string) => {
+    if (password.length === 0) return { strength: 0, label: "" };
+    if (password.length < 8) return { strength: 1, label: "Weak", color: "bg-destructive" };
+    
+    let strength = 1;
+    if (password.length >= 12) strength++;
+    if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
+    if (/\d/.test(password)) strength++;
+    if (/[^a-zA-Z0-9]/.test(password)) strength++;
+
+    if (strength <= 2) return { strength: 2, label: "Fair", color: "bg-orange-500" };
+    if (strength <= 3) return { strength: 3, label: "Good", color: "bg-yellow-500" };
+    return { strength: 4, label: "Strong", color: "bg-green-500" };
+  };
+
+  const passwordStrength = getPasswordStrength(signupData.password);
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-muted">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-muted p-4">
@@ -175,7 +179,7 @@ const Auth = () => {
           <p className="text-muted-foreground">Access your learning portal</p>
         </div>
 
-        <Tabs defaultValue="login" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="login">Login</TabsTrigger>
             <TabsTrigger value="signup">Sign Up</TabsTrigger>
@@ -205,21 +209,49 @@ const Auth = () => {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="login-password">Password</Label>
-                    <Input
-                      id="login-password"
-                      type="password"
-                      value={loginData.password}
-                      onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
-                      required
-                      minLength={8}
-                    />
+                    <div className="relative">
+                      <Input
+                        id="login-password"
+                        type={showPassword ? "text" : "password"}
+                        value={loginData.password}
+                        onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
+                        required
+                        minLength={8}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
                     {validationErrors.password && (
                       <p className="text-sm text-destructive">{validationErrors.password}</p>
                     )}
                   </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <button
+                      type="button"
+                      onClick={() => setShowForgotPassword(true)}
+                      className="text-primary hover:underline"
+                    >
+                      Forgot password?
+                    </button>
+                  </div>
                   <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? "Signing in..." : "Sign In"}
+                    {isLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Signing in...</> : "Sign In"}
                   </Button>
+                  <p className="text-sm text-center text-muted-foreground">
+                    Don't have an account?{" "}
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("signup")}
+                      className="text-primary hover:underline font-medium"
+                    >
+                      Sign up
+                    </button>
+                  </p>
                 </form>
               </CardContent>
             </Card>
@@ -266,35 +298,106 @@ const Auth = () => {
                     <Input
                       id="signup-phone"
                       type="tel"
-                      placeholder="+1234567890"
+                      placeholder="+8801XXXXXXXXX"
                       value={signupData.phone}
                       onChange={(e) => setSignupData({ ...signupData, phone: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-password">Password</Label>
-                    <Input
-                      id="signup-password"
-                      type="password"
-                      value={signupData.password}
-                      onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
-                      required
-                      minLength={8}
-                    />
+                    <div className="relative">
+                      <Input
+                        id="signup-password"
+                        type={showSignupPassword ? "text" : "password"}
+                        value={signupData.password}
+                        onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
+                        required
+                        minLength={8}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowSignupPassword(!showSignupPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {showSignupPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
                     {validationErrors.password && (
                       <p className="text-sm text-destructive">{validationErrors.password}</p>
+                    )}
+                    {signupData.password && (
+                      <div className="space-y-1">
+                        <div className="flex gap-1 h-1">
+                          {[1, 2, 3, 4].map((level) => (
+                            <div
+                              key={level}
+                              className={`flex-1 rounded-full transition-colors ${
+                                level <= passwordStrength.strength
+                                  ? passwordStrength.color
+                                  : "bg-muted"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Password strength: {passwordStrength.label || "Enter password"}
+                        </p>
+                      </div>
                     )}
                     <p className="text-xs text-muted-foreground">Minimum 8 characters</p>
                   </div>
                   <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? "Creating account..." : "Create Account"}
+                    {isLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Creating account...</> : "Create Account"}
                   </Button>
+                  <p className="text-sm text-center text-muted-foreground">
+                    Already have an account?{" "}
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("login")}
+                      className="text-primary hover:underline font-medium"
+                    >
+                      Sign in
+                    </button>
+                  </p>
                 </form>
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Forgot Password Dialog */}
+      <Dialog open={showForgotPassword} onOpenChange={setShowForgotPassword}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reset Password</DialogTitle>
+            <DialogDescription>
+              Enter your email address and we'll send you a link to reset your password.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleForgotPassword} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="reset-email">Email</Label>
+              <Input
+                id="reset-email"
+                type="email"
+                placeholder="you@example.com"
+                value={resetEmail}
+                onChange={(e) => setResetEmail(e.target.value)}
+                required
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button type="submit" disabled={isLoading} className="flex-1">
+                {isLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Sending...</> : "Send Reset Link"}
+              </Button>
+              <Button type="button" variant="outline" onClick={() => setShowForgotPassword(false)}>
+                Cancel
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
