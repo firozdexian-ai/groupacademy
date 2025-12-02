@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { createStudentProfile } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -72,7 +73,7 @@ export const AccessCodeDialog = ({
         return;
       }
 
-      // Get or create student profile with retry logic
+      // Get or create student profile using shared function
       let student;
       const { data: existingStudent } = await supabase
         .from("students")
@@ -83,56 +84,29 @@ export const AccessCodeDialog = ({
       if (existingStudent) {
         student = existingStudent;
       } else {
-        // Auto-create student profile with retry logic and exponential backoff
-        const maxRetries = 3;
-        const delays = [500, 1000, 2000];
+        // Use shared profile creation function
+        const success = await createStudentProfile(
+          user.id,
+          user.email?.split('@')[0] || 'Student',
+          user.email || '',
+          '',
+          'free_learner'
+        );
 
-        for (let attempt = 0; attempt < maxRetries; attempt++) {
-          try {
-            const { data: newStudent, error: studentError } = await supabase
-              .from("students")
-              .insert([{
-                user_id: user.id,
-                full_name: user.email?.split('@')[0] || 'Student',
-                email: user.email || '',
-                phone: '',
-                student_id: '',
-                status: "free_learner",
-              }])
-              .select("id")
-              .single();
-
-            if (studentError) {
-              if (studentError.code === '23505') {
-                await new Promise(resolve => setTimeout(resolve, 300));
-                const { data: retryStudent } = await supabase
-                  .from("students")
-                  .select("id")
-                  .eq("user_id", user.id)
-                  .maybeSingle();
-                
-                if (retryStudent) {
-                  student = retryStudent;
-                  break;
-                }
-              }
-              throw studentError;
-            }
-
-            student = newStudent;
-            break;
-          } catch (error: any) {
-            console.error(`Profile creation attempt ${attempt + 1} failed:`, error);
-            if (attempt < maxRetries - 1) {
-              await new Promise(resolve => setTimeout(resolve, delays[attempt]));
-            } else {
-              toast.error("Failed to create profile. Please complete your profile first.");
-              return;
-            }
-          }
+        if (!success) {
+          toast.error("Failed to create profile. Please complete your profile first.");
+          return;
         }
 
-        if (!student) return;
+        // Fetch the created student ID
+        const { data: newStudent } = await supabase
+          .from("students")
+          .select("id")
+          .eq("user_id", user.id)
+          .single();
+        
+        if (!newStudent) return;
+        student = newStudent;
       }
 
       // Create enrollment
