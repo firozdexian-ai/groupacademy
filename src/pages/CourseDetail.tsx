@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { createStudentProfile } from "@/hooks/useAuth";
+import { registrationSchema } from "@/lib/validations";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,7 +15,7 @@ import { AccessCodeDialog } from "@/components/AccessCodeDialog";
 import { ProfileCompletionForm } from "@/components/ProfileCompletionForm";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import { GraduationCap, Video, BookOpen, Calendar, Users, MapPin, Clock, ArrowLeft, CheckCircle, Play, MessageCircle, Key, Youtube } from "lucide-react";
+import { GraduationCap, Video, BookOpen, Calendar, Users, MapPin, Clock, ArrowLeft, CheckCircle, Play, MessageCircle, Key, Youtube, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
 type ContentType = "free_video" | "recorded_course" | "live_webinar" | "batch_class" | "offline_seminar";
@@ -58,6 +60,7 @@ const CourseDetail = () => {
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [showAccessCodeDialog, setShowAccessCodeDialog] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Registration form for new users
   const [registrationData, setRegistrationData] = useState({
@@ -67,6 +70,21 @@ const CourseDetail = () => {
     password: "",
   });
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+
+  // Password strength calculation
+  const getPasswordStrength = (password: string) => {
+    let strength = 0;
+    if (password.length >= 8) strength++;
+    if (password.length >= 12) strength++;
+    if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
+    if (/\d/.test(password)) strength++;
+    if (/[^a-zA-Z0-9]/.test(password)) strength++;
+    return strength;
+  };
+
+  const passwordStrength = getPasswordStrength(registrationData.password);
+  const strengthLabel = ['Very Weak', 'Weak', 'Fair', 'Good', 'Strong'][passwordStrength] || 'Very Weak';
+  const strengthColor = ['bg-red-500', 'bg-orange-500', 'bg-yellow-500', 'bg-blue-500', 'bg-green-500'][passwordStrength] || 'bg-gray-300';
 
   useEffect(() => {
     checkAuth();
@@ -180,86 +198,82 @@ const CourseDetail = () => {
 
   const handleSignupAndEnroll = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate form data using Zod
+    const validation = registrationSchema.safeParse(registrationData);
+    if (!validation.success) {
+      const errors: Record<string, string> = {};
+      validation.error.errors.forEach((err) => {
+        if (err.path[0]) {
+          errors[err.path[0] as string] = err.message;
+        }
+      });
+      setValidationErrors(errors);
+      toast.error("Please fix the validation errors");
+      return;
+    }
+    
+    setValidationErrors({});
     setIsEnrolling(true);
 
     try {
       // Step 1: Sign up the user
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
-        email: registrationData.email,
+        email: registrationData.email.trim(),
         password: registrationData.password,
         options: {
-          emailRedirectTo: `${window.location.origin}/`,
+          emailRedirectTo: `${window.location.origin}/my-learning`,
         },
       });
 
-      if (signUpError) throw signUpError;
+      if (signUpError) {
+        if (signUpError.message.includes('already registered') || signUpError.code === '23505') {
+          throw new Error('This email is already registered. Please sign in instead.');
+        }
+        throw signUpError;
+      }
       if (!authData.user) throw new Error("Signup failed");
 
-      // Step 2: Wait for session to establish (fixes race condition)
+      // Step 2: Wait for session to establish
       await new Promise(resolve => setTimeout(resolve, 800));
       
-      // Refresh the session to ensure we have valid auth
+      // Verify session exists
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        throw new Error("Session not established. Please try signing in.");
+        toast.warning('Account created! Please sign in to continue.');
+        navigate('/auth?tab=login');
+        return;
       }
 
-      // Step 3: Create student profile with retry logic and exponential backoff
-      const maxRetries = 3;
-      const delays = [500, 1000, 2000];
-      let studentData = null;
+      // Step 3: Create student profile using shared function
+      const profileCreated = await createStudentProfile(
+        authData.user.id,
+        registrationData.fullName,
+        registrationData.email,
+        registrationData.phone,
+        'free_learner'
+      );
 
-      for (let attempt = 0; attempt < maxRetries; attempt++) {
-        try {
-          const { data, error: studentError } = await supabase
-            .from("students")
-            .insert([
-              {
-                user_id: authData.user.id,
-                full_name: registrationData.fullName,
-                email: registrationData.email,
-                phone: registrationData.phone || "",
-                student_id: "", // Auto-generated by trigger
-              },
-            ])
-            .select()
-            .single();
-          
-          if (studentError) {
-            if (studentError.code === '23505') {
-              await new Promise(resolve => setTimeout(resolve, 300));
-              const { data: existingStudent } = await supabase
-                .from("students")
-                .select("*")
-                .eq("user_id", authData.user.id)
-                .maybeSingle();
-              
-              if (existingStudent) {
-                studentData = existingStudent;
-                break;
-              }
-            }
-            throw studentError;
-          }
-          
-          studentData = data;
-          break;
-        } catch (error: any) {
-          console.error(`Profile creation attempt ${attempt + 1} failed:`, error);
-          if (attempt < maxRetries - 1) {
-            await new Promise(resolve => setTimeout(resolve, delays[attempt]));
-          }
-        }
-      }
-
-      if (!studentData) {
-        toast.error("Account created! Please complete your profile to enroll.");
+      if (!profileCreated) {
+        toast.warning("Account created! Please complete your profile to enroll.");
         setUser(authData.user);
         setStudentProfile(null);
         return;
       }
 
-      // Update local state so UI reflects the new student
+      // Fetch the created profile
+      const { data: studentData } = await supabase
+        .from("students")
+        .select("*")
+        .eq("user_id", authData.user.id)
+        .single();
+
+      if (!studentData) {
+        toast.error("Failed to create profile. Please try again.");
+        return;
+      }
+
+      // Update local state
       setStudentProfile(studentData);
       setUser(authData.user);
 
@@ -282,15 +296,11 @@ const CourseDetail = () => {
       );
 
       setIsEnrolled(true);
-      
-      // Redirect to student learning portal
       navigate("/my-learning");
     } catch (error: any) {
-      // Better error handling with specific messages
+      console.error("Enrollment error:", error);
       if (error.message.includes("already registered")) {
         toast.error("This email is already registered. Please sign in instead.");
-      } else if (error.message.includes("Session not established")) {
-        toast.error("Please try signing in to complete enrollment.");
       } else {
         toast.error(error.message || "Failed to enroll. Please try again.");
       }
@@ -853,21 +863,48 @@ const CourseDetail = () => {
 
                         <div className="space-y-2">
                           <Label htmlFor="password">Password *</Label>
-                          <Input
-                            id="password"
-                            type="password"
-                            required
-                            minLength={8}
-                           value={registrationData.password}
-                           onChange={(e) =>
-                             setRegistrationData({ ...registrationData, password: e.target.value })
-                           }
-                         />
-                         {validationErrors.password && (
-                           <p className="text-sm text-destructive">{validationErrors.password}</p>
-                         )}
-                         <p className="text-xs text-muted-foreground">Minimum 8 characters</p>
-                       </div>
+                          <div className="relative">
+                            <Input
+                              id="password"
+                              type={showPassword ? "text" : "password"}
+                              required
+                              minLength={8}
+                              value={registrationData.password}
+                              onChange={(e) =>
+                                setRegistrationData({ ...registrationData, password: e.target.value })
+                              }
+                              className="pr-10"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowPassword(!showPassword)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                            >
+                              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
+                          </div>
+                          {validationErrors.password && (
+                            <p className="text-sm text-destructive">{validationErrors.password}</p>
+                          )}
+                          {registrationData.password && (
+                            <div className="space-y-1">
+                              <div className="flex gap-1">
+                                {[...Array(5)].map((_, i) => (
+                                  <div
+                                    key={i}
+                                    className={`h-1 flex-1 rounded-full transition-colors ${
+                                      i < passwordStrength ? strengthColor : 'bg-muted'
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                Password strength: {strengthLabel}
+                              </p>
+                            </div>
+                          )}
+                          <p className="text-xs text-muted-foreground">Minimum 8 characters</p>
+                        </div>
 
                       <Button type="submit" className="w-full" disabled={isEnrolling || isFull}>
                         {isEnrolling ? "Processing..." : isFull ? "Course Full" : "Sign Up & Enroll"}

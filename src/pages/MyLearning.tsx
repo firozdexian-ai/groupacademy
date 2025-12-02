@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Navbar } from "@/components/Navbar";
+import { ProfileCompletionForm } from "@/components/ProfileCompletionForm";
 import { toast } from "sonner";
-import { LogOut, BookOpen, Calendar, CheckCircle, Clock, MessageCircle } from "lucide-react";
+import { BookOpen, Calendar, CheckCircle, Clock, MessageCircle } from "lucide-react";
 
 interface Enrollment {
   id: string;
@@ -26,9 +29,11 @@ interface Enrollment {
 
 const MyLearning = () => {
   const navigate = useNavigate();
+  const { user, signOut } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [studentProfile, setStudentProfile] = useState<any>(null);
+  const [showProfileCompletion, setShowProfileCompletion] = useState(false);
 
   useEffect(() => {
     checkAuthAndLoadData();
@@ -50,8 +55,9 @@ const MyLearning = () => {
         .maybeSingle();
 
       if (!student) {
-        toast.error("Student profile not found");
-        navigate("/");
+        // Show profile completion form instead of error
+        setShowProfileCompletion(true);
+        setIsLoading(false);
         return;
       }
 
@@ -89,9 +95,18 @@ const MyLearning = () => {
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    toast.success("Logged out successfully");
-    navigate("/");
+    try {
+      await signOut();
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
+
+  const handleProfileComplete = (profile: any) => {
+    setStudentProfile(profile);
+    setShowProfileCompletion(false);
+    // Reload enrollments after profile is created
+    checkAuthAndLoadData();
   };
 
   const activeEnrollments = enrollments.filter((e) => e.status === "active");
@@ -189,42 +204,35 @@ const MyLearning = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Loading your courses...</p>
+      <>
+        <Navbar />
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <p className="mt-4 text-muted-foreground">Loading your courses...</p>
+          </div>
         </div>
-      </div>
+      </>
+    );
+  }
+
+  // Show profile completion form if profile is missing
+  if (showProfileCompletion && user) {
+    return (
+      <>
+        <Navbar />
+        <div className="min-h-screen bg-background flex items-center justify-center p-6">
+          <div className="max-w-md w-full">
+            <ProfileCompletionForm user={user} onComplete={handleProfileComplete} />
+          </div>
+        </div>
+      </>
     );
   }
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-primary rounded-lg flex items-center justify-center">
-              <BookOpen className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold">My Learning</h1>
-              <p className="text-xs text-muted-foreground">
-                Welcome back, {studentProfile?.full_name}
-              </p>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => navigate("/courses")} size="sm">
-              Browse Courses
-            </Button>
-            <Button variant="outline" onClick={handleLogout} size="sm">
-              <LogOut className="w-4 h-4 mr-2" />
-              Logout
-            </Button>
-          </div>
-        </div>
-      </header>
+      <Navbar />
 
       {/* Main Content */}
       <main className="container mx-auto px-6 py-8">
