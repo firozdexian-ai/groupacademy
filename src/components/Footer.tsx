@@ -31,6 +31,18 @@ export const Footer = () => {
               Courses
             </button>
             <button
+              onClick={() => navigate("/career-assessment")}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Career Scorecard
+            </button>
+            <button
+              onClick={() => navigate("/portfolio-request")}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Digital Portfolio
+            </button>
+            <button
               onClick={() => navigate("/my-learning")}
               className="text-muted-foreground hover:text-foreground transition-colors"
             >
