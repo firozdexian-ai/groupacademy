@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      academies: {
+        Row: {
+          academy_type: Database["public"]["Enums"]["academy_type"]
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          primary_language: string
+          slug: string
+          updated_at: string | null
+        }
+        Insert: {
+          academy_type: Database["public"]["Enums"]["academy_type"]
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          primary_language?: string
+          slug: string
+          updated_at?: string | null
+        }
+        Update: {
+          academy_type?: Database["public"]["Enums"]["academy_type"]
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          primary_language?: string
+          slug?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       access_codes: {
         Row: {
           code: string
@@ -57,6 +99,97 @@ export type Database = {
             columns: ["content_id"]
             isOneToOne: false
             referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_chat_sessions: {
+        Row: {
+          ai_instructor_id: string
+          context_id: string | null
+          context_type: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          messages: Json | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          ai_instructor_id: string
+          context_id?: string | null
+          context_type?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          messages?: Json | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          ai_instructor_id?: string
+          context_id?: string | null
+          context_type?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          messages?: Json | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_chat_sessions_ai_instructor_id_fkey"
+            columns: ["ai_instructor_id"]
+            isOneToOne: false
+            referencedRelation: "ai_instructors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_instructors: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          expertise_areas: string[] | null
+          id: string
+          is_active: boolean | null
+          name: string
+          persona: string
+          profession_line_id: string
+          system_prompt: string
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          expertise_areas?: string[] | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          persona: string
+          profession_line_id: string
+          system_prompt: string
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          expertise_areas?: string[] | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          persona?: string
+          profession_line_id?: string
+          system_prompt?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_instructors_profession_line_id_fkey"
+            columns: ["profession_line_id"]
+            isOneToOne: true
+            referencedRelation: "profession_categories"
             referencedColumns: ["id"]
           },
         ]
@@ -248,16 +381,20 @@ export type Database = {
           description: string | null
           display_order: number | null
           duration_hours: number | null
+          estimated_hours: number | null
           event_date: string | null
           event_duration_minutes: number | null
           id: string
           instructor_name: string | null
           is_private: boolean | null
           is_published: boolean | null
+          learning_objectives: Json | null
           max_capacity: number | null
           modules_count: number | null
           pass_threshold: number | null
           price: number | null
+          profession_level_id: string | null
+          profession_line_id: string | null
           quiz_enabled: boolean | null
           slug: string
           thumbnail_url: string | null
@@ -277,16 +414,20 @@ export type Database = {
           description?: string | null
           display_order?: number | null
           duration_hours?: number | null
+          estimated_hours?: number | null
           event_date?: string | null
           event_duration_minutes?: number | null
           id?: string
           instructor_name?: string | null
           is_private?: boolean | null
           is_published?: boolean | null
+          learning_objectives?: Json | null
           max_capacity?: number | null
           modules_count?: number | null
           pass_threshold?: number | null
           price?: number | null
+          profession_level_id?: string | null
+          profession_line_id?: string | null
           quiz_enabled?: boolean | null
           slug: string
           thumbnail_url?: string | null
@@ -306,16 +447,20 @@ export type Database = {
           description?: string | null
           display_order?: number | null
           duration_hours?: number | null
+          estimated_hours?: number | null
           event_date?: string | null
           event_duration_minutes?: number | null
           id?: string
           instructor_name?: string | null
           is_private?: boolean | null
           is_published?: boolean | null
+          learning_objectives?: Json | null
           max_capacity?: number | null
           modules_count?: number | null
           pass_threshold?: number | null
           price?: number | null
+          profession_level_id?: string | null
+          profession_line_id?: string | null
           quiz_enabled?: boolean | null
           slug?: string
           thumbnail_url?: string | null
@@ -326,7 +471,22 @@ export type Database = {
           whatsapp_group_link?: string | null
           youtube_url?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "content_profession_level_id_fkey"
+            columns: ["profession_level_id"]
+            isOneToOne: false
+            referencedRelation: "profession_levels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_profession_line_id_fkey"
+            columns: ["profession_line_id"]
+            isOneToOne: false
+            referencedRelation: "profession_categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       content_instructors: {
         Row: {
@@ -374,8 +534,11 @@ export type Database = {
           description: string | null
           display_order: number | null
           duration_minutes: number | null
+          estimated_time_minutes: number | null
           id: string
           is_preview: boolean | null
+          learning_objectives: string[] | null
+          stage_order: number | null
           title: string
           updated_at: string | null
           video_url: string | null
@@ -386,8 +549,11 @@ export type Database = {
           description?: string | null
           display_order?: number | null
           duration_minutes?: number | null
+          estimated_time_minutes?: number | null
           id?: string
           is_preview?: boolean | null
+          learning_objectives?: string[] | null
+          stage_order?: number | null
           title: string
           updated_at?: string | null
           video_url?: string | null
@@ -398,8 +564,11 @@ export type Database = {
           description?: string | null
           display_order?: number | null
           duration_minutes?: number | null
+          estimated_time_minutes?: number | null
           id?: string
           is_preview?: boolean | null
+          learning_objectives?: string[] | null
+          stage_order?: number | null
           title?: string
           updated_at?: string | null
           video_url?: string | null
@@ -698,6 +867,59 @@ export type Database = {
           },
         ]
       }
+      module_resources: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          id: string
+          is_required: boolean | null
+          module_id: string
+          resource_data: Json | null
+          resource_type: Database["public"]["Enums"]["resource_type"]
+          resource_url: string | null
+          stage_number: number | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_required?: boolean | null
+          module_id: string
+          resource_data?: Json | null
+          resource_type: Database["public"]["Enums"]["resource_type"]
+          resource_url?: string | null
+          stage_number?: number | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_required?: boolean | null
+          module_id?: string
+          resource_data?: Json | null
+          resource_type?: Database["public"]["Enums"]["resource_type"]
+          resource_url?: string | null
+          stage_number?: number | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_resources_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "course_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       portfolio_requests: {
         Row: {
           achievements: string | null
@@ -775,6 +997,7 @@ export type Database = {
       }
       profession_categories: {
         Row: {
+          career_outcome: string | null
           created_at: string | null
           description: string | null
           display_order: number | null
@@ -782,9 +1005,12 @@ export type Database = {
           id: string
           is_active: boolean | null
           name: string
+          school_id: string | null
           slug: string
+          target_audience: string | null
         }
         Insert: {
+          career_outcome?: string | null
           created_at?: string | null
           description?: string | null
           display_order?: number | null
@@ -792,15 +1018,61 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           name: string
+          school_id?: string | null
           slug: string
+          target_audience?: string | null
         }
         Update: {
+          career_outcome?: string | null
           created_at?: string | null
           description?: string | null
           display_order?: number | null
           icon?: string | null
           id?: string
           is_active?: boolean | null
+          name?: string
+          school_id?: string | null
+          slug?: string
+          target_audience?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profession_categories_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profession_levels: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          id: string
+          is_active: boolean | null
+          level_type: Database["public"]["Enums"]["profession_level_type"]
+          name: string
+          slug: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          level_type: Database["public"]["Enums"]["profession_level_type"]
+          name: string
+          slug: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          level_type?: Database["public"]["Enums"]["profession_level_type"]
           name?: string
           slug?: string
         }
@@ -920,6 +1192,56 @@ export type Database = {
           },
         ]
       }
+      schools: {
+        Row: {
+          academy_id: string
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          executive_capability_goal: string | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          slug: string
+          updated_at: string | null
+        }
+        Insert: {
+          academy_id: string
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          executive_capability_goal?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          slug: string
+          updated_at?: string | null
+        }
+        Update: {
+          academy_id?: string
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          executive_capability_goal?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          slug?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schools_academy_id_fkey"
+            columns: ["academy_id"]
+            isOneToOne: false
+            referencedRelation: "academies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       student_progress: {
         Row: {
           completed_at: string | null
@@ -958,6 +1280,57 @@ export type Database = {
           },
           {
             foreignKeyName: "student_progress_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_resource_progress: {
+        Row: {
+          attempts: number | null
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          last_accessed_at: string | null
+          progress_data: Json | null
+          resource_id: string
+          score: number | null
+          student_id: string
+        }
+        Insert: {
+          attempts?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          last_accessed_at?: string | null
+          progress_data?: Json | null
+          resource_id: string
+          score?: number | null
+          student_id: string
+        }
+        Update: {
+          attempts?: number | null
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          last_accessed_at?: string | null
+          progress_data?: Json | null
+          resource_id?: string
+          score?: number | null
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_resource_progress_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "module_resources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_resource_progress_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "students"
@@ -1039,6 +1412,7 @@ export type Database = {
       }
     }
     Enums: {
+      academy_type: "executive" | "technical"
       app_role: "admin" | "student"
       content_type:
         | "free_video"
@@ -1053,6 +1427,7 @@ export type Database = {
         | "in_progress"
         | "completed"
         | "cancelled"
+      profession_level_type: "foundation" | "intermediate" | "executive"
       question_type: "single_choice" | "multiple_choice" | "scale" | "text"
       readiness_level:
         | "beginner"
@@ -1060,6 +1435,16 @@ export type Database = {
         | "competent"
         | "proficient"
         | "expert"
+      resource_type:
+        | "video"
+        | "slides"
+        | "infographic"
+        | "mindmap"
+        | "audio_podcast"
+        | "flashcards"
+        | "ai_scenario"
+        | "quiz"
+        | "report"
       session_status: "scheduled" | "ongoing" | "completed" | "cancelled"
       student_status: "lead" | "free_learner" | "enrolled" | "graduated"
     }
@@ -1189,6 +1574,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      academy_type: ["executive", "technical"],
       app_role: ["admin", "student"],
       content_type: [
         "free_video",
@@ -1205,6 +1591,7 @@ export const Constants = {
         "completed",
         "cancelled",
       ],
+      profession_level_type: ["foundation", "intermediate", "executive"],
       question_type: ["single_choice", "multiple_choice", "scale", "text"],
       readiness_level: [
         "beginner",
@@ -1212,6 +1599,17 @@ export const Constants = {
         "competent",
         "proficient",
         "expert",
+      ],
+      resource_type: [
+        "video",
+        "slides",
+        "infographic",
+        "mindmap",
+        "audio_podcast",
+        "flashcards",
+        "ai_scenario",
+        "quiz",
+        "report",
       ],
       session_status: ["scheduled", "ongoing", "completed", "cancelled"],
       student_status: ["lead", "free_learner", "enrolled", "graduated"],
