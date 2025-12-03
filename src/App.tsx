@@ -14,7 +14,7 @@ import Students from "./pages/Students";
 import Enrollments from "./pages/Enrollments";
 import ContentNew from "./pages/ContentNew";
 import ContentEdit from "./pages/ContentEdit";
-import CoursePlayer from "./pages/CoursePlayer";
+import ImmersiveCoursePlayer from "./pages/ImmersiveCoursePlayer";
 import Quiz from "./pages/Quiz";
 import QuizManagement from "./pages/QuizManagement";
 import ModuleManagement from "./pages/ModuleManagement";
@@ -66,7 +66,7 @@ const App = () => (
           <Route path="/courses/:slug" element={<CourseDetail />} />
           <Route path="/dashboard" element={<ProtectedRoute requireAdmin><Dashboard /></ProtectedRoute>} />
           <Route path="/my-learning" element={<ProtectedRoute><MyLearning /></ProtectedRoute>} />
-          <Route path="/learn/:slug" element={<ProtectedRoute><CoursePlayer /></ProtectedRoute>} />
+          <Route path="/learn/:slug" element={<ProtectedRoute><ImmersiveCoursePlayer /></ProtectedRoute>} />
           <Route path="/quiz/:slug" element={<ProtectedRoute><Quiz /></ProtectedRoute>} />
           <Route path="/quiz-manage/:contentId" element={<ProtectedRoute requireAdmin><QuizManagement /></ProtectedRoute>} />
           <Route path="/content/:contentId/modules" element={<ProtectedRoute requireAdmin><ModuleManagement /></ProtectedRoute>} />
