@@ -1,1 +1,4 @@
 project_id = "iqdnbmnqpgmhtaiesulr"
+
+[functions.analyze-career-assessment]
+verify_jwt = false

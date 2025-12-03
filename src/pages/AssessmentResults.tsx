@@ -4,9 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { 
   Download, 
   Share2, 
@@ -15,7 +14,8 @@ import {
   AlertCircle,
   TrendingUp,
   Target,
-  BookOpen
+  BookOpen,
+  Loader2
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -55,6 +55,7 @@ export default function AssessmentResults() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [analyzing, setAnalyzing] = useState(false);
   const [assessment, setAssessment] = useState<Assessment | null>(null);
 
   useEffect(() => {
@@ -80,11 +81,44 @@ export default function AssessmentResults() {
       }
 
       setAssessment(data);
+
+      // Trigger AI analysis if not already done
+      if (!data.ai_analysis) {
+        triggerAIAnalysis(data.id);
+      }
     } catch (error) {
       console.error("Error loading assessment:", error);
       toast.error("Failed to load assessment");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const triggerAIAnalysis = async (assessmentId: string) => {
+    setAnalyzing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("analyze-career-assessment", {
+        body: { assessmentId }
+      });
+
+      if (error) {
+        console.error("AI analysis error:", error);
+        toast.error("Could not generate AI insights. You can refresh to try again.");
+        return;
+      }
+
+      if (data?.analysis) {
+        setAssessment(prev => prev ? {
+          ...prev,
+          ai_analysis: data.analysis,
+          improvement_areas: data.analysis.improvement_areas || []
+        } : null);
+        toast.success("AI analysis complete!");
+      }
+    } catch (error) {
+      console.error("Error calling AI analysis:", error);
+    } finally {
+      setAnalyzing(false);
     }
   };
 
@@ -295,19 +329,37 @@ export default function AssessmentResults() {
                       </li>
                     ))}
                   </ul>
+                ) : analyzing ? (
+                  <div className="text-center py-4">
+                    <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2 text-primary" />
+                    <p className="text-muted-foreground text-sm">
+                      AI is analyzing your responses...
+                    </p>
+                  </div>
                 ) : (
                   <div className="text-center py-4">
                     <p className="text-muted-foreground text-sm mb-4">
                       Personalized recommendations are being generated...
                     </p>
-                    <Button variant="outline" size="sm" onClick={loadAssessment}>
+                    <Button variant="outline" size="sm" onClick={() => id && triggerAIAnalysis(id)}>
                       <RefreshCw className="h-4 w-4 mr-2" />
-                      Refresh
+                      Generate Analysis
                     </Button>
                   </div>
                 )}
               </CardContent>
             </Card>
+
+            {/* Career Tips */}
+            {assessment.ai_analysis?.career_tips && (
+              <Card className="border-accent/30 bg-accent/5">
+                <CardContent className="py-6">
+                  <p className="text-center italic text-muted-foreground">
+                    "{assessment.ai_analysis.career_tips}"
+                  </p>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Course Recommendations CTA */}
             <Card className="bg-gradient-to-r from-primary/10 to-secondary/10 border-primary/20">
