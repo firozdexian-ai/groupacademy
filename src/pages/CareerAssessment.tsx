@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Clock, Target, TrendingUp, CheckCircle } from "lucide-react";
+import { ArrowRight, Clock, Target, TrendingUp, CheckCircle, Lock, KeyRound, CalendarDays, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 
 interface ProfessionCategory {
@@ -21,7 +21,7 @@ interface ProfessionCategory {
   icon: string | null;
 }
 
-type AssessmentStep = "landing" | "email-check" | "profession" | "questions" | "lead-capture" | "processing";
+type AssessmentStep = "landing" | "email-check" | "cooldown" | "access-code" | "profession" | "questions" | "lead-capture" | "processing";
 
 export default function CareerAssessment() {
   const [step, setStep] = useState<AssessmentStep>("landing");
@@ -31,6 +31,9 @@ export default function CareerAssessment() {
   const [selectedCategory, setSelectedCategory] = useState<ProfessionCategory | null>(null);
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [existingAssessment, setExistingAssessment] = useState<any>(null);
+  const [accessCode, setAccessCode] = useState("");
+  const [validatingCode, setValidatingCode] = useState(false);
+  const [daysRemaining, setDaysRemaining] = useState(0);
 
   useEffect(() => {
     loadCategories();
@@ -63,7 +66,13 @@ export default function CareerAssessment() {
 
       if (existing && new Date(existing.expires_at) > new Date()) {
         setExistingAssessment(existing);
-        toast.info("You have a recent assessment. You can retake after 90 days or use an access code.");
+        // Calculate days remaining
+        const expiresAt = new Date(existing.expires_at);
+        const now = new Date();
+        const diffTime = expiresAt.getTime() - now.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        setDaysRemaining(diffDays);
+        setStep("cooldown");
       } else {
         setStep("profession");
       }
@@ -72,6 +81,50 @@ export default function CareerAssessment() {
       setStep("profession");
     } finally {
       setCheckingEmail(false);
+    }
+  };
+
+  const handleAccessCodeValidation = async () => {
+    if (!accessCode.trim()) {
+      toast.error("Please enter an access code");
+      return;
+    }
+
+    setValidatingCode(true);
+    try {
+      // Check if the access code is valid
+      const { data: codeData, error: codeError } = await supabase
+        .from("assessment_access_codes")
+        .select("*")
+        .eq("code", accessCode.trim().toUpperCase())
+        .eq("email", email.toLowerCase().trim())
+        .eq("is_used", false)
+        .maybeSingle();
+
+      if (codeError || !codeData) {
+        toast.error("Invalid or expired access code");
+        return;
+      }
+
+      // Check if code is expired
+      if (codeData.expires_at && new Date(codeData.expires_at) < new Date()) {
+        toast.error("This access code has expired");
+        return;
+      }
+
+      // Mark code as used
+      await supabase
+        .from("assessment_access_codes")
+        .update({ is_used: true })
+        .eq("id", codeData.id);
+
+      toast.success("Access code validated! You can now retake the assessment.");
+      setStep("profession");
+    } catch (error) {
+      console.error("Error validating code:", error);
+      toast.error("Failed to validate access code");
+    } finally {
+      setValidatingCode(false);
     }
   };
 
@@ -127,32 +180,157 @@ export default function CareerAssessment() {
                   {checkingEmail ? "Checking..." : "Continue"}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
-                {existingAssessment && (
-                  <div className="mt-4 p-4 bg-muted rounded-lg space-y-3">
-                    <p className="text-sm text-muted-foreground">
-                      Your last assessment was on{" "}
-                      {new Date(existingAssessment.created_at).toLocaleDateString()}.
-                      Score: <strong>{existingAssessment.percentage}%</strong>
-                    </p>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => window.location.href = `/assessment-results/${existingAssessment.id}`}
-                      >
-                        View Results
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setStep("profession")}
-                      >
-                        Retake with Code
-                      </Button>
+        {step === "cooldown" && existingAssessment && (
+          <div className="container max-w-lg mx-auto px-4 py-16">
+            <Card>
+              <CardHeader className="text-center">
+                <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Lock className="w-8 h-8 text-amber-600 dark:text-amber-400" />
+                </div>
+                <CardTitle>Assessment Cooldown Active</CardTitle>
+                <CardDescription>
+                  You've already completed an assessment recently
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Previous Assessment Info */}
+                <div className="bg-muted rounded-lg p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Last Assessment</span>
+                    <span className="font-medium">
+                      {new Date(existingAssessment.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Your Score</span>
+                    <Badge variant="secondary" className="text-lg">
+                      {existingAssessment.percentage}%
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Readiness Level</span>
+                    <Badge variant="outline" className="capitalize">
+                      {existingAssessment.readiness_level}
+                    </Badge>
+                  </div>
+                </div>
+
+                {/* Days Remaining */}
+                <div className="text-center p-4 border rounded-lg">
+                  <div className="flex items-center justify-center gap-2 text-muted-foreground mb-2">
+                    <CalendarDays className="w-5 h-5" />
+                    <span className="text-sm">Free Retake Available In</span>
+                  </div>
+                  <p className="text-3xl font-bold text-primary">{daysRemaining} days</p>
+                </div>
+
+                {/* Actions */}
+                <div className="space-y-3">
+                  <Button 
+                    className="w-full" 
+                    variant="outline"
+                    onClick={() => window.location.href = `/assessment-results/${existingAssessment.id}`}
+                  >
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    View Previous Results
+                  </Button>
+                  
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-background px-2 text-muted-foreground">
+                        Or retake now
+                      </span>
                     </div>
                   </div>
-                )}
+
+                  <Button 
+                    className="w-full"
+                    onClick={() => setStep("access-code")}
+                  >
+                    <KeyRound className="mr-2 h-4 w-4" />
+                    Use Access Code (BDT 100)
+                  </Button>
+                  
+                  <p className="text-xs text-center text-muted-foreground">
+                    Contact us on WhatsApp at +8801708459008 to purchase an access code
+                  </p>
+                </div>
+
+                <Button 
+                  variant="ghost" 
+                  className="w-full"
+                  onClick={() => setStep("email-check")}
+                >
+                  Use Different Email
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {step === "access-code" && (
+          <div className="container max-w-md mx-auto px-4 py-16">
+            <Card>
+              <CardHeader className="text-center">
+                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <KeyRound className="w-8 h-8 text-primary" />
+                </div>
+                <CardTitle>Enter Access Code</CardTitle>
+                <CardDescription>
+                  Enter your paid access code to retake the assessment
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="accessCode">Access Code</Label>
+                  <Input
+                    id="accessCode"
+                    type="text"
+                    placeholder="XXXXXXXX"
+                    value={accessCode}
+                    onChange={(e) => setAccessCode(e.target.value.toUpperCase())}
+                    onKeyDown={(e) => e.key === "Enter" && handleAccessCodeValidation()}
+                    className="text-center text-lg tracking-widest font-mono"
+                    maxLength={8}
+                  />
+                </div>
+                <Button 
+                  className="w-full" 
+                  onClick={handleAccessCodeValidation}
+                  disabled={validatingCode}
+                >
+                  {validatingCode ? "Validating..." : "Validate & Continue"}
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+                
+                <div className="text-center space-y-2 pt-4">
+                  <p className="text-sm text-muted-foreground">
+                    Don't have an access code?
+                  </p>
+                  <Button 
+                    variant="link" 
+                    className="text-primary"
+                    onClick={() => window.open("https://wa.me/8801708459008?text=Hi, I want to purchase an assessment retake access code for " + email, "_blank")}
+                  >
+                    Purchase on WhatsApp (BDT 100)
+                  </Button>
+                </div>
+
+                <Button 
+                  variant="ghost" 
+                  className="w-full"
+                  onClick={() => setStep("cooldown")}
+                >
+                  Go Back
+                </Button>
               </CardContent>
             </Card>
           </div>
@@ -162,7 +340,7 @@ export default function CareerAssessment() {
           <ProfessionSelector
             categories={categories}
             onSelect={handleCategorySelect}
-            onBack={() => setStep("email-check")}
+            onBack={() => existingAssessment ? setStep("cooldown") : setStep("email-check")}
           />
         )}
 

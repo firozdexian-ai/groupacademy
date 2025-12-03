@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Download, Search, Mail, Phone, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { AssessmentCodeGenerator } from "./AssessmentCodeGenerator";
 
 interface AssessmentLead {
   id: string;
@@ -160,6 +161,7 @@ export function AssessmentLeadsManager() {
                   <TableHead>Score</TableHead>
                   <TableHead>Level</TableHead>
                   <TableHead>Date</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -192,6 +194,9 @@ export function AssessmentLeadsManager() {
                         <Calendar className="h-3 w-3" />
                         {format(new Date(lead.created_at), "MMM d, yyyy")}
                       </span>
+                    </TableCell>
+                    <TableCell>
+                      <AssessmentCodeGenerator leadEmail={lead.email} leadName={lead.full_name} />
                     </TableCell>
                   </TableRow>
                 ))}
