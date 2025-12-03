@@ -72,11 +72,16 @@ export default function PortfolioRequest() {
   }, []);
 
   const loadProfessionCategories = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('profession_categories')
       .select('id, name')
       .eq('is_active', true)
       .order('display_order');
+    
+    if (error) {
+      console.error('Error loading profession categories:', error);
+      return;
+    }
     if (data) setProfessionCategories(data);
   };
 
