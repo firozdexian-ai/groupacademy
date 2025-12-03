@@ -61,6 +61,83 @@ export type Database = {
           },
         ]
       }
+      assessment_access_codes: {
+        Row: {
+          code: string
+          created_at: string | null
+          created_by: string | null
+          email: string
+          expires_at: string | null
+          id: string
+          is_used: boolean | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          created_by?: string | null
+          email: string
+          expires_at?: string | null
+          id?: string
+          is_used?: boolean | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          created_by?: string | null
+          email?: string
+          expires_at?: string | null
+          id?: string
+          is_used?: boolean | null
+        }
+        Relationships: []
+      }
+      assessment_questions: {
+        Row: {
+          category: string
+          created_at: string | null
+          display_order: number | null
+          id: string
+          is_active: boolean | null
+          options: Json | null
+          profession_category_id: string | null
+          question_text: string
+          question_type: Database["public"]["Enums"]["question_type"]
+          weight: number | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          options?: Json | null
+          profession_category_id?: string | null
+          question_text: string
+          question_type?: Database["public"]["Enums"]["question_type"]
+          weight?: number | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          options?: Json | null
+          profession_category_id?: string | null
+          question_text?: string
+          question_type?: Database["public"]["Enums"]["question_type"]
+          weight?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_questions_profession_category_id_fkey"
+            columns: ["profession_category_id"]
+            isOneToOne: false
+            referencedRelation: "profession_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       banners: {
         Row: {
           created_at: string | null
@@ -95,6 +172,68 @@ export type Database = {
             columns: ["link_content_id"]
             isOneToOne: false
             referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      career_assessments: {
+        Row: {
+          ai_analysis: Json | null
+          answers: Json
+          created_at: string | null
+          email: string
+          expires_at: string | null
+          full_name: string
+          id: string
+          improvement_areas: string[] | null
+          max_score: number
+          percentage: number
+          phone: string | null
+          profession_category_id: string
+          readiness_level: Database["public"]["Enums"]["readiness_level"]
+          total_score: number
+          user_id: string | null
+        }
+        Insert: {
+          ai_analysis?: Json | null
+          answers: Json
+          created_at?: string | null
+          email: string
+          expires_at?: string | null
+          full_name: string
+          id?: string
+          improvement_areas?: string[] | null
+          max_score?: number
+          percentage?: number
+          phone?: string | null
+          profession_category_id: string
+          readiness_level?: Database["public"]["Enums"]["readiness_level"]
+          total_score?: number
+          user_id?: string | null
+        }
+        Update: {
+          ai_analysis?: Json | null
+          answers?: Json
+          created_at?: string | null
+          email?: string
+          expires_at?: string | null
+          full_name?: string
+          id?: string
+          improvement_areas?: string[] | null
+          max_score?: number
+          percentage?: number
+          phone?: string | null
+          profession_category_id?: string
+          readiness_level?: Database["public"]["Enums"]["readiness_level"]
+          total_score?: number
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "career_assessments_profession_category_id_fkey"
+            columns: ["profession_category_id"]
+            isOneToOne: false
+            referencedRelation: "profession_categories"
             referencedColumns: ["id"]
           },
         ]
@@ -440,6 +579,39 @@ export type Database = {
         }
         Relationships: []
       }
+      profession_categories: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          slug: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          slug: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          slug?: string
+        }
+        Relationships: []
+      }
       quiz_attempts: {
         Row: {
           answers: Json
@@ -681,6 +853,13 @@ export type Database = {
         | "batch_class"
         | "offline_seminar"
       enrollment_status: "pending_payment" | "active" | "completed"
+      question_type: "single_choice" | "multiple_choice" | "scale" | "text"
+      readiness_level:
+        | "beginner"
+        | "developing"
+        | "competent"
+        | "proficient"
+        | "expert"
       session_status: "scheduled" | "ongoing" | "completed" | "cancelled"
       student_status: "lead" | "free_learner" | "enrolled" | "graduated"
     }
@@ -819,6 +998,14 @@ export const Constants = {
         "offline_seminar",
       ],
       enrollment_status: ["pending_payment", "active", "completed"],
+      question_type: ["single_choice", "multiple_choice", "scale", "text"],
+      readiness_level: [
+        "beginner",
+        "developing",
+        "competent",
+        "proficient",
+        "expert",
+      ],
       session_status: ["scheduled", "ongoing", "completed", "cancelled"],
       student_status: ["lead", "free_learner", "enrolled", "graduated"],
     },
