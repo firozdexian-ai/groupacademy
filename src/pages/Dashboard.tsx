@@ -6,13 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { LogOut, Users, BookOpen, DollarSign, Video, Plus, Key, Image, Calendar, ClipboardList, Briefcase } from "lucide-react";
+import { LogOut, Users, BookOpen, DollarSign, Video, Plus, Key, Image, Calendar, ClipboardList, Briefcase, MessageSquare } from "lucide-react";
 import StatsCard from "@/components/dashboard/StatsCard";
 import ContentList from "@/components/dashboard/ContentList";
 import { AccessCodeManager } from "@/components/AccessCodeManager";
 import { BannerManager } from "@/components/dashboard/BannerManager";
 import { AssessmentLeadsManager } from "@/components/dashboard/AssessmentLeadsManager";
 import PortfolioRequestsManager from "@/components/dashboard/PortfolioRequestsManager";
+import { MockInterviewLeadsManager } from "@/components/dashboard/MockInterviewLeadsManager";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -171,6 +172,10 @@ const Dashboard = () => {
                 <Briefcase className="w-4 h-4 mr-2" />
                 Portfolios
               </TabsTrigger>
+              <TabsTrigger value="interviews">
+                <MessageSquare className="w-4 h-4 mr-2" />
+                Mock Interviews
+              </TabsTrigger>
             </TabsList>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => navigate("/students")}>
@@ -225,6 +230,9 @@ const Dashboard = () => {
           </TabsContent>
           <TabsContent value="portfolios">
             <PortfolioRequestsManager />
+          </TabsContent>
+          <TabsContent value="interviews">
+            <MockInterviewLeadsManager />
           </TabsContent>
         </Tabs>
       </main>
