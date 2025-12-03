@@ -15,7 +15,10 @@ import {
   TrendingUp,
   Target,
   BookOpen,
-  Loader2
+  Loader2,
+  MessageCircle,
+  Linkedin,
+  Twitter
 } from "lucide-react";
 import { toast } from "sonner";
 import { ScorecardPDFTemplate } from "@/components/assessment/ScorecardPDFTemplate";
@@ -125,24 +128,27 @@ export default function AssessmentResults() {
     }
   };
 
-  const handleShare = async () => {
-    const shareText = `I scored ${assessment?.percentage}% on the Career Readiness Scorecard! 🎯 Check your career readiness at GroUp Academy.`;
-    
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: "My Career Readiness Score",
-          text: shareText,
-          url: window.location.href,
-        });
-      } catch (error) {
-        // User cancelled or error
-      }
-    } else {
-      // Fallback: copy to clipboard
-      navigator.clipboard.writeText(`${shareText}\n${window.location.href}`);
-      toast.success("Link copied to clipboard!");
-    }
+  const shareText = `I scored ${assessment?.percentage}% on the Career Readiness Scorecard! 🎯 Check your career readiness at GroUp Academy.`;
+  const shareUrl = typeof window !== "undefined" ? window.location.href : "";
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
+    toast.success("Link copied to clipboard!");
+  };
+
+  const handleWhatsAppShare = () => {
+    const url = `https://wa.me/?text=${encodeURIComponent(`${shareText}\n${shareUrl}`)}`;
+    window.open(url, "_blank");
+  };
+
+  const handleLinkedInShare = () => {
+    const url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`;
+    window.open(url, "_blank");
+  };
+
+  const handleTwitterShare = () => {
+    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
+    window.open(url, "_blank");
   };
 
   const handleDownloadPDF = async () => {
@@ -253,7 +259,7 @@ export default function AssessmentResults() {
           </Card>
 
           {/* Quick Actions */}
-          <div className="flex flex-wrap gap-3 mb-8 justify-center">
+          <div className="flex flex-wrap gap-3 mb-4 justify-center">
             <Button onClick={handleDownloadPDF} variant="outline" disabled={downloading}>
               {downloading ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -262,13 +268,29 @@ export default function AssessmentResults() {
               )}
               {downloading ? "Generating..." : "Download PDF"}
             </Button>
-            <Button onClick={handleShare} variant="outline">
-              <Share2 className="h-4 w-4 mr-2" />
-              Share Result
-            </Button>
             <Button onClick={() => navigate("/career-assessment")} variant="outline">
               <RefreshCw className="h-4 w-4 mr-2" />
               Retake Assessment
+            </Button>
+          </div>
+
+          {/* Social Sharing */}
+          <div className="flex flex-wrap gap-2 mb-8 justify-center">
+            <Button onClick={handleCopyLink} variant="ghost" size="sm">
+              <Share2 className="h-4 w-4 mr-2" />
+              Copy Link
+            </Button>
+            <Button onClick={handleWhatsAppShare} variant="ghost" size="sm" className="text-green-600 hover:text-green-700 hover:bg-green-50">
+              <MessageCircle className="h-4 w-4 mr-2" />
+              WhatsApp
+            </Button>
+            <Button onClick={handleLinkedInShare} variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
+              <Linkedin className="h-4 w-4 mr-2" />
+              LinkedIn
+            </Button>
+            <Button onClick={handleTwitterShare} variant="ghost" size="sm" className="text-sky-500 hover:text-sky-600 hover:bg-sky-50">
+              <Twitter className="h-4 w-4 mr-2" />
+              Twitter/X
             </Button>
           </div>
 
