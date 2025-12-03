@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { LogOut, Users, BookOpen, DollarSign, Video, Plus, Key, Image, Calendar, ClipboardList, Briefcase, MessageSquare } from "lucide-react";
+import { LogOut, Users, BookOpen, DollarSign, Video, Plus, Key, Image, Calendar, ClipboardList, Briefcase, MessageSquare, Target } from "lucide-react";
 import StatsCard from "@/components/dashboard/StatsCard";
 import ContentList from "@/components/dashboard/ContentList";
 import { AccessCodeManager } from "@/components/AccessCodeManager";
@@ -24,6 +24,11 @@ const Dashboard = () => {
     activeEnrollments: 0,
     revenue: 0,
     freeVideoViews: 0,
+    mockInterviews: {
+      total: 0,
+      completed: 0,
+      avgScore: 0,
+    },
   });
 
   useEffect(() => {
@@ -68,11 +73,28 @@ const Dashboard = () => {
         .select("*", { count: "exact", head: true })
         .eq("content_type", "free_video");
 
+      // Mock interview stats
+      const { data: interviews } = await supabase
+        .from("mock_interviews")
+        .select("status, selection_percentage");
+
+      const totalInterviews = interviews?.length || 0;
+      const completedInterviews = interviews?.filter(i => i.status === "completed").length || 0;
+      const completedWithScores = interviews?.filter(i => i.status === "completed" && i.selection_percentage != null) || [];
+      const avgScore = completedWithScores.length > 0 
+        ? Math.round(completedWithScores.reduce((sum, i) => sum + (i.selection_percentage || 0), 0) / completedWithScores.length)
+        : 0;
+
       setStats({
         totalLearners: studentsCount || 0,
         activeEnrollments: enrollmentsCount || 0,
         revenue: totalRevenue,
         freeVideoViews: videoCount || 0,
+        mockInterviews: {
+          total: totalInterviews,
+          completed: completedInterviews,
+          avgScore: avgScore,
+        },
       });
     } catch (error: any) {
       console.error("Error loading stats:", error);
@@ -120,7 +142,7 @@ const Dashboard = () => {
       {/* Main Content */}
       <main className="container mx-auto px-6 py-8">
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <StatsCard
             title="Total Learners"
             value={stats.totalLearners}
@@ -143,6 +165,14 @@ const Dashboard = () => {
             value={stats.freeVideoViews}
             icon={Video}
             variant="accent"
+          />
+          <StatsCard
+            title="Mock Interviews"
+            value={stats.mockInterviews.total}
+            icon={Target}
+            variant="default"
+            trend={stats.mockInterviews.total > 0 ? `${Math.round((stats.mockInterviews.completed / stats.mockInterviews.total) * 100)}% completed` : undefined}
+            trendLabel={stats.mockInterviews.avgScore > 0 ? `• Avg: ${stats.mockInterviews.avgScore}%` : undefined}
           />
         </div>
 
