@@ -27,6 +27,8 @@ import SessionNew from "./pages/SessionNew";
 import SessionEdit from "./pages/SessionEdit";
 import CareerAssessment from "./pages/CareerAssessment";
 import AssessmentResults from "./pages/AssessmentResults";
+import PortfolioRequest from "./pages/PortfolioRequest";
+import PortfolioStatus from "./pages/PortfolioStatus";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
@@ -45,6 +47,8 @@ const App = () => (
           <Route path="/courses" element={<Courses />} />
           <Route path="/career-assessment" element={<CareerAssessment />} />
           <Route path="/assessment-results/:id" element={<AssessmentResults />} />
+          <Route path="/portfolio-request" element={<PortfolioRequest />} />
+          <Route path="/portfolio-status" element={<PortfolioStatus />} />
           <Route path="/courses/:slug" element={<CourseDetail />} />
           <Route path="/dashboard" element={<ProtectedRoute requireAdmin><Dashboard /></ProtectedRoute>} />
           <Route path="/my-learning" element={<ProtectedRoute><MyLearning /></ProtectedRoute>} />

@@ -579,6 +579,81 @@ export type Database = {
         }
         Relationships: []
       }
+      portfolio_requests: {
+        Row: {
+          achievements: string | null
+          additional_notes: string | null
+          admin_notes: string | null
+          assigned_to: string | null
+          certificates: Json | null
+          created_at: string
+          cv_url: string | null
+          email: string
+          full_name: string
+          id: string
+          phone: string
+          portfolio_credentials: Json | null
+          portfolio_url: string | null
+          profession_category_id: string | null
+          social_links: Json | null
+          status: Database["public"]["Enums"]["portfolio_status"]
+          updated_at: string
+        }
+        Insert: {
+          achievements?: string | null
+          additional_notes?: string | null
+          admin_notes?: string | null
+          assigned_to?: string | null
+          certificates?: Json | null
+          created_at?: string
+          cv_url?: string | null
+          email: string
+          full_name: string
+          id?: string
+          phone: string
+          portfolio_credentials?: Json | null
+          portfolio_url?: string | null
+          profession_category_id?: string | null
+          social_links?: Json | null
+          status?: Database["public"]["Enums"]["portfolio_status"]
+          updated_at?: string
+        }
+        Update: {
+          achievements?: string | null
+          additional_notes?: string | null
+          admin_notes?: string | null
+          assigned_to?: string | null
+          certificates?: Json | null
+          created_at?: string
+          cv_url?: string | null
+          email?: string
+          full_name?: string
+          id?: string
+          phone?: string
+          portfolio_credentials?: Json | null
+          portfolio_url?: string | null
+          profession_category_id?: string | null
+          social_links?: Json | null
+          status?: Database["public"]["Enums"]["portfolio_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portfolio_requests_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "instructors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portfolio_requests_profession_category_id_fkey"
+            columns: ["profession_category_id"]
+            isOneToOne: false
+            referencedRelation: "profession_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profession_categories: {
         Row: {
           created_at: string | null
@@ -853,6 +928,12 @@ export type Database = {
         | "batch_class"
         | "offline_seminar"
       enrollment_status: "pending_payment" | "active" | "completed"
+      portfolio_status:
+        | "pending"
+        | "contacted"
+        | "in_progress"
+        | "completed"
+        | "cancelled"
       question_type: "single_choice" | "multiple_choice" | "scale" | "text"
       readiness_level:
         | "beginner"
@@ -998,6 +1079,13 @@ export const Constants = {
         "offline_seminar",
       ],
       enrollment_status: ["pending_payment", "active", "completed"],
+      portfolio_status: [
+        "pending",
+        "contacted",
+        "in_progress",
+        "completed",
+        "cancelled",
+      ],
       question_type: ["single_choice", "multiple_choice", "scale", "text"],
       readiness_level: [
         "beginner",
