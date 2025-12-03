@@ -87,6 +87,9 @@ export const Navbar = () => {
             <Button variant="ghost" onClick={() => navigate("/career-assessment")}>
               Career Scorecard
             </Button>
+            <Button variant="ghost" onClick={() => navigate("/mock-interview")}>
+              Mock Interview
+            </Button>
             <Button variant="ghost" onClick={() => navigate("/portfolio-request")}>
               Digital Portfolio
             </Button>
@@ -167,6 +170,9 @@ export const Navbar = () => {
             </Button>
             <Button variant="ghost" onClick={() => { navigate("/career-assessment"); setMobileMenuOpen(false); }} className="justify-start">
               Career Scorecard
+            </Button>
+            <Button variant="ghost" onClick={() => { navigate("/mock-interview"); setMobileMenuOpen(false); }} className="justify-start">
+              Mock Interview
             </Button>
             <Button variant="ghost" onClick={() => { navigate("/portfolio-request"); setMobileMenuOpen(false); }} className="justify-start">
               Digital Portfolio
