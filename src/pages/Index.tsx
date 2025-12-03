@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { GraduationCap, BookOpen, Video, Users, Calendar, MapPin, ArrowRight, Target } from "lucide-react";
+import { GraduationCap, BookOpen, Video, Users, Calendar, MapPin, ArrowRight, Target, Briefcase } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
@@ -168,6 +168,43 @@ const Index = () => {
                     5 mins
                   </div>
                 </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      {/* Digital Portfolio CTA */}
+      <section className="container mx-auto px-6 py-16">
+        <Card className="bg-gradient-to-r from-primary/10 via-secondary/10 to-accent/10 border-primary/20 overflow-hidden">
+          <CardContent className="py-10 px-8">
+            <div className="grid md:grid-cols-2 gap-8 items-center">
+              <div className="hidden md:flex justify-center order-1 md:order-none">
+                <div className="relative">
+                  <div className="w-40 h-40 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center shadow-xl">
+                    <Briefcase className="w-20 h-20 text-white" />
+                  </div>
+                  <div className="absolute -bottom-2 -right-2 bg-accent text-accent-foreground text-sm font-bold px-3 py-1 rounded-full shadow-lg">
+                    BDT 100
+                  </div>
+                </div>
+              </div>
+              <div>
+                <Badge className="mb-4 bg-primary/20 text-primary hover:bg-primary/30">
+                  Professional Service
+                </Badge>
+                <h2 className="text-3xl font-bold mb-4">
+                  Stand Out with a Digital Portfolio
+                </h2>
+                <p className="text-muted-foreground mb-6">
+                  Get a professionally designed digital portfolio that showcases your skills, 
+                  achievements, and experience. Our experts will create a stunning portfolio 
+                  that helps you land your dream job.
+                </p>
+                <Button size="lg" onClick={() => navigate("/portfolio-request")}>
+                  Request Your Portfolio
+                  <ArrowRight className="w-5 h-5 ml-2" />
+                </Button>
               </div>
             </div>
           </CardContent>

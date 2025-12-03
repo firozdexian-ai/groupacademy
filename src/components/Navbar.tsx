@@ -87,6 +87,9 @@ export const Navbar = () => {
             <Button variant="ghost" onClick={() => navigate("/career-assessment")}>
               Career Scorecard
             </Button>
+            <Button variant="ghost" onClick={() => navigate("/portfolio-request")}>
+              Digital Portfolio
+            </Button>
             {isLoggedIn && (
               <>
                 <Button variant="ghost" onClick={() => navigate("/my-learning")}>
@@ -164,6 +167,9 @@ export const Navbar = () => {
             </Button>
             <Button variant="ghost" onClick={() => { navigate("/career-assessment"); setMobileMenuOpen(false); }} className="justify-start">
               Career Scorecard
+            </Button>
+            <Button variant="ghost" onClick={() => { navigate("/portfolio-request"); setMobileMenuOpen(false); }} className="justify-start">
+              Digital Portfolio
             </Button>
             {isLoggedIn && (
               <>
