@@ -84,6 +84,9 @@ export const Navbar = () => {
             <Button variant="ghost" onClick={() => navigate("/courses")}>
               Courses
             </Button>
+            <Button variant="ghost" onClick={() => navigate("/career-assessment")}>
+              Career Scorecard
+            </Button>
             {isLoggedIn && (
               <>
                 <Button variant="ghost" onClick={() => navigate("/my-learning")}>
@@ -158,6 +161,9 @@ export const Navbar = () => {
             </Button>
             <Button variant="ghost" onClick={() => { navigate("/courses"); setMobileMenuOpen(false); }} className="justify-start">
               Courses
+            </Button>
+            <Button variant="ghost" onClick={() => { navigate("/career-assessment"); setMobileMenuOpen(false); }} className="justify-start">
+              Career Scorecard
             </Button>
             {isLoggedIn && (
               <>

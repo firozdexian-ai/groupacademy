@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { GraduationCap, BookOpen, Video, Users, Calendar, MapPin, ArrowRight } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { GraduationCap, BookOpen, Video, Users, Calendar, MapPin, ArrowRight, Target } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
@@ -135,6 +136,42 @@ const Index = () => {
             </div>
           </div>
         </div>
+      </section>
+
+      {/* Career Readiness Scorecard CTA */}
+      <section className="container mx-auto px-6 py-16">
+        <Card className="bg-gradient-to-r from-secondary/10 via-accent/10 to-primary/10 border-secondary/20 overflow-hidden">
+          <CardContent className="py-10 px-8">
+            <div className="grid md:grid-cols-2 gap-8 items-center">
+              <div>
+                <Badge className="mb-4 bg-secondary/20 text-secondary hover:bg-secondary/30">
+                  FREE Assessment
+                </Badge>
+                <h2 className="text-3xl font-bold mb-4">
+                  How Job-Ready Are You?
+                </h2>
+                <p className="text-muted-foreground mb-6">
+                  Take our 5-minute AI-powered Career Readiness Scorecard and discover your strengths, 
+                  areas for improvement, and personalized recommendations to accelerate your career.
+                </p>
+                <Button size="lg" onClick={() => navigate("/career-assessment")}>
+                  Start Free Assessment
+                  <ArrowRight className="w-5 h-5 ml-2" />
+                </Button>
+              </div>
+              <div className="hidden md:flex justify-center">
+                <div className="relative">
+                  <div className="w-40 h-40 bg-gradient-to-br from-secondary to-accent rounded-full flex items-center justify-center shadow-xl">
+                    <Target className="w-20 h-20 text-white" />
+                  </div>
+                  <div className="absolute -top-4 -right-4 bg-primary text-primary-foreground text-sm font-bold px-3 py-1 rounded-full shadow-lg">
+                    5 mins
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </section>
 
       {/* CTA Section */}

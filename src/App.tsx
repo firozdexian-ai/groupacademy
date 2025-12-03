@@ -25,6 +25,8 @@ import InstructorEdit from "./pages/InstructorEdit";
 import Sessions from "./pages/Sessions";
 import SessionNew from "./pages/SessionNew";
 import SessionEdit from "./pages/SessionEdit";
+import CareerAssessment from "./pages/CareerAssessment";
+import AssessmentResults from "./pages/AssessmentResults";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
@@ -41,6 +43,8 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/courses" element={<Courses />} />
+          <Route path="/career-assessment" element={<CareerAssessment />} />
+          <Route path="/assessment-results/:id" element={<AssessmentResults />} />
           <Route path="/courses/:slug" element={<CourseDetail />} />
           <Route path="/dashboard" element={<ProtectedRoute requireAdmin><Dashboard /></ProtectedRoute>} />
           <Route path="/my-learning" element={<ProtectedRoute><MyLearning /></ProtectedRoute>} />
