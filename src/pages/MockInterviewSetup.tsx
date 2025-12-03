@@ -1,0 +1,632 @@
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Navbar } from "@/components/Navbar";
+import { Footer } from "@/components/Footer";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { 
+  ArrowRight, 
+  ArrowLeft, 
+  Lock, 
+  KeyRound, 
+  CalendarDays, 
+  ExternalLink,
+  BriefcaseIcon,
+  Settings,
+  Loader2
+} from "lucide-react";
+import { toast } from "sonner";
+
+interface ProfessionCategory {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+type SetupStep = "email-check" | "cooldown" | "access-code" | "job-description" | "configuration" | "generating";
+
+interface InterviewConfig {
+  questionCount: number;
+  difficulty: "easy" | "medium" | "hard";
+  professionCategoryId: string | null;
+  additionalNotes: string;
+}
+
+export default function MockInterviewSetup() {
+  const navigate = useNavigate();
+  const [step, setStep] = useState<SetupStep>("email-check");
+  
+  // Email check state
+  const [email, setEmail] = useState("");
+  const [checkingEmail, setCheckingEmail] = useState(false);
+  const [existingInterview, setExistingInterview] = useState<any>(null);
+  const [daysRemaining, setDaysRemaining] = useState(0);
+  
+  // Access code state
+  const [accessCode, setAccessCode] = useState("");
+  const [validatingCode, setValidatingCode] = useState(false);
+  
+  // Job description state
+  const [jobDescription, setJobDescription] = useState("");
+  
+  // Configuration state
+  const [config, setConfig] = useState<InterviewConfig>({
+    questionCount: 5,
+    difficulty: "medium",
+    professionCategoryId: null,
+    additionalNotes: ""
+  });
+  
+  // Profession categories
+  const [categories, setCategories] = useState<ProfessionCategory[]>([]);
+  
+  // Generation state
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  useEffect(() => {
+    loadCategories();
+  }, []);
+
+  const loadCategories = async () => {
+    const { data } = await supabase
+      .from("profession_categories")
+      .select("id, name, slug")
+      .eq("is_active", true)
+      .order("display_order");
+    if (data) setCategories(data);
+  };
+
+  const handleEmailCheck = async () => {
+    if (!email.trim()) {
+      toast.error("Please enter your email address");
+      return;
+    }
+
+    setCheckingEmail(true);
+    try {
+      const { data: existing } = await supabase
+        .from("mock_interviews")
+        .select("*")
+        .eq("email", email.toLowerCase().trim())
+        .eq("status", "completed")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (existing && new Date(existing.expires_at) > new Date()) {
+        setExistingInterview(existing);
+        const expiresAt = new Date(existing.expires_at);
+        const now = new Date();
+        const diffTime = expiresAt.getTime() - now.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        setDaysRemaining(diffDays);
+        setStep("cooldown");
+      } else {
+        setStep("job-description");
+      }
+    } catch (error) {
+      console.error("Error checking email:", error);
+      setStep("job-description");
+    } finally {
+      setCheckingEmail(false);
+    }
+  };
+
+  const handleAccessCodeValidation = async () => {
+    if (!accessCode.trim()) {
+      toast.error("Please enter an access code");
+      return;
+    }
+
+    setValidatingCode(true);
+    try {
+      const { data: codeData, error: codeError } = await supabase
+        .from("mock_interview_access_codes")
+        .select("*")
+        .eq("code", accessCode.trim().toUpperCase())
+        .eq("email", email.toLowerCase().trim())
+        .eq("is_used", false)
+        .maybeSingle();
+
+      if (codeError || !codeData) {
+        toast.error("Invalid or expired access code");
+        return;
+      }
+
+      if (codeData.expires_at && new Date(codeData.expires_at) < new Date()) {
+        toast.error("This access code has expired");
+        return;
+      }
+
+      await supabase
+        .from("mock_interview_access_codes")
+        .update({ is_used: true })
+        .eq("id", codeData.id);
+
+      toast.success("Access code validated! You can now start your interview.");
+      setStep("job-description");
+    } catch (error) {
+      console.error("Error validating code:", error);
+      toast.error("Failed to validate access code");
+    } finally {
+      setValidatingCode(false);
+    }
+  };
+
+  const handleJobDescriptionSubmit = () => {
+    if (!jobDescription.trim() || jobDescription.length < 50) {
+      toast.error("Please enter a complete job description (at least 50 characters)");
+      return;
+    }
+    setStep("configuration");
+  };
+
+  const handleStartInterview = async () => {
+    setIsGenerating(true);
+    setStep("generating");
+
+    try {
+      // Call edge function to generate questions
+      const { data, error } = await supabase.functions.invoke("generate-interview-questions", {
+        body: {
+          jobDescription,
+          questionCount: config.questionCount,
+          difficulty: config.difficulty,
+          professionCategoryId: config.professionCategoryId,
+          additionalNotes: config.additionalNotes
+        }
+      });
+
+      if (error) throw error;
+
+      // Create mock interview record
+      const { data: interview, error: insertError } = await supabase
+        .from("mock_interviews")
+        .insert({
+          email: email.toLowerCase().trim(),
+          full_name: "", // Will be captured at the end
+          job_description: jobDescription,
+          job_title: data.jobTitle,
+          company_name: data.companyName,
+          question_count: config.questionCount,
+          difficulty: config.difficulty,
+          profession_category_id: config.professionCategoryId,
+          additional_notes: config.additionalNotes,
+          questions: data.questions,
+          status: "in_progress"
+        })
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+
+      toast.success("Questions generated! Starting your interview...");
+      navigate(`/mock-interview/questions/${interview.id}`);
+    } catch (error) {
+      console.error("Error generating questions:", error);
+      toast.error("Failed to generate questions. Please try again.");
+      setStep("configuration");
+      setIsGenerating(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background flex flex-col">
+      <Navbar />
+      
+      <main className="flex-1 container max-w-2xl mx-auto px-4 py-12">
+        {/* Email Check Step */}
+        {step === "email-check" && (
+          <Card>
+            <CardHeader className="text-center">
+              <CardTitle>Let's Get Started</CardTitle>
+              <CardDescription>
+                Enter your email to begin your AI mock interview
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email Address</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="your@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleEmailCheck()}
+                />
+              </div>
+              <Button 
+                className="w-full" 
+                onClick={handleEmailCheck}
+                disabled={checkingEmail}
+              >
+                {checkingEmail ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Checking...
+                  </>
+                ) : (
+                  <>
+                    Continue
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </>
+                )}
+              </Button>
+              <Button 
+                variant="ghost" 
+                className="w-full"
+                onClick={() => navigate("/mock-interview")}
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Overview
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Cooldown Step */}
+        {step === "cooldown" && existingInterview && (
+          <Card>
+            <CardHeader className="text-center">
+              <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Lock className="w-8 h-8 text-amber-600 dark:text-amber-400" />
+              </div>
+              <CardTitle>Interview Cooldown Active</CardTitle>
+              <CardDescription>
+                You've completed a mock interview recently
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="bg-muted rounded-lg p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Last Interview</span>
+                  <span className="font-medium">
+                    {new Date(existingInterview.created_at).toLocaleDateString()}
+                  </span>
+                </div>
+                {existingInterview.selection_percentage !== null && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Selection Score</span>
+                    <Badge variant="secondary" className="text-lg">
+                      {existingInterview.selection_percentage}%
+                    </Badge>
+                  </div>
+                )}
+                {existingInterview.job_title && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Position</span>
+                    <span className="font-medium text-sm">{existingInterview.job_title}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="text-center p-4 border rounded-lg">
+                <div className="flex items-center justify-center gap-2 text-muted-foreground mb-2">
+                  <CalendarDays className="w-5 h-5" />
+                  <span className="text-sm">Free Retake Available In</span>
+                </div>
+                <p className="text-3xl font-bold text-primary">{daysRemaining} days</p>
+              </div>
+
+              <div className="space-y-3">
+                {existingInterview.id && (
+                  <Button 
+                    className="w-full" 
+                    variant="outline"
+                    onClick={() => navigate(`/mock-interview/results/${existingInterview.id}`)}
+                  >
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    View Previous Results
+                  </Button>
+                )}
+                
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">
+                      Or start new interview
+                    </span>
+                  </div>
+                </div>
+
+                <Button 
+                  className="w-full"
+                  onClick={() => setStep("access-code")}
+                >
+                  <KeyRound className="mr-2 h-4 w-4" />
+                  Use Access Code (BDT 100)
+                </Button>
+                
+                <p className="text-xs text-center text-muted-foreground">
+                  Contact us on WhatsApp at +8801708459008 to purchase an access code
+                </p>
+              </div>
+
+              <Button 
+                variant="ghost" 
+                className="w-full"
+                onClick={() => {
+                  setEmail("");
+                  setExistingInterview(null);
+                  setStep("email-check");
+                }}
+              >
+                Use Different Email
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Access Code Step */}
+        {step === "access-code" && (
+          <Card>
+            <CardHeader className="text-center">
+              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <KeyRound className="w-8 h-8 text-primary" />
+              </div>
+              <CardTitle>Enter Access Code</CardTitle>
+              <CardDescription>
+                Enter your paid access code to start a new interview
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="accessCode">Access Code</Label>
+                <Input
+                  id="accessCode"
+                  type="text"
+                  placeholder="XXXXXXXX"
+                  value={accessCode}
+                  onChange={(e) => setAccessCode(e.target.value.toUpperCase())}
+                  onKeyDown={(e) => e.key === "Enter" && handleAccessCodeValidation()}
+                  className="text-center text-lg tracking-widest font-mono"
+                  maxLength={8}
+                />
+              </div>
+              <Button 
+                className="w-full" 
+                onClick={handleAccessCodeValidation}
+                disabled={validatingCode}
+              >
+                {validatingCode ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Validating...
+                  </>
+                ) : (
+                  <>
+                    Validate & Continue
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </>
+                )}
+              </Button>
+              
+              <div className="text-center space-y-2 pt-4">
+                <p className="text-sm text-muted-foreground">
+                  Don't have an access code?
+                </p>
+                <Button 
+                  variant="link" 
+                  className="text-primary"
+                  onClick={() => window.open(`https://wa.me/8801708459008?text=Hi, I want to purchase a mock interview access code for ${email}`, "_blank")}
+                >
+                  Purchase on WhatsApp (BDT 100)
+                </Button>
+              </div>
+
+              <Button 
+                variant="ghost" 
+                className="w-full"
+                onClick={() => setStep("cooldown")}
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Go Back
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Job Description Step */}
+        {step === "job-description" && (
+          <Card>
+            <CardHeader>
+              <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-4">
+                <BriefcaseIcon className="w-6 h-6 text-primary" />
+              </div>
+              <CardTitle>Paste Job Description</CardTitle>
+              <CardDescription>
+                Copy and paste the job description you're preparing for. 
+                Our AI will generate relevant interview questions based on it.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="jobDescription">Job Description</Label>
+                <Textarea
+                  id="jobDescription"
+                  placeholder="Paste the complete job description here including responsibilities, requirements, qualifications..."
+                  value={jobDescription}
+                  onChange={(e) => setJobDescription(e.target.value)}
+                  className="min-h-[250px] resize-none"
+                />
+                <p className="text-xs text-muted-foreground text-right">
+                  {jobDescription.length} characters (minimum 50)
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <Button 
+                  variant="outline"
+                  onClick={() => existingInterview ? setStep("cooldown") : setStep("email-check")}
+                >
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back
+                </Button>
+                <Button 
+                  className="flex-1" 
+                  onClick={handleJobDescriptionSubmit}
+                  disabled={jobDescription.length < 50}
+                >
+                  Continue to Settings
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Configuration Step */}
+        {step === "configuration" && (
+          <Card>
+            <CardHeader>
+              <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mb-4">
+                <Settings className="w-6 h-6 text-primary" />
+              </div>
+              <CardTitle>Configure Your Interview</CardTitle>
+              <CardDescription>
+                Customize your mock interview experience
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Question Count */}
+              <div className="space-y-3">
+                <Label>Number of Questions</Label>
+                <RadioGroup
+                  value={String(config.questionCount)}
+                  onValueChange={(value) => setConfig({ ...config, questionCount: Number(value) })}
+                  className="grid grid-cols-3 gap-3"
+                >
+                  {[
+                    { value: "5", label: "5 Questions", desc: "Quick" },
+                    { value: "8", label: "8 Questions", desc: "Standard" },
+                    { value: "10", label: "10 Questions", desc: "Comprehensive" }
+                  ].map((option) => (
+                    <Label
+                      key={option.value}
+                      htmlFor={`q-${option.value}`}
+                      className={`flex flex-col items-center justify-center rounded-lg border-2 p-4 cursor-pointer transition-colors ${
+                        config.questionCount === Number(option.value)
+                          ? "border-primary bg-primary/5"
+                          : "border-muted hover:border-primary/50"
+                      }`}
+                    >
+                      <RadioGroupItem value={option.value} id={`q-${option.value}`} className="sr-only" />
+                      <span className="font-semibold">{option.label}</span>
+                      <span className="text-xs text-muted-foreground">{option.desc}</span>
+                    </Label>
+                  ))}
+                </RadioGroup>
+              </div>
+
+              {/* Difficulty */}
+              <div className="space-y-3">
+                <Label>Difficulty Level</Label>
+                <RadioGroup
+                  value={config.difficulty}
+                  onValueChange={(value: "easy" | "medium" | "hard") => setConfig({ ...config, difficulty: value })}
+                  className="grid grid-cols-3 gap-3"
+                >
+                  {[
+                    { value: "easy", label: "Easy", desc: "Entry-level" },
+                    { value: "medium", label: "Medium", desc: "Mid-level" },
+                    { value: "hard", label: "Hard", desc: "Senior-level" }
+                  ].map((option) => (
+                    <Label
+                      key={option.value}
+                      htmlFor={`d-${option.value}`}
+                      className={`flex flex-col items-center justify-center rounded-lg border-2 p-4 cursor-pointer transition-colors ${
+                        config.difficulty === option.value
+                          ? "border-primary bg-primary/5"
+                          : "border-muted hover:border-primary/50"
+                      }`}
+                    >
+                      <RadioGroupItem value={option.value} id={`d-${option.value}`} className="sr-only" />
+                      <span className="font-semibold">{option.label}</span>
+                      <span className="text-xs text-muted-foreground">{option.desc}</span>
+                    </Label>
+                  ))}
+                </RadioGroup>
+              </div>
+
+              {/* Profession Category */}
+              <div className="space-y-2">
+                <Label htmlFor="category">Profession Category (Optional)</Label>
+                <Select
+                  value={config.professionCategoryId || ""}
+                  onValueChange={(value) => setConfig({ ...config, professionCategoryId: value || null })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">No specific category</SelectItem>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Additional Notes */}
+              <div className="space-y-2">
+                <Label htmlFor="notes">Additional Notes (Optional)</Label>
+                <Textarea
+                  id="notes"
+                  placeholder="Any specific areas you'd like to focus on, your experience level, etc."
+                  value={config.additionalNotes}
+                  onChange={(e) => setConfig({ ...config, additionalNotes: e.target.value })}
+                  className="min-h-[100px] resize-none"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <Button 
+                  variant="outline"
+                  onClick={() => setStep("job-description")}
+                >
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back
+                </Button>
+                <Button 
+                  className="flex-1" 
+                  onClick={handleStartInterview}
+                >
+                  Start Interview
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Generating Step */}
+        {step === "generating" && (
+          <Card>
+            <CardContent className="py-16">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mx-auto mb-6"></div>
+                <h2 className="text-2xl font-bold mb-2">Generating Your Interview</h2>
+                <p className="text-muted-foreground">
+                  Our AI is analyzing the job description and creating tailored interview questions...
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </main>
+
+      <Footer />
+    </div>
+  );
+}
