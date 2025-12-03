@@ -33,6 +33,7 @@ import MockInterview from "./pages/MockInterview";
 import MockInterviewSetup from "./pages/MockInterviewSetup";
 import MockInterviewQuestions from "./pages/MockInterviewQuestions";
 import MockInterviewCapture from "./pages/MockInterviewCapture";
+import MockInterviewResults from "./pages/MockInterviewResults";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
@@ -57,6 +58,7 @@ const App = () => (
           <Route path="/mock-interview/setup" element={<MockInterviewSetup />} />
           <Route path="/mock-interview/questions/:id" element={<MockInterviewQuestions />} />
           <Route path="/mock-interview/capture/:id" element={<MockInterviewCapture />} />
+          <Route path="/mock-interview/results/:id" element={<MockInterviewResults />} />
           <Route path="/courses/:slug" element={<CourseDetail />} />
           <Route path="/dashboard" element={<ProtectedRoute requireAdmin><Dashboard /></ProtectedRoute>} />
           <Route path="/my-learning" element={<ProtectedRoute><MyLearning /></ProtectedRoute>} />
