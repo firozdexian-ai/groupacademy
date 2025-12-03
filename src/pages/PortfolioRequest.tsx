@@ -54,6 +54,7 @@ export default function PortfolioRequest() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [requestId, setRequestId] = useState<string>("");
   const [professionCategories, setProfessionCategories] = useState<ProfessionCategory[]>([]);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   
   const [formData, setFormData] = useState<FormData>({
     fullName: '',
@@ -72,17 +73,37 @@ export default function PortfolioRequest() {
   }, []);
 
   const loadProfessionCategories = async () => {
-    const { data, error } = await supabase
-      .from('profession_categories')
-      .select('id, name')
-      .eq('is_active', true)
-      .order('display_order');
+    console.log('[PortfolioRequest] Starting to fetch profession categories...');
+    setIsLoadingCategories(true);
     
-    if (error) {
-      console.error('Error loading profession categories:', error);
-      return;
+    try {
+      const { data, error } = await supabase
+        .from('profession_categories')
+        .select('id, name')
+        .eq('is_active', true)
+        .order('display_order');
+      
+      console.log('[PortfolioRequest] Fetch result:', { data, error });
+      
+      if (error) {
+        console.error('[PortfolioRequest] Error loading profession categories:', error);
+        toast({
+          title: "Error loading categories",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (data) {
+        console.log('[PortfolioRequest] Loaded', data.length, 'profession categories:', data);
+        setProfessionCategories(data);
+      }
+    } catch (err) {
+      console.error('[PortfolioRequest] Unexpected error:', err);
+    } finally {
+      setIsLoadingCategories(false);
     }
-    if (data) setProfessionCategories(data);
   };
 
   const currentStepIndex = steps.findIndex(s => s.id === currentStep);
@@ -119,31 +140,49 @@ export default function PortfolioRequest() {
   };
 
   const handleSubmit = async () => {
+    console.log('[PortfolioRequest] Submit clicked, form data:', formData);
     setIsSubmitting(true);
+    
     try {
+      const insertData = {
+        full_name: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+        profession_category_id: formData.professionCategoryId || null,
+        cv_url: formData.cvUrl,
+        certificates: formData.certificates,
+        achievements: formData.achievements,
+        social_links: formData.socialLinks,
+        additional_notes: formData.additionalNotes,
+      };
+      
+      console.log('[PortfolioRequest] Inserting data:', insertData);
+      
       const { data, error } = await supabase
         .from('portfolio_requests')
-        .insert({
-          full_name: formData.fullName,
-          email: formData.email,
-          phone: formData.phone,
-          profession_category_id: formData.professionCategoryId || null,
-          cv_url: formData.cvUrl,
-          certificates: formData.certificates,
-          achievements: formData.achievements,
-          social_links: formData.socialLinks,
-          additional_notes: formData.additionalNotes,
-        })
+        .insert(insertData)
         .select('id')
         .single();
 
-      if (error) throw error;
+      console.log('[PortfolioRequest] Insert result:', { data, error });
 
+      if (error) {
+        console.error('[PortfolioRequest] Insert error:', error);
+        throw error;
+      }
+
+      console.log('[PortfolioRequest] Success! Request ID:', data.id);
       setRequestId(data.id);
       setIsSuccess(true);
       toast({ title: "Request submitted!", description: "We'll contact you on WhatsApp soon." });
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      console.error('[PortfolioRequest] Submission failed:', error);
+      toast({ 
+        title: "Submission failed", 
+        description: error.message || "Please try again or contact support.", 
+        variant: "destructive",
+        duration: 10000,
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -284,16 +323,28 @@ export default function PortfolioRequest() {
                     <Select
                       value={formData.professionCategoryId}
                       onValueChange={(value) => setFormData({ ...formData, professionCategoryId: value })}
+                      disabled={isLoadingCategories}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select your profession" />
+                        <SelectValue placeholder={isLoadingCategories ? "Loading categories..." : "Select your profession"} />
                       </SelectTrigger>
-                      <SelectContent>
-                        {professionCategories.map((cat) => (
-                          <SelectItem key={cat.id} value={cat.id}>
-                            {cat.name}
-                          </SelectItem>
-                        ))}
+                      <SelectContent className="bg-popover">
+                        {isLoadingCategories ? (
+                          <div className="px-2 py-4 text-sm text-muted-foreground text-center">
+                            <Loader2 className="h-4 w-4 animate-spin mx-auto mb-2" />
+                            Loading...
+                          </div>
+                        ) : professionCategories.length === 0 ? (
+                          <div className="px-2 py-4 text-sm text-muted-foreground text-center">
+                            No profession categories available
+                          </div>
+                        ) : (
+                          professionCategories.map((cat) => (
+                            <SelectItem key={cat.id} value={cat.id}>
+                              {cat.name}
+                            </SelectItem>
+                          ))
+                        )}
                       </SelectContent>
                     </Select>
                   </div>
