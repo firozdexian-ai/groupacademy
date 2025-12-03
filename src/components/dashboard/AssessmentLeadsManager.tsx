@@ -1,0 +1,205 @@
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Download, Search, Mail, Phone, Calendar } from "lucide-react";
+import { toast } from "sonner";
+import { format } from "date-fns";
+
+interface AssessmentLead {
+  id: string;
+  full_name: string;
+  email: string;
+  phone: string | null;
+  percentage: number;
+  readiness_level: string;
+  created_at: string;
+  profession_category: {
+    name: string;
+  } | null;
+}
+
+const readinessColors: Record<string, string> = {
+  beginner: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
+  developing: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300",
+  competent: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
+  proficient: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
+  expert: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
+};
+
+export function AssessmentLeadsManager() {
+  const [leads, setLeads] = useState<AssessmentLead[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [readinessFilter, setReadinessFilter] = useState<string>("all");
+
+  useEffect(() => {
+    loadLeads();
+  }, []);
+
+  const loadLeads = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("career_assessments")
+        .select(`
+          id,
+          full_name,
+          email,
+          phone,
+          percentage,
+          readiness_level,
+          created_at,
+          profession_category:profession_categories(name)
+        `)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setLeads(data || []);
+    } catch (error: any) {
+      console.error("Error loading leads:", error);
+      toast.error("Failed to load assessment leads");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredLeads = leads.filter((lead) => {
+    const matchesSearch =
+      lead.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      lead.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (lead.phone && lead.phone.includes(searchQuery));
+    const matchesReadiness =
+      readinessFilter === "all" || lead.readiness_level === readinessFilter;
+    return matchesSearch && matchesReadiness;
+  });
+
+  const exportToCSV = () => {
+    const headers = ["Name", "Email", "Phone", "Profession", "Score %", "Readiness Level", "Date"];
+    const rows = filteredLeads.map((lead) => [
+      lead.full_name,
+      lead.email,
+      lead.phone || "",
+      lead.profession_category?.name || "",
+      lead.percentage.toString(),
+      lead.readiness_level,
+      format(new Date(lead.created_at), "yyyy-MM-dd HH:mm"),
+    ]);
+
+    const csvContent = [headers, ...rows].map((row) => row.map((cell) => `"${cell}"`).join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `assessment_leads_${format(new Date(), "yyyy-MM-dd")}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success("Leads exported successfully");
+  };
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="py-8 text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-2 text-muted-foreground">Loading leads...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <CardTitle className="text-lg">Assessment Leads ({filteredLeads.length})</CardTitle>
+          <Button onClick={exportToCSV} variant="outline" size="sm">
+            <Download className="w-4 h-4 mr-2" />
+            Export CSV
+          </Button>
+        </div>
+        <div className="flex gap-4 mt-4 flex-wrap">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by name, email, or phone..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <Select value={readinessFilter} onValueChange={setReadinessFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter by readiness" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Levels</SelectItem>
+              <SelectItem value="beginner">Beginner</SelectItem>
+              <SelectItem value="developing">Developing</SelectItem>
+              <SelectItem value="competent">Competent</SelectItem>
+              <SelectItem value="proficient">Proficient</SelectItem>
+              <SelectItem value="expert">Expert</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {filteredLeads.length === 0 ? (
+          <p className="text-center text-muted-foreground py-8">No assessment leads found.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Contact</TableHead>
+                  <TableHead>Profession</TableHead>
+                  <TableHead>Score</TableHead>
+                  <TableHead>Level</TableHead>
+                  <TableHead>Date</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredLeads.map((lead) => (
+                  <TableRow key={lead.id}>
+                    <TableCell className="font-medium">{lead.full_name}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-col gap-1 text-sm">
+                        <span className="flex items-center gap-1">
+                          <Mail className="h-3 w-3" /> {lead.email}
+                        </span>
+                        {lead.phone && (
+                          <span className="flex items-center gap-1 text-muted-foreground">
+                            <Phone className="h-3 w-3" /> {lead.phone}
+                          </span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>{lead.profession_category?.name || "-"}</TableCell>
+                    <TableCell>
+                      <span className="font-semibold">{lead.percentage}%</span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={readinessColors[lead.readiness_level] || ""}>
+                        {lead.readiness_level}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <Calendar className="h-3 w-3" />
+                        {format(new Date(lead.created_at), "MMM d, yyyy")}
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
