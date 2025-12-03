@@ -579,6 +579,125 @@ export type Database = {
         }
         Relationships: []
       }
+      mock_interview_access_codes: {
+        Row: {
+          code: string
+          created_at: string | null
+          created_by: string | null
+          email: string
+          expires_at: string | null
+          id: string
+          is_used: boolean | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          created_by?: string | null
+          email: string
+          expires_at?: string | null
+          id?: string
+          is_used?: boolean | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          created_by?: string | null
+          email?: string
+          expires_at?: string | null
+          id?: string
+          is_used?: boolean | null
+        }
+        Relationships: []
+      }
+      mock_interviews: {
+        Row: {
+          additional_notes: string | null
+          ai_feedback: Json | null
+          answers: Json | null
+          company_name: string | null
+          completed_at: string | null
+          created_at: string | null
+          difficulty: string | null
+          email: string
+          expires_at: string | null
+          full_name: string
+          id: string
+          improvement_areas: string[] | null
+          job_description: string
+          job_title: string | null
+          performance_level: string | null
+          phone: string | null
+          profession_category_id: string | null
+          question_count: number | null
+          questions: Json | null
+          selection_percentage: number | null
+          started_at: string | null
+          status: string | null
+          strengths: string[] | null
+          user_id: string | null
+        }
+        Insert: {
+          additional_notes?: string | null
+          ai_feedback?: Json | null
+          answers?: Json | null
+          company_name?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          difficulty?: string | null
+          email: string
+          expires_at?: string | null
+          full_name: string
+          id?: string
+          improvement_areas?: string[] | null
+          job_description: string
+          job_title?: string | null
+          performance_level?: string | null
+          phone?: string | null
+          profession_category_id?: string | null
+          question_count?: number | null
+          questions?: Json | null
+          selection_percentage?: number | null
+          started_at?: string | null
+          status?: string | null
+          strengths?: string[] | null
+          user_id?: string | null
+        }
+        Update: {
+          additional_notes?: string | null
+          ai_feedback?: Json | null
+          answers?: Json | null
+          company_name?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          difficulty?: string | null
+          email?: string
+          expires_at?: string | null
+          full_name?: string
+          id?: string
+          improvement_areas?: string[] | null
+          job_description?: string
+          job_title?: string | null
+          performance_level?: string | null
+          phone?: string | null
+          profession_category_id?: string | null
+          question_count?: number | null
+          questions?: Json | null
+          selection_percentage?: number | null
+          started_at?: string | null
+          status?: string | null
+          strengths?: string[] | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mock_interviews_profession_category_id_fkey"
+            columns: ["profession_category_id"]
+            isOneToOne: false
+            referencedRelation: "profession_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       portfolio_requests: {
         Row: {
           achievements: string | null
