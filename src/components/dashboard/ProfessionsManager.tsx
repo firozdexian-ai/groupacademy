@@ -4,14 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Building2, GraduationCap, Briefcase, ChevronRight } from "lucide-react";
+import { Plus, Pencil, Trash2, Building2, GraduationCap, Briefcase, ChevronRight, Bot, User } from "lucide-react";
 import { getIcon } from "@/lib/iconMap";
 
 interface Academy {
@@ -51,6 +51,17 @@ interface ProfessionLine {
   display_order: number | null;
 }
 
+interface AIInstructor {
+  id: string;
+  name: string;
+  persona: string;
+  system_prompt: string;
+  avatar_url: string | null;
+  expertise_areas: string[] | null;
+  profession_line_id: string;
+  is_active: boolean | null;
+}
+
 const ICON_OPTIONS = [
   "briefcase", "landmark", "laptop", "megaphone", "truck", "heart-pulse",
   "calculator", "trending-up", "users", "code", "palette", "building-2",
@@ -62,21 +73,25 @@ export function ProfessionsManager() {
   const [academies, setAcademies] = useState<Academy[]>([]);
   const [schools, setSchools] = useState<School[]>([]);
   const [professionLines, setProfessionLines] = useState<ProfessionLine[]>([]);
+  const [aiInstructors, setAiInstructors] = useState<AIInstructor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
   // Filters
   const [selectedAcademyFilter, setSelectedAcademyFilter] = useState<string>("all");
   const [selectedSchoolFilter, setSelectedSchoolFilter] = useState<string>("all");
+  const [selectedProfessionFilter, setSelectedProfessionFilter] = useState<string>("all");
   
   // Dialog states
   const [academyDialog, setAcademyDialog] = useState(false);
   const [schoolDialog, setSchoolDialog] = useState(false);
   const [professionDialog, setProfessionDialog] = useState(false);
+  const [instructorDialog, setInstructorDialog] = useState(false);
   
   // Edit states
   const [editingAcademy, setEditingAcademy] = useState<Academy | null>(null);
   const [editingSchool, setEditingSchool] = useState<School | null>(null);
   const [editingProfession, setEditingProfession] = useState<ProfessionLine | null>(null);
+  const [editingInstructor, setEditingInstructor] = useState<AIInstructor | null>(null);
 
   useEffect(() => {
     loadData();
@@ -84,15 +99,17 @@ export function ProfessionsManager() {
 
   const loadData = async () => {
     try {
-      const [academiesRes, schoolsRes, professionsRes] = await Promise.all([
+      const [academiesRes, schoolsRes, professionsRes, instructorsRes] = await Promise.all([
         supabase.from("academies").select("*").order("display_order"),
         supabase.from("schools").select("*").order("display_order"),
-        supabase.from("profession_categories").select("*").order("display_order")
+        supabase.from("profession_categories").select("*").order("display_order"),
+        supabase.from("ai_instructors").select("*").order("name")
       ]);
 
       if (academiesRes.data) setAcademies(academiesRes.data);
       if (schoolsRes.data) setSchools(schoolsRes.data);
       if (professionsRes.data) setProfessionLines(professionsRes.data);
+      if (instructorsRes.data) setAiInstructors(instructorsRes.data);
     } catch (error) {
       console.error("Error loading data:", error);
       toast.error("Failed to load data");
@@ -232,6 +249,51 @@ export function ProfessionsManager() {
     }
   };
 
+  // AI Instructor CRUD
+  const handleSaveInstructor = async (formData: FormData) => {
+    const expertiseRaw = formData.get("expertise_areas") as string;
+    const expertise = expertiseRaw ? expertiseRaw.split(",").map(s => s.trim()).filter(Boolean) : null;
+    
+    const data = {
+      name: formData.get("name") as string,
+      persona: formData.get("persona") as string,
+      system_prompt: formData.get("system_prompt") as string,
+      avatar_url: formData.get("avatar_url") as string || null,
+      expertise_areas: expertise,
+      profession_line_id: formData.get("profession_line_id") as string,
+      is_active: formData.get("is_active") === "true"
+    };
+
+    try {
+      if (editingInstructor) {
+        const { error } = await supabase.from("ai_instructors").update(data).eq("id", editingInstructor.id);
+        if (error) throw error;
+        toast.success("AI Instructor updated");
+      } else {
+        const { error } = await supabase.from("ai_instructors").insert(data);
+        if (error) throw error;
+        toast.success("AI Instructor created");
+      }
+      setInstructorDialog(false);
+      setEditingInstructor(null);
+      loadData();
+    } catch (error: any) {
+      toast.error(error.message);
+    }
+  };
+
+  const handleDeleteInstructor = async (id: string) => {
+    if (!confirm("Delete this AI Instructor?")) return;
+    try {
+      const { error } = await supabase.from("ai_instructors").delete().eq("id", id);
+      if (error) throw error;
+      toast.success("AI Instructor deleted");
+      loadData();
+    } catch (error: any) {
+      toast.error(error.message);
+    }
+  };
+
   // Filtered data
   const filteredSchools = selectedAcademyFilter === "all" 
     ? schools 
@@ -241,8 +303,13 @@ export function ProfessionsManager() {
     ? professionLines
     : professionLines.filter(p => p.school_id === selectedSchoolFilter);
 
+  const filteredInstructors = selectedProfessionFilter === "all"
+    ? aiInstructors
+    : aiInstructors.filter(i => i.profession_line_id === selectedProfessionFilter);
+
   const getAcademyName = (id: string) => academies.find(a => a.id === id)?.name || "Unknown";
   const getSchoolName = (id: string | null) => id ? schools.find(s => s.id === id)?.name || "Unknown" : "Unassigned";
+  const getProfessionName = (id: string) => professionLines.find(p => p.id === id)?.name || "Unknown";
 
   if (isLoading) {
     return <div className="p-8 text-center text-muted-foreground">Loading...</div>;
@@ -263,6 +330,10 @@ export function ProfessionsManager() {
           <TabsTrigger value="professions" className="gap-2">
             <Briefcase className="h-4 w-4" />
             Profession Lines ({professionLines.length})
+          </TabsTrigger>
+          <TabsTrigger value="instructors" className="gap-2">
+            <Bot className="h-4 w-4" />
+            AI Instructors ({aiInstructors.length})
           </TabsTrigger>
         </TabsList>
 
@@ -629,6 +700,7 @@ export function ProfessionsManager() {
           <div className="grid gap-4">
             {filteredProfessions.map((profession) => {
               const IconComp = getIcon(profession.icon);
+              const instructorCount = aiInstructors.filter(i => i.profession_line_id === profession.id).length;
               return (
                 <Card key={profession.id} className={!profession.is_active ? "opacity-60" : ""}>
                   <CardContent className="flex items-center justify-between p-4">
@@ -641,6 +713,12 @@ export function ProfessionsManager() {
                           <h3 className="font-semibold">{profession.name}</h3>
                           {!profession.is_active && <Badge variant="outline">Inactive</Badge>}
                           {!profession.school_id && <Badge variant="destructive">Unassigned</Badge>}
+                          {instructorCount > 0 && (
+                            <Badge variant="secondary" className="gap-1">
+                              <Bot className="h-3 w-3" />
+                              {instructorCount}
+                            </Badge>
+                          )}
                         </div>
                         <p className="text-sm text-muted-foreground line-clamp-1">{profession.description}</p>
                         <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
@@ -670,6 +748,155 @@ export function ProfessionsManager() {
               <Card className="border-dashed">
                 <CardContent className="py-12 text-center text-muted-foreground">
                   No profession lines found. Add one to get started.
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </TabsContent>
+
+        {/* AI Instructors Tab */}
+        <TabsContent value="instructors" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-4">
+              <Select value={selectedProfessionFilter} onValueChange={setSelectedProfessionFilter}>
+                <SelectTrigger className="w-56">
+                  <SelectValue placeholder="Filter by Profession Line" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Profession Lines</SelectItem>
+                  {professionLines.map(p => (
+                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-sm text-muted-foreground">
+                {filteredInstructors.length} AI instructors
+              </p>
+            </div>
+            <Dialog open={instructorDialog} onOpenChange={(open) => { setInstructorDialog(open); if (!open) setEditingInstructor(null); }}>
+              <DialogTrigger asChild>
+                <Button><Plus className="h-4 w-4 mr-2" />Add AI Instructor</Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>{editingInstructor ? "Edit AI Instructor" : "Add AI Instructor"}</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={(e) => { e.preventDefault(); handleSaveInstructor(new FormData(e.currentTarget)); }} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Name *</Label>
+                      <Input id="name" name="name" defaultValue={editingInstructor?.name} placeholder="e.g., Sarah Rahman" required />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="profession_line_id">Profession Line *</Label>
+                      <Select name="profession_line_id" defaultValue={editingInstructor?.profession_line_id}>
+                        <SelectTrigger><SelectValue placeholder="Select Profession Line" /></SelectTrigger>
+                        <SelectContent>
+                          {professionLines.map(p => (
+                            <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="persona">Persona *</Label>
+                    <Textarea 
+                      id="persona" 
+                      name="persona" 
+                      defaultValue={editingInstructor?.persona} 
+                      placeholder="Brief description of the AI instructor's personality and teaching style..."
+                      rows={2}
+                      required 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="system_prompt">System Prompt *</Label>
+                    <Textarea 
+                      id="system_prompt" 
+                      name="system_prompt" 
+                      defaultValue={editingInstructor?.system_prompt} 
+                      placeholder="You are Sarah Rahman, an experienced career consultant specializing in..."
+                      rows={6}
+                      required 
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="avatar_url">Avatar URL</Label>
+                      <Input id="avatar_url" name="avatar_url" defaultValue={editingInstructor?.avatar_url || ""} placeholder="https://..." />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="expertise_areas">Expertise Areas</Label>
+                      <Input 
+                        id="expertise_areas" 
+                        name="expertise_areas" 
+                        defaultValue={editingInstructor?.expertise_areas?.join(", ") || ""} 
+                        placeholder="Sales, Marketing, Negotiation"
+                      />
+                      <p className="text-xs text-muted-foreground">Comma-separated list</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Switch id="is_active" name="is_active" defaultChecked={editingInstructor?.is_active !== false} value="true" />
+                    <Label htmlFor="is_active">Active</Label>
+                  </div>
+                  <Button type="submit" className="w-full">Save AI Instructor</Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          <div className="grid gap-4">
+            {filteredInstructors.map((instructor) => (
+              <Card key={instructor.id} className={!instructor.is_active ? "opacity-60" : ""}>
+                <CardContent className="flex items-center justify-between p-4">
+                  <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-full bg-gradient-to-br from-primary/20 to-primary/40 flex items-center justify-center overflow-hidden">
+                      {instructor.avatar_url ? (
+                        <img src={instructor.avatar_url} alt={instructor.name} className="h-full w-full object-cover" />
+                      ) : (
+                        <User className="h-6 w-6 text-primary" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-semibold">{instructor.name}</h3>
+                        {!instructor.is_active && <Badge variant="outline">Inactive</Badge>}
+                        <Badge variant="secondary" className="gap-1">
+                          <Bot className="h-3 w-3" />
+                          AI
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground line-clamp-1">{instructor.persona}</p>
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        <Badge variant="outline" className="text-xs">{getProfessionName(instructor.profession_line_id)}</Badge>
+                        {instructor.expertise_areas?.slice(0, 3).map((area, i) => (
+                          <Badge key={i} variant="secondary" className="text-xs">{area}</Badge>
+                        ))}
+                        {instructor.expertise_areas && instructor.expertise_areas.length > 3 && (
+                          <span className="text-xs text-muted-foreground">+{instructor.expertise_areas.length - 3} more</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => { setEditingInstructor(instructor); setInstructorDialog(true); }}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => handleDeleteInstructor(instructor.id)}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+            {filteredInstructors.length === 0 && (
+              <Card className="border-dashed">
+                <CardContent className="py-12 text-center text-muted-foreground">
+                  <Bot className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No AI instructors found.</p>
+                  <p className="text-sm">Add an AI instructor to enable career guidance for this profession line.</p>
                 </CardContent>
               </Card>
             )}
