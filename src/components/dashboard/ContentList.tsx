@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Video, BookOpen, Presentation, Users, MapPin, type LucideIcon } from "lucide-react";
+import { Edit, Trash2, Video, BookOpen, Presentation, Users, MapPin, RefreshCw, AlertCircle, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 
 interface Content {
@@ -34,12 +34,15 @@ const contentTypeConfig: Record<string, { icon: LucideIcon; label: string; color
 const ContentList = ({ filter }: ContentListProps) => {
   const [content, setContent] = useState<Content[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     loadContent();
   }, [filter]);
 
   const loadContent = async () => {
+    setIsLoading(true);
+    setLoadError(null);
     try {
       let query = supabase.from("content").select("*").order("created_at", { ascending: false });
 
@@ -52,8 +55,9 @@ const ContentList = ({ filter }: ContentListProps) => {
       if (error) throw error;
       setContent(data || []);
     } catch (error: any) {
+      console.error("Error loading content:", error);
+      setLoadError("Failed to load content. Please try again.");
       toast.error("Failed to load content");
-      console.error(error);
     } finally {
       setIsLoading(false);
     }
@@ -79,6 +83,21 @@ const ContentList = ({ filter }: ContentListProps) => {
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
         <p className="mt-4 text-muted-foreground">Loading content...</p>
       </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <Card>
+        <CardContent className="py-12 text-center">
+          <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
+          <p className="text-muted-foreground mb-4">{loadError}</p>
+          <Button onClick={loadContent} variant="outline">
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Try Again
+          </Button>
+        </CardContent>
+      </Card>
     );
   }
 

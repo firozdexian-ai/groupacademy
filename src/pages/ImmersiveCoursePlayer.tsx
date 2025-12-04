@@ -5,7 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { ArrowLeft, Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { StageNavigation } from "@/components/player/StageNavigation";
 import { ImmersiveModuleList } from "@/components/player/ImmersiveModuleList";
 import { OrientationStage } from "@/components/player/stages/OrientationStage";
@@ -30,23 +31,25 @@ export default function ImmersiveCoursePlayer() {
   const [currentModuleId, setCurrentModuleId] = useState<string | undefined>();
   const [moduleProgress, setModuleProgress] = useState<Record<string, ModuleProgressState>>({});
 
-  // Fetch course content
-  const { data: content, isLoading: contentLoading } = useQuery({
+  // Fetch course content with error handling
+  const { data: content, isLoading: contentLoading, error: contentError, refetch: refetchContent } = useQuery({
     queryKey: ["course-content", slug],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("content")
         .select("*, profession_categories:profession_line_id(*)")
         .eq("slug", slug)
-        .single();
+        .maybeSingle();
       if (error) throw error;
       return data;
     },
     enabled: !!slug,
+    retry: 2,
+    retryDelay: 1000,
   });
 
-  // Fetch course modules
-  const { data: modules = [], isLoading: modulesLoading } = useQuery({
+  // Fetch course modules with error handling
+  const { data: modules = [], isLoading: modulesLoading, error: modulesError, refetch: refetchModules } = useQuery({
     queryKey: ["course-modules", content?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -55,28 +58,31 @@ export default function ImmersiveCoursePlayer() {
         .eq("content_id", content!.id)
         .order("display_order");
       if (error) throw error;
-      return data;
+      return data || [];
     },
     enabled: !!content?.id,
+    retry: 2,
+    retryDelay: 1000,
   });
 
-  // Fetch student profile
-  const { data: student } = useQuery({
+  // Fetch student profile with error handling
+  const { data: student, error: studentError, refetch: refetchStudent } = useQuery({
     queryKey: ["student-profile", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("students")
         .select("*")
         .eq("user_id", user!.id)
-        .single();
+        .maybeSingle();
       if (error) throw error;
       return data;
     },
     enabled: !!user?.id,
+    retry: 2,
   });
 
-  // Fetch enrollment
-  const { data: enrollment } = useQuery({
+  // Fetch enrollment with error handling
+  const { data: enrollment, isLoading: enrollmentLoading, error: enrollmentError, refetch: refetchEnrollment } = useQuery({
     queryKey: ["enrollment", student?.id, content?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -85,11 +91,12 @@ export default function ImmersiveCoursePlayer() {
         .eq("student_id", student!.id)
         .eq("content_id", content!.id)
         .in("status", ["active", "completed"])
-        .single();
+        .maybeSingle();
       if (error) throw error;
       return data;
     },
     enabled: !!student?.id && !!content?.id,
+    retry: 2,
   });
 
   // Fetch AI instructor for profession line
@@ -184,29 +191,102 @@ export default function ImmersiveCoursePlayer() {
   ) + completedStages.length;
   const overallProgress = totalStages > 0 ? (completedTotal / totalStages) * 100 : 0;
 
-  if (contentLoading || modulesLoading) {
+  // Error handling
+  const hasError = contentError || modulesError || studentError;
+  const handleRetry = () => {
+    if (contentError) refetchContent();
+    if (modulesError) refetchModules();
+    if (studentError) refetchStudent();
+    if (enrollmentError) refetchEnrollment();
+  };
+
+  if (contentLoading || modulesLoading || enrollmentLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center flex-col gap-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-muted-foreground">Loading course content...</p>
+      </div>
+    );
+  }
+
+  if (hasError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="max-w-md w-full">
+          <CardContent className="pt-6 text-center">
+            <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+            <h2 className="text-lg font-semibold mb-2">Failed to Load Course</h2>
+            <p className="text-muted-foreground mb-4">
+              There was a problem loading the course content. Please try again.
+            </p>
+            <div className="flex gap-2 justify-center">
+              <Button onClick={handleRetry} variant="default">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Try Again
+              </Button>
+              <Button variant="outline" asChild>
+                <Link to="/my-learning">Back to My Learning</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   if (!content) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Course not found</p>
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="max-w-md w-full">
+          <CardContent className="pt-6 text-center">
+            <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h2 className="text-lg font-semibold mb-2">Course Not Found</h2>
+            <p className="text-muted-foreground mb-4">
+              This course doesn't exist or may have been removed.
+            </p>
+            <Button asChild>
+              <Link to="/courses">Browse Courses</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="max-w-md w-full">
+          <CardContent className="pt-6 text-center">
+            <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h2 className="text-lg font-semibold mb-2">Sign In Required</h2>
+            <p className="text-muted-foreground mb-4">
+              Please sign in to access this course.
+            </p>
+            <Button asChild>
+              <Link to="/auth">Sign In</Link>
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   if (!enrollment) {
     return (
-      <div className="min-h-screen flex items-center justify-center flex-col gap-4">
-        <p className="text-muted-foreground">You are not enrolled in this course</p>
-        <Button asChild>
-          <Link to={`/courses/${slug}`}>View Course Details</Link>
-        </Button>
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="max-w-md w-full">
+          <CardContent className="pt-6 text-center">
+            <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h2 className="text-lg font-semibold mb-2">Not Enrolled</h2>
+            <p className="text-muted-foreground mb-4">
+              You are not enrolled in this course. Please enroll to access the content.
+            </p>
+            <Button asChild>
+              <Link to={`/courses/${slug}`}>View Course Details</Link>
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }

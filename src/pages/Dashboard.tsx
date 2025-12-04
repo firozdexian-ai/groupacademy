@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { LogOut, Users, BookOpen, DollarSign, Video, Plus, Key, Image, Calendar, ClipboardList, Briefcase, MessageSquare, Target, GraduationCap } from "lucide-react";
+import { LogOut, Users, BookOpen, DollarSign, Video, Plus, Key, Image, Calendar, ClipboardList, Briefcase, MessageSquare, Target, GraduationCap, RefreshCw, AlertCircle } from "lucide-react";
 import StatsCard from "@/components/dashboard/StatsCard";
 import ContentList from "@/components/dashboard/ContentList";
 import { AccessCodeManager } from "@/components/AccessCodeManager";
@@ -31,6 +31,7 @@ const Dashboard = () => {
       avgScore: 0,
     },
   });
+  const [statsError, setStatsError] = useState<string | null>(null);
 
   useEffect(() => {
     checkAuth();
@@ -48,36 +49,42 @@ const Dashboard = () => {
   };
 
   const loadStats = async () => {
+    setStatsError(null);
     try {
       // Load students count
-      const { count: studentsCount } = await supabase
+      const { count: studentsCount, error: studentsError } = await supabase
         .from("students")
         .select("*", { count: "exact", head: true });
+      if (studentsError) throw studentsError;
 
       // Load active enrollments
-      const { count: enrollmentsCount } = await supabase
+      const { count: enrollmentsCount, error: enrollmentsError } = await supabase
         .from("enrollments")
         .select("*", { count: "exact", head: true })
         .eq("status", "active");
+      if (enrollmentsError) throw enrollmentsError;
 
       // Calculate revenue (sum of payment_amount)
-      const { data: enrollments } = await supabase
+      const { data: enrollments, error: revenueError } = await supabase
         .from("enrollments")
         .select("payment_amount")
         .not("payment_amount", "is", null);
+      if (revenueError) throw revenueError;
 
       const totalRevenue = enrollments?.reduce((sum, e) => sum + (Number(e.payment_amount) || 0), 0) || 0;
 
       // Count free videos
-      const { count: videoCount } = await supabase
+      const { count: videoCount, error: videoError } = await supabase
         .from("content")
         .select("*", { count: "exact", head: true })
         .eq("content_type", "free_video");
+      if (videoError) throw videoError;
 
       // Mock interview stats
-      const { data: interviews } = await supabase
+      const { data: interviews, error: interviewsError } = await supabase
         .from("mock_interviews")
         .select("status, selection_percentage");
+      if (interviewsError) throw interviewsError;
 
       const totalInterviews = interviews?.length || 0;
       const completedInterviews = interviews?.filter(i => i.status === "completed").length || 0;
@@ -99,6 +106,8 @@ const Dashboard = () => {
       });
     } catch (error: any) {
       console.error("Error loading stats:", error);
+      setStatsError("Failed to load dashboard statistics");
+      toast.error("Failed to load statistics");
     }
   };
 
@@ -143,6 +152,18 @@ const Dashboard = () => {
       {/* Main Content */}
       <main className="container mx-auto px-6 py-8">
         {/* Stats Grid */}
+        {statsError ? (
+          <Card className="mb-8">
+            <CardContent className="py-6 text-center">
+              <AlertCircle className="w-8 h-8 text-destructive mx-auto mb-2" />
+              <p className="text-muted-foreground mb-3">{statsError}</p>
+              <Button onClick={loadStats} variant="outline" size="sm">
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Retry
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <StatsCard
             title="Total Learners"
@@ -176,7 +197,7 @@ const Dashboard = () => {
             trendLabel={stats.mockInterviews.avgScore > 0 ? `• Avg: ${stats.mockInterviews.avgScore}%` : undefined}
           />
         </div>
-
+        )}
         {/* Content Management */}
         <Tabs defaultValue="all" className="space-y-6">
           <div className="flex items-center justify-between flex-wrap gap-4">
