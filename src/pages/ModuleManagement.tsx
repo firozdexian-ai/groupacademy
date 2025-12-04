@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Plus, Trash2, GripVertical } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, GripVertical, Settings } from "lucide-react";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 
 interface Module {
@@ -211,6 +212,14 @@ export default function ModuleManagement() {
                     >
                       ↓
                     </Button>
+                    {module.id && (
+                      <Button variant="outline" size="sm" asChild>
+                        <Link to={`/content/${contentId}/modules/${module.id}/resources`}>
+                          <Settings className="h-4 w-4 mr-1" />
+                          Resources
+                        </Link>
+                      </Button>
+                    )}
                     {modules.length > 1 && (
                       <Button
                         variant="ghost"

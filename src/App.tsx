@@ -18,6 +18,7 @@ import ImmersiveCoursePlayer from "./pages/ImmersiveCoursePlayer";
 import Quiz from "./pages/Quiz";
 import QuizManagement from "./pages/QuizManagement";
 import ModuleManagement from "./pages/ModuleManagement";
+import ModuleResourcesManager from "./pages/ModuleResourcesManager";
 import ReportCard from "./pages/ReportCard";
 import Instructors from "./pages/Instructors";
 import InstructorNew from "./pages/InstructorNew";
@@ -70,6 +71,7 @@ const App = () => (
           <Route path="/quiz/:slug" element={<ProtectedRoute><Quiz /></ProtectedRoute>} />
           <Route path="/quiz-manage/:contentId" element={<ProtectedRoute requireAdmin><QuizManagement /></ProtectedRoute>} />
           <Route path="/content/:contentId/modules" element={<ProtectedRoute requireAdmin><ModuleManagement /></ProtectedRoute>} />
+          <Route path="/content/:contentId/modules/:moduleId/resources" element={<ProtectedRoute requireAdmin><ModuleResourcesManager /></ProtectedRoute>} />
           <Route path="/report-card/:enrollmentId" element={<ProtectedRoute><ReportCard /></ProtectedRoute>} />
           <Route path="/students" element={<ProtectedRoute requireAdmin><Students /></ProtectedRoute>} />
           <Route path="/enrollments" element={<ProtectedRoute requireAdmin><Enrollments /></ProtectedRoute>} />
