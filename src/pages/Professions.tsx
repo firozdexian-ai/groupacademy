@@ -8,126 +8,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getIcon } from "@/lib/iconMap";
 import { 
   GraduationCap, 
   Building2, 
-  Briefcase, 
-  TrendingUp, 
-  Code, 
-  Palette, 
-  Users,
   ArrowRight,
   Bot,
   BookOpen,
-  Target,
-  Landmark,
-  Laptop,
-  Megaphone,
-  Truck,
-  HeartPulse,
-  Calculator,
-  LineChart,
-  PiggyBank,
-  Store,
-  ShoppingCart,
-  BarChart3,
-  Presentation,
-  UserCheck,
-  UserCog,
-  Handshake,
-  Package,
-  Factory,
-  Warehouse,
-  ClipboardList,
-  Stethoscope,
-  Pill,
-  Activity,
-  Wrench,
-  Hammer,
-  Lightbulb,
-  Monitor,
-  Smartphone,
-  Globe,
-  Cloud,
-  Database,
-  Shield,
-  Lock,
-  Cog,
-  Settings,
-  Pencil,
-  PenTool,
-  Camera,
-  Video,
-  Music,
-  Mic,
-  FileText,
-  Book,
-  Award,
-  Star,
-  Heart,
-  Home,
-  MapPin,
-  Phone,
-  Mail,
-  MessageSquare,
-  Send,
-  Share2,
-  Link,
-  Zap,
-  Rocket,
-  Plane,
-  Car,
-  Ship,
-  Coffee,
-  Utensils,
-  Bed,
-  Building,
-  Hotel,
-  Banknote,
-  CreditCard,
-  DollarSign,
-  Percent,
-  Receipt,
-  Scale,
-  Gavel,
-  Layers,
-  Grid,
-  Layout,
-  LayoutDashboard,
-  PieChart,
-  Network,
-  GitBranch,
-  Terminal,
-  Binary,
-  Cpu,
-  HardDrive,
-  Server,
-  Wifi,
-  Bluetooth,
-  Radio,
-  Tv,
-  Printer,
-  Scan,
-  QrCode,
-  Fingerprint,
-  Eye,
-  Ear,
-  Brain,
-  Dna,
-  Microscope,
-  TestTube,
-  Beaker,
-  Atom,
-  Leaf,
-  TreePine,
-  Sun,
-  Moon,
-  CloudRain,
-  Wind,
-  Thermometer,
-  Droplet,
-  Flame,
-  Snowflake
+  Target
 } from "lucide-react";
 
 interface Academy {
@@ -159,144 +47,6 @@ interface ProfessionLine {
   school_id: string;
   ai_instructors: { name: string }[] | { name: string } | null;
 }
-
-// Comprehensive icon map for all database icon values
-const iconMap: Record<string, React.ElementType> = {
-  // Business & Finance
-  "briefcase": Briefcase,
-  "landmark": Landmark,
-  "banknote": Banknote,
-  "credit-card": CreditCard,
-  "dollar-sign": DollarSign,
-  "piggy-bank": PiggyBank,
-  "calculator": Calculator,
-  "receipt": Receipt,
-  "percent": Percent,
-  "trending-up": TrendingUp,
-  "line-chart": LineChart,
-  "bar-chart-3": BarChart3,
-  "pie-chart": PieChart,
-  "presentation": Presentation,
-  
-  // Sales & Marketing
-  "megaphone": Megaphone,
-  "store": Store,
-  "shopping-cart": ShoppingCart,
-  "handshake": Handshake,
-  
-  // Operations & Logistics
-  "truck": Truck,
-  "package": Package,
-  "factory": Factory,
-  "warehouse": Warehouse,
-  "clipboard-list": ClipboardList,
-  
-  // Healthcare & Pharma
-  "heart-pulse": HeartPulse,
-  "stethoscope": Stethoscope,
-  "pill": Pill,
-  "activity": Activity,
-  "heart": Heart,
-  
-  // Technology
-  "code": Code,
-  "laptop": Laptop,
-  "monitor": Monitor,
-  "smartphone": Smartphone,
-  "globe": Globe,
-  "cloud": Cloud,
-  "database": Database,
-  "server": Server,
-  "terminal": Terminal,
-  "binary": Binary,
-  "cpu": Cpu,
-  "hard-drive": HardDrive,
-  "network": Network,
-  "git-branch": GitBranch,
-  "wifi": Wifi,
-  
-  // HR & People
-  "users": Users,
-  "user-check": UserCheck,
-  "user-cog": UserCog,
-  
-  // Creative & Design
-  "palette": Palette,
-  "pencil": Pencil,
-  "pen-tool": PenTool,
-  "camera": Camera,
-  "video": Video,
-  "music": Music,
-  "mic": Mic,
-  
-  // Education & Learning
-  "graduation-cap": GraduationCap,
-  "book-open": BookOpen,
-  "book": Book,
-  "file-text": FileText,
-  "award": Award,
-  
-  // Buildings & Places
-  "building-2": Building2,
-  "building": Building,
-  "hotel": Hotel,
-  "home": Home,
-  "map-pin": MapPin,
-  
-  // Transportation & Travel
-  "plane": Plane,
-  "car": Car,
-  "ship": Ship,
-  
-  // Hospitality
-  "coffee": Coffee,
-  "utensils": Utensils,
-  "bed": Bed,
-  
-  // Security & Legal
-  "shield": Shield,
-  "lock": Lock,
-  "scale": Scale,
-  "gavel": Gavel,
-  
-  // Tools & Engineering
-  "wrench": Wrench,
-  "hammer": Hammer,
-  "cog": Cog,
-  "settings": Settings,
-  
-  // Science & Research
-  "microscope": Microscope,
-  "test-tube": TestTube,
-  "beaker": Beaker,
-  "atom": Atom,
-  "dna": Dna,
-  "brain": Brain,
-  
-  // Communication
-  "phone": Phone,
-  "mail": Mail,
-  "message-square": MessageSquare,
-  "send": Send,
-  
-  // Miscellaneous
-  "star": Star,
-  "target": Target,
-  "lightbulb": Lightbulb,
-  "zap": Zap,
-  "rocket": Rocket,
-  "layers": Layers,
-  "grid": Grid,
-  "layout": Layout,
-  "layout-dashboard": LayoutDashboard,
-  "link": Link,
-  "share-2": Share2,
-  "bot": Bot,
-  "eye": Eye,
-  "leaf": Leaf,
-  "sun": Sun,
-  "flame": Flame,
-};
 
 export default function Professions() {
   const navigate = useNavigate();
@@ -359,9 +109,7 @@ export default function Professions() {
     return professionLines.filter((p) => p.school_id === schoolId);
   };
 
-  const getIcon = (iconName: string) => {
-    return iconMap[iconName] || Briefcase;
-  };
+  
 
   if (isLoading) {
     return (
