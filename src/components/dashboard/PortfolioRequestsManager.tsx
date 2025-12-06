@@ -8,9 +8,20 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { Search, ExternalLink, Loader2, Eye, FileText, MessageCircle } from "lucide-react";
+import { Search, ExternalLink, Loader2, Eye, FileText, MessageCircle, Download, User, GraduationCap, Briefcase, Wrench, FolderOpen, Award } from "lucide-react";
+import ProfileSummaryPDFTemplate from "@/components/portfolio/ProfileSummaryPDFTemplate";
+import { generateProfileSummaryPDF } from "@/lib/profilePdfGenerator";
+
+interface ProfileData {
+  education: Array<{ institution: string; degree: string; fieldOfStudy: string; graduationYear: string; current: boolean }>;
+  experience: Array<{ title: string; company: string; duration: string; description: string }>;
+  skills: Array<{ name: string; proficiency: string }>;
+  projects: Array<{ name: string; description: string; url: string }>;
+  achievements: Array<{ title: string; description: string; date: string }>;
+}
 
 interface PortfolioRequest {
   id: string;
@@ -18,6 +29,7 @@ interface PortfolioRequest {
   email: string;
   phone: string;
   profession_category_id: string | null;
+  custom_profession: string | null;
   cv_url: string | null;
   certificates: any;
   achievements: string | null;
@@ -27,6 +39,7 @@ interface PortfolioRequest {
   admin_notes: string | null;
   portfolio_url: string | null;
   portfolio_credentials: Record<string, any> | null;
+  profile_data: ProfileData | null;
   created_at: string;
   profession_category?: { name: string } | null;
 }
@@ -47,6 +60,13 @@ const statusLabels: Record<string, string> = {
   cancelled: 'Cancelled',
 };
 
+const proficiencyColors: Record<string, string> = {
+  beginner: 'bg-yellow-500/20 text-yellow-700',
+  intermediate: 'bg-blue-500/20 text-blue-700',
+  advanced: 'bg-green-500/20 text-green-700',
+  expert: 'bg-purple-500/20 text-purple-700',
+};
+
 export default function PortfolioRequestsManager() {
   const { toast } = useToast();
   const [requests, setRequests] = useState<PortfolioRequest[]>([]);
@@ -56,6 +76,8 @@ export default function PortfolioRequestsManager() {
   const [selectedRequest, setSelectedRequest] = useState<PortfolioRequest | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [showPdfTemplate, setShowPdfTemplate] = useState(false);
   
   // Edit form state
   const [editStatus, setEditStatus] = useState("");
@@ -132,6 +154,25 @@ export default function PortfolioRequestsManager() {
     }
   };
 
+  const handleDownloadProfilePDF = async () => {
+    if (!selectedRequest || !selectedRequest.profile_data) return;
+    
+    setIsGeneratingPDF(true);
+    setShowPdfTemplate(true);
+    
+    try {
+      // Small delay to ensure template is rendered
+      await new Promise(resolve => setTimeout(resolve, 100));
+      await generateProfileSummaryPDF(selectedRequest.full_name);
+      toast({ title: "Success", description: "Profile summary downloaded" });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setIsGeneratingPDF(false);
+      setShowPdfTemplate(false);
+    }
+  };
+
   const filteredRequests = requests.filter(request => {
     const matchesSearch = 
       request.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -144,6 +185,25 @@ export default function PortfolioRequestsManager() {
   const openWhatsApp = (phone: string) => {
     const cleanPhone = phone.replace(/[^0-9]/g, '');
     window.open(`https://wa.me/${cleanPhone}`, '_blank');
+  };
+
+  const getProfessionDisplay = (request: PortfolioRequest) => {
+    if (request.custom_profession) {
+      return request.custom_profession;
+    }
+    return request.profession_category?.name || 'Not specified';
+  };
+
+  const hasProfileData = (request: PortfolioRequest) => {
+    const pd = request.profile_data;
+    if (!pd) return false;
+    return (
+      (pd.education && pd.education.length > 0) ||
+      (pd.experience && pd.experience.length > 0) ||
+      (pd.skills && pd.skills.length > 0) ||
+      (pd.projects && pd.projects.length > 0) ||
+      (pd.achievements && pd.achievements.length > 0)
+    );
   };
 
   if (loading) {
@@ -201,8 +261,8 @@ export default function PortfolioRequestsManager() {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Phone</TableHead>
+              <TableHead>Profession</TableHead>
+              <TableHead>Type</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Actions</TableHead>
@@ -219,8 +279,28 @@ export default function PortfolioRequestsManager() {
               filteredRequests.map((request) => (
                 <TableRow key={request.id}>
                   <TableCell className="font-medium">{request.full_name}</TableCell>
-                  <TableCell>{request.email}</TableCell>
-                  <TableCell>{request.phone}</TableCell>
+                  <TableCell>
+                    <span className="text-sm">
+                      {getProfessionDisplay(request)}
+                      {request.custom_profession && (
+                        <Badge variant="outline" className="ml-2 text-xs">Custom</Badge>
+                      )}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      {request.cv_url && (
+                        <Badge variant="secondary" className="text-xs">
+                          <FileText className="h-3 w-3 mr-1" />CV
+                        </Badge>
+                      )}
+                      {hasProfileData(request) && (
+                        <Badge variant="secondary" className="text-xs">
+                          <User className="h-3 w-3 mr-1" />Profile
+                        </Badge>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell>
                     <Badge className={statusColors[request.status]}>
                       {statusLabels[request.status]}
@@ -266,7 +346,7 @@ export default function PortfolioRequestsManager() {
 
       {/* Detail Dialog */}
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Portfolio Request Details</DialogTitle>
             <DialogDescription>
@@ -275,82 +355,244 @@ export default function PortfolioRequestsManager() {
           </DialogHeader>
 
           {selectedRequest && (
-            <div className="space-y-6">
-              {/* Personal Info */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-muted-foreground">Name</Label>
-                  <p className="font-medium">{selectedRequest.full_name}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Email</Label>
-                  <p className="font-medium">{selectedRequest.email}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Phone</Label>
-                  <p className="font-medium">{selectedRequest.phone}</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">Profession</Label>
-                  <p className="font-medium">{selectedRequest.profession_category?.name || 'Not specified'}</p>
-                </div>
-              </div>
+            <Tabs defaultValue="overview" className="w-full">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="overview">Overview</TabsTrigger>
+                <TabsTrigger value="profile" disabled={!hasProfileData(selectedRequest)}>
+                  Profile Data
+                </TabsTrigger>
+                <TabsTrigger value="documents">Documents</TabsTrigger>
+                <TabsTrigger value="admin">Admin</TabsTrigger>
+              </TabsList>
 
-              {/* Documents */}
-              <div className="space-y-2">
-                <Label className="text-muted-foreground">Documents</Label>
-                <div className="flex flex-wrap gap-2">
-                  {selectedRequest.cv_url && (
-                    <Button variant="outline" size="sm" onClick={() => window.open(selectedRequest.cv_url!, '_blank')}>
-                      <FileText className="h-4 w-4 mr-1" /> CV
-                      <ExternalLink className="h-3 w-3 ml-1" />
-                    </Button>
-                  )}
-                  {Array.isArray(selectedRequest.certificates) && selectedRequest.certificates.map((cert: any, i: number) => (
-                    <Button key={i} variant="outline" size="sm" onClick={() => window.open(cert.url, '_blank')}>
-                      <FileText className="h-4 w-4 mr-1" /> {cert.name}
-                      <ExternalLink className="h-3 w-3 ml-1" />
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Social Links */}
-              {selectedRequest.social_links && Object.keys(selectedRequest.social_links).length > 0 && (
-                <div className="space-y-2">
-                  <Label className="text-muted-foreground">Social Links</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {Object.entries(selectedRequest.social_links).map(([key, url]) => (
-                      url && (
-                        <Button key={key} variant="outline" size="sm" onClick={() => window.open(url as string, '_blank')}>
-                          {key} <ExternalLink className="h-3 w-3 ml-1" />
-                        </Button>
-                      )
-                    ))}
+              {/* Overview Tab */}
+              <TabsContent value="overview" className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-muted-foreground">Name</Label>
+                    <p className="font-medium">{selectedRequest.full_name}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Email</Label>
+                    <p className="font-medium">{selectedRequest.email}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Phone</Label>
+                    <p className="font-medium">{selectedRequest.phone}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Profession</Label>
+                    <p className="font-medium">
+                      {getProfessionDisplay(selectedRequest)}
+                      {selectedRequest.custom_profession && (
+                        <Badge variant="outline" className="ml-2">Custom</Badge>
+                      )}
+                    </p>
                   </div>
                 </div>
-              )}
 
-              {/* Achievements */}
-              {selectedRequest.achievements && (
-                <div className="space-y-2">
-                  <Label className="text-muted-foreground">Achievements</Label>
-                  <p className="text-sm bg-muted p-3 rounded-lg">{selectedRequest.achievements}</p>
+                {/* Quick Actions */}
+                <div className="flex flex-wrap gap-2 pt-4 border-t">
+                  <Button variant="outline" size="sm" onClick={() => openWhatsApp(selectedRequest.phone)}>
+                    <MessageCircle className="h-4 w-4 mr-1" /> WhatsApp
+                  </Button>
+                  {selectedRequest.cv_url && (
+                    <Button variant="outline" size="sm" onClick={() => window.open(selectedRequest.cv_url!, '_blank')}>
+                      <FileText className="h-4 w-4 mr-1" /> View CV
+                    </Button>
+                  )}
+                  {hasProfileData(selectedRequest) && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleDownloadProfilePDF}
+                      disabled={isGeneratingPDF}
+                    >
+                      {isGeneratingPDF ? (
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                      ) : (
+                        <Download className="h-4 w-4 mr-1" />
+                      )}
+                      Download Profile Summary
+                    </Button>
+                  )}
                 </div>
-              )}
 
-              {/* Additional Notes from User */}
-              {selectedRequest.additional_notes && (
+                {/* Social Links */}
+                {selectedRequest.social_links && Object.keys(selectedRequest.social_links).filter(k => selectedRequest.social_links![k]).length > 0 && (
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Social Links</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {Object.entries(selectedRequest.social_links).map(([key, url]) => (
+                        url && (
+                          <Button key={key} variant="outline" size="sm" onClick={() => window.open(url as string, '_blank')}>
+                            {key} <ExternalLink className="h-3 w-3 ml-1" />
+                          </Button>
+                        )
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Additional Notes from User */}
+                {selectedRequest.additional_notes && (
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">User Notes</Label>
+                    <p className="text-sm bg-muted p-3 rounded-lg">{selectedRequest.additional_notes}</p>
+                  </div>
+                )}
+              </TabsContent>
+
+              {/* Profile Data Tab */}
+              <TabsContent value="profile" className="space-y-6">
+                {selectedRequest.profile_data && (
+                  <>
+                    {/* Education */}
+                    {selectedRequest.profile_data.education && selectedRequest.profile_data.education.length > 0 && (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                          <GraduationCap className="h-5 w-5 text-primary" />
+                          <Label className="text-lg font-semibold">Education</Label>
+                        </div>
+                        <div className="space-y-3">
+                          {selectedRequest.profile_data.education.map((edu, index) => (
+                            <div key={index} className="bg-muted p-3 rounded-lg">
+                              <p className="font-medium">{edu.degree} in {edu.fieldOfStudy}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {edu.institution} • {edu.current ? 'Currently studying' : edu.graduationYear}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Experience */}
+                    {selectedRequest.profile_data.experience && selectedRequest.profile_data.experience.length > 0 && (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                          <Briefcase className="h-5 w-5 text-primary" />
+                          <Label className="text-lg font-semibold">Experience</Label>
+                        </div>
+                        <div className="space-y-3">
+                          {selectedRequest.profile_data.experience.map((exp, index) => (
+                            <div key={index} className="bg-muted p-3 rounded-lg">
+                              <p className="font-medium">{exp.title}</p>
+                              <p className="text-sm text-primary">{exp.company} • {exp.duration}</p>
+                              {exp.description && (
+                                <p className="text-sm text-muted-foreground mt-1">{exp.description}</p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Skills */}
+                    {selectedRequest.profile_data.skills && selectedRequest.profile_data.skills.length > 0 && (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                          <Wrench className="h-5 w-5 text-primary" />
+                          <Label className="text-lg font-semibold">Skills</Label>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedRequest.profile_data.skills.map((skill, index) => (
+                            <Badge 
+                              key={index} 
+                              className={proficiencyColors[skill.proficiency] || 'bg-secondary'}
+                            >
+                              {skill.name} ({skill.proficiency})
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Projects */}
+                    {selectedRequest.profile_data.projects && selectedRequest.profile_data.projects.length > 0 && (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                          <FolderOpen className="h-5 w-5 text-primary" />
+                          <Label className="text-lg font-semibold">Projects</Label>
+                        </div>
+                        <div className="space-y-3">
+                          {selectedRequest.profile_data.projects.map((project, index) => (
+                            <div key={index} className="bg-muted p-3 rounded-lg">
+                              <p className="font-medium">{project.name}</p>
+                              {project.description && (
+                                <p className="text-sm text-muted-foreground">{project.description}</p>
+                              )}
+                              {project.url && (
+                                <Button variant="link" size="sm" className="h-auto p-0 mt-1" onClick={() => window.open(project.url, '_blank')}>
+                                  {project.url} <ExternalLink className="h-3 w-3 ml-1" />
+                                </Button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Achievements */}
+                    {selectedRequest.profile_data.achievements && selectedRequest.profile_data.achievements.length > 0 && (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                          <Award className="h-5 w-5 text-primary" />
+                          <Label className="text-lg font-semibold">Achievements</Label>
+                        </div>
+                        <div className="space-y-3">
+                          {selectedRequest.profile_data.achievements.map((achievement, index) => (
+                            <div key={index} className="bg-muted p-3 rounded-lg">
+                              <p className="font-medium">{achievement.title}</p>
+                              {achievement.description && (
+                                <p className="text-sm text-muted-foreground">{achievement.description}</p>
+                              )}
+                              {achievement.date && (
+                                <p className="text-xs text-muted-foreground mt-1">{achievement.date}</p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </TabsContent>
+
+              {/* Documents Tab */}
+              <TabsContent value="documents" className="space-y-4">
                 <div className="space-y-2">
-                  <Label className="text-muted-foreground">User Notes</Label>
-                  <p className="text-sm bg-muted p-3 rounded-lg">{selectedRequest.additional_notes}</p>
+                  <Label className="text-muted-foreground">Documents & Certificates</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedRequest.cv_url && (
+                      <Button variant="outline" size="sm" onClick={() => window.open(selectedRequest.cv_url!, '_blank')}>
+                        <FileText className="h-4 w-4 mr-1" /> CV
+                        <ExternalLink className="h-3 w-3 ml-1" />
+                      </Button>
+                    )}
+                    {Array.isArray(selectedRequest.certificates) && selectedRequest.certificates.map((cert: any, i: number) => (
+                      <Button key={i} variant="outline" size="sm" onClick={() => window.open(cert.url, '_blank')}>
+                        <FileText className="h-4 w-4 mr-1" /> {cert.name}
+                        <ExternalLink className="h-3 w-3 ml-1" />
+                      </Button>
+                    ))}
+                    {!selectedRequest.cv_url && (!selectedRequest.certificates || selectedRequest.certificates.length === 0) && (
+                      <p className="text-sm text-muted-foreground">No documents uploaded</p>
+                    )}
+                  </div>
                 </div>
-              )}
 
-              <hr />
+                {/* Achievements Text */}
+                {selectedRequest.achievements && (
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Achievements (Text)</Label>
+                    <p className="text-sm bg-muted p-3 rounded-lg whitespace-pre-wrap">{selectedRequest.achievements}</p>
+                  </div>
+                )}
+              </TabsContent>
 
-              {/* Admin Controls */}
-              <div className="space-y-4">
+              {/* Admin Tab */}
+              <TabsContent value="admin" className="space-y-4">
                 <div>
                   <Label>Status</Label>
                   <Select value={editStatus} onValueChange={setEditStatus}>
@@ -408,8 +650,8 @@ export default function PortfolioRequestsManager() {
                     </div>
                   </div>
                 )}
-              </div>
-            </div>
+              </TabsContent>
+            </Tabs>
           )}
 
           <DialogFooter>
@@ -423,6 +665,22 @@ export default function PortfolioRequestsManager() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Hidden PDF Template */}
+      {showPdfTemplate && selectedRequest && selectedRequest.profile_data && (
+        <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
+          <ProfileSummaryPDFTemplate
+            fullName={selectedRequest.full_name}
+            email={selectedRequest.email}
+            phone={selectedRequest.phone}
+            profession={selectedRequest.profession_category?.name || 'Not specified'}
+            customProfession={selectedRequest.custom_profession}
+            profileData={selectedRequest.profile_data}
+            socialLinks={selectedRequest.social_links}
+            achievementsText={selectedRequest.achievements}
+          />
+        </div>
+      )}
     </div>
   );
 }
