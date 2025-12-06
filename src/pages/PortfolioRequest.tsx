@@ -12,7 +12,7 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import MultiFileUpload from "@/components/portfolio/MultiFileUpload";
 import ProfileBuilderForm, { ProfileData } from "@/components/portfolio/ProfileBuilderForm";
-import { Briefcase, User, FileText, Award, Globe, CheckCircle, ArrowLeft, ArrowRight, Loader2, FileUp, PenLine } from "lucide-react";
+import { Briefcase, User, FileText, Award, Globe, CheckCircle, ArrowLeft, ArrowRight, Loader2, FileUp, PenLine, RefreshCw, AlertCircle } from "lucide-react";
 
 type Step = 'personal' | 'cv' | 'certificates' | 'social' | 'review';
 
@@ -57,6 +57,34 @@ const steps: { id: Step; label: string; icon: React.ReactNode }[] = [
   { id: 'review', label: 'Review', icon: <CheckCircle className="h-4 w-4" /> },
 ];
 
+// Format phone number for Bangladesh
+const formatBDPhone = (value: string): string => {
+  // Remove all non-digits
+  let digits = value.replace(/\D/g, '');
+  
+  // If starts with 880, keep it
+  if (digits.startsWith('880')) {
+    digits = digits.substring(3);
+  }
+  
+  // Limit to 10 digits (Bangladesh mobile without country code)
+  digits = digits.substring(0, 10);
+  
+  // Format as XXXX-XXXXXX if we have enough digits
+  if (digits.length > 4) {
+    return `${digits.substring(0, 4)}-${digits.substring(4)}`;
+  }
+  
+  return digits;
+};
+
+// Get full phone number with country code
+const getFullPhone = (phone: string): string => {
+  const digits = phone.replace(/\D/g, '');
+  if (digits.length === 0) return '';
+  return `+880${digits}`;
+};
+
 export default function PortfolioRequest() {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -65,7 +93,7 @@ export default function PortfolioRequest() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [requestId, setRequestId] = useState<string>("");
   const [professionCategories, setProfessionCategories] = useState<ProfessionCategory[]>([]);
-  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+  const [categoriesStatus, setCategoriesStatus] = useState<'loading' | 'loaded' | 'error'>('loading');
   
   const [formData, setFormData] = useState<FormData>({
     fullName: '',
@@ -87,32 +115,37 @@ export default function PortfolioRequest() {
   }, []);
 
   const loadProfessionCategories = async () => {
-    setIsLoadingCategories(true);
+    setCategoriesStatus('loading');
     
     try {
+      // Add timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      
       const { data, error } = await supabase
         .from('profession_categories')
         .select('id, name, slug')
         .eq('is_active', true)
-        .order('display_order');
+        .order('display_order')
+        .abortSignal(controller.signal);
+      
+      clearTimeout(timeoutId);
       
       if (error) {
-        console.error('[PortfolioRequest] Error loading profession categories:', error);
-        toast({
-          title: "Error loading categories",
-          description: error.message,
-          variant: "destructive",
-        });
+        console.error('[PortfolioRequest] Error loading categories:', error);
+        setCategoriesStatus('error');
         return;
       }
       
-      if (data) {
+      if (data && data.length > 0) {
         setProfessionCategories(data);
+        setCategoriesStatus('loaded');
+      } else {
+        setCategoriesStatus('error');
       }
-    } catch (err) {
-      console.error('[PortfolioRequest] Unexpected error:', err);
-    } finally {
-      setIsLoadingCategories(false);
+    } catch (err: any) {
+      console.error('[PortfolioRequest] Failed to load categories:', err);
+      setCategoriesStatus('error');
     }
   };
 
@@ -123,16 +156,16 @@ export default function PortfolioRequest() {
   const canProceed = (): boolean => {
     switch (currentStep) {
       case 'personal':
-        const hasBasicInfo = !!(formData.fullName && formData.email && formData.phone);
-        const hasValidCategory = formData.professionCategoryId && (!isOtherCategory || formData.customProfession);
-        return hasBasicInfo && !!hasValidCategory;
+        const hasName = formData.fullName.trim().length >= 2;
+        const hasEmail = formData.email.includes('@');
+        const hasPhone = formData.phone.replace(/\D/g, '').length >= 10;
+        const hasCategory = !!formData.professionCategoryId || categoriesStatus === 'error';
+        const hasCustomProfession = !isOtherCategory || formData.customProfession.trim().length > 0;
+        return hasName && hasEmail && hasPhone && hasCategory && hasCustomProfession;
       case 'cv':
-        // Either has CV uploaded OR has filled profile data with at least education
         return formData.hasCv ? !!formData.cvUrl : formData.profileData.education.length > 0;
       case 'certificates':
-        return true;
       case 'social':
-        return true;
       case 'review':
         return true;
       default:
@@ -154,53 +187,53 @@ export default function PortfolioRequest() {
     }
   };
 
+  const handlePhoneChange = (value: string) => {
+    const formatted = formatBDPhone(value);
+    setFormData({ ...formData, phone: formatted });
+  };
+
   const handleSubmit = async () => {
     setIsSubmitting(true);
     
-    // Determine if "Other" category based on the selected category's slug
-    const selectedCat = professionCategories.find(c => c.id === formData.professionCategoryId);
-    const isOther = selectedCat?.slug === 'other';
-    
-    console.log('[PortfolioRequest] Starting submission...', {
-      formData,
-      selectedCat,
-      isOther
-    });
+    const fullPhone = getFullPhone(formData.phone);
+    const isOther = selectedCategory?.slug === 'other';
+    const professionCategoryId = formData.professionCategoryId || null;
     
     try {
+      const insertData = {
+        full_name: formData.fullName.trim(),
+        email: formData.email.trim().toLowerCase(),
+        phone: fullPhone,
+        profession_category_id: professionCategoryId,
+        custom_profession: isOther ? formData.customProfession.trim() : null,
+        cv_url: formData.hasCv ? formData.cvUrl : null,
+        profile_data: (!formData.hasCv ? formData.profileData : {}) as unknown as any,
+        certificates: formData.certificates as unknown as any,
+        achievements: formData.achievements.trim() || null,
+        social_links: formData.socialLinks as unknown as any,
+        additional_notes: formData.additionalNotes.trim() || null,
+      };
+
       const { data, error } = await supabase
         .from('portfolio_requests')
-        .insert({
-          full_name: formData.fullName,
-          email: formData.email,
-          phone: formData.phone,
-          profession_category_id: formData.professionCategoryId || null,
-          custom_profession: isOther ? formData.customProfession : null,
-          cv_url: formData.hasCv ? formData.cvUrl : null,
-          profile_data: (!formData.hasCv ? formData.profileData : {}) as unknown as any,
-          certificates: formData.certificates as unknown as any,
-          achievements: formData.achievements,
-          social_links: formData.socialLinks as unknown as any,
-          additional_notes: formData.additionalNotes,
-        })
+        .insert(insertData)
         .select('id')
         .single();
 
       if (error) {
-        console.error('[PortfolioRequest] Insert error:', error);
         throw error;
       }
 
-      // Also create or update professional profile
+      // Create professional profile (non-blocking)
       try {
         await supabase
           .from('professionals')
           .upsert({
-            full_name: formData.fullName,
-            email: formData.email,
-            phone: formData.phone,
-            profession_category_id: formData.professionCategoryId || null,
-            custom_profession: isOther ? formData.customProfession : null,
+            full_name: formData.fullName.trim(),
+            email: formData.email.trim().toLowerCase(),
+            phone: fullPhone,
+            profession_category_id: professionCategoryId,
+            custom_profession: isOther ? formData.customProfession.trim() : null,
             cv_url: formData.hasCv ? formData.cvUrl : null,
             education: formData.profileData.education as unknown as any,
             experience: formData.profileData.experience as unknown as any,
@@ -210,9 +243,9 @@ export default function PortfolioRequest() {
             linkedin_url: formData.socialLinks.linkedin || null,
             services_used: ['portfolio'] as unknown as any,
           }, { onConflict: 'email' });
-        console.log('[PortfolioRequest] Professional profile upserted successfully');
-      } catch (profError) {
-        console.log('[PortfolioRequest] Professional profile upsert skipped:', profError);
+        console.log('[PortfolioRequest] Professional profile created');
+      } catch (e) {
+        console.log('[PortfolioRequest] Professional profile skipped:', e);
       }
 
       setRequestId(data.id);
@@ -220,11 +253,18 @@ export default function PortfolioRequest() {
       toast({ title: "Request submitted!", description: "We'll contact you on WhatsApp soon." });
     } catch (error: any) {
       console.error('[PortfolioRequest] Submission failed:', error);
+      
+      let message = "Please try again or contact support.";
+      if (error.message?.includes('duplicate')) {
+        message = "You've already submitted a request with this email.";
+      } else if (error.message?.includes('network')) {
+        message = "Network error. Please check your internet connection.";
+      }
+      
       toast({ 
         title: "Submission failed", 
-        description: error.message || "Please try again or contact support.", 
+        description: message, 
         variant: "destructive",
-        duration: 10000,
       });
     } finally {
       setIsSubmitting(false);
@@ -360,71 +400,96 @@ export default function PortfolioRequest() {
                   </div>
                   <div>
                     <Label htmlFor="phone">WhatsApp Number *</Label>
-                    <Input
-                      id="phone"
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      placeholder="+880 1XXX-XXXXXX"
-                    />
+                    <div className="flex">
+                      <div className="flex items-center px-3 bg-muted border border-r-0 border-input rounded-l-md text-sm text-muted-foreground">
+                        +880
+                      </div>
+                      <Input
+                        id="phone"
+                        value={formData.phone}
+                        onChange={(e) => handlePhoneChange(e.target.value)}
+                        placeholder="1XXX-XXXXXX"
+                        className="rounded-l-none"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">Enter your 10-digit Bangladesh mobile number</p>
                   </div>
                   <div>
                     <Label htmlFor="profession">Profession / Status *</Label>
-                    <Select
-                      value={formData.professionCategoryId}
-                      onValueChange={(value) => setFormData({ ...formData, professionCategoryId: value, customProfession: '' })}
-                      disabled={isLoadingCategories}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder={isLoadingCategories ? "Loading categories..." : "Select your profession or status"} />
-                      </SelectTrigger>
-                      <SelectContent className="bg-popover">
-                        {isLoadingCategories ? (
-                          <div className="px-2 py-4 text-sm text-muted-foreground text-center">
-                            <Loader2 className="h-4 w-4 animate-spin mx-auto mb-2" />
-                            Loading...
-                          </div>
-                        ) : (
-                          <>
-                            {studentCategories.length > 0 && (
-                              <>
-                                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-                                  Students & Fresh Graduates
-                                </div>
-                                {studentCategories.map((cat) => (
-                                  <SelectItem key={cat.id} value={cat.id}>
-                                    {cat.name}
-                                  </SelectItem>
-                                ))}
-                              </>
-                            )}
-                            {professionalCategories.length > 0 && (
-                              <>
-                                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground mt-2">
-                                  Professionals
-                                </div>
-                                {professionalCategories.map((cat) => (
-                                  <SelectItem key={cat.id} value={cat.id}>
-                                    {cat.name}
-                                  </SelectItem>
-                                ))}
-                              </>
-                            )}
-                            {otherCategories.length > 0 && (
-                              <>
-                                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground mt-2">
-                                  Other
-                                </div>
-                                {otherCategories.map((cat) => (
-                                  <SelectItem key={cat.id} value={cat.id}>
-                                    {cat.name}
-                                  </SelectItem>
-                                ))}
-                              </>
-                            )}
-                          </>
-                        )}
-                      </SelectContent>
-                    </Select>
+                    {categoriesStatus === 'loading' ? (
+                      <div className="flex items-center gap-2 p-3 border rounded-md bg-muted/50">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span className="text-sm text-muted-foreground">Loading categories...</span>
+                      </div>
+                    ) : categoriesStatus === 'error' ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2 p-3 border border-destructive/50 rounded-md bg-destructive/5">
+                          <AlertCircle className="h-4 w-4 text-destructive" />
+                          <span className="text-sm text-muted-foreground">Failed to load categories</span>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={loadProfessionCategories}
+                            className="ml-auto"
+                          >
+                            <RefreshCw className="h-4 w-4 mr-1" />
+                            Retry
+                          </Button>
+                        </div>
+                        <Input
+                          value={formData.customProfession}
+                          onChange={(e) => setFormData({ ...formData, customProfession: e.target.value })}
+                          placeholder="Enter your profession or field of study"
+                        />
+                      </div>
+                    ) : (
+                      <Select
+                        value={formData.professionCategoryId}
+                        onValueChange={(value) => setFormData({ ...formData, professionCategoryId: value, customProfession: '' })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select your profession or status" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-popover">
+                          {studentCategories.length > 0 && (
+                            <>
+                              <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                                Students & Fresh Graduates
+                              </div>
+                              {studentCategories.map((cat) => (
+                                <SelectItem key={cat.id} value={cat.id}>
+                                  {cat.name}
+                                </SelectItem>
+                              ))}
+                            </>
+                          )}
+                          {professionalCategories.length > 0 && (
+                            <>
+                              <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground mt-2">
+                                Professionals
+                              </div>
+                              {professionalCategories.map((cat) => (
+                                <SelectItem key={cat.id} value={cat.id}>
+                                  {cat.name}
+                                </SelectItem>
+                              ))}
+                            </>
+                          )}
+                          {otherCategories.length > 0 && (
+                            <>
+                              <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground mt-2">
+                                Other
+                              </div>
+                              {otherCategories.map((cat) => (
+                                <SelectItem key={cat.id} value={cat.id}>
+                                  {cat.name}
+                                </SelectItem>
+                              ))}
+                            </>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
                   {isOtherCategory && (
                     <div>
@@ -581,8 +646,8 @@ export default function PortfolioRequest() {
                       <div className="text-sm space-y-1">
                         <p><span className="text-muted-foreground">Name:</span> {formData.fullName}</p>
                         <p><span className="text-muted-foreground">Email:</span> {formData.email}</p>
-                        <p><span className="text-muted-foreground">WhatsApp:</span> {formData.phone}</p>
-                        <p><span className="text-muted-foreground">Category:</span> {selectedCategory?.name || 'Not selected'}</p>
+                        <p><span className="text-muted-foreground">WhatsApp:</span> {getFullPhone(formData.phone)}</p>
+                        <p><span className="text-muted-foreground">Category:</span> {selectedCategory?.name || formData.customProfession || 'Not specified'}</p>
                         {isOtherCategory && formData.customProfession && (
                           <p><span className="text-muted-foreground">Field:</span> {formData.customProfession}</p>
                         )}
