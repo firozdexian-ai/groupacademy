@@ -928,6 +928,7 @@ export type Database = {
           assigned_to: string | null
           certificates: Json | null
           created_at: string
+          custom_profession: string | null
           cv_url: string | null
           email: string
           full_name: string
@@ -936,6 +937,7 @@ export type Database = {
           portfolio_credentials: Json | null
           portfolio_url: string | null
           profession_category_id: string | null
+          profile_data: Json | null
           social_links: Json | null
           status: Database["public"]["Enums"]["portfolio_status"]
           updated_at: string
@@ -947,6 +949,7 @@ export type Database = {
           assigned_to?: string | null
           certificates?: Json | null
           created_at?: string
+          custom_profession?: string | null
           cv_url?: string | null
           email: string
           full_name: string
@@ -955,6 +958,7 @@ export type Database = {
           portfolio_credentials?: Json | null
           portfolio_url?: string | null
           profession_category_id?: string | null
+          profile_data?: Json | null
           social_links?: Json | null
           status?: Database["public"]["Enums"]["portfolio_status"]
           updated_at?: string
@@ -966,6 +970,7 @@ export type Database = {
           assigned_to?: string | null
           certificates?: Json | null
           created_at?: string
+          custom_profession?: string | null
           cv_url?: string | null
           email?: string
           full_name?: string
@@ -974,6 +979,7 @@ export type Database = {
           portfolio_credentials?: Json | null
           portfolio_url?: string | null
           profession_category_id?: string | null
+          profile_data?: Json | null
           social_links?: Json | null
           status?: Database["public"]["Enums"]["portfolio_status"]
           updated_at?: string
@@ -1077,6 +1083,98 @@ export type Database = {
           slug?: string
         }
         Relationships: []
+      }
+      professionals: {
+        Row: {
+          achievements: Json | null
+          created_at: string | null
+          current_status: string | null
+          custom_profession: string | null
+          cv_url: string | null
+          education: Json | null
+          email: string
+          experience: Json | null
+          field_of_study: string | null
+          full_name: string
+          id: string
+          institution: string | null
+          is_featured: boolean | null
+          linkedin_url: string | null
+          phone: string | null
+          portfolio_credentials: Json | null
+          portfolio_url: string | null
+          profession_category_id: string | null
+          profile_photo_url: string | null
+          profile_type: string
+          projects: Json | null
+          services_used: Json | null
+          skills: Json | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          achievements?: Json | null
+          created_at?: string | null
+          current_status?: string | null
+          custom_profession?: string | null
+          cv_url?: string | null
+          education?: Json | null
+          email: string
+          experience?: Json | null
+          field_of_study?: string | null
+          full_name: string
+          id?: string
+          institution?: string | null
+          is_featured?: boolean | null
+          linkedin_url?: string | null
+          phone?: string | null
+          portfolio_credentials?: Json | null
+          portfolio_url?: string | null
+          profession_category_id?: string | null
+          profile_photo_url?: string | null
+          profile_type?: string
+          projects?: Json | null
+          services_used?: Json | null
+          skills?: Json | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          achievements?: Json | null
+          created_at?: string | null
+          current_status?: string | null
+          custom_profession?: string | null
+          cv_url?: string | null
+          education?: Json | null
+          email?: string
+          experience?: Json | null
+          field_of_study?: string | null
+          full_name?: string
+          id?: string
+          institution?: string | null
+          is_featured?: boolean | null
+          linkedin_url?: string | null
+          phone?: string | null
+          portfolio_credentials?: Json | null
+          portfolio_url?: string | null
+          profession_category_id?: string | null
+          profile_photo_url?: string | null
+          profile_type?: string
+          projects?: Json | null
+          services_used?: Json | null
+          skills?: Json | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "professionals_profession_category_id_fkey"
+            columns: ["profession_category_id"]
+            isOneToOne: false
+            referencedRelation: "profession_categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       quiz_attempts: {
         Row: {

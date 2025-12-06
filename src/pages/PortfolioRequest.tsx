@@ -11,13 +11,15 @@ import { useToast } from "@/hooks/use-toast";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import MultiFileUpload from "@/components/portfolio/MultiFileUpload";
-import { Briefcase, User, FileText, Award, Globe, CheckCircle, ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
+import ProfileBuilderForm, { ProfileData } from "@/components/portfolio/ProfileBuilderForm";
+import { Briefcase, User, FileText, Award, Globe, CheckCircle, ArrowLeft, ArrowRight, Loader2, FileUp, PenLine } from "lucide-react";
 
 type Step = 'personal' | 'cv' | 'certificates' | 'social' | 'review';
 
 interface ProfessionCategory {
   id: string;
   name: string;
+  slug: string;
 }
 
 interface FormData {
@@ -25,7 +27,10 @@ interface FormData {
   email: string;
   phone: string;
   professionCategoryId: string;
+  customProfession: string;
+  hasCv: boolean;
   cvUrl: string;
+  profileData: ProfileData;
   certificates: { name: string; url: string }[];
   achievements: string;
   socialLinks: {
@@ -38,9 +43,17 @@ interface FormData {
   additionalNotes: string;
 }
 
+const emptyProfileData: ProfileData = {
+  education: [],
+  experience: [],
+  skills: [],
+  projects: [],
+  achievements: [],
+};
+
 const steps: { id: Step; label: string; icon: React.ReactNode }[] = [
   { id: 'personal', label: 'Personal Info', icon: <User className="h-4 w-4" /> },
-  { id: 'cv', label: 'CV Upload', icon: <FileText className="h-4 w-4" /> },
+  { id: 'cv', label: 'CV / Profile', icon: <FileText className="h-4 w-4" /> },
   { id: 'certificates', label: 'Certificates', icon: <Award className="h-4 w-4" /> },
   { id: 'social', label: 'Social Links', icon: <Globe className="h-4 w-4" /> },
   { id: 'review', label: 'Review', icon: <CheckCircle className="h-4 w-4" /> },
@@ -61,7 +74,10 @@ export default function PortfolioRequest() {
     email: '',
     phone: '',
     professionCategoryId: '',
+    customProfession: '',
+    hasCv: true,
     cvUrl: '',
+    profileData: emptyProfileData,
     certificates: [],
     achievements: '',
     socialLinks: {},
@@ -73,17 +89,14 @@ export default function PortfolioRequest() {
   }, []);
 
   const loadProfessionCategories = async () => {
-    console.log('[PortfolioRequest] Starting to fetch profession categories...');
     setIsLoadingCategories(true);
     
     try {
       const { data, error } = await supabase
         .from('profession_categories')
-        .select('id, name')
+        .select('id, name, slug')
         .eq('is_active', true)
         .order('display_order');
-      
-      console.log('[PortfolioRequest] Fetch result:', { data, error });
       
       if (error) {
         console.error('[PortfolioRequest] Error loading profession categories:', error);
@@ -96,7 +109,6 @@ export default function PortfolioRequest() {
       }
       
       if (data) {
-        console.log('[PortfolioRequest] Loaded', data.length, 'profession categories:', data);
         setProfessionCategories(data);
       }
     } catch (err) {
@@ -107,13 +119,18 @@ export default function PortfolioRequest() {
   };
 
   const currentStepIndex = steps.findIndex(s => s.id === currentStep);
+  const selectedCategory = professionCategories.find(c => c.id === formData.professionCategoryId);
+  const isOtherCategory = selectedCategory?.slug === 'other';
 
   const canProceed = (): boolean => {
     switch (currentStep) {
       case 'personal':
-        return !!(formData.fullName && formData.email && formData.phone);
+        const hasBasicInfo = !!(formData.fullName && formData.email && formData.phone);
+        const hasValidCategory = formData.professionCategoryId && (!isOtherCategory || formData.customProfession);
+        return hasBasicInfo && !!hasValidCategory;
       case 'cv':
-        return !!formData.cvUrl;
+        // Either has CV uploaded OR has filled profile data with at least education
+        return formData.hasCv ? !!formData.cvUrl : formData.profileData.education.length > 0;
       case 'certificates':
         return true;
       case 'social':
@@ -140,38 +157,55 @@ export default function PortfolioRequest() {
   };
 
   const handleSubmit = async () => {
-    console.log('[PortfolioRequest] Submit clicked, form data:', formData);
     setIsSubmitting(true);
     
     try {
-      const insertData = {
-        full_name: formData.fullName,
-        email: formData.email,
-        phone: formData.phone,
-        profession_category_id: formData.professionCategoryId || null,
-        cv_url: formData.cvUrl,
-        certificates: formData.certificates,
-        achievements: formData.achievements,
-        social_links: formData.socialLinks,
-        additional_notes: formData.additionalNotes,
-      };
-      
-      console.log('[PortfolioRequest] Inserting data:', insertData);
-      
       const { data, error } = await supabase
         .from('portfolio_requests')
-        .insert(insertData)
+        .insert({
+          full_name: formData.fullName,
+          email: formData.email,
+          phone: formData.phone,
+          profession_category_id: formData.professionCategoryId || null,
+          custom_profession: isOtherCategory ? formData.customProfession : null,
+          cv_url: formData.hasCv ? formData.cvUrl : null,
+          profile_data: (!formData.hasCv ? formData.profileData : {}) as unknown as any,
+          certificates: formData.certificates as unknown as any,
+          achievements: formData.achievements,
+          social_links: formData.socialLinks as unknown as any,
+          additional_notes: formData.additionalNotes,
+        })
         .select('id')
         .single();
-
-      console.log('[PortfolioRequest] Insert result:', { data, error });
 
       if (error) {
         console.error('[PortfolioRequest] Insert error:', error);
         throw error;
       }
 
-      console.log('[PortfolioRequest] Success! Request ID:', data.id);
+      // Also create or update professional profile
+      try {
+        await supabase
+          .from('professionals')
+          .upsert({
+            full_name: formData.fullName,
+            email: formData.email,
+            phone: formData.phone,
+            profession_category_id: formData.professionCategoryId || null,
+            custom_profession: isOtherCategory ? formData.customProfession : null,
+            cv_url: formData.hasCv ? formData.cvUrl : null,
+            education: formData.profileData.education as unknown as any,
+            experience: formData.profileData.experience as unknown as any,
+            skills: formData.profileData.skills as unknown as any,
+            projects: formData.profileData.projects as unknown as any,
+            achievements: formData.profileData.achievements as unknown as any,
+            linkedin_url: formData.socialLinks.linkedin || null,
+            services_used: ['portfolio'] as unknown as any,
+          }, { onConflict: 'email' });
+      } catch (profError) {
+        console.log('[PortfolioRequest] Professional profile upsert skipped:', profError);
+      }
+
       setRequestId(data.id);
       setIsSuccess(true);
       toast({ title: "Request submitted!", description: "We'll contact you on WhatsApp soon." });
@@ -187,6 +221,17 @@ export default function PortfolioRequest() {
       setIsSubmitting(false);
     }
   };
+
+  // Group categories for better UX
+  const studentCategories = professionCategories.filter(c => 
+    ['student-undergrad', 'student-graduate', 'fresh-graduate'].includes(c.slug)
+  );
+  const professionalCategories = professionCategories.filter(c => 
+    !['student-undergrad', 'student-graduate', 'fresh-graduate', 'career-changer', 'other'].includes(c.slug)
+  );
+  const otherCategories = professionCategories.filter(c => 
+    ['career-changer', 'other'].includes(c.slug)
+  );
 
   if (isSuccess) {
     return (
@@ -265,11 +310,6 @@ export default function PortfolioRequest() {
                 }`}>
                   {step.label}
                 </span>
-                {index < steps.length - 1 && (
-                  <div className={`h-0.5 w-full mt-5 absolute left-1/2 ${
-                    index < currentStepIndex ? 'bg-primary' : 'bg-muted'
-                  }`} style={{ display: 'none' }} />
-                )}
               </div>
             ))}
           </div>
@@ -280,7 +320,7 @@ export default function PortfolioRequest() {
               <CardTitle>{steps[currentStepIndex].label}</CardTitle>
               <CardDescription>
                 {currentStep === 'personal' && "Tell us about yourself so we can contact you"}
-                {currentStep === 'cv' && "Upload your CV/Resume (PDF or Word document)"}
+                {currentStep === 'cv' && "Upload your CV or fill in your information"}
                 {currentStep === 'certificates' && "Add your certificates and achievements (optional)"}
                 {currentStep === 'social' && "Share your online presence (optional)"}
                 {currentStep === 'review' && "Review your information before submitting"}
@@ -319,14 +359,14 @@ export default function PortfolioRequest() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="profession">Profession Category</Label>
+                    <Label htmlFor="profession">Profession / Status *</Label>
                     <Select
                       value={formData.professionCategoryId}
-                      onValueChange={(value) => setFormData({ ...formData, professionCategoryId: value })}
+                      onValueChange={(value) => setFormData({ ...formData, professionCategoryId: value, customProfession: '' })}
                       disabled={isLoadingCategories}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder={isLoadingCategories ? "Loading categories..." : "Select your profession"} />
+                        <SelectValue placeholder={isLoadingCategories ? "Loading categories..." : "Select your profession or status"} />
                       </SelectTrigger>
                       <SelectContent className="bg-popover">
                         {isLoadingCategories ? (
@@ -334,35 +374,113 @@ export default function PortfolioRequest() {
                             <Loader2 className="h-4 w-4 animate-spin mx-auto mb-2" />
                             Loading...
                           </div>
-                        ) : professionCategories.length === 0 ? (
-                          <div className="px-2 py-4 text-sm text-muted-foreground text-center">
-                            No profession categories available
-                          </div>
                         ) : (
-                          professionCategories.map((cat) => (
-                            <SelectItem key={cat.id} value={cat.id}>
-                              {cat.name}
-                            </SelectItem>
-                          ))
+                          <>
+                            {studentCategories.length > 0 && (
+                              <>
+                                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                                  Students & Fresh Graduates
+                                </div>
+                                {studentCategories.map((cat) => (
+                                  <SelectItem key={cat.id} value={cat.id}>
+                                    {cat.name}
+                                  </SelectItem>
+                                ))}
+                              </>
+                            )}
+                            {professionalCategories.length > 0 && (
+                              <>
+                                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground mt-2">
+                                  Professionals
+                                </div>
+                                {professionalCategories.map((cat) => (
+                                  <SelectItem key={cat.id} value={cat.id}>
+                                    {cat.name}
+                                  </SelectItem>
+                                ))}
+                              </>
+                            )}
+                            {otherCategories.length > 0 && (
+                              <>
+                                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground mt-2">
+                                  Other
+                                </div>
+                                {otherCategories.map((cat) => (
+                                  <SelectItem key={cat.id} value={cat.id}>
+                                    {cat.name}
+                                  </SelectItem>
+                                ))}
+                              </>
+                            )}
+                          </>
                         )}
                       </SelectContent>
                     </Select>
                   </div>
+                  {isOtherCategory && (
+                    <div>
+                      <Label htmlFor="customProfession">Specify Your Profession / Field of Study *</Label>
+                      <Input
+                        id="customProfession"
+                        value={formData.customProfession}
+                        onChange={(e) => setFormData({ ...formData, customProfession: e.target.value })}
+                        placeholder="e.g., International Relations, Philosophy, Architecture"
+                      />
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* CV Upload Step */}
               {currentStep === 'cv' && (
                 <div className="space-y-4">
-                  <MultiFileUpload
-                    bucket="portfolio-uploads"
-                    maxFiles={1}
-                    acceptedTypes=".pdf,.doc,.docx"
-                    value={formData.cvUrl ? [{ name: 'CV', url: formData.cvUrl }] : []}
-                    onChange={(files) => setFormData({ ...formData, cvUrl: files[0]?.url || '' })}
-                    label="Upload your CV/Resume"
-                    description="PDF or Word document (max 10MB)"
-                  />
+                  {/* Toggle between CV upload and Profile Builder */}
+                  <div className="flex gap-2 p-1 bg-muted rounded-lg">
+                    <Button
+                      type="button"
+                      variant={formData.hasCv ? "default" : "ghost"}
+                      className="flex-1"
+                      onClick={() => setFormData({ ...formData, hasCv: true })}
+                    >
+                      <FileUp className="h-4 w-4 mr-2" />
+                      I have a CV
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={!formData.hasCv ? "default" : "ghost"}
+                      className="flex-1"
+                      onClick={() => setFormData({ ...formData, hasCv: false })}
+                    >
+                      <PenLine className="h-4 w-4 mr-2" />
+                      Fill in my info
+                    </Button>
+                  </div>
+
+                  {formData.hasCv ? (
+                    <MultiFileUpload
+                      bucket="portfolio-uploads"
+                      maxFiles={1}
+                      acceptedTypes=".pdf,.doc,.docx"
+                      value={formData.cvUrl ? [{ name: 'CV', url: formData.cvUrl }] : []}
+                      onChange={(files) => setFormData({ ...formData, cvUrl: files[0]?.url || '' })}
+                      label="Upload your CV/Resume"
+                      description="PDF or Word document (max 10MB)"
+                    />
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="bg-muted/50 p-4 rounded-lg text-sm">
+                        <p className="font-medium mb-1">Don't have a CV? No problem!</p>
+                        <p className="text-muted-foreground">
+                          Fill in your information below and we'll use it to create your portfolio. 
+                          Start with Education and add at least one entry to continue.
+                        </p>
+                      </div>
+                      <ProfileBuilderForm
+                        value={formData.profileData}
+                        onChange={(profileData) => setFormData({ ...formData, profileData })}
+                      />
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -467,15 +585,28 @@ export default function PortfolioRequest() {
                         <p><span className="text-muted-foreground">Name:</span> {formData.fullName}</p>
                         <p><span className="text-muted-foreground">Email:</span> {formData.email}</p>
                         <p><span className="text-muted-foreground">WhatsApp:</span> {formData.phone}</p>
+                        <p><span className="text-muted-foreground">Category:</span> {selectedCategory?.name || 'Not selected'}</p>
+                        {isOtherCategory && formData.customProfession && (
+                          <p><span className="text-muted-foreground">Field:</span> {formData.customProfession}</p>
+                        )}
                       </div>
                     </div>
                     
                     <div className="bg-muted p-4 rounded-lg">
                       <h4 className="font-semibold mb-2 flex items-center gap-2">
-                        <FileText className="h-4 w-4" /> Documents
+                        <FileText className="h-4 w-4" /> Documents & Profile
                       </h4>
                       <div className="text-sm space-y-1">
-                        <p><span className="text-muted-foreground">CV:</span> {formData.cvUrl ? 'Uploaded ✓' : 'Not uploaded'}</p>
+                        {formData.hasCv ? (
+                          <p><span className="text-muted-foreground">CV:</span> {formData.cvUrl ? 'Uploaded ✓' : 'Not uploaded'}</p>
+                        ) : (
+                          <>
+                            <p><span className="text-muted-foreground">Profile Info:</span> Filled manually ✓</p>
+                            <p><span className="text-muted-foreground">Education:</span> {formData.profileData.education.length} entries</p>
+                            <p><span className="text-muted-foreground">Experience:</span> {formData.profileData.experience.length} entries</p>
+                            <p><span className="text-muted-foreground">Skills:</span> {formData.profileData.skills.length} skills</p>
+                          </>
+                        )}
                         <p><span className="text-muted-foreground">Certificates:</span> {formData.certificates.length} file(s)</p>
                       </div>
                     </div>
