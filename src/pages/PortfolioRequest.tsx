@@ -157,6 +157,16 @@ export default function PortfolioRequest() {
   const handleSubmit = async () => {
     setIsSubmitting(true);
     
+    // Determine if "Other" category based on the selected category's slug
+    const selectedCat = professionCategories.find(c => c.id === formData.professionCategoryId);
+    const isOther = selectedCat?.slug === 'other';
+    
+    console.log('[PortfolioRequest] Starting submission...', {
+      formData,
+      selectedCat,
+      isOther
+    });
+    
     try {
       const { data, error } = await supabase
         .from('portfolio_requests')
@@ -165,7 +175,7 @@ export default function PortfolioRequest() {
           email: formData.email,
           phone: formData.phone,
           profession_category_id: formData.professionCategoryId || null,
-          custom_profession: isOtherCategory ? formData.customProfession : null,
+          custom_profession: isOther ? formData.customProfession : null,
           cv_url: formData.hasCv ? formData.cvUrl : null,
           profile_data: (!formData.hasCv ? formData.profileData : {}) as unknown as any,
           certificates: formData.certificates as unknown as any,
@@ -190,7 +200,7 @@ export default function PortfolioRequest() {
             email: formData.email,
             phone: formData.phone,
             profession_category_id: formData.professionCategoryId || null,
-            custom_profession: isOtherCategory ? formData.customProfession : null,
+            custom_profession: isOther ? formData.customProfession : null,
             cv_url: formData.hasCv ? formData.cvUrl : null,
             education: formData.profileData.education as unknown as any,
             experience: formData.profileData.experience as unknown as any,
@@ -200,6 +210,7 @@ export default function PortfolioRequest() {
             linkedin_url: formData.socialLinks.linkedin || null,
             services_used: ['portfolio'] as unknown as any,
           }, { onConflict: 'email' });
+        console.log('[PortfolioRequest] Professional profile upserted successfully');
       } catch (profError) {
         console.log('[PortfolioRequest] Professional profile upsert skipped:', profError);
       }
