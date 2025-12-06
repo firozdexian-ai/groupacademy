@@ -930,15 +930,9 @@ export type Database = {
           created_at: string
           custom_profession: string | null
           cv_url: string | null
-          delivered_at: string | null
-          delivery_email_sent: boolean | null
-          delivery_email_sent_at: string | null
-          delivery_screenshot_url: string | null
           email: string
           full_name: string
           id: string
-          payment_reference_url: string | null
-          payment_status: string | null
           phone: string
           portfolio_credentials: Json | null
           portfolio_url: string | null
@@ -957,15 +951,9 @@ export type Database = {
           created_at?: string
           custom_profession?: string | null
           cv_url?: string | null
-          delivered_at?: string | null
-          delivery_email_sent?: boolean | null
-          delivery_email_sent_at?: string | null
-          delivery_screenshot_url?: string | null
           email: string
           full_name: string
           id?: string
-          payment_reference_url?: string | null
-          payment_status?: string | null
           phone: string
           portfolio_credentials?: Json | null
           portfolio_url?: string | null
@@ -984,15 +972,9 @@ export type Database = {
           created_at?: string
           custom_profession?: string | null
           cv_url?: string | null
-          delivered_at?: string | null
-          delivery_email_sent?: boolean | null
-          delivery_email_sent_at?: string | null
-          delivery_screenshot_url?: string | null
           email?: string
           full_name?: string
           id?: string
-          payment_reference_url?: string | null
-          payment_status?: string | null
           phone?: string
           portfolio_credentials?: Json | null
           portfolio_url?: string | null

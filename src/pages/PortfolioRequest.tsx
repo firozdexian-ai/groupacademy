@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -22,39 +22,6 @@ interface ProfessionCategory {
   slug: string;
 }
 
-// Static fallback categories - synced via admin dashboard
-const DEFAULT_CATEGORIES: ProfessionCategory[] = [
-  { id: 'student-undergrad', name: 'Student (Undergraduate)', slug: 'student-undergrad' },
-  { id: 'student-graduate', name: 'Student (Graduate/Masters)', slug: 'student-graduate' },
-  { id: 'fresh-graduate', name: 'Fresh Graduate', slug: 'fresh-graduate' },
-  { id: 'banking-finance', name: 'Banking & Finance', slug: 'banking-finance' },
-  { id: 'sales-marketing', name: 'Sales & Marketing', slug: 'sales-marketing' },
-  { id: 'technology-it', name: 'Technology & IT', slug: 'technology-it' },
-  { id: 'human-resources', name: 'Human Resources', slug: 'human-resources' },
-  { id: 'operations-supply-chain', name: 'Operations & Supply Chain', slug: 'operations-supply-chain' },
-  { id: 'healthcare-pharma', name: 'Healthcare & Pharma', slug: 'healthcare-pharma' },
-  { id: 'career-changer', name: 'Career Changer', slug: 'career-changer' },
-  { id: 'other', name: 'Other', slug: 'other' },
-];
-
-const CATEGORIES_STORAGE_KEY = 'group_academy_profession_categories';
-
-// Get categories from localStorage or use defaults
-const getStoredCategories = (): ProfessionCategory[] => {
-  try {
-    const stored = localStorage.getItem(CATEGORIES_STORAGE_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
-      }
-    }
-  } catch (e) {
-    console.warn('[PortfolioRequest] Failed to parse stored categories');
-  }
-  return DEFAULT_CATEGORIES;
-};
-
 interface FormData {
   fullName: string;
   email: string;
@@ -69,6 +36,8 @@ interface FormData {
   socialLinks: {
     linkedin?: string;
     github?: string;
+    twitter?: string;
+    website?: string;
     youtube?: string;
   };
   additionalNotes: string;
@@ -90,34 +59,6 @@ const steps: { id: Step; label: string; icon: React.ReactNode }[] = [
   { id: 'review', label: 'Review', icon: <CheckCircle className="h-4 w-4" /> },
 ];
 
-// Format phone number for Bangladesh
-const formatBDPhone = (value: string): string => {
-  // Remove all non-digits
-  let digits = value.replace(/\D/g, '');
-  
-  // If starts with 880, keep it
-  if (digits.startsWith('880')) {
-    digits = digits.substring(3);
-  }
-  
-  // Limit to 10 digits (Bangladesh mobile without country code)
-  digits = digits.substring(0, 10);
-  
-  // Format as XXXX-XXXXXX if we have enough digits
-  if (digits.length > 4) {
-    return `${digits.substring(0, 4)}-${digits.substring(4)}`;
-  }
-  
-  return digits;
-};
-
-// Get full phone number with country code
-const getFullPhone = (phone: string): string => {
-  const digits = phone.replace(/\D/g, '');
-  if (digits.length === 0) return '';
-  return `+880${digits}`;
-};
-
 export default function PortfolioRequest() {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -125,9 +66,8 @@ export default function PortfolioRequest() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [requestId, setRequestId] = useState<string>("");
-  
-  // Use stored categories immediately - no loading state needed
-  const [professionCategories] = useState<ProfessionCategory[]>(getStoredCategories);
+  const [professionCategories, setProfessionCategories] = useState<ProfessionCategory[]>([]);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(true);
   
   const [formData, setFormData] = useState<FormData>({
     fullName: '',
@@ -144,6 +84,40 @@ export default function PortfolioRequest() {
     additionalNotes: '',
   });
 
+  useEffect(() => {
+    loadProfessionCategories();
+  }, []);
+
+  const loadProfessionCategories = async () => {
+    setIsLoadingCategories(true);
+    
+    try {
+      const { data, error } = await supabase
+        .from('profession_categories')
+        .select('id, name, slug')
+        .eq('is_active', true)
+        .order('display_order');
+      
+      if (error) {
+        console.error('[PortfolioRequest] Error loading profession categories:', error);
+        toast({
+          title: "Error loading categories",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (data) {
+        setProfessionCategories(data);
+      }
+    } catch (err) {
+      console.error('[PortfolioRequest] Unexpected error:', err);
+    } finally {
+      setIsLoadingCategories(false);
+    }
+  };
+
   const currentStepIndex = steps.findIndex(s => s.id === currentStep);
   const selectedCategory = professionCategories.find(c => c.id === formData.professionCategoryId);
   const isOtherCategory = selectedCategory?.slug === 'other';
@@ -151,16 +125,16 @@ export default function PortfolioRequest() {
   const canProceed = (): boolean => {
     switch (currentStep) {
       case 'personal':
-        const hasName = formData.fullName.trim().length >= 2;
-        const hasEmail = formData.email.includes('@');
-        const hasPhone = formData.phone.replace(/\D/g, '').length >= 10;
-        const hasCategory = !!formData.professionCategoryId;
-        const hasCustomProfession = !isOtherCategory || formData.customProfession.trim().length > 0;
-        return hasName && hasEmail && hasPhone && hasCategory && hasCustomProfession;
+        const hasBasicInfo = !!(formData.fullName && formData.email && formData.phone);
+        const hasValidCategory = formData.professionCategoryId && (!isOtherCategory || formData.customProfession);
+        return hasBasicInfo && !!hasValidCategory;
       case 'cv':
+        // Either has CV uploaded OR has filled profile data with at least education
         return formData.hasCv ? !!formData.cvUrl : formData.profileData.education.length > 0;
       case 'certificates':
+        return true;
       case 'social':
+        return true;
       case 'review':
         return true;
       default:
@@ -182,53 +156,43 @@ export default function PortfolioRequest() {
     }
   };
 
-  const handlePhoneChange = (value: string) => {
-    const formatted = formatBDPhone(value);
-    setFormData({ ...formData, phone: formatted });
-  };
-
   const handleSubmit = async () => {
     setIsSubmitting(true);
     
-    const fullPhone = getFullPhone(formData.phone);
-    const isOther = selectedCategory?.slug === 'other';
-    const professionCategoryId = formData.professionCategoryId || null;
-    
     try {
-      const insertData = {
-        full_name: formData.fullName.trim(),
-        email: formData.email.trim().toLowerCase(),
-        phone: fullPhone,
-        profession_category_id: professionCategoryId,
-        custom_profession: isOther ? formData.customProfession.trim() : null,
-        cv_url: formData.hasCv ? formData.cvUrl : null,
-        profile_data: (!formData.hasCv ? formData.profileData : {}) as unknown as any,
-        certificates: formData.certificates as unknown as any,
-        achievements: formData.achievements.trim() || null,
-        social_links: formData.socialLinks as unknown as any,
-        additional_notes: formData.additionalNotes.trim() || null,
-      };
-
       const { data, error } = await supabase
         .from('portfolio_requests')
-        .insert(insertData)
+        .insert({
+          full_name: formData.fullName,
+          email: formData.email,
+          phone: formData.phone,
+          profession_category_id: formData.professionCategoryId || null,
+          custom_profession: isOtherCategory ? formData.customProfession : null,
+          cv_url: formData.hasCv ? formData.cvUrl : null,
+          profile_data: (!formData.hasCv ? formData.profileData : {}) as unknown as any,
+          certificates: formData.certificates as unknown as any,
+          achievements: formData.achievements,
+          social_links: formData.socialLinks as unknown as any,
+          additional_notes: formData.additionalNotes,
+        })
         .select('id')
         .single();
 
       if (error) {
+        console.error('[PortfolioRequest] Insert error:', error);
         throw error;
       }
 
-      // Create professional profile (non-blocking)
+      // Also create or update professional profile
       try {
         await supabase
           .from('professionals')
           .upsert({
-            full_name: formData.fullName.trim(),
-            email: formData.email.trim().toLowerCase(),
-            phone: fullPhone,
-            profession_category_id: professionCategoryId,
-            custom_profession: isOther ? formData.customProfession.trim() : null,
+            full_name: formData.fullName,
+            email: formData.email,
+            phone: formData.phone,
+            profession_category_id: formData.professionCategoryId || null,
+            custom_profession: isOtherCategory ? formData.customProfession : null,
             cv_url: formData.hasCv ? formData.cvUrl : null,
             education: formData.profileData.education as unknown as any,
             experience: formData.profileData.experience as unknown as any,
@@ -238,9 +202,8 @@ export default function PortfolioRequest() {
             linkedin_url: formData.socialLinks.linkedin || null,
             services_used: ['portfolio'] as unknown as any,
           }, { onConflict: 'email' });
-        console.log('[PortfolioRequest] Professional profile created');
-      } catch (e) {
-        console.log('[PortfolioRequest] Professional profile skipped:', e);
+      } catch (profError) {
+        console.log('[PortfolioRequest] Professional profile upsert skipped:', profError);
       }
 
       setRequestId(data.id);
@@ -248,18 +211,11 @@ export default function PortfolioRequest() {
       toast({ title: "Request submitted!", description: "We'll contact you on WhatsApp soon." });
     } catch (error: any) {
       console.error('[PortfolioRequest] Submission failed:', error);
-      
-      let message = "Please try again or contact support.";
-      if (error.message?.includes('duplicate')) {
-        message = "You've already submitted a request with this email.";
-      } else if (error.message?.includes('network')) {
-        message = "Network error. Please check your internet connection.";
-      }
-      
       toast({ 
         title: "Submission failed", 
-        description: message, 
+        description: error.message || "Please try again or contact support.", 
         variant: "destructive",
+        duration: 10000,
       });
     } finally {
       setIsSubmitting(false);
@@ -395,68 +351,71 @@ export default function PortfolioRequest() {
                   </div>
                   <div>
                     <Label htmlFor="phone">WhatsApp Number *</Label>
-                    <div className="flex">
-                      <div className="flex items-center px-3 bg-muted border border-r-0 border-input rounded-l-md text-sm text-muted-foreground">
-                        +880
-                      </div>
-                      <Input
-                        id="phone"
-                        value={formData.phone}
-                        onChange={(e) => handlePhoneChange(e.target.value)}
-                        placeholder="1XXX-XXXXXX"
-                        className="rounded-l-none"
-                      />
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">Enter your 10-digit Bangladesh mobile number</p>
+                    <Input
+                      id="phone"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      placeholder="+880 1XXX-XXXXXX"
+                    />
                   </div>
                   <div>
                     <Label htmlFor="profession">Profession / Status *</Label>
                     <Select
-                        value={formData.professionCategoryId}
-                        onValueChange={(value) => setFormData({ ...formData, professionCategoryId: value, customProfession: '' })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select your profession or status" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-popover">
-                          {studentCategories.length > 0 && (
-                            <>
-                              <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-                                Students & Fresh Graduates
-                              </div>
-                              {studentCategories.map((cat) => (
-                                <SelectItem key={cat.id} value={cat.id}>
-                                  {cat.name}
-                                </SelectItem>
-                              ))}
-                            </>
-                          )}
-                          {professionalCategories.length > 0 && (
-                            <>
-                              <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground mt-2">
-                                Professionals
-                              </div>
-                              {professionalCategories.map((cat) => (
-                                <SelectItem key={cat.id} value={cat.id}>
-                                  {cat.name}
-                                </SelectItem>
-                              ))}
-                            </>
-                          )}
-                          {otherCategories.length > 0 && (
-                            <>
-                              <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground mt-2">
-                                Other
-                              </div>
-                              {otherCategories.map((cat) => (
-                                <SelectItem key={cat.id} value={cat.id}>
-                                  {cat.name}
-                                </SelectItem>
-                              ))}
-                            </>
-                          )}
-                        </SelectContent>
-                      </Select>
+                      value={formData.professionCategoryId}
+                      onValueChange={(value) => setFormData({ ...formData, professionCategoryId: value, customProfession: '' })}
+                      disabled={isLoadingCategories}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={isLoadingCategories ? "Loading categories..." : "Select your profession or status"} />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover">
+                        {isLoadingCategories ? (
+                          <div className="px-2 py-4 text-sm text-muted-foreground text-center">
+                            <Loader2 className="h-4 w-4 animate-spin mx-auto mb-2" />
+                            Loading...
+                          </div>
+                        ) : (
+                          <>
+                            {studentCategories.length > 0 && (
+                              <>
+                                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                                  Students & Fresh Graduates
+                                </div>
+                                {studentCategories.map((cat) => (
+                                  <SelectItem key={cat.id} value={cat.id}>
+                                    {cat.name}
+                                  </SelectItem>
+                                ))}
+                              </>
+                            )}
+                            {professionalCategories.length > 0 && (
+                              <>
+                                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground mt-2">
+                                  Professionals
+                                </div>
+                                {professionalCategories.map((cat) => (
+                                  <SelectItem key={cat.id} value={cat.id}>
+                                    {cat.name}
+                                  </SelectItem>
+                                ))}
+                              </>
+                            )}
+                            {otherCategories.length > 0 && (
+                              <>
+                                <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground mt-2">
+                                  Other
+                                </div>
+                                {otherCategories.map((cat) => (
+                                  <SelectItem key={cat.id} value={cat.id}>
+                                    {cat.name}
+                                  </SelectItem>
+                                ))}
+                              </>
+                            )}
+                          </>
+                        )}
+                      </SelectContent>
+                    </Select>
                   </div>
                   {isOtherCategory && (
                     <div>
@@ -578,6 +537,18 @@ export default function PortfolioRequest() {
                     />
                   </div>
                   <div>
+                    <Label htmlFor="website">Personal Website</Label>
+                    <Input
+                      id="website"
+                      value={formData.socialLinks.website || ''}
+                      onChange={(e) => setFormData({ 
+                        ...formData, 
+                        socialLinks: { ...formData.socialLinks, website: e.target.value }
+                      })}
+                      placeholder="https://yourwebsite.com"
+                    />
+                  </div>
+                  <div>
                     <Label htmlFor="youtube">YouTube Channel</Label>
                     <Input
                       id="youtube"
@@ -613,8 +584,8 @@ export default function PortfolioRequest() {
                       <div className="text-sm space-y-1">
                         <p><span className="text-muted-foreground">Name:</span> {formData.fullName}</p>
                         <p><span className="text-muted-foreground">Email:</span> {formData.email}</p>
-                        <p><span className="text-muted-foreground">WhatsApp:</span> {getFullPhone(formData.phone)}</p>
-                        <p><span className="text-muted-foreground">Category:</span> {selectedCategory?.name || formData.customProfession || 'Not specified'}</p>
+                        <p><span className="text-muted-foreground">WhatsApp:</span> {formData.phone}</p>
+                        <p><span className="text-muted-foreground">Category:</span> {selectedCategory?.name || 'Not selected'}</p>
                         {isOtherCategory && formData.customProfession && (
                           <p><span className="text-muted-foreground">Field:</span> {formData.customProfession}</p>
                         )}
@@ -648,7 +619,7 @@ export default function PortfolioRequest() {
                         <div className="text-sm space-y-1">
                           {formData.socialLinks.linkedin && <p>LinkedIn: {formData.socialLinks.linkedin}</p>}
                           {formData.socialLinks.github && <p>GitHub: {formData.socialLinks.github}</p>}
-                          {formData.socialLinks.youtube && <p>YouTube: {formData.socialLinks.youtube}</p>}
+                          {formData.socialLinks.website && <p>Website: {formData.socialLinks.website}</p>}
                         </div>
                       </div>
                     )}

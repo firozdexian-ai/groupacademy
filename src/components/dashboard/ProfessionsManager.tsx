@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Building2, GraduationCap, Briefcase, ChevronRight, Bot, User, RefreshCw } from "lucide-react";
+import { Plus, Pencil, Trash2, Building2, GraduationCap, Briefcase, ChevronRight, Bot, User } from "lucide-react";
 import { getIcon } from "@/lib/iconMap";
 
 interface Academy {
@@ -598,7 +598,7 @@ export function ProfessionsManager() {
 
         {/* Profession Lines Tab */}
         <TabsContent value="professions" className="space-y-4">
-          <div className="flex justify-between items-center flex-wrap gap-4">
+          <div className="flex justify-between items-center">
             <div className="flex items-center gap-4">
               <Select value={selectedSchoolFilter} onValueChange={setSelectedSchoolFilter}>
                 <SelectTrigger className="w-48">
@@ -615,37 +615,11 @@ export function ProfessionsManager() {
                 {filteredProfessions.length} profession lines
               </p>
             </div>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={async () => {
-                  try {
-                    const { data, error } = await supabase
-                      .from('profession_categories')
-                      .select('id, name, slug')
-                      .eq('is_active', true)
-                      .order('display_order');
-                    
-                    if (error) throw error;
-                    
-                    if (data && data.length > 0) {
-                      localStorage.setItem('group_academy_profession_categories', JSON.stringify(data));
-                      toast.success(`Synced ${data.length} categories to portfolio form`);
-                    }
-                  } catch (err) {
-                    toast.error('Failed to sync categories');
-                  }
-                }}
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Sync to Portfolio Form
-              </Button>
-              <Dialog open={professionDialog} onOpenChange={(open) => { setProfessionDialog(open); if (!open) setEditingProfession(null); }}>
-                <DialogTrigger asChild>
-                  <Button><Plus className="h-4 w-4 mr-2" />Add Profession Line</Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-lg">
+            <Dialog open={professionDialog} onOpenChange={(open) => { setProfessionDialog(open); if (!open) setEditingProfession(null); }}>
+              <DialogTrigger asChild>
+                <Button><Plus className="h-4 w-4 mr-2" />Add Profession Line</Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-lg">
                 <DialogHeader>
                   <DialogTitle>{editingProfession ? "Edit Profession Line" : "Add Profession Line"}</DialogTitle>
                 </DialogHeader>
@@ -721,7 +695,6 @@ export function ProfessionsManager() {
                 </form>
               </DialogContent>
             </Dialog>
-            </div>
           </div>
 
           <div className="grid gap-4">
