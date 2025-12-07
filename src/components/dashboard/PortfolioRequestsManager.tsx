@@ -10,7 +10,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { Search, ExternalLink, Loader2, Eye, FileText, MessageCircle } from "lucide-react";
+import { Search, ExternalLink, Loader2, Eye, FileText, MessageCircle, Gift, Sparkles } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+
+const FREE_PORTFOLIO_LIMIT = 1000;
 
 interface PortfolioRequest {
   id: string;
@@ -190,18 +193,49 @@ export default function PortfolioRequestsManager() {
         </Select>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-        {Object.entries(statusLabels).map(([status, label]) => {
-          const count = requests.filter(r => r.status === status).length;
-          return (
-            <div key={status} className={`px-3 py-2 rounded-lg text-center ${statusColors[status]}`}>
-              <div className="text-lg font-semibold">{count}</div>
-              <div className="text-xs">{label}</div>
+      {/* Stats Summary */}
+      <Card className="bg-muted/30">
+        <CardContent className="py-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-4">
+            {/* Free Counter */}
+            <div className="col-span-2 sm:col-span-1 lg:col-span-2 flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
+              <Gift className="h-8 w-8 text-primary" />
+              <div>
+                <div className="text-xl font-bold text-primary">
+                  {Math.max(0, FREE_PORTFOLIO_LIMIT - requests.length)}
+                </div>
+                <div className="text-xs text-muted-foreground">Free slots left</div>
+              </div>
             </div>
-          );
-        })}
-      </div>
+            
+            {/* Status Breakdown */}
+            {Object.entries(statusLabels).map(([status, label]) => {
+              const count = requests.filter(r => r.status === status).length;
+              return (
+                <div 
+                  key={status} 
+                  className={`px-3 py-2 rounded-lg text-center cursor-pointer transition-all hover:scale-105 ${statusColors[status]} ${statusFilter === status ? 'ring-2 ring-offset-2 ring-primary' : ''}`}
+                  onClick={() => setStatusFilter(statusFilter === status ? 'all' : status)}
+                >
+                  <div className="text-lg font-semibold">{count}</div>
+                  <div className="text-xs">{label}</div>
+                </div>
+              );
+            })}
+          </div>
+          
+          {/* Summary Line */}
+          <div className="mt-3 pt-3 border-t flex flex-wrap gap-4 text-sm text-muted-foreground">
+            <span><strong>{requests.length}</strong> total requests</span>
+            <span>•</span>
+            <span><strong>{requests.filter(r => r.cv_url).length}</strong> with CV</span>
+            <span>•</span>
+            <span><strong>{requests.filter(r => r.profile_data && Object.keys(r.profile_data).some(k => (r.profile_data as any)[k]?.length > 0)).length}</strong> with profile data</span>
+            <span>•</span>
+            <span><strong>{requests.filter(r => r.custom_profession).length}</strong> custom professions</span>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Table */}
       <div className="rounded-md border">

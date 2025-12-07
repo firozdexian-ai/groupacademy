@@ -30,6 +30,13 @@ const Dashboard = () => {
       completed: 0,
       avgScore: 0,
     },
+    portfolios: {
+      total: 0,
+      pending: 0,
+      inProgress: 0,
+      completed: 0,
+      freeRemaining: 0,
+    },
   });
   const [statsError, setStatsError] = useState<string | null>(null);
 
@@ -93,6 +100,18 @@ const Dashboard = () => {
         ? Math.round(completedWithScores.reduce((sum, i) => sum + (i.selection_percentage || 0), 0) / completedWithScores.length)
         : 0;
 
+      // Portfolio stats
+      const { data: portfolioData, error: portfolioError } = await supabase
+        .from("portfolio_requests")
+        .select("status");
+      if (portfolioError) throw portfolioError;
+
+      const totalPortfolios = portfolioData?.length || 0;
+      const pendingPortfolios = portfolioData?.filter(p => p.status === "pending").length || 0;
+      const inProgressPortfolios = portfolioData?.filter(p => p.status === "in_progress" || p.status === "contacted").length || 0;
+      const completedPortfolios = portfolioData?.filter(p => p.status === "completed").length || 0;
+      const FREE_LIMIT = 1000;
+
       setStats({
         totalLearners: studentsCount || 0,
         activeEnrollments: enrollmentsCount || 0,
@@ -102,6 +121,13 @@ const Dashboard = () => {
           total: totalInterviews,
           completed: completedInterviews,
           avgScore: avgScore,
+        },
+        portfolios: {
+          total: totalPortfolios,
+          pending: pendingPortfolios,
+          inProgress: inProgressPortfolios,
+          completed: completedPortfolios,
+          freeRemaining: Math.max(0, FREE_LIMIT - totalPortfolios),
         },
       });
     } catch (error: any) {
@@ -164,7 +190,7 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6 mb-8">
           <StatsCard
             title="Total Learners"
             value={stats.totalLearners}
@@ -195,6 +221,14 @@ const Dashboard = () => {
             variant="default"
             trend={stats.mockInterviews.total > 0 ? `${Math.round((stats.mockInterviews.completed / stats.mockInterviews.total) * 100)}% completed` : undefined}
             trendLabel={stats.mockInterviews.avgScore > 0 ? `• Avg: ${stats.mockInterviews.avgScore}%` : undefined}
+          />
+          <StatsCard
+            title="Portfolio Requests"
+            value={stats.portfolios.total}
+            icon={Briefcase}
+            variant="secondary"
+            trend={`${stats.portfolios.freeRemaining} free slots left`}
+            trendLabel={stats.portfolios.pending > 0 ? `• ${stats.portfolios.pending} pending` : undefined}
           />
         </div>
         )}
