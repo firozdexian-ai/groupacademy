@@ -11,16 +11,20 @@ interface OrientationStageProps {
   resources: ModuleResource[];
   onComplete: () => void;
   isCompleted: boolean;
+  fallbackVideoUrl?: string | null;
 }
 
-export function OrientationStage({ resources, onComplete, isCompleted }: OrientationStageProps) {
+export function OrientationStage({ resources, onComplete, isCompleted, fallbackVideoUrl }: OrientationStageProps) {
   const [videoWatched, setVideoWatched] = useState(false);
   const [infographicViewed, setInfographicViewed] = useState(false);
 
   const videoResource = resources.find(r => r.resource_type === "video");
   const infographicResource = resources.find(r => r.resource_type === "infographic");
+  
+  // Use fallback video if no video resource exists
+  const hasVideo = videoResource || fallbackVideoUrl;
 
-  const canComplete = videoWatched || (!videoResource && infographicViewed);
+  const canComplete = videoWatched || (!hasVideo && infographicViewed) || (!hasVideo && !infographicResource);
 
   const handleVideoProgress = (progress: number) => {
     if (progress >= 80) {
@@ -48,38 +52,36 @@ export function OrientationStage({ resources, onComplete, isCompleted }: Orienta
         )}
       </div>
 
-      {resources.length === 0 ? (
+      {resources.length === 0 && !fallbackVideoUrl ? (
         <Card>
           <CardContent className="p-8 text-center">
-            <p className="text-muted-foreground">No orientation content available for this module yet.</p>
+            <p className="text-muted-foreground">Content for this stage is being prepared.</p>
             <Button onClick={onComplete} className="mt-4">
-              Skip to Next Stage
+              Continue to Next Stage
             </Button>
           </CardContent>
         </Card>
       ) : (
         <div className="grid gap-6 md:grid-cols-2">
-          {/* Video Section */}
-          {videoResource && (
-            <Card>
+          {/* Video Section - from resources or fallback */}
+          {(videoResource || fallbackVideoUrl) && (
+            <Card className={!infographicResource && !videoResource ? "md:col-span-2" : ""}>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
                   <PlayCircle className="h-4 w-4" />
-                  {videoResource.title}
+                  {videoResource?.title || "Module Introduction"}
                   {videoWatched && <CheckCircle className="h-4 w-4 text-green-600" />}
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {videoResource.resource_url && (
-                  <ResourceViewer
-                    type="video"
-                    url={videoResource.resource_url}
-                    title={videoResource.title}
-                    onProgress={handleVideoProgress}
-                    onComplete={() => setVideoWatched(true)}
-                  />
-                )}
-                {videoResource.description && (
+                <ResourceViewer
+                  type="video"
+                  url={videoResource?.resource_url || fallbackVideoUrl || ""}
+                  title={videoResource?.title || "Module Introduction"}
+                  onProgress={handleVideoProgress}
+                  onComplete={() => setVideoWatched(true)}
+                />
+                {videoResource?.description && (
                   <p className="text-sm text-muted-foreground mt-3">
                     {videoResource.description}
                   </p>
@@ -120,7 +122,7 @@ export function OrientationStage({ resources, onComplete, isCompleted }: Orienta
       )}
 
       {/* Completion */}
-      {!isCompleted && resources.length > 0 && (
+      {!isCompleted && (resources.length > 0 || fallbackVideoUrl) && (
         <div className="flex justify-end">
           <Button 
             onClick={onComplete}

@@ -199,8 +199,51 @@ export default function Quiz() {
     );
   }
 
-  if (!course || questions.length === 0) {
+  if (!course) {
     return null;
+  }
+
+  // Show coming soon message if no questions
+  if (questions.length === 0) {
+    return (
+      <div className="min-h-screen bg-background py-12">
+        <div className="container max-w-2xl mx-auto px-4">
+          <Card>
+            <CardHeader className="text-center">
+              <div className="mx-auto mb-4">
+                <CheckCircle className="h-16 w-16 text-muted-foreground" />
+              </div>
+              <CardTitle className="text-2xl">Quiz Coming Soon</CardTitle>
+              <CardDescription>
+                The quiz for this course is being prepared. Check back soon!
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-center text-muted-foreground">
+                Our team is creating engaging quiz questions to test your learning.
+              </p>
+              <div className="flex flex-col gap-3">
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={() => navigate(`/learn/${slug}`)}
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Course
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={() => navigate("/my-learning")}
+                >
+                  My Learning Dashboard
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
   }
 
   if (showResults) {

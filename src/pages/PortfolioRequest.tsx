@@ -354,9 +354,30 @@ export default function PortfolioRequest() {
                     <Input
                       id="phone"
                       value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      placeholder="+880 1XXX-XXXXXX"
+                      onChange={(e) => {
+                        let value = e.target.value;
+                        // Auto-format Bangladesh phone numbers
+                        // Remove non-digits except +
+                        value = value.replace(/[^\d+]/g, '');
+                        // If starts with 0, replace with +880
+                        if (value.startsWith('0')) {
+                          value = '+880' + value.slice(1);
+                        }
+                        // If starts with 880 (without +), add +
+                        if (value.startsWith('880') && !value.startsWith('+')) {
+                          value = '+' + value;
+                        }
+                        // If user enters just digits starting with 1, assume Bangladesh
+                        if (/^1\d{9}$/.test(value)) {
+                          value = '+880' + value;
+                        }
+                        setFormData({ ...formData, phone: value });
+                      }}
+                      placeholder="01XXX-XXXXXX"
                     />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Bangladesh numbers will be auto-formatted with +880
+                    </p>
                   </div>
                   <div>
                     <Label htmlFor="profession">Profession / Status *</Label>

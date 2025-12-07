@@ -292,6 +292,12 @@ export default function ImmersiveCoursePlayer() {
   }
 
   const currentResources = stageResources.find(s => s.stage === currentStage)?.resources || [];
+  
+  // Check if course has any resources at all
+  const hasAnyResources = stageResources.some(s => s.resources.length > 0);
+  
+  // Fallback to video_url from course_modules if no resources
+  const fallbackVideoUrl = currentModule?.video_url;
 
   return (
     <div className="min-h-screen bg-background">
@@ -360,12 +366,29 @@ export default function ImmersiveCoursePlayer() {
               </div>
             )}
 
+            {/* Coming Soon Banner for courses without resources */}
+            {!hasAnyResources && !fallbackVideoUrl && (
+              <Card className="mb-6 border-dashed border-2 border-primary/30 bg-primary/5">
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                    <AlertCircle className="h-6 w-6 text-primary" />
+                  </div>
+                  <h3 className="font-semibold text-lg mb-2">Content Being Prepared</h3>
+                  <p className="text-muted-foreground text-sm">
+                    Our team is creating immersive learning content for this module. 
+                    Check back soon for videos, slides, flashcards, and more!
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Stage Content */}
             {currentStage === 1 && (
               <OrientationStage
                 resources={currentResources}
                 onComplete={() => handleStageComplete(1)}
                 isCompleted={completedStages.includes(1)}
+                fallbackVideoUrl={fallbackVideoUrl}
               />
             )}
 
