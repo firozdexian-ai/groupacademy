@@ -12,7 +12,22 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import MultiFileUpload from "@/components/portfolio/MultiFileUpload";
 import ProfileBuilderForm, { ProfileData } from "@/components/portfolio/ProfileBuilderForm";
-import { Briefcase, User, FileText, Award, Globe, CheckCircle, ArrowLeft, ArrowRight, Loader2, FileUp, PenLine } from "lucide-react";
+import { Briefcase, User, FileText, Award, Globe, CheckCircle, ArrowLeft, ArrowRight, Loader2, FileUp, PenLine, RefreshCw } from "lucide-react";
+
+// Fallback static categories in case database loading fails
+const FALLBACK_CATEGORIES: ProfessionCategory[] = [
+  { id: 'student-undergrad', name: 'Student (Undergraduate)', slug: 'student-undergrad' },
+  { id: 'student-graduate', name: 'Student (Graduate/Masters)', slug: 'student-graduate' },
+  { id: 'fresh-graduate', name: 'Fresh Graduate', slug: 'fresh-graduate' },
+  { id: 'banking-finance', name: 'Banking & Finance', slug: 'banking-finance' },
+  { id: 'sales-marketing', name: 'Sales & Marketing', slug: 'sales-marketing' },
+  { id: 'technology-it', name: 'Technology & IT', slug: 'technology-it' },
+  { id: 'hr-admin', name: 'HR & Administration', slug: 'hr-admin' },
+  { id: 'operations', name: 'Operations & Supply Chain', slug: 'operations' },
+  { id: 'healthcare', name: 'Healthcare & Pharma', slug: 'healthcare' },
+  { id: 'career-changer', name: 'Career Changer', slug: 'career-changer' },
+  { id: 'other', name: 'Other (Specify)', slug: 'other' },
+];
 
 type Step = 'personal' | 'cv' | 'certificates' | 'social' | 'review';
 
@@ -68,6 +83,7 @@ export default function PortfolioRequest() {
   const [requestId, setRequestId] = useState<string>("");
   const [professionCategories, setProfessionCategories] = useState<ProfessionCategory[]>([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+  const [categoryLoadError, setCategoryLoadError] = useState(false);
   
   const [formData, setFormData] = useState<FormData>({
     fullName: '',
@@ -90,29 +106,42 @@ export default function PortfolioRequest() {
 
   const loadProfessionCategories = async () => {
     setIsLoadingCategories(true);
+    setCategoryLoadError(false);
+    
+    // Create a timeout promise (10 seconds)
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Request timed out')), 10000);
+    });
     
     try {
-      const { data, error } = await supabase
+      const fetchPromise = supabase
         .from('profession_categories')
         .select('id, name, slug')
         .eq('is_active', true)
         .order('display_order');
       
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]);
+      
       if (error) {
         console.error('[PortfolioRequest] Error loading profession categories:', error);
-        toast({
-          title: "Error loading categories",
-          description: error.message,
-          variant: "destructive",
-        });
-        return;
+        throw error;
       }
       
-      if (data) {
+      if (data && data.length > 0) {
         setProfessionCategories(data);
+      } else {
+        // No data returned, use fallback
+        console.log('[PortfolioRequest] No categories from DB, using fallback');
+        setProfessionCategories(FALLBACK_CATEGORIES);
       }
     } catch (err) {
-      console.error('[PortfolioRequest] Unexpected error:', err);
+      console.error('[PortfolioRequest] Failed to load categories, using fallback:', err);
+      setCategoryLoadError(true);
+      setProfessionCategories(FALLBACK_CATEGORIES);
+      toast({
+        title: "Using offline categories",
+        description: "Couldn't load latest categories. You can still proceed.",
+      });
     } finally {
       setIsLoadingCategories(false);
     }
@@ -380,7 +409,20 @@ export default function PortfolioRequest() {
                     </p>
                   </div>
                   <div>
-                    <Label htmlFor="profession">Profession / Status *</Label>
+                    <div className="flex items-center justify-between mb-1">
+                      <Label htmlFor="profession">Profession / Status *</Label>
+                      {categoryLoadError && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={loadProfessionCategories}
+                          className="h-6 text-xs"
+                        >
+                          <RefreshCw className="h-3 w-3 mr-1" />
+                          Retry
+                        </Button>
+                      )}
+                    </div>
                     <Select
                       value={formData.professionCategoryId}
                       onValueChange={(value) => setFormData({ ...formData, professionCategoryId: value, customProfession: '' })}

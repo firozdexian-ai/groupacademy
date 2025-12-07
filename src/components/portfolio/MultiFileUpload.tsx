@@ -30,6 +30,7 @@ export default function MultiFileUpload({
 }: MultiFileUploadProps) {
   const { toast } = useToast();
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [dragActive, setDragActive] = useState(false);
 
   const uploadFile = async (file: File) => {
@@ -70,14 +71,38 @@ export default function MultiFileUpload({
     }
 
     setUploading(true);
+    setUploadProgress(0);
+    
     try {
-      const uploadedFiles = await Promise.all(filesToUpload.map(uploadFile));
+      const uploadedFiles: FileItem[] = [];
+      const total = filesToUpload.length;
+      
+      for (let i = 0; i < total; i++) {
+        // Create timeout wrapper (30 seconds per file)
+        const uploadWithTimeout = Promise.race([
+          uploadFile(filesToUpload[i]),
+          new Promise<never>((_, reject) => 
+            setTimeout(() => reject(new Error('Upload timed out. Please try again.')), 30000)
+          )
+        ]);
+        
+        const result = await uploadWithTimeout;
+        uploadedFiles.push(result);
+        setUploadProgress(Math.round(((i + 1) / total) * 100));
+      }
+      
       onChange([...value, ...uploadedFiles]);
       toast({ title: "Files uploaded", description: `${uploadedFiles.length} file(s) uploaded successfully` });
     } catch (error: any) {
-      toast({ title: "Upload failed", description: error.message, variant: "destructive" });
+      console.error('[MultiFileUpload] Upload error:', error);
+      toast({ 
+        title: "Upload failed", 
+        description: error.message || "Please try again", 
+        variant: "destructive" 
+      });
     } finally {
       setUploading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -135,7 +160,13 @@ export default function MultiFileUpload({
           {uploading ? (
             <div className="flex flex-col items-center gap-2">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground">Uploading...</p>
+              <p className="text-sm text-muted-foreground">Uploading... {uploadProgress}%</p>
+              <div className="w-full max-w-xs h-2 bg-muted rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-primary transition-all duration-300" 
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
             </div>
           ) : (
             <div className="flex flex-col items-center gap-2">
