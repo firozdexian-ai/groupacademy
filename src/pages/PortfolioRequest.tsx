@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import MultiFileUpload from "@/components/portfolio/MultiFileUpload";
+import { SimpleFileUpload } from "@/components/portfolio/SimpleFileUpload";
 import ProfileBuilderForm, { ProfileData } from "@/components/portfolio/ProfileBuilderForm";
 import { Briefcase, User, FileText, Award, Globe, CheckCircle, ArrowLeft, ArrowRight, Loader2, FileUp, PenLine, RefreshCw, Gift, Sparkles, Link, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -587,27 +588,16 @@ export default function PortfolioRequest() {
               {/* CV Upload Step */}
               {currentStep === 'cv' && (
                 <div className="space-y-4">
-                  {/* Toggle between CV upload, URL, and Profile Builder */}
-                  <div className="grid grid-cols-3 gap-2 p-1 bg-muted rounded-lg">
+                  {/* Toggle between CV upload/URL and Profile Builder */}
+                  <div className="grid grid-cols-2 gap-2 p-1 bg-muted rounded-lg">
                     <Button
                       type="button"
-                      variant={formData.cvInputMode === 'upload' ? "default" : "ghost"}
+                      variant={formData.cvInputMode !== 'profile' ? "default" : "ghost"}
                       className="flex-1"
                       onClick={() => setFormData({ ...formData, cvInputMode: 'upload' })}
                     >
                       <FileUp className="h-4 w-4 mr-2" />
-                      <span className="hidden sm:inline">Upload CV</span>
-                      <span className="sm:hidden">Upload</span>
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={formData.cvInputMode === 'url' ? "default" : "ghost"}
-                      className="flex-1"
-                      onClick={() => setFormData({ ...formData, cvInputMode: 'url' })}
-                    >
-                      <Link className="h-4 w-4 mr-2" />
-                      <span className="hidden sm:inline">Paste Link</span>
-                      <span className="sm:hidden">Link</span>
+                      <span>Upload / Link</span>
                     </Button>
                     <Button
                       type="button"
@@ -616,81 +606,19 @@ export default function PortfolioRequest() {
                       onClick={() => setFormData({ ...formData, cvInputMode: 'profile' })}
                     >
                       <PenLine className="h-4 w-4 mr-2" />
-                      <span className="hidden sm:inline">Fill Info</span>
-                      <span className="sm:hidden">Fill</span>
+                      <span>Fill Info</span>
                     </Button>
                   </div>
 
-                  {formData.cvInputMode === 'upload' && (
+                  {(formData.cvInputMode === 'upload' || formData.cvInputMode === 'url') && (
                     <div className="space-y-4">
-                      <MultiFileUpload
-                        bucket="portfolio-uploads"
-                        maxFiles={1}
-                        acceptedTypes=".pdf,.doc,.docx"
-                        value={formData.cvUrl ? [{ name: 'CV', url: formData.cvUrl }] : []}
-                        onChange={(files) => setFormData({ ...formData, cvUrl: files[0]?.url || '' })}
-                        label="Upload your CV/Resume"
-                        description="PDF or Word document (max 5MB). Upload may take 1-2 minutes on slow connections."
+                      <SimpleFileUpload
+                        onFileUploaded={(url) => setFormData({ ...formData, cvUrl: url, cvExternalUrl: '' })}
+                        onUrlProvided={(url) => setFormData({ ...formData, cvExternalUrl: url, cvUrl: '' })}
+                        currentValue={formData.cvUrl || formData.cvExternalUrl}
+                        accept=".pdf,.doc,.docx"
+                        maxSizeMB={10}
                       />
-                      
-                      {/* Alternative option hint */}
-                      <div className="text-center py-2">
-                        <p className="text-xs text-muted-foreground">
-                          Upload taking too long? Try{' '}
-                          <button 
-                            type="button"
-                            className="text-primary underline"
-                            onClick={() => setFormData({ ...formData, cvInputMode: 'url' })}
-                          >
-                            pasting a link
-                          </button>
-                          {' '}to your CV instead.
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {formData.cvInputMode === 'url' && (
-                    <div className="space-y-4">
-                      <div className="bg-primary/5 border border-primary/20 p-4 rounded-lg text-sm">
-                        <p className="font-medium mb-1 flex items-center gap-2">
-                          <ExternalLink className="h-4 w-4" />
-                          Already have your CV online?
-                        </p>
-                        <p className="text-muted-foreground">
-                          Paste a link to your CV from Google Drive, Dropbox, OneDrive, or any public URL.
-                          Make sure the link is publicly accessible (anyone with link can view).
-                        </p>
-                      </div>
-                      
-                      <div>
-                        <Label htmlFor="cvExternalUrl">CV Link *</Label>
-                        <Input
-                          id="cvExternalUrl"
-                          type="url"
-                          value={formData.cvExternalUrl}
-                          onChange={(e) => setFormData({ ...formData, cvExternalUrl: e.target.value })}
-                          placeholder="https://drive.google.com/file/d/... or https://dropbox.com/..."
-                        />
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Supported: Google Drive, Dropbox, OneDrive, or any direct link to your CV
-                        </p>
-                      </div>
-                      
-                      {formData.cvExternalUrl && formData.cvExternalUrl.startsWith('http') && (
-                        <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
-                          <FileText className="h-4 w-4 text-primary" />
-                          <span className="text-sm flex-1 truncate">{formData.cvExternalUrl}</span>
-                          <a 
-                            href={formData.cvExternalUrl} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-primary hover:underline text-sm"
-                          >
-                            Preview
-                          </a>
-                        </div>
-                      )}
                     </div>
                   )}
 
