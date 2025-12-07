@@ -18,7 +18,15 @@ interface PortfolioRequest {
   email: string;
   phone: string;
   profession_category_id: string | null;
+  custom_profession: string | null;
   cv_url: string | null;
+  profile_data: {
+    education?: any[];
+    experience?: any[];
+    skills?: any[];
+    projects?: any[];
+    achievements?: any[];
+  } | null;
   certificates: any;
   achievements: string | null;
   social_links: Record<string, string> | null;
@@ -201,8 +209,8 @@ export default function PortfolioRequestsManager() {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Phone</TableHead>
+              <TableHead>Profession</TableHead>
+              <TableHead>Data</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Actions</TableHead>
@@ -216,11 +224,32 @@ export default function PortfolioRequestsManager() {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredRequests.map((request) => (
+              filteredRequests.map((request) => {
+                const hasProfileData = request.profile_data && (
+                  (request.profile_data.education?.length || 0) > 0 ||
+                  (request.profile_data.experience?.length || 0) > 0
+                );
+                return (
                 <TableRow key={request.id}>
-                  <TableCell className="font-medium">{request.full_name}</TableCell>
-                  <TableCell>{request.email}</TableCell>
-                  <TableCell>{request.phone}</TableCell>
+                  <TableCell>
+                    <div className="font-medium">{request.full_name}</div>
+                    <div className="text-xs text-muted-foreground">{request.email}</div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm">
+                      {request.custom_profession || request.profession_category?.name || '-'}
+                    </div>
+                    {request.custom_profession && (
+                      <Badge variant="outline" className="text-[10px] mt-1">Custom</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-1">
+                      {request.cv_url && <Badge variant="secondary" className="text-[10px]">📄 CV</Badge>}
+                      {hasProfileData && <Badge variant="secondary" className="text-[10px]">📋 Profile</Badge>}
+                      {!request.cv_url && !hasProfileData && <span className="text-muted-foreground text-xs">None</span>}
+                    </div>
+                  </TableCell>
                   <TableCell>
                     <Badge className={statusColors[request.status]}>
                       {statusLabels[request.status]}
@@ -258,7 +287,7 @@ export default function PortfolioRequestsManager() {
                     </div>
                   </TableCell>
                 </TableRow>
-              ))
+              );})
             )}
           </TableBody>
         </Table>
@@ -292,9 +321,63 @@ export default function PortfolioRequestsManager() {
                 </div>
                 <div>
                   <Label className="text-muted-foreground">Profession</Label>
-                  <p className="font-medium">{selectedRequest.profession_category?.name || 'Not specified'}</p>
+                  <p className="font-medium">
+                    {selectedRequest.custom_profession || selectedRequest.profession_category?.name || 'Not specified'}
+                    {selectedRequest.custom_profession && <Badge variant="outline" className="ml-2 text-[10px]">Custom</Badge>}
+                  </p>
                 </div>
               </div>
+
+              {/* Profile Data Section */}
+              {selectedRequest.profile_data && (
+                (selectedRequest.profile_data.education?.length || 0) > 0 ||
+                (selectedRequest.profile_data.experience?.length || 0) > 0 ||
+                (selectedRequest.profile_data.skills?.length || 0) > 0
+              ) && (
+                <div className="space-y-3 p-4 bg-muted/50 rounded-lg">
+                  <Label className="text-muted-foreground font-semibold">Profile Data (No CV)</Label>
+                  
+                  {(selectedRequest.profile_data.education?.length || 0) > 0 && (
+                    <div>
+                      <span className="text-xs font-medium">Education ({selectedRequest.profile_data.education?.length})</span>
+                      <div className="text-sm mt-1 space-y-1">
+                        {selectedRequest.profile_data.education?.slice(0, 2).map((edu: any, i: number) => (
+                          <div key={i} className="text-muted-foreground">
+                            • {edu.degree} at {edu.institution} ({edu.year})
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {(selectedRequest.profile_data.experience?.length || 0) > 0 && (
+                    <div>
+                      <span className="text-xs font-medium">Experience ({selectedRequest.profile_data.experience?.length})</span>
+                      <div className="text-sm mt-1 space-y-1">
+                        {selectedRequest.profile_data.experience?.slice(0, 2).map((exp: any, i: number) => (
+                          <div key={i} className="text-muted-foreground">
+                            • {exp.title} at {exp.company} ({exp.duration})
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {(selectedRequest.profile_data.skills?.length || 0) > 0 && (
+                    <div>
+                      <span className="text-xs font-medium">Skills ({selectedRequest.profile_data.skills?.length})</span>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {selectedRequest.profile_data.skills?.slice(0, 5).map((skill: any, i: number) => (
+                          <Badge key={i} variant="outline" className="text-[10px]">{skill.name}</Badge>
+                        ))}
+                        {(selectedRequest.profile_data.skills?.length || 0) > 5 && (
+                          <Badge variant="outline" className="text-[10px]">+{(selectedRequest.profile_data.skills?.length || 0) - 5} more</Badge>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Documents */}
               <div className="space-y-2">

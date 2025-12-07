@@ -35,7 +35,7 @@ export default function MultiFileUpload({
   const uploadFile = async (file: File) => {
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-    const filePath = `uploads/${fileName}`;
+    const filePath = fileName;
 
     const { error: uploadError } = await supabase.storage
       .from(bucket)
