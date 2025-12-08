@@ -87,14 +87,8 @@ export const Navbar = () => {
             <Button variant="ghost" onClick={() => navigate("/courses")}>
               Courses
             </Button>
-            <Button variant="ghost" onClick={() => navigate("/career-assessment")}>
-              Career Scorecard
-            </Button>
-            <Button variant="ghost" onClick={() => navigate("/mock-interview")}>
-              Mock Interview
-            </Button>
-            <Button variant="ghost" onClick={() => navigate("/portfolio-request")}>
-              Digital Portfolio
+            <Button variant="ghost" onClick={() => navigate("/career-services")}>
+              Career Services
             </Button>
             <Button variant="ghost" onClick={() => navigate("/jobs")}>
               Jobs
@@ -177,14 +171,8 @@ export const Navbar = () => {
             <Button variant="ghost" onClick={() => { navigate("/courses"); setMobileMenuOpen(false); }} className="justify-start">
               Courses
             </Button>
-            <Button variant="ghost" onClick={() => { navigate("/career-assessment"); setMobileMenuOpen(false); }} className="justify-start">
-              Career Scorecard
-            </Button>
-            <Button variant="ghost" onClick={() => { navigate("/mock-interview"); setMobileMenuOpen(false); }} className="justify-start">
-              Mock Interview
-            </Button>
-            <Button variant="ghost" onClick={() => { navigate("/portfolio-request"); setMobileMenuOpen(false); }} className="justify-start">
-              Digital Portfolio
+            <Button variant="ghost" onClick={() => { navigate("/career-services"); setMobileMenuOpen(false); }} className="justify-start">
+              Career Services
             </Button>
             <Button variant="ghost" onClick={() => { navigate("/jobs"); setMobileMenuOpen(false); }} className="justify-start">
               Jobs

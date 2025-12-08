@@ -27,6 +27,7 @@ import Sessions from "./pages/Sessions";
 import SessionNew from "./pages/SessionNew";
 import SessionEdit from "./pages/SessionEdit";
 import CareerAssessment from "./pages/CareerAssessment";
+import CareerServices from "./pages/CareerServices";
 import AssessmentResults from "./pages/AssessmentResults";
 import PortfolioRequest from "./pages/PortfolioRequest";
 import PortfolioStatus from "./pages/PortfolioStatus";
@@ -56,6 +57,7 @@ const App = () => (
           <Route path="/courses" element={<Courses />} />
           <Route path="/professions" element={<Professions />} />
           <Route path="/professions/:slug" element={<ProfessionDetail />} />
+          <Route path="/career-services" element={<CareerServices />} />
           <Route path="/career-assessment" element={<CareerAssessment />} />
           <Route path="/assessment-results/:id" element={<AssessmentResults />} />
           <Route path="/portfolio-request" element={<PortfolioRequest />} />
