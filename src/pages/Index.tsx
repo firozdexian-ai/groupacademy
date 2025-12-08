@@ -68,6 +68,10 @@ const Index = () => {
                 Browse Courses
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
+              <Button size="lg" variant="secondary" onClick={() => navigate("/jobs")} className="text-lg">
+                Browse Jobs
+                <Briefcase className="w-5 h-5 ml-2" />
+              </Button>
               <Button size="lg" variant="outline" onClick={() => navigate("/auth")}>
                 Sign In
               </Button>
