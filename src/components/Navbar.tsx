@@ -96,6 +96,9 @@ export const Navbar = () => {
             <Button variant="ghost" onClick={() => navigate("/portfolio-request")}>
               Digital Portfolio
             </Button>
+            <Button variant="ghost" onClick={() => navigate("/jobs")}>
+              Jobs
+            </Button>
             {isLoggedIn && (
               <>
                 <Button variant="ghost" onClick={() => navigate("/my-learning")}>
@@ -182,6 +185,9 @@ export const Navbar = () => {
             </Button>
             <Button variant="ghost" onClick={() => { navigate("/portfolio-request"); setMobileMenuOpen(false); }} className="justify-start">
               Digital Portfolio
+            </Button>
+            <Button variant="ghost" onClick={() => { navigate("/jobs"); setMobileMenuOpen(false); }} className="justify-start">
+              Jobs
             </Button>
             {isLoggedIn && (
               <>
