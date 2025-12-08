@@ -215,6 +215,43 @@ const Index = () => {
         </Card>
       </section>
 
+      {/* Jobs CTA */}
+      <section className="container mx-auto px-6 py-16">
+        <Card className="bg-gradient-to-r from-accent/10 via-primary/10 to-secondary/10 border-accent/20 overflow-hidden">
+          <CardContent className="py-10 px-8">
+            <div className="grid md:grid-cols-2 gap-8 items-center">
+              <div>
+                <Badge className="mb-4 bg-accent/20 text-accent-foreground hover:bg-accent/30">
+                  Job Opportunities
+                </Badge>
+                <h2 className="text-3xl font-bold mb-4">
+                  Find Your Dream Job
+                </h2>
+                <p className="text-muted-foreground mb-6">
+                  Browse curated job openings from our partner companies. Apply directly 
+                  after preparing with our career services - Mock Interview, Portfolio, 
+                  and Readiness Scorecard.
+                </p>
+                <Button size="lg" onClick={() => navigate("/jobs")}>
+                  Browse Job Openings
+                  <ArrowRight className="w-5 h-5 ml-2" />
+                </Button>
+              </div>
+              <div className="hidden md:flex justify-center">
+                <div className="relative">
+                  <div className="w-40 h-40 bg-gradient-to-br from-accent to-primary rounded-full flex items-center justify-center shadow-xl">
+                    <Briefcase className="w-20 h-20 text-white" />
+                  </div>
+                  <div className="absolute -top-4 -left-4 bg-secondary text-secondary-foreground text-sm font-bold px-3 py-1 rounded-full shadow-lg">
+                    Hiring Now
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
       {/* CTA Section */}
       <section className="container mx-auto px-6 py-20">
         <Card className="bg-gradient-primary text-white border-0 shadow-2xl">
