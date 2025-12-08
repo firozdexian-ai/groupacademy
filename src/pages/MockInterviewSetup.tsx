@@ -622,14 +622,14 @@ export default function MockInterviewSetup() {
               <div className="space-y-2">
                 <Label htmlFor="category">Profession Category (Optional)</Label>
                 <Select
-                  value={config.professionCategoryId || ""}
-                  onValueChange={(value) => setConfig({ ...config, professionCategoryId: value || null })}
+                  value={config.professionCategoryId || "none"}
+                  onValueChange={(value) => setConfig({ ...config, professionCategoryId: value === "none" ? null : value })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select a category" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No specific category</SelectItem>
+                    <SelectItem value="none">No specific category</SelectItem>
                     {categories.map((category) => (
                       <SelectItem key={category.id} value={category.id}>
                         {category.name}
