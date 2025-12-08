@@ -21,7 +21,9 @@ import {
   BarChart3,
   MessageSquare,
   ArrowRight,
-  RefreshCw
+  RefreshCw,
+  Briefcase,
+  FileText
 } from "lucide-react";
 import { toast } from "sonner";
 import { MockInterviewPDFTemplate } from "@/components/mock-interview/MockInterviewPDFTemplate";
@@ -506,8 +508,54 @@ export default function MockInterviewResults() {
           </div>
         </div>
 
-        {/* CTA */}
-        <Card className="border-primary/20 bg-primary/5">
+        {/* Next Steps - Apply for Jobs */}
+        <Card className="border-accent/30 bg-gradient-to-r from-accent/10 to-primary/10 mb-4">
+          <CardContent className="py-6">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-xl bg-accent/20 flex items-center justify-center shrink-0">
+                  <Briefcase className="w-6 h-6 text-accent-foreground" />
+                </div>
+                <div>
+                  <h3 className="font-semibold mb-1">Ready to Apply? Browse Job Openings</h3>
+                  <p className="text-sm text-muted-foreground">
+                    You've practiced - now put your skills to the test! Explore curated job opportunities from our partner companies.
+                  </p>
+                </div>
+              </div>
+              <Button onClick={() => navigate("/jobs")} className="shrink-0">
+                Browse Jobs
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Build Portfolio CTA */}
+        <Card className="border-primary/20 bg-primary/5 mb-4">
+          <CardContent className="py-6">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center shrink-0">
+                  <FileText className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold mb-1">Stand Out with a Digital Portfolio</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Complement your interview skills with a professional portfolio that showcases your achievements.
+                  </p>
+                </div>
+              </div>
+              <Button variant="outline" onClick={() => navigate("/portfolio-request")} className="shrink-0">
+                Get Your Portfolio
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Courses CTA */}
+        <Card className="border-secondary/20 bg-secondary/5">
           <CardContent className="py-6">
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
               <div>
@@ -516,7 +564,7 @@ export default function MockInterviewResults() {
                   Check out our courses to boost your career readiness.
                 </p>
               </div>
-              <Button onClick={() => navigate("/courses")}>
+              <Button variant="secondary" onClick={() => navigate("/courses")}>
                 Explore Courses
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
