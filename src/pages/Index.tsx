@@ -1,250 +1,276 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { GraduationCap, BookOpen, Video, Users, Calendar, MapPin, ArrowRight, Target, Briefcase } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowRight, Briefcase, CheckCircle } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
+
+// Import brand assets
+import heroIllustration from "@/assets/hero-illustration.png";
+import wavePattern from "@/assets/wave-pattern.png";
+import iconScorecard from "@/assets/icons/icon-scorecard.png";
+import iconMockInterview from "@/assets/icons/icon-mock-interview.png";
+import iconSalary from "@/assets/icons/icon-salary.png";
+import iconPortfolio from "@/assets/icons/icon-portfolio.png";
+import iconAiAssistant from "@/assets/icons/icon-ai-assistant.png";
 
 const Index = () => {
   const navigate = useNavigate();
 
-  const contentTypes = [
+  const services = [
     {
-      icon: Video,
-      title: "Free Videos",
-      description: "Access our library of educational YouTube content",
-      color: "from-blue-500 to-cyan-500",
+      icon: iconScorecard,
+      title: "Career Readiness Scorecard",
+      description: "AI-powered assessment to discover your strengths and gaps",
+      path: "/career-assessment",
+      badge: "FREE",
+      badgeColor: "bg-accent text-accent-foreground",
     },
     {
-      icon: BookOpen,
-      title: "Recorded Courses",
-      description: "Self-paced foundational courses with lifetime access",
-      color: "from-purple-500 to-pink-500",
+      icon: iconMockInterview,
+      title: "AI Mock Interview",
+      description: "Practice with job-specific questions and get instant feedback",
+      path: "/mock-interview",
+      badge: "First FREE",
+      badgeColor: "bg-primary text-primary-foreground",
     },
     {
-      icon: Calendar,
-      title: "Live Webinars",
-      description: "Interactive online sessions with industry experts",
-      color: "from-teal-500 to-green-500",
+      icon: iconSalary,
+      title: "AI Salary Analysis",
+      description: "Know your market value and get negotiation tips",
+      path: "/salary-analysis",
+      badge: "First FREE",
+      badgeColor: "bg-secondary text-secondary-foreground",
     },
     {
-      icon: Users,
-      title: "Batch Classes",
-      description: "Structured learning with live instruction and recordings",
-      color: "from-emerald-500 to-teal-600",
+      icon: iconPortfolio,
+      title: "Digital Portfolio",
+      description: "Professional portfolio crafted by career experts",
+      path: "/portfolio-request",
+      badge: "BDT 100",
+      badgeColor: "bg-muted text-muted-foreground",
     },
     {
-      icon: MapPin,
-      title: "Offline Seminars",
-      description: "In-person workshops and networking events",
-      color: "from-orange-500 to-red-500",
+      icon: iconAiAssistant,
+      title: "AI Career Consultant",
+      description: "24/7 personalized career guidance for your profession",
+      path: "/career-services",
+      badge: "Coming Soon",
+      badgeColor: "bg-muted text-muted-foreground",
+    },
+    {
+      icon: null, // Will use Briefcase icon
+      title: "Job Board",
+      description: "Curated job openings from partner companies",
+      path: "/jobs",
+      badge: "HIRING",
+      badgeColor: "bg-warning text-warning-foreground",
     },
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-muted flex flex-col">
+    <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
-      
+
       {/* Hero Section */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-secondary/5 to-accent/10"></div>
-        <div className="container mx-auto px-6 py-24 relative">
-          <div className="max-w-4xl mx-auto text-center space-y-8">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-primary rounded-3xl mb-6 shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-1000">
-              <GraduationCap className="w-10 h-10 text-white" />
+      <section className="relative overflow-hidden bg-gradient-hero">
+        <div className="container mx-auto px-6 py-16 md:py-24">
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            {/* Left: Content */}
+            <div className="space-y-6 animate-fade-in">
+              <Badge variant="outline" className="gap-2 px-4 py-1.5">
+                AI-Powered Career Acceleration
+              </Badge>
+              
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-bold leading-tight">
+                <span className="text-gradient">Decode</span> Your{" "}
+                <br className="hidden md:block" />
+                Career Potential
+              </h1>
+              
+              <p className="text-lg text-muted-foreground max-w-lg">
+                From self-assessment to landing your dream job — GroUp Academy's AI-powered 
+                tools guide you at every step of your career journey.
+              </p>
+              
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Button size="lg" onClick={() => navigate("/career-assessment")} className="text-lg gap-2">
+                  Get Your Free Analysis
+                  <ArrowRight className="w-5 h-5" />
+                </Button>
+                <Button size="lg" variant="outline" onClick={() => navigate("/career-services")}>
+                  Explore Services
+                </Button>
+              </div>
+
+              {/* Quick Stats */}
+              <div className="flex gap-8 pt-4">
+                <div>
+                  <p className="text-2xl font-bold text-primary">5</p>
+                  <p className="text-sm text-muted-foreground">AI Services</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-secondary">5 min</p>
+                  <p className="text-sm text-muted-foreground">To Start</p>
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-accent">Free</p>
+                  <p className="text-sm text-muted-foreground">First Assessment</p>
+                </div>
+              </div>
             </div>
-            
-            <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent animate-in fade-in slide-in-from-bottom-5 duration-1000 delay-100">
-              Welcome to GroUp Academy
-            </h1>
-            
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-6 duration-1000 delay-200">
-              Your comprehensive learning platform offering diverse educational formats tailored to your learning style and schedule
-            </p>
-            
-            <div className="flex flex-col sm:flex-row gap-4 justify-center animate-in fade-in slide-in-from-bottom-7 duration-1000 delay-300">
-              <Button size="lg" onClick={() => navigate("/courses")} className="text-lg">
-                Browse Courses
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-              <Button size="lg" variant="secondary" onClick={() => navigate("/jobs")} className="text-lg">
-                Browse Jobs
-                <Briefcase className="w-5 h-5 ml-2" />
-              </Button>
-              <Button size="lg" variant="outline" onClick={() => navigate("/auth")}>
-                Sign In
-              </Button>
+
+            {/* Right: Hero Illustration */}
+            <div className="hidden md:flex justify-center animate-slide-up">
+              <img 
+                src={heroIllustration} 
+                alt="Career guidance illustration" 
+                className="w-full max-w-lg h-auto"
+              />
             </div>
           </div>
         </div>
+
+        {/* Wave Pattern Divider */}
+        <div className="absolute bottom-0 left-0 right-0 h-16 overflow-hidden">
+          <img 
+            src={wavePattern} 
+            alt="" 
+            className="w-full h-full object-cover opacity-50"
+          />
+        </div>
       </section>
 
-      {/* Content Types Section */}
+      {/* Services Section */}
       <section className="container mx-auto px-6 py-20">
         <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Our Learning Formats</h2>
+          <h2 className="text-3xl md:text-4xl font-heading font-bold mb-4">
+            How We Accelerate Your Career
+          </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Choose from five different content formats designed to fit your learning preferences and schedule
+            Our AI-powered career services help you prepare, practice, and land your dream job
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-          {contentTypes.map((type, index) => {
-            const Icon = type.icon;
-            return (
-              <Card
-                key={index}
-                className="group hover:shadow-xl transition-all duration-300 border-2 hover:border-primary/20 animate-in fade-in slide-in-from-bottom-8 duration-700"
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                <CardHeader>
-                  <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${type.color} flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform`}>
-                    <Icon className="w-7 h-7 text-white" />
-                  </div>
-                  <CardTitle className="text-xl">{type.title}</CardTitle>
-                  <CardDescription className="text-base">{type.description}</CardDescription>
-                </CardHeader>
-              </Card>
-            );
-          })}
+          {services.map((service, index) => (
+            <Card
+              key={index}
+              className="group hover:shadow-lg transition-all duration-300 cursor-pointer border-2 hover:border-primary/20"
+              onClick={() => navigate(service.path)}
+            >
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between mb-4">
+                  {service.icon ? (
+                    <img 
+                      src={service.icon} 
+                      alt={service.title} 
+                      className="w-14 h-14 object-contain group-hover:scale-110 transition-transform"
+                    />
+                  ) : (
+                    <div className="w-14 h-14 bg-gradient-primary rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <Briefcase className="w-7 h-7 text-white" />
+                    </div>
+                  )}
+                  <Badge className={service.badgeColor}>
+                    {service.badge}
+                  </Badge>
+                </div>
+                <h3 className="text-lg font-semibold mb-2 group-hover:text-primary transition-colors">
+                  {service.title}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  {service.description}
+                </p>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="bg-card/50 backdrop-blur-sm border-y">
+      <section className="bg-muted/50">
         <div className="container mx-auto px-6 py-20">
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            <div className="text-center space-y-3">
-              <div className="w-12 h-12 bg-gradient-primary rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <Users className="w-6 h-6 text-white" />
+          <div className="grid md:grid-cols-2 gap-12 items-center max-w-5xl mx-auto">
+            <div>
+              <h2 className="text-3xl font-heading font-bold mb-6">
+                Your Complete Career Journey
+              </h2>
+              <div className="space-y-4">
+                {[
+                  "Free AI-powered career assessment",
+                  "Practice interviews with instant feedback",
+                  "Know your market salary value",
+                  "Professional digital portfolio",
+                  "Curated job opportunities",
+                ].map((feature, index) => (
+                  <div key={index} className="flex items-center gap-3">
+                    <CheckCircle className="w-5 h-5 text-accent shrink-0" />
+                    <span>{feature}</span>
+                  </div>
+                ))}
               </div>
-              <h3 className="text-xl font-bold">Expert Instructors</h3>
-              <p className="text-muted-foreground">Learn from industry professionals with years of experience</p>
+              <Button 
+                size="lg" 
+                className="mt-8"
+                onClick={() => navigate("/career-services")}
+              >
+                View All Services
+                <ArrowRight className="w-5 h-5 ml-2" />
+              </Button>
             </div>
-            
-            <div className="text-center space-y-3">
-              <div className="w-12 h-12 bg-gradient-accent rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <Calendar className="w-6 h-6 text-white" />
-              </div>
-              <h3 className="text-xl font-bold">Flexible Schedule</h3>
-              <p className="text-muted-foreground">Choose between live, recorded, or in-person learning options</p>
-            </div>
-            
-            <div className="text-center space-y-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-secondary to-secondary-light rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <BookOpen className="w-6 h-6 text-white" />
-              </div>
-              <h3 className="text-xl font-bold">Comprehensive Content</h3>
-              <p className="text-muted-foreground">Access to structured courses and free educational materials</p>
+            <div className="hidden md:block">
+              <Card className="bg-gradient-primary text-white border-0 p-8">
+                <h3 className="text-2xl font-bold mb-4">Start Free Today</h3>
+                <p className="text-white/90 mb-6">
+                  Take your Career Readiness Scorecard and discover your path to success.
+                </p>
+                <Button 
+                  variant="secondary" 
+                  size="lg"
+                  onClick={() => navigate("/career-assessment")}
+                  className="w-full"
+                >
+                  Start Assessment
+                  <ArrowRight className="w-5 h-5 ml-2" />
+                </Button>
+              </Card>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Career Readiness Scorecard CTA */}
-      <section className="container mx-auto px-6 py-16">
-        <Card className="bg-gradient-to-r from-secondary/10 via-accent/10 to-primary/10 border-secondary/20 overflow-hidden">
-          <CardContent className="py-10 px-8">
-            <div className="grid md:grid-cols-2 gap-8 items-center">
-              <div>
-                <Badge className="mb-4 bg-secondary/20 text-secondary hover:bg-secondary/30">
-                  FREE Assessment
-                </Badge>
-                <h2 className="text-3xl font-bold mb-4">
-                  How Job-Ready Are You?
-                </h2>
-                <p className="text-muted-foreground mb-6">
-                  Take our 5-minute AI-powered Career Readiness Scorecard and discover your strengths, 
-                  areas for improvement, and personalized recommendations to accelerate your career.
-                </p>
-                <Button size="lg" onClick={() => navigate("/career-assessment")}>
-                  Start Free Assessment
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
-              </div>
-              <div className="hidden md:flex justify-center">
-                <div className="relative">
-                  <div className="w-40 h-40 bg-gradient-to-br from-secondary to-accent rounded-full flex items-center justify-center shadow-xl">
-                    <Target className="w-20 h-20 text-white" />
-                  </div>
-                  <div className="absolute -top-4 -right-4 bg-primary text-primary-foreground text-sm font-bold px-3 py-1 rounded-full shadow-lg">
-                    5 mins
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </section>
-
-      {/* Digital Portfolio CTA */}
-      <section className="container mx-auto px-6 py-16">
+      {/* Jobs CTA Section */}
+      <section className="container mx-auto px-6 py-20">
         <Card className="bg-gradient-to-r from-primary/10 via-secondary/10 to-accent/10 border-primary/20 overflow-hidden">
-          <CardContent className="py-10 px-8">
-            <div className="grid md:grid-cols-2 gap-8 items-center">
-              <div className="hidden md:flex justify-center order-1 md:order-none">
-                <div className="relative">
-                  <div className="w-40 h-40 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center shadow-xl">
-                    <Briefcase className="w-20 h-20 text-white" />
-                  </div>
-                  <div className="absolute -bottom-2 -right-2 bg-accent text-accent-foreground text-sm font-bold px-3 py-1 rounded-full shadow-lg">
-                    BDT 100
-                  </div>
-                </div>
-              </div>
-              <div>
-                <Badge className="mb-4 bg-primary/20 text-primary hover:bg-primary/30">
-                  Professional Service
-                </Badge>
-                <h2 className="text-3xl font-bold mb-4">
-                  Stand Out with a Digital Portfolio
-                </h2>
-                <p className="text-muted-foreground mb-6">
-                  Get a professionally designed digital portfolio that showcases your skills, 
-                  achievements, and experience. Our experts will create a stunning portfolio 
-                  that helps you land your dream job.
-                </p>
-                <Button size="lg" onClick={() => navigate("/portfolio-request")}>
-                  Request Your Portfolio
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </section>
-
-      {/* Jobs CTA */}
-      <section className="container mx-auto px-6 py-16">
-        <Card className="bg-gradient-to-r from-accent/10 via-primary/10 to-secondary/10 border-accent/20 overflow-hidden">
-          <CardContent className="py-10 px-8">
+          <CardContent className="py-12 px-8">
             <div className="grid md:grid-cols-2 gap-8 items-center">
               <div>
-                <Badge className="mb-4 bg-accent/20 text-accent-foreground hover:bg-accent/30">
-                  Job Opportunities
+                <Badge className="mb-4 bg-warning/20 text-warning-foreground">
+                  Hiring Now
                 </Badge>
-                <h2 className="text-3xl font-bold mb-4">
+                <h2 className="text-3xl font-heading font-bold mb-4">
                   Find Your Dream Job
                 </h2>
                 <p className="text-muted-foreground mb-6">
-                  Browse curated job openings from our partner companies. Apply directly 
-                  after preparing with our career services - Mock Interview, Portfolio, 
-                  and Readiness Scorecard.
+                  Browse curated job openings from our partner companies. Prepare with our 
+                  career services first — candidates who complete Mock Interview and 
+                  Portfolio have higher success rates.
                 </p>
-                <Button size="lg" onClick={() => navigate("/jobs")}>
-                  Browse Job Openings
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <Button size="lg" onClick={() => navigate("/jobs")}>
+                    Browse Jobs
+                    <ArrowRight className="w-5 h-5 ml-2" />
+                  </Button>
+                  <Button size="lg" variant="outline" onClick={() => navigate("/courses")}>
+                    View Courses
+                  </Button>
+                </div>
               </div>
               <div className="hidden md:flex justify-center">
-                <div className="relative">
-                  <div className="w-40 h-40 bg-gradient-to-br from-accent to-primary rounded-full flex items-center justify-center shadow-xl">
-                    <Briefcase className="w-20 h-20 text-white" />
-                  </div>
-                  <div className="absolute -top-4 -left-4 bg-secondary text-secondary-foreground text-sm font-bold px-3 py-1 rounded-full shadow-lg">
-                    Hiring Now
-                  </div>
+                <div className="w-40 h-40 bg-gradient-primary rounded-full flex items-center justify-center shadow-xl">
+                  <Briefcase className="w-20 h-20 text-white" />
                 </div>
               </div>
             </div>
@@ -252,18 +278,25 @@ const Index = () => {
         </Card>
       </section>
 
-      {/* CTA Section */}
-      <section className="container mx-auto px-6 py-20">
+      {/* Final CTA */}
+      <section className="container mx-auto px-6 py-16">
         <Card className="bg-gradient-primary text-white border-0 shadow-2xl">
           <CardContent className="py-12 px-8 text-center">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready to Start Learning?</h2>
+            <h2 className="text-3xl md:text-4xl font-heading font-bold mb-4">
+              Ready to Decode Your Career Potential?
+            </h2>
             <p className="text-lg text-white/90 mb-8 max-w-2xl mx-auto">
-              Join thousands of learners who have transformed their careers with GroUp Academy
+              Join thousands of professionals who have accelerated their careers with GroUp Academy
             </p>
-            <Button size="lg" variant="secondary" onClick={() => navigate("/auth")} className="text-lg">
-              Create Free Account
-              <ArrowRight className="w-5 h-5 ml-2" />
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button size="lg" variant="secondary" onClick={() => navigate("/career-assessment")} className="text-lg">
+                Start Free Assessment
+                <ArrowRight className="w-5 h-5 ml-2" />
+              </Button>
+              <Button size="lg" variant="outline" onClick={() => navigate("/auth")} className="text-lg bg-white/10 border-white/30 hover:bg-white/20">
+                Create Account
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </section>

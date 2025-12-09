@@ -48,6 +48,16 @@ interface Props {
   interview: Interview;
 }
 
+// Brand colors
+const BRAND = {
+  primary: "#2A7DDE",
+  secondary: "#33E1E4",
+  accent: "#10D576",
+  dark: "#333333",
+  muted: "#6b7280",
+  background: "#F4F7F9",
+};
+
 const performanceLevelLabels: Record<string, string> = {
   needs_work: "Needs Work",
   developing: "Developing",
@@ -70,62 +80,63 @@ export function MockInterviewPDFTemplate({ interview }: Props) {
       style={{
         width: "794px",
         padding: "40px",
-        fontFamily: "Arial, sans-serif",
+        fontFamily: "'Inter', system-ui, sans-serif",
         backgroundColor: "#ffffff",
-        color: "#1f2937"
+        color: BRAND.dark
       }}
     >
       {/* Header */}
-      <div style={{ textAlign: "center", marginBottom: "30px", borderBottom: "3px solid #0066cc", paddingBottom: "20px" }}>
-        <h1 style={{ fontSize: "28px", fontWeight: "bold", margin: "0 0 8px 0", color: "#0066cc" }}>
+      <div style={{ textAlign: "center", marginBottom: "30px", borderBottom: `3px solid ${BRAND.primary}`, paddingBottom: "20px" }}>
+        <h1 style={{ fontSize: "28px", fontWeight: "bold", margin: "0 0 8px 0", color: BRAND.primary, fontFamily: "'Poppins', sans-serif" }}>
           Mock Interview Report
         </h1>
-        <p style={{ fontSize: "14px", color: "#6b7280", margin: 0 }}>
+        <p style={{ fontSize: "14px", color: BRAND.muted, margin: 0 }}>
           GroUp Academy - AI-Powered Interview Preparation
         </p>
       </div>
 
       {/* Candidate Info */}
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "30px", backgroundColor: "#f9fafb", padding: "20px", borderRadius: "8px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "30px", backgroundColor: BRAND.background, padding: "20px", borderRadius: "12px" }}>
         <div>
-          <h2 style={{ fontSize: "20px", fontWeight: "bold", margin: "0 0 8px 0" }}>
+          <h2 style={{ fontSize: "20px", fontWeight: "bold", margin: "0 0 8px 0", fontFamily: "'Poppins', sans-serif" }}>
             {interview.full_name}
           </h2>
-          <p style={{ fontSize: "14px", color: "#6b7280", margin: "0 0 4px 0" }}>
+          <p style={{ fontSize: "14px", color: BRAND.muted, margin: "0 0 4px 0" }}>
             {interview.email}
           </p>
           {interview.job_title && (
-            <p style={{ fontSize: "14px", color: "#374151", margin: 0 }}>
+            <p style={{ fontSize: "14px", color: BRAND.dark, margin: 0 }}>
               Position: {interview.job_title}
               {interview.company_name && ` at ${interview.company_name}`}
             </p>
           )}
         </div>
         <div style={{ textAlign: "right" }}>
-          <p style={{ fontSize: "12px", color: "#6b7280", margin: "0 0 4px 0" }}>
+          <p style={{ fontSize: "12px", color: BRAND.muted, margin: "0 0 4px 0" }}>
             Date: {new Date(interview.completed_at || interview.created_at).toLocaleDateString()}
           </p>
-          <p style={{ fontSize: "12px", color: "#6b7280", margin: "0 0 4px 0" }}>
+          <p style={{ fontSize: "12px", color: BRAND.muted, margin: "0 0 4px 0" }}>
             Difficulty: {interview.difficulty}
           </p>
-          <p style={{ fontSize: "12px", color: "#6b7280", margin: 0 }}>
+          <p style={{ fontSize: "12px", color: BRAND.muted, margin: 0 }}>
             Questions: {interview.question_count}
           </p>
         </div>
       </div>
 
       {/* Score Section */}
-      <div style={{ textAlign: "center", marginBottom: "30px", backgroundColor: "#0066cc", color: "white", padding: "30px", borderRadius: "12px" }}>
-        <div style={{ fontSize: "64px", fontWeight: "bold", margin: "0 0 8px 0" }}>
+      <div style={{ textAlign: "center", marginBottom: "30px", background: `linear-gradient(135deg, ${BRAND.primary}, ${BRAND.secondary})`, color: "white", padding: "30px", borderRadius: "16px" }}>
+        <div style={{ fontSize: "72px", fontWeight: "bold", margin: "0 0 8px 0", fontFamily: "'Poppins', sans-serif" }}>
           {selectionPercentage}%
         </div>
         <div style={{ fontSize: "18px", marginBottom: "8px" }}>Selection Score</div>
         <div style={{ 
           display: "inline-block", 
           backgroundColor: "rgba(255,255,255,0.2)", 
-          padding: "6px 16px", 
-          borderRadius: "20px",
-          fontSize: "14px"
+          padding: "8px 20px", 
+          borderRadius: "24px",
+          fontSize: "14px",
+          fontWeight: 600
         }}>
           {performanceLevelLabels[performanceLevel]}
         </div>
@@ -134,10 +145,10 @@ export function MockInterviewPDFTemplate({ interview }: Props) {
       {/* Overall Feedback */}
       {interview.ai_feedback?.overall_feedback && (
         <div style={{ marginBottom: "30px" }}>
-          <h3 style={{ fontSize: "16px", fontWeight: "bold", marginBottom: "12px", color: "#0066cc" }}>
+          <h3 style={{ fontSize: "16px", fontWeight: "bold", marginBottom: "12px", color: BRAND.primary, fontFamily: "'Poppins', sans-serif" }}>
             Overall Assessment
           </h3>
-          <p style={{ fontSize: "14px", lineHeight: "1.6", color: "#374151" }}>
+          <p style={{ fontSize: "14px", lineHeight: "1.7", color: BRAND.dark }}>
             {interview.ai_feedback.overall_feedback}
           </p>
         </div>
@@ -145,46 +156,44 @@ export function MockInterviewPDFTemplate({ interview }: Props) {
 
       {/* Strengths & Improvements */}
       <div style={{ display: "flex", gap: "20px", marginBottom: "30px" }}>
-        {/* Strengths */}
-        <div style={{ flex: 1, backgroundColor: "#ecfdf5", padding: "16px", borderRadius: "8px" }}>
-          <h4 style={{ fontSize: "14px", fontWeight: "bold", color: "#059669", marginBottom: "12px" }}>
+        <div style={{ flex: 1, backgroundColor: "#ecfdf5", padding: "16px", borderRadius: "12px" }}>
+          <h4 style={{ fontSize: "14px", fontWeight: "bold", color: BRAND.accent, marginBottom: "12px", fontFamily: "'Poppins', sans-serif" }}>
             ✓ Strengths
           </h4>
           {interview.strengths && interview.strengths.length > 0 ? (
-            <ul style={{ margin: 0, paddingLeft: "20px", fontSize: "13px", lineHeight: "1.6" }}>
+            <ul style={{ margin: 0, paddingLeft: "20px", fontSize: "13px", lineHeight: "1.7" }}>
               {interview.strengths.map((s, i) => (
                 <li key={i} style={{ marginBottom: "4px" }}>{s}</li>
               ))}
             </ul>
           ) : (
-            <p style={{ fontSize: "13px", color: "#6b7280" }}>No strengths identified</p>
+            <p style={{ fontSize: "13px", color: BRAND.muted }}>No strengths identified</p>
           )}
         </div>
 
-        {/* Improvements */}
-        <div style={{ flex: 1, backgroundColor: "#fff7ed", padding: "16px", borderRadius: "8px" }}>
-          <h4 style={{ fontSize: "14px", fontWeight: "bold", color: "#ea580c", marginBottom: "12px" }}>
+        <div style={{ flex: 1, backgroundColor: "#fff7ed", padding: "16px", borderRadius: "12px" }}>
+          <h4 style={{ fontSize: "14px", fontWeight: "bold", color: "#ea580c", marginBottom: "12px", fontFamily: "'Poppins', sans-serif" }}>
             ↑ Areas to Improve
           </h4>
           {interview.improvement_areas && interview.improvement_areas.length > 0 ? (
-            <ul style={{ margin: 0, paddingLeft: "20px", fontSize: "13px", lineHeight: "1.6" }}>
+            <ul style={{ margin: 0, paddingLeft: "20px", fontSize: "13px", lineHeight: "1.7" }}>
               {interview.improvement_areas.map((a, i) => (
                 <li key={i} style={{ marginBottom: "4px" }}>{a}</li>
               ))}
             </ul>
           ) : (
-            <p style={{ fontSize: "13px", color: "#6b7280" }}>No improvement areas identified</p>
+            <p style={{ fontSize: "13px", color: BRAND.muted }}>No improvement areas identified</p>
           )}
         </div>
       </div>
 
       {/* Interview Tips */}
       {interview.ai_feedback?.interview_tips && (
-        <div style={{ marginBottom: "30px", backgroundColor: "#eff6ff", padding: "16px", borderRadius: "8px", borderLeft: "4px solid #0066cc" }}>
-          <h4 style={{ fontSize: "14px", fontWeight: "bold", color: "#0066cc", marginBottom: "8px" }}>
+        <div style={{ marginBottom: "30px", background: `linear-gradient(135deg, ${BRAND.secondary}20, ${BRAND.primary}20)`, padding: "16px", borderRadius: "12px", borderLeft: `4px solid ${BRAND.primary}` }}>
+          <h4 style={{ fontSize: "14px", fontWeight: "bold", color: BRAND.primary, marginBottom: "8px", fontFamily: "'Poppins', sans-serif" }}>
             💡 Interview Tips for This Role
           </h4>
-          <p style={{ fontSize: "13px", lineHeight: "1.6", color: "#374151", margin: 0 }}>
+          <p style={{ fontSize: "13px", lineHeight: "1.7", color: BRAND.dark, margin: 0 }}>
             {interview.ai_feedback.interview_tips}
           </p>
         </div>
@@ -192,7 +201,7 @@ export function MockInterviewPDFTemplate({ interview }: Props) {
 
       {/* Question Feedback */}
       <div style={{ marginBottom: "30px" }}>
-        <h3 style={{ fontSize: "16px", fontWeight: "bold", marginBottom: "16px", color: "#0066cc" }}>
+        <h3 style={{ fontSize: "16px", fontWeight: "bold", marginBottom: "16px", color: BRAND.primary, fontFamily: "'Poppins', sans-serif" }}>
           Question-by-Question Feedback
         </h3>
         {interview.ai_feedback?.question_feedback?.map((feedback, idx) => {
@@ -204,7 +213,7 @@ export function MockInterviewPDFTemplate({ interview }: Props) {
                 <div style={{ flex: 1 }}>
                   <span style={{ 
                     fontSize: "11px", 
-                    backgroundColor: "#e5e7eb", 
+                    backgroundColor: BRAND.background, 
                     padding: "2px 8px", 
                     borderRadius: "4px",
                     marginRight: "8px"
@@ -219,7 +228,7 @@ export function MockInterviewPDFTemplate({ interview }: Props) {
                   width: "40px", 
                   height: "40px", 
                   borderRadius: "50%", 
-                  backgroundColor: feedback.score >= 7 ? "#10b981" : feedback.score >= 5 ? "#f59e0b" : "#ef4444",
+                  backgroundColor: feedback.score >= 7 ? BRAND.accent : feedback.score >= 5 ? "#f59e0b" : "#ef4444",
                   color: "white",
                   display: "flex",
                   alignItems: "center",
@@ -232,11 +241,11 @@ export function MockInterviewPDFTemplate({ interview }: Props) {
                   {feedback.score}
                 </div>
               </div>
-              <p style={{ fontSize: "13px", color: "#6b7280", marginBottom: "8px", paddingLeft: "12px", borderLeft: "2px solid #d1d5db" }}>
+              <p style={{ fontSize: "13px", color: BRAND.muted, marginBottom: "8px", paddingLeft: "12px", borderLeft: "2px solid #d1d5db" }}>
                 {feedback.feedback}
               </p>
               {feedback.improvement_tips && (
-                <p style={{ fontSize: "12px", color: "#0066cc", margin: 0 }}>
+                <p style={{ fontSize: "12px", color: BRAND.primary, margin: 0 }}>
                   <strong>Tip:</strong> {feedback.improvement_tips}
                 </p>
               )}
@@ -247,10 +256,10 @@ export function MockInterviewPDFTemplate({ interview }: Props) {
 
       {/* Footer */}
       <div style={{ textAlign: "center", paddingTop: "20px", borderTop: "2px solid #e5e7eb" }}>
-        <p style={{ fontSize: "12px", color: "#9ca3af", margin: "0 0 4px 0" }}>
+        <p style={{ fontSize: "12px", color: BRAND.muted, margin: "0 0 4px 0" }}>
           Report ID: {interview.id.slice(0, 8).toUpperCase()}
         </p>
-        <p style={{ fontSize: "12px", color: "#9ca3af", margin: 0 }}>
+        <p style={{ fontSize: "12px", color: BRAND.muted, margin: 0 }}>
           Generated by GroUp Academy • www.groupacademy.com
         </p>
       </div>

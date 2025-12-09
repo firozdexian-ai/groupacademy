@@ -2,43 +2,48 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
+/* GroUp Academy Brand Design System
+   All colors MUST be HSL.
+   Primary: Tech Blue #2A7DDE
+   Secondary: Vibrant Cyan #33E1E4
+   Accent: Success Green #10D576
 */
 
 @layer base {
   :root {
-    /* Modern SaaS EdTech Design System */
-    --background: 214 25% 98%;
-    --foreground: 217 32% 17%;
+    /* Background & Foreground */
+    --background: 210 33% 97%;
+    --foreground: 0 0% 20%;
 
+    /* Card */
     --card: 0 0% 100%;
-    --card-foreground: 217 32% 17%;
+    --card-foreground: 0 0% 20%;
 
+    /* Popover */
     --popover: 0 0% 100%;
-    --popover-foreground: 217 32% 17%;
+    --popover-foreground: 0 0% 20%;
 
-    /* Primary: Deep Ocean Blue */
-    --primary: 214 84% 40%;
+    /* Primary: Tech Blue #2A7DDE */
+    --primary: 209 74% 52%;
     --primary-foreground: 0 0% 100%;
-    --primary-light: 214 84% 50%;
-    --primary-dark: 214 84% 30%;
+    --primary-light: 209 74% 62%;
+    --primary-dark: 209 74% 42%;
 
-    /* Secondary: Teal Accent */
-    --secondary: 174 72% 42%;
-    --secondary-foreground: 0 0% 100%;
-    --secondary-light: 174 72% 52%;
+    /* Secondary: Vibrant Cyan #33E1E4 */
+    --secondary: 181 76% 55%;
+    --secondary-foreground: 0 0% 15%;
+    --secondary-light: 181 76% 65%;
 
-    /* Muted: Soft Grays */
-    --muted: 214 20% 94%;
-    --muted-foreground: 217 20% 50%;
+    /* Muted */
+    --muted: 210 20% 94%;
+    --muted-foreground: 210 10% 45%;
 
-    /* Accent: Emerald Growth */
-    --accent: 160 84% 39%;
+    /* Accent: Success Green #10D576 */
+    --accent: 153 85% 45%;
     --accent-foreground: 0 0% 100%;
 
     /* Success */
-    --success: 142 76% 36%;
+    --success: 153 85% 45%;
     --success-foreground: 0 0% 100%;
 
     /* Warning */
@@ -50,32 +55,34 @@ All colors MUST be HSL.
     --destructive-foreground: 0 0% 100%;
 
     /* Borders & Inputs */
-    --border: 214 20% 88%;
-    --input: 214 20% 88%;
-    --ring: 214 84% 40%;
+    --border: 210 20% 88%;
+    --input: 210 20% 88%;
+    --ring: 209 74% 52%;
 
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(214 84% 40%), hsl(174 72% 42%));
-    --gradient-accent: linear-gradient(135deg, hsl(174 72% 42%), hsl(160 84% 39%));
-    --gradient-muted: linear-gradient(180deg, hsl(214 25% 98%), hsl(214 20% 94%));
+    /* Gradients - Blue to Cyan */
+    --gradient-primary: linear-gradient(135deg, hsl(209 74% 52%), hsl(181 76% 55%));
+    --gradient-accent: linear-gradient(135deg, hsl(181 76% 55%), hsl(153 85% 45%));
+    --gradient-muted: linear-gradient(180deg, hsl(210 33% 97%), hsl(210 20% 94%));
+    --gradient-hero: linear-gradient(135deg, hsl(209 74% 52% / 0.1), hsl(181 76% 55% / 0.1), hsl(153 85% 45% / 0.1));
 
     /* Shadows */
-    --shadow-sm: 0 1px 2px 0 hsl(217 32% 17% / 0.05);
-    --shadow-md: 0 4px 6px -1px hsl(217 32% 17% / 0.1);
-    --shadow-lg: 0 10px 15px -3px hsl(217 32% 17% / 0.1);
-    --shadow-xl: 0 20px 25px -5px hsl(217 32% 17% / 0.1);
+    --shadow-sm: 0 1px 2px 0 hsl(0 0% 20% / 0.05);
+    --shadow-md: 0 4px 6px -1px hsl(0 0% 20% / 0.1);
+    --shadow-lg: 0 10px 15px -3px hsl(0 0% 20% / 0.1);
+    --shadow-xl: 0 20px 25px -5px hsl(0 0% 20% / 0.1);
+    --shadow-glow: 0 0 40px hsl(209 74% 52% / 0.3);
 
     --radius: 0.75rem;
 
     /* Sidebar */
-    --sidebar-background: 217 32% 17%;
-    --sidebar-foreground: 214 20% 94%;
-    --sidebar-primary: 214 84% 40%;
+    --sidebar-background: 0 0% 15%;
+    --sidebar-foreground: 210 20% 94%;
+    --sidebar-primary: 209 74% 52%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 32% 22%;
-    --sidebar-accent-foreground: 214 20% 94%;
-    --sidebar-border: 217 32% 25%;
-    --sidebar-ring: 214 84% 50%;
+    --sidebar-accent: 0 0% 22%;
+    --sidebar-accent-foreground: 210 20% 94%;
+    --sidebar-border: 0 0% 25%;
+    --sidebar-ring: 209 74% 52%;
 
     /* Animations */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -83,51 +90,51 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 217 32% 12%;
-    --foreground: 214 20% 94%;
+    --background: 220 15% 10%;
+    --foreground: 210 20% 94%;
 
-    --card: 217 32% 17%;
-    --card-foreground: 214 20% 94%;
+    --card: 220 15% 14%;
+    --card-foreground: 210 20% 94%;
 
-    --popover: 217 32% 17%;
-    --popover-foreground: 214 20% 94%;
+    --popover: 220 15% 14%;
+    --popover-foreground: 210 20% 94%;
 
-    --primary: 214 84% 50%;
+    --primary: 209 74% 58%;
     --primary-foreground: 0 0% 100%;
-    --primary-light: 214 84% 60%;
-    --primary-dark: 214 84% 40%;
+    --primary-light: 209 74% 68%;
+    --primary-dark: 209 74% 48%;
 
-    --secondary: 174 72% 52%;
-    --secondary-foreground: 217 32% 12%;
-    --secondary-light: 174 72% 62%;
+    --secondary: 181 76% 58%;
+    --secondary-foreground: 0 0% 10%;
+    --secondary-light: 181 76% 68%;
 
-    --muted: 217 32% 22%;
-    --muted-foreground: 217 20% 65%;
+    --muted: 220 15% 20%;
+    --muted-foreground: 210 10% 60%;
 
-    --accent: 160 84% 49%;
+    --accent: 153 85% 50%;
     --accent-foreground: 0 0% 100%;
 
-    --success: 142 76% 46%;
+    --success: 153 85% 50%;
     --success-foreground: 0 0% 100%;
 
-    --warning: 38 92% 60%;
-    --warning-foreground: 217 32% 12%;
+    --warning: 38 92% 55%;
+    --warning-foreground: 0 0% 10%;
 
-    --destructive: 0 84% 70%;
-    --destructive-foreground: 217 32% 12%;
+    --destructive: 0 84% 65%;
+    --destructive-foreground: 0 0% 10%;
 
-    --border: 217 32% 25%;
-    --input: 217 32% 25%;
-    --ring: 214 84% 50%;
+    --border: 220 15% 22%;
+    --input: 220 15% 22%;
+    --ring: 209 74% 58%;
 
-    --sidebar-background: 217 32% 17%;
-    --sidebar-foreground: 214 20% 94%;
-    --sidebar-primary: 214 84% 50%;
+    --sidebar-background: 220 15% 10%;
+    --sidebar-foreground: 210 20% 94%;
+    --sidebar-primary: 209 74% 58%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 32% 22%;
-    --sidebar-accent-foreground: 214 20% 94%;
-    --sidebar-border: 217 32% 25%;
-    --sidebar-ring: 214 84% 60%;
+    --sidebar-accent: 220 15% 18%;
+    --sidebar-accent-foreground: 210 20% 94%;
+    --sidebar-border: 220 15% 22%;
+    --sidebar-ring: 209 74% 68%;
   }
 }
 
@@ -138,10 +145,21 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
-    font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+}
+
+/* Custom utility classes */
+@layer utilities {
+  .text-gradient {
+    @apply bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent;
+  }
+  
+  .bg-gradient-hero {
+    background: var(--gradient-hero);
   }
 }

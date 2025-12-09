@@ -28,6 +28,17 @@ const readinessLabels: Record<string, string> = {
   expert: "Expert",
 };
 
+// Brand colors - Tech Blue #2A7DDE, Vibrant Cyan #33E1E4, Success Green #10D576
+const BRAND = {
+  primary: "#2A7DDE",
+  primaryLight: "#4A9AEF",
+  secondary: "#33E1E4",
+  accent: "#10D576",
+  dark: "#333333",
+  muted: "#6b7280",
+  background: "#F4F7F9",
+};
+
 export function ScorecardPDFTemplate({ assessment }: ScorecardPDFTemplateProps) {
   const readinessLevel = assessment.readiness_level || "beginner";
 
@@ -38,8 +49,8 @@ export function ScorecardPDFTemplate({ assessment }: ScorecardPDFTemplateProps) 
         width: "794px",
         padding: "40px",
         backgroundColor: "#ffffff",
-        fontFamily: "system-ui, -apple-system, sans-serif",
-        color: "#1a1a1a",
+        fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
+        color: BRAND.dark,
         position: "absolute",
         left: "-9999px",
         top: 0,
@@ -52,19 +63,25 @@ export function ScorecardPDFTemplate({ assessment }: ScorecardPDFTemplateProps) 
         alignItems: "center",
         marginBottom: "30px",
         paddingBottom: "20px",
-        borderBottom: "2px solid #6366f1"
+        borderBottom: `3px solid ${BRAND.primary}`
       }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: "28px", fontWeight: 700, color: "#6366f1" }}>
+          <h1 style={{ 
+            margin: 0, 
+            fontSize: "28px", 
+            fontWeight: 700, 
+            color: BRAND.primary,
+            fontFamily: "'Poppins', system-ui, sans-serif"
+          }}>
             GroUp Academy
           </h1>
-          <p style={{ margin: "4px 0 0", fontSize: "14px", color: "#666" }}>
+          <p style={{ margin: "4px 0 0", fontSize: "14px", color: BRAND.muted }}>
             Career Readiness Scorecard
           </p>
         </div>
-        <div style={{ textAlign: "right", fontSize: "12px", color: "#666" }}>
+        <div style={{ textAlign: "right", fontSize: "12px", color: BRAND.muted }}>
           <p style={{ margin: 0 }}>Assessment Date</p>
-          <p style={{ margin: "2px 0 0", fontWeight: 600, color: "#1a1a1a" }}>
+          <p style={{ margin: "2px 0 0", fontWeight: 600, color: BRAND.dark }}>
             {format(new Date(assessment.created_at), "MMMM d, yyyy")}
           </p>
         </div>
@@ -72,20 +89,20 @@ export function ScorecardPDFTemplate({ assessment }: ScorecardPDFTemplateProps) 
 
       {/* Candidate Info */}
       <div style={{ 
-        backgroundColor: "#f8fafc", 
+        backgroundColor: BRAND.background, 
         padding: "16px 20px", 
-        borderRadius: "8px",
+        borderRadius: "12px",
         marginBottom: "24px"
       }}>
         <div style={{ display: "flex", justifyContent: "space-between" }}>
           <div>
-            <p style={{ margin: 0, fontSize: "12px", color: "#666" }}>Candidate Name</p>
-            <p style={{ margin: "4px 0 0", fontSize: "18px", fontWeight: 600 }}>
+            <p style={{ margin: 0, fontSize: "12px", color: BRAND.muted }}>Candidate Name</p>
+            <p style={{ margin: "4px 0 0", fontSize: "18px", fontWeight: 600, fontFamily: "'Poppins', sans-serif" }}>
               {assessment.full_name}
             </p>
           </div>
           <div style={{ textAlign: "right" }}>
-            <p style={{ margin: 0, fontSize: "12px", color: "#666" }}>Profession Category</p>
+            <p style={{ margin: 0, fontSize: "12px", color: BRAND.muted }}>Profession Category</p>
             <p style={{ margin: "4px 0 0", fontSize: "14px", fontWeight: 500 }}>
               {assessment.profession_categories?.name || "General"}
             </p>
@@ -93,24 +110,30 @@ export function ScorecardPDFTemplate({ assessment }: ScorecardPDFTemplateProps) 
         </div>
       </div>
 
-      {/* Score Section */}
+      {/* Score Section - Gradient from Primary to Secondary */}
       <div style={{ 
         textAlign: "center", 
         padding: "30px",
-        backgroundColor: "#6366f1",
-        borderRadius: "12px",
+        background: `linear-gradient(135deg, ${BRAND.primary}, ${BRAND.secondary})`,
+        borderRadius: "16px",
         marginBottom: "24px",
         color: "#ffffff"
       }}>
         <p style={{ margin: 0, fontSize: "14px", opacity: 0.9 }}>Career Readiness Score</p>
-        <p style={{ margin: "8px 0", fontSize: "64px", fontWeight: 700, lineHeight: 1 }}>
+        <p style={{ 
+          margin: "8px 0", 
+          fontSize: "72px", 
+          fontWeight: 700, 
+          lineHeight: 1,
+          fontFamily: "'Poppins', sans-serif"
+        }}>
           {assessment.percentage}%
         </p>
         <div style={{ 
           display: "inline-block",
           backgroundColor: "rgba(255,255,255,0.2)",
-          padding: "6px 16px",
-          borderRadius: "20px",
+          padding: "8px 20px",
+          borderRadius: "24px",
           fontSize: "14px",
           fontWeight: 600,
           textTransform: "uppercase",
@@ -139,15 +162,16 @@ export function ScorecardPDFTemplate({ assessment }: ScorecardPDFTemplateProps) 
       {/* Two Column Layout */}
       <div style={{ display: "flex", gap: "20px", marginBottom: "24px" }}>
         {/* Strengths */}
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1, backgroundColor: "#ecfdf5", padding: "16px", borderRadius: "12px" }}>
           <h3 style={{ 
             margin: "0 0 12px", 
             fontSize: "14px", 
             fontWeight: 600,
-            color: "#16a34a",
+            color: BRAND.accent,
             display: "flex",
             alignItems: "center",
-            gap: "6px"
+            gap: "6px",
+            fontFamily: "'Poppins', sans-serif"
           }}>
             ✓ Strengths
           </h3>
@@ -155,17 +179,17 @@ export function ScorecardPDFTemplate({ assessment }: ScorecardPDFTemplateProps) 
             margin: 0, 
             paddingLeft: "16px", 
             fontSize: "12px",
-            lineHeight: 1.6,
-            color: "#333"
+            lineHeight: 1.7,
+            color: BRAND.dark
           }}>
             {assessment.ai_analysis?.strengths?.slice(0, 4).map((s: string, i: number) => (
               <li key={i} style={{ marginBottom: "6px" }}>{s}</li>
-            )) || <li style={{ color: "#999" }}>Analysis pending...</li>}
+            )) || <li style={{ color: BRAND.muted }}>Analysis pending...</li>}
           </ul>
         </div>
 
         {/* Improvement Areas */}
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1, backgroundColor: "#fff7ed", padding: "16px", borderRadius: "12px" }}>
           <h3 style={{ 
             margin: "0 0 12px", 
             fontSize: "14px", 
@@ -173,7 +197,8 @@ export function ScorecardPDFTemplate({ assessment }: ScorecardPDFTemplateProps) 
             color: "#ea580c",
             display: "flex",
             alignItems: "center",
-            gap: "6px"
+            gap: "6px",
+            fontFamily: "'Poppins', sans-serif"
           }}>
             △ Areas for Improvement
           </h3>
@@ -181,12 +206,12 @@ export function ScorecardPDFTemplate({ assessment }: ScorecardPDFTemplateProps) 
             margin: 0, 
             paddingLeft: "16px", 
             fontSize: "12px",
-            lineHeight: 1.6,
-            color: "#333"
+            lineHeight: 1.7,
+            color: BRAND.dark
           }}>
             {(assessment.ai_analysis?.improvement_areas || assessment.improvement_areas)?.slice(0, 4).map((a: string, i: number) => (
               <li key={i} style={{ marginBottom: "6px" }}>{a}</li>
-            )) || <li style={{ color: "#999" }}>Analysis pending...</li>}
+            )) || <li style={{ color: BRAND.muted }}>Analysis pending...</li>}
           </ul>
         </div>
       </div>
@@ -198,7 +223,8 @@ export function ScorecardPDFTemplate({ assessment }: ScorecardPDFTemplateProps) 
             margin: "0 0 12px", 
             fontSize: "14px", 
             fontWeight: 600,
-            color: "#6366f1"
+            color: BRAND.primary,
+            fontFamily: "'Poppins', sans-serif"
           }}>
             Personalized Recommendations
           </h3>
@@ -206,8 +232,8 @@ export function ScorecardPDFTemplate({ assessment }: ScorecardPDFTemplateProps) 
             margin: 0, 
             paddingLeft: "20px", 
             fontSize: "12px",
-            lineHeight: 1.6,
-            color: "#333"
+            lineHeight: 1.7,
+            color: BRAND.dark
           }}>
             {assessment.ai_analysis.recommendations.slice(0, 5).map((r: string, i: number) => (
               <li key={i} style={{ marginBottom: "8px" }}>{r}</li>
@@ -221,8 +247,8 @@ export function ScorecardPDFTemplate({ assessment }: ScorecardPDFTemplateProps) 
         <div style={{ 
           backgroundColor: "#fef3c7",
           padding: "16px",
-          borderRadius: "8px",
-          borderLeft: "4px solid #f59e0b",
+          borderRadius: "12px",
+          borderLeft: `4px solid ${BRAND.secondary}`,
           marginBottom: "24px"
         }}>
           <p style={{ 
@@ -240,15 +266,15 @@ export function ScorecardPDFTemplate({ assessment }: ScorecardPDFTemplateProps) 
       <div style={{ 
         textAlign: "center",
         padding: "20px",
-        backgroundColor: "#f0fdf4",
-        borderRadius: "8px",
+        background: `linear-gradient(135deg, ${BRAND.secondary}20, ${BRAND.accent}20)`,
+        borderRadius: "12px",
         marginBottom: "24px"
       }}>
-        <p style={{ margin: 0, fontSize: "14px", fontWeight: 600, color: "#166534" }}>
-          Ready to improve your career readiness?
+        <p style={{ margin: 0, fontSize: "14px", fontWeight: 600, color: BRAND.primary, fontFamily: "'Poppins', sans-serif" }}>
+          Ready to accelerate your career?
         </p>
-        <p style={{ margin: "8px 0 0", fontSize: "12px", color: "#15803d" }}>
-          Visit groupacademy.com/courses to explore our skill-building programs
+        <p style={{ margin: "8px 0 0", fontSize: "12px", color: BRAND.muted }}>
+          Visit groupacademy.com to explore Mock Interviews, Salary Analysis, and more
         </p>
       </div>
 
@@ -259,7 +285,7 @@ export function ScorecardPDFTemplate({ assessment }: ScorecardPDFTemplateProps) 
         display: "flex",
         justifyContent: "space-between",
         fontSize: "10px",
-        color: "#999"
+        color: BRAND.muted
       }}>
         <div>
           <p style={{ margin: 0 }}>Assessment ID: {assessment.id.slice(0, 8).toUpperCase()}</p>
