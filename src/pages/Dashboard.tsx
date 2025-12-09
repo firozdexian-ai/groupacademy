@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { LogOut, Users, BookOpen, DollarSign, Video, Plus, Key, Image, Calendar, ClipboardList, Briefcase, MessageSquare, Target, GraduationCap, RefreshCw, AlertCircle } from "lucide-react";
+import { LogOut, Users, BookOpen, DollarSign, Video, Plus, Key, Image, Calendar, ClipboardList, Briefcase, MessageSquare, Target, GraduationCap, RefreshCw, AlertCircle, TrendingUp } from "lucide-react";
 import StatsCard from "@/components/dashboard/StatsCard";
 import ContentList from "@/components/dashboard/ContentList";
 import { AccessCodeManager } from "@/components/AccessCodeManager";
@@ -15,6 +15,7 @@ import { AssessmentLeadsManager } from "@/components/dashboard/AssessmentLeadsMa
 import PortfolioRequestsManager from "@/components/dashboard/PortfolioRequestsManager";
 import { MockInterviewLeadsManager } from "@/components/dashboard/MockInterviewLeadsManager";
 import { ProfessionsManager } from "@/components/dashboard/ProfessionsManager";
+import { SalaryAnalysisLeadsManager } from "@/components/dashboard/SalaryAnalysisLeadsManager";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -262,6 +263,10 @@ const Dashboard = () => {
                 <MessageSquare className="w-4 h-4 mr-2" />
                 Mock Interviews
               </TabsTrigger>
+              <TabsTrigger value="salary">
+                <TrendingUp className="w-4 h-4 mr-2" />
+                Salary Analysis
+              </TabsTrigger>
               <TabsTrigger value="professions">
                 <GraduationCap className="w-4 h-4 mr-2" />
                 Professions
@@ -323,6 +328,9 @@ const Dashboard = () => {
           </TabsContent>
           <TabsContent value="interviews">
             <MockInterviewLeadsManager />
+          </TabsContent>
+          <TabsContent value="salary">
+            <SalaryAnalysisLeadsManager />
           </TabsContent>
           <TabsContent value="professions">
             <ProfessionsManager />
