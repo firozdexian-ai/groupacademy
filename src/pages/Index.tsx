@@ -162,17 +162,17 @@ const Index = () => {
             >
               <CardContent className="p-6">
                 <div className="flex items-start justify-between mb-4">
-                  {service.icon ? (
-                    <img 
-                      src={service.icon} 
-                      alt={service.title} 
-                      className="w-14 h-14 object-contain group-hover:scale-110 transition-transform"
-                    />
-                  ) : (
-                    <div className="w-14 h-14 bg-gradient-primary rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <div className="icon-container group-hover:scale-110 transition-transform">
+                    {service.icon ? (
+                      <img 
+                        src={service.icon} 
+                        alt={service.title} 
+                        className="w-10 h-10 object-contain"
+                      />
+                    ) : (
                       <Briefcase className="w-7 h-7 text-white" />
-                    </div>
-                  )}
+                    )}
+                  </div>
                   <Badge className={service.badgeColor}>
                     {service.badge}
                   </Badge>

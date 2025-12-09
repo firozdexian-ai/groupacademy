@@ -171,11 +171,11 @@ const CareerServices = () => {
                         <div className="flex flex-col md:flex-row gap-6">
                           {/* Step Number & Icon */}
                           <div className="flex md:flex-col items-center gap-4 md:gap-2">
-                            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/10 to-secondary/10 flex items-center justify-center shadow-lg border border-primary/20">
+                            <div className="icon-container-lg">
                               {step.icon ? (
-                                <img src={step.icon} alt={step.title} className="w-10 h-10 object-contain" />
+                                <img src={step.icon} alt={step.title} className="w-11 h-11 object-contain" />
                               ) : (
-                                <Briefcase className="w-8 h-8 text-primary" />
+                                <Briefcase className="w-8 h-8 text-white" />
                               )}
                             </div>
                             <span className="text-sm font-medium text-muted-foreground">Step {step.step}</span>

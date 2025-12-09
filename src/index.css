@@ -162,4 +162,17 @@
   .bg-gradient-hero {
     background: var(--gradient-hero);
   }
+
+  /* Icon container for service icons with dark backgrounds */
+  .icon-container {
+    @apply w-14 h-14 rounded-xl p-2 flex items-center justify-center;
+    background: linear-gradient(135deg, hsl(220 15% 18%), hsl(220 15% 12%));
+    box-shadow: 0 4px 12px hsl(0 0% 0% / 0.15);
+  }
+
+  .icon-container-lg {
+    @apply w-16 h-16 rounded-2xl p-2.5 flex items-center justify-center;
+    background: linear-gradient(135deg, hsl(220 15% 18%), hsl(220 15% 12%));
+    box-shadow: 0 4px 12px hsl(0 0% 0% / 0.15);
+  }
 }
