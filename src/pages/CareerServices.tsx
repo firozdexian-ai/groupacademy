@@ -12,7 +12,8 @@ import {
   ArrowRight, 
   CheckCircle,
   ChevronRight,
-  Sparkles
+  Sparkles,
+  TrendingUp
 } from "lucide-react";
 
 const CareerServices = () => {
@@ -57,6 +58,24 @@ const CareerServices = () => {
     },
     {
       step: 3,
+      icon: TrendingUp,
+      title: "AI Salary Analysis",
+      subtitle: "Know your market value",
+      description: "Upload your CV and target job description to get AI-powered salary insights, skills gap analysis, and negotiation tips for the Bangladesh market.",
+      features: [
+        "Market salary range",
+        "Skills gap analysis",
+        "Negotiation tips",
+        "Action plan"
+      ],
+      cta: "Analyze Salary",
+      path: "/salary-analysis",
+      badge: "First FREE",
+      badgeColor: "bg-cyan-500",
+      gradient: "from-cyan-500 to-blue-500"
+    },
+    {
+      step: 4,
       icon: FileText,
       title: "Digital Portfolio",
       subtitle: "Showcase your achievements",
@@ -74,7 +93,7 @@ const CareerServices = () => {
       gradient: "from-purple-500 to-pink-500"
     },
     {
-      step: 4,
+      step: 5,
       icon: Briefcase,
       title: "Job Openings",
       subtitle: "Land your dream job",
@@ -120,7 +139,7 @@ const CareerServices = () => {
               {/* Quick Stats */}
               <div className="flex flex-wrap justify-center gap-6 text-center">
                 <div>
-                  <p className="text-3xl font-bold text-primary">4</p>
+                  <p className="text-3xl font-bold text-primary">5</p>
                   <p className="text-sm text-muted-foreground">Career Services</p>
                 </div>
                 <div>

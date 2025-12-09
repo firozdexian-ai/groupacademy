@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { GraduationCap, Menu, X, Moon, Sun } from "lucide-react";
+import { GraduationCap, Menu, X, Moon, Sun, ChevronDown } from "lucide-react";
 import { useTheme } from "next-themes";
 import {
   DropdownMenu,
@@ -87,9 +87,31 @@ export const Navbar = () => {
             <Button variant="ghost" onClick={() => navigate("/courses")}>
               Courses
             </Button>
-            <Button variant="ghost" onClick={() => navigate("/career-services")}>
-              Career Services
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="gap-1">
+                  Career Services
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={() => navigate("/career-services")}>
+                  Overview
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/career-assessment")}>
+                  Career Readiness Scorecard
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/mock-interview")}>
+                  AI Mock Interview
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/salary-analysis")}>
+                  AI Salary Analysis
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/portfolio-request")}>
+                  Digital Portfolio
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button variant="ghost" onClick={() => navigate("/jobs")}>
               Jobs
             </Button>
