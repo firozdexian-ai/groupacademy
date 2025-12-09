@@ -39,6 +39,10 @@ import MockInterviewResults from "./pages/MockInterviewResults";
 import Professions from "./pages/Professions";
 import ProfessionDetail from "./pages/ProfessionDetail";
 import Jobs from "./pages/Jobs";
+import SalaryAnalysis from "./pages/SalaryAnalysis";
+import SalaryAnalysisSetup from "./pages/SalaryAnalysisSetup";
+import SalaryAnalysisProcessing from "./pages/SalaryAnalysisProcessing";
+import SalaryAnalysisResults from "./pages/SalaryAnalysisResults";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
@@ -68,6 +72,10 @@ const App = () => (
           <Route path="/mock-interview/capture/:id" element={<MockInterviewCapture />} />
           <Route path="/mock-interview/results/:id" element={<MockInterviewResults />} />
           <Route path="/jobs" element={<Jobs />} />
+          <Route path="/salary-analysis" element={<SalaryAnalysis />} />
+          <Route path="/salary-analysis/setup" element={<SalaryAnalysisSetup />} />
+          <Route path="/salary-analysis/processing/:id" element={<SalaryAnalysisProcessing />} />
+          <Route path="/salary-analysis/results/:id" element={<SalaryAnalysisResults />} />
           <Route path="/courses/:slug" element={<CourseDetail />} />
           <Route path="/dashboard" element={<ProtectedRoute requireAdmin><Dashboard /></ProtectedRoute>} />
           <Route path="/my-learning" element={<ProtectedRoute><MyLearning /></ProtectedRoute>} />

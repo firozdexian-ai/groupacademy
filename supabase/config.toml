@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.ai-instructor-chat]
 verify_jwt = false
+
+[functions.analyze-salary]
+verify_jwt = false

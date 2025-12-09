@@ -1308,6 +1308,110 @@ export type Database = {
           },
         ]
       }
+      salary_analyses: {
+        Row: {
+          ai_analysis: Json | null
+          company_name: string | null
+          completed_at: string | null
+          created_at: string | null
+          cv_text: string | null
+          cv_url: string | null
+          email: string
+          expires_at: string | null
+          full_name: string
+          id: string
+          job_description: string
+          job_title: string | null
+          market_salary_range: Json | null
+          negotiation_tips: Json | null
+          phone: string | null
+          profession_category_id: string | null
+          skills_gap: Json | null
+          status: string | null
+          user_id: string | null
+        }
+        Insert: {
+          ai_analysis?: Json | null
+          company_name?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          cv_text?: string | null
+          cv_url?: string | null
+          email: string
+          expires_at?: string | null
+          full_name: string
+          id?: string
+          job_description: string
+          job_title?: string | null
+          market_salary_range?: Json | null
+          negotiation_tips?: Json | null
+          phone?: string | null
+          profession_category_id?: string | null
+          skills_gap?: Json | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          ai_analysis?: Json | null
+          company_name?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          cv_text?: string | null
+          cv_url?: string | null
+          email?: string
+          expires_at?: string | null
+          full_name?: string
+          id?: string
+          job_description?: string
+          job_title?: string | null
+          market_salary_range?: Json | null
+          negotiation_tips?: Json | null
+          phone?: string | null
+          profession_category_id?: string | null
+          skills_gap?: Json | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salary_analyses_profession_category_id_fkey"
+            columns: ["profession_category_id"]
+            isOneToOne: false
+            referencedRelation: "profession_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salary_analysis_access_codes: {
+        Row: {
+          code: string
+          created_at: string | null
+          created_by: string | null
+          email: string
+          expires_at: string | null
+          id: string
+          is_used: boolean | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          created_by?: string | null
+          email: string
+          expires_at?: string | null
+          id?: string
+          is_used?: boolean | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          created_by?: string | null
+          email?: string
+          expires_at?: string | null
+          id?: string
+          is_used?: boolean | null
+        }
+        Relationships: []
+      }
       schools: {
         Row: {
           academy_id: string
