@@ -160,9 +160,16 @@ const SalaryAnalysisSetup = () => {
 
     try {
       const fileName = `salary-cv/${Date.now()}-${file.name}`;
+      
+      // Create abort controller for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+      
       const { data, error } = await supabase.storage
         .from("portfolio-uploads")
         .upload(fileName, file);
+
+      clearTimeout(timeoutId);
 
       if (error) throw error;
 
@@ -172,10 +179,19 @@ const SalaryAnalysisSetup = () => {
 
       setCvUrl(publicUrl.publicUrl);
       toast({ title: "CV uploaded successfully!" });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Upload error:", error);
-      toast({ title: "Upload failed. Try pasting text instead.", variant: "destructive" });
+      if (error.name === 'AbortError' || error.message?.includes('timeout')) {
+        toast({ 
+          title: "Upload timed out", 
+          description: "Try pasting your CV text instead",
+          variant: "destructive" 
+        });
+      } else {
+        toast({ title: "Upload failed. Try pasting text instead.", variant: "destructive" });
+      }
       setCvInputMode("text");
+      setCvFile(null);
     } finally {
       setIsUploading(false);
     }
@@ -199,7 +215,7 @@ const SalaryAnalysisSetup = () => {
         .insert({
           full_name: fullName.trim(),
           email: email.trim().toLowerCase(),
-          phone: phone.trim() || null,
+          phone: phone.trim() ? `+880${phone.trim()}` : null,
           job_title: jobTitle.trim() || null,
           company_name: companyName.trim() || null,
           job_description: jobDescription.trim(),
@@ -325,10 +341,21 @@ const SalaryAnalysisSetup = () => {
                   <Label htmlFor="phone">Phone (Optional)</Label>
                   <Input
                     id="phone"
-                    placeholder="+880..."
+                    placeholder="01XXXXXXXXX"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    onChange={(e) => {
+                      // Auto-format Bangladesh phone number
+                      let value = e.target.value.replace(/\D/g, '');
+                      // Remove leading 880 if present
+                      if (value.startsWith('880')) {
+                        value = value.slice(3);
+                      }
+                      // Limit to 10 digits (Bangladesh mobile format)
+                      value = value.slice(0, 10);
+                      setPhone(value);
+                    }}
                   />
+                  <p className="text-xs text-muted-foreground mt-1">Bangladesh number without +880</p>
                 </div>
               </div>
 
@@ -406,30 +433,42 @@ const SalaryAnalysisSetup = () => {
                     />
                   </TabsContent>
                   <TabsContent value="file" className="mt-4">
-                    <div className="border-2 border-dashed rounded-lg p-8 text-center">
+                    <div className="relative border-2 border-dashed rounded-lg p-8 text-center">
                       {cvUrl ? (
-                        <div className="flex items-center justify-center gap-2 text-green-600">
-                          <CheckCircle className="h-5 w-5" />
-                          <span>CV uploaded: {cvFile?.name}</span>
+                        <div className="flex flex-col items-center gap-2">
+                          <div className="flex items-center gap-2 text-green-600">
+                            <CheckCircle className="h-5 w-5" />
+                            <span>CV uploaded: {cvFile?.name}</span>
+                          </div>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => {
+                              setCvUrl("");
+                              setCvFile(null);
+                            }}
+                          >
+                            Remove
+                          </Button>
                         </div>
                       ) : isUploading ? (
-                        <div className="flex items-center justify-center gap-2">
-                          <Loader2 className="h-5 w-5 animate-spin" />
-                          <span>Uploading...</span>
+                        <div className="flex flex-col items-center gap-2">
+                          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                          <span>Uploading... (max 60s)</span>
+                          <p className="text-xs text-muted-foreground">If this takes too long, try pasting text instead</p>
                         </div>
                       ) : (
-                        <>
+                        <label className="cursor-pointer block">
                           <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-4" />
                           <p className="text-muted-foreground mb-2">Drop your CV here or click to browse</p>
                           <p className="text-sm text-muted-foreground">PDF or DOC, max 10MB</p>
                           <input
                             type="file"
                             accept=".pdf,.doc,.docx"
-                            className="absolute inset-0 opacity-0 cursor-pointer"
+                            className="sr-only"
                             onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
-                            style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
                           />
-                        </>
+                        </label>
                       )}
                     </div>
                   </TabsContent>

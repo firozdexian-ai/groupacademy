@@ -362,7 +362,7 @@ const SalaryAnalysisResults = () => {
                   <p className="text-sm text-muted-foreground">Stand out from other candidates</p>
                 </div>
                 <Button asChild variant="outline">
-                  <Link to="/portfolio">Get Portfolio</Link>
+                  <Link to="/portfolio-request">Get Portfolio</Link>
                 </Button>
               </div>
             </CardContent>
