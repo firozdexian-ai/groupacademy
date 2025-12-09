@@ -3,7 +3,7 @@ import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Briefcase, FileText, MessageSquare, ArrowRight } from "lucide-react";
+import { Briefcase, FileText, MessageSquare, ArrowRight, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const Jobs = () => {
@@ -15,16 +15,21 @@ const Jobs = () => {
       
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="py-12 md:py-16 bg-gradient-to-b from-primary/5 to-background">
-          <div className="container mx-auto px-6">
+        <section className="relative py-16 md:py-24 bg-gradient-to-b from-primary/5 via-secondary/5 to-background overflow-hidden">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)/0.1),transparent_50%)]" />
+          <div className="container mx-auto px-6 relative">
             <div className="text-center max-w-3xl mx-auto">
-              <Badge variant="outline" className="mb-4">
+              <div className="icon-container-lg mx-auto mb-6">
+                <Briefcase className="w-11 h-11 text-white" />
+              </div>
+              <Badge className="mb-4 gap-2 border-primary/30 text-primary" variant="outline">
+                <Sparkles className="w-3 h-3" />
                 Powered by Dexian HRX
               </Badge>
-              <h1 className="text-3xl md:text-4xl font-bold mb-4">
+              <h1 className="text-4xl md:text-5xl font-heading font-bold mb-6">
                 Job Openings
               </h1>
-              <p className="text-lg text-muted-foreground mb-6">
+              <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
                 Explore career opportunities from our partner companies. Apply directly and kickstart your professional journey.
               </p>
             </div>
