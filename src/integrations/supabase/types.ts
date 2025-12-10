@@ -748,6 +748,201 @@ export type Database = {
         }
         Relationships: []
       }
+      job_application_usage: {
+        Row: {
+          created_at: string | null
+          free_applications_used: number | null
+          id: string
+          month_year: string
+          paid_applications_count: number | null
+          professional_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          free_applications_used?: number | null
+          id?: string
+          month_year: string
+          paid_applications_count?: number | null
+          professional_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          free_applications_used?: number | null
+          id?: string
+          month_year?: string
+          paid_applications_count?: number | null
+          professional_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_application_usage_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "professionals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_applications: {
+        Row: {
+          application_status:
+            | Database["public"]["Enums"]["application_status"]
+            | null
+          cover_letter: string | null
+          created_at: string | null
+          cv_url: string | null
+          delivery_error: string | null
+          delivery_status: Database["public"]["Enums"]["delivery_status"] | null
+          id: string
+          is_paid: boolean | null
+          job_id: string
+          professional_id: string
+        }
+        Insert: {
+          application_status?:
+            | Database["public"]["Enums"]["application_status"]
+            | null
+          cover_letter?: string | null
+          created_at?: string | null
+          cv_url?: string | null
+          delivery_error?: string | null
+          delivery_status?:
+            | Database["public"]["Enums"]["delivery_status"]
+            | null
+          id?: string
+          is_paid?: boolean | null
+          job_id: string
+          professional_id: string
+        }
+        Update: {
+          application_status?:
+            | Database["public"]["Enums"]["application_status"]
+            | null
+          cover_letter?: string | null
+          created_at?: string | null
+          cv_url?: string | null
+          delivery_error?: string | null
+          delivery_status?:
+            | Database["public"]["Enums"]["delivery_status"]
+            | null
+          id?: string
+          is_paid?: boolean | null
+          job_id?: string
+          professional_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_applications_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_applications_professional_id_fkey"
+            columns: ["professional_id"]
+            isOneToOne: false
+            referencedRelation: "professionals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jobs: {
+        Row: {
+          ai_enhanced_description: string | null
+          application_email: string | null
+          application_type: Database["public"]["Enums"]["application_type"]
+          application_url: string | null
+          company_logo_url: string | null
+          company_name: string
+          created_at: string | null
+          deadline: string | null
+          description: string
+          experience_level: Database["public"]["Enums"]["experience_level"]
+          id: string
+          is_active: boolean | null
+          is_featured: boolean | null
+          job_type: Database["public"]["Enums"]["job_type"]
+          location: string | null
+          posted_by: string | null
+          profession_category_id: string | null
+          requirements: Json | null
+          salary_range_max: number | null
+          salary_range_min: number | null
+          source_platform: Database["public"]["Enums"]["source_platform"] | null
+          source_url: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          ai_enhanced_description?: string | null
+          application_email?: string | null
+          application_type?: Database["public"]["Enums"]["application_type"]
+          application_url?: string | null
+          company_logo_url?: string | null
+          company_name: string
+          created_at?: string | null
+          deadline?: string | null
+          description: string
+          experience_level?: Database["public"]["Enums"]["experience_level"]
+          id?: string
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          job_type?: Database["public"]["Enums"]["job_type"]
+          location?: string | null
+          posted_by?: string | null
+          profession_category_id?: string | null
+          requirements?: Json | null
+          salary_range_max?: number | null
+          salary_range_min?: number | null
+          source_platform?:
+            | Database["public"]["Enums"]["source_platform"]
+            | null
+          source_url?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          ai_enhanced_description?: string | null
+          application_email?: string | null
+          application_type?: Database["public"]["Enums"]["application_type"]
+          application_url?: string | null
+          company_logo_url?: string | null
+          company_name?: string
+          created_at?: string | null
+          deadline?: string | null
+          description?: string
+          experience_level?: Database["public"]["Enums"]["experience_level"]
+          id?: string
+          is_active?: boolean | null
+          is_featured?: boolean | null
+          job_type?: Database["public"]["Enums"]["job_type"]
+          location?: string | null
+          posted_by?: string | null
+          profession_category_id?: string | null
+          requirements?: Json | null
+          salary_range_max?: number | null
+          salary_range_min?: number | null
+          source_platform?:
+            | Database["public"]["Enums"]["source_platform"]
+            | null
+          source_url?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jobs_profession_category_id_fkey"
+            columns: ["profession_category_id"]
+            isOneToOne: false
+            referencedRelation: "profession_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mock_interview_access_codes: {
         Row: {
           code: string
@@ -1634,13 +1829,29 @@ export type Database = {
     Enums: {
       academy_type: "executive" | "technical"
       app_role: "admin" | "student"
+      application_status:
+        | "submitted"
+        | "sent_to_employer"
+        | "viewed"
+        | "shortlisted"
+        | "rejected"
+      application_type: "email" | "link"
       content_type:
         | "free_video"
         | "recorded_course"
         | "live_webinar"
         | "batch_class"
         | "offline_seminar"
+      delivery_status: "pending" | "sent" | "failed"
       enrollment_status: "pending_payment" | "active" | "completed"
+      experience_level: "entry" | "mid" | "senior" | "executive"
+      job_type:
+        | "full_time"
+        | "part_time"
+        | "contract"
+        | "internship"
+        | "freelance"
+        | "remote"
       portfolio_status:
         | "pending"
         | "contacted"
@@ -1666,6 +1877,7 @@ export type Database = {
         | "quiz"
         | "report"
       session_status: "scheduled" | "ongoing" | "completed" | "cancelled"
+      source_platform: "facebook" | "linkedin" | "bdjobs" | "website" | "other"
       student_status: "lead" | "free_learner" | "enrolled" | "graduated"
     }
     CompositeTypes: {
@@ -1796,6 +2008,14 @@ export const Constants = {
     Enums: {
       academy_type: ["executive", "technical"],
       app_role: ["admin", "student"],
+      application_status: [
+        "submitted",
+        "sent_to_employer",
+        "viewed",
+        "shortlisted",
+        "rejected",
+      ],
+      application_type: ["email", "link"],
       content_type: [
         "free_video",
         "recorded_course",
@@ -1803,7 +2023,17 @@ export const Constants = {
         "batch_class",
         "offline_seminar",
       ],
+      delivery_status: ["pending", "sent", "failed"],
       enrollment_status: ["pending_payment", "active", "completed"],
+      experience_level: ["entry", "mid", "senior", "executive"],
+      job_type: [
+        "full_time",
+        "part_time",
+        "contract",
+        "internship",
+        "freelance",
+        "remote",
+      ],
       portfolio_status: [
         "pending",
         "contacted",
@@ -1832,6 +2062,7 @@ export const Constants = {
         "report",
       ],
       session_status: ["scheduled", "ongoing", "completed", "cancelled"],
+      source_platform: ["facebook", "linkedin", "bdjobs", "website", "other"],
       student_status: ["lead", "free_learner", "enrolled", "graduated"],
     },
   },
