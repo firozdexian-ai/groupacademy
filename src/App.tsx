@@ -39,6 +39,7 @@ import MockInterviewResults from "./pages/MockInterviewResults";
 import Professions from "./pages/Professions";
 import ProfessionDetail from "./pages/ProfessionDetail";
 import Jobs from "./pages/Jobs";
+import JobDetail from "./pages/JobDetail";
 import SalaryAnalysis from "./pages/SalaryAnalysis";
 import SalaryAnalysisSetup from "./pages/SalaryAnalysisSetup";
 import SalaryAnalysisProcessing from "./pages/SalaryAnalysisProcessing";
@@ -72,6 +73,7 @@ const App = () => (
           <Route path="/mock-interview/capture/:id" element={<MockInterviewCapture />} />
           <Route path="/mock-interview/results/:id" element={<MockInterviewResults />} />
           <Route path="/jobs" element={<Jobs />} />
+          <Route path="/jobs/:id" element={<JobDetail />} />
           <Route path="/salary-analysis" element={<SalaryAnalysis />} />
           <Route path="/salary-analysis/setup" element={<SalaryAnalysisSetup />} />
           <Route path="/salary-analysis/processing/:id" element={<SalaryAnalysisProcessing />} />
