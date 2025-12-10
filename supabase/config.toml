@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.parse-cv]
 verify_jwt = false
+
+[functions.enhance-job-description]
+verify_jwt = false

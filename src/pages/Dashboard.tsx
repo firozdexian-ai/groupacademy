@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { LogOut, Users, BookOpen, DollarSign, Video, Plus, Key, Image, Calendar, ClipboardList, Briefcase, MessageSquare, Target, GraduationCap, RefreshCw, AlertCircle, TrendingUp } from "lucide-react";
+import { LogOut, Users, BookOpen, DollarSign, Video, Plus, Key, Image, Calendar, ClipboardList, Briefcase, MessageSquare, Target, GraduationCap, RefreshCw, AlertCircle, TrendingUp, Building2 } from "lucide-react";
 import StatsCard from "@/components/dashboard/StatsCard";
 import ContentList from "@/components/dashboard/ContentList";
 import { AccessCodeManager } from "@/components/AccessCodeManager";
@@ -16,6 +16,7 @@ import PortfolioRequestsManager from "@/components/dashboard/PortfolioRequestsMa
 import { MockInterviewLeadsManager } from "@/components/dashboard/MockInterviewLeadsManager";
 import { ProfessionsManager } from "@/components/dashboard/ProfessionsManager";
 import { SalaryAnalysisLeadsManager } from "@/components/dashboard/SalaryAnalysisLeadsManager";
+import { JobsManager } from "@/components/dashboard/JobsManager";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -271,6 +272,10 @@ const Dashboard = () => {
                 <GraduationCap className="w-4 h-4 mr-2" />
                 Professions
               </TabsTrigger>
+              <TabsTrigger value="jobs">
+                <Building2 className="w-4 h-4 mr-2" />
+                Jobs
+              </TabsTrigger>
             </TabsList>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => navigate("/students")}>
@@ -334,6 +339,9 @@ const Dashboard = () => {
           </TabsContent>
           <TabsContent value="professions">
             <ProfessionsManager />
+          </TabsContent>
+          <TabsContent value="jobs">
+            <JobsManager />
           </TabsContent>
         </Tabs>
       </main>
