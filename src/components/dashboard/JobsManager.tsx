@@ -9,10 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   Plus, Search, Edit, Trash2, Sparkles, MapPin, Building2, 
-  Calendar, ExternalLink, Loader2, Copy, Eye, EyeOff, Star
+  Calendar, ExternalLink, Loader2, Copy, Eye, EyeOff, Star, Wand2, Image
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -35,6 +35,7 @@ interface Job {
   application_url: string | null;
   source_url: string | null;
   source_platform: string | null;
+  source_image_url: string | null;
   profession_category_id: string | null;
   deadline: string | null;
   is_active: boolean;
@@ -88,6 +89,7 @@ const emptyJob = {
   application_url: "",
   source_url: "",
   source_platform: "other",
+  source_image_url: "",
   profession_category_id: null as string | null,
   deadline: "",
   is_active: true,
@@ -105,7 +107,11 @@ export function JobsManager() {
   const [formData, setFormData] = useState(emptyJob);
   const [saving, setSaving] = useState(false);
   const [enhancing, setEnhancing] = useState(false);
+  const [parsing, setParsing] = useState(false);
   const [requirementInput, setRequirementInput] = useState("");
+  const [rawJobPost, setRawJobPost] = useState("");
+  const [showParseSection, setShowParseSection] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   useEffect(() => {
     loadJobs();
@@ -177,6 +183,7 @@ export function JobsManager() {
         application_url: job.application_url || "",
         source_url: job.source_url || "",
         source_platform: job.source_platform || "other",
+        source_image_url: job.source_image_url || "",
         profession_category_id: job.profession_category_id,
         deadline: job.deadline ? job.deadline.split("T")[0] : "",
         is_active: job.is_active,
@@ -186,7 +193,55 @@ export function JobsManager() {
       setEditingJob(null);
       setFormData(emptyJob);
     }
+    setRawJobPost("");
+    setShowParseSection(false);
     setIsDialogOpen(true);
+  };
+
+  const handleParseJobPost = async () => {
+    if (!rawJobPost.trim() || rawJobPost.length < 50) {
+      toast.error("Please paste a complete job post (minimum 50 characters)");
+      return;
+    }
+
+    setParsing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('parse-job-post', {
+        body: { jobPostText: rawJobPost }
+      });
+
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Failed to parse job post');
+
+      const parsed = data.parsed;
+      
+      // Map parsed data to form
+      setFormData(prev => ({
+        ...prev,
+        title: parsed.title || prev.title,
+        company_name: parsed.company_name || prev.company_name,
+        location: parsed.location || prev.location,
+        job_type: parsed.job_type || prev.job_type,
+        experience_level: parsed.experience_level || prev.experience_level,
+        salary_range_min: parsed.salary_range_min || prev.salary_range_min,
+        salary_range_max: parsed.salary_range_max || prev.salary_range_max,
+        description: parsed.description || prev.description,
+        requirements: parsed.requirements || prev.requirements,
+        application_email: parsed.application_email || prev.application_email,
+        application_url: parsed.application_url || prev.application_url,
+        source_platform: parsed.source_platform || prev.source_platform,
+        deadline: parsed.deadline || prev.deadline,
+        profession_category_id: data.professionCategoryId || prev.profession_category_id,
+      }));
+
+      toast.success("Job post parsed! Review and edit as needed.");
+      setShowParseSection(false);
+    } catch (error: any) {
+      console.error("Error parsing job post:", error);
+      toast.error(error.message || "Failed to parse job post");
+    } finally {
+      setParsing(false);
+    }
   };
 
   const handleEnhanceDescription = async () => {
@@ -228,6 +283,33 @@ export function JobsManager() {
       toast.error("Failed to enhance description");
     } finally {
       setEnhancing(false);
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingImage(true);
+    try {
+      const fileName = `job-images/${Date.now()}-${file.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from('course-content')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('course-content')
+        .getPublicUrl(fileName);
+
+      setFormData(prev => ({ ...prev, source_image_url: publicUrl }));
+      toast.success("Image uploaded!");
+    } catch (error: any) {
+      console.error("Error uploading image:", error);
+      toast.error("Failed to upload image");
+    } finally {
+      setUploadingImage(false);
     }
   };
 
@@ -283,6 +365,7 @@ export function JobsManager() {
         application_url: formData.application_type === "link" ? formData.application_url?.trim() : null,
         source_url: formData.source_url?.trim() || null,
         source_platform: formData.source_platform as "facebook" | "linkedin" | "bdjobs" | "website" | "other",
+        source_image_url: formData.source_image_url?.trim() || null,
         profession_category_id: formData.profession_category_id || null,
         deadline: formData.deadline ? new Date(formData.deadline).toISOString() : null,
         is_active: formData.is_active,
@@ -361,6 +444,7 @@ export function JobsManager() {
       application_url: job.application_url || "",
       source_url: job.source_url || "",
       source_platform: job.source_platform || "other",
+      source_image_url: job.source_image_url || "",
       profession_category_id: job.profession_category_id,
     });
     setIsDialogOpen(true);
@@ -539,6 +623,52 @@ export function JobsManager() {
               <DialogTitle>{editingJob ? "Edit Job" : "Add New Job"}</DialogTitle>
             </DialogHeader>
             <div className="grid gap-6 py-4">
+              {/* AI Parse Section */}
+              {!editingJob && (
+                <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
+                  <div className="flex items-center justify-between">
+                    <Label className="flex items-center gap-2">
+                      <Wand2 className="w-4 h-4" />
+                      Parse Job Post with AI
+                    </Label>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowParseSection(!showParseSection)}
+                    >
+                      {showParseSection ? "Hide" : "Show"}
+                    </Button>
+                  </div>
+                  {showParseSection && (
+                    <>
+                      <Textarea
+                        placeholder="Paste the full job post from Facebook, LinkedIn, etc. The AI will extract all fields automatically..."
+                        value={rawJobPost}
+                        onChange={(e) => setRawJobPost(e.target.value)}
+                        rows={6}
+                      />
+                      <Button
+                        onClick={handleParseJobPost}
+                        disabled={parsing || rawJobPost.length < 50}
+                        className="w-full"
+                      >
+                        {parsing ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Parsing...
+                          </>
+                        ) : (
+                          <>
+                            <Wand2 className="w-4 h-4 mr-2" />
+                            Parse & Auto-Fill
+                          </>
+                        )}
+                      </Button>
+                    </>
+                  )}
+                </div>
+              )}
+
               {/* Basic Info */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -580,6 +710,41 @@ export function JobsManager() {
                     placeholder="https://..."
                   />
                 </div>
+              </div>
+
+              {/* Source Image Upload */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Image className="w-4 h-4" />
+                  Job Post Image (from social media)
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={formData.source_image_url}
+                    onChange={(e) => setFormData({ ...formData, source_image_url: e.target.value })}
+                    placeholder="Paste image URL or upload..."
+                    className="flex-1"
+                  />
+                  <div className="relative">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="absolute inset-0 opacity-0 cursor-pointer"
+                      disabled={uploadingImage}
+                    />
+                    <Button variant="outline" disabled={uploadingImage}>
+                      {uploadingImage ? <Loader2 className="w-4 h-4 animate-spin" /> : "Upload"}
+                    </Button>
+                  </div>
+                </div>
+                {formData.source_image_url && (
+                  <img 
+                    src={formData.source_image_url} 
+                    alt="Job post" 
+                    className="mt-2 max-h-40 rounded-lg border object-contain"
+                  />
+                )}
               </div>
 
               {/* Job Details */}

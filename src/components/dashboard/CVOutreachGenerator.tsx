@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Upload, Link, Loader2, MessageSquare, Copy, ExternalLink, User, Briefcase, CheckCircle } from "lucide-react";
+import { Upload, Link, Loader2, MessageSquare, Copy, ExternalLink, User, Briefcase, CheckCircle, Phone } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const PRODUCTS = [
@@ -40,9 +40,18 @@ const LANGUAGE_OPTIONS = [
   { id: 'bangla', name: 'Bangla (বাংলা)', description: 'Full Bangla message' },
 ];
 
+const SENDER_OPTIONS = [
+  { id: 'firoz', name: 'Firoz' },
+  { id: 'anika', name: 'Anika' },
+  { id: 'rodoshi', name: 'Rodoshi' },
+  { id: 'custom', name: 'Custom...' },
+];
+
 interface OutreachResult {
   name: string;
   phone: string;
+  phoneNumbers: string[];
+  gender: string;
   whatsappLink: string | null;
   message: string;
   professionCategory: string;
@@ -56,16 +65,25 @@ export function CVOutreachGenerator() {
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [selectedProduct, setSelectedProduct] = useState('digital-portfolio');
   const [selectedLanguage, setSelectedLanguage] = useState('auto');
-  const [senderName, setSenderName] = useState('');
+  const [selectedSender, setSelectedSender] = useState('firoz');
+  const [customSenderName, setCustomSenderName] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<OutreachResult | null>(null);
   const [parsedCV, setParsedCV] = useState<any>(null);
+  const [selectedPhone, setSelectedPhone] = useState<string>('');
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setCvFile(file);
     }
+  };
+
+  const getSenderName = () => {
+    if (selectedSender === 'custom') {
+      return customSenderName || 'GroUp Academy Team';
+    }
+    return SENDER_OPTIONS.find(s => s.id === selectedSender)?.name || 'Firoz';
   };
 
   const processCV = async () => {
@@ -85,6 +103,7 @@ export function CVOutreachGenerator() {
     setIsProcessing(true);
     setResult(null);
     setParsedCV(null);
+    setSelectedPhone('');
 
     try {
       let cvTextOrUrl = cvUrl;
@@ -130,7 +149,7 @@ export function CVOutreachGenerator() {
       setParsedCV(parseData.parsed);
       
       // Get profession category name
-      const professionCategoryId = parseData.professional?.profession_category_id;
+      const professionCategoryId = parseData.professional?.profession_category_id || parseData.professionCategoryId;
       const professionCategory = PROFESSION_CATEGORIES.find(c => c.id === professionCategoryId)?.name || 
                                   determineProfessionFromCV(parseData.parsed);
 
@@ -141,7 +160,7 @@ export function CVOutreachGenerator() {
           parsedCV: parseData.parsed,
           product: selectedProduct,
           professionCategory,
-          senderName: senderName || 'GroUp Academy Team',
+          senderName: getSenderName(),
           language: selectedLanguage
         }
       });
@@ -154,14 +173,23 @@ export function CVOutreachGenerator() {
         throw new Error(messageData?.error || 'Failed to generate message');
       }
 
+      const phoneNumbers = messageData.phoneNumbers || (messageData.phone ? [messageData.phone] : []);
+      
       setResult({
         name: messageData.name,
         phone: messageData.phone,
+        phoneNumbers,
+        gender: messageData.gender || 'unknown',
         whatsappLink: messageData.whatsappLink,
         message: messageData.message,
         professionCategory: messageData.professionCategory,
         productLink: messageData.productLink,
       });
+      
+      // Set default selected phone
+      if (phoneNumbers.length > 0) {
+        setSelectedPhone(phoneNumbers[0]);
+      }
 
       toast.success('Outreach message generated!');
 
@@ -174,7 +202,6 @@ export function CVOutreachGenerator() {
   };
 
   const determineProfessionFromCV = (parsed: any): string => {
-    // Simple heuristic based on education/experience keywords
     const text = JSON.stringify(parsed).toLowerCase();
     if (text.includes('bank') || text.includes('finance') || text.includes('accounting')) return 'Banking & Finance';
     if (text.includes('sales') || text.includes('marketing') || text.includes('distribution')) return 'Sales & Marketing';
@@ -193,9 +220,22 @@ export function CVOutreachGenerator() {
     }
   };
 
+  const getWhatsAppLink = (phone: string, message: string) => {
+    let formattedPhone = phone.replace(/[\s\-\(\)\+]/g, '');
+    if (formattedPhone.startsWith('880')) {
+      // Already has country code
+    } else if (formattedPhone.startsWith('0')) {
+      formattedPhone = '880' + formattedPhone.slice(1);
+    } else if (formattedPhone.length === 10 || formattedPhone.length === 11) {
+      formattedPhone = '880' + formattedPhone;
+    }
+    return `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
+  };
+
   const openWhatsApp = () => {
-    if (result?.whatsappLink) {
-      window.open(result.whatsappLink, '_blank');
+    if (result?.message && selectedPhone) {
+      const link = getWhatsAppLink(selectedPhone, result.message);
+      window.open(link, '_blank');
     }
   };
 
@@ -319,13 +359,27 @@ export function CVOutreachGenerator() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="senderName">Your Name (optional)</Label>
-                <Input
-                  id="senderName"
-                  placeholder="e.g., Firoz Uddin Ahmed"
-                  value={senderName}
-                  onChange={(e) => setSenderName(e.target.value)}
-                />
+                <Label htmlFor="senderName">Sender Name</Label>
+                <Select value={selectedSender} onValueChange={setSelectedSender}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SENDER_OPTIONS.map((sender) => (
+                      <SelectItem key={sender.id} value={sender.id}>
+                        {sender.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedSender === 'custom' && (
+                  <Input
+                    placeholder="Enter custom sender name"
+                    value={customSenderName}
+                    onChange={(e) => setCustomSenderName(e.target.value)}
+                    className="mt-2"
+                  />
+                )}
               </div>
             </div>
           </div>
@@ -362,7 +416,7 @@ export function CVOutreachGenerator() {
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Profile Summary */}
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-4">
               <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
                 <User className="w-5 h-5 text-muted-foreground" />
                 <div>
@@ -378,13 +432,42 @@ export function CVOutreachGenerator() {
                 </div>
               </div>
               <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                <MessageSquare className="w-5 h-5 text-muted-foreground" />
+                <User className="w-5 h-5 text-muted-foreground" />
                 <div>
-                  <p className="text-sm text-muted-foreground">Phone</p>
-                  <p className="font-semibold">{result.phone || 'Not found'}</p>
+                  <p className="text-sm text-muted-foreground">Gender</p>
+                  <Badge variant={result.gender === 'male' ? 'default' : result.gender === 'female' ? 'secondary' : 'outline'}>
+                    {result.gender === 'male' ? '♂ Male' : result.gender === 'female' ? '♀ Female' : '? Unknown'}
+                  </Badge>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                <Phone className="w-5 h-5 text-muted-foreground" />
+                <div>
+                  <p className="text-sm text-muted-foreground">Phone(s)</p>
+                  <p className="font-semibold">{result.phoneNumbers?.length || 0} found</p>
                 </div>
               </div>
             </div>
+
+            {/* Phone Selection */}
+            {result.phoneNumbers && result.phoneNumbers.length > 1 && (
+              <div className="space-y-2">
+                <Label>Select Phone Number for WhatsApp</Label>
+                <div className="flex flex-wrap gap-2">
+                  {result.phoneNumbers.map((phone, idx) => (
+                    <Button
+                      key={idx}
+                      variant={selectedPhone === phone ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSelectedPhone(phone)}
+                    >
+                      <Phone className="w-3 h-3 mr-1" />
+                      {phone}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Message Preview */}
             <div className="space-y-3">
@@ -398,10 +481,10 @@ export function CVOutreachGenerator() {
 
             {/* Action Buttons */}
             <div className="flex flex-wrap gap-3">
-              {result.whatsappLink ? (
+              {selectedPhone || result.phone ? (
                 <Button onClick={openWhatsApp} className="flex-1 bg-green-600 hover:bg-green-700">
                   <ExternalLink className="w-4 h-4 mr-2" />
-                  Open WhatsApp
+                  Open WhatsApp ({selectedPhone || result.phone})
                 </Button>
               ) : (
                 <Button disabled className="flex-1">

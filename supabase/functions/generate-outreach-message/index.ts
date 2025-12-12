@@ -77,6 +77,17 @@ serve(async (req) => {
     }
 
     const firstName = parsedCV.full_name?.split(' ')[0] || 'there';
+    const gender = parsedCV.gender || 'unknown';
+    
+    // Determine appropriate greeting based on gender
+    let genderInstruction = '';
+    if (gender === 'male') {
+      genderInstruction = 'Use "ভাই" (Bhai) as the greeting suffix for this male candidate.';
+    } else if (gender === 'female') {
+      genderInstruction = 'Use "আপু" (Apu) as the greeting suffix for this female candidate.';
+    } else {
+      genderInstruction = 'Gender is unknown, so use a neutral greeting without ভাই/আপু suffix.';
+    }
     
     // Determine language for message
     let languageInstruction = '';
@@ -84,7 +95,7 @@ serve(async (req) => {
       languageInstruction = `
 IMPORTANT: Write the ENTIRE message in Bangla (Bengali script). Use natural, conversational Bangla.
 - Use appropriate Bangla greetings like "আসসালামু আলাইকুম" or "নমস্কার"
-- Use "ভাই" for males or "আপু" for females
+- ${genderInstruction}
 - Keep the tone warm and professional in Bangla`;
     } else if (language === 'english') {
       languageInstruction = `
@@ -95,7 +106,8 @@ IMPORTANT: Write the ENTIRE message in English only. Use professional but friend
       // Auto-detect based on CV content
       languageInstruction = `
 Language Selection: Analyze the CV content to determine the best language:
-- If the person appears to be from Bangladesh (based on institutions, companies, phone number with +880), use a mix of English with Bangla greetings ("Bhai/Apu")
+- If the person appears to be from Bangladesh (based on institutions, companies, phone number with +880), use a mix of English with Bangla greetings
+- ${genderInstruction}
 - If the CV is entirely in English with international companies/institutions, use professional English
 - Default to warm, professional English with Bangla touches for Bangladesh professionals`;
     }
@@ -106,11 +118,19 @@ You will receive:
 1. A parsed CV with the candidate's background
 2. A product to promote with its key selling points
 3. The profession category that best matches this person
+4. The candidate's gender for appropriate greeting
 
 ${languageInstruction}
 
+CRITICAL GENDER RULES:
+- ${genderInstruction}
+- NEVER use "আপু" (Apu) for male candidates
+- NEVER use "ভাই" (Bhai) for female candidates
+- If gender is "male", you MUST use "ভাই" (Bhai)
+- If gender is "female", you MUST use "আপু" (Apu)
+
 Create a warm, personalized WhatsApp message that:
-- Opens with a friendly greeting using their first name
+- Opens with a friendly greeting using their first name with the CORRECT gender-appropriate suffix
 - Briefly mentions you're reaching out from GroUp Academy
 - References 1-2 specific details from their CV (education, company, skills) to show genuine interest
 - Connects their background to the value proposition of the product
@@ -131,6 +151,7 @@ Return ONLY the message text, no quotes or formatting.`;
 
 **Candidate Profile:**
 - Name: ${parsedCV.full_name}
+- Gender: ${gender} (${gender === 'male' ? 'USE ভাই/Bhai' : gender === 'female' ? 'USE আপু/Apu' : 'neutral greeting'})
 - Profession Category: ${professionCategory || 'Professional'}
 - Current Status: ${parsedCV.current_status || 'Not specified'}
 - Education: ${JSON.stringify(parsedCV.education?.slice(0, 2) || [])}
@@ -147,7 +168,7 @@ Return ONLY the message text, no quotes or formatting.`;
 
 Generate the personalized WhatsApp message:`;
 
-    console.log('Generating outreach message for:', parsedCV.full_name, 'Product:', product);
+    console.log('Generating outreach message for:', parsedCV.full_name, 'Gender:', gender, 'Product:', product);
     
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -195,8 +216,12 @@ Generate the personalized WhatsApp message:`;
       message = message.slice(1, -1);
     }
 
+    // Return all phone numbers for selection
+    const phoneNumbers = parsedCV.phone_numbers || (parsedCV.phone ? [parsedCV.phone] : []);
+    const primaryPhone = parsedCV.phone || phoneNumbers[0] || '';
+    
     // Format phone for WhatsApp link
-    let phone = parsedCV.phone || '';
+    let phone = primaryPhone;
     phone = phone.replace(/[\s\-\(\)\+]/g, '');
     if (phone.startsWith('880')) {
       // Already has country code
@@ -208,13 +233,15 @@ Generate the personalized WhatsApp message:`;
 
     const whatsappLink = phone ? `https://wa.me/${phone}?text=${encodeURIComponent(message)}` : null;
 
-    console.log('Generated outreach message successfully');
+    console.log('Generated outreach message successfully for gender:', gender);
 
     return new Response(
       JSON.stringify({
         success: true,
         name: parsedCV.full_name,
-        phone: parsedCV.phone,
+        phone: primaryPhone,
+        phoneNumbers,
+        gender,
         whatsappLink,
         message,
         professionCategory,
