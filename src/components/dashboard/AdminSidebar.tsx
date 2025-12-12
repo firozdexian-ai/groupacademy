@@ -84,6 +84,7 @@ const navGroups: NavGroup[] = [
     items: [
       { title: "Manage Jobs", icon: Building2, value: "jobs" },
       { title: "Applications", icon: FileCheck, value: "applications" },
+      { title: "Companies", icon: Building2, value: "companies" },
     ],
   },
   {

@@ -50,8 +50,9 @@ interface OutreachResult {
 }
 
 export function CVOutreachGenerator() {
-  const [inputMode, setInputMode] = useState<'upload' | 'url'>('url');
+  const [inputMode, setInputMode] = useState<'upload' | 'url' | 'text'>('url');
   const [cvUrl, setCvUrl] = useState('');
+  const [cvText, setCvText] = useState('');
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [selectedProduct, setSelectedProduct] = useState('digital-portfolio');
   const [selectedLanguage, setSelectedLanguage] = useState('auto');
@@ -76,6 +77,10 @@ export function CVOutreachGenerator() {
       toast.error('Please upload a CV file');
       return;
     }
+    if (inputMode === 'text' && !cvText.trim()) {
+      toast.error('Please paste profile text');
+      return;
+    }
 
     setIsProcessing(true);
     setResult(null);
@@ -83,6 +88,7 @@ export function CVOutreachGenerator() {
 
     try {
       let cvTextOrUrl = cvUrl;
+      let useTextMode = false;
 
       // If file upload, first upload to storage then get URL
       if (inputMode === 'upload' && cvFile) {
@@ -100,12 +106,17 @@ export function CVOutreachGenerator() {
           .getPublicUrl(fileName);
 
         cvTextOrUrl = publicUrl;
+      } else if (inputMode === 'text') {
+        cvTextOrUrl = cvText;
+        useTextMode = true;
       }
 
       // Step 1: Parse the CV
       toast.info('Parsing CV...');
       const { data: parseData, error: parseError } = await supabase.functions.invoke('parse-cv', {
-        body: { cvUrl: cvTextOrUrl, serviceType: 'cv_outreach' }
+        body: useTextMode 
+          ? { cvText: cvTextOrUrl, serviceType: 'cv_outreach' }
+          : { cvUrl: cvTextOrUrl, serviceType: 'cv_outreach' }
       });
 
       if (parseError) {
@@ -204,15 +215,19 @@ export function CVOutreachGenerator() {
           {/* Input Section */}
           <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-4">
-              <Tabs value={inputMode} onValueChange={(v) => setInputMode(v as 'upload' | 'url')}>
-                <TabsList className="grid w-full grid-cols-2">
+              <Tabs value={inputMode} onValueChange={(v) => setInputMode(v as 'upload' | 'url' | 'text')}>
+                <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="url" className="flex items-center gap-2">
                     <Link className="w-4 h-4" />
-                    Paste URL
+                    URL
                   </TabsTrigger>
                   <TabsTrigger value="upload" className="flex items-center gap-2">
                     <Upload className="w-4 h-4" />
-                    Upload File
+                    Upload
+                  </TabsTrigger>
+                  <TabsTrigger value="text" className="flex items-center gap-2">
+                    <User className="w-4 h-4" />
+                    Text
                   </TabsTrigger>
                 </TabsList>
                 <TabsContent value="url" className="mt-4">
@@ -240,6 +255,21 @@ export function CVOutreachGenerator() {
                         Selected: {cvFile.name}
                       </p>
                     )}
+                  </div>
+                </TabsContent>
+                <TabsContent value="text" className="mt-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="cvText">Paste Profile Text</Label>
+                    <Textarea
+                      id="cvText"
+                      placeholder="Paste email content, LinkedIn profile, social media post, or any text describing the professional..."
+                      value={cvText}
+                      onChange={(e) => setCvText(e.target.value)}
+                      rows={6}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Great for capturing talent from emails, social media posts, or LinkedIn profiles
+                    </p>
                   </div>
                 </TabsContent>
               </Tabs>
