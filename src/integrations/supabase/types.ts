@@ -371,6 +371,54 @@ export type Database = {
           },
         ]
       }
+      companies: {
+        Row: {
+          created_at: string | null
+          facebook_url: string | null
+          id: string
+          industry: string | null
+          is_verified: boolean | null
+          linkedin_url: string | null
+          logo_url: string | null
+          name: string
+          notes: string | null
+          primary_email: string | null
+          secondary_emails: Json | null
+          updated_at: string | null
+          website: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          facebook_url?: string | null
+          id?: string
+          industry?: string | null
+          is_verified?: boolean | null
+          linkedin_url?: string | null
+          logo_url?: string | null
+          name: string
+          notes?: string | null
+          primary_email?: string | null
+          secondary_emails?: Json | null
+          updated_at?: string | null
+          website?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          facebook_url?: string | null
+          id?: string
+          industry?: string | null
+          is_verified?: boolean | null
+          linkedin_url?: string | null
+          logo_url?: string | null
+          name?: string
+          notes?: string | null
+          primary_email?: string | null
+          secondary_emails?: Json | null
+          updated_at?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
       content: {
         Row: {
           content_type: Database["public"]["Enums"]["content_type"]
@@ -856,6 +904,7 @@ export type Database = {
           application_email: string | null
           application_type: Database["public"]["Enums"]["application_type"]
           application_url: string | null
+          company_id: string | null
           company_logo_url: string | null
           company_name: string
           created_at: string | null
@@ -872,6 +921,7 @@ export type Database = {
           requirements: Json | null
           salary_range_max: number | null
           salary_range_min: number | null
+          source_image_url: string | null
           source_platform: Database["public"]["Enums"]["source_platform"] | null
           source_url: string | null
           title: string
@@ -882,6 +932,7 @@ export type Database = {
           application_email?: string | null
           application_type?: Database["public"]["Enums"]["application_type"]
           application_url?: string | null
+          company_id?: string | null
           company_logo_url?: string | null
           company_name: string
           created_at?: string | null
@@ -898,6 +949,7 @@ export type Database = {
           requirements?: Json | null
           salary_range_max?: number | null
           salary_range_min?: number | null
+          source_image_url?: string | null
           source_platform?:
             | Database["public"]["Enums"]["source_platform"]
             | null
@@ -910,6 +962,7 @@ export type Database = {
           application_email?: string | null
           application_type?: Database["public"]["Enums"]["application_type"]
           application_url?: string | null
+          company_id?: string | null
           company_logo_url?: string | null
           company_name?: string
           created_at?: string | null
@@ -926,6 +979,7 @@ export type Database = {
           requirements?: Json | null
           salary_range_max?: number | null
           salary_range_min?: number | null
+          source_image_url?: string | null
           source_platform?:
             | Database["public"]["Enums"]["source_platform"]
             | null
@@ -934,6 +988,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "jobs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "jobs_profession_category_id_fkey"
             columns: ["profession_category_id"]

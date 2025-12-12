@@ -4,10 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Search, Users, MessageSquare, Download, ExternalLink, RefreshCw, Eye, Loader2 } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Search, Users, MessageSquare, Download, ExternalLink, RefreshCw, Eye, Loader2, Briefcase } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Professional {
@@ -29,29 +31,27 @@ interface Professional {
   updated_at: string;
 }
 
-const PROFESSION_MAP: Record<string, string> = {
-  'a1c5d82c-1a1a-4b0e-89e8-19c264a3a915': 'Banking & Finance',
-  'cd947727-350e-4fd3-813b-0034d4cf208e': 'Sales & Distribution',
-  '5ee052f8-2aaf-45b5-8f90-731c23097fef': 'Sales & Marketing',
-  '1e71843c-d202-4d96-834e-04fa6c784f16': 'Technology & IT',
-  'e5489921-ce14-448b-a017-b762a3b72a8d': 'Human Resources',
-  'a8c5f269-03bd-4589-954e-51eb1e1fbf32': 'Operations & Supply Chain',
-  '2c541af4-1cc0-4704-81aa-78df992aad6b': 'Healthcare & Pharma',
-  '30dbc71e-26de-4131-bd97-073e593f9d93': 'Student (Undergraduate)',
-  '30e1aff7-a7fa-4bb1-ac5e-d226e4754930': 'Student (Graduate/Masters)',
-  '1d65c422-6eef-412c-b843-8ae3d9ac37d5': 'Fresh Graduate',
-  'ba50f709-610e-4770-9d2c-918a39073175': 'Career Changer',
-  'b4038064-ec0f-4814-a966-ca4c9984bca2': 'Other',
-};
+interface ProfessionCategory {
+  id: string;
+  name: string;
+}
 
 export function TalentPoolManager() {
   const [professionals, setProfessionals] = useState<Professional[]>([]);
+  const [professionCategories, setProfessionCategories] = useState<ProfessionCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProfessional, setSelectedProfessional] = useState<Professional | null>(null);
+  
+  // Portfolio request dialog state
+  const [portfolioDialogOpen, setPortfolioDialogOpen] = useState(false);
+  const [portfolioNotes, setPortfolioNotes] = useState('');
+  const [creatingPortfolio, setCreatingPortfolio] = useState(false);
+  const [portfolioProfessional, setPortfolioProfessional] = useState<Professional | null>(null);
 
   useEffect(() => {
     loadProfessionals();
+    loadProfessionCategories();
   }, []);
 
   const loadProfessionals = async () => {
@@ -70,6 +70,70 @@ export function TalentPoolManager() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const loadProfessionCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profession_categories')
+        .select('id, name')
+        .eq('is_active', true);
+
+      if (error) throw error;
+      setProfessionCategories(data || []);
+    } catch (error: any) {
+      console.error('Error loading profession categories:', error);
+    }
+  };
+
+  const getProfessionName = (categoryId: string | null) => {
+    if (!categoryId) return 'Not set';
+    const category = professionCategories.find(c => c.id === categoryId);
+    return category?.name || 'Unknown';
+  };
+
+  const handleCreatePortfolioRequest = async () => {
+    if (!portfolioProfessional) return;
+
+    setCreatingPortfolio(true);
+    try {
+      const { error } = await supabase.from('portfolio_requests').insert({
+        full_name: portfolioProfessional.full_name,
+        email: portfolioProfessional.email,
+        phone: portfolioProfessional.phone || '',
+        profession_category_id: portfolioProfessional.profession_category_id,
+        cv_url: portfolioProfessional.cv_url,
+        additional_notes: portfolioNotes || `Created from Talent Pool on ${new Date().toLocaleDateString()}`,
+        status: 'pending',
+      });
+
+      if (error) throw error;
+
+      toast.success('Portfolio request created!', {
+        description: 'View it in the Portfolio Requests tab.',
+        action: {
+          label: 'View',
+          onClick: () => {
+            window.location.href = '/dashboard?tab=portfolios';
+          },
+        },
+      });
+
+      setPortfolioDialogOpen(false);
+      setPortfolioNotes('');
+      setPortfolioProfessional(null);
+    } catch (error: any) {
+      console.error('Error creating portfolio request:', error);
+      toast.error('Failed to create portfolio request');
+    } finally {
+      setCreatingPortfolio(false);
+    }
+  };
+
+  const openPortfolioDialog = (professional: Professional) => {
+    setPortfolioProfessional(professional);
+    setPortfolioNotes('');
+    setPortfolioDialogOpen(true);
   };
 
   const filteredProfessionals = professionals.filter(p => {
@@ -101,7 +165,7 @@ export function TalentPoolManager() {
       p.full_name,
       p.email,
       p.phone || '',
-      PROFESSION_MAP[p.profession_category_id || ''] || 'N/A',
+      getProfessionName(p.profession_category_id),
       p.current_status || '',
       (p.skills as string[])?.join('; ') || '',
       new Date(p.created_at).toLocaleDateString()
@@ -205,7 +269,7 @@ export function TalentPoolManager() {
                       </TableCell>
                       <TableCell>
                         <Badge variant="secondary">
-                          {PROFESSION_MAP[professional.profession_category_id || ''] || 'Not set'}
+                          {getProfessionName(professional.profession_category_id)}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -220,6 +284,14 @@ export function TalentPoolManager() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openPortfolioDialog(professional)}
+                            title="Create Portfolio Request"
+                          >
+                            <Briefcase className="w-4 h-4" />
+                          </Button>
                           {professional.phone && (
                             <Button
                               variant="ghost"
@@ -346,6 +418,64 @@ export function TalentPoolManager() {
           )}
         </CardContent>
       </Card>
+
+      {/* Portfolio Request Dialog */}
+      <Dialog open={portfolioDialogOpen} onOpenChange={setPortfolioDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create Portfolio Request</DialogTitle>
+          </DialogHeader>
+          {portfolioProfessional && (
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-muted-foreground">Name</p>
+                  <p className="font-medium">{portfolioProfessional.full_name}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Email</p>
+                  <p className="font-medium">{portfolioProfessional.email}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Phone</p>
+                  <p className="font-medium">{portfolioProfessional.phone || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Category</p>
+                  <Badge variant="secondary">{getProfessionName(portfolioProfessional.profession_category_id)}</Badge>
+                </div>
+              </div>
+              {portfolioProfessional.cv_url && (
+                <div className="text-sm">
+                  <p className="text-muted-foreground mb-1">CV</p>
+                  <a href={portfolioProfessional.cv_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1">
+                    <ExternalLink className="w-3 h-3" /> View CV
+                  </a>
+                </div>
+              )}
+              <div className="space-y-2">
+                <Label htmlFor="portfolioNotes">Additional Notes</Label>
+                <Textarea
+                  id="portfolioNotes"
+                  value={portfolioNotes}
+                  onChange={(e) => setPortfolioNotes(e.target.value)}
+                  placeholder="Add any notes for the Talent Success Executive..."
+                  rows={3}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPortfolioDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreatePortfolioRequest} disabled={creatingPortfolio}>
+              {creatingPortfolio && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Create Request
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

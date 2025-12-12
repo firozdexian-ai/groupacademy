@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
@@ -17,14 +17,22 @@ import { JobsManager } from "@/components/dashboard/JobsManager";
 import { JobApplicationsManager } from "@/components/dashboard/JobApplicationsManager";
 import { CVOutreachGenerator } from "@/components/dashboard/CVOutreachGenerator";
 import { TalentPoolManager } from "@/components/dashboard/TalentPoolManager";
+import { CompaniesManager } from "@/components/dashboard/CompaniesManager";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("overview");
+  
+  // Read tab from URL or default to "overview"
+  const activeTab = searchParams.get("tab") || "overview";
+  
+  const setActiveTab = (tab: string) => {
+    setSearchParams({ tab });
+  };
 
   useEffect(() => {
     checkAuth();
@@ -89,6 +97,8 @@ const Dashboard = () => {
         return <CVOutreachGenerator />;
       case "talent":
         return <TalentPoolManager />;
+      case "companies":
+        return <CompaniesManager />;
       default:
         return <DashboardOverview />;
     }
@@ -114,6 +124,7 @@ const Dashboard = () => {
       applications: "Job Applications",
       outreach: "CV Outreach Generator",
       talent: "Talent Pool",
+      companies: "Companies",
     };
     return titles[activeTab] || "Dashboard";
   };
