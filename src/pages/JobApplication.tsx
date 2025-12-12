@@ -105,21 +105,14 @@ const JobApplication = () => {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (user) {
-        // Check by user_id first, then by email
-        let { data: profile } = await supabase
+        // FIXED: Check by email ONLY to ensure we get the correct professional profile
+        // Previously checking by user_id first caused data isolation issues where
+        // different CVs showed the same profile data
+        const { data: profile } = await supabase
           .from("professionals")
           .select("*")
-          .eq("user_id", user.id)
+          .eq("email", user.email)
           .single();
-        
-        if (!profile) {
-          const { data: emailProfile } = await supabase
-            .from("professionals")
-            .select("*")
-            .eq("email", user.email)
-            .single();
-          profile = emailProfile;
-        }
 
         if (profile) {
           setExistingProfile(profile);

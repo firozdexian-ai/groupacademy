@@ -34,6 +34,12 @@ const PROFESSION_CATEGORIES = [
   { id: 'b4038064-ec0f-4814-a966-ca4c9984bca2', name: 'Other' },
 ];
 
+const LANGUAGE_OPTIONS = [
+  { id: 'auto', name: 'Auto-Detect', description: 'AI selects based on CV' },
+  { id: 'english', name: 'English', description: 'Professional English only' },
+  { id: 'bangla', name: 'Bangla (বাংলা)', description: 'Full Bangla message' },
+];
+
 interface OutreachResult {
   name: string;
   phone: string;
@@ -48,6 +54,7 @@ export function CVOutreachGenerator() {
   const [cvUrl, setCvUrl] = useState('');
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [selectedProduct, setSelectedProduct] = useState('digital-portfolio');
+  const [selectedLanguage, setSelectedLanguage] = useState('auto');
   const [senderName, setSenderName] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<OutreachResult | null>(null);
@@ -123,7 +130,8 @@ export function CVOutreachGenerator() {
           parsedCV: parseData.parsed,
           product: selectedProduct,
           professionCategory,
-          senderName: senderName || 'GroUp Academy Team'
+          senderName: senderName || 'GroUp Academy Team',
+          language: selectedLanguage
         }
       });
 
@@ -254,6 +262,25 @@ export function CVOutreachGenerator() {
                               {product.badge}
                             </Badge>
                           )}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="language">Message Language</Label>
+                <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {LANGUAGE_OPTIONS.map((lang) => (
+                      <SelectItem key={lang.id} value={lang.id}>
+                        <div className="flex flex-col">
+                          <span>{lang.name}</span>
+                          <span className="text-xs text-muted-foreground">{lang.description}</span>
                         </div>
                       </SelectItem>
                     ))}

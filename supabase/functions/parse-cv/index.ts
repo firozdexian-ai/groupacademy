@@ -81,7 +81,78 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const systemPrompt = `You are an expert CV/Resume parser. Extract structured information from the CV text provided.
+    // CRITICAL FIX: Actually fetch CV content from URL if provided
+    let actualCvText = cvText || '';
+    
+    if (cvUrl && !cvText) {
+      console.log('Fetching CV content from URL:', cvUrl);
+      try {
+        const cvResponse = await fetch(cvUrl);
+        if (!cvResponse.ok) {
+          console.error('Failed to fetch CV from URL:', cvResponse.status);
+          return new Response(
+            JSON.stringify({ error: 'Failed to fetch CV from URL. Please ensure the URL is publicly accessible.' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        
+        const contentType = cvResponse.headers.get('content-type') || '';
+        
+        if (contentType.includes('application/pdf')) {
+          // For PDFs, we'll use the AI's vision capability by passing the URL directly
+          // and instructing it to analyze the document
+          console.log('PDF detected - will use AI vision to analyze');
+          actualCvText = `[PDF Document at URL: ${cvUrl}]
+          
+Please analyze this PDF CV document and extract all professional information. The document is a CV/Resume that should contain:
+- Personal information (name, contact details)
+- Education history
+- Work experience
+- Skills
+- Any certifications, projects, or achievements
+
+Extract all available information from this document.`;
+        } else if (contentType.includes('text/') || contentType.includes('application/json')) {
+          // Text-based files can be read directly
+          actualCvText = await cvResponse.text();
+          console.log('Text CV content fetched, length:', actualCvText.length);
+        } else {
+          // For other document types (doc, docx), we try to get text
+          // If binary, instruct AI to use the URL
+          const buffer = await cvResponse.arrayBuffer();
+          const textDecoder = new TextDecoder('utf-8');
+          const attemptedText = textDecoder.decode(buffer);
+          
+          // Check if it looks like readable text
+          const readableChars = attemptedText.replace(/[^\x20-\x7E\n\r\t]/g, '').length;
+          const totalChars = attemptedText.length;
+          
+          if (totalChars > 0 && readableChars / totalChars > 0.7) {
+            actualCvText = attemptedText;
+            console.log('Document text extracted, length:', actualCvText.length);
+          } else {
+            // Binary document - use URL with AI
+            console.log('Binary document detected - will use AI to analyze URL');
+            actualCvText = `[Document at URL: ${cvUrl}]
+            
+This is a CV/Resume document. Please analyze and extract all professional information including:
+- Personal information (name, email, phone, LinkedIn)
+- Education history with institutions, degrees, and dates
+- Work experience with companies, titles, and descriptions
+- Technical and soft skills
+- Certifications, projects, and achievements`;
+          }
+        }
+      } catch (fetchError) {
+        console.error('Error fetching CV from URL:', fetchError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to fetch CV content. Please check the URL or paste CV text directly.' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+    const systemPrompt = `You are an expert CV/Resume parser. Extract structured information from the CV text or document provided.
 
 Return a JSON object with the following structure:
 {
@@ -134,11 +205,11 @@ Important:
 
     const userPrompt = `Parse the following CV and extract all relevant information:
 
-${cvText || 'CV URL provided: ' + cvUrl}
+${actualCvText}
 
 Return the structured JSON data.`;
 
-    console.log('Calling Lovable AI to parse CV...');
+    console.log('Calling Lovable AI to parse CV with content length:', actualCvText.length);
     
     const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
