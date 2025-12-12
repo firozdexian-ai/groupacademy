@@ -50,7 +50,7 @@ serve(async (req) => {
   }
 
   try {
-    const { parsedCV, product, professionCategory, senderName } = await req.json();
+    const { parsedCV, product, professionCategory, senderName, language = 'auto' } = await req.json();
     
     if (!parsedCV || !product) {
       return new Response(
@@ -78,6 +78,28 @@ serve(async (req) => {
 
     const firstName = parsedCV.full_name?.split(' ')[0] || 'there';
     
+    // Determine language for message
+    let languageInstruction = '';
+    if (language === 'bangla') {
+      languageInstruction = `
+IMPORTANT: Write the ENTIRE message in Bangla (Bengali script). Use natural, conversational Bangla.
+- Use appropriate Bangla greetings like "আসসালামু আলাইকুম" or "নমস্কার"
+- Use "ভাই" for males or "আপু" for females
+- Keep the tone warm and professional in Bangla`;
+    } else if (language === 'english') {
+      languageInstruction = `
+IMPORTANT: Write the ENTIRE message in English only. Use professional but friendly English.
+- Use greetings like "Hi" or "Hello"
+- Keep the tone warm and professional`;
+    } else {
+      // Auto-detect based on CV content
+      languageInstruction = `
+Language Selection: Analyze the CV content to determine the best language:
+- If the person appears to be from Bangladesh (based on institutions, companies, phone number with +880), use a mix of English with Bangla greetings ("Bhai/Apu")
+- If the CV is entirely in English with international companies/institutions, use professional English
+- Default to warm, professional English with Bangla touches for Bangladesh professionals`;
+    }
+    
     const systemPrompt = `You are an expert at crafting personalized WhatsApp outreach messages for career services.
 
 You will receive:
@@ -85,8 +107,10 @@ You will receive:
 2. A product to promote with its key selling points
 3. The profession category that best matches this person
 
+${languageInstruction}
+
 Create a warm, personalized WhatsApp message that:
-- Opens with a friendly greeting using their first name and "Bhai/Apu" (use Bhai for males, Apu for females - default to Bhai if unsure)
+- Opens with a friendly greeting using their first name
 - References specific details from their CV (education, experience, skills) to show you've read their profile
 - Connects their background to the value proposition of the product
 - Highlights pain points they might face in their career stage
@@ -95,7 +119,7 @@ Create a warm, personalized WhatsApp message that:
 
 Keep the message:
 - Under 500 characters for WhatsApp readability
-- Conversational and warm (Bangladesh professional style)
+- Conversational and warm
 - Focused on benefits, not features
 - Natural, not salesy
 
