@@ -7,6 +7,101 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// ========== HARDCODED NAME-TO-GENDER MAPPING ==========
+// Common Bangladeshi/Bengali names for reliable gender detection
+const MALE_NAMES = new Set([
+  'mohammad', 'mohammed', 'md', 'muhammad', 'ahmed', 'ahamed', 'rahman', 'rahim', 'hasan', 'hassan', 
+  'hossain', 'hussain', 'kabir', 'karim', 'ali', 'haque', 'haq', 'islam', 'khan', 'miah', 'mia',
+  'emon', 'sami', 'sakib', 'sabit', 'sabbir', 'saber', 'sharif', 'shafiq', 'shohag', 'shimul',
+  'rafiq', 'rakib', 'rony', 'robin', 'rubel', 'ripon', 'rajib', 'rajesh', 'raj', 'raju',
+  'kamal', 'kamrul', 'kazi', 'kibria', 'khaled', 'khalid', 'khorshed', 'koushik',
+  'aziz', 'azad', 'arif', 'ashraf', 'ashik', 'ashfaq', 'akash', 'akter', 'alamin', 'alamgir',
+  'billah', 'babul', 'badrul', 'bashar', 'babu', 'bulbul',
+  'jahangir', 'jahid', 'jamal', 'jamil', 'jubayer', 'joynal', 'jalal',
+  'nazmul', 'nasir', 'nayeem', 'nabil', 'nahid', 'noman', 'nurul',
+  'faruk', 'farid', 'farib', 'fahim', 'faisal', 'fazlul', 'firoz', 'foysal',
+  'mamun', 'masud', 'masum', 'mizanur', 'minhaj', 'monir', 'mostakim', 'mostofa', 'mustafa', 'mukul',
+  'tanvir', 'tanzim', 'tarek', 'tarik', 'tariq', 'touhid', 'tofazzal', 'tushar', 'tuhin',
+  'imran', 'ifty', 'iqbal', 'ismail',
+  'omar', 'obaidur', 'osman',
+  'parvez', 'polash',
+  'selim', 'sohel', 'sumon', 'sudip', 'sazzad', 'sajid', 'salim', 'salam', 'saiful', 'sakir',
+  'zaman', 'zahid', 'zahir', 'zia', 'zubayer',
+  'yasin', 'yusuf', 'younus',
+  'habib', 'hafiz', 'hanif', 'helal', 'hemell',
+  'liton', 'limon',
+  'gazi', 'golam',
+  'delwar', 'didar',
+  'wazed', 'wahid',
+  'victor', 'vicky'
+]);
+
+const FEMALE_NAMES = new Set([
+  'fatima', 'fathema', 'farzana', 'farjana', 'fahmida', 'fariha', 'farha', 'ferdousi',
+  'tahmina', 'tania', 'tasnim', 'taslima', 'tamanna', 'tanjina', 'tanzila', 'tahera',
+  'nasreen', 'nazneen', 'nadia', 'nafisa', 'nargis', 'nasima', 'nahida', 'nusrat', 'nipa',
+  'shamima', 'shirin', 'shila', 'shanta', 'sharmin', 'sadia', 'sabrina', 'salma', 'samia', 
+  'samantha', 'sigma', 'sultana', 'sumaiya', 'sumona', 'sumi', 'shumi', 'swarna',
+  'anika', 'asha', 'asma', 'ayesha', 'afsana', 'afrin', 'akhi', 'amena', 'amina', 'anjum', 'anny',
+  'rodoshi', 'ruma', 'rubina', 'rahima', 'rashida', 'razia', 'ratna', 'rina', 'riya', 'rumana',
+  'khadija', 'khaleda', 'kohinoor', 'kulsum',
+  'marium', 'mariam', 'maria', 'mita', 'mitu', 'monira', 'moushumi', 'mukta', 'munni', 'moni',
+  'jasmine', 'jahanara', 'jannatul', 'jerin', 'jui', 'julia', 'jhumur',
+  'hasina', 'halima', 'habiba', 'hena',
+  'parveen', 'parvin', 'poly', 'popy', 'priya', 'puja', 'papiya',
+  'laila', 'lata', 'lima', 'lipi', 'lubna', 'lucky',
+  'begum', 'bilkis', 'bushra', 'beauty',
+  'zakia', 'zeba', 'zerin', 'zinnat',
+  'dilruba', 'dalia', 'dina',
+  'ishrat', 'israt',
+  'umme', 'urmi',
+  'yasmeen', 'yasmin',
+  'chandni', 'champa',
+  'eva', 'elma'
+]);
+
+// Function to detect gender from name using hardcoded lists + pattern analysis
+function detectGender(fullName: string): 'male' | 'female' | 'unknown' {
+  if (!fullName) return 'unknown';
+  
+  const nameParts = fullName.toLowerCase().trim().split(/\s+/);
+  
+  // Check each name part against the lists
+  for (const part of nameParts) {
+    if (MALE_NAMES.has(part)) {
+      console.log(`Gender detected as MALE from name part: "${part}"`);
+      return 'male';
+    }
+    if (FEMALE_NAMES.has(part)) {
+      console.log(`Gender detected as FEMALE from name part: "${part}"`);
+      return 'female';
+    }
+  }
+  
+  // Pattern-based fallback for common Bangladeshi name endings
+  const firstName = nameParts[0] || '';
+  
+  // Female patterns (names often end in these)
+  if (firstName.endsWith('ma') || firstName.endsWith('na') || firstName.endsWith('ni') || 
+      firstName.endsWith('ti') || firstName.endsWith('ri') || firstName.endsWith('mi') ||
+      firstName.endsWith('ya') || firstName.endsWith('ka') || firstName.endsWith('ta')) {
+    console.log(`Gender inferred as FEMALE from pattern in: "${firstName}"`);
+    return 'female';
+  }
+  
+  // Male patterns
+  if (firstName.endsWith('ul') || firstName.endsWith('ur') || firstName.endsWith('im') ||
+      firstName.endsWith('id') || firstName.endsWith('ad') || firstName.endsWith('ed') ||
+      firstName.endsWith('ir') || firstName.endsWith('az') || firstName.endsWith('an') ||
+      firstName.endsWith('on') || firstName.endsWith('el')) {
+    console.log(`Gender inferred as MALE from pattern in: "${firstName}"`);
+    return 'male';
+  }
+  
+  console.log(`Gender UNKNOWN for name: "${fullName}"`);
+  return 'unknown';
+}
+
 // Profession categories for matching
 const PROFESSION_CATEGORIES = [
   { id: 'a1c5d82c-1a1a-4b0e-89e8-19c264a3a915', name: 'Banking & Finance', keywords: ['bank', 'finance', 'accounting', 'audit', 'investment', 'treasury', 'credit'] },
@@ -335,10 +430,27 @@ Return the structured JSON data.`
       );
     }
 
+    // ========== RELIABLE GENDER DETECTION ==========
+    // First try hardcoded name matching, then fall back to AI detection
+    const aiGender = parsedData.gender;
+    const reliableGender = detectGender(parsedData.full_name);
+    
+    // Use hardcoded detection if it found a match, otherwise use AI's guess
+    if (reliableGender !== 'unknown') {
+      parsedData.gender = reliableGender;
+      console.log(`Gender OVERRIDDEN by hardcoded detection: AI said "${aiGender}", using "${reliableGender}"`);
+    } else if (aiGender && aiGender !== 'unknown') {
+      console.log(`Using AI gender detection: "${aiGender}"`);
+    } else {
+      parsedData.gender = 'unknown';
+      console.log('Gender remains UNKNOWN - no match found');
+    }
+
     console.log('CV parsed successfully:', {
       name: parsedData.full_name,
       email: parsedData.email,
       gender: parsedData.gender,
+      genderSource: reliableGender !== 'unknown' ? 'hardcoded' : 'ai',
       phoneNumbers: parsedData.phone_numbers?.length || 0,
       skillsCount: parsedData.skills?.length || 0,
       experienceCount: parsedData.experience?.length || 0

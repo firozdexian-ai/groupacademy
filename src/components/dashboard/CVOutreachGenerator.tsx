@@ -58,6 +58,12 @@ interface OutreachResult {
   productLink: string;
 }
 
+const GENDER_OPTIONS = [
+  { id: 'male', name: '♂ Male (ভাই)', description: 'Uses ভাই (Bhai) greeting' },
+  { id: 'female', name: '♀ Female (আপু)', description: 'Uses আপু (Apu) greeting' },
+  { id: 'unknown', name: '? Neutral', description: 'No gender-specific greeting' },
+];
+
 export function CVOutreachGenerator() {
   const [inputMode, setInputMode] = useState<'upload' | 'url' | 'text'>('url');
   const [cvUrl, setCvUrl] = useState('');
@@ -71,6 +77,8 @@ export function CVOutreachGenerator() {
   const [result, setResult] = useState<OutreachResult | null>(null);
   const [parsedCV, setParsedCV] = useState<any>(null);
   const [selectedPhone, setSelectedPhone] = useState<string>('');
+  const [overrideGender, setOverrideGender] = useState<string | null>(null);
+  const [isRegenerating, setIsRegenerating] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -104,6 +112,7 @@ export function CVOutreachGenerator() {
     setResult(null);
     setParsedCV(null);
     setSelectedPhone('');
+    setOverrideGender(null);
 
     try {
       let cvTextOrUrl = cvUrl;
@@ -233,9 +242,49 @@ export function CVOutreachGenerator() {
   };
 
   const openWhatsApp = () => {
-    if (result?.message && selectedPhone) {
-      const link = getWhatsAppLink(selectedPhone, result.message);
+    if (result?.message && (selectedPhone || result.phone)) {
+      const link = getWhatsAppLink(selectedPhone || result.phone, result.message);
       window.open(link, '_blank');
+    }
+  };
+
+  // Regenerate message with overridden gender
+  const regenerateWithGender = async (newGender: string) => {
+    if (!parsedCV || !result) return;
+    
+    setIsRegenerating(true);
+    setOverrideGender(newGender);
+    
+    try {
+      // Create a copy of parsedCV with the new gender
+      const updatedCV = { ...parsedCV, gender: newGender };
+      
+      const { data: messageData, error: messageError } = await supabase.functions.invoke('generate-outreach-message', {
+        body: {
+          parsedCV: updatedCV,
+          product: selectedProduct,
+          professionCategory: result.professionCategory,
+          senderName: getSenderName(),
+          language: selectedLanguage
+        }
+      });
+
+      if (messageError) throw new Error(messageError.message);
+      if (!messageData?.success) throw new Error(messageData?.error || 'Failed to regenerate');
+
+      setResult(prev => prev ? {
+        ...prev,
+        gender: newGender,
+        message: messageData.message,
+        whatsappLink: messageData.whatsappLink
+      } : null);
+      
+      toast.success(`Message regenerated with ${newGender} greeting`);
+    } catch (error: any) {
+      console.error('Error regenerating message:', error);
+      toast.error('Failed to regenerate message');
+    } finally {
+      setIsRegenerating(false);
     }
   };
 
@@ -432,20 +481,40 @@ export function CVOutreachGenerator() {
                 </div>
               </div>
               <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                <User className="w-5 h-5 text-muted-foreground" />
-                <div>
-                  <p className="text-sm text-muted-foreground">Gender</p>
-                  <Badge variant={result.gender === 'male' ? 'default' : result.gender === 'female' ? 'secondary' : 'outline'}>
-                    {result.gender === 'male' ? '♂ Male' : result.gender === 'female' ? '♀ Female' : '? Unknown'}
-                  </Badge>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
                 <Phone className="w-5 h-5 text-muted-foreground" />
                 <div>
                   <p className="text-sm text-muted-foreground">Phone(s)</p>
                   <p className="font-semibold">{result.phoneNumbers?.length || 0} found</p>
                 </div>
+              </div>
+            </div>
+
+            {/* Gender Override Section */}
+            <div className="space-y-2 p-4 rounded-lg border bg-muted/20">
+              <Label className="flex items-center gap-2">
+                Gender Detection
+                <Badge variant={result.gender === 'male' ? 'default' : result.gender === 'female' ? 'secondary' : 'outline'}>
+                  {result.gender === 'male' ? '♂ Male (ভাই)' : result.gender === 'female' ? '♀ Female (আপু)' : '? Unknown'}
+                </Badge>
+              </Label>
+              <p className="text-xs text-muted-foreground mb-2">
+                Wrong gender detected? Click to regenerate the message with correct greeting:
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {GENDER_OPTIONS.map((gender) => (
+                  <Button
+                    key={gender.id}
+                    variant={result.gender === gender.id ? "default" : "outline"}
+                    size="sm"
+                    disabled={isRegenerating || result.gender === gender.id}
+                    onClick={() => regenerateWithGender(gender.id)}
+                  >
+                    {isRegenerating && overrideGender === gender.id ? (
+                      <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                    ) : null}
+                    {gender.name}
+                  </Button>
+                ))}
               </div>
             </div>
 
