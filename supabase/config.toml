@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.generate-outreach-message]
 verify_jwt = false
+
+[functions.parse-job-post]
+verify_jwt = false

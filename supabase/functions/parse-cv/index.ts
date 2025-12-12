@@ -127,11 +127,10 @@ serve(async (req) => {
           const rawText = textDecoder.decode(buffer);
           
           // DOCX files contain XML - extract readable text between tags
-          // Remove XML tags and extract text content
           const textContent = rawText
-            .replace(/<[^>]*>/g, ' ')  // Remove all XML/HTML tags
-            .replace(/&[a-z]+;/gi, ' ') // Remove HTML entities
-            .replace(/[^\x20-\x7E\u00A0-\u00FF\u0980-\u09FF\n\r\t]/g, ' ') // Keep ASCII, Latin-1, Bengali
+            .replace(/<[^>]*>/g, ' ')
+            .replace(/&[a-z]+;/gi, ' ')
+            .replace(/[^\x20-\x7E\u00A0-\u00FF\u0980-\u09FF\n\r\t]/g, ' ')
             .replace(/\s+/g, ' ')
             .trim();
           
@@ -139,12 +138,10 @@ serve(async (req) => {
             actualCvText = textContent;
             console.log('DOCX text extracted, length:', actualCvText.length);
           } else {
-            // Fallback: send as-is and let AI try to parse
             console.log('DOCX text extraction minimal, sending raw content');
             actualCvText = `This is a DOCX document. Please extract information from the following content:\n\n${rawText.substring(0, 50000)}`;
           }
         } else if (isText) {
-          // Text-based files can be read directly
           actualCvText = await cvResponse.text();
           console.log('Text CV content fetched, length:', actualCvText.length);
         } else {
@@ -153,12 +150,10 @@ serve(async (req) => {
           const textDecoder = new TextDecoder('utf-8');
           const attemptedText = textDecoder.decode(buffer);
           
-          // Check if it looks like readable text
           const readableChars = attemptedText.replace(/[^\x20-\x7E\n\r\t]/g, '').length;
           const totalChars = attemptedText.length;
           
           if (totalChars > 0 && readableChars / totalChars > 0.3) {
-            // Extract readable parts
             actualCvText = attemptedText.replace(/[^\x20-\x7E\u00A0-\u00FF\u0980-\u09FF\n\r\t]/g, ' ').replace(/\s+/g, ' ').trim();
             console.log('Document text extracted, length:', actualCvText.length);
           } else {
@@ -183,11 +178,13 @@ serve(async (req) => {
 Return a JSON object with the following structure:
 {
   "full_name": "string - full name of the candidate",
-  "email": "string - email address",
-  "phone": "string - phone number with country code if available",
+  "email": "string or null - email address if found",
+  "phone": "string - primary phone number with country code if available",
+  "phone_numbers": ["array of all phone numbers found in the CV"],
   "linkedin_url": "string or null - LinkedIn profile URL if mentioned",
   "current_status": "string - one of: studying, job_seeking, employed, business_owner",
   "profile_type": "string - one of: student, early_career, professional, executive",
+  "gender": "string - one of: male, female, unknown (infer from name - Bangladeshi/Bengali names: names ending in 'a', 'i', 'ma', 'ni', 'ti' are usually female; common male names include Rahman, Ahmed, Hasan, Kabir, Emon, Sami, Kaies, Aziz, Mohammad; common female names include Tahmina, Samantha, Sigma, Fatima, Anika, Rodoshi)",
   "education": [
     {
       "institution": "string - school/university name",
@@ -223,17 +220,19 @@ Return a JSON object with the following structure:
 
 Important:
 - Extract ALL information available in the CV
+- Extract ALL phone numbers found (mobile, home, work) into phone_numbers array
+- The "phone" field should be the primary/mobile number
 - If a field is not found, use null for strings or empty array for arrays
 - For phone numbers, try to include country code (e.g., +880 for Bangladesh)
 - Be thorough with skills - extract technical skills, soft skills, languages, tools
 - For experience, include internships if mentioned
+- For gender, use Bangladeshi/Bengali name patterns to infer - if unsure, use "unknown"
 - Return ONLY valid JSON, no markdown or extra text`;
 
     // Build the user message - either text or multimodal with PDF
     let userMessage: any;
     
     if (pdfBase64) {
-      // Multimodal message with PDF as image
       console.log('Sending PDF as vision input to AI');
       userMessage = {
         role: 'user',
@@ -251,7 +250,6 @@ Important:
         ]
       };
     } else {
-      // Text-only message
       userMessage = {
         role: 'user',
         content: `Parse the following CV and extract all relevant information:
@@ -340,6 +338,8 @@ Return the structured JSON data.`
     console.log('CV parsed successfully:', {
       name: parsedData.full_name,
       email: parsedData.email,
+      gender: parsedData.gender,
+      phoneNumbers: parsedData.phone_numbers?.length || 0,
       skillsCount: parsedData.skills?.length || 0,
       experienceCount: parsedData.experience?.length || 0
     });
@@ -347,6 +347,21 @@ Return the structured JSON data.`
     // Match profession category
     const professionCategoryId = matchProfessionCategory(parsedData);
     console.log('Matched profession category:', professionCategoryId);
+
+    // Skip database insert if no email found - still return parsed data for outreach
+    if (!parsedData.email) {
+      console.log('No email found in CV - skipping database insert but returning parsed data');
+      return new Response(
+        JSON.stringify({
+          success: true,
+          parsed: parsedData,
+          professional: null,
+          professionCategoryId,
+          warning: 'No email found - professional profile not created'
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Check if professional exists by email
     const { data: existingProfessional } = await supabase
@@ -405,9 +420,16 @@ Return the structured JSON data.`
       
       if (error) {
         console.error('Error updating professional:', error);
+        // Still return parsed data even if update fails
         return new Response(
-          JSON.stringify({ error: 'Failed to update professional profile', parsed: parsedData }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({ 
+            success: true, 
+            parsed: parsedData, 
+            professional: null,
+            professionCategoryId,
+            warning: 'Failed to update professional profile'
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
       professional = data;
@@ -424,9 +446,16 @@ Return the structured JSON data.`
       
       if (error) {
         console.error('Error inserting professional:', error);
+        // Still return parsed data even if insert fails
         return new Response(
-          JSON.stringify({ error: 'Failed to create professional profile', parsed: parsedData }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({ 
+            success: true, 
+            parsed: parsedData, 
+            professional: null,
+            professionCategoryId,
+            warning: 'Failed to create professional profile'
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
       professional = data;
@@ -436,8 +465,8 @@ Return the structured JSON data.`
     return new Response(
       JSON.stringify({
         success: true,
-        professional: professional,
         parsed: parsedData,
+        professional,
         professionCategoryId
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

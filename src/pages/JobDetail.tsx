@@ -34,6 +34,7 @@ interface Job {
   is_featured: boolean;
   created_at: string;
   profession_category_id: string | null;
+  source_image_url: string | null;
 }
 
 const JOB_TYPES: Record<string, string> = {
@@ -241,6 +242,20 @@ const JobDetail = () => {
             <div className="grid lg:grid-cols-3 gap-8">
               {/* Main Content */}
               <div className="lg:col-span-2 space-y-6">
+                {/* Source Image */}
+                {job.source_image_url && (
+                  <Card>
+                    <CardContent className="p-6">
+                      <h2 className="text-lg font-semibold mb-4">Original Job Post</h2>
+                      <img 
+                        src={job.source_image_url} 
+                        alt="Original job post" 
+                        className="w-full rounded-lg border"
+                      />
+                    </CardContent>
+                  </Card>
+                )}
+
                 <Card>
                   <CardContent className="p-6">
                     <h2 className="text-lg font-semibold mb-4">Job Description</h2>
