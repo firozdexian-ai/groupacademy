@@ -125,14 +125,53 @@ export default function PortfolioRequest() {
   useEffect(() => {
     loadProfessionCategories();
     loadPortfolioCount();
+    
+    // Load form backup from localStorage
+    const backup = localStorage.getItem('portfolio_form_backup');
+    if (backup) {
+      try {
+        const parsed = JSON.parse(backup);
+        setFormData(prev => ({ ...prev, ...parsed }));
+        console.log('[PortfolioRequest] Restored form data from backup');
+      } catch (e) {
+        console.log('[PortfolioRequest] Could not parse form backup');
+      }
+    }
   }, []);
+  
+  // Save form data to localStorage on changes
+  useEffect(() => {
+    if (formData.fullName || formData.email) {
+      localStorage.setItem('portfolio_form_backup', JSON.stringify({
+        fullName: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+        professionCategoryId: formData.professionCategoryId,
+        customProfession: formData.customProfession,
+        cvInputMode: formData.cvInputMode,
+        cvExternalUrl: formData.cvExternalUrl,
+        achievements: formData.achievements,
+        socialLinks: formData.socialLinks,
+        additionalNotes: formData.additionalNotes,
+        // Don't save uploaded files/profile data as they're too large
+      }));
+    }
+  }, [formData.fullName, formData.email, formData.phone, formData.professionCategoryId, formData.customProfession, formData.cvInputMode, formData.cvExternalUrl, formData.achievements, formData.socialLinks, formData.additionalNotes]);
 
   const loadPortfolioCount = async () => {
     setIsLoadingCount(true);
+    
+    // 15-second timeout for count loading
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Count loading timed out')), 15000);
+    });
+    
     try {
-      const { count, error } = await supabase
+      const fetchPromise = supabase
         .from('portfolio_requests')
         .select('*', { count: 'exact', head: true });
+      
+      const { count, error } = await Promise.race([fetchPromise, timeoutPromise]);
       
       if (error) {
         console.error('[PortfolioRequest] Error loading portfolio count:', error);
@@ -141,6 +180,8 @@ export default function PortfolioRequest() {
       }
     } catch (err) {
       console.error('[PortfolioRequest] Failed to load portfolio count:', err);
+      // Don't block the form, just use a default
+      setPortfolioCount(0);
     } finally {
       setIsLoadingCount(false);
     }
@@ -244,6 +285,17 @@ export default function PortfolioRequest() {
       console.warn('[PortfolioRequest] Invalid UUID detected, sending null for profession_category_id');
     }
     
+    // Overall 60-second timeout for submission
+    const submissionTimeout = setTimeout(() => {
+      setIsSubmitting(false);
+      toast({ 
+        title: "Submission timed out", 
+        description: "Please check your internet connection and try again.", 
+        variant: "destructive",
+        duration: 10000,
+      });
+    }, 60000);
+    
     try {
       // Generate a local request ID for confirmation (anonymous users can't SELECT after INSERT)
       const tempRequestId = crypto.randomUUID();
@@ -270,35 +322,60 @@ export default function PortfolioRequest() {
         throw error;
       }
 
-      // Create professional profile using upsert with ignoreDuplicates (works for anonymous users)
+      // Create professional profile using CHECK-THEN-INSERT pattern (avoids RLS UPDATE issues for anonymous users)
       try {
-        await supabase
-          .from('professionals')
-          .upsert({
-            full_name: formData.fullName,
-            email: formData.email,
-            phone: formData.phone,
-            profession_category_id: professionCategoryId,
-            custom_profession: isOtherCategory ? formData.customProfession : null,
-            cv_url: effectiveCvUrl || null,
-            education: formData.profileData.education as unknown as any,
-            experience: formData.profileData.experience as unknown as any,
-            skills: formData.profileData.skills as unknown as any,
-            projects: formData.profileData.projects as unknown as any,
-            achievements: formData.profileData.achievements as unknown as any,
-            linkedin_url: formData.socialLinks.linkedin || null,
-            services_used: ['portfolio'] as unknown as any,
-          }, { onConflict: 'email', ignoreDuplicates: true });
-        console.log('[PortfolioRequest] Professional profile upserted');
+        // 10-second timeout for professional profile creation
+        const profTimeout = new Promise<void>((_, reject) => 
+          setTimeout(() => reject(new Error('Profile creation timed out')), 10000)
+        );
+        
+        const profInsert = (async () => {
+          // First check if professional exists by email
+          const { data: existing } = await supabase
+            .from('professionals')
+            .select('id')
+            .eq('email', formData.email)
+            .maybeSingle();
+          
+          // Only INSERT if doesn't exist (avoid UPDATE RLS issues)
+          if (!existing) {
+            await supabase.from('professionals').insert({
+              full_name: formData.fullName,
+              email: formData.email,
+              phone: formData.phone,
+              profession_category_id: professionCategoryId,
+              custom_profession: isOtherCategory ? formData.customProfession : null,
+              cv_url: effectiveCvUrl || null,
+              education: formData.profileData.education as unknown as any,
+              experience: formData.profileData.experience as unknown as any,
+              skills: formData.profileData.skills as unknown as any,
+              projects: formData.profileData.projects as unknown as any,
+              achievements: formData.profileData.achievements as unknown as any,
+              linkedin_url: formData.socialLinks.linkedin || null,
+              services_used: ['portfolio'] as unknown as any,
+            });
+            console.log('[PortfolioRequest] Professional profile created');
+          } else {
+            console.log('[PortfolioRequest] Professional already exists, skipping insert');
+          }
+        })();
+        
+        await Promise.race([profInsert, profTimeout]).catch((err) => {
+          console.log('[PortfolioRequest] Professional profile creation skipped:', err.message);
+        });
       } catch (profError) {
         console.log('[PortfolioRequest] Professional profile creation skipped:', profError);
         // Non-blocking - portfolio request already saved
       }
 
+      clearTimeout(submissionTimeout);
+      // Clear form backup on success
+      localStorage.removeItem('portfolio_form_backup');
       setRequestId(tempRequestId);
       setIsSuccess(true);
       toast({ title: "Request submitted!", description: "We'll contact you on WhatsApp soon." });
     } catch (error: any) {
+      clearTimeout(submissionTimeout);
       console.error('[PortfolioRequest] Submission failed:', error);
       toast({ 
         title: "Submission failed", 
@@ -307,6 +384,7 @@ export default function PortfolioRequest() {
         duration: 10000,
       });
     } finally {
+      clearTimeout(submissionTimeout);
       setIsSubmitting(false);
     }
   };
