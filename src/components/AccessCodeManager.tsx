@@ -6,8 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Copy, Plus, Trash2 } from "lucide-react";
+import { Copy, Plus, Trash2, BookOpen, ClipboardCheck, MessageSquare, TrendingUp, Briefcase } from "lucide-react";
+import { StandaloneAssessmentCodeGenerator } from "@/components/dashboard/StandaloneAssessmentCodeGenerator";
+import { StandaloneMockInterviewCodeGenerator } from "@/components/dashboard/StandaloneMockInterviewCodeGenerator";
+import { StandaloneSalaryCodeGenerator } from "@/components/dashboard/StandaloneSalaryCodeGenerator";
+import { JobApplicationCodeGenerator } from "@/components/dashboard/JobApplicationCodeGenerator";
 
 interface AccessCode {
   id: string;
@@ -149,118 +154,161 @@ export const AccessCodeManager = () => {
 
   return (
     <div className="space-y-6">
-      {/* Generate New Code Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Generate Access Code</CardTitle>
-          <CardDescription>
-            Create access codes for paid courses after receiving payment
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Select Course</Label>
-            <Select value={selectedContentId} onValueChange={setSelectedContentId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Choose a paid course" />
-              </SelectTrigger>
-              <SelectContent>
-                {paidContent.map((content) => (
-                  <SelectItem key={content.id} value={content.id}>
-                    {content.title} - BDT {content.price}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+      <Tabs defaultValue="courses" className="w-full">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="courses" className="flex items-center gap-2">
+            <BookOpen className="w-4 h-4" />
+            <span className="hidden sm:inline">Courses</span>
+          </TabsTrigger>
+          <TabsTrigger value="assessment" className="flex items-center gap-2">
+            <ClipboardCheck className="w-4 h-4" />
+            <span className="hidden sm:inline">Assessment</span>
+          </TabsTrigger>
+          <TabsTrigger value="interview" className="flex items-center gap-2">
+            <MessageSquare className="w-4 h-4" />
+            <span className="hidden sm:inline">Interview</span>
+          </TabsTrigger>
+          <TabsTrigger value="salary" className="flex items-center gap-2">
+            <TrendingUp className="w-4 h-4" />
+            <span className="hidden sm:inline">Salary</span>
+          </TabsTrigger>
+          <TabsTrigger value="jobs" className="flex items-center gap-2">
+            <Briefcase className="w-4 h-4" />
+            <span className="hidden sm:inline">Jobs</span>
+          </TabsTrigger>
+        </TabsList>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Max Uses</Label>
-              <Input
-                type="number"
-                min="1"
-                value={maxUses}
-                onChange={(e) => setMaxUses(parseInt(e.target.value) || 1)}
-              />
-            </div>
-          </div>
+        <TabsContent value="courses" className="mt-6">
+          {/* Generate New Code Card */}
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Generate Course Access Code</CardTitle>
+              <CardDescription>
+                Create access codes for paid courses after receiving payment
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Select Course</Label>
+                <Select value={selectedContentId} onValueChange={setSelectedContentId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a paid course" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {paidContent.map((content) => (
+                      <SelectItem key={content.id} value={content.id}>
+                        {content.title} - BDT {content.price}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-          <div className="space-y-2">
-            <Label>Notes (Optional)</Label>
-            <Input
-              placeholder="e.g., Student name, payment reference"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-            />
-          </div>
-
-          <Button onClick={handleGenerateCode} disabled={isGenerating || !selectedContentId} className="w-full">
-            <Plus className="w-4 h-4 mr-2" />
-            {isGenerating ? "Generating..." : "Generate Access Code"}
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Active Codes Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Active Access Codes ({codes.length})</CardTitle>
-          <CardDescription>
-            Manage existing access codes
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {codes.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">
-              No access codes generated yet
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {codes.map((code) => (
-                <div
-                  key={code.id}
-                  className="flex items-center justify-between p-3 border rounded-lg"
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <code className="text-lg font-mono font-bold">{code.code}</code>
-                      <Badge variant={code.is_active ? "default" : "secondary"}>
-                        {code.is_active ? "Active" : "Inactive"}
-                      </Badge>
-                      <Badge variant="outline">
-                        {code.current_uses}/{code.max_uses} uses
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {code.content?.title || "Unknown course"}
-                    </p>
-                    {code.notes && (
-                      <p className="text-xs text-muted-foreground mt-1">{code.notes}</p>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleCopyCode(code.code)}
-                    >
-                      <Copy className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleDeleteCode(code.id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Max Uses</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={maxUses}
+                    onChange={(e) => setMaxUses(parseInt(e.target.value) || 1)}
+                  />
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Notes (Optional)</Label>
+                <Input
+                  placeholder="e.g., Student name, payment reference"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                />
+              </div>
+
+              <Button onClick={handleGenerateCode} disabled={isGenerating || !selectedContentId} className="w-full">
+                <Plus className="w-4 h-4 mr-2" />
+                {isGenerating ? "Generating..." : "Generate Access Code"}
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Active Codes Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Active Course Codes ({codes.length})</CardTitle>
+              <CardDescription>
+                Manage existing access codes
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {codes.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">
+                  No access codes generated yet
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {codes.map((code) => (
+                    <div
+                      key={code.id}
+                      className="flex items-center justify-between p-3 border rounded-lg"
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <code className="text-lg font-mono font-bold">{code.code}</code>
+                          <Badge variant={code.is_active ? "default" : "secondary"}>
+                            {code.is_active ? "Active" : "Inactive"}
+                          </Badge>
+                          <Badge variant="outline">
+                            {code.current_uses}/{code.max_uses} uses
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {code.content?.title || "Unknown course"}
+                        </p>
+                        {code.notes && (
+                          <p className="text-xs text-muted-foreground mt-1">{code.notes}</p>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleCopyCode(code.code)}
+                        >
+                          <Copy className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDeleteCode(code.id)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="assessment" className="mt-6">
+          <StandaloneAssessmentCodeGenerator />
+        </TabsContent>
+
+        <TabsContent value="interview" className="mt-6">
+          <StandaloneMockInterviewCodeGenerator />
+        </TabsContent>
+
+        <TabsContent value="salary" className="mt-6">
+          <StandaloneSalaryCodeGenerator />
+        </TabsContent>
+
+        <TabsContent value="jobs" className="mt-6">
+          <JobApplicationCodeGenerator />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

@@ -796,6 +796,36 @@ export type Database = {
         }
         Relationships: []
       }
+      job_application_access_codes: {
+        Row: {
+          code: string
+          created_at: string | null
+          created_by: string | null
+          email: string
+          expires_at: string | null
+          id: string
+          is_used: boolean | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          created_by?: string | null
+          email: string
+          expires_at?: string | null
+          id?: string
+          is_used?: boolean | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          created_by?: string | null
+          email?: string
+          expires_at?: string | null
+          id?: string
+          is_used?: boolean | null
+        }
+        Relationships: []
+      }
       job_application_usage: {
         Row: {
           created_at: string | null

@@ -114,12 +114,17 @@ export function CVOutreachGenerator() {
     setSelectedPhone('');
     setOverrideGender(null);
 
+    // Create timeout promise (30 seconds)
+    const createTimeoutPromise = (seconds: number) => 
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out')), seconds * 1000));
+
     try {
       let cvTextOrUrl = cvUrl;
       let useTextMode = false;
 
       // If file upload, first upload to storage then get URL
       if (inputMode === 'upload' && cvFile) {
+        toast.info('Uploading CV...');
         const fileName = `outreach-cvs/${Date.now()}-${cvFile.name}`;
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('portfolio-uploads')
@@ -139,13 +144,16 @@ export function CVOutreachGenerator() {
         useTextMode = true;
       }
 
-      // Step 1: Parse the CV
+      // Step 1: Parse the CV with timeout
       toast.info('Parsing CV...');
-      const { data: parseData, error: parseError } = await supabase.functions.invoke('parse-cv', {
+      const parsePromise = supabase.functions.invoke('parse-cv', {
         body: useTextMode 
           ? { cvText: cvTextOrUrl, serviceType: 'cv_outreach' }
           : { cvUrl: cvTextOrUrl, serviceType: 'cv_outreach' }
       });
+
+      const parseResult = await Promise.race([parsePromise, createTimeoutPromise(30)]) as any;
+      const { data: parseData, error: parseError } = parseResult;
 
       if (parseError) {
         throw new Error(parseError.message || 'Failed to parse CV');
@@ -162,9 +170,9 @@ export function CVOutreachGenerator() {
       const professionCategory = PROFESSION_CATEGORIES.find(c => c.id === professionCategoryId)?.name || 
                                   determineProfessionFromCV(parseData.parsed);
 
-      // Step 2: Generate outreach message
+      // Step 2: Generate outreach message with timeout
       toast.info('Generating personalized message...');
-      const { data: messageData, error: messageError } = await supabase.functions.invoke('generate-outreach-message', {
+      const messagePromise = supabase.functions.invoke('generate-outreach-message', {
         body: {
           parsedCV: parseData.parsed,
           product: selectedProduct,
@@ -173,6 +181,9 @@ export function CVOutreachGenerator() {
           language: selectedLanguage
         }
       });
+
+      const messageResult = await Promise.race([messagePromise, createTimeoutPromise(30)]) as any;
+      const { data: messageData, error: messageError } = messageResult;
 
       if (messageError) {
         throw new Error(messageError.message || 'Failed to generate message');
@@ -204,7 +215,10 @@ export function CVOutreachGenerator() {
 
     } catch (error: any) {
       console.error('Error processing CV:', error);
-      toast.error(error.message || 'Failed to process CV');
+      const errorMessage = error?.message === 'Request timed out'
+        ? 'Request timed out. Please try again.'
+        : error.message || 'Failed to process CV';
+      toast.error(errorMessage);
     } finally {
       setIsProcessing(false);
     }

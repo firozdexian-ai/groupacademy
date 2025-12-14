@@ -210,6 +210,13 @@ const SalaryAnalysisSetup = () => {
 
     setIsSubmitting(true);
     try {
+      // Validate UUID before submission
+      const isValidUUID = (str: string | null | undefined): boolean => {
+        if (!str) return false;
+        const uuidV4Regex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+        return uuidV4Regex.test(str);
+      };
+
       const { data, error } = await supabase
         .from("salary_analyses")
         .insert({
@@ -221,7 +228,7 @@ const SalaryAnalysisSetup = () => {
           job_description: jobDescription.trim(),
           cv_text: cvText.trim() || null,
           cv_url: cvUrl || null,
-          profession_category_id: selectedProfession || null,
+          profession_category_id: isValidUUID(selectedProfession) ? selectedProfession : null,
           status: "pending"
         })
         .select()
