@@ -10,13 +10,15 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
+import { Skeleton } from "@/components/ui/skeleton";
 import { CourseShareButtons } from "@/components/CourseShareButtons";
 import { AccessCodeDialog } from "@/components/AccessCodeDialog";
 import { ProfileCompletionForm } from "@/components/ProfileCompletionForm";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import { GraduationCap, Video, BookOpen, Calendar, Users, MapPin, Clock, ArrowLeft, CheckCircle, Play, MessageCircle, Key, Youtube, Eye, EyeOff } from "lucide-react";
+import { GraduationCap, Video, BookOpen, Calendar, Users, MapPin, Clock, ArrowLeft, CheckCircle, Play, MessageCircle, Key, Youtube, Eye, EyeOff, RefreshCw, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { withTimeout } from "@/hooks/useQueryWithTimeout";
 
 type ContentType = "free_video" | "recorded_course" | "live_webinar" | "batch_class" | "offline_seminar";
 
@@ -61,6 +63,7 @@ const CourseDetail = () => {
   const [showAccessCodeDialog, setShowAccessCodeDialog] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [loadingError, setLoadingError] = useState<string | null>(null);
 
   // Registration form for new users
   const [registrationData, setRegistrationData] = useState({
@@ -142,13 +145,20 @@ const CourseDetail = () => {
   };
 
   const fetchCourse = async () => {
+    setLoadingError(null);
     try {
-      const { data, error } = await supabase
-        .from("content")
-        .select("*")
-        .eq("slug", slug)
-        .eq("is_published", true)
-        .maybeSingle();
+      const { data, error } = await withTimeout(
+        Promise.resolve(
+          supabase
+            .from("content")
+            .select("*")
+            .eq("slug", slug)
+            .eq("is_published", true)
+            .maybeSingle()
+        ),
+        30000,
+        "Course loading timed out"
+      );
 
       if (error) throw error;
       if (!data) {
@@ -181,8 +191,11 @@ const CourseDetail = () => {
       }
     } catch (error: any) {
       console.error("Error fetching course:", error);
-      setError("Failed to load course. Please try again later.");
-      toast.error("Failed to load course");
+      const errorMessage = error.message?.includes("timed out") 
+        ? "Loading took too long. Please try again."
+        : "Failed to load course. Please try again.";
+      setLoadingError(errorMessage);
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -378,8 +391,55 @@ const CourseDetail = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="min-h-screen bg-background flex flex-col">
+        <Navbar />
+        <main className="flex-1 container mx-auto px-4 py-8">
+          <div className="max-w-6xl mx-auto">
+            <Skeleton className="h-8 w-32 mb-6" />
+            <div className="grid lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-2 space-y-6">
+                <Skeleton className="h-10 w-3/4" />
+                <Skeleton className="aspect-video w-full rounded-lg" />
+                <div className="space-y-3">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-2/3" />
+                </div>
+              </div>
+              <div>
+                <Skeleton className="h-64 w-full rounded-lg" />
+              </div>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (loadingError) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <Navbar />
+        <main className="flex-1 flex items-center justify-center px-4">
+          <Card className="max-w-md w-full">
+            <CardContent className="pt-6 text-center">
+              <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+              <h2 className="text-lg font-semibold mb-2">Failed to Load Course</h2>
+              <p className="text-muted-foreground mb-4">{loadingError}</p>
+              <div className="flex gap-2 justify-center">
+                <Button onClick={() => { setIsLoading(true); fetchCourse(); }}>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Try Again
+                </Button>
+                <Button variant="outline" onClick={() => navigate("/courses")}>
+                  Browse Courses
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </main>
+        <Footer />
       </div>
     );
   }
@@ -387,7 +447,8 @@ const CourseDetail = () => {
   if (!course) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background px-6">
-        <div className="text-center max-w-md">
+        <Navbar />
+        <div className="text-center max-w-md flex-1 flex flex-col justify-center">
           <h1 className="text-3xl font-bold mb-4">Course Not Found</h1>
           <p className="text-muted-foreground mb-6">
             {error || "The course you're looking for doesn't exist or has been removed."}
@@ -396,6 +457,7 @@ const CourseDetail = () => {
             Browse Courses
           </Button>
         </div>
+        <Footer />
       </div>
     );
   }

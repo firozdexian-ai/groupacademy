@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { 
   Bot, 
   BookOpen, 
@@ -20,7 +21,9 @@ import {
   Briefcase,
   ChevronRight,
   MessageSquare,
-  Play
+  Play,
+  RefreshCw,
+  AlertCircle
 } from "lucide-react";
 
 interface ProfessionLine {
@@ -67,6 +70,7 @@ export default function ProfessionDetail() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showChat, setShowChat] = useState(false);
+  const [loadingError, setLoadingError] = useState<string | null>(null);
 
   useEffect(() => {
     if (slug) {
@@ -75,19 +79,28 @@ export default function ProfessionDetail() {
   }, [slug]);
 
   const loadProfessionData = async () => {
+    setLoadingError(null);
     try {
-      // Load profession line
-      const { data: professionData } = await supabase
-        .from("profession_categories")
-        .select(`
-          *,
-          schools(
-            name,
-            academies(name)
-          )
-        `)
-        .eq("slug", slug)
-        .single();
+      // Load profession line with timeout
+      const { data: professionData, error } = await withTimeout(
+        Promise.resolve(
+          supabase
+            .from("profession_categories")
+            .select(`
+              *,
+              schools(
+                name,
+                academies(name)
+              )
+            `)
+            .eq("slug", slug)
+            .single()
+        ),
+        30000,
+        "Loading timed out"
+      );
+
+      if (error) throw error;
 
       if (professionData) {
         setProfession(professionData);
@@ -120,8 +133,11 @@ export default function ProfessionDetail() {
 
         setCourses(coursesData || []);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error loading profession data:", error);
+      setLoadingError(error.message?.includes("timed out") 
+        ? "Loading took too long. Please try again."
+        : "Failed to load profession data. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -138,6 +154,29 @@ export default function ProfessionDetail() {
           <div className="grid gap-6 md:grid-cols-2">
             <Skeleton className="h-64" />
             <Skeleton className="h-64" />
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (loadingError) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main className="container mx-auto px-4 py-12 text-center">
+          <AlertCircle className="h-16 w-16 mx-auto text-destructive mb-4" />
+          <h1 className="text-2xl font-bold mb-2">Failed to Load</h1>
+          <p className="text-muted-foreground mb-4">{loadingError}</p>
+          <div className="flex gap-2 justify-center">
+            <Button onClick={() => { setIsLoading(true); loadProfessionData(); }}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Try Again
+            </Button>
+            <Button variant="outline" onClick={() => navigate("/professions")}>
+              Browse Professions
+            </Button>
           </div>
         </main>
         <Footer />
