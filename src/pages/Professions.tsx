@@ -67,29 +67,20 @@ export default function Professions() {
   const loadData = async () => {
     setLoadingError(null);
     try {
-      // Load academies with timeout
-      const { data: academiesData, error: academiesError } = await withTimeout(
-        Promise.resolve(
-          supabase
-            .from("academies")
-            .select("*")
-            .eq("is_active", true)
-            .order("display_order")
-        ),
-        30000,
-        "Loading timed out"
-      );
-      if (academiesError) throw academiesError;
+      // Load all data with timeout protection
+      const academiesPromise = supabase
+        .from("academies")
+        .select("*")
+        .eq("is_active", true)
+        .order("display_order");
 
-      // Load schools
-      const { data: schoolsData } = await supabase
+      const schoolsPromise = supabase
         .from("schools")
         .select("*")
         .eq("is_active", true)
         .order("display_order");
 
-      // Load profession lines with AI instructors
-      const { data: professionData } = await supabase
+      const professionsPromise = supabase
         .from("profession_categories")
         .select(`
           *,
@@ -99,12 +90,25 @@ export default function Professions() {
         .not("school_id", "is", null)
         .order("display_order");
 
-      setAcademies(academiesData || []);
-      setSchools(schoolsData || []);
-      setProfessionLines((professionData as ProfessionLine[]) || []);
+      // Race all queries against a single timeout
+      const results = await withTimeout(
+        Promise.all([academiesPromise, schoolsPromise, professionsPromise]),
+        15000,
+        "Loading timed out"
+      );
+
+      const [academiesResult, schoolsResult, professionsResult] = results;
+
+      if (academiesResult.error) throw academiesResult.error;
+      if (schoolsResult.error) throw schoolsResult.error;
+      if (professionsResult.error) throw professionsResult.error;
+
+      setAcademies(academiesResult.data || []);
+      setSchools(schoolsResult.data || []);
+      setProfessionLines((professionsResult.data as ProfessionLine[]) || []);
       
-      if (academiesData && academiesData.length > 0) {
-        setSelectedAcademy(academiesData[0].slug);
+      if (academiesResult.data && academiesResult.data.length > 0) {
+        setSelectedAcademy(academiesResult.data[0].slug);
       }
     } catch (error: any) {
       console.error("Error loading data:", error);

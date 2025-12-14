@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +11,8 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { CardGridSkeleton } from "@/components/ui/page-loading-skeleton";
 import { ErrorState } from "@/components/ui/error-state";
+import { useQueryWithTimeout } from "@/hooks/useQueryWithTimeout";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
 
 type ContentType = "free_video" | "recorded_course" | "live_webinar" | "batch_class" | "offline_seminar";
 
@@ -41,7 +42,7 @@ const Courses = () => {
   const navigate = useNavigate();
   const [selectedType, setSelectedType] = useState<ContentType | "all">("all");
 
-  const { data: courses = [], isLoading, error, refetch } = useQuery({
+  const { data: courses = [], isLoading, error, refetch } = useQueryWithTimeout({
     queryKey: ["courses"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -55,8 +56,7 @@ const Courses = () => {
       if (error) throw error;
       return data as Course[];
     },
-    retry: 2,
-    retryDelay: 1000,
+    timeout: TIMEOUTS.DEFAULT,
   });
 
   const filteredCourses =

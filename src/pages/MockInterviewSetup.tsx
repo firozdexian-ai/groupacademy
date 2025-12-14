@@ -76,12 +76,25 @@ export default function MockInterviewSetup() {
   }, []);
 
   const loadCategories = async () => {
-    const { data } = await supabase
-      .from("profession_categories")
-      .select("id, name, slug")
-      .eq("is_active", true)
-      .order("display_order");
-    if (data) setCategories(data);
+    try {
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("Categories loading timed out")), 10000);
+      });
+
+      const queryPromise = supabase
+        .from("profession_categories")
+        .select("id, name, slug")
+        .eq("is_active", true)
+        .order("display_order");
+
+      const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
+      
+      if (error) throw error;
+      if (data) setCategories(data);
+    } catch (error) {
+      console.error("Error loading categories:", error);
+      // Categories are non-critical, silently fail
+    }
   };
 
   const handleEmailCheck = async () => {

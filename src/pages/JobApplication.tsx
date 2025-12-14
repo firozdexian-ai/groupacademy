@@ -84,12 +84,19 @@ const JobApplication = () => {
 
   const loadJob = async () => {
     try {
-      const { data, error } = await supabase
+      // Add 15-second timeout for job loading
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("Loading timed out")), 15000);
+      });
+
+      const queryPromise = supabase
         .from("jobs")
         .select("id, title, company_name, company_logo_url, application_email, application_type, application_url")
         .eq("id", id)
         .eq("is_active", true)
         .single();
+
+      const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
 
       if (error) throw error;
       setJob(data);
@@ -102,9 +109,12 @@ const JobApplication = () => {
           navigate(`/jobs/${id}`);
         }, 1000);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error loading job:", error);
-      toast.error("Job not found");
+      const message = error?.message?.includes("timed out") 
+        ? "Loading took too long. Please try again."
+        : "Job not found";
+      toast.error(message);
       navigate("/jobs");
     } finally {
       setLoading(false);
@@ -113,17 +123,23 @@ const JobApplication = () => {
 
   const checkExistingProfile = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      // Add 10-second timeout for profile check
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("Profile check timed out")), 10000);
+      });
+
+      const userPromise = supabase.auth.getUser();
+      const { data: { user } } = await Promise.race([userPromise, timeoutPromise]) as any;
       
       if (user) {
         // FIXED: Check by email ONLY to ensure we get the correct professional profile
-        // Previously checking by user_id first caused data isolation issues where
-        // different CVs showed the same profile data
-        const { data: profile } = await supabase
+        const profilePromise = supabase
           .from("professionals")
           .select("*")
           .eq("email", user.email)
           .single();
+
+        const { data: profile } = await Promise.race([profilePromise, timeoutPromise]) as any;
 
         if (profile) {
           setExistingProfile(profile);
@@ -141,6 +157,7 @@ const JobApplication = () => {
       }
     } catch (error) {
       console.error("Error checking profile:", error);
+      // Non-critical, silently fail
     }
   };
 
@@ -234,15 +251,21 @@ const JobApplication = () => {
       setUploading(false);
     }
 
-    // Parse CV with AI
+    // Parse CV with AI (60-second timeout for AI parsing)
     setParsing(true);
     try {
-      const response = await supabase.functions.invoke('parse-cv', {
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("CV parsing timed out")), 60000);
+      });
+
+      const parsePromise = supabase.functions.invoke('parse-cv', {
         body: { 
           cvUrl: finalCvUrl,
           jobId: id 
         }
       });
+
+      const response = await Promise.race([parsePromise, timeoutPromise]) as any;
 
       if (response.error) throw response.error;
 
@@ -256,9 +279,12 @@ const JobApplication = () => {
       
       toast.success("CV parsed successfully!");
       setStep(2);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Parse error:", error);
-      toast.error("Failed to parse CV. Please try again.");
+      const message = error?.message?.includes("timed out")
+        ? "CV parsing took too long. Please try again."
+        : "Failed to parse CV. Please try again.";
+      toast.error(message);
     } finally {
       setParsing(false);
     }
