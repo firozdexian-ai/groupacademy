@@ -253,27 +253,39 @@ export default function PortfolioRequest() {
         throw error;
       }
 
-      // Also create or update professional profile
+      // Also create professional profile (INSERT only, skip if exists)
       try {
-        await supabase
+        const { data: existingProf } = await supabase
           .from('professionals')
-          .upsert({
-            full_name: formData.fullName,
-            email: formData.email,
-            phone: formData.phone,
-            profession_category_id: formData.professionCategoryId || null,
-            custom_profession: isOtherCategory ? formData.customProfession : null,
-            cv_url: effectiveCvUrl || null,
-            education: formData.profileData.education as unknown as any,
-            experience: formData.profileData.experience as unknown as any,
-            skills: formData.profileData.skills as unknown as any,
-            projects: formData.profileData.projects as unknown as any,
-            achievements: formData.profileData.achievements as unknown as any,
-            linkedin_url: formData.socialLinks.linkedin || null,
-            services_used: ['portfolio'] as unknown as any,
-          }, { onConflict: 'email' });
+          .select('id')
+          .eq('email', formData.email)
+          .maybeSingle();
+
+        if (!existingProf) {
+          await supabase
+            .from('professionals')
+            .insert({
+              full_name: formData.fullName,
+              email: formData.email,
+              phone: formData.phone,
+              profession_category_id: formData.professionCategoryId || null,
+              custom_profession: isOtherCategory ? formData.customProfession : null,
+              cv_url: effectiveCvUrl || null,
+              education: formData.profileData.education as unknown as any,
+              experience: formData.profileData.experience as unknown as any,
+              skills: formData.profileData.skills as unknown as any,
+              projects: formData.profileData.projects as unknown as any,
+              achievements: formData.profileData.achievements as unknown as any,
+              linkedin_url: formData.socialLinks.linkedin || null,
+              services_used: ['portfolio'] as unknown as any,
+            });
+          console.log('[PortfolioRequest] Professional profile created');
+        } else {
+          console.log('[PortfolioRequest] Professional profile already exists, skipping insert');
+        }
       } catch (profError) {
-        console.log('[PortfolioRequest] Professional profile upsert skipped:', profError);
+        console.log('[PortfolioRequest] Professional profile creation skipped:', profError);
+        // Non-blocking - portfolio request already saved
       }
 
       setRequestId(data.id);
