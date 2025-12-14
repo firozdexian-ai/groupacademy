@@ -3,9 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { Users, BookOpen, DollarSign, Video, Plus, Target, Briefcase, RefreshCw, AlertCircle } from "lucide-react";
 import StatsCard from "@/components/dashboard/StatsCard";
+import { withTimeout } from "@/hooks/useQueryWithTimeout";
 
 interface DashboardStats {
   totalLearners: number;
@@ -57,10 +59,12 @@ export function DashboardOverview() {
     setStatsError(null);
     setIsLoading(true);
     try {
-      // Load students count
-      const { count: studentsCount, error: studentsError } = await supabase
-        .from("students")
-        .select("*", { count: "exact", head: true });
+      // Load students count with timeout
+      const { count: studentsCount, error: studentsError } = await withTimeout(
+        Promise.resolve(supabase.from("students").select("*", { count: "exact", head: true })),
+        30000,
+        "Loading timed out"
+      );
       if (studentsError) throw studentsError;
 
       // Load active enrollments
@@ -131,8 +135,10 @@ export function DashboardOverview() {
       });
     } catch (error: any) {
       console.error("Error loading stats:", error);
-      setStatsError("Failed to load dashboard statistics");
-      toast.error("Failed to load statistics");
+      const errorMessage = error.message?.includes("timed out") 
+        ? "Loading took too long. Please try again."
+        : "Failed to load dashboard statistics";
+      setStatsError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -140,8 +146,38 @@ export function DashboardOverview() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <Skeleton className="h-8 w-48 mb-2" />
+            <Skeleton className="h-4 w-72" />
+          </div>
+          <Skeleton className="h-10 w-32" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Card key={i}>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-8 w-8 rounded" />
+                </div>
+                <Skeleton className="h-8 w-16 mt-2" />
+                <Skeleton className="h-3 w-32 mt-2" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <Card>
+          <CardContent className="p-6">
+            <Skeleton className="h-5 w-28 mb-4" />
+            <div className="flex flex-wrap gap-3">
+              {[1, 2, 3, 4].map((i) => (
+                <Skeleton key={i} className="h-10 w-36" />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }

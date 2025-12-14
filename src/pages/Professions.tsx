@@ -9,13 +9,16 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getIcon } from "@/lib/iconMap";
+import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { 
   GraduationCap, 
   Building2, 
   ArrowRight,
   Bot,
   BookOpen,
-  Target
+  Target,
+  RefreshCw,
+  AlertCircle
 } from "lucide-react";
 
 interface Academy {
@@ -55,19 +58,28 @@ export default function Professions() {
   const [professionLines, setProfessionLines] = useState<ProfessionLine[]>([]);
   const [selectedAcademy, setSelectedAcademy] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
+  const [loadingError, setLoadingError] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
   }, []);
 
   const loadData = async () => {
+    setLoadingError(null);
     try {
-      // Load academies
-      const { data: academiesData } = await supabase
-        .from("academies")
-        .select("*")
-        .eq("is_active", true)
-        .order("display_order");
+      // Load academies with timeout
+      const { data: academiesData, error: academiesError } = await withTimeout(
+        Promise.resolve(
+          supabase
+            .from("academies")
+            .select("*")
+            .eq("is_active", true)
+            .order("display_order")
+        ),
+        30000,
+        "Loading timed out"
+      );
+      if (academiesError) throw academiesError;
 
       // Load schools
       const { data: schoolsData } = await supabase
@@ -94,8 +106,11 @@ export default function Professions() {
       if (academiesData && academiesData.length > 0) {
         setSelectedAcademy(academiesData[0].slug);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error loading data:", error);
+      setLoadingError(error.message?.includes("timed out") 
+        ? "Loading took too long. Please try again."
+        : "Failed to load professions. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -119,10 +134,28 @@ export default function Professions() {
           <Skeleton className="h-12 w-64 mb-4" />
           <Skeleton className="h-6 w-96 mb-8" />
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-64" />
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <Skeleton key={i} className="h-64 rounded-lg" />
             ))}
           </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (loadingError) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main className="container mx-auto px-4 py-12 text-center">
+          <AlertCircle className="h-16 w-16 mx-auto text-destructive mb-4" />
+          <h1 className="text-2xl font-bold mb-2">Failed to Load</h1>
+          <p className="text-muted-foreground mb-4">{loadingError}</p>
+          <Button onClick={() => { setIsLoading(true); loadData(); }}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Try Again
+          </Button>
         </main>
         <Footer />
       </div>
