@@ -7,12 +7,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
-import { Search, Download, ExternalLink, FileText, Mail, Send, RefreshCw, Loader2 } from 'lucide-react';
+import { Search, Download, ExternalLink, FileText, Mail, RefreshCw, Loader2, Copy, Forward, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import type { Database } from '@/integrations/supabase/types';
 
 type ApplicationStatus = Database['public']['Enums']['application_status'];
 type DeliveryStatus = Database['public']['Enums']['delivery_status'];
+type ApplicationType = Database['public']['Enums']['application_type'];
 
 interface JobApplication {
   id: string;
@@ -28,6 +29,9 @@ interface JobApplication {
   jobs: {
     title: string;
     company_name: string;
+    application_type: ApplicationType;
+    application_email: string | null;
+    application_url: string | null;
   } | null;
   professionals: {
     full_name: string;
@@ -68,7 +72,7 @@ export const JobApplicationsManager = () => {
         .from('job_applications')
         .select(`
           *,
-          jobs (title, company_name),
+          jobs (title, company_name, application_type, application_email, application_url),
           professionals (full_name, email, phone)
         `)
         .order('created_at', { ascending: false });
@@ -140,7 +144,6 @@ export const JobApplicationsManager = () => {
         description: 'Application has been delivered to the employer',
       });
 
-      // Reload to get updated status
       loadApplications();
     } catch (error: any) {
       console.error('Error sending email:', error);
@@ -154,6 +157,71 @@ export const JobApplicationsManager = () => {
     }
   };
 
+  const handleCopyDetails = (app: JobApplication) => {
+    const details = `
+JOB APPLICATION DETAILS
+========================
+Applicant: ${app.professionals?.full_name || 'Unknown'}
+Email: ${app.professionals?.email || 'N/A'}
+Phone: ${app.professionals?.phone || 'N/A'}
+
+Job: ${app.jobs?.title || 'Unknown'}
+Company: ${app.jobs?.company_name || 'Unknown'}
+
+CV: ${app.cv_url || 'Not provided'}
+
+Cover Letter:
+${app.cover_letter || 'Not provided'}
+
+Applied: ${app.created_at ? format(new Date(app.created_at), 'MMMM d, yyyy HH:mm') : 'Unknown'}
+    `.trim();
+
+    navigator.clipboard.writeText(details);
+    toast({ title: 'Application details copied to clipboard' });
+  };
+
+  const handleForwardManually = (app: JobApplication) => {
+    const employerEmail = app.jobs?.application_email;
+    if (!employerEmail) {
+      toast({
+        title: 'No employer email',
+        description: 'This job does not have an application email set',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const subject = encodeURIComponent(`Job Application: ${app.jobs?.title} - ${app.professionals?.full_name}`);
+    const body = encodeURIComponent(`
+Dear Hiring Manager,
+
+Please find attached the job application from ${app.professionals?.full_name} for the ${app.jobs?.title} position at ${app.jobs?.company_name}.
+
+APPLICANT DETAILS:
+- Name: ${app.professionals?.full_name}
+- Email: ${app.professionals?.email}
+- Phone: ${app.professionals?.phone || 'Not provided'}
+
+CV Link: ${app.cv_url || 'Not provided'}
+
+COVER LETTER:
+${app.cover_letter || 'Not provided'}
+
+---
+This application was submitted via GroUp Academy Jobs Board.
+    `.trim());
+
+    window.open(`mailto:${employerEmail}?subject=${subject}&body=${body}`, '_blank');
+    
+    // Mark as sent after manual forward
+    handleStatusChange(app.id, 'sent_to_employer');
+    supabase
+      .from('job_applications')
+      .update({ delivery_status: 'sent' })
+      .eq('id', app.id)
+      .then(() => loadApplications());
+  };
+
   const exportToCSV = () => {
     const headers = [
       'Applicant Name',
@@ -161,6 +229,7 @@ export const JobApplicationsManager = () => {
       'Phone',
       'Job Title',
       'Company',
+      'Application Type',
       'Application Status',
       'Delivery Status',
       'Is Paid',
@@ -174,6 +243,7 @@ export const JobApplicationsManager = () => {
       app.professionals?.phone || '',
       app.jobs?.title || '',
       app.jobs?.company_name || '',
+      app.jobs?.application_type || '',
       app.application_status || '',
       app.delivery_status || '',
       app.is_paid ? 'Yes' : 'No',
@@ -209,15 +279,39 @@ export const JobApplicationsManager = () => {
     );
   };
 
-  const getDeliveryBadge = (status: DeliveryStatus | null) => {
-    const variants: Record<DeliveryStatus, string> = {
-      pending: 'bg-yellow-100 text-yellow-800',
-      sent: 'bg-green-100 text-green-800',
-      failed: 'bg-red-100 text-red-800',
-    };
+  const getDeliveryBadge = (app: JobApplication) => {
+    const isLinkType = app.jobs?.application_type === 'link';
+    
+    if (isLinkType) {
+      return (
+        <Badge className="bg-green-100 text-green-800 gap-1">
+          <ExternalLink className="w-3 h-3" />
+          Redirected
+        </Badge>
+      );
+    }
+
+    const status = app.delivery_status;
+    if (status === 'sent') {
+      return (
+        <Badge className="bg-green-100 text-green-800 gap-1">
+          <CheckCircle2 className="w-3 h-3" />
+          Sent
+        </Badge>
+      );
+    }
+    if (status === 'failed') {
+      return (
+        <Badge className="bg-red-100 text-red-800 gap-1">
+          <AlertTriangle className="w-3 h-3" />
+          Failed
+        </Badge>
+      );
+    }
     return (
-      <Badge className={status ? variants[status] : 'bg-gray-100 text-gray-800'}>
-        {status || 'Unknown'}
+      <Badge className="bg-amber-100 text-amber-800 gap-1">
+        <Forward className="w-3 h-3" />
+        Needs Forward
       </Badge>
     );
   };
@@ -228,7 +322,10 @@ export const JobApplicationsManager = () => {
 
   const stats = {
     total: applications.length,
-    submitted: applications.filter((a) => a.application_status === 'submitted').length,
+    needsForward: applications.filter((a) => 
+      a.jobs?.application_type === 'email' && 
+      a.delivery_status === 'pending'
+    ).length,
     shortlisted: applications.filter((a) => a.application_status === 'shortlisted').length,
     paid: applications.filter((a) => a.is_paid).length,
   };
@@ -240,7 +337,10 @@ export const JobApplicationsManager = () => {
           <div>
             <CardTitle>Job Applications ({filteredApplications.length})</CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
-              {stats.submitted} submitted • {stats.shortlisted} shortlisted • {stats.paid} paid
+              {stats.needsForward > 0 && (
+                <span className="text-amber-600 font-medium">{stats.needsForward} need forwarding • </span>
+              )}
+              {stats.shortlisted} shortlisted • {stats.paid} paid
             </p>
           </div>
           <Button onClick={exportToCSV} variant="outline">
@@ -248,6 +348,15 @@ export const JobApplicationsManager = () => {
             Export CSV
           </Button>
         </div>
+
+        {stats.needsForward > 0 && (
+          <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
+            <p className="text-sm text-amber-800 dark:text-amber-200">
+              <strong>{stats.needsForward} application(s)</strong> need manual forwarding to employers. 
+              Use the "Forward" button to open your email client with pre-filled content.
+            </p>
+          </div>
+        )}
 
         <div className="flex flex-col gap-4 mt-4 md:flex-row">
           <div className="relative flex-1">
@@ -295,6 +404,7 @@ export const JobApplicationsManager = () => {
               <TableRow>
                 <TableHead>Applicant</TableHead>
                 <TableHead>Job</TableHead>
+                <TableHead>Type</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Delivery</TableHead>
                 <TableHead>Paid</TableHead>
@@ -305,13 +415,17 @@ export const JobApplicationsManager = () => {
             <TableBody>
               {filteredApplications.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                     No applications found
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredApplications.map((app) => (
-                  <TableRow key={app.id}>
+                  <TableRow key={app.id} className={
+                    app.jobs?.application_type === 'email' && app.delivery_status === 'pending' 
+                      ? 'bg-amber-50/50 dark:bg-amber-950/10' 
+                      : ''
+                  }>
                     <TableCell>
                       <div>
                         <p className="font-medium">{app.professionals?.full_name || 'Unknown'}</p>
@@ -326,6 +440,11 @@ export const JobApplicationsManager = () => {
                         <p className="font-medium">{app.jobs?.title || 'Unknown'}</p>
                         <p className="text-sm text-muted-foreground">{app.jobs?.company_name}</p>
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={app.jobs?.application_type === 'link' ? 'secondary' : 'outline'}>
+                        {app.jobs?.application_type === 'link' ? 'Link' : 'Email'}
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       <Select
@@ -346,7 +465,7 @@ export const JobApplicationsManager = () => {
                         </SelectContent>
                       </Select>
                     </TableCell>
-                    <TableCell>{getDeliveryBadge(app.delivery_status)}</TableCell>
+                    <TableCell>{getDeliveryBadge(app)}</TableCell>
                     <TableCell>
                       <Badge variant={app.is_paid ? 'default' : 'secondary'}>
                         {app.is_paid ? 'Paid' : 'Free'}
@@ -358,7 +477,7 @@ export const JobApplicationsManager = () => {
                         : 'Unknown'}
                     </TableCell>
                     <TableCell>
-                      <div className="flex gap-2">
+                      <div className="flex gap-1">
                         {app.cv_url && (
                           <Button
                             variant="ghost"
@@ -369,6 +488,14 @@ export const JobApplicationsManager = () => {
                             <FileText className="h-4 w-4" />
                           </Button>
                         )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleCopyDetails(app)}
+                          title="Copy Details"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
                         {app.professionals?.email && (
                           <Button
                             variant="ghost"
@@ -381,13 +508,24 @@ export const JobApplicationsManager = () => {
                             <Mail className="h-4 w-4" />
                           </Button>
                         )}
-                        {(app.delivery_status === 'pending' || app.delivery_status === 'failed') && (
+                        {app.jobs?.application_type === 'email' && app.delivery_status !== 'sent' && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleForwardManually(app)}
+                            title="Forward to Employer"
+                            className="text-amber-600 hover:text-amber-700"
+                          >
+                            <Forward className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {app.jobs?.application_type === 'email' && (app.delivery_status === 'pending' || app.delivery_status === 'failed') && (
                           <Button
                             variant="ghost"
                             size="icon"
                             onClick={() => handleResendEmail(app.id)}
                             disabled={resendingId === app.id}
-                            title="Resend to Employer"
+                            title="Retry Auto-Send"
                           >
                             {resendingId === app.id ? (
                               <Loader2 className="h-4 w-4 animate-spin" />

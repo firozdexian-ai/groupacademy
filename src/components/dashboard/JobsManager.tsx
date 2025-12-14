@@ -84,7 +84,7 @@ const emptyJob = {
   description: "",
   ai_enhanced_description: null as string | null,
   requirements: [] as string[],
-  application_type: "email",
+  application_type: "link", // Default to link - works without email domain
   application_email: "",
   application_url: "",
   source_url: "",
@@ -889,42 +889,53 @@ export function JobsManager() {
               </div>
 
               {/* Application Method */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Application Type</Label>
-                  <Select
-                    value={formData.application_type}
-                    onValueChange={(v) => setFormData({ ...formData, application_type: v })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="email">Email Application</SelectItem>
-                      <SelectItem value="link">External Link</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                {formData.application_type === "email" ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="app_email">Application Email *</Label>
-                    <Input
-                      id="app_email"
-                      type="email"
-                      value={formData.application_email}
-                      onChange={(e) => setFormData({ ...formData, application_email: e.target.value })}
-                      placeholder="hr@company.com"
-                    />
+                    <Label>Application Type</Label>
+                    <Select
+                      value={formData.application_type}
+                      onValueChange={(v) => setFormData({ ...formData, application_type: v })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="link">External Link (Recommended)</SelectItem>
+                        <SelectItem value="email">Email Application</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                ) : (
-                  <div className="space-y-2">
-                    <Label htmlFor="app_url">Application URL *</Label>
-                    <Input
-                      id="app_url"
-                      value={formData.application_url}
-                      onChange={(e) => setFormData({ ...formData, application_url: e.target.value })}
-                      placeholder="https://..."
-                    />
+                  {formData.application_type === "email" ? (
+                    <div className="space-y-2">
+                      <Label htmlFor="app_email">Application Email *</Label>
+                      <Input
+                        id="app_email"
+                        type="email"
+                        value={formData.application_email}
+                        onChange={(e) => setFormData({ ...formData, application_email: e.target.value })}
+                        placeholder="hr@company.com"
+                      />
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Label htmlFor="app_url">Application URL *</Label>
+                      <Input
+                        id="app_url"
+                        value={formData.application_url}
+                        onChange={(e) => setFormData({ ...formData, application_url: e.target.value })}
+                        placeholder="https://..."
+                      />
+                    </div>
+                  )}
+                </div>
+                
+                {formData.application_type === "email" && (
+                  <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
+                    <p className="text-sm text-amber-800 dark:text-amber-200">
+                      <strong>Note:</strong> Email applications require manual forwarding by admin until email domain is verified. 
+                      Use "External Link" for automatic applicant redirect.
+                    </p>
                   </div>
                 )}
               </div>
