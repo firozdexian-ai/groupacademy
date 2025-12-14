@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
-import { Search, Download, ExternalLink, FileText, Mail, Send } from 'lucide-react';
+import { Search, Download, ExternalLink, FileText, Mail, Send, RefreshCw, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import type { Database } from '@/integrations/supabase/types';
 
@@ -56,6 +56,7 @@ export const JobApplicationsManager = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [deliveryFilter, setDeliveryFilter] = useState<string>('all');
+  const [resendingId, setResendingId] = useState<string | null>(null);
 
   useEffect(() => {
     loadApplications();
@@ -122,6 +123,34 @@ export const JobApplicationsManager = () => {
         description: 'Failed to update status',
         variant: 'destructive',
       });
+    }
+  };
+
+  const handleResendEmail = async (applicationId: string) => {
+    setResendingId(applicationId);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-job-application', {
+        body: { applicationId },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: 'Email sent successfully',
+        description: 'Application has been delivered to the employer',
+      });
+
+      // Reload to get updated status
+      loadApplications();
+    } catch (error: any) {
+      console.error('Error sending email:', error);
+      toast({
+        title: 'Failed to send email',
+        description: error.message || 'Please try again later',
+        variant: 'destructive',
+      });
+    } finally {
+      setResendingId(null);
     }
   };
 
@@ -350,6 +379,21 @@ export const JobApplicationsManager = () => {
                             title="Email Applicant"
                           >
                             <Mail className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {(app.delivery_status === 'pending' || app.delivery_status === 'failed') && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleResendEmail(app.id)}
+                            disabled={resendingId === app.id}
+                            title="Resend to Employer"
+                          >
+                            {resendingId === app.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <RefreshCw className="h-4 w-4 text-primary" />
+                            )}
                           </Button>
                         )}
                       </div>
