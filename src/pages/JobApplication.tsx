@@ -23,6 +23,8 @@ interface Job {
   company_name: string;
   company_logo_url: string | null;
   application_email: string | null;
+  application_type: string;
+  application_url: string | null;
 }
 
 interface ParsedCV {
@@ -84,13 +86,22 @@ const JobApplication = () => {
     try {
       const { data, error } = await supabase
         .from("jobs")
-        .select("id, title, company_name, company_logo_url, application_email")
+        .select("id, title, company_name, company_logo_url, application_email, application_type, application_url")
         .eq("id", id)
         .eq("is_active", true)
         .single();
 
       if (error) throw error;
       setJob(data);
+      
+      // For link-type jobs, redirect immediately
+      if (data.application_type === "link" && data.application_url) {
+        toast.success("Redirecting to external application...");
+        setTimeout(() => {
+          window.open(data.application_url, "_blank");
+          navigate(`/jobs/${id}`);
+        }, 1000);
+      }
     } catch (error) {
       console.error("Error loading job:", error);
       toast.error("Job not found");
@@ -365,22 +376,32 @@ const JobApplication = () => {
         }
       }
 
-      // Send email notification to employer (fire and forget)
-      if (newApplication?.id) {
-        supabase.functions.invoke('send-job-application', {
-          body: { applicationId: newApplication.id }
-        }).then(response => {
-          if (response.error) {
-            console.error("Email notification error:", response.error);
-          } else {
-            console.log("Email notification sent successfully");
-          }
-        }).catch(err => {
-          console.error("Failed to send email notification:", err);
-        });
+      // For email-type jobs, mark as pending manual forward
+      // For link-type jobs, this shouldn't reach here but handle gracefully
+      if (job.application_type === 'email') {
+        // Don't auto-send email - mark for manual forward
+        await supabase
+          .from('job_applications')
+          .update({ 
+            delivery_status: 'pending',
+            application_status: 'submitted' 
+          })
+          .eq('id', newApplication.id);
+          
+        toast.success("Application submitted! Our team will forward it to the employer shortly.");
+      } else {
+        // Link type - mark as completed
+        await supabase
+          .from('job_applications')
+          .update({ 
+            delivery_status: 'sent',
+            application_status: 'sent_to_employer' 
+          })
+          .eq('id', newApplication.id);
+          
+        toast.success("Application submitted!");
       }
-
-      toast.success("Application submitted successfully!");
+      
       navigate("/jobs", { state: { applicationSubmitted: true } });
     } catch (error) {
       console.error("Submit error:", error);
