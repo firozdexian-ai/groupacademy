@@ -8,10 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { 
-  Briefcase, FileText, MessageSquare, ArrowRight, Sparkles, Search, 
+  Briefcase, FileText, MessageSquare, ArrowRight, Search, 
   MapPin, Building2, Clock, DollarSign, Star, Calendar, ChevronLeft, ChevronRight,
-  Loader2, Filter
+  Filter
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -389,8 +390,22 @@ const Jobs = () => {
 
             {/* Loading State */}
             {loading ? (
-              <div className="flex items-center justify-center py-20">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <Card key={i} className="p-5">
+                    <div className="flex items-start gap-4">
+                      <Skeleton className="h-12 w-12 rounded-lg" />
+                      <div className="flex-1 space-y-3">
+                        <Skeleton className="h-5 w-3/4" />
+                        <Skeleton className="h-4 w-1/2" />
+                        <div className="flex gap-2">
+                          <Skeleton className="h-6 w-16" />
+                          <Skeleton className="h-6 w-20" />
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
               </div>
             ) : jobs.length === 0 ? (
               <div className="text-center py-20">

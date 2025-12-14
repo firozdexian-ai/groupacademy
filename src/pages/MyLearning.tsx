@@ -1,15 +1,16 @@
-import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Navbar } from "@/components/Navbar";
 import { ProfileCompletionForm } from "@/components/ProfileCompletionForm";
-import { toast } from "sonner";
 import { BookOpen, Calendar, CheckCircle, Clock, MessageCircle } from "lucide-react";
+import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
+import { ErrorState } from "@/components/ui/error-state";
 
 interface Enrollment {
   id: string;
@@ -30,41 +31,33 @@ interface Enrollment {
 const MyLearning = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
-  const [isLoading, setIsLoading] = useState(true);
-  const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
-  const [studentProfile, setStudentProfile] = useState<any>(null);
-  const [showProfileCompletion, setShowProfileCompletion] = useState(false);
 
-  useEffect(() => {
-    checkAuthAndLoadData();
-  }, []);
-
-  const checkAuthAndLoadData = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        navigate("/auth");
-        return;
-      }
-
-      // Get student profile
-      const { data: student } = await supabase
+  // Fetch student profile
+  const { data: studentProfile, isLoading: profileLoading, error: profileError, refetch: refetchProfile } = useQuery({
+    queryKey: ["student-profile", user?.id],
+    queryFn: async () => {
+      if (!user) throw new Error("Not authenticated");
+      
+      const { data, error } = await supabase
         .from("students")
         .select("*")
         .eq("user_id", user.id)
         .maybeSingle();
 
-      if (!student) {
-        // Show profile completion form instead of error
-        setShowProfileCompletion(true);
-        setIsLoading(false);
-        return;
-      }
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+    retry: 2,
+  });
 
-      setStudentProfile(student);
-
-      // Get enrollments with content details
-      const { data: enrollmentData, error } = await supabase
+  // Fetch enrollments
+  const { data: enrollments = [], isLoading: enrollmentsLoading, error: enrollmentsError, refetch: refetchEnrollments } = useQuery({
+    queryKey: ["enrollments", studentProfile?.id],
+    queryFn: async () => {
+      if (!studentProfile) return [];
+      
+      const { data, error } = await supabase
         .from("enrollments")
         .select(`
           id,
@@ -81,33 +74,67 @@ const MyLearning = () => {
             whatsapp_group_link
           )
         `)
-        .eq("student_id", student.id)
+        .eq("student_id", studentProfile.id)
         .order("enrolled_at", { ascending: false });
 
       if (error) throw error;
-      setEnrollments(enrollmentData || []);
-    } catch (error: any) {
-      console.error("Error loading learning data:", error);
-      toast.error("Failed to load your courses");
-    } finally {
-      setIsLoading(false);
-    }
+      return data as Enrollment[];
+    },
+    enabled: !!studentProfile?.id,
+    retry: 2,
+  });
+
+  const isLoading = profileLoading || enrollmentsLoading;
+
+  const handleProfileComplete = () => {
+    refetchProfile();
+    refetchEnrollments();
   };
 
-  const handleLogout = async () => {
-    try {
-      await signOut();
-    } catch (error) {
-      console.error("Logout error:", error);
-    }
-  };
+  // Redirect if not authenticated
+  if (!user) {
+    navigate("/auth");
+    return null;
+  }
 
-  const handleProfileComplete = (profile: any) => {
-    setStudentProfile(profile);
-    setShowProfileCompletion(false);
-    // Reload enrollments after profile is created
-    checkAuthAndLoadData();
-  };
+  // Loading state
+  if (isLoading) {
+    return <PageLoadingSkeleton showNavbar variant="dashboard" title="My Learning" />;
+  }
+
+  // Error state
+  if (profileError || enrollmentsError) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main className="container mx-auto px-4 sm:px-6 py-8">
+          <ErrorState
+            type="server"
+            title="Failed to load your courses"
+            description="We couldn't load your learning data. Please try again."
+            onRetry={() => {
+              refetchProfile();
+              refetchEnrollments();
+            }}
+          />
+        </main>
+      </div>
+    );
+  }
+
+  // Show profile completion form if profile is missing
+  if (!studentProfile) {
+    return (
+      <>
+        <Navbar />
+        <div className="min-h-screen bg-background flex items-center justify-center p-4 sm:p-6">
+          <div className="max-w-md w-full">
+            <ProfileCompletionForm user={user} onComplete={handleProfileComplete} />
+          </div>
+        </div>
+      </>
+    );
+  }
 
   const activeEnrollments = enrollments.filter((e) => e.status === "active");
   const completedEnrollments = enrollments.filter((e) => e.status === "completed");
@@ -129,12 +156,13 @@ const MyLearning = () => {
       <CardContent className="p-0">
         <div className="flex flex-col sm:flex-row gap-4">
           {/* Cover Image */}
-          <div className="sm:w-48 h-32 sm:h-full bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center overflow-hidden">
+          <div className="sm:w-48 h-32 sm:h-auto bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center overflow-hidden shrink-0">
             {enrollment.content.cover_image_url ? (
               <img
                 src={enrollment.content.cover_image_url}
                 alt={enrollment.content.title}
                 className="w-full h-full object-cover"
+                loading="lazy"
               />
             ) : (
               <BookOpen className="w-12 h-12 text-primary/40" />
@@ -143,32 +171,32 @@ const MyLearning = () => {
 
           {/* Content Details */}
           <div className="flex-1 p-4">
-            <div className="flex items-start justify-between gap-2 mb-2">
+            <div className="flex flex-col sm:flex-row items-start justify-between gap-2 mb-2">
               <div>
-                <h3 className="font-semibold text-lg mb-1">{enrollment.content.title}</h3>
-                <p className="text-sm text-muted-foreground">
+                <h3 className="font-semibold text-base sm:text-lg mb-1">{enrollment.content.title}</h3>
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   {getContentTypeLabel(enrollment.content.content_type)}
                 </p>
               </div>
-              <Badge variant={enrollment.status === "active" ? "default" : "secondary"}>
+              <Badge variant={enrollment.status === "active" ? "default" : "secondary"} className="shrink-0">
                 {enrollment.status}
               </Badge>
             </div>
 
             {enrollment.content.instructor_name && (
-              <p className="text-sm text-muted-foreground mb-2">
+              <p className="text-xs sm:text-sm text-muted-foreground mb-2">
                 Instructor: {enrollment.content.instructor_name}
               </p>
             )}
 
             {enrollment.content.event_date && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+              <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground mb-3">
                 <Calendar className="w-4 h-4" />
                 {new Date(enrollment.content.event_date).toLocaleDateString()}
               </div>
             )}
 
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button
                 onClick={() => navigate(`/learn/${enrollment.content.slug}`)}
                 size="sm"
@@ -202,42 +230,13 @@ const MyLearning = () => {
     </Card>
   );
 
-  if (isLoading) {
-    return (
-      <>
-        <Navbar />
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-            <p className="mt-4 text-muted-foreground">Loading your courses...</p>
-          </div>
-        </div>
-      </>
-    );
-  }
-
-  // Show profile completion form if profile is missing
-  if (showProfileCompletion && user) {
-    return (
-      <>
-        <Navbar />
-        <div className="min-h-screen bg-background flex items-center justify-center p-6">
-          <div className="max-w-md w-full">
-            <ProfileCompletionForm user={user} onComplete={handleProfileComplete} />
-          </div>
-        </div>
-      </>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
 
-      {/* Main Content */}
-      <main className="container mx-auto px-6 py-8">
+      <main className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 sm:mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Active Courses</CardTitle>
@@ -269,15 +268,15 @@ const MyLearning = () => {
 
         {/* Enrollments Tabs */}
         <Tabs defaultValue="active" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="active">
+          <TabsList className="w-full sm:w-auto">
+            <TabsTrigger value="active" className="flex-1 sm:flex-none">
               Active ({activeEnrollments.length})
             </TabsTrigger>
-            <TabsTrigger value="completed">
+            <TabsTrigger value="completed" className="flex-1 sm:flex-none">
               Completed ({completedEnrollments.length})
             </TabsTrigger>
             {pendingEnrollments.length > 0 && (
-              <TabsTrigger value="pending">
+              <TabsTrigger value="pending" className="flex-1 sm:flex-none">
                 Pending ({pendingEnrollments.length})
               </TabsTrigger>
             )}
