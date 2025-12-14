@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useQueryWithTimeout } from "@/hooks/useQueryWithTimeout";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,8 +33,8 @@ const MyLearning = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
 
-  // Fetch student profile
-  const { data: studentProfile, isLoading: profileLoading, error: profileError, refetch: refetchProfile } = useQuery({
+  // Fetch student profile with timeout
+  const { data: studentProfile, isLoading: profileLoading, error: profileError, refetch: refetchProfile } = useQueryWithTimeout({
     queryKey: ["student-profile", user?.id],
     queryFn: async () => {
       if (!user) throw new Error("Not authenticated");
@@ -48,11 +49,11 @@ const MyLearning = () => {
       return data;
     },
     enabled: !!user,
-    retry: 2,
+    timeout: TIMEOUTS.DEFAULT,
   });
 
-  // Fetch enrollments
-  const { data: enrollments = [], isLoading: enrollmentsLoading, error: enrollmentsError, refetch: refetchEnrollments } = useQuery({
+  // Fetch enrollments with timeout
+  const { data: enrollments = [], isLoading: enrollmentsLoading, error: enrollmentsError, refetch: refetchEnrollments } = useQueryWithTimeout({
     queryKey: ["enrollments", studentProfile?.id],
     queryFn: async () => {
       if (!studentProfile) return [];
@@ -81,7 +82,7 @@ const MyLearning = () => {
       return data as Enrollment[];
     },
     enabled: !!studentProfile?.id,
-    retry: 2,
+    timeout: TIMEOUTS.DEFAULT,
   });
 
   const isLoading = profileLoading || enrollmentsLoading;

@@ -26,6 +26,9 @@ import {
   FileText
 } from "lucide-react";
 import { toast } from "sonner";
+import { withTimeout } from "@/hooks/useQueryWithTimeout";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
+import { ErrorState } from "@/components/ui/error-state";
 import { MockInterviewPDFTemplate } from "@/components/mock-interview/MockInterviewPDFTemplate";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
@@ -101,6 +104,7 @@ export default function MockInterviewResults() {
   
   const [interview, setInterview] = useState<Interview | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   useEffect(() => {
@@ -108,12 +112,22 @@ export default function MockInterviewResults() {
   }, [id]);
 
   const loadInterview = async () => {
+    setLoadError(null);
     try {
-      const { data, error } = await supabase
-        .from("mock_interviews")
-        .select("*")
-        .eq("id", id)
-        .single();
+      const result = await withTimeout(
+        (async () => {
+          const { data, error } = await supabase
+            .from("mock_interviews")
+            .select("*")
+            .eq("id", id)
+            .single();
+          return { data, error };
+        })(),
+        TIMEOUTS.DEFAULT,
+        "Loading results timed out"
+      );
+
+      const { data, error } = result;
 
       if (error) throw error;
       
@@ -131,10 +145,12 @@ export default function MockInterviewResults() {
         strengths: data.strengths || [],
         improvement_areas: data.improvement_areas || []
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error loading interview:", error);
-      toast.error("Failed to load interview results");
-      navigate("/mock-interview");
+      const errorMessage = error.message?.includes("timed out")
+        ? "Loading took too long. Please try again."
+        : "Failed to load interview results.";
+      setLoadError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -221,6 +237,23 @@ export default function MockInterviewResults() {
             <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
             <p className="text-muted-foreground">Loading results...</p>
           </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <Navbar />
+        <main className="flex-1 flex items-center justify-center p-4">
+          <ErrorState
+            type="server"
+            title="Failed to Load Results"
+            description={loadError}
+            onRetry={() => { setLoading(true); loadInterview(); }}
+          />
         </main>
         <Footer />
       </div>

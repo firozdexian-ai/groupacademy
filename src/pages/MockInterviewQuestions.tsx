@@ -18,6 +18,9 @@ import {
   Loader2
 } from "lucide-react";
 import { toast } from "sonner";
+import { withTimeout } from "@/hooks/useQueryWithTimeout";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
+import { ErrorState } from "@/components/ui/error-state";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -65,6 +68,7 @@ export default function MockInterviewQuestions() {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [showSkipDialog, setShowSkipDialog] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) loadInterview();
@@ -79,12 +83,22 @@ export default function MockInterviewQuestions() {
   }, [questionStartTime]);
 
   const loadInterview = async () => {
+    setLoadError(null);
     try {
-      const { data, error } = await supabase
-        .from("mock_interviews")
-        .select("*")
-        .eq("id", id)
-        .single();
+      const result = await withTimeout(
+        (async () => {
+          const { data, error } = await supabase
+            .from("mock_interviews")
+            .select("*")
+            .eq("id", id)
+            .single();
+          return { data, error };
+        })(),
+        TIMEOUTS.DEFAULT,
+        "Loading interview timed out"
+      );
+
+      const { data, error } = result;
 
       if (error) throw error;
       
@@ -113,10 +127,12 @@ export default function MockInterviewQuestions() {
       }
       
       setQuestionStartTime(Date.now());
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error loading interview:", error);
-      toast.error("Failed to load interview");
-      navigate("/mock-interview");
+      const errorMessage = error.message?.includes("timed out")
+        ? "Loading took too long. Please try again."
+        : "Failed to load interview. Please try again.";
+      setLoadError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -197,6 +213,23 @@ export default function MockInterviewQuestions() {
             <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
             <p className="text-muted-foreground">Loading interview...</p>
           </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <Navbar />
+        <main className="flex-1 flex items-center justify-center p-4">
+          <ErrorState
+            type="server"
+            title="Failed to Load Interview"
+            description={loadError}
+            onRetry={() => { setLoading(true); loadInterview(); }}
+          />
         </main>
         <Footer />
       </div>
