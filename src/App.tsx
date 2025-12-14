@@ -81,7 +81,7 @@ const App = () => (
           <Route path="/salary-analysis/processing/:id" element={<SalaryAnalysisProcessing />} />
           <Route path="/salary-analysis/results/:id" element={<SalaryAnalysisResults />} />
           <Route path="/courses/:slug" element={<CourseDetail />} />
-          <Route path="/dashboard" element={<ProtectedRoute requireAdmin><Dashboard /></ProtectedRoute>} />
+          <Route path="/dashboard" element={<ProtectedRoute requireAnyAdminRole><Dashboard /></ProtectedRoute>} />
           <Route path="/my-learning" element={<ProtectedRoute><MyLearning /></ProtectedRoute>} />
           <Route path="/learn/:slug" element={<ProtectedRoute><ImmersiveCoursePlayer /></ProtectedRoute>} />
           <Route path="/quiz/:slug" element={<ProtectedRoute><Quiz /></ProtectedRoute>} />
