@@ -19,12 +19,37 @@ export const useAuth = () => {
       }
     );
 
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setIsLoading(false);
-    });
+    // Check for existing session with timeout
+    const checkSession = async () => {
+      const timeoutMs = 10000; // 10 seconds
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+      try {
+        const sessionPromise = supabase.auth.getSession();
+        const { data: { session } } = await Promise.race([
+          sessionPromise,
+          new Promise<never>((_, reject) => {
+            controller.signal.addEventListener('abort', () => {
+              reject(new Error('Session check timed out'));
+            });
+          })
+        ]);
+        
+        setSession(session);
+        setUser(session?.user ?? null);
+      } catch (error) {
+        console.error('Session check failed:', error);
+        // On timeout/error, assume no session
+        setSession(null);
+        setUser(null);
+      } finally {
+        clearTimeout(timeoutId);
+        setIsLoading(false);
+      }
+    };
+
+    checkSession();
 
     return () => subscription.unsubscribe();
   }, []);

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/Navbar";
@@ -9,12 +9,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorState } from "@/components/ui/error-state";
 import { 
   Briefcase, FileText, MessageSquare, ArrowRight, Search, 
   MapPin, Building2, Clock, DollarSign, Star, Calendar, ChevronLeft, ChevronRight,
   Filter
 } from "lucide-react";
 import { format } from "date-fns";
+import { withTimeout, isTimeoutError } from "@/hooks/useDataFetch";
 
 interface Job {
   id: string;
@@ -56,6 +58,7 @@ const EXPERIENCE_LEVELS: Record<string, string> = {
 };
 
 const JOBS_PER_PAGE = 12;
+const DATA_TIMEOUT = 15000; // 15 seconds
 
 const Jobs = () => {
   const navigate = useNavigate();
@@ -63,6 +66,7 @@ const Jobs = () => {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [categories, setCategories] = useState<ProfessionCategory[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
   const [totalCount, setTotalCount] = useState(0);
   
   // Filters
@@ -73,9 +77,82 @@ const Jobs = () => {
   const [locationFilter, setLocationFilter] = useState(searchParams.get("location") || "");
   const [currentPage, setCurrentPage] = useState(parseInt(searchParams.get("page") || "1"));
 
+  const loadCategories = useCallback(async () => {
+    try {
+      const fetchCategories = async () => {
+        const { data, error } = await supabase
+          .from("profession_categories")
+          .select("id, name")
+          .eq("is_active", true)
+          .order("name");
+        if (error) throw error;
+        return data || [];
+      };
+      
+      const data = await withTimeout(fetchCategories(), DATA_TIMEOUT);
+      setCategories(data);
+    } catch (err) {
+      console.error("Error loading categories:", err);
+      // Non-critical, don't show error
+    }
+  }, []);
+
+  const loadJobs = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const fetchJobs = async () => {
+        let query = supabase
+          .from("jobs")
+          .select("*", { count: "exact" })
+          .eq("is_active", true)
+          .order("is_featured", { ascending: false })
+          .order("created_at", { ascending: false });
+
+        // Apply filters
+        if (categoryFilter !== "all") {
+          query = query.eq("profession_category_id", categoryFilter);
+        }
+        if (jobTypeFilter !== "all") {
+          query = query.eq("job_type", jobTypeFilter as "full_time" | "part_time" | "contract" | "internship" | "freelance" | "remote");
+        }
+        if (experienceFilter !== "all") {
+          query = query.eq("experience_level", experienceFilter as "entry" | "mid" | "senior" | "executive");
+        }
+        if (locationFilter) {
+          query = query.ilike("location", `%${locationFilter}%`);
+        }
+        if (searchQuery) {
+          query = query.or(`title.ilike.%${searchQuery}%,company_name.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`);
+        }
+
+        // Pagination
+        const from = (currentPage - 1) * JOBS_PER_PAGE;
+        const to = from + JOBS_PER_PAGE - 1;
+        query = query.range(from, to);
+
+        const { data, error, count } = await query;
+        if (error) throw error;
+        
+        return { data: data || [], count: count || 0 };
+      };
+      
+      const result = await withTimeout(fetchJobs(), DATA_TIMEOUT);
+      setJobs(result.data);
+      setTotalCount(result.count);
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to load jobs');
+      setError(error);
+      console.error("Error loading jobs:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [categoryFilter, jobTypeFilter, experienceFilter, locationFilter, searchQuery, currentPage]);
+
   useEffect(() => {
     loadCategories();
-  }, []);
+  }, [loadCategories]);
 
   useEffect(() => {
     loadJobs();
@@ -88,60 +165,7 @@ const Jobs = () => {
     if (locationFilter) params.set("location", locationFilter);
     if (currentPage > 1) params.set("page", currentPage.toString());
     setSearchParams(params);
-  }, [searchQuery, categoryFilter, jobTypeFilter, experienceFilter, locationFilter, currentPage]);
-
-  const loadCategories = async () => {
-    const { data } = await supabase
-      .from("profession_categories")
-      .select("id, name")
-      .eq("is_active", true)
-      .order("name");
-    setCategories(data || []);
-  };
-
-  const loadJobs = async () => {
-    setLoading(true);
-    try {
-      let query = supabase
-        .from("jobs")
-        .select("*", { count: "exact" })
-        .eq("is_active", true)
-        .order("is_featured", { ascending: false })
-        .order("created_at", { ascending: false });
-
-      // Apply filters
-      if (categoryFilter !== "all") {
-        query = query.eq("profession_category_id", categoryFilter);
-      }
-      if (jobTypeFilter !== "all") {
-        query = query.eq("job_type", jobTypeFilter as "full_time" | "part_time" | "contract" | "internship" | "freelance" | "remote");
-      }
-      if (experienceFilter !== "all") {
-        query = query.eq("experience_level", experienceFilter as "entry" | "mid" | "senior" | "executive");
-      }
-      if (locationFilter) {
-        query = query.ilike("location", `%${locationFilter}%`);
-      }
-      if (searchQuery) {
-        query = query.or(`title.ilike.%${searchQuery}%,company_name.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%`);
-      }
-
-      // Pagination
-      const from = (currentPage - 1) * JOBS_PER_PAGE;
-      const to = from + JOBS_PER_PAGE - 1;
-      query = query.range(from, to);
-
-      const { data, error, count } = await query;
-      if (error) throw error;
-      
-      setJobs(data || []);
-      setTotalCount(count || 0);
-    } catch (error) {
-      console.error("Error loading jobs:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [loadJobs, searchQuery, categoryFilter, jobTypeFilter, experienceFilter, locationFilter, currentPage, setSearchParams]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -388,8 +412,23 @@ const Jobs = () => {
               )}
             </div>
 
+            {/* Error State */}
+            {error && !loading && (
+              <div className="py-12">
+                <ErrorState
+                  type={isTimeoutError(error) ? "timeout" : "server"}
+                  title={isTimeoutError(error) ? "Loading took too long" : "Failed to load jobs"}
+                  description={isTimeoutError(error) 
+                    ? "The server is taking longer than expected. Please try again." 
+                    : "Something went wrong while loading jobs. Please try again."}
+                  onRetry={loadJobs}
+                  className="max-w-md mx-auto"
+                />
+              </div>
+            )}
+
             {/* Loading State */}
-            {loading ? (
+            {loading && !error ? (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {[1, 2, 3, 4, 5, 6].map((i) => (
                   <Card key={i} className="p-5">
@@ -407,22 +446,23 @@ const Jobs = () => {
                   </Card>
                 ))}
               </div>
-            ) : jobs.length === 0 ? (
+            ) : !error && jobs.length === 0 ? (
               <div className="text-center py-20">
                 <Briefcase className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
                 <h3 className="text-xl font-semibold mb-2">No jobs found</h3>
                 <p className="text-muted-foreground mb-4">Try adjusting your filters or search query</p>
                 <Button onClick={clearFilters} variant="outline">Clear Filters</Button>
               </div>
-            ) : (
+            ) : !error && (
               <>
                 {/* Featured Jobs */}
                 {featuredJobs.length > 0 && (
                   <div className="mb-8">
                     <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                      <Star className="w-5 h-5 text-yellow-500" /> Featured Jobs
+                      <Star className="w-5 h-5 text-yellow-500" />
+                      Featured Jobs
                     </h2>
-                    <div className="grid md:grid-cols-2 gap-4">
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {featuredJobs.map(job => (
                         <JobCard key={job.id} job={job} featured />
                       ))}
@@ -431,11 +471,18 @@ const Jobs = () => {
                 )}
 
                 {/* Regular Jobs */}
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {regularJobs.map(job => (
-                    <JobCard key={job.id} job={job} />
-                  ))}
-                </div>
+                {regularJobs.length > 0 && (
+                  <div>
+                    {featuredJobs.length > 0 && (
+                      <h2 className="text-lg font-semibold mb-4">All Jobs</h2>
+                    )}
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {regularJobs.map(job => (
+                        <JobCard key={job.id} job={job} />
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Pagination */}
                 {totalPages > 1 && (
@@ -447,6 +494,7 @@ const Jobs = () => {
                       disabled={currentPage === 1}
                     >
                       <ChevronLeft className="w-4 h-4" />
+                      Previous
                     </Button>
                     <span className="text-sm text-muted-foreground px-4">
                       Page {currentPage} of {totalPages}
@@ -457,6 +505,7 @@ const Jobs = () => {
                       onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                       disabled={currentPage === totalPages}
                     >
+                      Next
                       <ChevronRight className="w-4 h-4" />
                     </Button>
                   </div>
