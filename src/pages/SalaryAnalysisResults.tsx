@@ -13,8 +13,10 @@ import { SalaryAnalysisPDFTemplate } from "@/components/salary-analysis/SalaryAn
 import { generateSalaryAnalysisPDF } from "@/lib/salaryPdfGenerator";
 import { 
   TrendingUp, Target, Lightbulb, CheckCircle, AlertTriangle, 
-  ArrowRight, Download, Share2, Briefcase, FileText, Loader2
+  ArrowRight, Download, Share2, Briefcase, FileText, Loader2, RefreshCw
 } from "lucide-react";
+import { withTimeout } from "@/hooks/useQueryWithTimeout";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
 
 const SalaryAnalysisResults = () => {
   const { id } = useParams<{ id: string }>();
@@ -22,29 +24,43 @@ const SalaryAnalysisResults = () => {
   
   const [analysis, setAnalysis] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
+  const fetchAnalysis = async () => {
+    if (!id) return;
+    setLoadError(null);
+
+    try {
+      const result = await withTimeout(
+        (async () => {
+          const { data, error } = await supabase
+            .from("salary_analyses")
+            .select("*, profession_categories(name)")
+            .eq("id", id)
+            .single();
+          return { data, error };
+        })(),
+        TIMEOUTS.DEFAULT,
+        "Loading results timed out"
+      );
+
+      const { data, error } = result;
+
+      if (error) throw error;
+      setAnalysis(data);
+    } catch (error: any) {
+      console.error("Error fetching analysis:", error);
+      const errorMessage = error.message?.includes("timed out")
+        ? "Loading took too long. Please try again."
+        : "Failed to load results.";
+      setLoadError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchAnalysis = async () => {
-      if (!id) return;
-
-      try {
-        const { data, error } = await supabase
-          .from("salary_analyses")
-          .select("*, profession_categories(name)")
-          .eq("id", id)
-          .single();
-
-        if (error) throw error;
-        setAnalysis(data);
-      } catch (error) {
-        console.error("Error fetching analysis:", error);
-        toast({ title: "Failed to load results", variant: "destructive" });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchAnalysis();
   }, [id]);
 
@@ -96,8 +112,36 @@ const SalaryAnalysisResults = () => {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
-        <div className="container mx-auto py-20 flex justify-center">
+        <div className="container mx-auto py-20 flex flex-col items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="mt-4 text-muted-foreground">Loading your results...</p>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="container mx-auto py-20">
+          <Card className="max-w-md mx-auto">
+            <CardContent className="pt-6 text-center">
+              <Target className="h-12 w-12 text-destructive mx-auto mb-4" />
+              <h2 className="text-xl font-semibold mb-2">Failed to Load Results</h2>
+              <p className="text-muted-foreground mb-4">{loadError}</p>
+              <div className="flex gap-2 justify-center">
+                <Button onClick={() => { setIsLoading(true); fetchAnalysis(); }}>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Try Again
+                </Button>
+                <Button variant="outline" asChild>
+                  <Link to="/salary-analysis">Back</Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
         <Footer />
       </div>

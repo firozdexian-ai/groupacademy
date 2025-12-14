@@ -22,6 +22,9 @@ import { TeamManager } from "@/components/dashboard/TeamManager";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { withTimeout } from "@/hooks/useQueryWithTimeout";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
+import { ErrorState } from "@/components/ui/error-state";
 import type { Database } from "@/integrations/supabase/types";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
@@ -57,6 +60,7 @@ const Dashboard = () => {
   const [user, setUser] = useState<User | null>(null);
   const [userRole, setUserRole] = useState<AppRole | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
   
   // Read tab from URL or default based on role
   const activeTab = searchParams.get("tab") || (userRole === "talent_exec" ? "outreach" : "overview");
@@ -86,20 +90,34 @@ const Dashboard = () => {
   }, [userRole, isLoading, searchParams]);
 
   const checkAuth = async () => {
+    setAuthError(null);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await withTimeout(
+        supabase.auth.getUser(),
+        TIMEOUTS.AUTH,
+        "Authentication check timed out"
+      );
       if (!user) {
         navigate("/auth");
         return;
       }
       setUser(user);
 
-      // Fetch user role
-      const { data: roleData } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .in("role", ["admin", "talent_exec"]);
+      // Fetch user role with timeout
+      const result = await withTimeout(
+        (async () => {
+          const { data, error } = await supabase
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", user.id)
+            .in("role", ["admin", "talent_exec"]);
+          return { data, error };
+        })(),
+        TIMEOUTS.DEFAULT,
+        "Failed to load user permissions"
+      );
+
+      const { data: roleData } = result;
 
       if (!roleData || roleData.length === 0) {
         toast.error("Dashboard access required");
@@ -112,9 +130,13 @@ const Dashboard = () => {
       setUserRole(hasAdmin ? "admin" : "talent_exec");
       
       setIsLoading(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Auth check error:", error);
-      navigate("/auth");
+      const errorMessage = error.message?.includes("timed out")
+        ? "Loading took too long. Please try again."
+        : "Failed to verify access. Please try again.";
+      setAuthError(errorMessage);
+      setIsLoading(false);
     }
   };
 
@@ -125,6 +147,19 @@ const Dashboard = () => {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
           <p className="mt-4 text-muted-foreground">Loading...</p>
         </div>
+      </div>
+    );
+  }
+
+  if (authError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <ErrorState
+          type="server"
+          title="Failed to Load Dashboard"
+          description={authError}
+          onRetry={checkAuth}
+        />
       </div>
     );
   }

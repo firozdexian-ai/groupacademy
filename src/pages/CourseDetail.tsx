@@ -19,6 +19,7 @@ import { Footer } from "@/components/Footer";
 import { GraduationCap, Video, BookOpen, Calendar, Users, MapPin, Clock, ArrowLeft, CheckCircle, Play, MessageCircle, Key, Youtube, Eye, EyeOff, RefreshCw, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
 
 type ContentType = "free_video" | "recorded_course" | "live_webinar" | "batch_class" | "offline_seminar";
 
@@ -130,17 +131,25 @@ const CourseDetail = () => {
   }, [course]);
 
   const checkAuth = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-      setUser(session.user);
-      // Fetch student profile
-      const { data: student } = await supabase
-        .from("students")
-        .select("*")
-        .eq("user_id", session.user.id)
-        .maybeSingle();
-      
-      setStudentProfile(student);
+    try {
+      const { data: { session } } = await withTimeout(
+        supabase.auth.getSession(),
+        TIMEOUTS.AUTH,
+        "Session check timed out"
+      );
+      if (session) {
+        setUser(session.user);
+        // Fetch student profile
+        const { data: student } = await supabase
+          .from("students")
+          .select("*")
+          .eq("user_id", session.user.id)
+          .maybeSingle();
+        
+        setStudentProfile(student);
+      }
+    } catch (error) {
+      console.error("Auth check error:", error);
     }
   };
 

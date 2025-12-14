@@ -21,6 +21,8 @@ import {
   Twitter
 } from "lucide-react";
 import { toast } from "sonner";
+import { withTimeout } from "@/hooks/useQueryWithTimeout";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { ScorecardPDFTemplate } from "@/components/assessment/ScorecardPDFTemplate";
 import { generateScorecardPDF } from "@/lib/assessmentPdfGenerator";
 
@@ -79,14 +81,23 @@ export default function AssessmentResults() {
     console.log("[AssessmentResults] Loading assessment:", id);
     
     try {
-      const { data, error } = await supabase
-        .from("career_assessments")
-        .select(`
-          *,
-          profession_categories (name)
-        `)
-        .eq("id", id)
-        .maybeSingle();
+      const result = await withTimeout(
+        (async () => {
+          const { data, error } = await supabase
+            .from("career_assessments")
+            .select(`
+              *,
+              profession_categories (name)
+            `)
+            .eq("id", id)
+            .maybeSingle();
+          return { data, error };
+        })(),
+        TIMEOUTS.DEFAULT,
+        "Loading assessment timed out"
+      );
+
+      const { data, error } = result;
 
       if (error) {
         console.error("[AssessmentResults] Query error:", error);
@@ -110,7 +121,10 @@ export default function AssessmentResults() {
       }
     } catch (error: any) {
       console.error("[AssessmentResults] Error loading assessment:", error);
-      setLoadError("Failed to load assessment. Please try again.");
+      const errorMessage = error.message?.includes("timed out")
+        ? "Loading took too long. Please try again."
+        : "Failed to load assessment. Please try again.";
+      setLoadError(errorMessage);
     } finally {
       setLoading(false);
     }
