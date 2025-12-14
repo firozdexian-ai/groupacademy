@@ -21,19 +21,25 @@ import iconPortfolio from "@/assets/icons/icon-portfolio.png";
 
 const FREE_PORTFOLIO_LIMIT = 1000;
 
-// Fallback static categories in case database loading fails
+// UUID validation helper
+const isValidUUID = (str: string): boolean => {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(str);
+};
+
+// Fallback static categories with REAL database UUIDs
 const FALLBACK_CATEGORIES: ProfessionCategory[] = [
-  { id: 'student-undergrad', name: 'Student (Undergraduate)', slug: 'student-undergrad' },
-  { id: 'student-graduate', name: 'Student (Graduate/Masters)', slug: 'student-graduate' },
-  { id: 'fresh-graduate', name: 'Fresh Graduate', slug: 'fresh-graduate' },
-  { id: 'banking-finance', name: 'Banking & Finance', slug: 'banking-finance' },
-  { id: 'sales-marketing', name: 'Sales & Marketing', slug: 'sales-marketing' },
-  { id: 'technology-it', name: 'Technology & IT', slug: 'technology-it' },
-  { id: 'hr-admin', name: 'HR & Administration', slug: 'hr-admin' },
-  { id: 'operations', name: 'Operations & Supply Chain', slug: 'operations' },
-  { id: 'healthcare', name: 'Healthcare & Pharma', slug: 'healthcare' },
-  { id: 'career-changer', name: 'Career Changer', slug: 'career-changer' },
-  { id: 'other', name: 'Other (Specify)', slug: 'other' },
+  { id: '30dbc71e-26de-4131-bd97-073e593f9d93', name: 'Student (Undergraduate)', slug: 'student-undergrad' },
+  { id: '30e1aff7-a7fa-4bb1-ac5e-d226e4754930', name: 'Student (Graduate/Masters)', slug: 'student-graduate' },
+  { id: '1d65c422-6eef-412c-b843-8ae3d9ac37d5', name: 'Fresh Graduate', slug: 'fresh-graduate' },
+  { id: 'a1c5d82c-1a1a-4b0e-89e8-19c264a3a915', name: 'Banking & Finance', slug: 'banking-finance' },
+  { id: '5ee052f8-2aaf-45b5-8f90-731c23097fef', name: 'Sales & Marketing', slug: 'sales-marketing' },
+  { id: '1e71843c-d202-4d96-834e-04fa6c784f16', name: 'Technology & IT', slug: 'technology-it' },
+  { id: 'e5489921-ce14-448b-a017-b762a3b72a8d', name: 'Human Resources', slug: 'hr-admin' },
+  { id: 'a8c5f269-03bd-4589-954e-51eb1e1fbf32', name: 'Operations & Supply Chain', slug: 'operations' },
+  { id: '2c541af4-1cc0-4704-81aa-78df992aad6b', name: 'Healthcare & Pharma', slug: 'healthcare' },
+  { id: 'ba50f709-610e-4770-9d2c-918a39073175', name: 'Career Changer', slug: 'career-changer' },
+  { id: 'b4038064-ec0f-4814-a966-ca4c9984bca2', name: 'Other (Specify)', slug: 'other' },
 ];
 
 type Step = 'personal' | 'cv' | 'certificates' | 'social' | 'review';
@@ -229,6 +235,15 @@ export default function PortfolioRequest() {
   const handleSubmit = async () => {
     setIsSubmitting(true);
     
+    // Validate UUID before submission - only send valid UUIDs
+    const professionCategoryId = formData.professionCategoryId && isValidUUID(formData.professionCategoryId) 
+      ? formData.professionCategoryId 
+      : null;
+    
+    if (formData.professionCategoryId && !professionCategoryId) {
+      console.warn('[PortfolioRequest] Invalid UUID detected, sending null for profession_category_id');
+    }
+    
     try {
       const { data, error } = await supabase
         .from('portfolio_requests')
@@ -236,7 +251,7 @@ export default function PortfolioRequest() {
           full_name: formData.fullName,
           email: formData.email,
           phone: formData.phone,
-          profession_category_id: formData.professionCategoryId || null,
+          profession_category_id: professionCategoryId,
           custom_profession: isOtherCategory ? formData.customProfession : null,
           cv_url: effectiveCvUrl || null,
           profile_data: (formData.cvInputMode === 'profile' ? formData.profileData : {}) as unknown as any,
@@ -268,7 +283,7 @@ export default function PortfolioRequest() {
               full_name: formData.fullName,
               email: formData.email,
               phone: formData.phone,
-              profession_category_id: formData.professionCategoryId || null,
+              profession_category_id: professionCategoryId,
               custom_profession: isOtherCategory ? formData.customProfession : null,
               cv_url: effectiveCvUrl || null,
               education: formData.profileData.education as unknown as any,
