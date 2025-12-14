@@ -217,9 +217,14 @@ const SalaryAnalysisSetup = () => {
         return uuidV4Regex.test(str);
       };
 
-      const { data, error } = await supabase
+      // Generate a temporary ID for the analysis
+      const tempAnalysisId = crypto.randomUUID();
+
+      // Insert WITHOUT .select() to avoid RLS issues for anonymous users
+      const { error } = await supabase
         .from("salary_analyses")
         .insert({
+          id: tempAnalysisId, // Use our generated ID
           full_name: fullName.trim(),
           email: email.trim().toLowerCase(),
           phone: phone.trim() ? `+880${phone.trim()}` : null,
@@ -230,13 +235,26 @@ const SalaryAnalysisSetup = () => {
           cv_url: cvUrl || null,
           profession_category_id: isValidUUID(selectedProfession) ? selectedProfession : null,
           status: "pending"
-        })
-        .select()
-        .single();
+        });
 
       if (error) throw error;
 
-      navigate(`/salary-analysis/processing/${data.id}`);
+      // Create professional profile using upsert with ignoreDuplicates
+      try {
+        await supabase
+          .from('professionals')
+          .upsert({
+            full_name: fullName.trim(),
+            email: email.trim().toLowerCase(),
+            phone: phone.trim() ? `+880${phone.trim()}` : null,
+            profession_category_id: isValidUUID(selectedProfession) ? selectedProfession : null,
+            services_used: ['salary_analysis'] as unknown as any,
+          }, { onConflict: 'email', ignoreDuplicates: true });
+      } catch (profError) {
+        console.log('[SalaryAnalysisSetup] Professional profile creation skipped:', profError);
+      }
+
+      navigate(`/salary-analysis/processing/${tempAnalysisId}`);
     } catch (error) {
       console.error("Submit error:", error);
       toast({ title: "Failed to start analysis", variant: "destructive" });

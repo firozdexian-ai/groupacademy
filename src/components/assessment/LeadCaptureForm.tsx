@@ -116,10 +116,14 @@ export function LeadCaptureForm({
       // Get current user if logged in
       const { data: { user } } = await supabase.auth.getUser();
 
-      // Save assessment to database
-      const { data: assessment, error } = await supabase
+      // Generate a temporary ID for navigation (will query by email later)
+      const tempAssessmentId = crypto.randomUUID();
+      
+      // Save assessment WITHOUT .select() to avoid RLS issues for anonymous users
+      const { error } = await supabase
         .from("career_assessments")
         .insert({
+          id: tempAssessmentId, // Use our generated ID
           user_id: user?.id || null,
           profession_category_id: categoryId,
           full_name: formData.full_name.trim(),
@@ -132,16 +136,29 @@ export function LeadCaptureForm({
           readiness_level: readinessLevel,
           improvement_areas: [], // Will be filled by AI
           ai_analysis: null, // Will be filled by AI edge function
-        })
-        .select()
-        .single();
+        });
 
       if (error) {
         console.error("[LeadCaptureForm] Database error:", error);
         throw error;
       }
 
-      console.log("[LeadCaptureForm] Assessment saved successfully:", assessment.id);
+      console.log("[LeadCaptureForm] Assessment saved successfully:", tempAssessmentId);
+      
+      // Create professional profile using upsert with ignoreDuplicates
+      try {
+        await supabase
+          .from('professionals')
+          .upsert({
+            full_name: formData.full_name.trim(),
+            email: formData.email.toLowerCase().trim(),
+            phone: formData.phone.trim(),
+            profession_category_id: categoryId,
+            services_used: ['assessment'] as unknown as any,
+          }, { onConflict: 'email', ignoreDuplicates: true });
+      } catch (profError) {
+        console.log('[LeadCaptureForm] Professional profile creation skipped:', profError);
+      }
       
       // Call onComplete AFTER successful database insert
       onComplete();
@@ -149,7 +166,7 @@ export function LeadCaptureForm({
       toast.success("Assessment submitted successfully!");
       
       // Navigate to results page
-      navigate(`/assessment-results/${assessment.id}`);
+      navigate(`/assessment-results/${tempAssessmentId}`);
     } catch (error: any) {
       console.error("[LeadCaptureForm] Error submitting assessment:", error);
       const errorMessage = error.code === "23505" 

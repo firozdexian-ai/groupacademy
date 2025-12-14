@@ -245,7 +245,11 @@ export default function PortfolioRequest() {
     }
     
     try {
-      const { data, error } = await supabase
+      // Generate a local request ID for confirmation (anonymous users can't SELECT after INSERT)
+      const tempRequestId = crypto.randomUUID();
+      
+      // Insert WITHOUT .select() to avoid RLS SELECT permission issues for anonymous users
+      const { error } = await supabase
         .from('portfolio_requests')
         .insert({
           full_name: formData.fullName,
@@ -259,51 +263,39 @@ export default function PortfolioRequest() {
           achievements: formData.achievements,
           social_links: formData.socialLinks as unknown as any,
           additional_notes: formData.additionalNotes,
-        })
-        .select('id')
-        .single();
+        });
 
       if (error) {
         console.error('[PortfolioRequest] Insert error:', error);
         throw error;
       }
 
-      // Also create professional profile (INSERT only, skip if exists)
+      // Create professional profile using upsert with ignoreDuplicates (works for anonymous users)
       try {
-        const { data: existingProf } = await supabase
+        await supabase
           .from('professionals')
-          .select('id')
-          .eq('email', formData.email)
-          .maybeSingle();
-
-        if (!existingProf) {
-          await supabase
-            .from('professionals')
-            .insert({
-              full_name: formData.fullName,
-              email: formData.email,
-              phone: formData.phone,
-              profession_category_id: professionCategoryId,
-              custom_profession: isOtherCategory ? formData.customProfession : null,
-              cv_url: effectiveCvUrl || null,
-              education: formData.profileData.education as unknown as any,
-              experience: formData.profileData.experience as unknown as any,
-              skills: formData.profileData.skills as unknown as any,
-              projects: formData.profileData.projects as unknown as any,
-              achievements: formData.profileData.achievements as unknown as any,
-              linkedin_url: formData.socialLinks.linkedin || null,
-              services_used: ['portfolio'] as unknown as any,
-            });
-          console.log('[PortfolioRequest] Professional profile created');
-        } else {
-          console.log('[PortfolioRequest] Professional profile already exists, skipping insert');
-        }
+          .upsert({
+            full_name: formData.fullName,
+            email: formData.email,
+            phone: formData.phone,
+            profession_category_id: professionCategoryId,
+            custom_profession: isOtherCategory ? formData.customProfession : null,
+            cv_url: effectiveCvUrl || null,
+            education: formData.profileData.education as unknown as any,
+            experience: formData.profileData.experience as unknown as any,
+            skills: formData.profileData.skills as unknown as any,
+            projects: formData.profileData.projects as unknown as any,
+            achievements: formData.profileData.achievements as unknown as any,
+            linkedin_url: formData.socialLinks.linkedin || null,
+            services_used: ['portfolio'] as unknown as any,
+          }, { onConflict: 'email', ignoreDuplicates: true });
+        console.log('[PortfolioRequest] Professional profile upserted');
       } catch (profError) {
         console.log('[PortfolioRequest] Professional profile creation skipped:', profError);
         // Non-blocking - portfolio request already saved
       }
 
-      setRequestId(data.id);
+      setRequestId(tempRequestId);
       setIsSuccess(true);
       toast({ title: "Request submitted!", description: "We'll contact you on WhatsApp soon." });
     } catch (error: any) {

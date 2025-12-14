@@ -233,10 +233,14 @@ export default function MockInterviewSetup() {
         throw new Error("Invalid response from AI. Please try again.");
       }
 
-      // Create mock interview record
-      const { data: interview, error: insertError } = await supabase
+      // Generate a temporary ID for the interview
+      const tempInterviewId = crypto.randomUUID();
+      
+      // Create mock interview record WITHOUT .select() to avoid RLS issues
+      const { error: insertError } = await supabase
         .from("mock_interviews")
         .insert({
+          id: tempInterviewId, // Use our generated ID
           email: email.toLowerCase().trim(),
           full_name: "", // Will be captured at the end
           job_description: jobDescription,
@@ -248,9 +252,7 @@ export default function MockInterviewSetup() {
           additional_notes: config.additionalNotes,
           questions: data.questions,
           status: "in_progress"
-        })
-        .select()
-        .single();
+        });
 
       if (insertError) {
         console.error("Database insert error:", insertError);
@@ -258,7 +260,7 @@ export default function MockInterviewSetup() {
       }
 
       toast.success("Questions generated! Starting your interview...");
-      navigate(`/mock-interview/questions/${interview.id}`);
+      navigate(`/mock-interview/questions/${tempInterviewId}`);
     } catch (error: any) {
       console.error("Error generating questions:", error);
       const errorMessage = error?.message === "Generation timed out"
