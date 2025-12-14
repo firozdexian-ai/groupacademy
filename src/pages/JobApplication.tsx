@@ -269,15 +269,35 @@ const JobApplication = () => {
     
     setValidatingCode(true);
     try {
-      // For now, we'll use a simple validation - in production, you'd have a dedicated access_codes table for jobs
-      // Using a pattern like JOB-XXXXX
-      if (accessCode.toUpperCase().startsWith("JOB-") && accessCode.length === 12) {
-        setCodeValid(true);
-        toast.success("Access code validated!");
-      } else {
-        toast.error("Invalid access code");
+      // Validate against job_application_access_codes table
+      const { data: codeData, error: codeError } = await supabase
+        .from("job_application_access_codes")
+        .select("*")
+        .eq("code", accessCode.trim().toUpperCase())
+        .eq("email", parsedData?.email?.toLowerCase() || existingProfile?.email?.toLowerCase())
+        .eq("is_used", false)
+        .maybeSingle();
+
+      if (codeError || !codeData) {
+        toast.error("Invalid or expired access code");
+        return;
       }
+
+      if (codeData.expires_at && new Date(codeData.expires_at) < new Date()) {
+        toast.error("This access code has expired");
+        return;
+      }
+
+      // Mark code as used
+      await supabase
+        .from("job_application_access_codes")
+        .update({ is_used: true })
+        .eq("id", codeData.id);
+
+      setCodeValid(true);
+      toast.success("Access code validated!");
     } catch (error) {
+      console.error("Error validating code:", error);
       toast.error("Failed to validate code");
     } finally {
       setValidatingCode(false);

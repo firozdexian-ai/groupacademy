@@ -195,6 +195,13 @@ export default function MockInterviewSetup() {
     setIsGenerating(true);
     setStep("generating");
 
+    // Validate UUID before submission
+    const isValidUUID = (str: string | null | undefined): boolean => {
+      if (!str) return false;
+      const uuidV4Regex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      return uuidV4Regex.test(str);
+    };
+
     // Create timeout promise (60 seconds for AI generation)
     const timeoutPromise = new Promise((_, reject) => {
       setTimeout(() => reject(new Error("Generation timed out")), 60000);
@@ -207,7 +214,7 @@ export default function MockInterviewSetup() {
           jobDescription,
           questionCount: config.questionCount,
           difficulty: config.difficulty,
-          professionCategoryId: config.professionCategoryId,
+          professionCategoryId: isValidUUID(config.professionCategoryId) ? config.professionCategoryId : null,
           additionalNotes: config.additionalNotes
         }
       });
@@ -237,7 +244,7 @@ export default function MockInterviewSetup() {
           company_name: data.companyName,
           question_count: config.questionCount,
           difficulty: config.difficulty,
-          profession_category_id: config.professionCategoryId,
+          profession_category_id: isValidUUID(config.professionCategoryId) ? config.professionCategoryId : null,
           additional_notes: config.additionalNotes,
           questions: data.questions,
           status: "in_progress"
