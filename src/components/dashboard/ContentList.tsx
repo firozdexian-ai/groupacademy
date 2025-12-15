@@ -5,6 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Edit, Trash2, Video, BookOpen, Presentation, Users, MapPin, RefreshCw, AlertCircle, type LucideIcon } from "lucide-react";
 import { toast } from "sonner";
+import { withTimeout } from "@/hooks/useQueryWithTimeout";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
+import { CardGridSkeleton } from "@/components/ui/page-loading-skeleton";
 
 interface Content {
   id: string;
@@ -50,13 +53,16 @@ const ContentList = ({ filter }: ContentListProps) => {
         query = query.eq("content_type", filter as any);
       }
 
-      const { data, error } = await query;
-
-      if (error) throw error;
-      setContent(data || []);
+      const result = await withTimeout(
+        Promise.resolve(query),
+        TIMEOUTS.DEFAULT,
+        "Loading content timed out"
+      );
+      if (result.error) throw result.error;
+      setContent(result.data || []);
     } catch (error: any) {
       console.error("Error loading content:", error);
-      setLoadError("Failed to load content. Please try again.");
+      setLoadError(error.message || "Failed to load content. Please try again.");
       toast.error("Failed to load content");
     } finally {
       setIsLoading(false);
@@ -78,12 +84,7 @@ const ContentList = ({ filter }: ContentListProps) => {
   };
 
   if (isLoading) {
-    return (
-      <div className="text-center py-12">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-        <p className="mt-4 text-muted-foreground">Loading content...</p>
-      </div>
-    );
+    return <CardGridSkeleton count={6} columns={3} />;
   }
 
   if (loadError) {

@@ -14,6 +14,9 @@ import {
   Building2, Plus, Edit, Trash2, Search, ExternalLink, 
   Mail, Loader2, RefreshCw, CheckCircle, Globe, Linkedin
 } from "lucide-react";
+import { withTimeout } from "@/hooks/useQueryWithTimeout";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
+import { DashboardTableSkeleton, DashboardErrorState } from "./DashboardSkeleton";
 
 interface Company {
   id: string;
@@ -47,6 +50,7 @@ const emptyCompany = {
 export function CompaniesManager() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
@@ -60,16 +64,19 @@ export function CompaniesManager() {
 
   const loadCompanies = async () => {
     setIsLoading(true);
+    setLoadError(null);
     try {
-      const { data, error } = await supabase
-        .from("companies")
-        .select("*")
-        .order("name");
+      const result = await withTimeout(
+        Promise.resolve(supabase.from("companies").select("*").order("name")),
+        TIMEOUTS.DEFAULT,
+        "Loading companies timed out"
+      );
 
-      if (error) throw error;
-      setCompanies(data || []);
+      if (result.error) throw result.error;
+      setCompanies(result.data || []);
     } catch (error: any) {
       console.error("Error loading companies:", error);
+      setLoadError(error.message || "Failed to load companies");
       toast.error("Failed to load companies");
     } finally {
       setIsLoading(false);
@@ -224,9 +231,13 @@ export function CompaniesManager() {
           </div>
 
           {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-            </div>
+            <DashboardTableSkeleton rows={5} columns={6} />
+          ) : loadError ? (
+            <DashboardErrorState
+              title="Failed to load companies"
+              message={loadError}
+              onRetry={loadCompanies}
+            />
           ) : filteredCompanies.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <Building2 className="w-12 h-12 mx-auto mb-4 opacity-20" />

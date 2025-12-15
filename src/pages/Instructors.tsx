@@ -22,6 +22,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { CardGridSkeleton } from "@/components/ui/page-loading-skeleton";
 import { ErrorState } from "@/components/ui/error-state";
+import { withTimeout } from "@/hooks/useQueryWithTimeout";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
 
 interface Instructor {
   id: string;
@@ -65,19 +67,26 @@ const Instructors = () => {
   }, []);
 
   const checkAuth = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      navigate("/auth");
-      return;
+    try {
+      const userResult = await withTimeout(
+        Promise.resolve(supabase.auth.getUser()),
+        TIMEOUTS.AUTH,
+        "Authentication check timed out"
+      );
+      if (!userResult.data?.user) {
+        navigate("/auth");
+        return;
+      }
+      const rolesResult = await withTimeout(
+        Promise.resolve(supabase.from("user_roles").select("role").eq("user_id", userResult.data.user.id).single()),
+        TIMEOUTS.AUTH,
+        "Loading roles timed out"
+      );
+      setIsAdmin(rolesResult.data?.role === "admin");
+    } catch (error: any) {
+      console.error("Auth check error:", error);
+      toast.error("Failed to verify authentication");
     }
-
-    const { data: roles } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .single();
-
-    setIsAdmin(roles?.role === "admin");
   };
 
   const filteredInstructors = instructors.filter((instructor) => {

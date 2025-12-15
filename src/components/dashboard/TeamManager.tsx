@@ -30,6 +30,9 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Plus, Trash2, UserPlus, Shield, Users } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
+import { withTimeout } from "@/hooks/useQueryWithTimeout";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
+import { DashboardTableSkeleton, DashboardErrorState } from "./DashboardSkeleton";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
 
@@ -44,6 +47,7 @@ interface TeamMember {
 export function TeamManager() {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newEmail, setNewEmail] = useState("");
   const [newRole, setNewRole] = useState<AppRole>("talent_exec");
@@ -54,16 +58,19 @@ export function TeamManager() {
   }, []);
 
   const fetchTeamMembers = async () => {
+    setIsLoading(true);
+    setLoadError(null);
     try {
-      const { data, error } = await supabase
-        .from("user_roles")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setTeamMembers(data || []);
-    } catch (error) {
+      const result = await withTimeout(
+        Promise.resolve(supabase.from("user_roles").select("*").order("created_at", { ascending: false })),
+        TIMEOUTS.DEFAULT,
+        "Loading team members timed out"
+      );
+      if (result.error) throw result.error;
+      setTeamMembers(result.data || []);
+    } catch (error: any) {
       console.error("Error fetching team members:", error);
+      setLoadError(error.message || "Failed to load team members");
       toast.error("Failed to load team members");
     } finally {
       setIsLoading(false);
@@ -171,10 +178,16 @@ export function TeamManager() {
   };
 
   if (isLoading) {
+    return <DashboardTableSkeleton rows={5} columns={4} />;
+  }
+
+  if (loadError) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
+      <DashboardErrorState
+        title="Failed to load team members"
+        message={loadError}
+        onRetry={fetchTeamMembers}
+      />
     );
   }
 

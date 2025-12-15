@@ -13,6 +13,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Building2, GraduationCap, Briefcase, ChevronRight, Bot, User } from "lucide-react";
 import { getIcon } from "@/lib/iconMap";
+import { withTimeout } from "@/hooks/useQueryWithTimeout";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
+import { DashboardCardSkeleton, DashboardErrorState } from "./DashboardSkeleton";
 
 interface Academy {
   id: string;
@@ -75,6 +78,7 @@ export function ProfessionsManager() {
   const [professionLines, setProfessionLines] = useState<ProfessionLine[]>([]);
   const [aiInstructors, setAiInstructors] = useState<AIInstructor[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   
   // Filters
   const [selectedAcademyFilter, setSelectedAcademyFilter] = useState<string>("all");
@@ -98,20 +102,27 @@ export function ProfessionsManager() {
   }, []);
 
   const loadData = async () => {
+    setIsLoading(true);
+    setLoadError(null);
     try {
-      const [academiesRes, schoolsRes, professionsRes, instructorsRes] = await Promise.all([
-        supabase.from("academies").select("*").order("display_order"),
-        supabase.from("schools").select("*").order("display_order"),
-        supabase.from("profession_categories").select("*").order("display_order"),
-        supabase.from("ai_instructors").select("*").order("name")
-      ]);
-
+      const results = await withTimeout(
+        Promise.all([
+          Promise.resolve(supabase.from("academies").select("*").order("display_order")),
+          Promise.resolve(supabase.from("schools").select("*").order("display_order")),
+          Promise.resolve(supabase.from("profession_categories").select("*").order("display_order")),
+          Promise.resolve(supabase.from("ai_instructors").select("*").order("name"))
+        ]),
+        TIMEOUTS.DEFAULT,
+        "Loading professions data timed out"
+      );
+      const [academiesRes, schoolsRes, professionsRes, instructorsRes] = results;
       if (academiesRes.data) setAcademies(academiesRes.data);
       if (schoolsRes.data) setSchools(schoolsRes.data);
       if (professionsRes.data) setProfessionLines(professionsRes.data);
       if (instructorsRes.data) setAiInstructors(instructorsRes.data);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error loading data:", error);
+      setLoadError(error.message || "Failed to load data");
       toast.error("Failed to load data");
     } finally {
       setIsLoading(false);
@@ -312,7 +323,23 @@ export function ProfessionsManager() {
   const getProfessionName = (id: string) => professionLines.find(p => p.id === id)?.name || "Unknown";
 
   if (isLoading) {
-    return <div className="p-8 text-center text-muted-foreground">Loading...</div>;
+    return (
+      <div className="space-y-6">
+        <DashboardCardSkeleton />
+        <DashboardCardSkeleton />
+        <DashboardCardSkeleton />
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <DashboardErrorState
+        title="Failed to load professions"
+        message={loadError}
+        onRetry={loadData}
+      />
+    );
   }
 
   return (

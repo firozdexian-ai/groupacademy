@@ -9,6 +9,9 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { Trash2, Plus, Image as ImageIcon } from "lucide-react";
 import { ImageUpload } from "@/components/ImageUpload";
+import { withTimeout } from "@/hooks/useQueryWithTimeout";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
+import { DashboardCardSkeleton, DashboardErrorState } from "./DashboardSkeleton";
 
 interface Banner {
   id: string;
@@ -31,6 +34,7 @@ export const BannerManager = () => {
   const [banners, setBanners] = useState<Banner[]>([]);
   const [availableContent, setAvailableContent] = useState<Content[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [newBanner, setNewBanner] = useState({
     image_url: "",
     link_content_id: "none",
@@ -42,37 +46,27 @@ export const BannerManager = () => {
   }, []);
 
   const loadData = async () => {
+    setIsLoading(true);
+    setLoadError(null);
     try {
-      // Load banners
-      const { data: bannerData, error: bannerError } = await supabase
-        .from("banners")
-        .select(`
-          id,
-          image_url,
-          link_content_id,
-          display_order,
-          is_active,
-          content:link_content_id (
-            id,
-            title
-          )
-        `)
-        .order("display_order");
+      const bannersResult = await withTimeout(
+        Promise.resolve(supabase.from("banners").select(`id, image_url, link_content_id, display_order, is_active, content:link_content_id (id, title)`).order("display_order")),
+        TIMEOUTS.DEFAULT,
+        "Loading banners timed out"
+      );
+      if (bannersResult.error) throw bannersResult.error;
+      setBanners(bannersResult.data || []);
 
-      if (bannerError) throw bannerError;
-      setBanners(bannerData || []);
-
-      // Load available content for linking
-      const { data: contentData, error: contentError } = await supabase
-        .from("content")
-        .select("id, title")
-        .eq("is_published", true)
-        .order("title");
-
-      if (contentError) throw contentError;
-      setAvailableContent(contentData || []);
+      const contentResult = await withTimeout(
+        Promise.resolve(supabase.from("content").select("id, title").eq("is_published", true).order("title")),
+        TIMEOUTS.DEFAULT,
+        "Loading content timed out"
+      );
+      if (contentResult.error) throw contentResult.error;
+      setAvailableContent(contentResult.data || []);
     } catch (error: any) {
       console.error("Error loading data:", error);
+      setLoadError(error.message || "Failed to load banners");
       toast.error("Failed to load banners");
     } finally {
       setIsLoading(false);
@@ -145,7 +139,22 @@ export const BannerManager = () => {
   };
 
   if (isLoading) {
-    return <div className="text-center py-8">Loading banners...</div>;
+    return (
+      <div className="space-y-6">
+        <DashboardCardSkeleton />
+        <DashboardCardSkeleton />
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <DashboardErrorState
+        title="Failed to load banners"
+        message={loadError}
+        onRetry={loadData}
+      />
+    );
   }
 
   return (

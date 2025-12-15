@@ -10,6 +10,9 @@ import { Switch } from "@/components/ui/switch";
 import { ArrowLeft, Plus, Trash2, GripVertical, Settings } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
+import { withTimeout } from "@/hooks/useQueryWithTimeout";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
+import { ErrorState } from "@/components/ui/error-state";
 
 interface Module {
   id?: string;
@@ -25,6 +28,7 @@ export default function ModuleManagement() {
   const { contentId } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [course, setCourse] = useState<any>(null);
   const [modules, setModules] = useState<Module[]>([]);
@@ -34,37 +38,35 @@ export default function ModuleManagement() {
   }, [contentId]);
 
   const loadModules = async () => {
+    setLoading(true);
+    setLoadError(null);
     try {
       // Get course details
-      const { data: courseData, error: courseError } = await supabase
-        .from("content")
-        .select("*")
-        .eq("id", contentId)
-        .single();
-
-      if (courseError || !courseData) {
+      const courseResult = await withTimeout(
+        Promise.resolve(supabase.from("content").select("*").eq("id", contentId).single()),
+        TIMEOUTS.DEFAULT,
+        "Loading course timed out"
+      );
+      if (courseResult.error || !courseResult.data) {
         toast.error("Course not found");
         navigate("/dashboard");
         return;
       }
+      setCourse(courseResult.data);
 
-      setCourse(courseData);
-
-      // Load existing modules
-      const { data: modulesData } = await supabase
-        .from("course_modules")
-        .select("*")
-        .eq("content_id", contentId)
-        .order("display_order");
-
-      if (modulesData && modulesData.length > 0) {
-        setModules(modulesData);
+      const modulesResult = await withTimeout(
+        Promise.resolve(supabase.from("course_modules").select("*").eq("content_id", contentId).order("display_order")),
+        TIMEOUTS.DEFAULT,
+        "Loading modules timed out"
+      );
+      if (modulesResult.data && modulesResult.data.length > 0) {
+        setModules(modulesResult.data);
       } else {
-        // Initialize with empty module
         addModule();
       }
     } catch (error: any) {
       console.error("Error loading modules:", error);
+      setLoadError(error.message || "Failed to load modules");
       toast.error("Failed to load modules");
     } finally {
       setLoading(false);
@@ -165,6 +167,19 @@ export default function ModuleManagement() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <ErrorState
+          type="server"
+          title="Failed to load modules"
+          description={loadError}
+          onRetry={loadModules}
+        />
       </div>
     );
   }

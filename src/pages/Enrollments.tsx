@@ -5,9 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
-import { ArrowLeft, Users, Clock, DollarSign } from "lucide-react";
+import { ArrowLeft, Users, Clock, DollarSign, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format, isSameDay } from "date-fns";
+import { withTimeout } from "@/hooks/useQueryWithTimeout";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
+import { CardGridSkeleton } from "@/components/ui/page-loading-skeleton";
+import { ErrorState } from "@/components/ui/error-state";
 
 interface Enrollment {
   id: string;
@@ -40,6 +44,7 @@ export default function Enrollments() {
   const { toast } = useToast();
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
 
   useEffect(() => {
@@ -47,26 +52,18 @@ export default function Enrollments() {
   }, []);
 
   const loadEnrollments = async () => {
+    setLoading(true);
+    setLoadError(null);
     try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("enrollments")
-        .select(`
-          *,
-          student:student_id(full_name, student_id),
-          content:content_id(
-            title,
-            content_type,
-            event_date,
-            max_capacity,
-            current_enrollment
-          )
-        `)
-        .order("enrolled_at", { ascending: false });
-
-      if (error) throw error;
-      setEnrollments(data || []);
+      const result = await withTimeout(
+        Promise.resolve(supabase.from("enrollments").select(`*, student:student_id(full_name, student_id), content:content_id(title, content_type, event_date, max_capacity, current_enrollment)`).order("enrolled_at", { ascending: false })),
+        TIMEOUTS.DEFAULT,
+        "Loading enrollments timed out"
+      );
+      if (result.error) throw result.error;
+      setEnrollments(result.data || []);
     } catch (error: any) {
+      setLoadError(error.message || "Failed to load enrollments");
       toast({
         title: "Error loading enrollments",
         description: error.message,
@@ -170,7 +167,14 @@ export default function Enrollments() {
               </h2>
 
               {loading ? (
-                <div className="text-center py-12">Loading enrollments...</div>
+                <CardGridSkeleton count={3} columns={3} />
+              ) : loadError ? (
+                <ErrorState
+                  type="server"
+                  title="Failed to load enrollments"
+                  description={loadError}
+                  onRetry={loadEnrollments}
+                />
               ) : enrollmentsOnSelectedDate.length === 0 && selectedDate ? (
                 <p className="text-muted-foreground text-center py-12">
                   No enrollments on this date

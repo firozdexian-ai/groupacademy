@@ -9,6 +9,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { withTimeout } from "@/hooks/useQueryWithTimeout";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
+import { ErrorState } from "@/components/ui/error-state";
 
 interface Question {
   id?: string;
@@ -26,6 +29,7 @@ export default function QuizManagement() {
   const { contentId } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [course, setCourse] = useState<any>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -36,38 +40,36 @@ export default function QuizManagement() {
   }, [contentId]);
 
   const loadQuizData = async () => {
+    setLoading(true);
+    setLoadError(null);
     try {
       // Get course details
-      const { data: courseData, error: courseError } = await supabase
-        .from("content")
-        .select("*")
-        .eq("id", contentId)
-        .single();
-
-      if (courseError || !courseData) {
+      const courseResult = await withTimeout(
+        Promise.resolve(supabase.from("content").select("*").eq("id", contentId).single()),
+        TIMEOUTS.DEFAULT,
+        "Loading course timed out"
+      );
+      if (courseResult.error || !courseResult.data) {
         toast.error("Course not found");
         navigate("/dashboard");
         return;
       }
+      setCourse(courseResult.data);
+      setPassThreshold(courseResult.data.pass_threshold || 70);
 
-      setCourse(courseData);
-      setPassThreshold(courseData.pass_threshold || 70);
-
-      // Load existing questions
-      const { data: questionsData } = await supabase
-        .from("quiz_questions")
-        .select("*")
-        .eq("content_id", contentId)
-        .order("display_order");
-
-      if (questionsData && questionsData.length > 0) {
-        setQuestions(questionsData);
+      const questionsResult = await withTimeout(
+        Promise.resolve(supabase.from("quiz_questions").select("*").eq("content_id", contentId).order("display_order")),
+        TIMEOUTS.DEFAULT,
+        "Loading questions timed out"
+      );
+      if (questionsResult.data && questionsResult.data.length > 0) {
+        setQuestions(questionsResult.data);
       } else {
-        // Initialize with empty question if none exist
         addQuestion();
       }
     } catch (error: any) {
       console.error("Error loading quiz:", error);
+      setLoadError(error.message || "Failed to load quiz data");
       toast.error("Failed to load quiz data");
     } finally {
       setLoading(false);
@@ -166,6 +168,19 @@ export default function QuizManagement() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <ErrorState
+          type="server"
+          title="Failed to load quiz"
+          description={loadError}
+          onRetry={loadQuizData}
+        />
       </div>
     );
   }
