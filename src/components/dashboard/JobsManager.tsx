@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { withTimeout } from "@/hooks/useQueryWithTimeout";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
+import { DashboardTableSkeleton, DashboardErrorState } from "./DashboardSkeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -100,6 +103,7 @@ export function JobsManager() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [categories, setCategories] = useState<ProfessionCategory[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -119,16 +123,25 @@ export function JobsManager() {
   }, []);
 
   const loadJobs = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      const { data, error } = await supabase
-        .from("jobs")
-        .select("*")
-        .order("created_at", { ascending: false });
+      const { data, error: queryError } = await withTimeout(
+        Promise.resolve(
+          supabase
+            .from("jobs")
+            .select("*")
+            .order("created_at", { ascending: false })
+        ).then(q => q),
+        TIMEOUTS.DEFAULT,
+        "Loading jobs timed out"
+      );
 
-      if (error) throw error;
+      if (queryError) throw queryError;
       setJobs(data || []);
-    } catch (error: any) {
-      console.error("Error loading jobs:", error);
+    } catch (err: any) {
+      console.error("Error loading jobs:", err);
+      setError(err.message || "Failed to load jobs");
       toast.error("Failed to load jobs");
     } finally {
       setLoading(false);
@@ -137,16 +150,22 @@ export function JobsManager() {
 
   const loadCategories = async () => {
     try {
-      const { data, error } = await supabase
-        .from("profession_categories")
-        .select("id, name")
-        .eq("is_active", true)
-        .order("name");
+      const { data, error: queryError } = await withTimeout(
+        Promise.resolve(
+          supabase
+            .from("profession_categories")
+            .select("id, name")
+            .eq("is_active", true)
+            .order("name")
+        ).then(q => q),
+        TIMEOUTS.CATEGORY_LOAD,
+        "Loading categories timed out"
+      );
 
-      if (error) throw error;
+      if (queryError) throw queryError;
       setCategories(data || []);
-    } catch (error: any) {
-      console.error("Error loading categories:", error);
+    } catch (err: any) {
+      console.error("Error loading categories:", err);
     }
   };
 
@@ -454,14 +473,11 @@ export function JobsManager() {
   const featuredCount = jobs.filter((j) => j.is_featured).length;
 
   if (loading) {
-    return (
-      <Card>
-        <CardContent className="py-8 text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-2 text-muted-foreground">Loading jobs...</p>
-        </CardContent>
-      </Card>
-    );
+    return <DashboardTableSkeleton rows={5} columns={8} />;
+  }
+
+  if (error) {
+    return <DashboardErrorState title="Failed to load jobs" message={error} onRetry={loadJobs} />;
   }
 
   return (

@@ -1,16 +1,19 @@
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Calendar, Plus, Video, Clock, User } from "lucide-react";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useQueryWithTimeout } from "@/hooks/useQueryWithTimeout";
+import { supabase } from "@/integrations/supabase/client";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
+import { ErrorState } from "@/components/ui/error-state";
 
 export default function Sessions() {
   const navigate = useNavigate();
 
-  const { data: sessions, isLoading } = useQuery({
+  const { data: sessions, isLoading, error, refetch } = useQueryWithTimeout({
     queryKey: ["sessions"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -33,6 +36,7 @@ export default function Sessions() {
       if (error) throw error;
       return data;
     },
+    timeout: TIMEOUTS.DEFAULT,
   });
 
   const getStatusVariant = (status: string) => {
@@ -68,9 +72,39 @@ export default function Sessions() {
   if (isLoading) {
     return (
       <div className="container mx-auto py-8">
-        <div className="flex justify-center items-center min-h-[400px]">
-          <div className="text-muted-foreground">Loading sessions...</div>
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <Skeleton className="h-10 w-64 mb-2" />
+            <Skeleton className="h-5 w-96" />
+          </div>
+          <Skeleton className="h-10 w-32" />
         </div>
+        <div className="grid gap-4">
+          {[1, 2, 3].map(i => (
+            <Card key={i}>
+              <CardHeader>
+                <Skeleton className="h-6 w-48 mb-2" />
+                <Skeleton className="h-4 w-32" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="h-4 w-64 mb-2" />
+                <Skeleton className="h-4 w-48" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto py-8">
+        <ErrorState 
+          title="Failed to load sessions"
+          description={error instanceof Error ? error.message : "An error occurred"}
+          onRetry={() => refetch()}
+        />
       </div>
     );
   }

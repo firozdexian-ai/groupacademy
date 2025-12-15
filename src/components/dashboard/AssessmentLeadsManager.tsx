@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { withTimeout } from "@/hooks/useQueryWithTimeout";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
+import { DashboardTableSkeleton, DashboardErrorState } from "./DashboardSkeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +38,7 @@ const readinessColors: Record<string, string> = {
 export function AssessmentLeadsManager() {
   const [leads, setLeads] = useState<AssessmentLead[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [readinessFilter, setReadinessFilter] = useState<string>("all");
 
@@ -43,25 +47,34 @@ export function AssessmentLeadsManager() {
   }, []);
 
   const loadLeads = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      const { data, error } = await supabase
-        .from("career_assessments")
-        .select(`
-          id,
-          full_name,
-          email,
-          phone,
-          percentage,
-          readiness_level,
-          created_at,
-          profession_category:profession_categories(name)
-        `)
-        .order("created_at", { ascending: false });
+      const { data, error: queryError } = await withTimeout(
+        Promise.resolve(
+          supabase
+            .from("career_assessments")
+            .select(`
+              id,
+              full_name,
+              email,
+              phone,
+              percentage,
+              readiness_level,
+              created_at,
+              profession_category:profession_categories(name)
+            `)
+            .order("created_at", { ascending: false })
+        ).then(q => q),
+        TIMEOUTS.DEFAULT,
+        "Loading assessment leads timed out"
+      );
 
-      if (error) throw error;
+      if (queryError) throw queryError;
       setLeads(data || []);
-    } catch (error: any) {
-      console.error("Error loading leads:", error);
+    } catch (err: any) {
+      console.error("Error loading leads:", err);
+      setError(err.message || "Failed to load assessment leads");
       toast.error("Failed to load assessment leads");
     } finally {
       setLoading(false);
@@ -102,14 +115,11 @@ export function AssessmentLeadsManager() {
   };
 
   if (loading) {
-    return (
-      <Card>
-        <CardContent className="py-8 text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-2 text-muted-foreground">Loading leads...</p>
-        </CardContent>
-      </Card>
-    );
+    return <DashboardTableSkeleton rows={5} columns={7} />;
+  }
+
+  if (error) {
+    return <DashboardErrorState title="Failed to load leads" message={error} onRetry={loadLeads} />;
   }
 
   return (

@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { withTimeout } from "@/hooks/useQueryWithTimeout";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
+import { DashboardTableSkeleton, DashboardErrorState } from "./DashboardSkeleton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -40,6 +43,7 @@ export function TalentPoolManager() {
   const [professionals, setProfessionals] = useState<Professional[]>([]);
   const [professionCategories, setProfessionCategories] = useState<ProfessionCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProfessional, setSelectedProfessional] = useState<Professional | null>(null);
   
@@ -56,16 +60,24 @@ export function TalentPoolManager() {
 
   const loadProfessionals = async () => {
     setIsLoading(true);
+    setError(null);
     try {
-      const { data, error } = await supabase
-        .from('professionals')
-        .select('*')
-        .order('updated_at', { ascending: false });
+      const { data, error: queryError } = await withTimeout(
+        Promise.resolve(
+          supabase
+            .from('professionals')
+            .select('*')
+            .order('updated_at', { ascending: false })
+        ).then(q => q),
+        TIMEOUTS.DEFAULT,
+        "Loading talent pool timed out"
+      );
 
-      if (error) throw error;
+      if (queryError) throw queryError;
       setProfessionals(data || []);
-    } catch (error: any) {
-      console.error('Error loading professionals:', error);
+    } catch (err: any) {
+      console.error('Error loading professionals:', err);
+      setError(err.message || 'Failed to load talent pool');
       toast.error('Failed to load talent pool');
     } finally {
       setIsLoading(false);
@@ -74,15 +86,21 @@ export function TalentPoolManager() {
 
   const loadProfessionCategories = async () => {
     try {
-      const { data, error } = await supabase
-        .from('profession_categories')
-        .select('id, name')
-        .eq('is_active', true);
+      const { data, error: queryError } = await withTimeout(
+        Promise.resolve(
+          supabase
+            .from('profession_categories')
+            .select('id, name')
+            .eq('is_active', true)
+        ).then(q => q),
+        TIMEOUTS.CATEGORY_LOAD,
+        "Loading categories timed out"
+      );
 
-      if (error) throw error;
+      if (queryError) throw queryError;
       setProfessionCategories(data || []);
-    } catch (error: any) {
-      console.error('Error loading profession categories:', error);
+    } catch (err: any) {
+      console.error('Error loading profession categories:', err);
     }
   };
 
@@ -190,6 +208,14 @@ export function TalentPoolManager() {
       </Badge>
     ));
   };
+
+  if (isLoading) {
+    return <DashboardTableSkeleton rows={5} columns={6} />;
+  }
+
+  if (error) {
+    return <DashboardErrorState title="Failed to load talent pool" message={error} onRetry={loadProfessionals} />;
+  }
 
   return (
     <div className="space-y-6">

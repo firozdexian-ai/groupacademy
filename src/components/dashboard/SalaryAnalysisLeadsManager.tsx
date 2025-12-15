@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { withTimeout } from "@/hooks/useQueryWithTimeout";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
+import { DashboardTableSkeleton, DashboardErrorState } from "./DashboardSkeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -58,6 +61,7 @@ export const SalaryAnalysisLeadsManager = () => {
   const navigate = useNavigate();
   const [leads, setLeads] = useState<SalaryAnalysisLead[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
@@ -67,27 +71,35 @@ export const SalaryAnalysisLeadsManager = () => {
 
   const loadLeads = async () => {
     setLoading(true);
+    setError(null);
     try {
-      const { data, error } = await supabase
-        .from("salary_analyses")
-        .select(`
-          id,
-          full_name,
-          email,
-          phone,
-          job_title,
-          company_name,
-          status,
-          ai_analysis,
-          created_at,
-          profession_category:profession_categories(name)
-        `)
-        .order("created_at", { ascending: false });
+      const { data, error: queryError } = await withTimeout(
+        Promise.resolve(
+          supabase
+            .from("salary_analyses")
+            .select(`
+              id,
+              full_name,
+              email,
+              phone,
+              job_title,
+              company_name,
+              status,
+              ai_analysis,
+              created_at,
+              profession_category:profession_categories(name)
+            `)
+            .order("created_at", { ascending: false })
+        ).then(q => q),
+        TIMEOUTS.DEFAULT,
+        "Loading salary analysis leads timed out"
+      );
 
-      if (error) throw error;
+      if (queryError) throw queryError;
       setLeads(data || []);
-    } catch (error: any) {
-      console.error("Error loading salary analysis leads:", error);
+    } catch (err: any) {
+      console.error("Error loading salary analysis leads:", err);
+      setError(err.message || "Failed to load salary analysis leads");
       toast.error("Failed to load salary analysis leads");
     } finally {
       setLoading(false);
@@ -132,11 +144,11 @@ export const SalaryAnalysisLeadsManager = () => {
   const pendingCount = leads.filter((l) => l.status === "pending" || l.status === "processing").length;
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <DashboardTableSkeleton rows={5} columns={7} />;
+  }
+
+  if (error) {
+    return <DashboardErrorState title="Failed to load leads" message={error} onRetry={loadLeads} />;
   }
 
   return (

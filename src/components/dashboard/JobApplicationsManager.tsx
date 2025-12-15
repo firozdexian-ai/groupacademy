@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { withTimeout } from "@/hooks/useQueryWithTimeout";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
+import { DashboardTableSkeleton, DashboardErrorState } from "./DashboardSkeleton";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -57,6 +60,7 @@ const DELIVERY_STATUSES: { value: DeliveryStatus; label: string }[] = [
 export const JobApplicationsManager = () => {
   const [applications, setApplications] = useState<JobApplication[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [deliveryFilter, setDeliveryFilter] = useState<string>('all');
@@ -67,20 +71,29 @@ export const JobApplicationsManager = () => {
   }, []);
 
   const loadApplications = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      const { data, error } = await supabase
-        .from('job_applications')
-        .select(`
-          *,
-          jobs (title, company_name, application_type, application_email, application_url),
-          professionals (full_name, email, phone)
-        `)
-        .order('created_at', { ascending: false });
+      const { data, error: queryError } = await withTimeout(
+        Promise.resolve(
+          supabase
+            .from('job_applications')
+            .select(`
+              *,
+              jobs (title, company_name, application_type, application_email, application_url),
+              professionals (full_name, email, phone)
+            `)
+            .order('created_at', { ascending: false })
+        ).then(q => q),
+        TIMEOUTS.DEFAULT,
+        "Loading job applications timed out"
+      );
 
-      if (error) throw error;
+      if (queryError) throw queryError;
       setApplications(data as JobApplication[]);
-    } catch (error) {
-      console.error('Error loading applications:', error);
+    } catch (err: any) {
+      console.error('Error loading applications:', err);
+      setError(err.message || 'Failed to load applications');
       toast({
         title: 'Error',
         description: 'Failed to load applications',
@@ -317,7 +330,11 @@ This application was submitted via GroUp Academy Jobs Board.
   };
 
   if (loading) {
-    return <div className="flex justify-center p-8">Loading applications...</div>;
+    return <DashboardTableSkeleton rows={5} columns={8} />;
+  }
+
+  if (error) {
+    return <DashboardErrorState title="Failed to load applications" message={error} onRetry={loadApplications} />;
   }
 
   const stats = {

@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { withTimeout } from "@/hooks/useQueryWithTimeout";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
+import { DashboardTableSkeleton, DashboardErrorState } from "./DashboardSkeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -62,6 +65,7 @@ export default function PortfolioRequestsManager() {
   const { toast } = useToast();
   const [requests, setRequests] = useState<PortfolioRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedRequest, setSelectedRequest] = useState<PortfolioRequest | null>(null);
@@ -81,19 +85,28 @@ export default function PortfolioRequestsManager() {
 
   const loadRequests = async () => {
     setLoading(true);
+    setError(null);
     try {
-      const { data, error } = await supabase
-        .from('portfolio_requests')
-        .select(`
-          *,
-          profession_category:profession_categories(name)
-        `)
-        .order('created_at', { ascending: false });
+      const { data, error: queryError } = await withTimeout(
+        Promise.resolve(
+          supabase
+            .from('portfolio_requests')
+            .select(`
+              *,
+              profession_category:profession_categories(name)
+            `)
+            .order('created_at', { ascending: false })
+        ).then(q => q),
+        TIMEOUTS.DEFAULT,
+        "Loading portfolio requests timed out"
+      );
 
-      if (error) throw error;
+      if (queryError) throw queryError;
       setRequests((data || []) as unknown as PortfolioRequest[]);
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } catch (err: any) {
+      console.error("Error loading portfolio requests:", err);
+      setError(err.message || "Failed to load portfolio requests");
+      toast({ title: "Error", description: err.message, variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -158,11 +171,11 @@ export default function PortfolioRequestsManager() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <DashboardTableSkeleton rows={5} columns={6} />;
+  }
+
+  if (error) {
+    return <DashboardErrorState title="Failed to load requests" message={error} onRetry={loadRequests} />;
   }
 
   return (

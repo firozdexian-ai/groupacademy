@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { GraduationCap, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { withTimeout } from '@/hooks/useQueryWithTimeout';
+import { TIMEOUTS } from '@/lib/timeoutConfig';
 
 const resetPasswordSchema = z.object({
   password: z.string().min(8, 'Password must be at least 8 characters'),
@@ -46,7 +48,11 @@ const ResetPassword = () => {
     setIsLoading(true);
 
     try {
-      await updatePassword(password);
+      await withTimeout(
+        updatePassword(password),
+        TIMEOUTS.AUTH,
+        "Password update timed out. Please try again."
+      );
       navigate('/my-learning');
     } catch (error: any) {
       toast.error(error.message || 'Failed to update password');

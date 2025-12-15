@@ -5,6 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorState } from "@/components/ui/error-state";
+import { withTimeout } from "@/hooks/useQueryWithTimeout";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { 
   Search, 
   UserPlus, 
@@ -55,6 +59,7 @@ export default function Students() {
   const { toast } = useToast();
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
@@ -65,25 +70,34 @@ export default function Students() {
   const loadStudents = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("students")
-        .select(`
-          *,
-          enrollments(
-            id,
-            status,
-            enrolled_at,
-            content:content_id(title, content_type)
-          )
-        `)
-        .order("created_at", { ascending: false });
+      setError(null);
+      const { data, error: queryError } = await withTimeout(
+        Promise.resolve(
+          supabase
+            .from("students")
+            .select(`
+              *,
+              enrollments(
+                id,
+                status,
+                enrolled_at,
+                content:content_id(title, content_type)
+              )
+            `)
+            .order("created_at", { ascending: false })
+        ).then(q => q),
+        TIMEOUTS.DEFAULT,
+        "Loading students timed out"
+      );
 
-      if (error) throw error;
+      if (queryError) throw queryError;
       setStudents(data || []);
-    } catch (error: any) {
+    } catch (err: any) {
+      console.error("Error loading students:", err);
+      setError(err.message || "Failed to load students");
       toast({
         title: "Error loading students",
-        description: error.message,
+        description: err.message,
         variant: "destructive",
       });
     } finally {
@@ -102,6 +116,60 @@ export default function Students() {
 
     return matchesSearch && matchesStatus;
   });
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">
+          <div className="mb-8">
+            <Skeleton className="h-10 w-32 mb-4" />
+            <div className="flex items-center justify-between">
+              <div>
+                <Skeleton className="h-10 w-64 mb-2" />
+                <Skeleton className="h-5 w-96" />
+              </div>
+              <Skeleton className="h-10 w-32" />
+            </div>
+          </div>
+          <div className="mb-6 flex gap-4">
+            <Skeleton className="h-10 flex-1" />
+            <Skeleton className="h-10 w-48" />
+          </div>
+          <div className="space-y-4">
+            {[1, 2, 3].map(i => (
+              <Card key={i} className="p-6">
+                <Skeleton className="h-6 w-48 mb-2" />
+                <Skeleton className="h-4 w-32 mb-4" />
+                <Skeleton className="h-4 w-full" />
+              </Card>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">
+          <Button
+            variant="ghost"
+            onClick={() => navigate("/dashboard")}
+            className="mb-4"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Dashboard
+          </Button>
+          <ErrorState
+            title="Failed to load students"
+            description={error}
+            onRetry={loadStudents}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -155,9 +223,7 @@ export default function Students() {
           </Select>
         </div>
 
-        {loading ? (
-          <div className="text-center py-12">Loading students...</div>
-        ) : filteredStudents.length === 0 ? (
+        {filteredStudents.length === 0 ? (
           <Card className="p-12 text-center">
             <p className="text-muted-foreground">No students found</p>
           </Card>
@@ -171,8 +237,8 @@ export default function Students() {
                       <h3 className="text-xl font-semibold">
                         {student.full_name}
                       </h3>
-                      <Badge className={statusConfig[student.status as keyof typeof statusConfig].color}>
-                        {statusConfig[student.status as keyof typeof statusConfig].label}
+                      <Badge className={statusConfig[student.status as keyof typeof statusConfig]?.color || "bg-muted"}>
+                        {statusConfig[student.status as keyof typeof statusConfig]?.label || student.status}
                       </Badge>
                     </div>
                     <p className="text-sm text-muted-foreground">

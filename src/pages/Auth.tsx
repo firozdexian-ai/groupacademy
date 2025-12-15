@@ -10,6 +10,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { toast } from "sonner";
 import { GraduationCap, Eye, EyeOff, Loader2 } from "lucide-react";
 import { loginSchema, signupSchema, resetPasswordSchema } from "@/lib/validations";
+import { withTimeout } from "@/hooks/useQueryWithTimeout";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -59,7 +61,11 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
-      await signIn(loginData.email, loginData.password);
+      await withTimeout(
+        signIn(loginData.email, loginData.password),
+        TIMEOUTS.AUTH,
+        "Sign in timed out. Please try again."
+      );
       const returnTo = searchParams.get('returnTo') || '/my-learning';
       navigate(returnTo);
     } catch (error: any) {
@@ -87,11 +93,15 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
-      const success = await signUp(
-        signupData.fullName,
-        signupData.email,
-        signupData.password,
-        signupData.phone
+      const success = await withTimeout(
+        signUp(
+          signupData.fullName,
+          signupData.email,
+          signupData.password,
+          signupData.phone
+        ),
+        TIMEOUTS.AUTH,
+        "Sign up timed out. Please try again."
       );
 
       if (success) {
@@ -133,7 +143,11 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
-      await resetPassword(resetEmail);
+      await withTimeout(
+        resetPassword(resetEmail),
+        TIMEOUTS.AUTH,
+        "Password reset request timed out. Please try again."
+      );
       setShowForgotPassword(false);
       setResetEmail("");
     } catch (error: any) {
