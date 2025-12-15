@@ -10,6 +10,8 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Search, Clock, MessageCircle, CheckCircle, XCircle, Loader2, ExternalLink, Copy } from "lucide-react";
 import { format } from "date-fns";
+import { withTimeout } from "@/hooks/useDataFetch";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
 
 interface PortfolioRequest {
   id: string;
@@ -37,18 +39,26 @@ export default function PortfolioStatus() {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [requests, setRequests] = useState<PortfolioRequest[] | null>(null);
+  const [searchError, setSearchError] = useState<string | null>(null);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) return;
 
     setIsLoading(true);
+    setSearchError(null);
     try {
-      const { data, error } = await supabase
-        .from('portfolio_requests')
-        .select('id, full_name, email, status, portfolio_url, portfolio_credentials, created_at, updated_at')
-        .eq('email', email.trim().toLowerCase())
-        .order('created_at', { ascending: false });
+      const { data, error } = await withTimeout(
+        Promise.resolve(
+          supabase
+            .from('portfolio_requests')
+            .select('id, full_name, email, status, portfolio_url, portfolio_credentials, created_at, updated_at')
+            .eq('email', email.trim().toLowerCase())
+            .order('created_at', { ascending: false })
+        ),
+        TIMEOUTS.DEFAULT,
+        "Search timed out. Please try again."
+      );
 
       if (error) throw error;
 
@@ -57,7 +67,9 @@ export default function PortfolioStatus() {
         toast({ title: "No requests found", description: "No portfolio requests found for this email", variant: "destructive" });
       }
     } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      const errorMessage = error.message || "Failed to search";
+      setSearchError(errorMessage);
+      toast({ title: "Error", description: errorMessage, variant: "destructive" });
     } finally {
       setIsLoading(false);
     }

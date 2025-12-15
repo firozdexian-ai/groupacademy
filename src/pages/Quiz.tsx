@@ -8,6 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { ArrowLeft, ArrowRight, CheckCircle, XCircle } from "lucide-react";
 import { toast } from "sonner";
+import { withTimeout } from "@/hooks/useDataFetch";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
+import { ErrorState } from "@/components/ui/error-state";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Question {
   id: string;
@@ -35,25 +39,38 @@ export default function Quiz() {
   const [passed, setPassed] = useState(false);
   const [studentId, setStudentId] = useState<string | null>(null);
   const [enrollmentId, setEnrollmentId] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     loadQuiz();
   }, [slug]);
 
   const loadQuiz = async () => {
+    setLoading(true);
+    setLoadError(null);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await withTimeout(
+        supabase.auth.getUser(),
+        TIMEOUTS.AUTH,
+        "Authentication timed out"
+      );
       if (!user) {
         navigate("/auth");
         return;
       }
 
       // Get student profile
-      const { data: student } = await supabase
-        .from("students")
-        .select("id")
-        .eq("user_id", user.id)
-        .single();
+      const { data: student } = await withTimeout(
+        Promise.resolve(
+          supabase
+            .from("students")
+            .select("id")
+            .eq("user_id", user.id)
+            .single()
+        ),
+        TIMEOUTS.DEFAULT,
+        "Loading profile timed out"
+      );
 
       if (!student) {
         toast.error("Student profile not found");
@@ -64,11 +81,17 @@ export default function Quiz() {
       setStudentId(student.id);
 
       // Get course details
-      const { data: courseData, error: courseError } = await supabase
-        .from("content")
-        .select("*")
-        .eq("slug", slug)
-        .single();
+      const { data: courseData, error: courseError } = await withTimeout(
+        Promise.resolve(
+          supabase
+            .from("content")
+            .select("*")
+            .eq("slug", slug)
+            .single()
+        ),
+        TIMEOUTS.DEFAULT,
+        "Loading course timed out"
+      );
 
       if (courseError || !courseData) {
         toast.error("Course not found");
@@ -83,12 +106,18 @@ export default function Quiz() {
       }
 
       // Check enrollment
-      const { data: enrollment } = await supabase
-        .from("enrollments")
-        .select("id, status")
-        .eq("student_id", student.id)
-        .eq("content_id", courseData.id)
-        .single();
+      const { data: enrollment } = await withTimeout(
+        Promise.resolve(
+          supabase
+            .from("enrollments")
+            .select("id, status")
+            .eq("student_id", student.id)
+            .eq("content_id", courseData.id)
+            .single()
+        ),
+        TIMEOUTS.DEFAULT,
+        "Checking enrollment timed out"
+      );
 
       if (!enrollment || !["active", "completed"].includes(enrollment.status)) {
         toast.error("You must be enrolled to take this quiz");
@@ -100,11 +129,17 @@ export default function Quiz() {
       setCourse(courseData);
 
       // Load questions
-      const { data: questionsData, error: questionsError } = await supabase
-        .from("quiz_questions")
-        .select("*")
-        .eq("content_id", courseData.id)
-        .order("display_order");
+      const { data: questionsData, error: questionsError } = await withTimeout(
+        Promise.resolve(
+          supabase
+            .from("quiz_questions")
+            .select("*")
+            .eq("content_id", courseData.id)
+            .order("display_order")
+        ),
+        TIMEOUTS.DEFAULT,
+        "Loading questions timed out"
+      );
 
       if (questionsError) throw questionsError;
 
@@ -117,7 +152,9 @@ export default function Quiz() {
       setQuestions(questionsData);
     } catch (error: any) {
       console.error("Error loading quiz:", error);
-      toast.error("Failed to load quiz");
+      const errorMessage = error.message || "Failed to load quiz";
+      setLoadError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -193,8 +230,43 @@ export default function Quiz() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="min-h-screen bg-background py-12">
+        <div className="container max-w-3xl mx-auto px-4">
+          <div className="mb-6 space-y-2">
+            <div className="flex items-center justify-between">
+              <Skeleton className="h-8 w-32" />
+              <Skeleton className="h-4 w-24" />
+            </div>
+            <Skeleton className="h-2 w-full" />
+          </div>
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-3/4" />
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {[1, 2, 3, 4].map((i) => (
+                <Skeleton key={i} className="h-14 w-full" />
+              ))}
+              <div className="flex justify-between pt-4">
+                <Skeleton className="h-10 w-24" />
+                <Skeleton className="h-10 w-24" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <ErrorState
+          type="generic"
+          title="Failed to Load Quiz"
+          description={loadError}
+          onRetry={loadQuiz}
+        />
       </div>
     );
   }
