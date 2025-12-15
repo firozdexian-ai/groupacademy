@@ -8,11 +8,14 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Copy, Plus, Trash2, BookOpen, ClipboardCheck, MessageSquare, TrendingUp, Briefcase } from "lucide-react";
+import { Copy, Plus, Trash2, BookOpen, ClipboardCheck, MessageSquare, TrendingUp, Briefcase, RefreshCw } from "lucide-react";
 import { StandaloneAssessmentCodeGenerator } from "@/components/dashboard/StandaloneAssessmentCodeGenerator";
 import { StandaloneMockInterviewCodeGenerator } from "@/components/dashboard/StandaloneMockInterviewCodeGenerator";
 import { StandaloneSalaryCodeGenerator } from "@/components/dashboard/StandaloneSalaryCodeGenerator";
 import { JobApplicationCodeGenerator } from "@/components/dashboard/JobApplicationCodeGenerator";
+import { withTimeout } from "@/hooks/useQueryWithTimeout";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
+import { DashboardTableSkeleton, DashboardErrorState } from "@/components/dashboard/DashboardSkeleton";
 
 interface AccessCode {
   id: string;
@@ -40,50 +43,62 @@ export const AccessCodeManager = () => {
   const [codes, setCodes] = useState<AccessCode[]>([]);
   const [paidContent, setPaidContent] = useState<Content[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedContentId, setSelectedContentId] = useState<string>("");
   const [maxUses, setMaxUses] = useState(1);
   const [notes, setNotes] = useState("");
 
   useEffect(() => {
-    fetchCodes();
-    fetchPaidContent();
+    loadData();
   }, []);
 
-  const fetchPaidContent = async () => {
+  const loadData = async () => {
+    setIsLoading(true);
+    setLoadError(null);
     try {
-      const { data, error } = await supabase
+      await Promise.all([fetchCodes(), fetchPaidContent()]);
+    } catch (error: any) {
+      const errorMessage = error.message?.includes("timed out")
+        ? "Loading took too long. Please try again."
+        : "Failed to load data";
+      setLoadError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchPaidContent = async () => {
+    const { data, error } = await withTimeout(
+      Promise.resolve(supabase
         .from("content")
         .select("id, title, price, content_type")
         .gt("price", 0)
         .eq("is_published", true)
-        .order("title");
+        .order("title")),
+      TIMEOUTS.DEFAULT,
+      "Loading content timed out"
+    );
 
-      if (error) throw error;
-      setPaidContent(data || []);
-    } catch (error) {
-      console.error("Error fetching paid content:", error);
-    }
+    if (error) throw error;
+    setPaidContent(data || []);
   };
 
   const fetchCodes = async () => {
-    try {
-      const { data, error } = await supabase
+    const { data, error } = await withTimeout(
+      Promise.resolve(supabase
         .from("access_codes")
         .select(`
           *,
           content:content_id (title)
         `)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })),
+      TIMEOUTS.DEFAULT,
+      "Loading codes timed out"
+    );
 
-      if (error) throw error;
-      setCodes(data || []);
-    } catch (error) {
-      console.error("Error fetching access codes:", error);
-      toast.error("Failed to load access codes");
-    } finally {
-      setIsLoading(false);
-    }
+    if (error) throw error;
+    setCodes(data || []);
   };
 
   const generateCode = () => {
@@ -149,7 +164,11 @@ export const AccessCodeManager = () => {
   };
 
   if (isLoading) {
-    return <div>Loading access codes...</div>;
+    return <DashboardTableSkeleton rows={5} columns={4} />;
+  }
+
+  if (loadError) {
+    return <DashboardErrorState title="Failed to load access codes" message={loadError} onRetry={loadData} />;
   }
 
   return (

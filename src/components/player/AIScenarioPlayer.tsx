@@ -3,9 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Send, CheckCircle, AlertCircle, Lightbulb } from "lucide-react";
+import { Loader2, Send, CheckCircle, AlertCircle, Lightbulb, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
 
 export interface AIScenario {
   id: string;
@@ -55,8 +56,12 @@ export function AIScenarioPlayer({
     setIsSubmitting(true);
     setError(null);
 
+    // Create a timeout controller
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), TIMEOUTS.AI_GENERATION);
+
     try {
-      const response = await supabase.functions.invoke('ai-instructor-chat', {
+      const responsePromise = supabase.functions.invoke('ai-instructor-chat', {
         body: {
           messages: [
             {
@@ -85,6 +90,17 @@ Please evaluate and respond with ONLY a JSON object (no markdown, no extra text)
           contextType: "scenario_evaluation"
         }
       });
+
+      const response = await Promise.race([
+        responsePromise,
+        new Promise<never>((_, reject) => {
+          controller.signal.addEventListener('abort', () => {
+            reject(new Error('AI analysis timed out. Please try again.'));
+          });
+        })
+      ]);
+
+      clearTimeout(timeoutId);
 
       if (response.error) throw new Error(response.error.message);
 
@@ -122,8 +138,10 @@ Please evaluate and respond with ONLY a JSON object (no markdown, no extra text)
         throw new Error("Could not parse AI response");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to get feedback");
+      const errorMessage = err instanceof Error ? err.message : "Failed to get feedback";
+      setError(errorMessage.includes("abort") ? "AI analysis timed out. Please try again." : errorMessage);
     } finally {
+      clearTimeout(timeoutId);
       setIsSubmitting(false);
     }
   };

@@ -67,33 +67,49 @@ export function DashboardOverview() {
       );
       if (studentsError) throw studentsError;
 
-      // Load active enrollments
-      const { count: enrollmentsCount, error: enrollmentsError } = await supabase
-        .from("enrollments")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "active");
+      // Load active enrollments with timeout
+      const { count: enrollmentsCount, error: enrollmentsError } = await withTimeout(
+        Promise.resolve(supabase
+          .from("enrollments")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "active")),
+        15000,
+        "Loading enrollments timed out"
+      );
       if (enrollmentsError) throw enrollmentsError;
 
-      // Calculate revenue (sum of payment_amount)
-      const { data: enrollments, error: revenueError } = await supabase
-        .from("enrollments")
-        .select("payment_amount")
-        .not("payment_amount", "is", null);
+      // Calculate revenue (sum of payment_amount) with timeout
+      const { data: enrollments, error: revenueError } = await withTimeout(
+        Promise.resolve(supabase
+          .from("enrollments")
+          .select("payment_amount")
+          .not("payment_amount", "is", null)),
+        15000,
+        "Loading revenue timed out"
+      );
       if (revenueError) throw revenueError;
 
       const totalRevenue = enrollments?.reduce((sum, e) => sum + (Number(e.payment_amount) || 0), 0) || 0;
 
-      // Count free videos
-      const { count: videoCount, error: videoError } = await supabase
-        .from("content")
-        .select("*", { count: "exact", head: true })
-        .eq("content_type", "free_video");
+      // Count free videos with timeout
+      const { count: videoCount, error: videoError } = await withTimeout(
+        Promise.resolve(supabase
+          .from("content")
+          .select("*", { count: "exact", head: true })
+          .eq("content_type", "free_video")),
+        15000,
+        "Loading videos timed out"
+      );
       if (videoError) throw videoError;
 
-      // Mock interview stats
-      const { data: interviews, error: interviewsError } = await supabase
-        .from("mock_interviews")
-        .select("status, selection_percentage");
+      // Mock interview stats with timeout
+      const { data: interviews, error: interviewsError } = await withTimeout(
+        Promise.resolve(supabase
+          .from("mock_interviews")
+          .select("status, selection_percentage")),
+        15000,
+        "Loading interviews timed out"
+      );
       if (interviewsError) throw interviewsError;
 
       const totalInterviews = interviews?.length || 0;
@@ -103,10 +119,14 @@ export function DashboardOverview() {
         ? Math.round(completedWithScores.reduce((sum, i) => sum + (i.selection_percentage || 0), 0) / completedWithScores.length)
         : 0;
 
-      // Portfolio stats
-      const { data: portfolioData, error: portfolioError } = await supabase
-        .from("portfolio_requests")
-        .select("status");
+      // Portfolio stats with timeout
+      const { data: portfolioData, error: portfolioError } = await withTimeout(
+        Promise.resolve(supabase
+          .from("portfolio_requests")
+          .select("status")),
+        15000,
+        "Loading portfolios timed out"
+      );
       if (portfolioError) throw portfolioError;
 
       const totalPortfolios = portfolioData?.length || 0;

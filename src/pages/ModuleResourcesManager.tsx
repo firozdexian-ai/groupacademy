@@ -9,9 +9,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Upload, Video, FileText, Image, Music, Brain, HelpCircle, FileCheck, Trash2, Plus, Save, ExternalLink } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ArrowLeft, Upload, Video, FileText, Image, Music, Brain, HelpCircle, FileCheck, Trash2, Plus, Save, ExternalLink, RefreshCw, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
+import { withTimeout } from "@/hooks/useQueryWithTimeout";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
 
 type ResourceType = Database["public"]["Enums"]["resource_type"];
 
@@ -64,6 +67,7 @@ export default function ModuleResourcesManager() {
   const { contentId, moduleId } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [course, setCourse] = useState<Course | null>(null);
   const [module, setModule] = useState<Module | null>(null);
@@ -76,13 +80,19 @@ export default function ModuleResourcesManager() {
   }, [contentId, moduleId]);
 
   const loadData = async () => {
+    setLoading(true);
+    setLoadError(null);
     try {
-      // Load course
-      const { data: courseData, error: courseError } = await supabase
-        .from("content")
-        .select("id, title")
-        .eq("id", contentId)
-        .single();
+      // Load course with timeout
+      const { data: courseData, error: courseError } = await withTimeout(
+        Promise.resolve(supabase
+          .from("content")
+          .select("id, title")
+          .eq("id", contentId)
+          .single()),
+        TIMEOUTS.DEFAULT,
+        "Loading course timed out"
+      );
 
       if (courseError || !courseData) {
         toast.error("Course not found");
@@ -91,12 +101,16 @@ export default function ModuleResourcesManager() {
       }
       setCourse(courseData);
 
-      // Load module
-      const { data: moduleData, error: moduleError } = await supabase
-        .from("course_modules")
-        .select("id, title, description, content_id")
-        .eq("id", moduleId)
-        .single();
+      // Load module with timeout
+      const { data: moduleData, error: moduleError } = await withTimeout(
+        Promise.resolve(supabase
+          .from("course_modules")
+          .select("id, title, description, content_id")
+          .eq("id", moduleId)
+          .single()),
+        TIMEOUTS.DEFAULT,
+        "Loading module timed out"
+      );
 
       if (moduleError || !moduleData) {
         toast.error("Module not found");
@@ -105,13 +119,17 @@ export default function ModuleResourcesManager() {
       }
       setModule(moduleData);
 
-      // Load existing resources
-      const { data: resourcesData } = await supabase
-        .from("module_resources")
-        .select("*")
-        .eq("module_id", moduleId)
-        .order("stage_number")
-        .order("display_order");
+      // Load existing resources with timeout
+      const { data: resourcesData } = await withTimeout(
+        Promise.resolve(supabase
+          .from("module_resources")
+          .select("*")
+          .eq("module_id", moduleId)
+          .order("stage_number")
+          .order("display_order")),
+        TIMEOUTS.DEFAULT,
+        "Loading resources timed out"
+      );
 
       if (resourcesData) {
         setResources(resourcesData.map(r => ({
@@ -126,9 +144,12 @@ export default function ModuleResourcesManager() {
           is_required: r.is_required || false,
         })));
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error loading data:", error);
-      toast.error("Failed to load module data");
+      const errorMessage = error.message?.includes("timed out")
+        ? "Loading took too long. Please try again."
+        : "Failed to load module data";
+      setLoadError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -202,11 +223,15 @@ export default function ModuleResourcesManager() {
     
     setSaving(true);
     try {
-      // Delete existing resources for this module
-      await supabase
-        .from("module_resources")
-        .delete()
-        .eq("module_id", moduleId);
+      // Delete existing resources for this module with timeout
+      await withTimeout(
+        Promise.resolve(supabase
+          .from("module_resources")
+          .delete()
+          .eq("module_id", moduleId)),
+        TIMEOUTS.DEFAULT,
+        "Deleting resources timed out"
+      );
 
       // Filter out empty resources
       const validResources = resources.filter(r => r.title && (r.resource_url || r.resource_data));
@@ -224,9 +249,13 @@ export default function ModuleResourcesManager() {
           is_required: r.is_required,
         }));
 
-        const { error } = await supabase
-          .from("module_resources")
-          .insert(resourcesToInsert);
+        const { error } = await withTimeout(
+          Promise.resolve(supabase
+            .from("module_resources")
+            .insert(resourcesToInsert)),
+          TIMEOUTS.DEFAULT,
+          "Saving resources timed out"
+        );
 
         if (error) throw error;
       }
@@ -234,7 +263,10 @@ export default function ModuleResourcesManager() {
       toast.success("Resources saved successfully!");
     } catch (error: any) {
       console.error("Save error:", error);
-      toast.error("Failed to save resources");
+      const errorMessage = error.message?.includes("timed out")
+        ? "Save operation timed out. Please try again."
+        : "Failed to save resources";
+      toast.error(errorMessage);
     } finally {
       setSaving(false);
     }
@@ -446,8 +478,50 @@ export default function ModuleResourcesManager() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="min-h-screen bg-background py-8">
+        <div className="container max-w-5xl mx-auto px-4 space-y-6">
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-10 w-32" />
+            <Skeleton className="h-10 w-40" />
+          </div>
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-6 w-48" />
+              <Skeleton className="h-4 w-64 mt-2" />
+            </CardHeader>
+          </Card>
+          <Skeleton className="h-12 w-full" />
+          <div className="space-y-4">
+            {[1, 2, 3].map(i => (
+              <Card key={i}>
+                <CardContent className="p-6">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-3/4 mt-2" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen bg-background py-8">
+        <div className="container max-w-5xl mx-auto px-4">
+          <Card>
+            <CardContent className="py-12 text-center">
+              <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Failed to load module data</h3>
+              <p className="text-muted-foreground mb-4">{loadError}</p>
+              <Button onClick={loadData} variant="outline">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Try Again
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }

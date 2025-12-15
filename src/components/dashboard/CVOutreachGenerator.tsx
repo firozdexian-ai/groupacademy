@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Upload, Link, Loader2, MessageSquare, Copy, ExternalLink, User, Briefcase, CheckCircle, Phone } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { withTimeout } from "@/hooks/useQueryWithTimeout";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
 
 const PRODUCTS = [
   { id: 'digital-portfolio', name: 'Digital Portfolio Creation', badge: 'First 1000 FREE' },
@@ -19,7 +21,8 @@ const PRODUCTS = [
   { id: 'salary-analysis', name: 'AI Salary Analysis', badge: null },
 ];
 
-const PROFESSION_CATEGORIES = [
+// Fallback categories in case database fetch fails
+const DEFAULT_PROFESSION_CATEGORIES = [
   { id: 'a1c5d82c-1a1a-4b0e-89e8-19c264a3a915', name: 'Banking & Finance' },
   { id: 'cd947727-350e-4fd3-813b-0034d4cf208e', name: 'Sales & Distribution' },
   { id: '5ee052f8-2aaf-45b5-8f90-731c23097fef', name: 'Sales & Marketing' },
@@ -79,6 +82,31 @@ export function CVOutreachGenerator() {
   const [selectedPhone, setSelectedPhone] = useState<string>('');
   const [overrideGender, setOverrideGender] = useState<string | null>(null);
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [professionCategories, setProfessionCategories] = useState(DEFAULT_PROFESSION_CATEGORIES);
+
+  // Load profession categories from database on mount
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const { data, error } = await withTimeout(
+          Promise.resolve(supabase
+            .from("profession_categories")
+            .select("id, name")
+            .eq("is_active", true)
+            .order("display_order")),
+          TIMEOUTS.CATEGORY_LOAD,
+          "Loading categories timed out"
+        );
+        if (error) throw error;
+        if (data && data.length > 0) {
+          setProfessionCategories(data);
+        }
+      } catch (error) {
+        console.log("Using fallback profession categories");
+      }
+    };
+    loadCategories();
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -167,7 +195,7 @@ export function CVOutreachGenerator() {
       
       // Get profession category name
       const professionCategoryId = parseData.professional?.profession_category_id || parseData.professionCategoryId;
-      const professionCategory = PROFESSION_CATEGORIES.find(c => c.id === professionCategoryId)?.name || 
+      const professionCategory = professionCategories.find(c => c.id === professionCategoryId)?.name || 
                                   determineProfessionFromCV(parseData.parsed);
 
       // Step 2: Generate outreach message with timeout
