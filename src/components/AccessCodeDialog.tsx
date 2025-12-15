@@ -13,6 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { withTimeout } from "@/hooks/useQueryWithTimeout";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
 
 interface AccessCodeDialogProps {
   open: boolean;
@@ -38,14 +40,18 @@ export const AccessCodeDialog = ({
 
     setIsValidating(true);
     try {
-      // Validate access code
-      const { data: accessCode, error: codeError } = await supabase
-        .from("access_codes")
-        .select("*")
-        .eq("code", code.trim().toUpperCase())
-        .eq("content_id", contentId)
-        .eq("is_active", true)
-        .maybeSingle();
+      // Validate access code with timeout
+      const { data: accessCode, error: codeError } = await withTimeout(
+        Promise.resolve(supabase
+          .from("access_codes")
+          .select("*")
+          .eq("code", code.trim().toUpperCase())
+          .eq("content_id", contentId)
+          .eq("is_active", true)
+          .maybeSingle()),
+        TIMEOUTS.DEFAULT,
+        "Code validation timed out"
+      );
 
       if (codeError) throw codeError;
 
@@ -66,8 +72,12 @@ export const AccessCodeDialog = ({
         return;
       }
 
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
+      // Get current user with timeout
+      const { data: { user } } = await withTimeout(
+        Promise.resolve(supabase.auth.getUser()),
+        TIMEOUTS.AUTH,
+        "Auth check timed out"
+      );
       if (!user) {
         toast.error("Please sign in first");
         return;
@@ -75,11 +85,15 @@ export const AccessCodeDialog = ({
 
       // Get or create student profile using shared function
       let student;
-      const { data: existingStudent } = await supabase
-        .from("students")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
+      const { data: existingStudent } = await withTimeout(
+        Promise.resolve(supabase
+          .from("students")
+          .select("id")
+          .eq("user_id", user.id)
+          .maybeSingle()),
+        TIMEOUTS.DEFAULT,
+        "Loading profile timed out"
+      );
 
       if (existingStudent) {
         student = existingStudent;
@@ -98,24 +112,32 @@ export const AccessCodeDialog = ({
           return;
         }
 
-        // Fetch the created student ID
-        const { data: newStudent } = await supabase
-          .from("students")
-          .select("id")
-          .eq("user_id", user.id)
-          .single();
+        // Fetch the created student ID with timeout
+        const { data: newStudent } = await withTimeout(
+          Promise.resolve(supabase
+            .from("students")
+            .select("id")
+            .eq("user_id", user.id)
+            .single()),
+          TIMEOUTS.DEFAULT,
+          "Loading profile timed out"
+        );
         
         if (!newStudent) return;
         student = newStudent;
       }
 
-      // Create enrollment
-      const { error: enrollError } = await supabase.from("enrollments").insert({
-        student_id: student.id,
-        content_id: contentId,
-        status: "active",
-        payment_amount: 0, // Already paid outside platform
-      });
+      // Create enrollment with timeout
+      const { error: enrollError } = await withTimeout(
+        Promise.resolve(supabase.from("enrollments").insert({
+          student_id: student.id,
+          content_id: contentId,
+          status: "active",
+          payment_amount: 0, // Already paid outside platform
+        })),
+        TIMEOUTS.DEFAULT,
+        "Enrollment timed out"
+      );
 
       if (enrollError) {
         if (enrollError.code === "23505") {
@@ -126,24 +148,36 @@ export const AccessCodeDialog = ({
         return;
       }
 
-      // Update access code usage
-      await supabase
-        .from("access_codes")
-        .update({ current_uses: accessCode.current_uses + 1 })
-        .eq("id", accessCode.id);
+      // Update access code usage with timeout
+      await withTimeout(
+        Promise.resolve(supabase
+          .from("access_codes")
+          .update({ current_uses: accessCode.current_uses + 1 })
+          .eq("id", accessCode.id)),
+        TIMEOUTS.DEFAULT,
+        "Update timed out"
+      );
 
-      // Update content enrollment count
-      const { data: content } = await supabase
-        .from("content")
-        .select("current_enrollment")
-        .eq("id", contentId)
-        .single();
+      // Update content enrollment count with timeout
+      const { data: content } = await withTimeout(
+        Promise.resolve(supabase
+          .from("content")
+          .select("current_enrollment")
+          .eq("id", contentId)
+          .single()),
+        TIMEOUTS.DEFAULT,
+        "Loading content timed out"
+      );
 
       if (content) {
-        await supabase
-          .from("content")
-          .update({ current_enrollment: (content.current_enrollment || 0) + 1 })
-          .eq("id", contentId);
+        await withTimeout(
+          Promise.resolve(supabase
+            .from("content")
+            .update({ current_enrollment: (content.current_enrollment || 0) + 1 })
+            .eq("id", contentId)),
+          TIMEOUTS.DEFAULT,
+          "Update timed out"
+        );
       }
 
       toast.success("Successfully enrolled! Access code validated.");

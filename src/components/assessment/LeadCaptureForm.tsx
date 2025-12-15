@@ -9,6 +9,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft, Loader2, Lock, AlertCircle, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
+import { withTimeout } from "@/hooks/useQueryWithTimeout";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
 
 const leadSchema = z.object({
   full_name: z.string().trim().min(2, "Name must be at least 2 characters").max(100),
@@ -113,30 +115,38 @@ export function LeadCaptureForm({
       const scores = calculateScore();
       const readinessLevel = determineReadinessLevel(scores.percentage);
 
-      // Get current user if logged in
-      const { data: { user } } = await supabase.auth.getUser();
+      // Get current user if logged in with timeout
+      const { data: { user } } = await withTimeout(
+        Promise.resolve(supabase.auth.getUser()),
+        TIMEOUTS.AUTH,
+        "Auth check timed out"
+      );
 
       // Generate a temporary ID for navigation (will query by email later)
       const tempAssessmentId = crypto.randomUUID();
       
-      // Save assessment WITHOUT .select() to avoid RLS issues for anonymous users
-      const { error } = await supabase
-        .from("career_assessments")
-        .insert({
-          id: tempAssessmentId, // Use our generated ID
-          user_id: user?.id || null,
-          profession_category_id: categoryId,
-          full_name: formData.full_name.trim(),
-          email: formData.email.toLowerCase().trim(),
-          phone: formData.phone.trim(),
-          answers: answers,
-          total_score: scores.totalScore,
-          max_score: scores.maxScore,
-          percentage: scores.percentage,
-          readiness_level: readinessLevel,
-          improvement_areas: [], // Will be filled by AI
-          ai_analysis: null, // Will be filled by AI edge function
-        });
+      // Save assessment WITHOUT .select() to avoid RLS issues for anonymous users with timeout
+      const { error } = await withTimeout(
+        Promise.resolve(supabase
+          .from("career_assessments")
+          .insert({
+            id: tempAssessmentId, // Use our generated ID
+            user_id: user?.id || null,
+            profession_category_id: categoryId,
+            full_name: formData.full_name.trim(),
+            email: formData.email.toLowerCase().trim(),
+            phone: formData.phone.trim(),
+            answers: answers,
+            total_score: scores.totalScore,
+            max_score: scores.maxScore,
+            percentage: scores.percentage,
+            readiness_level: readinessLevel,
+            improvement_areas: [], // Will be filled by AI
+            ai_analysis: null, // Will be filled by AI edge function
+          })),
+        TIMEOUTS.AI_GENERATION,
+        "Submission timed out"
+      );
 
       if (error) {
         console.error("[LeadCaptureForm] Database error:", error);
@@ -145,17 +155,21 @@ export function LeadCaptureForm({
 
       console.log("[LeadCaptureForm] Assessment saved successfully:", tempAssessmentId);
       
-      // Create professional profile using upsert with ignoreDuplicates
+      // Create professional profile using upsert with ignoreDuplicates and timeout
       try {
-        await supabase
-          .from('professionals')
-          .upsert({
-            full_name: formData.full_name.trim(),
-            email: formData.email.toLowerCase().trim(),
-            phone: formData.phone.trim(),
-            profession_category_id: categoryId,
-            services_used: ['assessment'] as unknown as any,
-          }, { onConflict: 'email', ignoreDuplicates: true });
+        await withTimeout(
+          Promise.resolve(supabase
+            .from('professionals')
+            .upsert({
+              full_name: formData.full_name.trim(),
+              email: formData.email.toLowerCase().trim(),
+              phone: formData.phone.trim(),
+              profession_category_id: categoryId,
+              services_used: ['assessment'] as unknown as any,
+            }, { onConflict: 'email', ignoreDuplicates: true })),
+          TIMEOUTS.DEFAULT,
+          "Profile creation timed out"
+        );
       } catch (profError) {
         console.log('[LeadCaptureForm] Professional profile creation skipped:', profError);
       }

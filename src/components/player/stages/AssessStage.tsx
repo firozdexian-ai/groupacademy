@@ -3,9 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { CheckCircle, ClipboardCheck, XCircle, AlertCircle, Trophy } from "lucide-react";
+import { CheckCircle, ClipboardCheck, XCircle, AlertCircle, Trophy, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQueryWithTimeout } from "@/hooks/useQueryWithTimeout";
+import { withTimeout } from "@/hooks/useQueryWithTimeout";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { cn } from "@/lib/utils";
 
 interface AssessStageProps {
@@ -43,8 +45,8 @@ export function AssessStage({
   const [score, setScore] = useState(0);
   const [showExplanations, setShowExplanations] = useState(false);
 
-  // Fetch quiz questions for this content
-  const { data: questions = [], isLoading } = useQuery({
+  // Fetch quiz questions for this content with timeout
+  const { data: questions = [], isLoading, error: loadError, refetch } = useQueryWithTimeout({
     queryKey: ["quiz-questions", contentId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -57,6 +59,7 @@ export function AssessStage({
       return data as QuizQuestion[];
     },
     enabled: !!contentId,
+    timeout: TIMEOUTS.DEFAULT,
   });
 
   const totalQuestions = questions.length;
@@ -79,19 +82,27 @@ export function AssessStage({
     setScore(correctCount);
     setSubmitted(true);
 
-    // Save quiz attempt
+    // Save quiz attempt with timeout
     if (studentId && enrollmentId) {
       const attemptPassed = Math.round((correctCount / totalQuestions) * 100) >= passThreshold;
       
-      await supabase.from("quiz_attempts").insert({
-        student_id: studentId,
-        content_id: contentId,
-        enrollment_id: enrollmentId,
-        answers,
-        score: correctCount,
-        total_questions: totalQuestions,
-        passed: attemptPassed,
-      });
+      try {
+        await withTimeout(
+          Promise.resolve(supabase.from("quiz_attempts").insert({
+            student_id: studentId,
+            content_id: contentId,
+            enrollment_id: enrollmentId,
+            answers,
+            score: correctCount,
+            total_questions: totalQuestions,
+            passed: attemptPassed,
+          })),
+          TIMEOUTS.DEFAULT,
+          "Saving quiz timed out"
+        );
+      } catch (error) {
+        console.error("Error saving quiz attempt:", error);
+      }
 
       onComplete(attemptPassed, correctCount);
     }
@@ -109,6 +120,21 @@ export function AssessStage({
       <Card>
         <CardContent className="p-8 text-center">
           <p className="text-muted-foreground">Loading quiz questions...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <Card>
+        <CardContent className="p-8 text-center">
+          <AlertCircle className="h-8 w-8 text-destructive mx-auto mb-2" />
+          <p className="text-muted-foreground mb-4">Failed to load quiz questions</p>
+          <Button onClick={() => refetch()} variant="outline">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Try Again
+          </Button>
         </CardContent>
       </Card>
     );
