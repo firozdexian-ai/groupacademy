@@ -1,9 +1,12 @@
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { toast } from "sonner";
+import { warmupDatabase } from "@/lib/databaseWarmup";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
@@ -51,63 +54,203 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <ErrorBoundary>
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-          <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/courses" element={<Courses />} />
-          <Route path="/professions" element={<Professions />} />
-          <Route path="/professions/:slug" element={<ProfessionDetail />} />
-          <Route path="/career-services" element={<CareerServices />} />
-          <Route path="/career-assessment" element={<CareerAssessment />} />
-          <Route path="/assessment-results/:id" element={<AssessmentResults />} />
-          <Route path="/portfolio-request" element={<PortfolioRequest />} />
-          <Route path="/portfolio-status" element={<PortfolioStatus />} />
-          <Route path="/mock-interview" element={<MockInterview />} />
-          <Route path="/mock-interview/setup" element={<MockInterviewSetup />} />
-          <Route path="/mock-interview/questions/:id" element={<MockInterviewQuestions />} />
-          <Route path="/mock-interview/capture/:id" element={<MockInterviewCapture />} />
-          <Route path="/mock-interview/results/:id" element={<MockInterviewResults />} />
-          <Route path="/jobs" element={<Jobs />} />
-          <Route path="/jobs/:id" element={<JobDetail />} />
-          <Route path="/jobs/:id/apply" element={<JobApplication />} />
-          <Route path="/salary-analysis" element={<SalaryAnalysis />} />
-          <Route path="/salary-analysis/setup" element={<SalaryAnalysisSetup />} />
-          <Route path="/salary-analysis/processing/:id" element={<SalaryAnalysisProcessing />} />
-          <Route path="/salary-analysis/results/:id" element={<SalaryAnalysisResults />} />
-          <Route path="/courses/:slug" element={<CourseDetail />} />
-          <Route path="/dashboard" element={<ProtectedRoute requireAnyAdminRole><Dashboard /></ProtectedRoute>} />
-          <Route path="/my-learning" element={<ProtectedRoute><MyLearning /></ProtectedRoute>} />
-          <Route path="/learn/:slug" element={<ProtectedRoute><ImmersiveCoursePlayer /></ProtectedRoute>} />
-          <Route path="/quiz/:slug" element={<ProtectedRoute><Quiz /></ProtectedRoute>} />
-          <Route path="/quiz-manage/:contentId" element={<ProtectedRoute requireAdmin><QuizManagement /></ProtectedRoute>} />
-          <Route path="/content/:contentId/modules" element={<ProtectedRoute requireAdmin><ModuleManagement /></ProtectedRoute>} />
-          <Route path="/content/:contentId/modules/:moduleId/resources" element={<ProtectedRoute requireAdmin><ModuleResourcesManager /></ProtectedRoute>} />
-          <Route path="/report-card/:enrollmentId" element={<ProtectedRoute><ReportCard /></ProtectedRoute>} />
-          <Route path="/students" element={<ProtectedRoute requireAdmin><Students /></ProtectedRoute>} />
-          <Route path="/enrollments" element={<ProtectedRoute requireAdmin><Enrollments /></ProtectedRoute>} />
-          <Route path="/instructors" element={<ProtectedRoute><Instructors /></ProtectedRoute>} />
-          <Route path="/instructors/new" element={<ProtectedRoute requireAdmin><InstructorNew /></ProtectedRoute>} />
-          <Route path="/instructors/:id/edit" element={<ProtectedRoute requireAdmin><InstructorEdit /></ProtectedRoute>} />
-          <Route path="/sessions" element={<ProtectedRoute requireAdmin><Sessions /></ProtectedRoute>} />
-          <Route path="/sessions/new" element={<ProtectedRoute requireAdmin><SessionNew /></ProtectedRoute>} />
-          <Route path="/sessions/:id/edit" element={<ProtectedRoute requireAdmin><SessionEdit /></ProtectedRoute>} />
-          <Route path="/content/new" element={<ProtectedRoute requireAdmin><ContentNew /></ProtectedRoute>} />
-          <Route path="/content/:id/edit" element={<ProtectedRoute requireAdmin><ContentEdit /></ProtectedRoute>} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
-  </ErrorBoundary>
-);
+export default function App() {
+  useEffect(() => {
+    let toastId: string | number | undefined;
 
-export default App;
+    const slowTimer = setTimeout(() => {
+      toastId = toast.loading("Connecting to server…");
+    }, 5000);
+
+    warmupDatabase().finally(() => {
+      clearTimeout(slowTimer);
+      if (toastId !== undefined) toast.dismiss(toastId);
+    });
+  }, []);
+
+  return (
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/courses" element={<Courses />} />
+              <Route path="/professions" element={<Professions />} />
+              <Route path="/professions/:slug" element={<ProfessionDetail />} />
+              <Route path="/career-services" element={<CareerServices />} />
+              <Route path="/career-assessment" element={<CareerAssessment />} />
+              <Route path="/assessment-results/:id" element={<AssessmentResults />} />
+              <Route path="/portfolio-request" element={<PortfolioRequest />} />
+              <Route path="/portfolio-status" element={<PortfolioStatus />} />
+              <Route path="/mock-interview" element={<MockInterview />} />
+              <Route path="/mock-interview/setup" element={<MockInterviewSetup />} />
+              <Route path="/mock-interview/questions/:id" element={<MockInterviewQuestions />} />
+              <Route path="/mock-interview/capture/:id" element={<MockInterviewCapture />} />
+              <Route path="/mock-interview/results/:id" element={<MockInterviewResults />} />
+              <Route path="/jobs" element={<Jobs />} />
+              <Route path="/jobs/:id" element={<JobDetail />} />
+              <Route path="/jobs/:id/apply" element={<JobApplication />} />
+              <Route path="/salary-analysis" element={<SalaryAnalysis />} />
+              <Route path="/salary-analysis/setup" element={<SalaryAnalysisSetup />} />
+              <Route path="/salary-analysis/processing/:id" element={<SalaryAnalysisProcessing />} />
+              <Route path="/salary-analysis/results/:id" element={<SalaryAnalysisResults />} />
+              <Route path="/courses/:slug" element={<CourseDetail />} />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute requireAnyAdminRole>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/my-learning"
+                element={
+                  <ProtectedRoute>
+                    <MyLearning />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/learn/:slug"
+                element={
+                  <ProtectedRoute>
+                    <ImmersiveCoursePlayer />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/quiz/:slug"
+                element={
+                  <ProtectedRoute>
+                    <Quiz />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/quiz-manage/:contentId"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <QuizManagement />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/content/:contentId/modules"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <ModuleManagement />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/content/:contentId/modules/:moduleId/resources"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <ModuleResourcesManager />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/report-card/:enrollmentId"
+                element={
+                  <ProtectedRoute>
+                    <ReportCard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/students"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <Students />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/enrollments"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <Enrollments />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/instructors"
+                element={
+                  <ProtectedRoute>
+                    <Instructors />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/instructors/new"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <InstructorNew />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/instructors/:id/edit"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <InstructorEdit />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/sessions"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <Sessions />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/sessions/new"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <SessionNew />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/sessions/:id/edit"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <SessionEdit />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/content/new"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <ContentNew />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/content/:id/edit"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <ContentEdit />
+                  </ProtectedRoute>
+                }
+              />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
+  );
+}
+
