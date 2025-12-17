@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useQueryWithTimeout } from "@/hooks/useQueryWithTimeout";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
@@ -31,8 +32,8 @@ export default function ImmersiveCoursePlayer() {
   const [currentModuleId, setCurrentModuleId] = useState<string | undefined>();
   const [moduleProgress, setModuleProgress] = useState<Record<string, ModuleProgressState>>({});
 
-  // Fetch course content with error handling
-  const { data: content, isLoading: contentLoading, error: contentError, refetch: refetchContent } = useQuery({
+  // Fetch course content with timeout protection
+  const { data: content, isLoading: contentLoading, error: contentError, refetch: refetchContent } = useQueryWithTimeout({
     queryKey: ["course-content", slug],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -44,12 +45,11 @@ export default function ImmersiveCoursePlayer() {
       return data;
     },
     enabled: !!slug,
-    retry: 2,
-    retryDelay: 1000,
+    timeout: TIMEOUTS.DEFAULT,
   });
 
-  // Fetch course modules with error handling
-  const { data: modules = [], isLoading: modulesLoading, error: modulesError, refetch: refetchModules } = useQuery({
+  // Fetch course modules with timeout protection
+  const { data: modules = [], isLoading: modulesLoading, error: modulesError, refetch: refetchModules } = useQueryWithTimeout({
     queryKey: ["course-modules", content?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -61,12 +61,11 @@ export default function ImmersiveCoursePlayer() {
       return data || [];
     },
     enabled: !!content?.id,
-    retry: 2,
-    retryDelay: 1000,
+    timeout: TIMEOUTS.DEFAULT,
   });
 
-  // Fetch student profile with error handling
-  const { data: student, error: studentError, refetch: refetchStudent } = useQuery({
+  // Fetch student profile with timeout protection
+  const { data: student, error: studentError, refetch: refetchStudent } = useQueryWithTimeout({
     queryKey: ["student-profile", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -78,11 +77,11 @@ export default function ImmersiveCoursePlayer() {
       return data;
     },
     enabled: !!user?.id,
-    retry: 2,
+    timeout: TIMEOUTS.DEFAULT,
   });
 
-  // Fetch enrollment with error handling
-  const { data: enrollment, isLoading: enrollmentLoading, error: enrollmentError, refetch: refetchEnrollment } = useQuery({
+  // Fetch enrollment with timeout protection
+  const { data: enrollment, isLoading: enrollmentLoading, error: enrollmentError, refetch: refetchEnrollment } = useQueryWithTimeout({
     queryKey: ["enrollment", student?.id, content?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -96,11 +95,11 @@ export default function ImmersiveCoursePlayer() {
       return data;
     },
     enabled: !!student?.id && !!content?.id,
-    retry: 2,
+    timeout: TIMEOUTS.DEFAULT,
   });
 
-  // Fetch AI instructor for profession line
-  const { data: aiInstructor } = useQuery({
+  // Fetch AI instructor for profession line with timeout protection
+  const { data: aiInstructor } = useQueryWithTimeout({
     queryKey: ["ai-instructor", content?.profession_line_id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -113,6 +112,7 @@ export default function ImmersiveCoursePlayer() {
       return data;
     },
     enabled: !!content?.profession_line_id,
+    timeout: TIMEOUTS.DEFAULT,
   });
 
   // Set initial module
@@ -210,6 +210,9 @@ export default function ImmersiveCoursePlayer() {
   }
 
   if (hasError) {
+    const isTimeout = (contentError as any)?.message?.includes("timed out") || 
+                      (modulesError as any)?.message?.includes("timed out") ||
+                      (studentError as any)?.message?.includes("timed out");
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
         <Card className="max-w-md w-full">
@@ -217,7 +220,9 @@ export default function ImmersiveCoursePlayer() {
             <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
             <h2 className="text-lg font-semibold mb-2">Failed to Load Course</h2>
             <p className="text-muted-foreground mb-4">
-              There was a problem loading the course content. Please try again.
+              {isTimeout 
+                ? "Loading took too long. Please check your connection and try again."
+                : "There was a problem loading the course content. Please try again."}
             </p>
             <div className="flex gap-2 justify-center">
               <Button onClick={handleRetry} variant="default">

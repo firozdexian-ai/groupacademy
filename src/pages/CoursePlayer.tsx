@@ -10,6 +10,7 @@ import { ModuleList } from "@/components/player/ModuleList";
 import { ArrowLeft, BookOpen, RefreshCw, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
 
 interface Module {
   id: string;
@@ -43,20 +44,32 @@ export default function CoursePlayer() {
   }, [slug]);
 
   const checkAccessAndLoadContent = async () => {
+    setLoading(true);
     setLoadingError(null);
+    
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      // Get user with timeout
+      const { data: { user } } = await withTimeout(
+        supabase.auth.getUser(),
+        TIMEOUTS.AUTH,
+        "Authentication check timed out"
+      );
+      
       if (!user) {
         navigate("/auth");
         return;
       }
 
-      // Get student profile
-      const { data: student } = await supabase
-        .from("students")
-        .select("id")
-        .eq("user_id", user.id)
-        .single();
+      // Get student profile with timeout
+      const { data: student } = await withTimeout(
+        Promise.resolve(supabase
+          .from("students")
+          .select("id")
+          .eq("user_id", user.id)
+          .single()),
+        TIMEOUTS.DEFAULT,
+        "Loading profile timed out"
+      );
 
       if (!student) {
         toast.error("Student profile not found");
@@ -68,15 +81,13 @@ export default function CoursePlayer() {
 
       // Get course details with timeout
       const { data: courseData, error: courseError } = await withTimeout(
-        Promise.resolve(
-          supabase
-            .from("content")
-            .select("*")
-            .eq("slug", slug)
-            .single()
-        ),
-        30000,
-        "Loading timed out"
+        Promise.resolve(supabase
+          .from("content")
+          .select("*")
+          .eq("slug", slug)
+          .single()),
+        TIMEOUTS.DEFAULT,
+        "Loading course timed out"
       );
 
       if (courseError || !courseData) {
@@ -85,13 +96,17 @@ export default function CoursePlayer() {
         return;
       }
 
-      // Check enrollment
-      const { data: enrollment } = await supabase
-        .from("enrollments")
-        .select("status")
-        .eq("student_id", student.id)
-        .eq("content_id", courseData.id)
-        .single();
+      // Check enrollment with timeout
+      const { data: enrollment } = await withTimeout(
+        Promise.resolve(supabase
+          .from("enrollments")
+          .select("status")
+          .eq("student_id", student.id)
+          .eq("content_id", courseData.id)
+          .single()),
+        TIMEOUTS.DEFAULT,
+        "Checking enrollment timed out"
+      );
 
       if (!enrollment || !["active", "completed"].includes(enrollment.status)) {
         toast.error("You must be enrolled to access this course");
@@ -101,12 +116,16 @@ export default function CoursePlayer() {
 
       setCourse(courseData);
 
-      // Load modules
-      const { data: modulesData, error: modulesError } = await supabase
-        .from("course_modules")
-        .select("*")
-        .eq("content_id", courseData.id)
-        .order("display_order");
+      // Load modules with timeout
+      const { data: modulesData, error: modulesError } = await withTimeout(
+        Promise.resolve(supabase
+          .from("course_modules")
+          .select("*")
+          .eq("content_id", courseData.id)
+          .order("display_order")),
+        TIMEOUTS.DEFAULT,
+        "Loading modules timed out"
+      );
 
       if (modulesError) throw modulesError;
 
@@ -115,19 +134,25 @@ export default function CoursePlayer() {
         setCurrentModule(modulesData[0]);
       }
 
-      // Load progress
-      const { data: progressData } = await supabase
-        .from("student_progress")
-        .select("*")
-        .eq("student_id", student.id);
+      // Load progress with timeout
+      const { data: progressData } = await withTimeout(
+        Promise.resolve(supabase
+          .from("student_progress")
+          .select("*")
+          .eq("student_id", student.id)),
+        TIMEOUTS.DEFAULT,
+        "Loading progress timed out"
+      );
 
       setProgress(progressData || []);
     } catch (error: any) {
       console.error("Error loading course:", error);
-      const errorMessage = error.message?.includes("timed out") 
-        ? "Loading took too long. Please try again."
-        : "Failed to load course content. Please try again.";
-      setLoadingError(errorMessage);
+      const isTimeout = error.message?.includes("timed out");
+      setLoadingError(
+        isTimeout 
+          ? "Loading took too long. Please check your connection and try again."
+          : "Failed to load course content. Please try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -137,29 +162,38 @@ export default function CoursePlayer() {
     if (!studentId) return;
 
     try {
-      const { error } = await supabase
-        .from("student_progress")
-        .upsert({
-          student_id: studentId,
-          module_id: moduleId,
-          completed_at: new Date().toISOString(),
-        }, {
-          onConflict: "student_id,module_id"
-        });
+      const { error } = await withTimeout(
+        Promise.resolve(supabase
+          .from("student_progress")
+          .upsert({
+            student_id: studentId,
+            module_id: moduleId,
+            completed_at: new Date().toISOString(),
+          }, {
+            onConflict: "student_id,module_id"
+          })),
+        TIMEOUTS.DEFAULT,
+        "Updating progress timed out"
+      );
 
       if (error) throw error;
 
-      // Refresh progress
-      const { data: progressData } = await supabase
-        .from("student_progress")
-        .select("*")
-        .eq("student_id", studentId);
+      // Refresh progress with timeout
+      const { data: progressData } = await withTimeout(
+        Promise.resolve(supabase
+          .from("student_progress")
+          .select("*")
+          .eq("student_id", studentId)),
+        TIMEOUTS.DEFAULT,
+        "Loading progress timed out"
+      );
 
       setProgress(progressData || []);
       toast.success("Module marked as complete!");
     } catch (error: any) {
       console.error("Error updating progress:", error);
-      toast.error("Failed to update progress");
+      const isTimeout = error.message?.includes("timed out");
+      toast.error(isTimeout ? "Update timed out. Please try again." : "Failed to update progress");
     }
   };
 
@@ -213,7 +247,7 @@ export default function CoursePlayer() {
             <h2 className="text-lg font-semibold mb-2">Failed to Load Course</h2>
             <p className="text-muted-foreground mb-4">{loadingError}</p>
             <div className="flex gap-2 justify-center">
-              <Button onClick={() => { setLoading(true); checkAccessAndLoadContent(); }}>
+              <Button onClick={checkAccessAndLoadContent}>
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Try Again
               </Button>

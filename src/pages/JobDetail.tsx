@@ -6,13 +6,15 @@ import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { 
   ArrowLeft, Building2, MapPin, Clock, DollarSign, Calendar, 
-  ExternalLink, Briefcase, Star, Share2, Loader2, FileText, MessageSquare
+  ExternalLink, Briefcase, Star, Share2, FileText, MessageSquare, RefreshCw, AlertCircle
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { withTimeout } from "@/hooks/useQueryWithTimeout";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
+import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 
 interface Job {
   id: string;
@@ -58,6 +60,7 @@ const JobDetail = () => {
   const navigate = useNavigate();
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [relatedJobs, setRelatedJobs] = useState<Job[]>([]);
 
   useEffect(() => {
@@ -67,32 +70,48 @@ const JobDetail = () => {
   }, [id]);
 
   const loadJob = async () => {
+    setLoading(true);
+    setLoadError(null);
+    
     try {
-      const { data, error } = await supabase
-        .from("jobs")
-        .select("*")
-        .eq("id", id)
-        .eq("is_active", true)
-        .single();
+      const { data, error } = await withTimeout(
+        Promise.resolve(supabase
+          .from("jobs")
+          .select("*")
+          .eq("id", id)
+          .eq("is_active", true)
+          .single()),
+        TIMEOUTS.DEFAULT,
+        "Loading job details timed out"
+      );
 
       if (error) throw error;
       setJob(data);
 
-      // Load related jobs
+      // Load related jobs with timeout
       if (data?.profession_category_id) {
-        const { data: related } = await supabase
-          .from("jobs")
-          .select("*")
-          .eq("is_active", true)
-          .eq("profession_category_id", data.profession_category_id)
-          .neq("id", id)
-          .limit(3);
+        const { data: related } = await withTimeout(
+          Promise.resolve(supabase
+            .from("jobs")
+            .select("*")
+            .eq("is_active", true)
+            .eq("profession_category_id", data.profession_category_id)
+            .neq("id", id)
+            .limit(3)),
+          TIMEOUTS.DEFAULT,
+          "Loading related jobs timed out"
+        );
         setRelatedJobs(related || []);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error loading job:", error);
-      toast.error("Job not found");
-      navigate("/jobs");
+      const isTimeout = error.message?.includes("timed out");
+      if (isTimeout) {
+        setLoadError("Loading took too long. Please try again.");
+      } else {
+        toast.error("Job not found");
+        navigate("/jobs");
+      }
     } finally {
       setLoading(false);
     }
@@ -129,11 +148,30 @@ const JobDetail = () => {
   };
 
   if (loading) {
+    return <PageLoadingSkeleton variant="detail" showNavbar showFooter title="Loading job details..." />;
+  }
+
+  if (loadError) {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <Navbar />
-        <main className="flex-1 flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <main className="flex-1 flex items-center justify-center p-4">
+          <Card className="max-w-md w-full">
+            <CardContent className="pt-6 text-center">
+              <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+              <h2 className="text-lg font-semibold mb-2">Failed to Load Job</h2>
+              <p className="text-muted-foreground mb-4">{loadError}</p>
+              <div className="flex gap-2 justify-center">
+                <Button onClick={loadJob}>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Try Again
+                </Button>
+                <Button variant="outline" onClick={() => navigate("/jobs")}>
+                  Back to Jobs
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </main>
         <Footer />
       </div>
