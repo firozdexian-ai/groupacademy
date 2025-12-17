@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useQueryWithTimeout } from "@/hooks/useQueryWithTimeout";
+import { useQueryWithTimeout, withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -100,17 +100,21 @@ export default function SessionNew() {
       const [hours, minutes] = values.scheduled_time.split(":").map(Number);
       scheduledDateTime.setHours(hours, minutes, 0, 0);
 
-      const { error } = await supabase.from("course_sessions").insert({
-        content_id: values.content_id,
-        instructor_id: values.instructor_id || null,
-        title: values.title,
-        description: values.description || null,
-        scheduled_date: scheduledDateTime.toISOString(),
-        duration_minutes: values.duration_minutes,
-        meeting_link: values.meeting_link || null,
-        recording_link: values.recording_link || null,
-        status: values.status,
-      });
+      const { error } = await withTimeout(
+        Promise.resolve(supabase.from("course_sessions").insert({
+          content_id: values.content_id,
+          instructor_id: values.instructor_id || null,
+          title: values.title,
+          description: values.description || null,
+          scheduled_date: scheduledDateTime.toISOString(),
+          duration_minutes: values.duration_minutes,
+          meeting_link: values.meeting_link || null,
+          recording_link: values.recording_link || null,
+          status: values.status,
+        })),
+        TIMEOUTS.DEFAULT,
+        "Session creation timed out"
+      );
 
       if (error) throw error;
     },

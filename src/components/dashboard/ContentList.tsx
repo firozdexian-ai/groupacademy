@@ -73,13 +73,17 @@ const ContentList = ({ filter }: ContentListProps) => {
     if (!confirm("Are you sure you want to delete this content?")) return;
 
     try {
-      const { error } = await supabase.from("content").delete().eq("id", id);
+      const { error } = await withTimeout(
+        Promise.resolve(supabase.from("content").delete().eq("id", id)),
+        TIMEOUTS.DEFAULT,
+        "Delete timed out"
+      );
 
       if (error) throw error;
       toast.success("Content deleted successfully");
       loadContent();
     } catch (error: any) {
-      toast.error("Failed to delete content");
+      toast.error(error.message || "Failed to delete content");
     }
   };
 

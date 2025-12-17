@@ -153,14 +153,22 @@ export function CompaniesManager() {
       };
 
       if (editingCompany) {
-        const { error } = await supabase
-          .from("companies")
-          .update(companyData)
-          .eq("id", editingCompany.id);
+        const { error } = await withTimeout(
+          Promise.resolve(supabase
+            .from("companies")
+            .update(companyData)
+            .eq("id", editingCompany.id)),
+          TIMEOUTS.DEFAULT,
+          "Update timed out"
+        );
         if (error) throw error;
         toast.success("Company updated");
       } else {
-        const { error } = await supabase.from("companies").insert(companyData);
+        const { error } = await withTimeout(
+          Promise.resolve(supabase.from("companies").insert(companyData)),
+          TIMEOUTS.DEFAULT,
+          "Insert timed out"
+        );
         if (error) throw error;
         toast.success("Company created");
       }
@@ -179,13 +187,17 @@ export function CompaniesManager() {
     if (!confirm("Delete this company? Jobs linked to it won't be deleted.")) return;
 
     try {
-      const { error } = await supabase.from("companies").delete().eq("id", id);
+      const { error } = await withTimeout(
+        Promise.resolve(supabase.from("companies").delete().eq("id", id)),
+        TIMEOUTS.DEFAULT,
+        "Delete timed out"
+      );
       if (error) throw error;
       toast.success("Company deleted");
       loadCompanies();
     } catch (error: any) {
       console.error("Error deleting company:", error);
-      toast.error("Failed to delete company");
+      toast.error(error.message || "Failed to delete company");
     }
   };
 

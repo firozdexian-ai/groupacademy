@@ -144,11 +144,19 @@ export function ProfessionsManager() {
 
     try {
       if (editingAcademy) {
-        const { error } = await supabase.from("academies").update(data).eq("id", editingAcademy.id);
+        const { error } = await withTimeout(
+          Promise.resolve(supabase.from("academies").update(data).eq("id", editingAcademy.id)),
+          TIMEOUTS.DEFAULT,
+          "Update timed out"
+        );
         if (error) throw error;
         toast.success("Academy updated");
       } else {
-        const { error } = await supabase.from("academies").insert(data);
+        const { error } = await withTimeout(
+          Promise.resolve(supabase.from("academies").insert(data)),
+          TIMEOUTS.DEFAULT,
+          "Insert timed out"
+        );
         if (error) throw error;
         toast.success("Academy created");
       }
@@ -156,19 +164,23 @@ export function ProfessionsManager() {
       setEditingAcademy(null);
       loadData();
     } catch (error: any) {
-      toast.error(error.message);
+      toast.error(error.message || "Operation failed");
     }
   };
 
   const handleDeleteAcademy = async (id: string) => {
     if (!confirm("Delete this academy? This will orphan all related schools.")) return;
     try {
-      const { error } = await supabase.from("academies").delete().eq("id", id);
+      const { error } = await withTimeout(
+        Promise.resolve(supabase.from("academies").delete().eq("id", id)),
+        TIMEOUTS.DEFAULT,
+        "Delete timed out"
+      );
       if (error) throw error;
       toast.success("Academy deleted");
       loadData();
     } catch (error: any) {
-      toast.error(error.message);
+      toast.error(error.message || "Delete failed");
     }
   };
 
@@ -187,11 +199,19 @@ export function ProfessionsManager() {
 
     try {
       if (editingSchool) {
-        const { error } = await supabase.from("schools").update(data).eq("id", editingSchool.id);
+        const { error } = await withTimeout(
+          Promise.resolve(supabase.from("schools").update(data).eq("id", editingSchool.id)),
+          TIMEOUTS.DEFAULT,
+          "Update timed out"
+        );
         if (error) throw error;
         toast.success("School updated");
       } else {
-        const { error } = await supabase.from("schools").insert(data);
+        const { error } = await withTimeout(
+          Promise.resolve(supabase.from("schools").insert(data)),
+          TIMEOUTS.DEFAULT,
+          "Insert timed out"
+        );
         if (error) throw error;
         toast.success("School created");
       }
@@ -199,19 +219,23 @@ export function ProfessionsManager() {
       setEditingSchool(null);
       loadData();
     } catch (error: any) {
-      toast.error(error.message);
+      toast.error(error.message || "Operation failed");
     }
   };
 
   const handleDeleteSchool = async (id: string) => {
     if (!confirm("Delete this school? This will orphan all related profession lines.")) return;
     try {
-      const { error } = await supabase.from("schools").delete().eq("id", id);
+      const { error } = await withTimeout(
+        Promise.resolve(supabase.from("schools").delete().eq("id", id)),
+        TIMEOUTS.DEFAULT,
+        "Delete timed out"
+      );
       if (error) throw error;
       toast.success("School deleted");
       loadData();
     } catch (error: any) {
-      toast.error(error.message);
+      toast.error(error.message || "Delete failed");
     }
   };
 
@@ -232,11 +256,19 @@ export function ProfessionsManager() {
 
     try {
       if (editingProfession) {
-        const { error } = await supabase.from("profession_categories").update(data).eq("id", editingProfession.id);
+        const { error } = await withTimeout(
+          Promise.resolve(supabase.from("profession_categories").update(data).eq("id", editingProfession.id)),
+          TIMEOUTS.DEFAULT,
+          "Update timed out"
+        );
         if (error) throw error;
         toast.success("Profession line updated");
       } else {
-        const { error } = await supabase.from("profession_categories").insert(data);
+        const { error } = await withTimeout(
+          Promise.resolve(supabase.from("profession_categories").insert(data)),
+          TIMEOUTS.DEFAULT,
+          "Insert timed out"
+        );
         if (error) throw error;
         toast.success("Profession line created");
       }
@@ -244,19 +276,23 @@ export function ProfessionsManager() {
       setEditingProfession(null);
       loadData();
     } catch (error: any) {
-      toast.error(error.message);
+      toast.error(error.message || "Operation failed");
     }
   };
 
   const handleDeleteProfession = async (id: string) => {
     if (!confirm("Delete this profession line?")) return;
     try {
-      const { error } = await supabase.from("profession_categories").delete().eq("id", id);
+      const { error } = await withTimeout(
+        Promise.resolve(supabase.from("profession_categories").delete().eq("id", id)),
+        TIMEOUTS.DEFAULT,
+        "Delete timed out"
+      );
       if (error) throw error;
       toast.success("Profession line deleted");
       loadData();
     } catch (error: any) {
-      toast.error(error.message);
+      toast.error(error.message || "Delete failed");
     }
   };
 
@@ -277,11 +313,19 @@ export function ProfessionsManager() {
 
     try {
       if (editingInstructor) {
-        const { error } = await supabase.from("ai_instructors").update(data).eq("id", editingInstructor.id);
+        const { error } = await withTimeout(
+          Promise.resolve(supabase.from("ai_instructors").update(data).eq("id", editingInstructor.id)),
+          TIMEOUTS.DEFAULT,
+          "Update timed out"
+        );
         if (error) throw error;
         toast.success("AI Instructor updated");
       } else {
-        const { error } = await supabase.from("ai_instructors").insert(data);
+        const { error } = await withTimeout(
+          Promise.resolve(supabase.from("ai_instructors").insert(data)),
+          TIMEOUTS.DEFAULT,
+          "Insert timed out"
+        );
         if (error) throw error;
         toast.success("AI Instructor created");
       }
@@ -289,19 +333,23 @@ export function ProfessionsManager() {
       setEditingInstructor(null);
       loadData();
     } catch (error: any) {
-      toast.error(error.message);
+      toast.error(error.message || "Operation failed");
     }
   };
 
   const handleDeleteInstructor = async (id: string) => {
     if (!confirm("Delete this AI Instructor?")) return;
     try {
-      const { error } = await supabase.from("ai_instructors").delete().eq("id", id);
+      const { error } = await withTimeout(
+        Promise.resolve(supabase.from("ai_instructors").delete().eq("id", id)),
+        TIMEOUTS.DEFAULT,
+        "Delete timed out"
+      );
       if (error) throw error;
       toast.success("AI Instructor deleted");
       loadData();
     } catch (error: any) {
-      toast.error(error.message);
+      toast.error(error.message || "Delete failed");
     }
   };
 

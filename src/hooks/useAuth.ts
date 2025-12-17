@@ -146,7 +146,7 @@ export const useAuth = () => {
   };
 };
 
-// Shared student profile creation logic with retry
+// Shared student profile creation logic with retry and timeout
 export const createStudentProfile = async (
   userId: string,
   fullName: string,
@@ -156,37 +156,48 @@ export const createStudentProfile = async (
 ): Promise<boolean> => {
   const maxRetries = 3;
   const delays = [500, 1000, 2000];
+  const timeoutMs = 15000; // 15 second timeout per attempt
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
-      const { error: profileError } = await supabase.from('students').insert([
-        {
-          user_id: userId,
-          student_id: '',
-          full_name: fullName,
-          email: email,
-          phone: phone || '',
-          status: status,
-        },
-      ]);
+      // Create timeout promise
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Profile creation timed out')), timeoutMs);
+      });
 
-      if (profileError) {
-        if (profileError.code === '23505') {
-          await new Promise(resolve => setTimeout(resolve, 300));
-          const { data: existingProfile } = await supabase
-            .from('students')
-            .select('id')
-            .eq('user_id', userId)
-            .maybeSingle();
-          
-          if (existingProfile) {
-            return true;
+      const insertPromise = (async () => {
+        const { error: profileError } = await supabase.from('students').insert([
+          {
+            user_id: userId,
+            student_id: '',
+            full_name: fullName,
+            email: email,
+            phone: phone || '',
+            status: status,
+          },
+        ]);
+
+        if (profileError) {
+          if (profileError.code === '23505') {
+            await new Promise(resolve => setTimeout(resolve, 300));
+            const { data: existingProfile } = await supabase
+              .from('students')
+              .select('id')
+              .eq('user_id', userId)
+              .maybeSingle();
+            
+            if (existingProfile) {
+              return true;
+            }
           }
+          throw profileError;
         }
-        throw profileError;
-      }
 
-      return true;
+        return true;
+      })();
+
+      const result = await Promise.race([insertPromise, timeoutPromise]);
+      return result;
     } catch (error: any) {
       console.error(`Profile creation attempt ${attempt + 1} failed:`, error);
       if (attempt < maxRetries - 1) {

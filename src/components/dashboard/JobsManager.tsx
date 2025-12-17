@@ -392,14 +392,22 @@ export function JobsManager() {
       };
 
       if (editingJob) {
-        const { error } = await supabase
-          .from("jobs")
-          .update(jobData)
-          .eq("id", editingJob.id);
+        const { error } = await withTimeout(
+          Promise.resolve(supabase
+            .from("jobs")
+            .update(jobData)
+            .eq("id", editingJob.id)),
+          TIMEOUTS.DEFAULT,
+          "Update timed out"
+        );
         if (error) throw error;
         toast.success("Job updated successfully");
       } else {
-        const { error } = await supabase.from("jobs").insert(jobData);
+        const { error } = await withTimeout(
+          Promise.resolve(supabase.from("jobs").insert(jobData)),
+          TIMEOUTS.DEFAULT,
+          "Insert timed out"
+        );
         if (error) throw error;
         toast.success("Job created successfully");
       }
@@ -418,28 +426,36 @@ export function JobsManager() {
     if (!confirm("Are you sure you want to delete this job?")) return;
 
     try {
-      const { error } = await supabase.from("jobs").delete().eq("id", id);
+      const { error } = await withTimeout(
+        Promise.resolve(supabase.from("jobs").delete().eq("id", id)),
+        TIMEOUTS.DEFAULT,
+        "Delete timed out"
+      );
       if (error) throw error;
       toast.success("Job deleted successfully");
       loadJobs();
     } catch (error: any) {
       console.error("Error deleting job:", error);
-      toast.error("Failed to delete job");
+      toast.error(error.message || "Failed to delete job");
     }
   };
 
   const handleToggleActive = async (job: Job) => {
     try {
-      const { error } = await supabase
-        .from("jobs")
-        .update({ is_active: !job.is_active })
-        .eq("id", job.id);
+      const { error } = await withTimeout(
+        Promise.resolve(supabase
+          .from("jobs")
+          .update({ is_active: !job.is_active })
+          .eq("id", job.id)),
+        TIMEOUTS.DEFAULT,
+        "Update timed out"
+      );
       if (error) throw error;
       toast.success(job.is_active ? "Job deactivated" : "Job activated");
       loadJobs();
     } catch (error: any) {
       console.error("Error toggling job:", error);
-      toast.error("Failed to update job");
+      toast.error(error.message || "Failed to update job");
     }
   };
 

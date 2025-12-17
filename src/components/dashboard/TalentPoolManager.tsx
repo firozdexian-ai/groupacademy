@@ -115,15 +115,19 @@ export function TalentPoolManager() {
 
     setCreatingPortfolio(true);
     try {
-      const { error } = await supabase.from('portfolio_requests').insert({
-        full_name: portfolioProfessional.full_name,
-        email: portfolioProfessional.email,
-        phone: portfolioProfessional.phone || '',
-        profession_category_id: portfolioProfessional.profession_category_id,
-        cv_url: portfolioProfessional.cv_url,
-        additional_notes: portfolioNotes || `Created from Talent Pool on ${new Date().toLocaleDateString()}`,
-        status: 'pending',
-      });
+      const { error } = await withTimeout(
+        Promise.resolve(supabase.from('portfolio_requests').insert({
+          full_name: portfolioProfessional.full_name,
+          email: portfolioProfessional.email,
+          phone: portfolioProfessional.phone || '',
+          profession_category_id: portfolioProfessional.profession_category_id,
+          cv_url: portfolioProfessional.cv_url,
+          additional_notes: portfolioNotes || `Created from Talent Pool on ${new Date().toLocaleDateString()}`,
+          status: 'pending',
+        })),
+        TIMEOUTS.DEFAULT,
+        "Insert timed out"
+      );
 
       if (error) throw error;
 

@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { withTimeout } from "@/hooks/useQueryWithTimeout";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -37,19 +39,23 @@ const InstructorNew = () => {
         .map((e) => e.trim())
         .filter((e) => e.length > 0);
 
-      const { error } = await supabase.from("instructors").insert([
-        {
-          full_name: formData.full_name,
-          email: formData.email,
-          phone: formData.phone || null,
-          bio: formData.bio || null,
-          profile_image_url: formData.profile_image_url || null,
-          expertise: expertiseArray.length > 0 ? expertiseArray : null,
-          team_role: formData.team_role,
-          status: formData.status,
-          hourly_rate: formData.hourly_rate ? parseFloat(formData.hourly_rate) : null,
-        },
-      ]);
+      const { error } = await withTimeout(
+        Promise.resolve(supabase.from("instructors").insert([
+          {
+            full_name: formData.full_name,
+            email: formData.email,
+            phone: formData.phone || null,
+            bio: formData.bio || null,
+            profile_image_url: formData.profile_image_url || null,
+            expertise: expertiseArray.length > 0 ? expertiseArray : null,
+            team_role: formData.team_role,
+            status: formData.status,
+            hourly_rate: formData.hourly_rate ? parseFloat(formData.hourly_rate) : null,
+          },
+        ])),
+        TIMEOUTS.DEFAULT,
+        "Insert timed out"
+      );
 
       if (error) throw error;
 

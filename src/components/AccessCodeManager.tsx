@@ -119,17 +119,25 @@ export const AccessCodeManager = () => {
     setIsGenerating(true);
     try {
       const newCode = generateCode();
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await withTimeout(
+        supabase.auth.getUser(),
+        TIMEOUTS.AUTH,
+        "Auth check timed out"
+      );
       
       if (!user) throw new Error("Not authenticated");
 
-      const { error } = await supabase.from("access_codes").insert({
-        code: newCode,
-        content_id: selectedContentId,
-        max_uses: maxUses,
-        created_by: user.id,
-        notes: notes || null,
-      });
+      const { error } = await withTimeout(
+        Promise.resolve(supabase.from("access_codes").insert({
+          code: newCode,
+          content_id: selectedContentId,
+          max_uses: maxUses,
+          created_by: user.id,
+          notes: notes || null,
+        })),
+        TIMEOUTS.DEFAULT,
+        "Insert timed out"
+      );
 
       if (error) throw error;
 
@@ -140,7 +148,7 @@ export const AccessCodeManager = () => {
       await fetchCodes();
     } catch (error: any) {
       console.error("Error generating code:", error);
-      toast.error("Failed to generate access code");
+      toast.error(error.message || "Failed to generate access code");
     } finally {
       setIsGenerating(false);
     }
@@ -153,13 +161,17 @@ export const AccessCodeManager = () => {
 
   const handleDeleteCode = async (id: string) => {
     try {
-      const { error } = await supabase.from("access_codes").delete().eq("id", id);
+      const { error } = await withTimeout(
+        Promise.resolve(supabase.from("access_codes").delete().eq("id", id)),
+        TIMEOUTS.DEFAULT,
+        "Delete timed out"
+      );
       if (error) throw error;
       toast.success("Access code deleted");
       await fetchCodes();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error deleting code:", error);
-      toast.error("Failed to delete access code");
+      toast.error(error.message || "Failed to delete access code");
     }
   };
 

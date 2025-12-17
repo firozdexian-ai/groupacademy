@@ -300,14 +300,18 @@ const CourseDetail = () => {
       setUser(authData.user);
 
       // Step 4: Create enrollment
-      const { error: enrollmentError } = await supabase.from("enrollments").insert([
-        {
-          student_id: studentData.id,
-          content_id: course.id,
-          status: course.price && course.price > 0 ? "pending_payment" : "active",
-          payment_amount: course.price || 0,
-        },
-      ]);
+      const { error: enrollmentError } = await withTimeout(
+        Promise.resolve(supabase.from("enrollments").insert([
+          {
+            student_id: studentData.id,
+            content_id: course.id,
+            status: course.price && course.price > 0 ? "pending_payment" : "active",
+            payment_amount: course.price || 0,
+          },
+        ])),
+        TIMEOUTS.DEFAULT,
+        "Enrollment timed out"
+      );
 
       if (enrollmentError) throw enrollmentError;
 
@@ -346,14 +350,18 @@ const CourseDetail = () => {
     setIsEnrolling(true);
 
     try {
-      const { error } = await supabase.from("enrollments").insert([
-        {
-          student_id: studentProfile.id,
-          content_id: course.id,
-          status: course.price && course.price > 0 ? "pending_payment" : "active",
-          payment_amount: course.price || 0,
-        },
-      ]);
+      const { error } = await withTimeout(
+        Promise.resolve(supabase.from("enrollments").insert([
+          {
+            student_id: studentProfile.id,
+            content_id: course.id,
+            status: course.price && course.price > 0 ? "pending_payment" : "active",
+            payment_amount: course.price || 0,
+          },
+        ])),
+        TIMEOUTS.DEFAULT,
+        "Enrollment timed out"
+      );
 
       if (error) {
         if (error.code === '23505') {
