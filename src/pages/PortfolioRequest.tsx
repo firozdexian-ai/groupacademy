@@ -15,6 +15,7 @@ import { SimpleFileUpload } from "@/components/portfolio/SimpleFileUpload";
 import ProfileBuilderForm, { ProfileData } from "@/components/portfolio/ProfileBuilderForm";
 import { Briefcase, User, FileText, Award, Globe, CheckCircle, ArrowLeft, ArrowRight, Loader2, FileUp, PenLine, RefreshCw, Gift, Sparkles, Link as LinkIcon, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
 
 // Brand icon
 import iconPortfolio from "@/assets/icons/icon-portfolio.png";
@@ -161,7 +162,7 @@ export default function PortfolioRequest() {
   const loadPortfolioCount = async () => {
     setIsLoadingCount(true);
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    const timeoutId = setTimeout(() => controller.abort(), TIMEOUTS.DEFAULT);
     
     try {
       const { count, error } = await supabase
@@ -188,7 +189,7 @@ export default function PortfolioRequest() {
     setIsLoadingCategories(true);
     setCategoryLoadError(false);
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    const timeoutId = setTimeout(() => controller.abort(), TIMEOUTS.CATEGORY_LOAD);
     
     try {
       const { data, error } = await supabase
@@ -279,7 +280,7 @@ export default function PortfolioRequest() {
       console.warn('[PortfolioRequest] Invalid UUID detected, sending null for profession_category_id');
     }
     
-    // Overall 60-second timeout for submission
+    // Overall 90-second timeout for submission (cold start + db write)
     const submissionTimeout = setTimeout(() => {
       setIsSubmitting(false);
       toast({ 
@@ -288,7 +289,7 @@ export default function PortfolioRequest() {
         variant: "destructive",
         duration: 10000,
       });
-    }, 60000);
+    }, TIMEOUTS.AI_GENERATION);
     
     try {
       // Generate a local request ID for confirmation (anonymous users can't SELECT after INSERT)

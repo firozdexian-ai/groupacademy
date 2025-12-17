@@ -16,6 +16,7 @@ import {
   AlertCircle, Sparkles, Building2, CreditCard, Gift
 } from "lucide-react";
 import { toast } from "sonner";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
 
 interface Job {
   id: string;
@@ -84,7 +85,7 @@ const JobApplication = () => {
 
   const loadJob = async () => {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    const timeoutId = setTimeout(() => controller.abort(), TIMEOUTS.DEFAULT);
     
     try {
       const queryPromise = supabase
@@ -126,7 +127,7 @@ const JobApplication = () => {
 
   const checkExistingProfile = async () => {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    const timeoutId = setTimeout(() => controller.abort(), TIMEOUTS.DEFAULT);
     
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -260,11 +261,11 @@ const JobApplication = () => {
       setUploading(false);
     }
 
-    // Parse CV with AI (60-second timeout for AI parsing)
+    // Parse CV with AI (90-second timeout for AI parsing)
     setParsing(true);
     try {
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error("CV parsing timed out")), 60000);
+        setTimeout(() => reject(new Error("CV parsing timed out")), TIMEOUTS.AI_GENERATION);
       });
 
       const parsePromise = supabase.functions.invoke('parse-cv', {

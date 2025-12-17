@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { withTimeout, isTimeoutError } from "@/hooks/useDataFetch";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
 
 interface Job {
   id: string;
@@ -58,7 +59,6 @@ const EXPERIENCE_LEVELS: Record<string, string> = {
 };
 
 const JOBS_PER_PAGE = 12;
-const DATA_TIMEOUT = 15000; // 15 seconds
 
 const Jobs = () => {
   const navigate = useNavigate();
@@ -79,22 +79,16 @@ const Jobs = () => {
 
   const loadCategories = useCallback(async () => {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), DATA_TIMEOUT);
+    const timeoutId = setTimeout(() => controller.abort(), TIMEOUTS.CATEGORY_LOAD);
     
     try {
-      const queryPromise = supabase
+      const { data, error } = await supabase
         .from("profession_categories")
         .select("id, name")
         .eq("is_active", true)
-        .order("name");
+        .order("name")
+        .abortSignal(controller.signal);
 
-      const abortPromise = new Promise<never>((_, reject) => {
-        controller.signal.addEventListener('abort', () => 
-          reject(new Error("Categories loading timed out"))
-        );
-      });
-
-      const { data, error } = await Promise.race([queryPromise, abortPromise]);
       clearTimeout(timeoutId);
       if (error) throw error;
       setCategories(data || []);
@@ -109,7 +103,7 @@ const Jobs = () => {
     setError(null);
     
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), DATA_TIMEOUT);
+    const timeoutId = setTimeout(() => controller.abort(), TIMEOUTS.DEFAULT);
     
     try {
       let query = supabase

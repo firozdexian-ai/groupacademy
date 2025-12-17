@@ -14,6 +14,8 @@ import { Footer } from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, FileText, AlertCircle, Loader2, CheckCircle } from "lucide-react";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
+import { useProgressiveLoadingMessage } from "@/hooks/useProgressiveLoadingMessage";
 
 const SalaryAnalysisSetup = () => {
   const navigate = useNavigate();
@@ -45,7 +47,7 @@ const SalaryAnalysisSetup = () => {
   useEffect(() => {
     const fetchCategories = async () => {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const timeoutId = setTimeout(() => controller.abort(), TIMEOUTS.CATEGORY_LOAD);
       
       try {
         const { data, error } = await supabase
@@ -67,6 +69,8 @@ const SalaryAnalysisSetup = () => {
     fetchCategories();
   }, []);
 
+  const { message: loadingMessage } = useProgressiveLoadingMessage(isCheckingEmail);
+
   const checkEmailCooldown = async () => {
     if (!email.trim()) {
       toast({ title: "Please enter your email", variant: "destructive" });
@@ -75,7 +79,7 @@ const SalaryAnalysisSetup = () => {
 
     setIsCheckingEmail(true);
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    const timeoutId = setTimeout(() => controller.abort(), TIMEOUTS.DEFAULT);
     
     try {
       const { data, error } = await supabase
@@ -178,7 +182,7 @@ const SalaryAnalysisSetup = () => {
       
       // Create abort controller for timeout
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), TIMEOUTS.FILE_UPLOAD);
       
       const { data, error } = await supabase.storage
         .from("portfolio-uploads")
@@ -315,7 +319,7 @@ const SalaryAnalysisSetup = () => {
                 {isCheckingEmail ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Checking...
+                    {loadingMessage}
                   </>
                 ) : (
                   "Check Eligibility"
