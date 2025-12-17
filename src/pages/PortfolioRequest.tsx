@@ -16,6 +16,7 @@ import ProfileBuilderForm, { ProfileData } from "@/components/portfolio/ProfileB
 import { Briefcase, User, FileText, Award, Globe, CheckCircle, ArrowLeft, ArrowRight, Loader2, FileUp, PenLine, RefreshCw, Gift, Sparkles, Link as LinkIcon, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
+import { AuthGate } from "@/components/AuthGate";
 
 // Brand icon
 import iconPortfolio from "@/assets/icons/icon-portfolio.png";
@@ -91,7 +92,7 @@ const steps: { id: Step; label: string; icon: React.ReactNode }[] = [
   { id: 'review', label: 'Review', icon: <CheckCircle className="h-4 w-4" /> },
 ];
 
-export default function PortfolioRequest() {
+function PortfolioRequestContent() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState<Step>('personal');
@@ -126,6 +127,7 @@ export default function PortfolioRequest() {
   useEffect(() => {
     loadProfessionCategories();
     loadPortfolioCount();
+    loadUserEmail();
     
     // Load form backup from localStorage
     const backup = localStorage.getItem('portfolio_form_backup');
@@ -139,6 +141,13 @@ export default function PortfolioRequest() {
       }
     }
   }, []);
+
+  const loadUserEmail = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user?.email) {
+      setFormData(prev => ({ ...prev, email: session.user.email || '' }));
+    }
+  };
   
   // Save form data to localStorage on changes
   useEffect(() => {
@@ -925,5 +934,14 @@ export default function PortfolioRequest() {
       </main>
       <Footer />
     </div>
+  );
+}
+
+// Wrap with AuthGate
+export default function PortfolioRequest() {
+  return (
+    <AuthGate message="Sign in to request your Digital Portfolio. Your submission will be linked to your account.">
+      <PortfolioRequestContent />
+    </AuthGate>
   );
 }
