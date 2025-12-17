@@ -23,6 +23,8 @@ import {
   Loader2
 } from "lucide-react";
 import { toast } from "sonner";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
+import { useProgressiveLoadingMessage } from "@/hooks/useProgressiveLoadingMessage";
 
 interface ProfessionCategory {
   id: string;
@@ -77,22 +79,16 @@ export default function MockInterviewSetup() {
 
   const loadCategories = async () => {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    const timeoutId = setTimeout(() => controller.abort(), TIMEOUTS.CATEGORY_LOAD);
     
     try {
-      const queryPromise = supabase
+      const { data, error } = await supabase
         .from("profession_categories")
         .select("id, name, slug")
         .eq("is_active", true)
-        .order("display_order");
+        .order("display_order")
+        .abortSignal(controller.signal);
 
-      const abortPromise = new Promise<never>((_, reject) => {
-        controller.signal.addEventListener('abort', () => 
-          reject(new Error("Categories loading timed out"))
-        );
-      });
-
-      const { data, error } = await Promise.race([queryPromise, abortPromise]);
       clearTimeout(timeoutId);
       if (error) throw error;
       if (data) setCategories(data);
@@ -101,6 +97,8 @@ export default function MockInterviewSetup() {
       console.error("Error loading categories:", error);
     }
   };
+
+  const { message: loadingMessage } = useProgressiveLoadingMessage(checkingEmail);
 
   const handleEmailCheck = async () => {
     if (!email.trim()) {
@@ -112,7 +110,7 @@ export default function MockInterviewSetup() {
     setEmailCheckError(null);
     
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    const timeoutId = setTimeout(() => controller.abort(), TIMEOUTS.DEFAULT);
 
     try {
       const queryPromise = supabase
@@ -222,9 +220,9 @@ export default function MockInterviewSetup() {
       return uuidV4Regex.test(str);
     };
 
-    // Create timeout promise (60 seconds for AI generation)
+    // Create timeout promise (90 seconds for AI generation)
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error("Generation timed out")), 60000);
+      setTimeout(() => reject(new Error("Generation timed out")), TIMEOUTS.AI_GENERATION);
     });
 
     try {
@@ -336,7 +334,7 @@ export default function MockInterviewSetup() {
                 {checkingEmail ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Checking...
+                    {loadingMessage}
                   </>
                 ) : emailCheckError ? (
                   <>
