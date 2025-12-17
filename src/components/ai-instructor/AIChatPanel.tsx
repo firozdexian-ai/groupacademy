@@ -3,8 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Send, Bot, User, Loader2, Sparkles } from "lucide-react";
+import { Send, Bot, User, Loader2, Sparkles, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
 
 interface Message {
   role: "user" | "assistant";
@@ -33,8 +34,10 @@ export function AIChatPanel({
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [lastError, setLastError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -42,32 +45,59 @@ export function AIChatPanel({
     }
   }, [messages]);
 
+  // Cleanup abort controller on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
   const streamChat = async (userMessages: Message[]) => {
-    const resp = await fetch(CHAT_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-      },
-      body: JSON.stringify({
-        messages: userMessages,
-        professionLineId,
-        contextType,
-        contextId,
-      }),
-    });
+    // Create abort controller for timeout
+    abortControllerRef.current = new AbortController();
+    const timeoutId = setTimeout(() => {
+      abortControllerRef.current?.abort();
+    }, TIMEOUTS.AI_GENERATION);
 
-    if (resp.status === 429) {
-      throw new Error("Rate limit exceeded. Please try again in a moment.");
-    }
-    if (resp.status === 402) {
-      throw new Error("AI service quota exceeded. Please contact support.");
-    }
-    if (!resp.ok || !resp.body) {
-      throw new Error("Failed to get AI response");
-    }
+    try {
+      const resp = await fetch(CHAT_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({
+          messages: userMessages,
+          professionLineId,
+          contextType,
+          contextId,
+        }),
+        signal: abortControllerRef.current.signal,
+      });
 
-    return resp.body;
+      clearTimeout(timeoutId);
+
+      if (resp.status === 429) {
+        throw new Error("Rate limit exceeded. Please try again in a moment.");
+      }
+      if (resp.status === 402) {
+        throw new Error("AI service quota exceeded. Please contact support.");
+      }
+      if (!resp.ok || !resp.body) {
+        throw new Error("Failed to get AI response");
+      }
+
+      return resp.body;
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      
+      if (error.name === "AbortError") {
+        throw new Error("Response took too long. Please try again.");
+      }
+      throw error;
+    }
   };
 
   const handleSubmit = async (e?: React.FormEvent) => {
@@ -79,6 +109,7 @@ export function AIChatPanel({
     setMessages(newMessages);
     setInput("");
     setIsLoading(true);
+    setLastError(null);
 
     let assistantContent = "";
 
@@ -130,11 +161,27 @@ export function AIChatPanel({
       }
     } catch (error) {
       console.error("Chat error:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to get response");
+      const errorMessage = error instanceof Error ? error.message : "Failed to get response";
+      setLastError(errorMessage);
+      toast.error(errorMessage);
       // Remove the empty assistant message if error
       setMessages((prev) => prev.slice(0, -1));
     } finally {
       setIsLoading(false);
+      abortControllerRef.current = null;
+    }
+  };
+
+  const handleRetry = () => {
+    if (messages.length > 0) {
+      const lastUserMessage = [...messages].reverse().find(m => m.role === "user");
+      if (lastUserMessage) {
+        // Remove last user message and retry
+        const messagesWithoutLast = messages.slice(0, -1);
+        setMessages(messagesWithoutLast);
+        setInput(lastUserMessage.content);
+        setLastError(null);
+      }
     }
   };
 
@@ -221,6 +268,19 @@ export function AIChatPanel({
                 <div className="bg-muted rounded-2xl px-4 py-2">
                   <Loader2 className="h-4 w-4 animate-spin" />
                 </div>
+              </div>
+            )}
+            {lastError && !isLoading && (
+              <div className="flex justify-center">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRetry}
+                  className="gap-2"
+                >
+                  <RefreshCw className="h-3 w-3" />
+                  Retry last message
+                </Button>
               </div>
             )}
           </div>

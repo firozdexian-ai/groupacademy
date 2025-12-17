@@ -1,5 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useQueryWithTimeout } from "@/hooks/useQueryWithTimeout";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
 import type { Database } from "@/integrations/supabase/types";
 
 type ModuleResource = Database["public"]["Tables"]["module_resources"]["Row"];
@@ -20,7 +21,7 @@ const stageNames: Record<number, string> = {
 };
 
 export function useModuleResources(moduleId: string | undefined) {
-  return useQuery({
+  return useQueryWithTimeout({
     queryKey: ["module-resources", moduleId],
     queryFn: async () => {
       if (!moduleId) return [];
@@ -36,6 +37,7 @@ export function useModuleResources(moduleId: string | undefined) {
       return data || [];
     },
     enabled: !!moduleId,
+    timeout: TIMEOUTS.DEFAULT,
   });
 }
 
@@ -56,7 +58,7 @@ export function useModuleResourcesByStage(moduleId: string | undefined) {
 }
 
 export function useStudentResourceProgress(studentId: string | undefined, moduleId: string | undefined) {
-  return useQuery({
+  return useQueryWithTimeout({
     queryKey: ["student-resource-progress", studentId, moduleId],
     queryFn: async () => {
       if (!studentId || !moduleId) return [];
@@ -80,5 +82,6 @@ export function useStudentResourceProgress(studentId: string | undefined, module
       return data || [];
     },
     enabled: !!studentId && !!moduleId,
+    timeout: TIMEOUTS.DEFAULT,
   });
 }
