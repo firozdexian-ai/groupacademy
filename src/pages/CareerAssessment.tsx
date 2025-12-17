@@ -14,6 +14,7 @@ import { ArrowRight, Clock, Target, TrendingUp, CheckCircle, Lock, KeyRound, Cal
 import { toast } from "sonner";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { useProgressiveLoadingMessage } from "@/hooks/useProgressiveLoadingMessage";
+import { AuthGate } from "@/components/AuthGate";
 
 // Brand icon
 import iconScorecard from "@/assets/icons/icon-scorecard.png";
@@ -28,7 +29,7 @@ interface ProfessionCategory {
 
 type AssessmentStep = "landing" | "email-check" | "cooldown" | "access-code" | "profession" | "questions" | "lead-capture" | "processing";
 
-export default function CareerAssessment() {
+function CareerAssessmentContent() {
   const [step, setStep] = useState<AssessmentStep>("landing");
   const [email, setEmail] = useState("");
   const [checkingEmail, setCheckingEmail] = useState(false);
@@ -43,7 +44,15 @@ export default function CareerAssessment() {
 
   useEffect(() => {
     loadCategories();
+    loadUserEmail();
   }, []);
+
+  const loadUserEmail = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user?.email) {
+      setEmail(session.user.email);
+    }
+  };
 
   const loadCategories = async () => {
     const controller = new AbortController();
@@ -537,5 +546,14 @@ function LandingSection({ onStart }: { onStart: () => void }) {
         </div>
       </section>
     </>
+  );
+}
+
+// Wrap with AuthGate
+export default function CareerAssessment() {
+  return (
+    <AuthGate message="Sign in to access Career Readiness Scorecard. Your results will be saved to your account.">
+      <CareerAssessmentContent />
+    </AuthGate>
   );
 }

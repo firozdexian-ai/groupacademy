@@ -25,6 +25,7 @@ import {
 import { toast } from "sonner";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { useProgressiveLoadingMessage } from "@/hooks/useProgressiveLoadingMessage";
+import { AuthGate } from "@/components/AuthGate";
 
 interface ProfessionCategory {
   id: string;
@@ -41,11 +42,11 @@ interface InterviewConfig {
   additionalNotes: string;
 }
 
-export default function MockInterviewSetup() {
+function MockInterviewSetupContent() {
   const navigate = useNavigate();
-  const [step, setStep] = useState<SetupStep>("email-check");
+  const [step, setStep] = useState<SetupStep>("job-description"); // Skip email check - user is authenticated
   
-  // Email check state
+  // Email from auth session
   const [email, setEmail] = useState("");
   const [checkingEmail, setCheckingEmail] = useState(false);
   const [emailCheckError, setEmailCheckError] = useState<string | null>(null);
@@ -75,7 +76,50 @@ export default function MockInterviewSetup() {
 
   useEffect(() => {
     loadCategories();
+    // Get email from authenticated session and check cooldown
+    checkAuthAndCooldown();
   }, []);
+
+  const checkAuthAndCooldown = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user?.email) {
+        const userEmail = session.user.email;
+        setEmail(userEmail);
+        
+        // Check cooldown for this user
+        setCheckingEmail(true);
+        const { data: existing, error } = await supabase
+          .from("mock_interviews")
+          .select("*")
+          .eq("email", userEmail.toLowerCase().trim())
+          .eq("status", "completed")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        
+        setCheckingEmail(false);
+        
+        if (error) {
+          console.error("Error checking cooldown:", error);
+          // Proceed anyway - let them try
+          return;
+        }
+        
+        if (existing && new Date(existing.expires_at) > new Date()) {
+          setExistingInterview(existing);
+          const expiresAt = new Date(existing.expires_at);
+          const now = new Date();
+          const diffTime = expiresAt.getTime() - now.getTime();
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          setDaysRemaining(diffDays);
+          setStep("cooldown");
+        }
+      }
+    } catch (error) {
+      console.error("Error checking auth:", error);
+    }
+  };
 
   const loadCategories = async () => {
     const controller = new AbortController();
@@ -716,5 +760,14 @@ export default function MockInterviewSetup() {
 
       <Footer />
     </div>
+  );
+}
+
+// Wrap with AuthGate to require authentication
+export default function MockInterviewSetup() {
+  return (
+    <AuthGate message="Sign in to access AI Mock Interview. Your progress will be saved to your account.">
+      <MockInterviewSetupContent />
+    </AuthGate>
   );
 }

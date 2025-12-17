@@ -16,8 +16,9 @@ import { useToast } from "@/hooks/use-toast";
 import { Upload, FileText, AlertCircle, Loader2, CheckCircle } from "lucide-react";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { useProgressiveLoadingMessage } from "@/hooks/useProgressiveLoadingMessage";
+import { AuthGate } from "@/components/AuthGate";
 
-const SalaryAnalysisSetup = () => {
+const SalaryAnalysisSetupContent = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -45,7 +46,14 @@ const SalaryAnalysisSetup = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    const fetchCategories = async () => {
+    const init = async () => {
+      // Load user email from session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user?.email) {
+        setEmail(session.user.email);
+      }
+      
+      // Load categories
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), TIMEOUTS.CATEGORY_LOAD);
       
@@ -63,10 +71,9 @@ const SalaryAnalysisSetup = () => {
       } catch (error: any) {
         clearTimeout(timeoutId);
         console.error("Error loading categories:", error);
-        // Categories are non-critical, silently fail
       }
     };
-    fetchCategories();
+    init();
   }, []);
 
   const { message: loadingMessage } = useProgressiveLoadingMessage(isCheckingEmail);
@@ -541,6 +548,15 @@ const SalaryAnalysisSetup = () => {
 
       <Footer />
     </div>
+  );
+};
+
+// Wrap with AuthGate
+const SalaryAnalysisSetup = () => {
+  return (
+    <AuthGate message="Sign in to access AI Salary Analysis. Your results will be saved to your account.">
+      <SalaryAnalysisSetupContent />
+    </AuthGate>
   );
 };
 
