@@ -119,21 +119,29 @@ export default function QuizManagement() {
     setSaving(true);
     try {
       // Update pass threshold and enable quiz
-      const { error: updateError } = await supabase
-        .from("content")
-        .update({ 
-          pass_threshold: passThreshold,
-          quiz_enabled: true
-        })
-        .eq("id", contentId);
+      const { error: updateError } = await withTimeout(
+        Promise.resolve(supabase
+          .from("content")
+          .update({ 
+            pass_threshold: passThreshold,
+            quiz_enabled: true
+          })
+          .eq("id", contentId)),
+        TIMEOUTS.DEFAULT,
+        "Updating quiz settings timed out"
+      );
 
       if (updateError) throw updateError;
 
       // Delete existing questions
-      await supabase
-        .from("quiz_questions")
-        .delete()
-        .eq("content_id", contentId);
+      await withTimeout(
+        Promise.resolve(supabase
+          .from("quiz_questions")
+          .delete()
+          .eq("content_id", contentId)),
+        TIMEOUTS.DEFAULT,
+        "Deleting existing questions timed out"
+      );
 
       // Insert new questions
       const questionsToInsert = questions.map((q, index) => ({
@@ -148,9 +156,13 @@ export default function QuizManagement() {
         display_order: index,
       }));
 
-      const { error: insertError } = await supabase
-        .from("quiz_questions")
-        .insert(questionsToInsert);
+      const { error: insertError } = await withTimeout(
+        Promise.resolve(supabase
+          .from("quiz_questions")
+          .insert(questionsToInsert)),
+        TIMEOUTS.DEFAULT,
+        "Saving quiz questions timed out"
+      );
 
       if (insertError) throw insertError;
 

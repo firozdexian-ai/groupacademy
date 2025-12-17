@@ -82,17 +82,25 @@ export const BannerManager = () => {
     }
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await withTimeout(
+        supabase.auth.getUser(),
+        TIMEOUTS.AUTH,
+        "Authentication timed out"
+      );
       if (!user) throw new Error("Not authenticated");
 
-      const { error } = await supabase.from("banners").insert([
-        {
-          image_url: newBanner.image_url,
-          link_content_id: newBanner.link_content_id === "none" ? null : newBanner.link_content_id,
-          display_order: newBanner.display_order,
-          created_by: user.id,
-        },
-      ]);
+      const { error } = await withTimeout(
+        Promise.resolve(supabase.from("banners").insert([
+          {
+            image_url: newBanner.image_url,
+            link_content_id: newBanner.link_content_id === "none" ? null : newBanner.link_content_id,
+            display_order: newBanner.display_order,
+            created_by: user.id,
+          },
+        ])),
+        TIMEOUTS.DEFAULT,
+        "Creating banner timed out"
+      );
 
       if (error) throw error;
 
@@ -107,10 +115,14 @@ export const BannerManager = () => {
 
   const handleToggleActive = async (bannerId: string, isActive: boolean) => {
     try {
-      const { error } = await supabase
-        .from("banners")
-        .update({ is_active: !isActive })
-        .eq("id", bannerId);
+      const { error } = await withTimeout(
+        Promise.resolve(supabase
+          .from("banners")
+          .update({ is_active: !isActive })
+          .eq("id", bannerId)),
+        TIMEOUTS.DEFAULT,
+        "Updating banner timed out"
+      );
 
       if (error) throw error;
 
@@ -118,7 +130,7 @@ export const BannerManager = () => {
       loadData();
     } catch (error: any) {
       console.error("Error updating banner:", error);
-      toast.error("Failed to update banner");
+      toast.error(error.message || "Failed to update banner");
     }
   };
 
@@ -126,7 +138,11 @@ export const BannerManager = () => {
     if (!confirm("Are you sure you want to delete this banner?")) return;
 
     try {
-      const { error } = await supabase.from("banners").delete().eq("id", bannerId);
+      const { error } = await withTimeout(
+        Promise.resolve(supabase.from("banners").delete().eq("id", bannerId)),
+        TIMEOUTS.DEFAULT,
+        "Deleting banner timed out"
+      );
 
       if (error) throw error;
 
@@ -134,7 +150,7 @@ export const BannerManager = () => {
       loadData();
     } catch (error: any) {
       console.error("Error deleting banner:", error);
-      toast.error("Failed to delete banner");
+      toast.error(error.message || "Failed to delete banner");
     }
   };
 

@@ -12,6 +12,8 @@ import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
 import { ImageUpload } from "@/components/ImageUpload";
 import { youtubeUrlSchema, whatsappUrlSchema } from "@/lib/validations";
+import { withTimeout } from "@/hooks/useQueryWithTimeout";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
 
 const ContentNew = () => {
   const navigate = useNavigate();
@@ -66,34 +68,33 @@ const ContentNew = () => {
       // Generate slug from title if not provided
       const slug = formData.slug || formData.title.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
 
-      const { error } = await supabase.from("content").insert([
-        {
-          ...formData,
-          slug,
-          // YouTube URL available for all content types
-          youtube_url: formData.youtube_url || null,
-          // Cover image URL
-          cover_image_url: formData.cover_image_url || null,
-          // WhatsApp group link
-          whatsapp_group_link: formData.whatsapp_group_link || null,
-          // Display order
-          display_order: formData.display_order,
-          // Only include relevant fields based on content type
-          duration_hours: formData.content_type === "recorded_course" ? formData.duration_hours : null,
-          modules_count: formData.content_type === "recorded_course" ? formData.modules_count : null,
-          event_date: ["live_webinar", "batch_class", "offline_seminar"].includes(formData.content_type)
-            ? formData.event_date || null
-            : null,
-          event_duration_minutes: ["live_webinar", "batch_class", "offline_seminar"].includes(formData.content_type)
-            ? formData.event_duration_minutes
-            : null,
-          max_capacity: ["live_webinar", "batch_class", "offline_seminar"].includes(formData.content_type)
-            ? formData.max_capacity
-            : null,
-          venue_name: formData.content_type === "offline_seminar" ? formData.venue_name : null,
-          venue_address: formData.content_type === "offline_seminar" ? formData.venue_address : null,
-        },
-      ]);
+      const { error } = await withTimeout(
+        Promise.resolve(supabase.from("content").insert([
+          {
+            ...formData,
+            slug,
+            youtube_url: formData.youtube_url || null,
+            cover_image_url: formData.cover_image_url || null,
+            whatsapp_group_link: formData.whatsapp_group_link || null,
+            display_order: formData.display_order,
+            duration_hours: formData.content_type === "recorded_course" ? formData.duration_hours : null,
+            modules_count: formData.content_type === "recorded_course" ? formData.modules_count : null,
+            event_date: ["live_webinar", "batch_class", "offline_seminar"].includes(formData.content_type)
+              ? formData.event_date || null
+              : null,
+            event_duration_minutes: ["live_webinar", "batch_class", "offline_seminar"].includes(formData.content_type)
+              ? formData.event_duration_minutes
+              : null,
+            max_capacity: ["live_webinar", "batch_class", "offline_seminar"].includes(formData.content_type)
+              ? formData.max_capacity
+              : null,
+            venue_name: formData.content_type === "offline_seminar" ? formData.venue_name : null,
+            venue_address: formData.content_type === "offline_seminar" ? formData.venue_address : null,
+          },
+        ])),
+        TIMEOUTS.DEFAULT,
+        "Creating content timed out"
+      );
 
       if (error) throw error;
 

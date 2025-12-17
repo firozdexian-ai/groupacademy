@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Copy, Download, Loader2, Plus, TrendingUp } from "lucide-react";
+import { withTimeout } from "@/hooks/useQueryWithTimeout";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
 
 export function StandaloneSalaryCodeGenerator() {
   const [email, setEmail] = useState("");
@@ -30,18 +32,26 @@ export function StandaloneSalaryCodeGenerator() {
 
     setIsGenerating(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await withTimeout(
+        supabase.auth.getUser(),
+        TIMEOUTS.AUTH,
+        "Authentication timed out"
+      );
       const codes: string[] = [];
 
       for (let i = 0; i < quantity; i++) {
         const code = generateCode();
-        const { error } = await supabase
-          .from("salary_analysis_access_codes")
-          .insert({
-            code,
-            email: email.toLowerCase().trim(),
-            created_by: user?.id,
-          });
+        const { error } = await withTimeout(
+          Promise.resolve(supabase
+            .from("salary_analysis_access_codes")
+            .insert({
+              code,
+              email: email.toLowerCase().trim(),
+              created_by: user?.id,
+            })),
+          TIMEOUTS.DEFAULT,
+          "Code generation timed out"
+        );
 
         if (error) {
           if (error.code === "23505") {
@@ -55,9 +65,9 @@ export function StandaloneSalaryCodeGenerator() {
 
       setGeneratedCodes(codes);
       toast.success(`Generated ${codes.length} salary analysis code(s)`);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error generating codes:", error);
-      toast.error("Failed to generate codes");
+      toast.error(error.message || "Failed to generate codes");
     } finally {
       setIsGenerating(false);
     }
