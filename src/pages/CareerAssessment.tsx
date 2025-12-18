@@ -5,6 +5,7 @@ import { Footer } from "@/components/Footer";
 import { ProfessionSelector } from "@/components/assessment/ProfessionSelector";
 import { AssessmentStepper } from "@/components/assessment/AssessmentStepper";
 import { LeadCaptureForm } from "@/components/assessment/LeadCaptureForm";
+import { ProcessingCard } from "@/components/ui/processing-card";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,6 +19,15 @@ import { AuthGate } from "@/components/AuthGate";
 
 // Brand icon
 import iconScorecard from "@/assets/icons/icon-scorecard.png";
+
+const ASSESSMENT_PROCESSING_STAGES = [
+  { progress: 0, message: "Preparing your assessment..." },
+  { progress: 15, message: "Analyzing your responses..." },
+  { progress: 35, message: "AI is evaluating your career readiness..." },
+  { progress: 55, message: "Identifying strengths and improvement areas..." },
+  { progress: 75, message: "Generating personalized insights..." },
+  { progress: 90, message: "Creating your report..." },
+];
 
 interface ProfessionCategory {
   id: string;
@@ -441,12 +451,12 @@ function CareerAssessmentContent() {
         )}
 
         {step === "processing" && (
-          <div className="container max-w-md mx-auto px-4 py-16 text-center">
-            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mx-auto mb-6"></div>
-            <h2 className="text-2xl font-bold mb-2">Analyzing Your Responses</h2>
-            <p className="text-muted-foreground">
-              Our AI is generating your personalized career insights...
-            </p>
+          <div className="container max-w-md mx-auto px-4 py-16">
+            <ProcessingCard
+              title="Analyzing Your Responses"
+              stages={ASSESSMENT_PROCESSING_STAGES}
+              duration={60000}
+            />
           </div>
         )}
       </main>
