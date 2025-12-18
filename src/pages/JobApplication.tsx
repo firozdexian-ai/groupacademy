@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
+import { AuthGate } from "@/components/AuthGate";
 
 interface Job {
   id: string;
@@ -46,7 +47,7 @@ interface UsageInfo {
 const FREE_APPLICATIONS_PER_MONTH = 5;
 const PAID_APPLICATION_COST = 50;
 
-const JobApplication = () => {
+const JobApplicationContent = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   
@@ -814,6 +815,14 @@ const JobApplication = () => {
 
       <Footer />
     </div>
+  );
+};
+
+const JobApplication = () => {
+  return (
+    <AuthGate message="Sign in to apply for jobs. Your applications will be saved to your profile.">
+      <JobApplicationContent />
+    </AuthGate>
   );
 };
 
