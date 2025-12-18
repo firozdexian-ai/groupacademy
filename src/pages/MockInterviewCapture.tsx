@@ -7,13 +7,22 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ProcessingCard } from "@/components/ui/processing-card";
 import { 
   ArrowRight, 
   User,
-  Loader2,
-  Sparkles
+  Loader2
 } from "lucide-react";
 import { toast } from "sonner";
+
+const INTERVIEW_ANALYSIS_STAGES = [
+  { progress: 0, message: "Preparing your answers..." },
+  { progress: 15, message: "Sending to AI for analysis..." },
+  { progress: 35, message: "Evaluating your responses..." },
+  { progress: 55, message: "Assessing interview performance..." },
+  { progress: 75, message: "Generating detailed feedback..." },
+  { progress: 90, message: "Finalizing your score..." },
+];
 
 export default function MockInterviewCapture() {
   const { id } = useParams<{ id: string }>();
@@ -24,6 +33,7 @@ export default function MockInterviewCapture() {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) loadInterview();
@@ -61,6 +71,7 @@ export default function MockInterviewCapture() {
     }
 
     setIsSubmitting(true);
+    setSubmissionError(null);
 
     try {
       // Update interview with lead info
@@ -83,9 +94,13 @@ export default function MockInterviewCapture() {
       navigate(`/mock-interview/results/${id}`);
     } catch (error) {
       console.error("Error submitting interview:", error);
-      toast.error("Failed to analyze interview. Please try again.");
-      setIsSubmitting(false);
+      setSubmissionError("Failed to analyze interview. Please try again.");
     }
+  };
+
+  const handleRetry = () => {
+    setSubmissionError(null);
+    setIsSubmitting(false);
   };
 
   if (loading) {
@@ -107,20 +122,14 @@ export default function MockInterviewCapture() {
     return (
       <div className="min-h-screen bg-background flex flex-col">
         <Navbar />
-        <main className="flex-1 flex items-center justify-center">
-          <Card className="max-w-md">
-            <CardContent className="py-16 text-center">
-              <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mx-auto mb-6"></div>
-              <h2 className="text-2xl font-bold mb-2">Analyzing Your Interview</h2>
-              <p className="text-muted-foreground">
-                Our AI is evaluating your responses and generating detailed feedback...
-              </p>
-              <div className="mt-6 flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                <Sparkles className="h-4 w-4 text-primary animate-pulse" />
-                <span>This may take a moment</span>
-              </div>
-            </CardContent>
-          </Card>
+        <main className="flex-1 flex items-center justify-center px-4 py-12">
+          <ProcessingCard
+            title="Analyzing Your Interview"
+            stages={INTERVIEW_ANALYSIS_STAGES}
+            duration={45000}
+            error={submissionError}
+            onRetry={handleRetry}
+          />
         </main>
         <Footer />
       </div>
