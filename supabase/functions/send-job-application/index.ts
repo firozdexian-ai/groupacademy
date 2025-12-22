@@ -12,9 +12,10 @@ interface SendApplicationRequest {
   applicationId: string;
 }
 
-async function sendEmail(to: string, replyTo: string, subject: string, html: string) {
+async function sendEmail(to: string, cc: string, replyTo: string, subject: string, html: string) {
   console.log("Sending email via Resend API...");
   console.log("To:", to);
+  console.log("CC:", cc);
   console.log("Reply-To:", replyTo);
   console.log("Subject:", subject);
   
@@ -31,6 +32,7 @@ async function sendEmail(to: string, replyTo: string, subject: string, html: str
     body: JSON.stringify({
       from: "GroUp Academy Jobs <jobs@resend.dev>",
       to: [to],
+      cc: [cc],
       reply_to: replyTo,
       subject,
       html,
@@ -188,10 +190,10 @@ serve(async (req: Request): Promise<Response> => {
       </html>
     `;
 
-    // Send email
-    console.log("Sending email to:", job.application_email);
+    console.log("Sending email to:", job.application_email, "with CC:", professional.email);
     const emailResponse = await sendEmail(
       job.application_email,
+      professional.email,
       professional.email,
       `New Application: ${professional.full_name} for ${job.title}`,
       emailHtml
