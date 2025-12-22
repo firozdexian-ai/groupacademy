@@ -11,9 +11,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
+import { ProcessingCard } from "@/components/ui/processing-card";
 import { 
   ArrowLeft, Upload, FileText, Loader2, CheckCircle2, 
-  AlertCircle, Sparkles, Building2, CreditCard, Gift
+  AlertCircle, Sparkles, Building2, CreditCard, Gift, RefreshCw, Edit3
 } from "lucide-react";
 import { toast } from "sonner";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
@@ -47,6 +48,15 @@ interface UsageInfo {
 const FREE_APPLICATIONS_PER_MONTH = 5;
 const PAID_APPLICATION_COST = 50;
 
+const CV_PARSING_STAGES = [
+  { progress: 0, message: "Preparing to process your CV..." },
+  { progress: 10, message: "Uploading your CV..." },
+  { progress: 25, message: "Analyzing document structure..." },
+  { progress: 45, message: "AI is extracting your profile..." },
+  { progress: 65, message: "Processing skills and experience..." },
+  { progress: 85, message: "Finalizing your information..." },
+];
+
 const JobApplicationContent = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -61,7 +71,14 @@ const JobApplicationContent = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploading, setUploading] = useState(false);
   const [parsing, setParsing] = useState(false);
+  const [parseError, setParseError] = useState<string | null>(null);
   const [parsedData, setParsedData] = useState<ParsedCV | null>(null);
+  
+  // Manual entry mode
+  const [manualMode, setManualMode] = useState(false);
+  const [manualName, setManualName] = useState("");
+  const [manualEmail, setManualEmail] = useState("");
+  const [manualPhone, setManualPhone] = useState("");
   
   // Professional Info
   const [professionalId, setProfessionalId] = useState<string | null>(null);
@@ -70,6 +87,7 @@ const JobApplicationContent = () => {
   // Application Form
   const [coverLetter, setCoverLetter] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [enhancingCoverLetter, setEnhancingCoverLetter] = useState(false);
   
   // Usage/Freemium
   const [usage, setUsage] = useState<UsageInfo | null>(null);
@@ -83,6 +101,17 @@ const JobApplicationContent = () => {
       checkExistingProfile();
     }
   }, [id]);
+
+  // Pre-fill manual email from auth user
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.email) {
+        setManualEmail(user.email);
+      }
+    };
+    getUser();
+  }, []);
 
   const loadJob = async () => {
     const controller = new AbortController();
@@ -201,6 +230,8 @@ const JobApplicationContent = () => {
       }
       setCvFile(file);
       setCvUrl("");
+      setParseError(null);
+      setManualMode(false);
     }
   };
 
@@ -210,6 +241,8 @@ const JobApplicationContent = () => {
       return;
     }
 
+    setParseError(null);
+    setManualMode(false);
     let finalCvUrl = cvUrl;
     
     // Upload file if provided
@@ -280,10 +313,24 @@ const JobApplicationContent = () => {
 
       if (response.error) throw response.error;
 
-      const { professional, parsedData: parsed } = response.data;
+      // FIX: The edge function returns { professional, parsed }, not { professional, parsedData }
+      const { professional, parsed } = response.data;
+      
+      console.log("CV Parse Response:", { professional, parsed });
       
       setProfessionalId(professional.id);
-      setParsedData(parsed);
+      
+      // Use parsed data, or fall back to professional data
+      const cvData = parsed || {
+        full_name: professional?.full_name,
+        email: professional?.email,
+        phone: professional?.phone,
+        skills: professional?.skills || [],
+        education: professional?.education || [],
+        experience: professional?.experience || [],
+      };
+      
+      setParsedData(cvData);
       setExistingProfile(professional);
       
       await checkUsage(professional.id);
@@ -293,11 +340,112 @@ const JobApplicationContent = () => {
     } catch (error: any) {
       console.error("Parse error:", error);
       const message = error?.message?.includes("timed out")
-        ? "CV parsing took too long. Please try again."
-        : "Failed to parse CV. Please try again.";
+        ? "CV parsing took too long. Please try again or enter details manually."
+        : "Failed to parse CV. Please try again or enter details manually.";
+      setParseError(message);
       toast.error(message);
     } finally {
       setParsing(false);
+    }
+  };
+
+  const submitManualEntry = async () => {
+    if (!manualName.trim() || !manualEmail.trim() || !manualPhone.trim()) {
+      toast.error("Please fill in all required fields");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // Create or update professional profile
+      const { data: existingPro } = await supabase
+        .from("professionals")
+        .select("id")
+        .eq("email", manualEmail.toLowerCase())
+        .single();
+
+      let profId: string;
+      
+      if (existingPro) {
+        profId = existingPro.id;
+        await supabase
+          .from("professionals")
+          .update({
+            full_name: manualName,
+            phone: manualPhone,
+            cv_url: cvUrl || undefined,
+          })
+          .eq("id", profId);
+      } else {
+        const { data: newPro, error: createError } = await supabase
+          .from("professionals")
+          .insert({
+            full_name: manualName,
+            email: manualEmail.toLowerCase(),
+            phone: manualPhone,
+            cv_url: cvUrl || null,
+            user_id: user?.id,
+            profile_type: "job_seeker",
+          })
+          .select("id")
+          .single();
+
+        if (createError) throw createError;
+        profId = newPro.id;
+      }
+
+      setProfessionalId(profId);
+      setParsedData({
+        full_name: manualName,
+        email: manualEmail,
+        phone: manualPhone,
+      });
+      
+      await checkUsage(profId);
+      
+      toast.success("Profile created successfully!");
+      setManualMode(false);
+      setStep(2);
+    } catch (error) {
+      console.error("Manual entry error:", error);
+      toast.error("Failed to create profile. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const enhanceCoverLetter = async () => {
+    if (!coverLetter.trim()) {
+      toast.error("Please write a cover letter first");
+      return;
+    }
+
+    setEnhancingCoverLetter(true);
+    try {
+      const response = await supabase.functions.invoke('enhance-cover-letter', {
+        body: {
+          coverLetter,
+          jobTitle: job?.title,
+          companyName: job?.company_name,
+          candidateName: parsedData?.full_name,
+          skills: parsedData?.skills || [],
+        }
+      });
+
+      if (response.error) throw response.error;
+
+      const { enhancedCoverLetter } = response.data;
+      if (enhancedCoverLetter) {
+        setCoverLetter(enhancedCoverLetter);
+        toast.success("Cover letter enhanced with AI!");
+      }
+    } catch (error) {
+      console.error("Enhance error:", error);
+      toast.error("Failed to enhance cover letter");
+    } finally {
+      setEnhancingCoverLetter(false);
     }
   };
 
@@ -342,8 +490,14 @@ const JobApplicationContent = () => {
   };
 
   const submitApplication = async () => {
-    if (!professionalId || !job) {
-      toast.error("Missing required information");
+    if (!professionalId) {
+      toast.error("Please upload your CV first");
+      setStep(1);
+      return;
+    }
+    
+    if (!job) {
+      toast.error("Job information not loaded. Please refresh the page.");
       return;
     }
 
@@ -539,122 +693,231 @@ const JobApplicationContent = () => {
 
           {/* Step 1: Upload CV */}
           {step === 1 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Upload className="w-5 h-5" />
-                  Upload Your CV
-                </CardTitle>
-                <CardDescription>
-                  Upload your CV and our AI will parse your information automatically
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {existingProfile ? (
-                  <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
-                    <div className="flex items-start gap-3">
-                      <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5" />
-                      <div>
-                        <p className="font-medium text-green-800 dark:text-green-200">
-                          Profile Found: {existingProfile.full_name}
-                        </p>
-                        <p className="text-sm text-green-700 dark:text-green-300 mt-1">
-                          We found your existing profile. You can proceed directly or upload a new CV to update it.
-                        </p>
-                        <Button 
-                          className="mt-3" 
-                          onClick={() => setStep(2)}
-                        >
-                          Use Existing Profile
-                        </Button>
-                      </div>
+            <>
+              {/* Show Processing Card when parsing */}
+              {parsing ? (
+                <ProcessingCard
+                  title="Parsing Your CV"
+                  stages={CV_PARSING_STAGES}
+                  duration={45000}
+                  className="mb-6"
+                />
+              ) : parseError ? (
+                // Show error state with retry and manual options
+                <Card className="mb-6">
+                  <CardContent className="py-8 text-center">
+                    <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <AlertCircle className="w-8 h-8 text-destructive" />
                     </div>
-                  </div>
-                ) : null}
-
-                <Separator className={existingProfile ? '' : 'hidden'} />
-
-                {/* File Upload */}
-                <div>
-                  <Label>Upload CV File</Label>
-                  <div className="mt-2 border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
-                    <input
-                      type="file"
-                      accept=".pdf,.doc,.docx"
-                      onChange={handleFileSelect}
-                      className="hidden"
-                      id="cv-upload"
-                    />
-                    <label htmlFor="cv-upload" className="cursor-pointer">
-                      {cvFile ? (
-                        <div className="flex items-center justify-center gap-2 text-primary">
-                          <FileText className="w-8 h-8" />
-                          <span className="font-medium">{cvFile.name}</span>
+                    <h3 className="text-lg font-semibold mb-2">AI Parsing Failed</h3>
+                    <p className="text-muted-foreground mb-6 max-w-md mx-auto">{parseError}</p>
+                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                      <Button onClick={uploadAndParseCv} variant="outline">
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Try Again
+                      </Button>
+                      <Button onClick={() => setManualMode(true)}>
+                        <Edit3 className="w-4 h-4 mr-2" />
+                        Enter Manually
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : manualMode ? (
+                // Manual entry form
+                <Card className="mb-6">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Edit3 className="w-5 h-5" />
+                      Enter Your Details
+                    </CardTitle>
+                    <CardDescription>
+                      Fill in your information manually to continue with the application
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <Label htmlFor="manual-name">Full Name *</Label>
+                      <Input
+                        id="manual-name"
+                        value={manualName}
+                        onChange={(e) => setManualName(e.target.value)}
+                        placeholder="John Doe"
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="manual-email">Email *</Label>
+                      <Input
+                        id="manual-email"
+                        type="email"
+                        value={manualEmail}
+                        onChange={(e) => setManualEmail(e.target.value)}
+                        placeholder="john@example.com"
+                        className="mt-1"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="manual-phone">Phone *</Label>
+                      <Input
+                        id="manual-phone"
+                        value={manualPhone}
+                        onChange={(e) => setManualPhone(e.target.value)}
+                        placeholder="+880 1XXX-XXXXXX"
+                        className="mt-1"
+                      />
+                    </div>
+                    
+                    {cvUrl && (
+                      <div className="p-3 bg-muted rounded-lg flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-primary" />
+                        <span className="text-sm">CV uploaded successfully</span>
+                      </div>
+                    )}
+                    
+                    <div className="flex gap-3 pt-2">
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          setManualMode(false);
+                          setParseError(null);
+                        }}
+                        className="flex-1"
+                      >
+                        Back
+                      </Button>
+                      <Button 
+                        onClick={submitManualEntry}
+                        disabled={submitting || !manualName.trim() || !manualEmail.trim() || !manualPhone.trim()}
+                        className="flex-1"
+                      >
+                        {submitting ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Saving...
+                          </>
+                        ) : (
+                          'Continue to Apply'
+                        )}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                // Normal CV upload card
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Upload className="w-5 h-5" />
+                      Upload Your CV
+                    </CardTitle>
+                    <CardDescription>
+                      Upload your CV and our AI will parse your information automatically
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {existingProfile ? (
+                      <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
+                        <div className="flex items-start gap-3">
+                          <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5" />
+                          <div>
+                            <p className="font-medium text-green-800 dark:text-green-200">
+                              Profile Found: {existingProfile.full_name}
+                            </p>
+                            <p className="text-sm text-green-700 dark:text-green-300 mt-1">
+                              We found your existing profile. You can proceed directly or upload a new CV to update it.
+                            </p>
+                            <Button 
+                              className="mt-3" 
+                              onClick={() => setStep(2)}
+                            >
+                              Use Existing Profile
+                            </Button>
+                          </div>
                         </div>
+                      </div>
+                    ) : null}
+
+                    <Separator className={existingProfile ? '' : 'hidden'} />
+
+                    {/* File Upload */}
+                    <div>
+                      <Label>Upload CV File</Label>
+                      <div className="mt-2 border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
+                        <input
+                          type="file"
+                          accept=".pdf,.doc,.docx"
+                          onChange={handleFileSelect}
+                          className="hidden"
+                          id="cv-upload"
+                        />
+                        <label htmlFor="cv-upload" className="cursor-pointer">
+                          {cvFile ? (
+                            <div className="flex items-center justify-center gap-2 text-primary">
+                              <FileText className="w-8 h-8" />
+                              <span className="font-medium">{cvFile.name}</span>
+                            </div>
+                          ) : (
+                            <>
+                              <Upload className="w-10 h-10 mx-auto text-muted-foreground mb-2" />
+                              <p className="text-muted-foreground">
+                                Click to upload or drag and drop
+                              </p>
+                              <p className="text-sm text-muted-foreground mt-1">
+                                PDF, DOC, DOCX (max 10MB)
+                              </p>
+                            </>
+                          )}
+                        </label>
+                      </div>
+                      {uploading && (
+                        <Progress value={uploadProgress} className="mt-2" />
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                      <Separator className="flex-1" />
+                      <span className="text-sm text-muted-foreground">OR</span>
+                      <Separator className="flex-1" />
+                    </div>
+
+                    {/* URL Input */}
+                    <div>
+                      <Label htmlFor="cv-url">CV URL (Google Drive, Dropbox, etc.)</Label>
+                      <Input
+                        id="cv-url"
+                        placeholder="https://drive.google.com/..."
+                        value={cvUrl}
+                        onChange={(e) => {
+                          setCvUrl(e.target.value);
+                          setCvFile(null);
+                        }}
+                        className="mt-2"
+                      />
+                    </div>
+
+                    <Button 
+                      className="w-full" 
+                      size="lg"
+                      onClick={uploadAndParseCv}
+                      disabled={(!cvFile && !cvUrl) || uploading || parsing}
+                    >
+                      {uploading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Uploading... {uploadProgress}%
+                        </>
                       ) : (
                         <>
-                          <Upload className="w-10 h-10 mx-auto text-muted-foreground mb-2" />
-                          <p className="text-muted-foreground">
-                            Click to upload or drag and drop
-                          </p>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            PDF, DOC, DOCX (max 10MB)
-                          </p>
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          Upload & Parse CV
                         </>
                       )}
-                    </label>
-                  </div>
-                  {uploading && (
-                    <Progress value={uploadProgress} className="mt-2" />
-                  )}
-                </div>
-
-                <div className="flex items-center gap-4">
-                  <Separator className="flex-1" />
-                  <span className="text-sm text-muted-foreground">OR</span>
-                  <Separator className="flex-1" />
-                </div>
-
-                {/* URL Input */}
-                <div>
-                  <Label htmlFor="cv-url">CV URL (Google Drive, Dropbox, etc.)</Label>
-                  <Input
-                    id="cv-url"
-                    placeholder="https://drive.google.com/..."
-                    value={cvUrl}
-                    onChange={(e) => {
-                      setCvUrl(e.target.value);
-                      setCvFile(null);
-                    }}
-                    className="mt-2"
-                  />
-                </div>
-
-                <Button 
-                  className="w-full" 
-                  size="lg"
-                  onClick={uploadAndParseCv}
-                  disabled={(!cvFile && !cvUrl) || uploading || parsing}
-                >
-                  {uploading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Uploading... {uploadProgress}%
-                    </>
-                  ) : parsing ? (
-                    <>
-                      <Sparkles className="w-4 h-4 mr-2 animate-pulse" />
-                      Parsing with AI...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      Upload & Parse CV
-                    </>
-                  )}
-                </Button>
-              </CardContent>
-            </Card>
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+            </>
           )}
 
           {/* Step 2: Review & Apply */}
@@ -715,13 +978,33 @@ const JobApplicationContent = () => {
                     Add a personalized message to stand out
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-3">
                   <Textarea
                     placeholder="Tell the employer why you're the perfect fit for this role..."
                     value={coverLetter}
                     onChange={(e) => setCoverLetter(e.target.value)}
                     rows={5}
                   />
+                  <div className="flex justify-end">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={enhanceCoverLetter}
+                      disabled={!coverLetter.trim() || enhancingCoverLetter}
+                    >
+                      {enhancingCoverLetter ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Enhancing...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4 mr-2" />
+                          Enhance with AI
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -793,7 +1076,8 @@ const JobApplicationContent = () => {
                 <Button 
                   size="lg"
                   onClick={submitApplication}
-                  disabled={submitting}
+                  disabled={submitting || !professionalId}
+                  title={!professionalId ? "Please upload your CV first" : undefined}
                   className="flex-1"
                 >
                   {submitting ? (

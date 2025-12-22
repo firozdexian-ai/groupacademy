@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.parse-job-post]
 verify_jwt = false
+
+[functions.enhance-cover-letter]
+verify_jwt = false
