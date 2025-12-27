@@ -13,10 +13,11 @@ import { Footer } from "@/components/Footer";
 import MultiFileUpload from "@/components/portfolio/MultiFileUpload";
 import { SimpleFileUpload } from "@/components/portfolio/SimpleFileUpload";
 import ProfileBuilderForm, { ProfileData } from "@/components/portfolio/ProfileBuilderForm";
-import { Briefcase, User, FileText, Award, Globe, CheckCircle, ArrowLeft, ArrowRight, Loader2, FileUp, PenLine, RefreshCw, Gift, Sparkles, Link as LinkIcon, ExternalLink } from "lucide-react";
+import { Briefcase, User, FileText, Award, Globe, CheckCircle, ArrowLeft, ArrowRight, Loader2, FileUp, PenLine, RefreshCw, Gift, Sparkles, Link as LinkIcon, ExternalLink, FileCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { AuthGate } from "@/components/AuthGate";
+import { useTalent } from "@/hooks/useTalent";
 
 // Brand icon
 import iconPortfolio from "@/assets/icons/icon-portfolio.png";
@@ -52,7 +53,7 @@ interface ProfessionCategory {
   slug: string;
 }
 
-type CvInputMode = 'upload' | 'url' | 'profile';
+type CvInputMode = 'upload' | 'url' | 'profile' | 'existing';
 
 interface FormData {
   fullName: string;
@@ -95,6 +96,7 @@ const steps: { id: Step; label: string; icon: React.ReactNode }[] = [
 function PortfolioRequestContent() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { talent, user, addServiceUsed } = useTalent();
   const [currentStep, setCurrentStep] = useState<Step>('personal');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -107,6 +109,9 @@ function PortfolioRequestContent() {
   
   const remainingFree = portfolioCount !== null ? Math.max(0, FREE_PORTFOLIO_LIMIT - portfolioCount) : null;
   const isFreePromotion = remainingFree !== null && remainingFree > 0;
+  
+  // Check if talent has existing CV
+  const hasExistingCv = !!(talent?.cvUrl);
   
   const [formData, setFormData] = useState<FormData>({
     fullName: '',
@@ -124,10 +129,28 @@ function PortfolioRequestContent() {
     additionalNotes: '',
   });
 
+  // Auto-fill from talent profile
+  useEffect(() => {
+    if (talent) {
+      setFormData(prev => ({
+        ...prev,
+        fullName: prev.fullName || talent.fullName || '',
+        email: prev.email || talent.email || '',
+        phone: prev.phone || talent.phone || '',
+        professionCategoryId: prev.professionCategoryId || talent.professionCategoryId || '',
+        cvUrl: prev.cvUrl || talent.cvUrl || '',
+        socialLinks: {
+          ...prev.socialLinks,
+          linkedin: prev.socialLinks.linkedin || talent.linkedinUrl || '',
+        },
+        cvInputMode: talent.cvUrl ? 'existing' : prev.cvInputMode,
+      }));
+    }
+  }, [talent]);
+
   useEffect(() => {
     loadProfessionCategories();
     loadPortfolioCount();
-    loadUserEmail();
     
     // Load form backup from localStorage
     const backup = localStorage.getItem('portfolio_form_backup');
@@ -238,8 +261,12 @@ function PortfolioRequestContent() {
   const selectedCategory = professionCategories.find(c => c.id === formData.professionCategoryId);
   const isOtherCategory = selectedCategory?.slug === 'other';
   
-  // Get the effective CV URL (either from upload or external)
-  const effectiveCvUrl = formData.cvInputMode === 'url' ? formData.cvExternalUrl : formData.cvUrl;
+  // Get the effective CV URL (either from upload, external, or existing talent CV)
+  const effectiveCvUrl = formData.cvInputMode === 'url' 
+    ? formData.cvExternalUrl 
+    : formData.cvInputMode === 'existing' 
+      ? talent?.cvUrl || formData.cvUrl 
+      : formData.cvUrl;
 
   const canProceed = (): boolean => {
     switch (currentStep) {
@@ -248,9 +275,10 @@ function PortfolioRequestContent() {
         const hasValidCategory = formData.professionCategoryId && (!isOtherCategory || formData.customProfession);
         return hasBasicInfo && !!hasValidCategory;
       case 'cv':
-        // Either has CV (uploaded or URL) OR has filled profile data with at least education
+        // Either has CV (uploaded, URL, or existing) OR has filled profile data with at least education
         if (formData.cvInputMode === 'upload') return !!formData.cvUrl;
         if (formData.cvInputMode === 'url') return !!formData.cvExternalUrl && formData.cvExternalUrl.startsWith('http');
+        if (formData.cvInputMode === 'existing') return !!talent?.cvUrl;
         return formData.profileData.education.length > 0;
       case 'certificates':
         return true;
@@ -326,50 +354,10 @@ function PortfolioRequestContent() {
         throw error;
       }
 
-      // Create professional profile using CHECK-THEN-INSERT pattern (avoids RLS UPDATE issues for anonymous users)
-      try {
-        // 10-second timeout for professional profile creation
-        const profTimeout = new Promise<void>((_, reject) => 
-          setTimeout(() => reject(new Error('Profile creation timed out')), 10000)
-        );
-        
-        const profInsert = (async () => {
-          // First check if professional exists by email
-          const { data: existing } = await supabase
-            .from('professionals')
-            .select('id')
-            .eq('email', formData.email)
-            .maybeSingle();
-          
-          // Only INSERT if doesn't exist (avoid UPDATE RLS issues)
-          if (!existing) {
-            await supabase.from('professionals').insert({
-              full_name: formData.fullName,
-              email: formData.email,
-              phone: formData.phone,
-              profession_category_id: professionCategoryId,
-              custom_profession: isOtherCategory ? formData.customProfession : null,
-              cv_url: effectiveCvUrl || null,
-              education: formData.profileData.education as unknown as any,
-              experience: formData.profileData.experience as unknown as any,
-              skills: formData.profileData.skills as unknown as any,
-              projects: formData.profileData.projects as unknown as any,
-              achievements: formData.profileData.achievements as unknown as any,
-              linkedin_url: formData.socialLinks.linkedin || null,
-              services_used: ['portfolio'] as unknown as any,
-            });
-            console.log('[PortfolioRequest] Professional profile created');
-          } else {
-            console.log('[PortfolioRequest] Professional already exists, skipping insert');
-          }
-        })();
-        
-        await Promise.race([profInsert, profTimeout]).catch((err) => {
-          console.log('[PortfolioRequest] Professional profile creation skipped:', err.message);
-        });
-      } catch (profError) {
-        console.log('[PortfolioRequest] Professional profile creation skipped:', profError);
-        // Non-blocking - portfolio request already saved
+      // Track service usage in talent profile
+      if (talent?.id) {
+        await addServiceUsed('portfolio');
+        console.log('[PortfolioRequest] Service usage tracked for talent:', talent.id);
       }
 
       clearTimeout(submissionTimeout);

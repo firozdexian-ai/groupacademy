@@ -13,14 +13,16 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, FileText, AlertCircle, Loader2, CheckCircle } from "lucide-react";
+import { Upload, FileText, AlertCircle, Loader2, CheckCircle, FileCheck } from "lucide-react";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { useProgressiveLoadingMessage } from "@/hooks/useProgressiveLoadingMessage";
 import { AuthGate } from "@/components/AuthGate";
+import { useTalent } from "@/hooks/useTalent";
 
 const SalaryAnalysisSetupContent = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { talent, user, addServiceUsed } = useTalent();
   
   const [email, setEmail] = useState("");
   const [accessCode, setAccessCode] = useState("");
@@ -35,7 +37,7 @@ const SalaryAnalysisSetupContent = () => {
   const [companyName, setCompanyName] = useState("");
   const [jobDescription, setJobDescription] = useState("");
   const [cvText, setCvText] = useState("");
-  const [cvInputMode, setCvInputMode] = useState<"text" | "file">("text");
+  const [cvInputMode, setCvInputMode] = useState<"text" | "file" | "existing">("text");
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [cvUrl, setCvUrl] = useState("");
@@ -45,15 +47,31 @@ const SalaryAnalysisSetupContent = () => {
   
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Check if talent has existing CV
+  const hasExistingCv = !!(talent?.cvUrl || talent?.cvText);
+
+  // Auto-fill from talent profile
   useEffect(() => {
-    const init = async () => {
-      // Load user email from session
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user?.email) {
-        setEmail(session.user.email);
+    if (talent) {
+      setEmail(prev => prev || talent.email || "");
+      setFullName(prev => prev || talent.fullName || "");
+      setPhone(prev => prev || talent.phone?.replace(/^\+880/, "") || "");
+      if (talent.professionCategoryId) {
+        setSelectedProfession(prev => prev || talent.professionCategoryId || "");
       }
-      
-      // Load categories
+      // If talent has existing CV, default to using it
+      if (hasExistingCv && cvInputMode === "text") {
+        setCvInputMode("existing");
+        if (talent.cvUrl) setCvUrl(talent.cvUrl);
+        if (talent.cvText) setCvText(talent.cvText);
+      }
+    } else if (user?.email) {
+      setEmail(prev => prev || user.email || "");
+    }
+  }, [talent, user, hasExistingCv]);
+
+  useEffect(() => {
+    const loadCategories = async () => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), TIMEOUTS.CATEGORY_LOAD);
       
@@ -73,7 +91,7 @@ const SalaryAnalysisSetupContent = () => {
         console.error("Error loading categories:", error);
       }
     };
-    init();
+    loadCategories();
   }, []);
 
   const { message: loadingMessage } = useProgressiveLoadingMessage(isCheckingEmail);
@@ -246,11 +264,13 @@ const SalaryAnalysisSetupContent = () => {
       // Generate a temporary ID for the analysis
       const tempAnalysisId = crypto.randomUUID();
 
-      // Insert WITHOUT .select() to avoid RLS issues for anonymous users
+      // Insert WITH talent_id if available
       const { error } = await supabase
         .from("salary_analyses")
         .insert({
-          id: tempAnalysisId, // Use our generated ID
+          id: tempAnalysisId,
+          user_id: user?.id || null,
+          talent_id: talent?.id || null,
           full_name: fullName.trim(),
           email: email.trim().toLowerCase(),
           phone: phone.trim() ? `+880${phone.trim()}` : null,
@@ -265,19 +285,10 @@ const SalaryAnalysisSetupContent = () => {
 
       if (error) throw error;
 
-      // Create professional profile using upsert with ignoreDuplicates
-      try {
-        await supabase
-          .from('professionals')
-          .upsert({
-            full_name: fullName.trim(),
-            email: email.trim().toLowerCase(),
-            phone: phone.trim() ? `+880${phone.trim()}` : null,
-            profession_category_id: isValidUUID(selectedProfession) ? selectedProfession : null,
-            services_used: ['salary_analysis'] as unknown as any,
-          }, { onConflict: 'email', ignoreDuplicates: true });
-      } catch (profError) {
-        console.log('[SalaryAnalysisSetup] Professional profile creation skipped:', profError);
+      // Track service usage in talent profile
+      if (talent?.id) {
+        await addServiceUsed('salary_analysis');
+        console.log('[SalaryAnalysisSetup] Service usage tracked for talent:', talent.id);
       }
 
       navigate(`/salary-analysis/processing/${tempAnalysisId}`);
@@ -464,8 +475,14 @@ const SalaryAnalysisSetupContent = () => {
               {/* CV Input */}
               <div>
                 <Label>Your CV *</Label>
-                <Tabs value={cvInputMode} onValueChange={(v) => setCvInputMode(v as "text" | "file")} className="mt-2">
-                  <TabsList className="grid w-full grid-cols-2">
+                <Tabs value={cvInputMode} onValueChange={(v) => setCvInputMode(v as "text" | "file" | "existing")} className="mt-2">
+                  <TabsList className={`grid w-full ${hasExistingCv ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                    {hasExistingCv && (
+                      <TabsTrigger value="existing">
+                        <FileCheck className="mr-2 h-4 w-4" />
+                        Use Existing
+                      </TabsTrigger>
+                    )}
                     <TabsTrigger value="text">
                       <FileText className="mr-2 h-4 w-4" />
                       Paste Text
@@ -475,6 +492,31 @@ const SalaryAnalysisSetupContent = () => {
                       Upload File
                     </TabsTrigger>
                   </TabsList>
+                  {hasExistingCv && (
+                    <TabsContent value="existing" className="mt-4">
+                      <div className="p-4 border rounded-lg bg-muted/50">
+                        <div className="flex items-center gap-2 text-green-600 mb-2">
+                          <CheckCircle className="h-5 w-5" />
+                          <span className="font-medium">Using your saved CV</span>
+                        </div>
+                        {talent?.cvUrl && (
+                          <a 
+                            href={talent.cvUrl} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-sm text-primary hover:underline"
+                          >
+                            View your CV
+                          </a>
+                        )}
+                        {!talent?.cvUrl && talent?.cvText && (
+                          <p className="text-sm text-muted-foreground">
+                            {talent.cvText.slice(0, 200)}...
+                          </p>
+                        )}
+                      </div>
+                    </TabsContent>
+                  )}
                   <TabsContent value="text" className="mt-4">
                     <Textarea
                       placeholder="Paste your CV content here..."
