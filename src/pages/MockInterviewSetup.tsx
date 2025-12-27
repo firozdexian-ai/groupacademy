@@ -26,6 +26,7 @@ import { toast } from "sonner";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { useProgressiveLoadingMessage } from "@/hooks/useProgressiveLoadingMessage";
 import { AuthGate } from "@/components/AuthGate";
+import { useTalent } from "@/hooks/useTalent";
 
 interface ProfessionCategory {
   id: string;
@@ -44,9 +45,10 @@ interface InterviewConfig {
 
 function MockInterviewSetupContent() {
   const navigate = useNavigate();
+  const { talent, user, addServiceUsed } = useTalent();
   const [step, setStep] = useState<SetupStep>("job-description"); // Skip email check - user is authenticated
   
-  // Email from auth session
+  // Email from talent profile or auth session
   const [email, setEmail] = useState("");
   const [checkingEmail, setCheckingEmail] = useState(false);
   const [emailCheckError, setEmailCheckError] = useState<string | null>(null);
@@ -74,50 +76,66 @@ function MockInterviewSetupContent() {
   // Generation state
   const [isGenerating, setIsGenerating] = useState(false);
 
+  // Auto-fill email from talent profile
+  useEffect(() => {
+    if (talent?.email) {
+      setEmail(talent.email);
+    } else if (user?.email) {
+      setEmail(user.email);
+    }
+  }, [talent, user]);
+
+  // Auto-set profession category from talent profile
+  useEffect(() => {
+    if (talent?.professionCategoryId && !config.professionCategoryId) {
+      setConfig(prev => ({ ...prev, professionCategoryId: talent.professionCategoryId || null }));
+    }
+  }, [talent?.professionCategoryId]);
+
   useEffect(() => {
     loadCategories();
-    // Get email from authenticated session and check cooldown
-    checkAuthAndCooldown();
   }, []);
 
-  const checkAuthAndCooldown = async () => {
+  // Check cooldown when email is set
+  useEffect(() => {
+    if (email) {
+      checkCooldown();
+    }
+  }, [email]);
+
+  const checkCooldown = async () => {
+    if (!email) return;
+    
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user?.email) {
-        const userEmail = session.user.email;
-        setEmail(userEmail);
-        
-        // Check cooldown for this user
-        setCheckingEmail(true);
-        const { data: existing, error } = await supabase
-          .from("mock_interviews")
-          .select("*")
-          .eq("email", userEmail.toLowerCase().trim())
-          .eq("status", "completed")
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        
-        setCheckingEmail(false);
-        
-        if (error) {
-          console.error("Error checking cooldown:", error);
-          // Proceed anyway - let them try
-          return;
-        }
-        
-        if (existing && new Date(existing.expires_at) > new Date()) {
-          setExistingInterview(existing);
-          const expiresAt = new Date(existing.expires_at);
-          const now = new Date();
-          const diffTime = expiresAt.getTime() - now.getTime();
-          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-          setDaysRemaining(diffDays);
-          setStep("cooldown");
-        }
+      setCheckingEmail(true);
+      const { data: existing, error } = await supabase
+        .from("mock_interviews")
+        .select("*")
+        .eq("email", email.toLowerCase().trim())
+        .eq("status", "completed")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      
+      setCheckingEmail(false);
+      
+      if (error) {
+        console.error("Error checking cooldown:", error);
+        return;
+      }
+      
+      if (existing && new Date(existing.expires_at) > new Date()) {
+        setExistingInterview(existing);
+        const expiresAt = new Date(existing.expires_at);
+        const now = new Date();
+        const diffTime = expiresAt.getTime() - now.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        setDaysRemaining(diffDays);
+        setStep("cooldown");
       }
     } catch (error) {
-      console.error("Error checking auth:", error);
+      console.error("Error checking cooldown:", error);
+      setCheckingEmail(false);
     }
   };
 
@@ -298,13 +316,14 @@ function MockInterviewSetupContent() {
       // Generate a temporary ID for the interview
       const tempInterviewId = crypto.randomUUID();
       
-      // Create mock interview record WITHOUT .select() to avoid RLS issues
+      // Create mock interview record with talent_id linkage
       const { error: insertError } = await supabase
         .from("mock_interviews")
         .insert({
-          id: tempInterviewId, // Use our generated ID
+          id: tempInterviewId,
           email: email.toLowerCase().trim(),
-          full_name: "", // Will be captured at the end
+          full_name: talent?.fullName || "", // Pre-fill from talent profile
+          phone: talent?.phone || null,
           job_description: jobDescription,
           job_title: data.jobTitle,
           company_name: data.companyName,
@@ -313,12 +332,19 @@ function MockInterviewSetupContent() {
           profession_category_id: isValidUUID(config.professionCategoryId) ? config.professionCategoryId : null,
           additional_notes: config.additionalNotes,
           questions: data.questions,
-          status: "in_progress"
+          status: "in_progress",
+          user_id: user?.id || null,
+          talent_id: talent?.id || null
         });
 
       if (insertError) {
         console.error("Database insert error:", insertError);
         throw new Error("Failed to save interview. Please try again.");
+      }
+
+      // Track service usage
+      if (talent?.id) {
+        await addServiceUsed("mock_interview");
       }
 
       toast.success("Questions generated! Starting your interview...");
