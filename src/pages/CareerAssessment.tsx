@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { useProgressiveLoadingMessage } from "@/hooks/useProgressiveLoadingMessage";
 import { AuthGate } from "@/components/AuthGate";
+import { useTalent } from "@/hooks/useTalent";
 
 // Brand icon
 import iconScorecard from "@/assets/icons/icon-scorecard.png";
@@ -40,6 +41,7 @@ interface ProfessionCategory {
 type AssessmentStep = "landing" | "email-check" | "cooldown" | "access-code" | "profession" | "questions" | "lead-capture" | "processing";
 
 function CareerAssessmentContent() {
+  const { talent, user, addServiceUsed } = useTalent();
   const [step, setStep] = useState<AssessmentStep>("landing");
   const [email, setEmail] = useState("");
   const [checkingEmail, setCheckingEmail] = useState(false);
@@ -52,17 +54,28 @@ function CareerAssessmentContent() {
   const [validatingCode, setValidatingCode] = useState(false);
   const [daysRemaining, setDaysRemaining] = useState(0);
 
+  // Auto-fill email from talent profile
+  useEffect(() => {
+    if (talent?.email) {
+      setEmail(talent.email);
+    } else if (user?.email) {
+      setEmail(user.email);
+    }
+  }, [talent, user]);
+
+  // Auto-select profession category from talent profile
+  useEffect(() => {
+    if (talent?.professionCategoryId && categories.length > 0) {
+      const talentCategory = categories.find(c => c.id === talent.professionCategoryId);
+      if (talentCategory && !selectedCategory) {
+        setSelectedCategory(talentCategory);
+      }
+    }
+  }, [talent, categories, selectedCategory]);
+
   useEffect(() => {
     loadCategories();
-    loadUserEmail();
   }, []);
-
-  const loadUserEmail = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user?.email) {
-      setEmail(session.user.email);
-    }
-  };
 
   const loadCategories = async () => {
     const controller = new AbortController();

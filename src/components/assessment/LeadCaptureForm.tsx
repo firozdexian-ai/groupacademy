@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
+import { useTalent } from "@/hooks/useTalent";
 
 const leadSchema = z.object({
   full_name: z.string().trim().min(2, "Name must be at least 2 characters").max(100),
@@ -36,6 +37,7 @@ export function LeadCaptureForm({
   onBack,
 }: LeadCaptureFormProps) {
   const navigate = useNavigate();
+  const { talent, user, addServiceUsed } = useTalent();
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -46,6 +48,18 @@ export function LeadCaptureForm({
     terms_accepted: false,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Auto-fill from talent profile
+  useEffect(() => {
+    if (talent) {
+      setFormData(prev => ({
+        ...prev,
+        full_name: prev.full_name || talent.fullName || "",
+        email: prev.email || talent.email || email,
+        phone: prev.phone || talent.phone || "",
+      }));
+    }
+  }, [talent, email]);
 
   const calculateScore = () => {
     // This is a simplified scoring - the actual scoring will be done by AI
@@ -115,23 +129,17 @@ export function LeadCaptureForm({
       const scores = calculateScore();
       const readinessLevel = determineReadinessLevel(scores.percentage);
 
-      // Get current user if logged in with timeout
-      const { data: { user } } = await withTimeout(
-        Promise.resolve(supabase.auth.getUser()),
-        TIMEOUTS.AUTH,
-        "Auth check timed out"
-      );
-
       // Generate a temporary ID for navigation (will query by email later)
       const tempAssessmentId = crypto.randomUUID();
       
-      // Save assessment WITHOUT .select() to avoid RLS issues for anonymous users with timeout
+      // Save assessment WITH talent_id if available
       const { error } = await withTimeout(
         Promise.resolve(supabase
           .from("career_assessments")
           .insert({
-            id: tempAssessmentId, // Use our generated ID
+            id: tempAssessmentId,
             user_id: user?.id || null,
+            talent_id: talent?.id || null,
             profession_category_id: categoryId,
             full_name: formData.full_name.trim(),
             email: formData.email.toLowerCase().trim(),
@@ -141,8 +149,8 @@ export function LeadCaptureForm({
             max_score: scores.maxScore,
             percentage: scores.percentage,
             readiness_level: readinessLevel,
-            improvement_areas: [], // Will be filled by AI
-            ai_analysis: null, // Will be filled by AI edge function
+            improvement_areas: [],
+            ai_analysis: null,
           })),
         TIMEOUTS.AI_GENERATION,
         "Submission timed out"
@@ -153,26 +161,13 @@ export function LeadCaptureForm({
         throw error;
       }
 
-      console.log("[LeadCaptureForm] Assessment saved successfully:", tempAssessmentId);
-      
-      // Create professional profile using upsert with ignoreDuplicates and timeout
-      try {
-        await withTimeout(
-          Promise.resolve(supabase
-            .from('professionals')
-            .upsert({
-              full_name: formData.full_name.trim(),
-              email: formData.email.toLowerCase().trim(),
-              phone: formData.phone.trim(),
-              profession_category_id: categoryId,
-              services_used: ['assessment'] as unknown as any,
-            }, { onConflict: 'email', ignoreDuplicates: true })),
-          TIMEOUTS.DEFAULT,
-          "Profile creation timed out"
-        );
-      } catch (profError) {
-        console.log('[LeadCaptureForm] Professional profile creation skipped:', profError);
+      // Track service usage in talent profile
+      if (talent?.id) {
+        await addServiceUsed('career_assessment');
+        console.log("[LeadCaptureForm] Service usage tracked for talent:", talent.id);
       }
+
+      console.log("[LeadCaptureForm] Assessment saved successfully:", tempAssessmentId);
       
       // Call onComplete AFTER successful database insert
       onComplete();
