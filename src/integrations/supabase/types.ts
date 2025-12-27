@@ -324,6 +324,7 @@ export type Database = {
           phone: string | null
           profession_category_id: string
           readiness_level: Database["public"]["Enums"]["readiness_level"]
+          talent_id: string | null
           total_score: number
           user_id: string | null
         }
@@ -341,6 +342,7 @@ export type Database = {
           phone?: string | null
           profession_category_id: string
           readiness_level?: Database["public"]["Enums"]["readiness_level"]
+          talent_id?: string | null
           total_score?: number
           user_id?: string | null
         }
@@ -358,6 +360,7 @@ export type Database = {
           phone?: string | null
           profession_category_id?: string
           readiness_level?: Database["public"]["Enums"]["readiness_level"]
+          talent_id?: string | null
           total_score?: number
           user_id?: string | null
         }
@@ -367,6 +370,13 @@ export type Database = {
             columns: ["profession_category_id"]
             isOneToOne: false
             referencedRelation: "profession_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "career_assessments_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
             referencedColumns: ["id"]
           },
         ]
@@ -702,6 +712,7 @@ export type Database = {
           payment_amount: number | null
           status: Database["public"]["Enums"]["enrollment_status"] | null
           student_id: string
+          talent_id: string | null
           updated_at: string | null
         }
         Insert: {
@@ -714,6 +725,7 @@ export type Database = {
           payment_amount?: number | null
           status?: Database["public"]["Enums"]["enrollment_status"] | null
           student_id: string
+          talent_id?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -726,6 +738,7 @@ export type Database = {
           payment_amount?: number | null
           status?: Database["public"]["Enums"]["enrollment_status"] | null
           student_id?: string
+          talent_id?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -741,6 +754,13 @@ export type Database = {
             columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enrollments_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
             referencedColumns: ["id"]
           },
         ]
@@ -878,6 +898,7 @@ export type Database = {
           is_paid: boolean | null
           job_id: string
           professional_id: string
+          talent_id: string | null
         }
         Insert: {
           application_status?:
@@ -894,6 +915,7 @@ export type Database = {
           is_paid?: boolean | null
           job_id: string
           professional_id: string
+          talent_id?: string | null
         }
         Update: {
           application_status?:
@@ -910,6 +932,7 @@ export type Database = {
           is_paid?: boolean | null
           job_id?: string
           professional_id?: string
+          talent_id?: string | null
         }
         Relationships: [
           {
@@ -924,6 +947,13 @@ export type Database = {
             columns: ["professional_id"]
             isOneToOne: false
             referencedRelation: "professionals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_applications_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
             referencedColumns: ["id"]
           },
         ]
@@ -1089,6 +1119,7 @@ export type Database = {
           started_at: string | null
           status: string | null
           strengths: string[] | null
+          talent_id: string | null
           user_id: string | null
         }
         Insert: {
@@ -1115,6 +1146,7 @@ export type Database = {
           started_at?: string | null
           status?: string | null
           strengths?: string[] | null
+          talent_id?: string | null
           user_id?: string | null
         }
         Update: {
@@ -1141,6 +1173,7 @@ export type Database = {
           started_at?: string | null
           status?: string | null
           strengths?: string[] | null
+          talent_id?: string | null
           user_id?: string | null
         }
         Relationships: [
@@ -1149,6 +1182,13 @@ export type Database = {
             columns: ["profession_category_id"]
             isOneToOne: false
             referencedRelation: "profession_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mock_interviews_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
             referencedColumns: ["id"]
           },
         ]
@@ -1641,6 +1681,7 @@ export type Database = {
           profession_category_id: string | null
           skills_gap: Json | null
           status: string | null
+          talent_id: string | null
           user_id: string | null
         }
         Insert: {
@@ -1662,6 +1703,7 @@ export type Database = {
           profession_category_id?: string | null
           skills_gap?: Json | null
           status?: string | null
+          talent_id?: string | null
           user_id?: string | null
         }
         Update: {
@@ -1683,6 +1725,7 @@ export type Database = {
           profession_category_id?: string | null
           skills_gap?: Json | null
           status?: string | null
+          talent_id?: string | null
           user_id?: string | null
         }
         Relationships: [
@@ -1691,6 +1734,13 @@ export type Database = {
             columns: ["profession_category_id"]
             isOneToOne: false
             referencedRelation: "profession_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salary_analyses_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
             referencedColumns: ["id"]
           },
         ]
@@ -1910,6 +1960,104 @@ export type Database = {
         }
         Relationships: []
       }
+      talents: {
+        Row: {
+          achievements: Json | null
+          created_at: string | null
+          current_status: string | null
+          custom_profession: string | null
+          cv_parsed_at: string | null
+          cv_text: string | null
+          cv_url: string | null
+          education: Json | null
+          email: string
+          experience: Json | null
+          field_of_study: string | null
+          full_name: string
+          id: string
+          institution: string | null
+          is_featured: boolean | null
+          learner_status: string | null
+          linkedin_url: string | null
+          phone: string | null
+          portfolio_url: string | null
+          profession_category_id: string | null
+          profile_photo_url: string | null
+          projects: Json | null
+          services_used: Json | null
+          skills: Json | null
+          student_id: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          achievements?: Json | null
+          created_at?: string | null
+          current_status?: string | null
+          custom_profession?: string | null
+          cv_parsed_at?: string | null
+          cv_text?: string | null
+          cv_url?: string | null
+          education?: Json | null
+          email: string
+          experience?: Json | null
+          field_of_study?: string | null
+          full_name: string
+          id?: string
+          institution?: string | null
+          is_featured?: boolean | null
+          learner_status?: string | null
+          linkedin_url?: string | null
+          phone?: string | null
+          portfolio_url?: string | null
+          profession_category_id?: string | null
+          profile_photo_url?: string | null
+          projects?: Json | null
+          services_used?: Json | null
+          skills?: Json | null
+          student_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          achievements?: Json | null
+          created_at?: string | null
+          current_status?: string | null
+          custom_profession?: string | null
+          cv_parsed_at?: string | null
+          cv_text?: string | null
+          cv_url?: string | null
+          education?: Json | null
+          email?: string
+          experience?: Json | null
+          field_of_study?: string | null
+          full_name?: string
+          id?: string
+          institution?: string | null
+          is_featured?: boolean | null
+          learner_status?: string | null
+          linkedin_url?: string | null
+          phone?: string | null
+          portfolio_url?: string | null
+          profession_category_id?: string | null
+          profile_photo_url?: string | null
+          projects?: Json | null
+          services_used?: Json | null
+          skills?: Json | null
+          student_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talents_profession_category_id_fkey"
+            columns: ["profession_category_id"]
+            isOneToOne: false
+            referencedRelation: "profession_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -1936,6 +2084,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_talent_service: {
+        Args: { p_service: string; p_talent_id: string }
+        Returns: undefined
+      }
       check_rate_limit: {
         Args: {
           p_endpoint: string
@@ -1946,6 +2098,15 @@ export type Database = {
         Returns: boolean
       }
       cleanup_rate_limits: { Args: never; Returns: undefined }
+      get_or_create_talent: {
+        Args: {
+          p_email: string
+          p_full_name?: string
+          p_phone?: string
+          p_user_id?: string
+        }
+        Returns: string
+      }
       has_any_admin_role: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
         Args: {
