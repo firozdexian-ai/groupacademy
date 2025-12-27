@@ -48,6 +48,7 @@ import SalaryAnalysis from "./pages/SalaryAnalysis";
 import SalaryAnalysisSetup from "./pages/SalaryAnalysisSetup";
 import SalaryAnalysisProcessing from "./pages/SalaryAnalysisProcessing";
 import SalaryAnalysisResults from "./pages/SalaryAnalysisResults";
+import TalentPortal from "./pages/TalentPortal";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
@@ -102,6 +103,7 @@ export default function App() {
                   <Route path="/salary-analysis/setup" element={<SalaryAnalysisSetup />} />
                   <Route path="/salary-analysis/processing/:id" element={<SalaryAnalysisProcessing />} />
                   <Route path="/salary-analysis/results/:id" element={<SalaryAnalysisResults />} />
+                  <Route path="/my-profile" element={<TalentPortal />} />
                   <Route path="/courses/:slug" element={<CourseDetail />} />
                   <Route
                     path="/dashboard"

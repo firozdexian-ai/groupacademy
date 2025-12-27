@@ -153,6 +153,9 @@ export const Navbar = () => {
                   <Button variant="outline">Account</Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => navigate("/my-profile")}>
+                    My Profile
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => navigate("/my-learning")}>
                     My Learning
                   </DropdownMenuItem>
@@ -204,6 +207,9 @@ export const Navbar = () => {
             </Button>
             {isLoggedIn && (
               <>
+                <Button variant="ghost" onClick={() => { navigate("/my-profile"); setMobileMenuOpen(false); }} className="justify-start">
+                  My Profile
+                </Button>
                 <Button variant="ghost" onClick={() => { navigate("/my-learning"); setMobileMenuOpen(false); }} className="justify-start">
                   My Learning
                 </Button>
