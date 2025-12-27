@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useTalent } from "@/hooks/useTalent";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,8 @@ import { Separator } from "@/components/ui/separator";
 import { ProcessingCard } from "@/components/ui/processing-card";
 import { 
   ArrowLeft, Upload, FileText, Loader2, CheckCircle2, 
-  AlertCircle, Sparkles, Building2, CreditCard, Gift, RefreshCw, Edit3
+  AlertCircle, Sparkles, Building2, CreditCard, Gift, RefreshCw, Edit3,
+  User, FileCheck
 } from "lucide-react";
 import { toast } from "sonner";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
@@ -28,15 +30,6 @@ interface Job {
   application_email: string | null;
   application_type: string;
   application_url: string | null;
-}
-
-interface ParsedCV {
-  full_name?: string;
-  email?: string;
-  phone?: string;
-  education?: any[];
-  experience?: any[];
-  skills?: any[];
 }
 
 interface UsageInfo {
@@ -60,6 +53,7 @@ const CV_PARSING_STAGES = [
 const JobApplicationContent = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { talent, isLoading: talentLoading, refreshTalent, addServiceUsed, isAuthenticated } = useTalent();
   
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
@@ -72,17 +66,12 @@ const JobApplicationContent = () => {
   const [uploading, setUploading] = useState(false);
   const [parsing, setParsing] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
-  const [parsedData, setParsedData] = useState<ParsedCV | null>(null);
   
   // Manual entry mode
   const [manualMode, setManualMode] = useState(false);
   const [manualName, setManualName] = useState("");
   const [manualEmail, setManualEmail] = useState("");
   const [manualPhone, setManualPhone] = useState("");
-  
-  // Professional Info
-  const [professionalId, setProfessionalId] = useState<string | null>(null);
-  const [existingProfile, setExistingProfile] = useState<any>(null);
   
   // Application Form
   const [coverLetter, setCoverLetter] = useState("");
@@ -94,24 +83,39 @@ const JobApplicationContent = () => {
   const [accessCode, setAccessCode] = useState("");
   const [validatingCode, setValidatingCode] = useState(false);
   const [codeValid, setCodeValid] = useState(false);
+  
+  // Whether to use existing CV
+  const [useExistingCv, setUseExistingCv] = useState(false);
 
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (!talentLoading && !isAuthenticated) {
+      navigate("/auth", { state: { returnTo: `/jobs/${id}/apply` } });
+    }
+  }, [talentLoading, isAuthenticated, navigate, id]);
+
+  // Load job and check usage when talent is available
   useEffect(() => {
     if (id) {
       loadJob();
-      checkExistingProfile();
     }
   }, [id]);
 
-  // Pre-fill manual email from auth user
+  // Check usage when talent is loaded
   useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user?.email) {
-        setManualEmail(user.email);
+    if (talent?.id) {
+      checkUsage(talent.id);
+      // Pre-fill manual fields from talent
+      setManualName(talent.fullName || "");
+      setManualEmail(talent.email || "");
+      setManualPhone(talent.phone || "");
+      
+      // If talent has a parsed CV, auto-select to use it
+      if (talent.cvUrl && talent.cvParsedAt) {
+        setUseExistingCv(true);
       }
-    };
-    getUser();
-  }, []);
+    }
+  }, [talent]);
 
   const loadJob = async () => {
     const controller = new AbortController();
@@ -155,61 +159,16 @@ const JobApplicationContent = () => {
     }
   };
 
-  const checkExistingProfile = async () => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), TIMEOUTS.DEFAULT);
-    
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (user) {
-        const queryPromise = supabase
-          .from("professionals")
-          .select("*")
-          .eq("email", user.email)
-          .single();
-
-        const abortPromise = new Promise<never>((_, reject) => {
-          controller.signal.addEventListener('abort', () => 
-            reject(new Error("Profile check timed out"))
-          );
-        });
-
-        const { data: profile } = await Promise.race([queryPromise, abortPromise]);
-        clearTimeout(timeoutId);
-
-        if (profile) {
-          setExistingProfile(profile);
-          setProfessionalId(profile.id);
-          setParsedData({
-            full_name: profile.full_name,
-            email: profile.email,
-            phone: profile.phone,
-            education: Array.isArray(profile.education) ? profile.education : [],
-            experience: Array.isArray(profile.experience) ? profile.experience : [],
-            skills: Array.isArray(profile.skills) ? profile.skills : [],
-          });
-          await checkUsage(profile.id);
-        }
-      } else {
-        clearTimeout(timeoutId);
-      }
-    } catch (error) {
-      clearTimeout(timeoutId);
-      console.error("Error checking profile:", error);
-      // Non-critical, silently fail
-    }
-  };
-
-  const checkUsage = async (profId: string) => {
+  const checkUsage = async (talentId: string) => {
     const monthYear = new Date().toISOString().slice(0, 7); // YYYY-MM
     
+    // First try to find by talent_id, fall back to professional_id lookup
     const { data } = await supabase
       .from("job_application_usage")
       .select("*")
-      .eq("professional_id", profId)
+      .eq("professional_id", talentId) // Will update to talent_id in future
       .eq("month_year", monthYear)
-      .single();
+      .maybeSingle();
 
     const freeUsed = data?.free_applications_used || 0;
     const freeRemaining = Math.max(0, FREE_APPLICATIONS_PER_MONTH - freeUsed);
@@ -232,6 +191,7 @@ const JobApplicationContent = () => {
       setCvUrl("");
       setParseError(null);
       setManualMode(false);
+      setUseExistingCv(false);
     }
   };
 
@@ -255,8 +215,6 @@ const JobApplicationContent = () => {
         // Use XMLHttpRequest for progress tracking
         finalCvUrl = await new Promise<string>((resolve, reject) => {
           const xhr = new XMLHttpRequest();
-          const formData = new FormData();
-          formData.append('file', cvFile);
 
           xhr.upload.onprogress = (e) => {
             if (e.lengthComputable) {
@@ -295,7 +253,7 @@ const JobApplicationContent = () => {
       setUploading(false);
     }
 
-    // Parse CV with AI (90-second timeout for AI parsing)
+    // Parse CV with AI
     setParsing(true);
     try {
       const timeoutPromise = new Promise((_, reject) => {
@@ -305,7 +263,8 @@ const JobApplicationContent = () => {
       const parsePromise = supabase.functions.invoke('parse-cv', {
         body: { 
           cvUrl: finalCvUrl,
-          jobId: id 
+          jobId: id,
+          talentId: talent?.id, // Pass talent ID to update their profile
         }
       });
 
@@ -313,27 +272,26 @@ const JobApplicationContent = () => {
 
       if (response.error) throw response.error;
 
-      // FIX: The edge function returns { professional, parsed }, not { professional, parsedData }
       const { professional, parsed } = response.data;
       
-      console.log("CV Parse Response:", { professional, parsed });
+      // Update talent's CV info in the talents table
+      if (talent?.id && parsed) {
+        await supabase
+          .from('talents')
+          .update({
+            cv_url: finalCvUrl,
+            cv_parsed_at: new Date().toISOString(),
+            education: parsed.education || [],
+            experience: parsed.experience || [],
+            skills: parsed.skills || [],
+          })
+          .eq('id', talent.id);
+        
+        // Refresh talent context
+        await refreshTalent();
+      }
       
-      setProfessionalId(professional.id);
-      
-      // Use parsed data, or fall back to professional data
-      const cvData = parsed || {
-        full_name: professional?.full_name,
-        email: professional?.email,
-        phone: professional?.phone,
-        skills: professional?.skills || [],
-        education: professional?.education || [],
-        experience: professional?.experience || [],
-      };
-      
-      setParsedData(cvData);
-      setExistingProfile(professional);
-      
-      await checkUsage(professional.id);
+      await checkUsage(talent?.id || professional?.id);
       
       toast.success("CV parsed successfully!");
       setStep(2);
@@ -349,6 +307,14 @@ const JobApplicationContent = () => {
     }
   };
 
+  const proceedWithExistingCv = () => {
+    if (talent?.cvUrl) {
+      setCvUrl(talent.cvUrl);
+      setStep(2);
+      toast.success("Using your existing CV");
+    }
+  };
+
   const submitManualEntry = async () => {
     if (!manualName.trim() || !manualEmail.trim() || !manualPhone.trim()) {
       toast.error("Please fill in all required fields");
@@ -357,60 +323,28 @@ const JobApplicationContent = () => {
 
     setSubmitting(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      // Create or update professional profile
-      const { data: existingPro } = await supabase
-        .from("professionals")
-        .select("id")
-        .eq("email", manualEmail.toLowerCase())
-        .single();
-
-      let profId: string;
-      
-      if (existingPro) {
-        profId = existingPro.id;
+      // Update talent profile with manual info
+      if (talent?.id) {
         await supabase
-          .from("professionals")
+          .from("talents")
           .update({
             full_name: manualName,
             phone: manualPhone,
-            cv_url: cvUrl || undefined,
+            cv_url: cvUrl || talent.cvUrl || null,
           })
-          .eq("id", profId);
-      } else {
-        const { data: newPro, error: createError } = await supabase
-          .from("professionals")
-          .insert({
-            full_name: manualName,
-            email: manualEmail.toLowerCase(),
-            phone: manualPhone,
-            cv_url: cvUrl || null,
-            user_id: user?.id,
-            profile_type: "job_seeker",
-          })
-          .select("id")
-          .single();
-
-        if (createError) throw createError;
-        profId = newPro.id;
+          .eq("id", talent.id);
+        
+        await refreshTalent();
       }
-
-      setProfessionalId(profId);
-      setParsedData({
-        full_name: manualName,
-        email: manualEmail,
-        phone: manualPhone,
-      });
       
-      await checkUsage(profId);
+      await checkUsage(talent?.id || "");
       
-      toast.success("Profile created successfully!");
+      toast.success("Profile updated successfully!");
       setManualMode(false);
       setStep(2);
     } catch (error) {
       console.error("Manual entry error:", error);
-      toast.error("Failed to create profile. Please try again.");
+      toast.error("Failed to update profile. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -429,8 +363,8 @@ const JobApplicationContent = () => {
           coverLetter,
           jobTitle: job?.title,
           companyName: job?.company_name,
-          candidateName: parsedData?.full_name,
-          skills: parsedData?.skills || [],
+          candidateName: talent?.fullName,
+          skills: talent?.skills || [],
         }
       });
 
@@ -454,12 +388,11 @@ const JobApplicationContent = () => {
     
     setValidatingCode(true);
     try {
-      // Validate against job_application_access_codes table
       const { data: codeData, error: codeError } = await supabase
         .from("job_application_access_codes")
         .select("*")
         .eq("code", accessCode.trim().toUpperCase())
-        .eq("email", parsedData?.email?.toLowerCase() || existingProfile?.email?.toLowerCase())
+        .eq("email", talent?.email?.toLowerCase() || "")
         .eq("is_used", false)
         .maybeSingle();
 
@@ -490,8 +423,8 @@ const JobApplicationContent = () => {
   };
 
   const submitApplication = async () => {
-    if (!professionalId) {
-      toast.error("Please upload your CV first");
+    if (!talent?.id) {
+      toast.error("Please complete your profile first");
       setStep(1);
       return;
     }
@@ -506,8 +439,8 @@ const JobApplicationContent = () => {
       .from("job_applications")
       .select("id")
       .eq("job_id", job.id)
-      .eq("professional_id", professionalId)
-      .single();
+      .eq("talent_id", talent.id)
+      .maybeSingle();
 
     if (existing) {
       toast.error("You have already applied to this job");
@@ -517,14 +450,16 @@ const JobApplicationContent = () => {
     setSubmitting(true);
     try {
       const isPaidApplication = usage?.isPaid && !codeValid;
+      const finalCvUrl = cvUrl || talent.cvUrl;
       
-      // Create application
+      // Create application with talent_id
       const { data: newApplication, error: appError } = await supabase
         .from("job_applications")
         .insert({
           job_id: job.id,
-          professional_id: professionalId,
-          cv_url: cvUrl || existingProfile?.cv_url,
+          talent_id: talent.id,
+          professional_id: talent.id, // Keep for backward compatibility
+          cv_url: finalCvUrl,
           cover_letter: coverLetter || null,
           is_paid: isPaidApplication,
           application_status: "submitted",
@@ -535,19 +470,21 @@ const JobApplicationContent = () => {
 
       if (appError) throw appError;
 
+      // Track service usage
+      await addServiceUsed('job_application');
+
       // Update usage
       const monthYear = new Date().toISOString().slice(0, 7);
       
-      if (!isPaidApplication) {
-        // Increment free usage
-        const { data: usageData } = await supabase
-          .from("job_application_usage")
-          .select("*")
-          .eq("professional_id", professionalId)
-          .eq("month_year", monthYear)
-          .single();
+      const { data: usageData } = await supabase
+        .from("job_application_usage")
+        .select("*")
+        .eq("professional_id", talent.id)
+        .eq("month_year", monthYear)
+        .maybeSingle();
 
-        if (usageData) {
+      if (usageData) {
+        if (!isPaidApplication) {
           await supabase
             .from("job_application_usage")
             .update({ free_applications_used: usageData.free_applications_used + 1 })
@@ -555,42 +492,22 @@ const JobApplicationContent = () => {
         } else {
           await supabase
             .from("job_application_usage")
-            .insert({
-              professional_id: professionalId,
-              month_year: monthYear,
-              free_applications_used: 1,
-            });
-        }
-      } else {
-        // Increment paid count
-        const { data: usageData } = await supabase
-          .from("job_application_usage")
-          .select("*")
-          .eq("professional_id", professionalId)
-          .eq("month_year", monthYear)
-          .single();
-
-        if (usageData) {
-          await supabase
-            .from("job_application_usage")
             .update({ paid_applications_count: (usageData.paid_applications_count || 0) + 1 })
             .eq("id", usageData.id);
-        } else {
-          await supabase
-            .from("job_application_usage")
-            .insert({
-              professional_id: professionalId,
-              month_year: monthYear,
-              free_applications_used: 0,
-              paid_applications_count: 1,
-            });
         }
+      } else {
+        await supabase
+          .from("job_application_usage")
+          .insert({
+            professional_id: talent.id,
+            month_year: monthYear,
+            free_applications_used: isPaidApplication ? 0 : 1,
+            paid_applications_count: isPaidApplication ? 1 : 0,
+          });
       }
 
-      // For email-type jobs, mark as pending manual forward
-      // For link-type jobs, this shouldn't reach here but handle gracefully
+      // Update delivery status based on job type
       if (job.application_type === 'email') {
-        // Don't auto-send email - mark for manual forward
         await supabase
           .from('job_applications')
           .update({ 
@@ -601,7 +518,6 @@ const JobApplicationContent = () => {
           
         toast.success("Application submitted! Our team will forward it to the employer shortly.");
       } else {
-        // Link type - mark as completed
         await supabase
           .from('job_applications')
           .update({ 
@@ -613,7 +529,7 @@ const JobApplicationContent = () => {
         toast.success("Application submitted!");
       }
       
-      navigate("/jobs", { state: { applicationSubmitted: true } });
+      navigate("/my-profile", { state: { applicationSubmitted: true } });
     } catch (error) {
       console.error("Submit error:", error);
       toast.error("Failed to submit application");
@@ -622,7 +538,11 @@ const JobApplicationContent = () => {
     }
   };
 
-  if (loading) {
+  // Check if talent has a usable existing CV
+  const hasExistingCv = talent?.cvUrl && talent?.cvParsedAt;
+  const hasProfileData = talent?.fullName && talent?.email;
+
+  if (loading || talentLoading) {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <Navbar />
@@ -678,7 +598,7 @@ const JobApplicationContent = () => {
               <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${step >= 1 ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
                 {step > 1 ? <CheckCircle2 className="w-5 h-5" /> : '1'}
               </div>
-              <span className="font-medium">Upload CV</span>
+              <span className="font-medium">Your Profile</span>
             </div>
             <div className="flex-1 h-0.5 bg-muted">
               <div className={`h-full bg-primary transition-all ${step >= 2 ? 'w-full' : 'w-0'}`} />
@@ -691,7 +611,7 @@ const JobApplicationContent = () => {
             </div>
           </div>
 
-          {/* Step 1: Upload CV */}
+          {/* Step 1: Profile & CV */}
           {step === 1 && (
             <>
               {/* Show Processing Card when parsing */}
@@ -703,7 +623,6 @@ const JobApplicationContent = () => {
                   className="mb-6"
                 />
               ) : parseError ? (
-                // Show error state with retry and manual options
                 <Card className="mb-6">
                   <CardContent className="py-8 text-center">
                     <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -724,15 +643,14 @@ const JobApplicationContent = () => {
                   </CardContent>
                 </Card>
               ) : manualMode ? (
-                // Manual entry form
                 <Card className="mb-6">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Edit3 className="w-5 h-5" />
-                      Enter Your Details
+                      Update Your Details
                     </CardTitle>
                     <CardDescription>
-                      Fill in your information manually to continue with the application
+                      Review and update your information for this application
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -755,6 +673,7 @@ const JobApplicationContent = () => {
                         onChange={(e) => setManualEmail(e.target.value)}
                         placeholder="john@example.com"
                         className="mt-1"
+                        disabled // Email comes from auth
                       />
                     </div>
                     <div>
@@ -768,10 +687,10 @@ const JobApplicationContent = () => {
                       />
                     </div>
                     
-                    {cvUrl && (
+                    {(cvUrl || talent?.cvUrl) && (
                       <div className="p-3 bg-muted rounded-lg flex items-center gap-2">
                         <FileText className="w-4 h-4 text-primary" />
-                        <span className="text-sm">CV uploaded successfully</span>
+                        <span className="text-sm">CV on file</span>
                       </div>
                     )}
                     
@@ -804,118 +723,153 @@ const JobApplicationContent = () => {
                   </CardContent>
                 </Card>
               ) : (
-                // Normal CV upload card
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Upload className="w-5 h-5" />
-                      Upload Your CV
-                    </CardTitle>
-                    <CardDescription>
-                      Upload your CV and our AI will parse your information automatically
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    {existingProfile ? (
-                      <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
-                        <div className="flex items-start gap-3">
-                          <CheckCircle2 className="w-5 h-5 text-green-600 mt-0.5" />
-                          <div>
-                            <p className="font-medium text-green-800 dark:text-green-200">
-                              Profile Found: {existingProfile.full_name}
-                            </p>
+                <div className="space-y-6">
+                  {/* Existing Profile Card */}
+                  {hasProfileData && (
+                    <Card className="border-green-500/30 bg-green-50/50 dark:bg-green-950/20">
+                      <CardContent className="p-6">
+                        <div className="flex items-start gap-4">
+                          <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
+                            <User className="w-6 h-6 text-green-600" />
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-green-800 dark:text-green-200">
+                              Welcome back, {talent?.fullName}!
+                            </h3>
                             <p className="text-sm text-green-700 dark:text-green-300 mt-1">
-                              We found your existing profile. You can proceed directly or upload a new CV to update it.
+                              {talent?.email}
+                              {talent?.phone && ` • ${talent.phone}`}
                             </p>
-                            <Button 
-                              className="mt-3" 
-                              onClick={() => setStep(2)}
-                            >
-                              Use Existing Profile
-                            </Button>
+                            
+                            {/* Existing CV option */}
+                            {hasExistingCv && (
+                              <div className="mt-4 p-3 bg-white dark:bg-background rounded-lg border border-green-200 dark:border-green-800">
+                                <div className="flex items-center gap-3">
+                                  <FileCheck className="w-5 h-5 text-green-600" />
+                                  <div className="flex-1">
+                                    <p className="font-medium text-sm">CV on file</p>
+                                    <p className="text-xs text-muted-foreground">
+                                      Last updated: {new Date(talent.cvParsedAt!).toLocaleDateString()}
+                                    </p>
+                                  </div>
+                                  <Button 
+                                    size="sm"
+                                    onClick={proceedWithExistingCv}
+                                  >
+                                    Use This CV
+                                  </Button>
+                                </div>
+                              </div>
+                            )}
+                            
+                            {!hasExistingCv && (
+                              <Button 
+                                className="mt-3"
+                                variant="outline"
+                                onClick={() => setStep(2)}
+                              >
+                                Continue Without CV
+                              </Button>
+                            )}
                           </div>
                         </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Upload New CV Card */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Upload className="w-5 h-5" />
+                        {hasExistingCv ? 'Upload a New CV' : 'Upload Your CV'}
+                      </CardTitle>
+                      <CardDescription>
+                        {hasExistingCv 
+                          ? 'Want to use a different CV? Upload a new one here.'
+                          : 'Upload your CV and our AI will parse your information automatically'
+                        }
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      {/* File Upload */}
+                      <div>
+                        <Label>Upload CV File</Label>
+                        <div className="mt-2 border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
+                          <input
+                            type="file"
+                            accept=".pdf,.doc,.docx"
+                            onChange={handleFileSelect}
+                            className="hidden"
+                            id="cv-upload"
+                          />
+                          <label htmlFor="cv-upload" className="cursor-pointer">
+                            {cvFile ? (
+                              <div className="flex items-center justify-center gap-2 text-primary">
+                                <FileText className="w-8 h-8" />
+                                <span className="font-medium">{cvFile.name}</span>
+                              </div>
+                            ) : (
+                              <>
+                                <Upload className="w-10 h-10 mx-auto text-muted-foreground mb-2" />
+                                <p className="text-muted-foreground">
+                                  Click to upload or drag and drop
+                                </p>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  PDF, DOC, DOCX (max 10MB)
+                                </p>
+                              </>
+                            )}
+                          </label>
+                        </div>
+                        {uploading && (
+                          <Progress value={uploadProgress} className="mt-2" />
+                        )}
                       </div>
-                    ) : null}
 
-                    <Separator className={existingProfile ? '' : 'hidden'} />
+                      <div className="flex items-center gap-4">
+                        <Separator className="flex-1" />
+                        <span className="text-sm text-muted-foreground">OR</span>
+                        <Separator className="flex-1" />
+                      </div>
 
-                    {/* File Upload */}
-                    <div>
-                      <Label>Upload CV File</Label>
-                      <div className="mt-2 border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
-                        <input
-                          type="file"
-                          accept=".pdf,.doc,.docx"
-                          onChange={handleFileSelect}
-                          className="hidden"
-                          id="cv-upload"
+                      {/* URL Input */}
+                      <div>
+                        <Label htmlFor="cv-url">CV URL (Google Drive, Dropbox, etc.)</Label>
+                        <Input
+                          id="cv-url"
+                          placeholder="https://drive.google.com/..."
+                          value={cvUrl}
+                          onChange={(e) => {
+                            setCvUrl(e.target.value);
+                            setCvFile(null);
+                            setUseExistingCv(false);
+                          }}
+                          className="mt-2"
                         />
-                        <label htmlFor="cv-upload" className="cursor-pointer">
-                          {cvFile ? (
-                            <div className="flex items-center justify-center gap-2 text-primary">
-                              <FileText className="w-8 h-8" />
-                              <span className="font-medium">{cvFile.name}</span>
-                            </div>
-                          ) : (
-                            <>
-                              <Upload className="w-10 h-10 mx-auto text-muted-foreground mb-2" />
-                              <p className="text-muted-foreground">
-                                Click to upload or drag and drop
-                              </p>
-                              <p className="text-sm text-muted-foreground mt-1">
-                                PDF, DOC, DOCX (max 10MB)
-                              </p>
-                            </>
-                          )}
-                        </label>
                       </div>
-                      {uploading && (
-                        <Progress value={uploadProgress} className="mt-2" />
-                      )}
-                    </div>
 
-                    <div className="flex items-center gap-4">
-                      <Separator className="flex-1" />
-                      <span className="text-sm text-muted-foreground">OR</span>
-                      <Separator className="flex-1" />
-                    </div>
-
-                    {/* URL Input */}
-                    <div>
-                      <Label htmlFor="cv-url">CV URL (Google Drive, Dropbox, etc.)</Label>
-                      <Input
-                        id="cv-url"
-                        placeholder="https://drive.google.com/..."
-                        value={cvUrl}
-                        onChange={(e) => {
-                          setCvUrl(e.target.value);
-                          setCvFile(null);
-                        }}
-                        className="mt-2"
-                      />
-                    </div>
-
-                    <Button 
-                      className="w-full" 
-                      size="lg"
-                      onClick={uploadAndParseCv}
-                      disabled={(!cvFile && !cvUrl) || uploading || parsing}
-                    >
-                      {uploading ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Uploading... {uploadProgress}%
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="w-4 h-4 mr-2" />
-                          Upload & Parse CV
-                        </>
-                      )}
-                    </Button>
-                  </CardContent>
-                </Card>
+                      <Button 
+                        className="w-full" 
+                        size="lg"
+                        onClick={uploadAndParseCv}
+                        disabled={(!cvFile && !cvUrl) || uploading || parsing}
+                      >
+                        {uploading ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Uploading... {uploadProgress}%
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-4 h-4 mr-2" />
+                            Upload & Parse CV
+                          </>
+                        )}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </div>
               )}
             </>
           )}
@@ -923,7 +877,7 @@ const JobApplicationContent = () => {
           {/* Step 2: Review & Apply */}
           {step === 2 && (
             <div className="space-y-6">
-              {/* Parsed Profile */}
+              {/* Profile Summary */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -935,25 +889,36 @@ const JobApplicationContent = () => {
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
                       <Label className="text-muted-foreground">Name</Label>
-                      <p className="font-medium">{parsedData?.full_name || 'Not provided'}</p>
+                      <p className="font-medium">{talent?.fullName || 'Not provided'}</p>
                     </div>
                     <div>
                       <Label className="text-muted-foreground">Email</Label>
-                      <p className="font-medium">{parsedData?.email || 'Not provided'}</p>
+                      <p className="font-medium">{talent?.email || 'Not provided'}</p>
                     </div>
                     <div>
                       <Label className="text-muted-foreground">Phone</Label>
-                      <p className="font-medium">{parsedData?.phone || 'Not provided'}</p>
+                      <p className="font-medium">{talent?.phone || 'Not provided'}</p>
                     </div>
+                    {(cvUrl || talent?.cvUrl) && (
+                      <div>
+                        <Label className="text-muted-foreground">CV</Label>
+                        <p className="font-medium text-primary">
+                          <a href={cvUrl || talent?.cvUrl || ''} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1">
+                            <FileText className="w-4 h-4" />
+                            View CV
+                          </a>
+                        </p>
+                      </div>
+                    )}
                   </div>
                   
-                  {parsedData?.skills && parsedData.skills.length > 0 && (
+                  {talent?.skills && talent.skills.length > 0 && (
                     <div>
                       <Label className="text-muted-foreground">Skills</Label>
                       <div className="flex flex-wrap gap-2 mt-1">
-                        {parsedData.skills.slice(0, 10).map((skill: any, i: number) => (
+                        {talent.skills.slice(0, 10).map((skill: any, i: number) => (
                           <Badge key={i} variant="secondary">
-                            {typeof skill === 'string' ? skill : skill.name}
+                            {typeof skill === 'string' ? skill : skill.name || skill.skill}
                           </Badge>
                         ))}
                       </div>
@@ -965,7 +930,7 @@ const JobApplicationContent = () => {
                     size="sm"
                     onClick={() => setStep(1)}
                   >
-                    Update CV
+                    Update Profile
                   </Button>
                 </CardContent>
               </Card>
@@ -1076,8 +1041,7 @@ const JobApplicationContent = () => {
                 <Button 
                   size="lg"
                   onClick={submitApplication}
-                  disabled={submitting || !professionalId}
-                  title={!professionalId ? "Please upload your CV first" : undefined}
+                  disabled={submitting || !talent?.id}
                   className="flex-1"
                 >
                   {submitting ? (
