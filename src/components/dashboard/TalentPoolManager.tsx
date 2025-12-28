@@ -15,21 +15,18 @@ import { Search, Users, MessageSquare, Download, ExternalLink, RefreshCw, Eye, L
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-interface Professional {
+interface Talent {
   id: string;
   full_name: string;
   email: string;
   phone: string | null;
   profession_category_id: string | null;
-  profile_type: string;
-  current_status: string | null;
-  education: any;
-  experience: any;
-  skills: any;
-  services_used: any;
+  custom_profession: string | null;
+  cv_url: string | null;
+  cv_text: string | null;
   linkedin_url: string | null;
   portfolio_url: string | null;
-  cv_url: string | null;
+  services_used: any;
   created_at: string;
   updated_at: string;
 }
@@ -40,32 +37,32 @@ interface ProfessionCategory {
 }
 
 export function TalentPoolManager() {
-  const [professionals, setProfessionals] = useState<Professional[]>([]);
+  const [talents, setTalents] = useState<Talent[]>([]);
   const [professionCategories, setProfessionCategories] = useState<ProfessionCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedProfessional, setSelectedProfessional] = useState<Professional | null>(null);
+  const [selectedTalent, setSelectedTalent] = useState<Talent | null>(null);
   
   // Portfolio request dialog state
   const [portfolioDialogOpen, setPortfolioDialogOpen] = useState(false);
   const [portfolioNotes, setPortfolioNotes] = useState('');
   const [creatingPortfolio, setCreatingPortfolio] = useState(false);
-  const [portfolioProfessional, setPortfolioProfessional] = useState<Professional | null>(null);
+  const [portfolioTalent, setPortfolioTalent] = useState<Talent | null>(null);
 
   useEffect(() => {
-    loadProfessionals();
+    loadTalents();
     loadProfessionCategories();
   }, []);
 
-  const loadProfessionals = async () => {
+  const loadTalents = async () => {
     setIsLoading(true);
     setError(null);
     try {
       const { data, error: queryError } = await withTimeout(
         Promise.resolve(
           supabase
-            .from('professionals')
+            .from('talents')
             .select('*')
             .order('updated_at', { ascending: false })
         ).then(q => q),
@@ -74,9 +71,9 @@ export function TalentPoolManager() {
       );
 
       if (queryError) throw queryError;
-      setProfessionals(data || []);
+      setTalents(data || []);
     } catch (err: any) {
-      console.error('Error loading professionals:', err);
+      console.error('Error loading talents:', err);
       setError(err.message || 'Failed to load talent pool');
       toast.error('Failed to load talent pool');
     } finally {
@@ -104,24 +101,25 @@ export function TalentPoolManager() {
     }
   };
 
-  const getProfessionName = (categoryId: string | null) => {
+  const getProfessionName = (categoryId: string | null, customProfession: string | null) => {
+    if (customProfession) return customProfession;
     if (!categoryId) return 'Not set';
     const category = professionCategories.find(c => c.id === categoryId);
     return category?.name || 'Unknown';
   };
 
   const handleCreatePortfolioRequest = async () => {
-    if (!portfolioProfessional) return;
+    if (!portfolioTalent) return;
 
     setCreatingPortfolio(true);
     try {
       const { error } = await withTimeout(
         Promise.resolve(supabase.from('portfolio_requests').insert({
-          full_name: portfolioProfessional.full_name,
-          email: portfolioProfessional.email,
-          phone: portfolioProfessional.phone || '',
-          profession_category_id: portfolioProfessional.profession_category_id,
-          cv_url: portfolioProfessional.cv_url,
+          full_name: portfolioTalent.full_name,
+          email: portfolioTalent.email,
+          phone: portfolioTalent.phone || '',
+          profession_category_id: portfolioTalent.profession_category_id,
+          cv_url: portfolioTalent.cv_url,
           additional_notes: portfolioNotes || `Created from Talent Pool on ${new Date().toLocaleDateString()}`,
           status: 'pending',
         })),
@@ -143,7 +141,7 @@ export function TalentPoolManager() {
 
       setPortfolioDialogOpen(false);
       setPortfolioNotes('');
-      setPortfolioProfessional(null);
+      setPortfolioTalent(null);
     } catch (error: any) {
       console.error('Error creating portfolio request:', error);
       toast.error('Failed to create portfolio request');
@@ -152,19 +150,19 @@ export function TalentPoolManager() {
     }
   };
 
-  const openPortfolioDialog = (professional: Professional) => {
-    setPortfolioProfessional(professional);
+  const openPortfolioDialog = (talent: Talent) => {
+    setPortfolioTalent(talent);
     setPortfolioNotes('');
     setPortfolioDialogOpen(true);
   };
 
-  const filteredProfessionals = professionals.filter(p => {
+  const filteredTalents = talents.filter(t => {
     const query = searchQuery.toLowerCase();
     return (
-      p.full_name?.toLowerCase().includes(query) ||
-      p.email?.toLowerCase().includes(query) ||
-      p.phone?.includes(query) ||
-      (p.skills as string[])?.some(s => s.toLowerCase().includes(query))
+      t.full_name?.toLowerCase().includes(query) ||
+      t.email?.toLowerCase().includes(query) ||
+      t.phone?.includes(query) ||
+      t.custom_profession?.toLowerCase().includes(query)
     );
   });
 
@@ -182,15 +180,14 @@ export function TalentPoolManager() {
   };
 
   const exportToCSV = () => {
-    const headers = ['Name', 'Email', 'Phone', 'Category', 'Status', 'Skills', 'Created At'];
-    const rows = filteredProfessionals.map(p => [
-      p.full_name,
-      p.email,
-      p.phone || '',
-      getProfessionName(p.profession_category_id),
-      p.current_status || '',
-      (p.skills as string[])?.join('; ') || '',
-      new Date(p.created_at).toLocaleDateString()
+    const headers = ['Name', 'Email', 'Phone', 'Category', 'Services Used', 'Created At'];
+    const rows = filteredTalents.map(t => [
+      t.full_name,
+      t.email,
+      t.phone || '',
+      getProfessionName(t.profession_category_id, t.custom_profession),
+      (t.services_used as string[])?.join('; ') || '',
+      new Date(t.created_at).toLocaleDateString()
     ]);
 
     const csvContent = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
@@ -206,9 +203,9 @@ export function TalentPoolManager() {
 
   const getServiceBadges = (servicesUsed: any[]) => {
     if (!servicesUsed || servicesUsed.length === 0) return null;
-    return servicesUsed.map((service: any, idx: number) => (
+    return servicesUsed.map((service: string, idx: number) => (
       <Badge key={idx} variant="outline" className="text-xs">
-        {service.service?.replace('_', ' ') || 'Unknown'}
+        {service?.replace('_', ' ') || 'Unknown'}
       </Badge>
     ));
   };
@@ -218,7 +215,7 @@ export function TalentPoolManager() {
   }
 
   if (error) {
-    return <DashboardErrorState title="Failed to load talent pool" message={error} onRetry={loadProfessionals} />;
+    return <DashboardErrorState title="Failed to load talent pool" message={error} onRetry={loadTalents} />;
   }
 
   return (
@@ -232,11 +229,11 @@ export function TalentPoolManager() {
                 Talent Pool
               </CardTitle>
               <CardDescription>
-                {professionals.length} professionals in the database
+                {talents.length} talents in the database
               </CardDescription>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={loadProfessionals} disabled={isLoading}>
+              <Button variant="outline" onClick={loadTalents} disabled={isLoading}>
                 <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
                 Refresh
               </Button>
@@ -252,7 +249,7 @@ export function TalentPoolManager() {
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Search by name, email, phone, or skills..."
+                placeholder="Search by name, email, phone, or profession..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9"
@@ -264,10 +261,10 @@ export function TalentPoolManager() {
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
             </div>
-          ) : filteredProfessionals.length === 0 ? (
+          ) : filteredTalents.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <Users className="w-12 h-12 mx-auto mb-4 opacity-20" />
-              <p>No professionals found</p>
+              <p>No talents found</p>
             </div>
           ) : (
             <div className="rounded-md border">
@@ -276,57 +273,56 @@ export function TalentPoolManager() {
                   <TableRow>
                     <TableHead>Name</TableHead>
                     <TableHead>Contact</TableHead>
-                    <TableHead>Category</TableHead>
+                    <TableHead>Profession</TableHead>
                     <TableHead>Services Used</TableHead>
                     <TableHead>Updated</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredProfessionals.map((professional) => (
-                    <TableRow key={professional.id}>
+                  {filteredTalents.map((talent) => (
+                    <TableRow key={talent.id}>
                       <TableCell>
                         <div>
-                          <p className="font-medium">{professional.full_name}</p>
-                          <p className="text-xs text-muted-foreground">{professional.profile_type}</p>
+                          <p className="font-medium">{talent.full_name}</p>
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="text-sm">
-                          <p>{professional.email}</p>
-                          <p className="text-muted-foreground">{professional.phone || 'No phone'}</p>
+                          <p>{talent.email}</p>
+                          <p className="text-muted-foreground">{talent.phone || 'No phone'}</p>
                         </div>
                       </TableCell>
                       <TableCell>
                         <Badge variant="secondary">
-                          {getProfessionName(professional.profession_category_id)}
+                          {getProfessionName(talent.profession_category_id, talent.custom_profession)}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
-                          {getServiceBadges(professional.services_used as any[]) || (
+                          {getServiceBadges(talent.services_used as string[]) || (
                             <span className="text-xs text-muted-foreground">None</span>
                           )}
                         </div>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
-                        {new Date(professional.updated_at).toLocaleDateString()}
+                        {new Date(talent.updated_at).toLocaleDateString()}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => openPortfolioDialog(professional)}
+                            onClick={() => openPortfolioDialog(talent)}
                             title="Create Portfolio Request"
                           >
                             <Briefcase className="w-4 h-4" />
                           </Button>
-                          {professional.phone && (
+                          {talent.phone && (
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => window.open(formatWhatsAppLink(professional.phone), '_blank')}
+                              onClick={() => window.open(formatWhatsAppLink(talent.phone), '_blank')}
                               className="text-green-600 hover:text-green-700"
                             >
                               <MessageSquare className="w-4 h-4" />
@@ -337,100 +333,83 @@ export function TalentPoolManager() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => setSelectedProfessional(professional)}
+                                onClick={() => setSelectedTalent(talent)}
                               >
                                 <Eye className="w-4 h-4" />
                               </Button>
                             </DialogTrigger>
                             <DialogContent className="max-w-2xl">
                               <DialogHeader>
-                                <DialogTitle>{professional.full_name}</DialogTitle>
+                                <DialogTitle>{talent.full_name}</DialogTitle>
                               </DialogHeader>
                               <ScrollArea className="max-h-[60vh]">
                                 <div className="space-y-4 p-4">
                                   <div className="grid grid-cols-2 gap-4">
                                     <div>
                                       <p className="text-sm text-muted-foreground">Email</p>
-                                      <p>{professional.email}</p>
+                                      <p>{talent.email}</p>
                                     </div>
                                     <div>
                                       <p className="text-sm text-muted-foreground">Phone</p>
-                                      <p>{professional.phone || 'N/A'}</p>
+                                      <p>{talent.phone || 'N/A'}</p>
                                     </div>
                                     <div>
-                                      <p className="text-sm text-muted-foreground">Status</p>
-                                      <p>{professional.current_status || 'N/A'}</p>
+                                      <p className="text-sm text-muted-foreground">Profession</p>
+                                      <p>{getProfessionName(talent.profession_category_id, talent.custom_profession)}</p>
                                     </div>
                                     <div>
-                                      <p className="text-sm text-muted-foreground">Profile Type</p>
-                                      <p>{professional.profile_type}</p>
+                                      <p className="text-sm text-muted-foreground">CV</p>
+                                      {talent.cv_url ? (
+                                        <a 
+                                          href={talent.cv_url} 
+                                          target="_blank" 
+                                          rel="noopener noreferrer"
+                                          className="text-primary hover:underline"
+                                        >
+                                          View CV
+                                        </a>
+                                      ) : talent.cv_text ? (
+                                        <p className="text-sm truncate max-w-xs">Has CV text</p>
+                                      ) : (
+                                        <p className="text-muted-foreground">N/A</p>
+                                      )}
                                     </div>
                                   </div>
 
-                                  {(professional.education as any[])?.length > 0 && (
+                                  {(talent.services_used as string[])?.length > 0 && (
                                     <div>
-                                      <p className="text-sm font-medium mb-2">Education</p>
-                                      <div className="space-y-2">
-                                        {(professional.education as any[]).map((edu: any, idx: number) => (
-                                          <div key={idx} className="text-sm bg-muted/50 p-2 rounded">
-                                            <p className="font-medium">{edu.degree} in {edu.field}</p>
-                                            <p className="text-muted-foreground">{edu.institution}</p>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  {(professional.experience as any[])?.length > 0 && (
-                                    <div>
-                                      <p className="text-sm font-medium mb-2">Experience</p>
-                                      <div className="space-y-2">
-                                        {(professional.experience as any[]).map((exp: any, idx: number) => (
-                                          <div key={idx} className="text-sm bg-muted/50 p-2 rounded">
-                                            <p className="font-medium">{exp.title}</p>
-                                            <p className="text-muted-foreground">{exp.company} • {exp.duration}</p>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  {(professional.skills as string[])?.length > 0 && (
-                                    <div>
-                                      <p className="text-sm font-medium mb-2">Skills</p>
+                                      <p className="text-sm font-medium mb-2">Services Used</p>
                                       <div className="flex flex-wrap gap-1">
-                                        {(professional.skills as string[]).map((skill: string, idx: number) => (
-                                          <Badge key={idx} variant="outline">{skill}</Badge>
+                                        {(talent.services_used as string[]).map((service: string, idx: number) => (
+                                          <Badge key={idx} variant="outline">{service?.replace('_', ' ')}</Badge>
                                         ))}
                                       </div>
                                     </div>
                                   )}
 
                                   <div className="flex gap-2 pt-4 border-t">
-                                    {professional.linkedin_url && (
+                                    {talent.linkedin_url && (
                                       <Button variant="outline" size="sm" asChild>
-                                        <a href={professional.linkedin_url} target="_blank" rel="noopener noreferrer">
+                                        <a href={talent.linkedin_url} target="_blank" rel="noopener noreferrer">
                                           <ExternalLink className="w-4 h-4 mr-2" />
                                           LinkedIn
                                         </a>
                                       </Button>
                                     )}
-                                    {professional.cv_url && (
+                                    {talent.portfolio_url && (
                                       <Button variant="outline" size="sm" asChild>
-                                        <a href={professional.cv_url} target="_blank" rel="noopener noreferrer">
+                                        <a href={talent.portfolio_url} target="_blank" rel="noopener noreferrer">
                                           <ExternalLink className="w-4 h-4 mr-2" />
-                                          View CV
+                                          Portfolio
                                         </a>
                                       </Button>
                                     )}
-                                    {professional.phone && (
-                                      <Button
-                                        size="sm"
-                                        className="bg-green-600 hover:bg-green-700"
-                                        onClick={() => window.open(formatWhatsAppLink(professional.phone), '_blank')}
-                                      >
-                                        <MessageSquare className="w-4 h-4 mr-2" />
-                                        WhatsApp
+                                    {talent.cv_url && (
+                                      <Button variant="outline" size="sm" asChild>
+                                        <a href={talent.cv_url} target="_blank" rel="noopener noreferrer">
+                                          <ExternalLink className="w-4 h-4 mr-2" />
+                                          CV
+                                        </a>
                                       </Button>
                                     )}
                                   </div>
@@ -455,53 +434,38 @@ export function TalentPoolManager() {
           <DialogHeader>
             <DialogTitle>Create Portfolio Request</DialogTitle>
           </DialogHeader>
-          {portfolioProfessional && (
-            <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-muted-foreground">Name</p>
-                  <p className="font-medium">{portfolioProfessional.full_name}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Email</p>
-                  <p className="font-medium">{portfolioProfessional.email}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Phone</p>
-                  <p className="font-medium">{portfolioProfessional.phone || 'N/A'}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Category</p>
-                  <Badge variant="secondary">{getProfessionName(portfolioProfessional.profession_category_id)}</Badge>
-                </div>
+          <div className="space-y-4">
+            {portfolioTalent && (
+              <div className="bg-muted p-3 rounded-lg text-sm">
+                <p><strong>Name:</strong> {portfolioTalent.full_name}</p>
+                <p><strong>Email:</strong> {portfolioTalent.email}</p>
+                <p><strong>Phone:</strong> {portfolioTalent.phone || 'N/A'}</p>
               </div>
-              {portfolioProfessional.cv_url && (
-                <div className="text-sm">
-                  <p className="text-muted-foreground mb-1">CV</p>
-                  <a href={portfolioProfessional.cv_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1">
-                    <ExternalLink className="w-3 h-3" /> View CV
-                  </a>
-                </div>
-              )}
-              <div className="space-y-2">
-                <Label htmlFor="portfolioNotes">Additional Notes</Label>
-                <Textarea
-                  id="portfolioNotes"
-                  value={portfolioNotes}
-                  onChange={(e) => setPortfolioNotes(e.target.value)}
-                  placeholder="Add any notes for the Talent Success Executive..."
-                  rows={3}
-                />
-              </div>
+            )}
+            <div>
+              <Label htmlFor="notes">Notes (Optional)</Label>
+              <Textarea
+                id="notes"
+                value={portfolioNotes}
+                onChange={(e) => setPortfolioNotes(e.target.value)}
+                placeholder="Add any notes for this portfolio request..."
+                rows={3}
+              />
             </div>
-          )}
+          </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setPortfolioDialogOpen(false)}>
               Cancel
             </Button>
             <Button onClick={handleCreatePortfolioRequest} disabled={creatingPortfolio}>
-              {creatingPortfolio && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Create Request
+              {creatingPortfolio ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                'Create Request'
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

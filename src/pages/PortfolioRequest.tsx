@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { AuthGate } from "@/components/AuthGate";
 import { useTalent } from "@/hooks/useTalent";
+import { ExistingCVCard } from "@/components/cv/ExistingCVCard";
 
 // Brand icon
 import iconPortfolio from "@/assets/icons/icon-portfolio.png";
@@ -96,7 +97,7 @@ const steps: { id: Step; label: string; icon: React.ReactNode }[] = [
 function PortfolioRequestContent() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { talent, user, addServiceUsed } = useTalent();
+  const { talent, user, addServiceUsed, updateTalent, refreshTalent } = useTalent();
   const [currentStep, setCurrentStep] = useState<Step>('personal');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -709,10 +710,34 @@ function PortfolioRequestContent() {
                     </Button>
                   </div>
 
+                  {/* Show ExistingCVCard when in existing mode */}
+                  {formData.cvInputMode === 'existing' && hasExistingCv && (
+                    <ExistingCVCard
+                      talent={talent}
+                      onUseExisting={() => {
+                        setFormData({ 
+                          ...formData, 
+                          cvInputMode: 'existing',
+                          cvUrl: talent?.cvUrl || '' 
+                        });
+                      }}
+                      onUploadNew={() => setFormData({ ...formData, cvInputMode: 'upload' })}
+                      showActions={false}
+                    />
+                  )}
+
                   {(formData.cvInputMode === 'upload' || formData.cvInputMode === 'url') && (
                     <div className="space-y-4">
                       <SimpleFileUpload
-                        onFileUploaded={(url) => setFormData({ ...formData, cvUrl: url, cvExternalUrl: '' })}
+                        onFileUploaded={async (url) => {
+                          setFormData({ ...formData, cvUrl: url, cvExternalUrl: '' });
+                          // Sync CV to talents table
+                          if (talent?.id) {
+                            await updateTalent({ cvUrl: url });
+                            await refreshTalent();
+                            console.log('[PortfolioRequest] CV synced to talents table');
+                          }
+                        }}
                         onUrlProvided={(url) => setFormData({ ...formData, cvExternalUrl: url, cvUrl: '' })}
                         currentValue={formData.cvUrl || formData.cvExternalUrl}
                         accept=".pdf,.doc,.docx"

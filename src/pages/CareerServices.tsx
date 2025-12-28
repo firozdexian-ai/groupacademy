@@ -1,14 +1,19 @@
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { supabase } from "@/integrations/supabase/client";
+import { useTalent } from "@/hooks/useTalent";
 import { 
   ArrowRight, 
   CheckCircle,
   Sparkles,
-  Briefcase
+  Briefcase,
+  Circle
 } from "lucide-react";
 
 // Import brand service icons
@@ -17,8 +22,93 @@ import iconMockInterview from "@/assets/icons/icon-mock-interview.png";
 import iconSalary from "@/assets/icons/icon-salary.png";
 import iconPortfolio from "@/assets/icons/icon-portfolio.png";
 
+interface ServiceProgress {
+  assessment: boolean;
+  mockInterview: boolean;
+  salaryAnalysis: boolean;
+  portfolio: boolean;
+  jobsViewed: boolean;
+}
+
 const CareerServices = () => {
   const navigate = useNavigate();
+  const { talent, user } = useTalent();
+  const [progress, setProgress] = useState<ServiceProgress>({
+    assessment: false,
+    mockInterview: false,
+    salaryAnalysis: false,
+    portfolio: false,
+    jobsViewed: false,
+  });
+  const [isLoadingProgress, setIsLoadingProgress] = useState(true);
+
+  // Load user's service progress
+  useEffect(() => {
+    const loadProgress = async () => {
+      if (!user?.email && !talent?.email) {
+        setIsLoadingProgress(false);
+        return;
+      }
+
+      const email = talent?.email || user?.email;
+      
+      try {
+        // Check services used from talent profile first
+        if (talent?.servicesUsed) {
+          const services = talent.servicesUsed as string[];
+          setProgress({
+            assessment: services.includes('career_assessment'),
+            mockInterview: services.includes('mock_interview'),
+            salaryAnalysis: services.includes('salary_analysis'),
+            portfolio: services.includes('portfolio'),
+            jobsViewed: services.includes('job_application'),
+          });
+          setIsLoadingProgress(false);
+          return;
+        }
+
+        // Fallback: Check individual tables
+        const [assessmentResult, interviewResult, salaryResult, portfolioResult] = await Promise.all([
+          supabase
+            .from('career_assessments')
+            .select('id')
+            .eq('email', email)
+            .limit(1),
+          supabase
+            .from('mock_interviews')
+            .select('id')
+            .eq('email', email)
+            .limit(1),
+          supabase
+            .from('salary_analyses')
+            .select('id')
+            .eq('email', email)
+            .limit(1),
+          supabase
+            .from('portfolio_requests')
+            .select('id')
+            .eq('email', email)
+            .limit(1),
+        ]);
+
+        setProgress({
+          assessment: (assessmentResult.data?.length || 0) > 0,
+          mockInterview: (interviewResult.data?.length || 0) > 0,
+          salaryAnalysis: (salaryResult.data?.length || 0) > 0,
+          portfolio: (portfolioResult.data?.length || 0) > 0,
+          jobsViewed: false, // Can't easily track this
+        });
+      } catch (error) {
+        console.error('Error loading progress:', error);
+      } finally {
+        setIsLoadingProgress(false);
+      }
+    };
+
+    loadProgress();
+  }, [user, talent]);
+
+  const completedCount = Object.values(progress).filter(Boolean).length;
 
   const journeySteps = [
     {
@@ -33,10 +123,12 @@ const CareerServices = () => {
         "Personalized recommendations",
         "Downloadable PDF report"
       ],
-      cta: "Start Free Assessment",
+      cta: progress.assessment ? "View Results" : "Start Free Assessment",
       path: "/career-assessment",
       badge: "FREE",
-      badgeClass: "bg-success text-white"
+      badgeClass: "bg-success text-white",
+      completed: progress.assessment,
+      serviceKey: 'assessment'
     },
     {
       step: 2,
@@ -50,10 +142,12 @@ const CareerServices = () => {
         "Selection score",
         "Interview tips"
       ],
-      cta: "Practice Interview",
+      cta: progress.mockInterview ? "Practice Again" : "Practice Interview",
       path: "/mock-interview",
       badge: "First FREE",
-      badgeClass: "bg-secondary text-secondary-foreground"
+      badgeClass: "bg-secondary text-secondary-foreground",
+      completed: progress.mockInterview,
+      serviceKey: 'mockInterview'
     },
     {
       step: 3,
@@ -67,10 +161,12 @@ const CareerServices = () => {
         "Negotiation tips",
         "Action plan"
       ],
-      cta: "Analyze Salary",
+      cta: progress.salaryAnalysis ? "Analyze Again" : "Analyze Salary",
       path: "/salary-analysis",
       badge: "First FREE",
-      badgeClass: "bg-secondary text-secondary-foreground"
+      badgeClass: "bg-secondary text-secondary-foreground",
+      completed: progress.salaryAnalysis,
+      serviceKey: 'salaryAnalysis'
     },
     {
       step: 4,
@@ -84,10 +180,12 @@ const CareerServices = () => {
         "CMS admin panel",
         "Expert review"
       ],
-      cta: "Request Portfolio",
-      path: "/portfolio-request",
+      cta: progress.portfolio ? "Check Status" : "Request Portfolio",
+      path: progress.portfolio ? "/portfolio-status" : "/portfolio-request",
       badge: "BDT 100",
-      badgeClass: "bg-primary text-primary-foreground"
+      badgeClass: "bg-primary text-primary-foreground",
+      completed: progress.portfolio,
+      serviceKey: 'portfolio'
     },
     {
       step: 5,
@@ -104,7 +202,9 @@ const CareerServices = () => {
       cta: "Browse Jobs",
       path: "/jobs",
       badge: "HIRING",
-      badgeClass: "bg-orange-500 text-white"
+      badgeClass: "bg-orange-500 text-white",
+      completed: progress.jobsViewed,
+      serviceKey: 'jobsViewed'
     }
   ];
 
@@ -135,12 +235,22 @@ const CareerServices = () => {
                 Follow our proven 5-step process to accelerate your career.
               </p>
               
-              {/* Quick Stats */}
+              {/* Quick Stats with Progress */}
               <div className="flex flex-wrap justify-center gap-8 text-center">
                 <div className="bg-card rounded-2xl p-4 shadow-card min-w-[100px]">
                   <p className="text-3xl font-bold text-primary">5</p>
                   <p className="text-sm text-muted-foreground">Services</p>
                 </div>
+                {user && (
+                  <div className="bg-card rounded-2xl p-4 shadow-card min-w-[100px]">
+                    {isLoadingProgress ? (
+                      <Skeleton className="h-9 w-12 mx-auto mb-1" />
+                    ) : (
+                      <p className="text-3xl font-bold text-success">{completedCount}/5</p>
+                    )}
+                    <p className="text-sm text-muted-foreground">Completed</p>
+                  </div>
+                )}
                 <div className="bg-card rounded-2xl p-4 shadow-card min-w-[100px]">
                   <p className="text-3xl font-bold text-secondary">5 min</p>
                   <p className="text-sm text-muted-foreground">To Start</p>
@@ -160,28 +270,44 @@ const CareerServices = () => {
             <div className="max-w-4xl mx-auto">
               {journeySteps.map((step, index) => {
                 const isLast = index === journeySteps.length - 1;
+                const isCompleted = step.completed;
                 
                 return (
                   <div key={step.step} className="relative">
                     {/* Connector Line */}
                     {!isLast && (
-                      <div className="absolute left-8 top-24 bottom-0 w-0.5 bg-gradient-to-b from-primary/50 to-primary/10 hidden md:block" />
+                      <div className={`absolute left-8 top-24 bottom-0 w-0.5 hidden md:block ${
+                        isCompleted 
+                          ? 'bg-gradient-to-b from-success/50 to-success/10' 
+                          : 'bg-gradient-to-b from-primary/50 to-primary/10'
+                      }`} />
                     )}
                     
-                    <Card className="mb-8 overflow-hidden hover:shadow-lg transition-all duration-300 border-border/50 hover:border-primary/30">
-                      <div className="h-1 bg-gradient-primary" />
+                    <Card className={`mb-8 overflow-hidden hover:shadow-lg transition-all duration-300 border-border/50 hover:border-primary/30 ${
+                      isCompleted ? 'ring-1 ring-success/30' : ''
+                    }`}>
+                      <div className={`h-1 ${isCompleted ? 'bg-success' : 'bg-gradient-primary'}`} />
                       <CardContent className="p-6">
                         <div className="flex flex-col md:flex-row gap-6">
                           {/* Step Number & Icon */}
                           <div className="flex md:flex-col items-center gap-4 md:gap-2">
-                            <div className="icon-container-lg">
-                              {step.icon ? (
+                            <div className={`icon-container-lg ${isCompleted ? 'bg-success' : ''}`}>
+                              {isCompleted ? (
+                                <CheckCircle className="w-8 h-8 text-white" />
+                              ) : step.icon ? (
                                 <img src={step.icon} alt={step.title} className="w-11 h-11 object-contain" />
                               ) : (
                                 <Briefcase className="w-8 h-8 text-white" />
                               )}
                             </div>
-                            <span className="text-sm font-medium text-muted-foreground">Step {step.step}</span>
+                            <div className="flex items-center gap-1">
+                              {isCompleted ? (
+                                <CheckCircle className="w-4 h-4 text-success" />
+                              ) : (
+                                <Circle className="w-4 h-4 text-muted-foreground" />
+                              )}
+                              <span className="text-sm font-medium text-muted-foreground">Step {step.step}</span>
+                            </div>
                           </div>
                           
                           {/* Content */}
@@ -191,6 +317,12 @@ const CareerServices = () => {
                               <Badge className={step.badgeClass}>
                                 {step.badge}
                               </Badge>
+                              {isCompleted && (
+                                <Badge variant="outline" className="border-success text-success gap-1">
+                                  <CheckCircle className="w-3 h-3" />
+                                  Completed
+                                </Badge>
+                              )}
                             </div>
                             <p className="text-sm text-primary font-medium mb-2">{step.subtitle}</p>
                             <p className="text-muted-foreground mb-4">{step.description}</p>
@@ -205,7 +337,11 @@ const CareerServices = () => {
                               ))}
                             </div>
                             
-                            <Button onClick={() => navigate(step.path)} className="group">
+                            <Button 
+                              onClick={() => navigate(step.path)} 
+                              className="group"
+                              variant={isCompleted ? "outline" : "default"}
+                            >
                               {step.cta}
                               <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
                             </Button>
@@ -228,18 +364,28 @@ const CareerServices = () => {
                 <div className="absolute inset-0 bg-[url('/wave-pattern.png')] opacity-10" />
                 <div className="relative">
                   <h2 className="text-2xl md:text-3xl font-heading font-bold mb-4">
-                    Start Your Career Transformation Today
+                    {completedCount > 0 
+                      ? "Continue Your Career Transformation" 
+                      : "Start Your Career Transformation Today"}
                   </h2>
                   <p className="text-white/90 mb-6 max-w-xl mx-auto">
-                    Begin with our free Career Readiness Scorecard and discover your path to career success.
+                    {completedCount > 0
+                      ? `You've completed ${completedCount} of 5 steps. Keep going!`
+                      : "Begin with our free Career Readiness Scorecard and discover your path to career success."}
                   </p>
                   <Button 
                     size="lg" 
                     variant="secondary" 
-                    onClick={() => navigate("/career-assessment")}
+                    onClick={() => navigate(
+                      !progress.assessment ? "/career-assessment" :
+                      !progress.mockInterview ? "/mock-interview" :
+                      !progress.salaryAnalysis ? "/salary-analysis" :
+                      !progress.portfolio ? "/portfolio-request" :
+                      "/jobs"
+                    )}
                     className="text-lg group"
                   >
-                    Take Free Assessment
+                    {completedCount === 0 ? "Take Free Assessment" : "Continue Journey"}
                     <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
                   </Button>
                 </div>

@@ -22,6 +22,7 @@ interface JobApplication {
   id: string;
   job_id: string;
   professional_id: string;
+  talent_id: string | null;
   application_status: ApplicationStatus | null;
   delivery_status: DeliveryStatus | null;
   cover_letter: string | null;
@@ -36,7 +37,7 @@ interface JobApplication {
     application_email: string | null;
     application_url: string | null;
   } | null;
-  professionals: {
+  talents: {
     full_name: string;
     email: string;
     phone: string | null;
@@ -81,7 +82,7 @@ export const JobApplicationsManager = () => {
             .select(`
               *,
               jobs (title, company_name, application_type, application_email, application_url),
-              professionals (full_name, email, phone)
+              talents (full_name, email, phone)
             `)
             .order('created_at', { ascending: false })
         ).then(q => q),
@@ -106,8 +107,8 @@ export const JobApplicationsManager = () => {
 
   const filteredApplications = applications.filter((app) => {
     const matchesSearch =
-      app.professionals?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      app.professionals?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      app.talents?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      app.talents?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       app.jobs?.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       app.jobs?.company_name?.toLowerCase().includes(searchQuery.toLowerCase());
 
@@ -174,9 +175,9 @@ export const JobApplicationsManager = () => {
     const details = `
 JOB APPLICATION DETAILS
 ========================
-Applicant: ${app.professionals?.full_name || 'Unknown'}
-Email: ${app.professionals?.email || 'N/A'}
-Phone: ${app.professionals?.phone || 'N/A'}
+Applicant: ${app.talents?.full_name || 'Unknown'}
+Email: ${app.talents?.email || 'N/A'}
+Phone: ${app.talents?.phone || 'N/A'}
 
 Job: ${app.jobs?.title || 'Unknown'}
 Company: ${app.jobs?.company_name || 'Unknown'}
@@ -204,16 +205,16 @@ Applied: ${app.created_at ? format(new Date(app.created_at), 'MMMM d, yyyy HH:mm
       return;
     }
 
-    const subject = encodeURIComponent(`Job Application: ${app.jobs?.title} - ${app.professionals?.full_name}`);
+    const subject = encodeURIComponent(`Job Application: ${app.jobs?.title} - ${app.talents?.full_name}`);
     const body = encodeURIComponent(`
 Dear Hiring Manager,
 
-Please find attached the job application from ${app.professionals?.full_name} for the ${app.jobs?.title} position at ${app.jobs?.company_name}.
+Please find attached the job application from ${app.talents?.full_name} for the ${app.jobs?.title} position at ${app.jobs?.company_name}.
 
 APPLICANT DETAILS:
-- Name: ${app.professionals?.full_name}
-- Email: ${app.professionals?.email}
-- Phone: ${app.professionals?.phone || 'Not provided'}
+- Name: ${app.talents?.full_name}
+- Email: ${app.talents?.email}
+- Phone: ${app.talents?.phone || 'Not provided'}
 
 CV Link: ${app.cv_url || 'Not provided'}
 
@@ -251,9 +252,9 @@ This application was submitted via GroUp Academy Jobs Board.
     ];
 
     const rows = filteredApplications.map((app) => [
-      app.professionals?.full_name || '',
-      app.professionals?.email || '',
-      app.professionals?.phone || '',
+      app.talents?.full_name || '',
+      app.talents?.email || '',
+      app.talents?.phone || '',
       app.jobs?.title || '',
       app.jobs?.company_name || '',
       app.jobs?.application_type || '',
@@ -445,10 +446,10 @@ This application was submitted via GroUp Academy Jobs Board.
                   }>
                     <TableCell>
                       <div>
-                        <p className="font-medium">{app.professionals?.full_name || 'Unknown'}</p>
-                        <p className="text-sm text-muted-foreground">{app.professionals?.email}</p>
-                        {app.professionals?.phone && (
-                          <p className="text-sm text-muted-foreground">{app.professionals.phone}</p>
+                        <p className="font-medium">{app.talents?.full_name || 'Unknown'}</p>
+                        <p className="text-sm text-muted-foreground">{app.talents?.email}</p>
+                        {app.talents?.phone && (
+                          <p className="text-sm text-muted-foreground">{app.talents.phone}</p>
                         )}
                       </div>
                     </TableCell>
@@ -488,17 +489,18 @@ This application was submitted via GroUp Academy Jobs Board.
                         {app.is_paid ? 'Paid' : 'Free'}
                       </Badge>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
                       {app.created_at
                         ? format(new Date(app.created_at), 'MMM d, yyyy')
-                        : 'Unknown'}
+                        : '-'}
                     </TableCell>
                     <TableCell>
-                      <div className="flex gap-1">
+                      <div className="flex items-center gap-1">
                         {app.cv_url && (
                           <Button
                             variant="ghost"
                             size="icon"
+                            className="h-8 w-8"
                             onClick={() => window.open(app.cv_url!, '_blank')}
                             title="View CV"
                           >
@@ -508,47 +510,48 @@ This application was submitted via GroUp Academy Jobs Board.
                         <Button
                           variant="ghost"
                           size="icon"
+                          className="h-8 w-8"
                           onClick={() => handleCopyDetails(app)}
                           title="Copy Details"
                         >
                           <Copy className="h-4 w-4" />
                         </Button>
-                        {app.professionals?.email && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() =>
-                              window.open(`mailto:${app.professionals!.email}`, '_blank')
-                            }
-                            title="Email Applicant"
-                          >
-                            <Mail className="h-4 w-4" />
-                          </Button>
-                        )}
                         {app.jobs?.application_type === 'email' && app.delivery_status !== 'sent' && (
                           <Button
                             variant="ghost"
                             size="icon"
+                            className="h-8 w-8 text-amber-600 hover:text-amber-700"
                             onClick={() => handleForwardManually(app)}
                             title="Forward to Employer"
-                            className="text-amber-600 hover:text-amber-700"
                           >
                             <Forward className="h-4 w-4" />
                           </Button>
                         )}
-                        {app.jobs?.application_type === 'email' && (app.delivery_status === 'pending' || app.delivery_status === 'failed') && (
+                        {app.jobs?.application_type === 'email' && (
                           <Button
                             variant="ghost"
                             size="icon"
+                            className="h-8 w-8"
                             onClick={() => handleResendEmail(app.id)}
                             disabled={resendingId === app.id}
-                            title="Retry Auto-Send"
+                            title="Resend Email"
                           >
                             {resendingId === app.id ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
-                              <RefreshCw className="h-4 w-4 text-primary" />
+                              <Mail className="h-4 w-4" />
                             )}
+                          </Button>
+                        )}
+                        {app.jobs?.application_url && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => window.open(app.jobs!.application_url!, '_blank')}
+                            title="View External Link"
+                          >
+                            <ExternalLink className="h-4 w-4" />
                           </Button>
                         )}
                       </div>

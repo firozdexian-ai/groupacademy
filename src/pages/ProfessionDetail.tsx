@@ -23,7 +23,8 @@ import {
   MessageSquare,
   Play,
   RefreshCw,
-  AlertCircle
+  AlertCircle,
+  ClipboardCheck
 } from "lucide-react";
 
 interface ProfessionLine {
@@ -280,6 +281,30 @@ export default function ProfessionDetail() {
                     AI Instructor: {aiInstructor.name}
                   </Badge>
                 )}
+              </div>
+              
+              {/* Career Assessment CTA */}
+              <div className="mt-6 p-4 bg-primary/5 rounded-lg border border-primary/20">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <ClipboardCheck className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-sm">Check Your Readiness</h4>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Take our free AI-powered assessment to see how ready you are for a career in {profession.name}.
+                    </p>
+                    <Button 
+                      size="sm" 
+                      className="mt-3 gap-2"
+                      onClick={() => navigate(`/career-assessment?profession=${profession.id}`)}
+                    >
+                      <ClipboardCheck className="h-4 w-4" />
+                      Take Free Assessment
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
               </div>
             </div>
 

@@ -18,11 +18,12 @@ import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { useProgressiveLoadingMessage } from "@/hooks/useProgressiveLoadingMessage";
 import { AuthGate } from "@/components/AuthGate";
 import { useTalent } from "@/hooks/useTalent";
+import { ExistingCVCard } from "@/components/cv/ExistingCVCard";
 
 const SalaryAnalysisSetupContent = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { talent, user, addServiceUsed } = useTalent();
+  const { talent, user, addServiceUsed, updateTalent, refreshTalent } = useTalent();
   
   const [email, setEmail] = useState("");
   const [accessCode, setAccessCode] = useState("");
@@ -222,6 +223,14 @@ const SalaryAnalysisSetupContent = () => {
         .getPublicUrl(fileName);
 
       setCvUrl(publicUrl.publicUrl);
+      
+      // Sync CV to talents table
+      if (talent?.id) {
+        await updateTalent({ cvUrl: publicUrl.publicUrl });
+        await refreshTalent();
+        console.log('[SalaryAnalysisSetup] CV synced to talents table');
+      }
+      
       toast({ title: "CV uploaded successfully!" });
     } catch (error: any) {
       console.error("Upload error:", error);
@@ -475,6 +484,22 @@ const SalaryAnalysisSetupContent = () => {
               {/* CV Input */}
               <div>
                 <Label>Your CV *</Label>
+                
+                {/* Show ExistingCVCard when talent has CV */}
+                {hasExistingCv && cvInputMode === "existing" && (
+                  <div className="mt-2">
+                    <ExistingCVCard
+                      talent={talent}
+                      onUseExisting={() => {
+                        setCvInputMode("existing");
+                        if (talent?.cvUrl) setCvUrl(talent.cvUrl);
+                        if (talent?.cvText) setCvText(talent.cvText);
+                      }}
+                      onUploadNew={() => setCvInputMode("file")}
+                    />
+                  </div>
+                )}
+                
                 <Tabs value={cvInputMode} onValueChange={(v) => setCvInputMode(v as "text" | "file" | "existing")} className="mt-2">
                   <TabsList className={`grid w-full ${hasExistingCv ? 'grid-cols-3' : 'grid-cols-2'}`}>
                     {hasExistingCv && (
@@ -492,29 +517,16 @@ const SalaryAnalysisSetupContent = () => {
                       Upload File
                     </TabsTrigger>
                   </TabsList>
-                  {hasExistingCv && (
+                  {hasExistingCv && cvInputMode !== "existing" && (
                     <TabsContent value="existing" className="mt-4">
-                      <div className="p-4 border rounded-lg bg-muted/50">
-                        <div className="flex items-center gap-2 text-green-600 mb-2">
-                          <CheckCircle className="h-5 w-5" />
-                          <span className="font-medium">Using your saved CV</span>
-                        </div>
-                        {talent?.cvUrl && (
-                          <a 
-                            href={talent.cvUrl} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-sm text-primary hover:underline"
-                          >
-                            View your CV
-                          </a>
-                        )}
-                        {!talent?.cvUrl && talent?.cvText && (
-                          <p className="text-sm text-muted-foreground">
-                            {talent.cvText.slice(0, 200)}...
-                          </p>
-                        )}
-                      </div>
+                      <ExistingCVCard
+                        talent={talent}
+                        onUseExisting={() => {
+                          if (talent?.cvUrl) setCvUrl(talent.cvUrl);
+                          if (talent?.cvText) setCvText(talent.cvText);
+                        }}
+                        onUploadNew={() => setCvInputMode("file")}
+                      />
                     </TabsContent>
                   )}
                   <TabsContent value="text" className="mt-4">
