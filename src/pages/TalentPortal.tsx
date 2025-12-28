@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ProfileEditDialog } from "@/components/profile/ProfileEditDialog";
 import { 
   User, 
   FileText, 
@@ -59,10 +60,11 @@ const SERVICE_LABELS = {
 
 export default function TalentPortal() {
   const navigate = useNavigate();
-  const { talent, isLoading, isAuthenticated, refreshTalent } = useTalent();
+  const { talent, isLoading, isAuthenticated, updateTalent } = useTalent();
   const [activities, setActivities] = useState<ServiceActivity[]>([]);
   const [activitiesLoading, setActivitiesLoading] = useState(true);
   const [professionName, setProfessionName] = useState<string | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   // Redirect to auth if not logged in
   useEffect(() => {
@@ -345,7 +347,7 @@ export default function TalentPortal() {
 
                 {/* Actions */}
                 <div className="flex gap-2">
-                  <Button variant="outline" size="sm" disabled>
+                  <Button variant="outline" size="sm" onClick={() => setIsEditDialogOpen(true)}>
                     <Edit className="h-4 w-4 mr-1" />
                     Edit Profile
                   </Button>
@@ -766,6 +768,16 @@ export default function TalentPortal() {
               </Card>
             </TabsContent>
           </Tabs>
+
+          {/* Profile Edit Dialog */}
+          {talent && (
+            <ProfileEditDialog
+              open={isEditDialogOpen}
+              onOpenChange={setIsEditDialogOpen}
+              talent={talent}
+              onSave={updateTalent}
+            />
+          )}
         </div>
       </main>
 

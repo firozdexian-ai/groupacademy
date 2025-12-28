@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useTalent } from "@/hooks/useTalent";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -11,7 +12,8 @@ import { ProcessingCard } from "@/components/ui/processing-card";
 import { 
   ArrowRight, 
   User,
-  Loader2
+  Loader2,
+  CheckCircle2
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -27,6 +29,7 @@ const INTERVIEW_ANALYSIS_STAGES = [
 export default function MockInterviewCapture() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { talent, addServiceUsed } = useTalent();
   
   const [interview, setInterview] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -34,6 +37,16 @@ export default function MockInterviewCapture() {
   const [phone, setPhone] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const [autoFilled, setAutoFilled] = useState(false);
+
+  // Auto-fill from talent profile
+  useEffect(() => {
+    if (talent && !autoFilled) {
+      if (talent.fullName && !fullName) setFullName(talent.fullName);
+      if (talent.phone && !phone) setPhone(talent.phone);
+      setAutoFilled(true);
+    }
+  }, [talent, autoFilled, fullName, phone]);
 
   useEffect(() => {
     if (id) loadInterview();
@@ -74,12 +87,13 @@ export default function MockInterviewCapture() {
     setSubmissionError(null);
 
     try {
-      // Update interview with lead info
+      // Update interview with lead info and talent_id
       await supabase
         .from("mock_interviews")
         .update({ 
           full_name: fullName.trim(),
-          phone: phone.trim() || null
+          phone: phone.trim() || null,
+          talent_id: talent?.id || null
         })
         .eq("id", id);
 
@@ -89,6 +103,11 @@ export default function MockInterviewCapture() {
       });
 
       if (error) throw error;
+
+      // Track service usage
+      if (talent) {
+        await addServiceUsed("mock_interview");
+      }
 
       toast.success("Interview analyzed! Viewing your results...");
       navigate(`/mock-interview/results/${id}`);
@@ -152,10 +171,19 @@ export default function MockInterviewCapture() {
             <CardTitle>Almost Done!</CardTitle>
             <CardDescription>
               You've completed {answeredCount} of {totalQuestions} questions. 
-              Enter your details to get your personalized feedback.
+              {talent ? " Confirm your details to get your personalized feedback." : " Enter your details to get your personalized feedback."}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {talent && autoFilled && (
+              <div className="flex items-center gap-2 p-3 bg-primary/5 rounded-lg border border-primary/20 mb-4">
+                <CheckCircle2 className="h-4 w-4 text-primary" />
+                <span className="text-sm text-muted-foreground">
+                  We've pre-filled your details from your profile
+                </span>
+              </div>
+            )}
+            
             <div className="space-y-2">
               <Label htmlFor="fullName">Full Name *</Label>
               <Input
