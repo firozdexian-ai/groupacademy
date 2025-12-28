@@ -37,9 +37,19 @@ interface Assessment {
   created_at: string;
   ai_analysis: any;
   improvement_areas: string[];
+  profession_category_id: string;
   profession_categories?: {
     name: string;
   };
+}
+
+interface RecommendedCourse {
+  id: string;
+  title: string;
+  slug: string;
+  description: string | null;
+  estimated_hours: number | null;
+  thumbnail_url: string | null;
 }
 
 const readinessColors: Record<string, string> = {
@@ -67,6 +77,8 @@ export default function AssessmentResults() {
   const [analysisRetryCount, setAnalysisRetryCount] = useState(0);
   const [downloading, setDownloading] = useState(false);
   const [assessment, setAssessment] = useState<Assessment | null>(null);
+  const [recommendedCourses, setRecommendedCourses] = useState<RecommendedCourse[]>([]);
+  const [loadingCourses, setLoadingCourses] = useState(false);
   const maxRetries = 3;
   const hasTriggeredAnalysis = useRef(false);
 
@@ -114,6 +126,11 @@ export default function AssessmentResults() {
       console.log("[AssessmentResults] Loaded assessment:", data.id, "AI analysis:", !!data.ai_analysis);
       setAssessment(data);
 
+      // Load recommended courses based on profession
+      if (data.profession_category_id) {
+        loadRecommendedCourses(data.profession_category_id);
+      }
+
       // Trigger AI analysis if not already done (only once)
       if (!data.ai_analysis && !hasTriggeredAnalysis.current) {
         hasTriggeredAnalysis.current = true;
@@ -127,6 +144,31 @@ export default function AssessmentResults() {
       setLoadError(errorMessage);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadRecommendedCourses = async (professionCategoryId: string) => {
+    setLoadingCourses(true);
+    try {
+      const { data, error } = await supabase
+        .from("content")
+        .select("id, title, slug, description, estimated_hours, thumbnail_url")
+        .eq("profession_line_id", professionCategoryId)
+        .eq("is_published", true)
+        .order("display_order", { ascending: true })
+        .limit(3);
+
+      if (error) {
+        console.error("[AssessmentResults] Error loading courses:", error);
+        return;
+      }
+
+      console.log("[AssessmentResults] Loaded recommended courses:", data?.length || 0);
+      setRecommendedCourses(data || []);
+    } catch (error) {
+      console.error("[AssessmentResults] Error fetching courses:", error);
+    } finally {
+      setLoadingCourses(false);
     }
   };
 
@@ -502,17 +544,71 @@ export default function AssessmentResults() {
               </Card>
             )}
 
-            {/* Course Recommendations CTA */}
+            {/* Course Recommendations */}
             <Card className="bg-gradient-to-r from-primary/10 to-secondary/10 border-primary/20">
-              <CardContent className="py-8 text-center">
-                <BookOpen className="h-10 w-10 text-primary mx-auto mb-4" />
-                <h3 className="text-xl font-bold mb-2">Ready to Level Up?</h3>
-                <p className="text-muted-foreground mb-4 max-w-md mx-auto">
-                  Explore our courses designed to help you improve your career readiness and achieve your goals.
-                </p>
-                <Button onClick={() => navigate("/courses")}>
-                  Browse Courses
-                </Button>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <BookOpen className="h-5 w-5 text-primary" />
+                  Recommended Courses
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loadingCourses ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  </div>
+                ) : recommendedCourses.length > 0 ? (
+                  <div className="space-y-3">
+                    {recommendedCourses.map((course) => (
+                      <div
+                        key={course.id}
+                        className="flex items-start gap-3 p-3 rounded-lg bg-background/50 hover:bg-background transition-colors cursor-pointer"
+                        onClick={() => navigate(`/courses/${course.slug}`)}
+                      >
+                        {course.thumbnail_url ? (
+                          <img
+                            src={course.thumbnail_url}
+                            alt={course.title}
+                            className="w-16 h-12 object-cover rounded"
+                          />
+                        ) : (
+                          <div className="w-16 h-12 bg-muted rounded flex items-center justify-center">
+                            <BookOpen className="h-6 w-6 text-muted-foreground" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-sm line-clamp-1">{course.title}</h4>
+                          {course.description && (
+                            <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
+                              {course.description}
+                            </p>
+                          )}
+                          {course.estimated_hours && (
+                            <span className="text-xs text-muted-foreground">
+                              {course.estimated_hours}h estimated
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    <div className="text-center pt-2">
+                      <Button variant="outline" size="sm" onClick={() => navigate("/courses")}>
+                        View All Courses
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <BookOpen className="h-10 w-10 text-primary mx-auto mb-4" />
+                    <h3 className="text-lg font-bold mb-2">Ready to Level Up?</h3>
+                    <p className="text-muted-foreground mb-4 max-w-md mx-auto text-sm">
+                      Explore our courses designed to help you improve your career readiness.
+                    </p>
+                    <Button onClick={() => navigate("/courses")}>
+                      Browse Courses
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
