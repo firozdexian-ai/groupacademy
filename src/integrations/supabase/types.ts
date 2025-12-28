@@ -1282,6 +1282,7 @@ export type Database = {
           profile_data: Json | null
           social_links: Json | null
           status: Database["public"]["Enums"]["portfolio_status"]
+          talent_id: string | null
           updated_at: string
         }
         Insert: {
@@ -1309,6 +1310,7 @@ export type Database = {
           profile_data?: Json | null
           social_links?: Json | null
           status?: Database["public"]["Enums"]["portfolio_status"]
+          talent_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -1336,6 +1338,7 @@ export type Database = {
           profile_data?: Json | null
           social_links?: Json | null
           status?: Database["public"]["Enums"]["portfolio_status"]
+          talent_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1351,6 +1354,13 @@ export type Database = {
             columns: ["profession_category_id"]
             isOneToOne: false
             referencedRelation: "profession_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portfolio_requests_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
             referencedColumns: ["id"]
           },
         ]

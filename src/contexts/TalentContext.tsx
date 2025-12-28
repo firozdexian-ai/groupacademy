@@ -227,13 +227,17 @@ export function TalentProvider({ children }: { children: React.ReactNode }) {
     }
   }, [talent?.id, refreshTalent]);
 
-  // Add a service to services_used
+  // Add a service to services_used (normalized to simple string array)
   const addServiceUsed = useCallback(async (service: string) => {
     if (!talent?.id) return;
 
     try {
-      // Use RPC function if available, otherwise update directly
-      const currentServices = talent.servicesUsed || [];
+      // Normalize to simple string array format
+      const currentServices = (talent.servicesUsed || []).map((s: any) => 
+        typeof s === 'string' ? s : (s?.service || s?.name || String(s))
+      );
+      
+      // Avoid duplicates
       if (currentServices.includes(service)) return;
 
       const newServices = [...currentServices, service];

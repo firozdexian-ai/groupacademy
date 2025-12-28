@@ -98,6 +98,15 @@ const performanceLevelLabels: Record<string, string> = {
   excellent: "Excellent"
 };
 
+interface RecommendedCourse {
+  id: string;
+  title: string;
+  slug: string;
+  description: string | null;
+  estimated_hours: number | null;
+  thumbnail_url: string | null;
+}
+
 export default function MockInterviewResults() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -106,6 +115,8 @@ export default function MockInterviewResults() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+  const [recommendedCourses, setRecommendedCourses] = useState<RecommendedCourse[]>([]);
+  const [loadingCourses, setLoadingCourses] = useState(false);
 
   useEffect(() => {
     if (id) loadInterview();
@@ -145,6 +156,11 @@ export default function MockInterviewResults() {
         strengths: data.strengths || [],
         improvement_areas: data.improvement_areas || []
       });
+
+      // Load recommended courses based on profession
+      if (data.profession_category_id) {
+        loadRecommendedCourses(data.profession_category_id);
+      }
     } catch (error: any) {
       console.error("Error loading interview:", error);
       const errorMessage = error.message?.includes("timed out")
@@ -153,6 +169,26 @@ export default function MockInterviewResults() {
       setLoadError(errorMessage);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadRecommendedCourses = async (professionCategoryId: string) => {
+    setLoadingCourses(true);
+    try {
+      const { data, error } = await supabase
+        .from('content')
+        .select('id, title, slug, description, estimated_hours, thumbnail_url')
+        .eq('profession_line_id', professionCategoryId)
+        .eq('is_published', true)
+        .limit(3);
+
+      if (!error && data) {
+        setRecommendedCourses(data);
+      }
+    } catch (error) {
+      console.error('Error loading recommended courses:', error);
+    } finally {
+      setLoadingCourses(false);
     }
   };
 
@@ -587,21 +623,48 @@ export default function MockInterviewResults() {
           </CardContent>
         </Card>
 
-        {/* Courses CTA */}
+        {/* Recommended Courses */}
         <Card className="border-secondary/20 bg-secondary/5">
           <CardContent className="py-6">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-              <div>
-                <h3 className="font-semibold mb-1">Want to improve your interview skills?</h3>
-                <p className="text-sm text-muted-foreground">
-                  Check out our courses to boost your career readiness.
-                </p>
-              </div>
-              <Button variant="secondary" onClick={() => navigate("/courses")}>
-                Explore Courses
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
+            <div className="mb-4">
+              <h3 className="font-semibold mb-1">Recommended Courses for You</h3>
+              <p className="text-sm text-muted-foreground">
+                Boost your interview skills with these personalized recommendations.
+              </p>
             </div>
+            
+            {loadingCourses ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : recommendedCourses.length > 0 ? (
+              <div className="grid sm:grid-cols-3 gap-4 mb-4">
+                {recommendedCourses.map((course) => (
+                  <div
+                    key={course.id}
+                    onClick={() => navigate(`/courses/${course.slug}`)}
+                    className="cursor-pointer rounded-lg border bg-card p-4 hover:shadow-md transition-shadow"
+                  >
+                    {course.thumbnail_url && (
+                      <img
+                        src={course.thumbnail_url}
+                        alt={course.title}
+                        className="w-full h-24 object-cover rounded-md mb-3"
+                      />
+                    )}
+                    <h4 className="font-medium text-sm mb-1 line-clamp-2">{course.title}</h4>
+                    {course.estimated_hours && (
+                      <p className="text-xs text-muted-foreground">{course.estimated_hours}h estimated</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : null}
+            
+            <Button variant="secondary" onClick={() => navigate("/courses")} className="w-full sm:w-auto">
+              Explore All Courses
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
           </CardContent>
         </Card>
       </main>

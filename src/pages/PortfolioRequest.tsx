@@ -348,6 +348,7 @@ function PortfolioRequestContent() {
           achievements: formData.achievements,
           social_links: formData.socialLinks as unknown as any,
           additional_notes: formData.additionalNotes,
+          talent_id: talent?.id || null,
         });
 
       if (error) {
