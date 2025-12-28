@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProfileEditDialog } from "@/components/profile/ProfileEditDialog";
+import { ProfileCompletionPrompt } from "@/components/profile/ProfileCompletionPrompt";
 import { 
   User, 
   FileText, 
@@ -279,7 +280,8 @@ export default function TalentPortal() {
       
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="max-w-5xl mx-auto space-y-6">
-          {/* Profile Header */}
+          {/* Profile Completion Prompt */}
+          <ProfileCompletionPrompt variant="banner" />
           <Card>
             <CardContent className="pt-6">
               <div className="flex flex-col md:flex-row gap-6 items-start">

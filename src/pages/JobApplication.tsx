@@ -162,11 +162,11 @@ const JobApplicationContent = () => {
   const checkUsage = async (talentId: string) => {
     const monthYear = new Date().toISOString().slice(0, 7); // YYYY-MM
     
-    // First try to find by talent_id, fall back to professional_id lookup
+    // Check by talent_id first, then fall back to professional_id for legacy data
     const { data } = await supabase
       .from("job_application_usage")
       .select("*")
-      .eq("professional_id", talentId) // Will update to talent_id in future
+      .or(`talent_id.eq.${talentId},professional_id.eq.${talentId}`)
       .eq("month_year", monthYear)
       .maybeSingle();
 
@@ -476,10 +476,11 @@ const JobApplicationContent = () => {
       // Update usage
       const monthYear = new Date().toISOString().slice(0, 7);
       
+      // Check for existing usage record by talent_id or professional_id
       const { data: usageData } = await supabase
         .from("job_application_usage")
         .select("*")
-        .eq("professional_id", talent.id)
+        .or(`talent_id.eq.${talent.id},professional_id.eq.${talent.id}`)
         .eq("month_year", monthYear)
         .maybeSingle();
 
@@ -487,19 +488,26 @@ const JobApplicationContent = () => {
         if (!isPaidApplication) {
           await supabase
             .from("job_application_usage")
-            .update({ free_applications_used: usageData.free_applications_used + 1 })
+            .update({ 
+              free_applications_used: usageData.free_applications_used + 1,
+              talent_id: talent.id // Ensure talent_id is set
+            })
             .eq("id", usageData.id);
         } else {
           await supabase
             .from("job_application_usage")
-            .update({ paid_applications_count: (usageData.paid_applications_count || 0) + 1 })
+            .update({ 
+              paid_applications_count: (usageData.paid_applications_count || 0) + 1,
+              talent_id: talent.id // Ensure talent_id is set
+            })
             .eq("id", usageData.id);
         }
       } else {
         await supabase
           .from("job_application_usage")
           .insert({
-            professional_id: talent.id,
+            talent_id: talent.id,
+            professional_id: talent.id, // Keep for backward compatibility
             month_year: monthYear,
             free_applications_used: isPaidApplication ? 0 : 1,
             paid_applications_count: isPaidApplication ? 1 : 0,

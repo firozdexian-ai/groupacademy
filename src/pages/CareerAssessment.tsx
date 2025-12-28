@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
@@ -42,6 +43,7 @@ type AssessmentStep = "landing" | "email-check" | "cooldown" | "access-code" | "
 
 function CareerAssessmentContent() {
   const { talent, user, addServiceUsed } = useTalent();
+  const [searchParams] = useSearchParams();
   const [step, setStep] = useState<AssessmentStep>("landing");
   const [email, setEmail] = useState("");
   const [checkingEmail, setCheckingEmail] = useState(false);
@@ -53,6 +55,7 @@ function CareerAssessmentContent() {
   const [accessCode, setAccessCode] = useState("");
   const [validatingCode, setValidatingCode] = useState(false);
   const [daysRemaining, setDaysRemaining] = useState(0);
+  const [urlProfessionId] = useState(() => searchParams.get("profession"));
 
   // Auto-fill email from talent profile
   useEffect(() => {
@@ -63,15 +66,27 @@ function CareerAssessmentContent() {
     }
   }, [talent, user]);
 
-  // Auto-select profession category from talent profile
+  // Auto-select profession category from URL param or talent profile
   useEffect(() => {
-    if (talent?.professionCategoryId && categories.length > 0) {
+    if (categories.length === 0) return;
+    
+    // Priority 1: URL profession param
+    if (urlProfessionId && !selectedCategory) {
+      const urlCategory = categories.find(c => c.id === urlProfessionId);
+      if (urlCategory) {
+        setSelectedCategory(urlCategory);
+        return;
+      }
+    }
+    
+    // Priority 2: Talent's profession category
+    if (talent?.professionCategoryId && !selectedCategory) {
       const talentCategory = categories.find(c => c.id === talent.professionCategoryId);
-      if (talentCategory && !selectedCategory) {
+      if (talentCategory) {
         setSelectedCategory(talentCategory);
       }
     }
-  }, [talent, categories, selectedCategory]);
+  }, [talent, categories, selectedCategory, urlProfessionId]);
 
   useEffect(() => {
     loadCategories();

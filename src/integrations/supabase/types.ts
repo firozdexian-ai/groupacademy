@@ -854,6 +854,7 @@ export type Database = {
           month_year: string
           paid_applications_count: number | null
           professional_id: string
+          talent_id: string | null
           updated_at: string | null
         }
         Insert: {
@@ -863,6 +864,7 @@ export type Database = {
           month_year: string
           paid_applications_count?: number | null
           professional_id: string
+          talent_id?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -872,6 +874,7 @@ export type Database = {
           month_year?: string
           paid_applications_count?: number | null
           professional_id?: string
+          talent_id?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -880,6 +883,13 @@ export type Database = {
             columns: ["professional_id"]
             isOneToOne: false
             referencedRelation: "professionals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_application_usage_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
             referencedColumns: ["id"]
           },
         ]
