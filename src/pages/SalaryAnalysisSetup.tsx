@@ -19,6 +19,7 @@ import { useProgressiveLoadingMessage } from "@/hooks/useProgressiveLoadingMessa
 import { AuthGate } from "@/components/AuthGate";
 import { useTalent } from "@/hooks/useTalent";
 import { ExistingCVCard } from "@/components/cv/ExistingCVCard";
+import { ProfileCompletionPrompt } from "@/components/profile/ProfileCompletionPrompt";
 
 const SalaryAnalysisSetupContent = () => {
   const navigate = useNavigate();
@@ -314,6 +315,8 @@ const SalaryAnalysisSetupContent = () => {
       <Navbar />
       
       <div className="container mx-auto max-w-2xl py-12 px-4">
+        <ProfileCompletionPrompt variant="banner" className="mb-6" />
+        
         <div className="text-center mb-8">
           <Badge variant="secondary" className="mb-4">Step 1 of 2</Badge>
           <h1 className="text-3xl font-bold">AI Salary Analysis Setup</h1>

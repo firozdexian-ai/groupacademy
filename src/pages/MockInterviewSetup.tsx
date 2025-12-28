@@ -27,6 +27,7 @@ import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { useProgressiveLoadingMessage } from "@/hooks/useProgressiveLoadingMessage";
 import { AuthGate } from "@/components/AuthGate";
 import { useTalent } from "@/hooks/useTalent";
+import { ProfileCompletionPrompt } from "@/components/profile/ProfileCompletionPrompt";
 
 interface ProfessionCategory {
   id: string;
@@ -365,6 +366,7 @@ function MockInterviewSetupContent() {
       <Navbar />
       
       <main className="flex-1 container max-w-2xl mx-auto px-4 py-12">
+        <ProfileCompletionPrompt variant="banner" className="mb-6" />
         {/* Email Check Step */}
         {step === "email-check" && (
           <Card>

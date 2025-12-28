@@ -19,6 +19,7 @@ import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { AuthGate } from "@/components/AuthGate";
 import { useTalent } from "@/hooks/useTalent";
 import { ExistingCVCard } from "@/components/cv/ExistingCVCard";
+import { ProfileCompletionPrompt } from "@/components/profile/ProfileCompletionPrompt";
 
 // Brand icon
 import iconPortfolio from "@/assets/icons/icon-portfolio.png";
@@ -445,6 +446,7 @@ function PortfolioRequestContent() {
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       <main className="flex-1 container mx-auto px-4 py-8">
+        <ProfileCompletionPrompt variant="banner" className="mb-6" />
         <div className="max-w-3xl mx-auto">
           {/* Header */}
           <div className="text-center mb-8">
