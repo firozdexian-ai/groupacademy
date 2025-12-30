@@ -182,8 +182,8 @@ const CareerServices = () => {
       ],
       cta: progress.portfolio ? "Check Status" : "Request Portfolio",
       path: progress.portfolio ? "/portfolio-status" : "/portfolio-request",
-      badge: "BDT 100",
-      badgeClass: "bg-primary text-primary-foreground",
+      badge: "FREE*",
+      badgeClass: "bg-success text-white",
       completed: progress.portfolio,
       serviceKey: 'portfolio'
     },

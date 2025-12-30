@@ -47,6 +47,8 @@ Guidelines:
 - Ensure proper formatting with paragraphs
 - Keep it between 150-300 words
 - Do NOT add placeholder text like [Your Name] - use the actual candidate name if provided
+- ALWAYS end the cover letter with "Sincerely," followed by the candidate's actual name on a new line
+- If candidate name is provided, use it exactly as given for the signature
 - Return ONLY the enhanced cover letter text, no explanations or commentary`;
 
     const userPrompt = `Please enhance this cover letter for a ${jobTitle || 'job'} position at ${companyName || 'the company'}.
