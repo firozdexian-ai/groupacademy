@@ -1,29 +1,54 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Briefcase, CheckCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Navbar } from "@/components/Navbar";
-import { Footer } from "@/components/Footer";
+import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { usePWADetect } from "@/hooks/usePWADetect";
+import { useTheme } from "next-themes";
+import { supabase } from "@/integrations/supabase/client";
 import logoIcon from "@/assets/logo-icon.png";
-
-// Import brand assets
-import heroIllustration from "@/assets/hero-illustration.png";
-import wavePattern from "@/assets/wave-pattern.png";
-import iconScorecard from "@/assets/icons/icon-scorecard.png";
-import iconMockInterview from "@/assets/icons/icon-mock-interview.png";
-import iconSalary from "@/assets/icons/icon-salary.png";
-import iconPortfolio from "@/assets/icons/icon-portfolio.png";
-import iconAiAssistant from "@/assets/icons/icon-ai-assistant.png";
+import logoLight from "@/assets/logo-horizontal-light.png";
+import logoDark from "@/assets/logo-horizontal-dark.png";
+import { 
+  ArrowRight, 
+  Target, 
+  Mic, 
+  DollarSign, 
+  Briefcase, 
+  FolderOpen,
+  Bot,
+  Building2,
+  Users,
+  BarChart3,
+  Search,
+  Moon,
+  Sun,
+  Sparkles
+} from "lucide-react";
 
 const Index = () => {
   const navigate = useNavigate();
   const { user, isLoading } = useAuth();
   const { isPWA, isLoading: isPWALoading } = usePWADetect();
+  const { theme, setTheme } = useTheme();
   const [pwaChecked, setPwaChecked] = useState(false);
+  const [blogPosts, setBlogPosts] = useState<any[]>([]);
+
+  // Fetch recent blog posts for SEO section
+  useEffect(() => {
+    const fetchBlogPosts = async () => {
+      const { data } = await supabase
+        .from('blog_posts')
+        .select('id, title, slug, excerpt, featured_image, published_at')
+        .eq('status', 'published')
+        .order('published_at', { ascending: false })
+        .limit(3);
+      
+      if (data) setBlogPosts(data);
+    };
+    fetchBlogPosts();
+  }, []);
 
   // Handle PWA users - redirect them directly without showing marketing page
   useEffect(() => {
@@ -78,293 +103,246 @@ const Index = () => {
     );
   }
 
-  const services = [
-    {
-      icon: iconScorecard,
-      title: "Career Readiness Scorecard",
-      description: "AI-powered assessment to discover your strengths and gaps",
-      path: "/career-assessment",
-      badge: "FREE",
-      badgeColor: "bg-accent text-accent-foreground",
-    },
-    {
-      icon: iconMockInterview,
-      title: "AI Mock Interview",
-      description: "Practice with job-specific questions and get instant feedback",
-      path: "/mock-interview",
-      badge: "First FREE",
-      badgeColor: "bg-primary text-primary-foreground",
-    },
-    {
-      icon: iconSalary,
-      title: "AI Salary Analysis",
-      description: "Know your market value and get negotiation tips",
-      path: "/salary-analysis",
-      badge: "First FREE",
-      badgeColor: "bg-secondary text-secondary-foreground",
-    },
-    {
-      icon: iconPortfolio,
-      title: "Digital Portfolio",
-      description: "Professional portfolio crafted by career experts",
-      path: "/portfolio-request",
-      badge: "FREE*",
-      badgeColor: "bg-success text-white",
-    },
-    {
-      icon: iconAiAssistant,
-      title: "AI Career Consultant",
-      description: "24/7 personalized career guidance for your profession",
-      path: "/career-services",
-      badge: "Coming Soon",
-      badgeColor: "bg-muted text-muted-foreground",
-    },
-    {
-      icon: null, // Will use Briefcase icon
-      title: "Job Board",
-      description: "Curated job openings from partner companies",
-      path: "/jobs",
-      badge: "HIRING",
-      badgeColor: "bg-warning text-warning-foreground",
-    },
+  const seekerFeatures = [
+    { icon: Target, label: "Career Readiness Scorecard" },
+    { icon: Mic, label: "AI Mock Interview" },
+    { icon: DollarSign, label: "Salary Analysis" },
+    { icon: FolderOpen, label: "Digital Portfolio" },
+    { icon: Briefcase, label: "Job Matching" },
+    { icon: Bot, label: "AI Career Coach" },
+  ];
+
+  const orgFeatures = [
+    { icon: Building2, label: "Post Job Openings" },
+    { icon: Users, label: "Access Talent Pool" },
+    { icon: Search, label: "Smart Candidate Search" },
+    { icon: BarChart3, label: "Analytics Dashboard" },
   ];
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <Navbar />
+      {/* Simple Header */}
+      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <img 
+              src={theme === "dark" ? logoLight : logoDark} 
+              alt="GroUp Academy" 
+              className="h-10 w-auto"
+            />
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              >
+                <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+              </Button>
+              <Button variant="outline" onClick={() => navigate("/auth")}>
+                Sign In
+              </Button>
+            </div>
+          </div>
+        </div>
+      </header>
 
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-hero">
-        <div className="container mx-auto px-6 py-16 md:py-24">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            {/* Left: Content */}
-            <div className="space-y-6 animate-fade-in">
-              <Badge variant="outline" className="gap-2 px-4 py-1.5">
-                AI-Powered Career Acceleration
-              </Badge>
-              
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-bold leading-tight">
-                <span className="text-gradient">Decode</span> Your{" "}
-                <br className="hidden md:block" />
-                Career Potential
-              </h1>
-              
-              <p className="text-lg text-muted-foreground max-w-lg">
-                From self-assessment to landing your dream job — GroUp Academy's AI-powered 
-                tools guide you at every step of your career journey.
-              </p>
-              
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Button size="lg" onClick={() => navigate("/career-assessment")} className="text-lg gap-2">
-                  Get Your Free Analysis
-                  <ArrowRight className="w-5 h-5" />
-                </Button>
-                <Button size="lg" variant="outline" onClick={() => navigate("/career-services")}>
-                  Explore Services
-                </Button>
-              </div>
+        <div className="container mx-auto px-6 py-16 md:py-24 text-center">
+          <Badge variant="outline" className="gap-2 px-4 py-1.5 mb-6">
+            <Sparkles className="w-3 h-3" />
+            AI-Powered Career Acceleration
+          </Badge>
+          
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-bold leading-tight mb-6">
+            <span className="text-gradient">Decode</span> Your Career Potential
+          </h1>
+          
+          <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
+            From self-assessment to landing your dream job — GroUp Academy's AI-powered 
+            tools guide you at every step of your career journey.
+          </p>
 
-              {/* Quick Stats */}
-              <div className="flex gap-8 pt-4">
-                <div>
-                  <p className="text-2xl font-bold text-primary">5</p>
-                  <p className="text-sm text-muted-foreground">AI Services</p>
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-secondary">5 min</p>
-                  <p className="text-sm text-muted-foreground">To Start</p>
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-accent">Free</p>
-                  <p className="text-sm text-muted-foreground">First Assessment</p>
-                </div>
-              </div>
+          {/* Quick Stats */}
+          <div className="flex justify-center gap-8 md:gap-12 mb-12">
+            <div className="text-center">
+              <p className="text-2xl md:text-3xl font-bold text-primary">5</p>
+              <p className="text-sm text-muted-foreground">AI Tools</p>
             </div>
-
-            {/* Right: Hero Illustration */}
-            <div className="hidden md:flex justify-center animate-slide-up">
-              <img 
-                src={heroIllustration} 
-                alt="Career guidance illustration" 
-                className="w-full max-w-lg h-auto"
-              />
+            <div className="text-center">
+              <p className="text-2xl md:text-3xl font-bold text-secondary">1000+</p>
+              <p className="text-sm text-muted-foreground">Jobs</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl md:text-3xl font-bold text-accent">Free</p>
+              <p className="text-sm text-muted-foreground">To Start</p>
             </div>
           </div>
         </div>
-
-        {/* Wave Pattern Divider */}
-        <div className="absolute bottom-0 left-0 right-0 h-16 overflow-hidden">
-          <img 
-            src={wavePattern} 
-            alt="" 
-            className="w-full h-full object-cover opacity-50"
-          />
-        </div>
       </section>
 
-      {/* Services Section */}
-      <section className="container mx-auto px-6 py-20">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-heading font-bold mb-4">
-            How We Accelerate Your Career
-          </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Our AI-powered career services help you prepare, practice, and land your dream job
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-          {services.map((service, index) => (
-            <Card
-              key={index}
-              className="group hover:shadow-lg transition-all duration-300 cursor-pointer border-2 hover:border-primary/20"
-              onClick={() => navigate(service.path)}
-            >
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="icon-container group-hover:scale-110 transition-transform">
-                    {service.icon ? (
-                      <img 
-                        src={service.icon} 
-                        alt={service.title} 
-                        className="w-10 h-10 object-contain"
-                      />
-                    ) : (
-                      <Briefcase className="w-7 h-7 text-white" />
-                    )}
-                  </div>
-                  <Badge className={service.badgeColor}>
-                    {service.badge}
-                  </Badge>
+      {/* Two CTA Cards */}
+      <section className="container mx-auto px-6 py-12 md:py-20">
+        <div className="grid md:grid-cols-2 gap-6 md:gap-8 max-w-5xl mx-auto">
+          {/* Job Seekers Card */}
+          <Card className="relative overflow-hidden border-2 hover:border-primary/50 transition-all duration-300 group">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-primary" />
+            <CardContent className="p-6 md:p-8">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
+                  <Users className="w-6 h-6 text-primary" />
                 </div>
-                <h3 className="text-lg font-semibold mb-2 group-hover:text-primary transition-colors">
-                  {service.title}
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  {service.description}
-                </p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-        <p className="text-center text-xs text-muted-foreground mt-4">
-          *FREE for first 1,000 users, then BDT 2,000
-        </p>
-      </section>
+                <div>
+                  <h2 className="text-2xl font-heading font-bold">For Job Seekers</h2>
+                  <p className="text-sm text-muted-foreground">Accelerate your career</p>
+                </div>
+              </div>
 
-      {/* Features Section */}
-      <section className="bg-muted/50">
-        <div className="container mx-auto px-6 py-20">
-          <div className="grid md:grid-cols-2 gap-12 items-center max-w-5xl mx-auto">
-            <div>
-              <h2 className="text-3xl font-heading font-bold mb-6">
-                Your Complete Career Journey
-              </h2>
-              <div className="space-y-4">
-                {[
-                  "Free AI-powered career assessment",
-                  "Practice interviews with instant feedback",
-                  "Know your market salary value",
-                  "Professional digital portfolio",
-                  "Curated job opportunities",
-                ].map((feature, index) => (
-                  <div key={index} className="flex items-center gap-3">
-                    <CheckCircle className="w-5 h-5 text-accent shrink-0" />
-                    <span>{feature}</span>
+              <p className="text-muted-foreground mb-6">
+                Discover AI-powered tools designed to help you stand out in the job market:
+              </p>
+
+              <div className="grid grid-cols-2 gap-3 mb-8">
+                {seekerFeatures.map((feature, index) => (
+                  <div key={index} className="flex items-center gap-2 text-sm">
+                    <feature.icon className="w-4 h-4 text-primary shrink-0" />
+                    <span>{feature.label}</span>
                   </div>
                 ))}
               </div>
+
               <Button 
                 size="lg" 
-                className="mt-8"
-                onClick={() => navigate("/career-services")}
+                className="w-full group-hover:scale-[1.02] transition-transform"
+                onClick={() => navigate("/auth?tab=signup")}
               >
-                View All Services
+                Get Started Free
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
-            </div>
-            <div className="hidden md:block">
-              <Card className="bg-gradient-primary text-white border-0 p-8">
-                <h3 className="text-2xl font-bold mb-4">Start Free Today</h3>
-                <p className="text-white/90 mb-6">
-                  Take your Career Readiness Scorecard and discover your path to success.
-                </p>
-                <Button 
-                  variant="secondary" 
-                  size="lg"
-                  onClick={() => navigate("/career-assessment")}
-                  className="w-full"
-                >
-                  Start Assessment
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
-              </Card>
-            </div>
-          </div>
+
+              <p className="text-xs text-center text-muted-foreground mt-3">
+                250 bonus credits on signup
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Organizations Card */}
+          <Card className="relative overflow-hidden border-2 hover:border-secondary/50 transition-all duration-300 group">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-secondary to-accent" />
+            <CardContent className="p-6 md:p-8">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-12 h-12 bg-secondary/10 rounded-xl flex items-center justify-center">
+                  <Building2 className="w-6 h-6 text-secondary" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-heading font-bold">For Organizations</h2>
+                  <p className="text-sm text-muted-foreground">Find the perfect talent</p>
+                </div>
+              </div>
+
+              <p className="text-muted-foreground mb-6">
+                Connect with pre-assessed, job-ready candidates:
+              </p>
+
+              <div className="space-y-3 mb-8">
+                {orgFeatures.map((feature, index) => (
+                  <div key={index} className="flex items-center gap-2 text-sm">
+                    <feature.icon className="w-4 h-4 text-secondary shrink-0" />
+                    <span>{feature.label}</span>
+                  </div>
+                ))}
+              </div>
+
+              <Badge variant="secondary" className="mb-4 w-full justify-center py-2">
+                Coming Soon
+              </Badge>
+
+              <Button 
+                size="lg" 
+                variant="secondary"
+                className="w-full group-hover:scale-[1.02] transition-transform"
+                onClick={() => navigate("/org")}
+              >
+                Join Waitlist
+                <ArrowRight className="w-5 h-5 ml-2" />
+              </Button>
+
+              <p className="text-xs text-center text-muted-foreground mt-3">
+                Early access for founding partners
+              </p>
+            </CardContent>
+          </Card>
         </div>
       </section>
 
-      {/* Jobs CTA Section */}
-      <section className="container mx-auto px-6 py-20">
-        <Card className="bg-gradient-to-r from-primary/10 via-secondary/10 to-accent/10 border-primary/20 overflow-hidden">
-          <CardContent className="py-12 px-8">
-            <div className="grid md:grid-cols-2 gap-8 items-center">
-              <div>
-                <Badge className="mb-4 bg-warning/20 text-warning-foreground">
-                  Hiring Now
-                </Badge>
-                <h2 className="text-3xl font-heading font-bold mb-4">
-                  Find Your Dream Job
-                </h2>
-                <p className="text-muted-foreground mb-6">
-                  Browse curated job openings from our partner companies. Prepare with our 
-                  career services first — candidates who complete Mock Interview and 
-                  Portfolio have higher success rates.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <Button size="lg" onClick={() => navigate("/jobs")}>
-                    Browse Jobs
-                    <ArrowRight className="w-5 h-5 ml-2" />
-                  </Button>
-                  <Button size="lg" variant="outline" onClick={() => navigate("/courses")}>
-                    View Courses
-                  </Button>
-                </div>
-              </div>
-              <div className="hidden md:flex justify-center">
-                <div className="w-40 h-40 bg-gradient-primary rounded-full flex items-center justify-center shadow-xl">
-                  <Briefcase className="w-20 h-20 text-white" />
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </section>
+      {/* Blog Section for SEO */}
+      {blogPosts.length > 0 && (
+        <section className="container mx-auto px-6 py-12 border-t">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-heading font-bold mb-2">From Our Blog</h2>
+            <p className="text-muted-foreground">Career insights and industry updates</p>
+          </div>
 
-      {/* Final CTA */}
-      <section className="container mx-auto px-6 py-16">
-        <Card className="bg-gradient-primary text-white border-0 shadow-2xl">
-          <CardContent className="py-12 px-8 text-center">
-            <h2 className="text-3xl md:text-4xl font-heading font-bold mb-4">
-              Ready to Decode Your Career Potential?
-            </h2>
-            <p className="text-lg text-white/90 mb-8 max-w-2xl mx-auto">
-              Join thousands of professionals who have accelerated their careers with GroUp Academy
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" variant="secondary" onClick={() => navigate("/career-assessment")} className="text-lg">
-                Start Free Assessment
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-              <Button size="lg" variant="outline" onClick={() => navigate("/auth")} className="text-lg bg-white/10 border-white/30 hover:bg-white/20">
-                Create Account
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </section>
+          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {blogPosts.map((post) => (
+              <Card 
+                key={post.id} 
+                className="cursor-pointer hover:shadow-md transition-shadow"
+                onClick={() => navigate(`/blog/${post.slug}`)}
+              >
+                {post.featured_image && (
+                  <div className="aspect-video overflow-hidden rounded-t-lg">
+                    <img 
+                      src={post.featured_image} 
+                      alt={post.title}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+                <CardContent className="p-4">
+                  <h3 className="font-semibold line-clamp-2 mb-2">{post.title}</h3>
+                  {post.excerpt && (
+                    <p className="text-sm text-muted-foreground line-clamp-2">{post.excerpt}</p>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
 
-      <Footer />
+          <div className="text-center mt-8">
+            <Button variant="outline" onClick={() => navigate("/blog")}>
+              View All Articles
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          </div>
+        </section>
+      )}
+
+      {/* Simple Footer */}
+      <footer className="border-t bg-muted/30 mt-auto">
+        <div className="container mx-auto px-6 py-8">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <img src={logoIcon} alt="GroUp" className="w-8 h-8" />
+              <span className="text-sm text-muted-foreground">
+                © 2024 GroUp Academy. All rights reserved.
+              </span>
+            </div>
+            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+              <button onClick={() => navigate("/blog")} className="hover:text-foreground transition-colors">
+                Blog
+              </button>
+              <button onClick={() => navigate("/org")} className="hover:text-foreground transition-colors">
+                For Organizations
+              </button>
+              <button onClick={() => navigate("/auth")} className="hover:text-foreground transition-colors">
+                Sign In
+              </button>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };

@@ -42,7 +42,6 @@ export const Navbar = () => {
 
   const checkAuth = async () => {
     try {
-      // Use a timeout for session check
       const sessionPromise = supabase.auth.getSession();
       const timeoutPromise = new Promise<null>((resolve) => 
         setTimeout(() => resolve(null), AUTH_TIMEOUT)
@@ -55,13 +54,11 @@ export const Navbar = () => {
         await checkUserRole(result.data.session.user.id);
       }
     } catch (err) {
-      // Silently fail - navbar should still render
       console.warn("[Navbar] Auth check failed:", err);
     }
   };
 
   const checkUserRole = async (userId: string) => {
-    // Cancel any previous role check
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
@@ -81,7 +78,6 @@ export const Navbar = () => {
       
       clearTimeout(timeoutId);
       
-      // Only update if this is still the active request
       if (abortControllerRef.current === controller && !controller.signal.aborted) {
         setIsAdmin(!!data);
       }
@@ -90,18 +86,10 @@ export const Navbar = () => {
       if (err?.name !== "AbortError") {
         console.warn("[Navbar] Role check failed:", err);
       }
-      // Default to non-admin on failure
       if (abortControllerRef.current === controller) {
         setIsAdmin(false);
       }
     }
-  };
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    setIsLoggedIn(false);
-    setIsAdmin(false);
-    navigate("/");
   };
 
   return (
@@ -120,20 +108,8 @@ export const Navbar = () => {
             />
           </button>
 
-          {/* Desktop Navigation */}
+          {/* Desktop Navigation - Simplified */}
           <nav className="hidden md:flex items-center gap-1">
-            <Button variant="ghost" onClick={() => navigate("/")}>
-              Home
-            </Button>
-            <Button variant="ghost" onClick={() => navigate("/professions")}>
-              Professions
-            </Button>
-            <Button variant="ghost" onClick={() => navigate("/courses")}>
-              Courses
-            </Button>
-            <Button variant="ghost" onClick={() => navigate("/jobs")}>
-              Jobs
-            </Button>
             {isAdmin && (
               <Button variant="ghost" onClick={() => navigate("/dashboard")}>
                 Dashboard
@@ -155,7 +131,7 @@ export const Navbar = () => {
               <span className="sr-only">Toggle theme</span>
             </Button>
 
-          {/* Auth Buttons */}
+            {/* Auth Buttons */}
             {isLoggedIn ? (
               <Button onClick={() => navigate("/app/feed")} className="hidden md:flex">
                 Go to App
@@ -178,21 +154,9 @@ export const Navbar = () => {
           </div>
         </div>
 
-        {/* Mobile Menu */}
+        {/* Mobile Menu - Simplified */}
         {mobileMenuOpen && (
           <nav className="md:hidden pt-4 pb-2 flex flex-col gap-2 border-t mt-4">
-            <Button variant="ghost" onClick={() => { navigate("/"); setMobileMenuOpen(false); }} className="justify-start">
-              Home
-            </Button>
-            <Button variant="ghost" onClick={() => { navigate("/professions"); setMobileMenuOpen(false); }} className="justify-start">
-              Professions
-            </Button>
-            <Button variant="ghost" onClick={() => { navigate("/courses"); setMobileMenuOpen(false); }} className="justify-start">
-              Courses
-            </Button>
-            <Button variant="ghost" onClick={() => { navigate("/jobs"); setMobileMenuOpen(false); }} className="justify-start">
-              Jobs
-            </Button>
             {isLoggedIn ? (
               <>
                 {isAdmin && (

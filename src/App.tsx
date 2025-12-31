@@ -10,7 +10,6 @@ import { TalentProvider } from "@/contexts/TalentContext";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
-import Courses from "./pages/Courses";
 import CourseDetail from "./pages/CourseDetail";
 import Dashboard from "./pages/Dashboard";
 import MyLearning from "./pages/MyLearning";
@@ -31,7 +30,6 @@ import Sessions from "./pages/Sessions";
 import SessionNew from "./pages/SessionNew";
 import SessionEdit from "./pages/SessionEdit";
 import CareerAssessment from "./pages/CareerAssessment";
-import CareerServices from "./pages/CareerServices";
 import AssessmentResults from "./pages/AssessmentResults";
 import PortfolioRequest from "./pages/PortfolioRequest";
 import PortfolioStatus from "./pages/PortfolioStatus";
@@ -40,16 +38,12 @@ import MockInterviewSetup from "./pages/MockInterviewSetup";
 import MockInterviewQuestions from "./pages/MockInterviewQuestions";
 import MockInterviewCapture from "./pages/MockInterviewCapture";
 import MockInterviewResults from "./pages/MockInterviewResults";
-import Professions from "./pages/Professions";
-import ProfessionDetail from "./pages/ProfessionDetail";
-import Jobs from "./pages/Jobs";
 import JobDetail from "./pages/JobDetail";
 import JobApplication from "./pages/JobApplication";
 import SalaryAnalysis from "./pages/SalaryAnalysis";
 import SalaryAnalysisSetup from "./pages/SalaryAnalysisSetup";
 import SalaryAnalysisProcessing from "./pages/SalaryAnalysisProcessing";
 import SalaryAnalysisResults from "./pages/SalaryAnalysisResults";
-import TalentPortal from "./pages/TalentPortal";
 import Organization from "./pages/Organization";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -119,10 +113,15 @@ export default function App() {
                   <Route path="/" element={<Index />} />
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/reset-password" element={<ResetPassword />} />
-                  <Route path="/courses" element={<Courses />} />
-                  <Route path="/professions" element={<Professions />} />
-                  <Route path="/professions/:slug" element={<ProfessionDetail />} />
-                  <Route path="/career-services" element={<CareerServices />} />
+                  
+                  {/* Redirect old public routes to auth with returnTo */}
+                  <Route path="/courses" element={<Navigate to="/auth?returnTo=/app/learning/courses" replace />} />
+                  <Route path="/professions" element={<Navigate to="/auth?returnTo=/app/learning/tracks" replace />} />
+                  <Route path="/professions/:slug" element={<Navigate to="/auth?returnTo=/app/learning/tracks" replace />} />
+                  <Route path="/career-services" element={<Navigate to="/auth?returnTo=/app/services" replace />} />
+                  <Route path="/jobs" element={<Navigate to="/auth?returnTo=/app/jobs" replace />} />
+                  
+                  {/* Keep access code flows public for standalone services */}
                   <Route path="/career-assessment" element={<CareerAssessment />} />
                   <Route path="/assessment-results/:id" element={<AssessmentResults />} />
                   <Route path="/portfolio-request" element={<PortfolioRequest />} />
@@ -132,13 +131,19 @@ export default function App() {
                   <Route path="/mock-interview/questions/:id" element={<MockInterviewQuestions />} />
                   <Route path="/mock-interview/capture/:id" element={<MockInterviewCapture />} />
                   <Route path="/mock-interview/results/:id" element={<MockInterviewResults />} />
-                  <Route path="/jobs" element={<Jobs />} />
-                  <Route path="/jobs/:id" element={<JobDetail />} />
-                  <Route path="/jobs/:id/apply" element={<JobApplication />} />
                   <Route path="/salary-analysis" element={<SalaryAnalysis />} />
                   <Route path="/salary-analysis/setup" element={<SalaryAnalysisSetup />} />
                   <Route path="/salary-analysis/processing/:id" element={<SalaryAnalysisProcessing />} />
                   <Route path="/salary-analysis/results/:id" element={<SalaryAnalysisResults />} />
+                  
+                  {/* Keep blog public for SEO */}
+                  <Route path="/blog" element={<Blog />} />
+                  <Route path="/blog/:slug" element={<BlogPost />} />
+                  
+                  {/* Job detail with redirect */}
+                  <Route path="/jobs/:id" element={<Navigate to="/auth?returnTo=/app/jobs" replace />} />
+                  <Route path="/jobs/:id/apply" element={<Navigate to="/auth?returnTo=/app/jobs" replace />} />
+                  
                   <Route path="/my-profile" element={<Navigate to="/app/profile" replace />} />
                   <Route
                     path="/dashboard"
