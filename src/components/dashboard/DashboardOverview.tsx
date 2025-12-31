@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Users, BookOpen, DollarSign, Video, Plus, Target, Briefcase, RefreshCw, AlertCircle } from "lucide-react";
+import { Users, BookOpen, DollarSign, Video, Plus, Target, Briefcase, RefreshCw, AlertCircle, Bot, Coins, Bell } from "lucide-react";
 import StatsCard from "@/components/dashboard/StatsCard";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 
@@ -34,6 +34,18 @@ interface DashboardStats {
     inProgress: number;
     completed: number;
     freeRemaining: number;
+  };
+  aiAgents: {
+    totalSessions: number;
+    activeSessions: number;
+  };
+  credits: {
+    totalBalance: number;
+    transactionsToday: number;
+  };
+  notifications: {
+    sentToday: number;
+    unread: number;
   };
 }
 
@@ -64,6 +76,18 @@ const [stats, setStats] = useState<DashboardStats>({
       inProgress: 0,
       completed: 0,
       freeRemaining: 0,
+    },
+    aiAgents: {
+      totalSessions: 0,
+      activeSessions: 0,
+    },
+    credits: {
+      totalBalance: 0,
+      transactionsToday: 0,
+    },
+    notifications: {
+      sentToday: 0,
+      unread: 0,
     },
   });
   const [statsError, setStatsError] = useState<string | null>(null);
@@ -189,6 +213,64 @@ const [stats, setStats] = useState<DashboardStats>({
       const completedPortfolios = portfolioData?.filter(p => p.status === "completed").length || 0;
       const FREE_LIMIT = 1000;
 
+      // AI Agent sessions stats
+      const { count: totalAgentSessions, error: agentSessionsError } = await withTimeout(
+        Promise.resolve(supabase.from("agent_chat_sessions").select("*", { count: "exact", head: true })),
+        15000,
+        "Loading agent sessions timed out"
+      );
+      if (agentSessionsError) throw agentSessionsError;
+
+      const { count: activeAgentSessions, error: activeAgentError } = await withTimeout(
+        Promise.resolve(supabase.from("agent_chat_sessions").select("*", { count: "exact", head: true }).eq("is_active", true)),
+        15000,
+        "Loading active sessions timed out"
+      );
+      if (activeAgentError) throw activeAgentError;
+
+      // Credits stats
+      const { data: creditsData, error: creditsError } = await withTimeout(
+        Promise.resolve(supabase.from("talent_credits").select("balance")),
+        15000,
+        "Loading credits timed out"
+      );
+      if (creditsError) throw creditsError;
+
+      const totalCreditsBalance = creditsData?.reduce((sum, c) => sum + (c.balance || 0), 0) || 0;
+
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const { count: transactionsToday, error: transactionsError } = await withTimeout(
+        Promise.resolve(supabase
+          .from("credit_transactions")
+          .select("*", { count: "exact", head: true })
+          .gte("created_at", todayStart.toISOString())),
+        15000,
+        "Loading transactions timed out"
+      );
+      if (transactionsError) throw transactionsError;
+
+      // Notifications stats
+      const { count: notificationsSentToday, error: notifTodayError } = await withTimeout(
+        Promise.resolve(supabase
+          .from("notifications")
+          .select("*", { count: "exact", head: true })
+          .gte("created_at", todayStart.toISOString())),
+        15000,
+        "Loading notifications timed out"
+      );
+      if (notifTodayError) throw notifTodayError;
+
+      const { count: unreadNotifications, error: unreadError } = await withTimeout(
+        Promise.resolve(supabase
+          .from("notifications")
+          .select("*", { count: "exact", head: true })
+          .eq("is_read", false)),
+        15000,
+        "Loading unread notifications timed out"
+      );
+      if (unreadError) throw unreadError;
+
       setStats({
         totalTalents: talentsCount || 0,
         totalLearners: learnersCount || 0,
@@ -214,6 +296,18 @@ const [stats, setStats] = useState<DashboardStats>({
           inProgress: inProgressPortfolios,
           completed: completedPortfolios,
           freeRemaining: Math.max(0, FREE_LIMIT - totalPortfolios),
+        },
+        aiAgents: {
+          totalSessions: totalAgentSessions || 0,
+          activeSessions: activeAgentSessions || 0,
+        },
+        credits: {
+          totalBalance: totalCreditsBalance,
+          transactionsToday: transactionsToday || 0,
+        },
+        notifications: {
+          sentToday: notificationsSentToday || 0,
+          unread: unreadNotifications || 0,
         },
       });
     } catch (error: any) {
@@ -343,6 +437,27 @@ const [stats, setStats] = useState<DashboardStats>({
             value={stats.freeVideoViews}
             icon={Video}
             variant="default"
+          />
+          <StatsCard
+            title="AI Agent Sessions"
+            value={stats.aiAgents.totalSessions}
+            icon={Bot}
+            variant="accent"
+            trend={stats.aiAgents.activeSessions > 0 ? `${stats.aiAgents.activeSessions} active` : undefined}
+          />
+          <StatsCard
+            title="Credits Balance"
+            value={stats.credits.totalBalance.toLocaleString()}
+            icon={Coins}
+            variant="success"
+            trend={stats.credits.transactionsToday > 0 ? `${stats.credits.transactionsToday} today` : undefined}
+          />
+          <StatsCard
+            title="Notifications"
+            value={stats.notifications.sentToday}
+            icon={Bell}
+            variant="secondary"
+            trend={stats.notifications.unread > 0 ? `${stats.notifications.unread} unread` : 'Sent today'}
           />
         </div>
       )}

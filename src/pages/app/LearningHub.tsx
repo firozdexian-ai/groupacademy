@@ -25,10 +25,9 @@ const LEARNING_SECTIONS = [
     title: 'Webinars & Events',
     description: 'Live sessions and networking opportunities',
     icon: Calendar,
-    href: '#',
+    href: '/app/learning/events',
     color: 'text-accent',
-    bgColor: 'bg-accent/10',
-    badge: 'Coming Soon'
+    bgColor: 'bg-accent/10'
   },
   {
     title: 'Competitions',
