@@ -76,7 +76,7 @@ export default function BlogPost() {
   if (!post) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-12 text-center">
-        <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+        <FileText className="h-10 w-10 mx-auto text-muted-foreground mb-4" />
         <h2 className="text-xl font-semibold mb-2">Article Not Found</h2>
         <p className="text-muted-foreground mb-4">This article may have been removed or is not yet published.</p>
         <Button onClick={() => navigate('/app/learning/blog')}>

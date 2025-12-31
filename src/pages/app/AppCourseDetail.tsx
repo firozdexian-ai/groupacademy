@@ -185,7 +185,7 @@ export default function AppCourseDetail() {
       <div className="max-w-4xl mx-auto px-4 py-6">
         <Card>
           <CardContent className="pt-6 text-center">
-            <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+            <AlertCircle className="h-10 w-10 text-destructive mx-auto mb-4" />
             <h2 className="text-lg font-semibold mb-2">Failed to Load Course</h2>
             <p className="text-muted-foreground mb-4">{loadingError}</p>
             <div className="flex gap-2 justify-center">
@@ -253,7 +253,7 @@ export default function AppCourseDetail() {
             <Badge variant="outline">BDT {course.price}</Badge>
           )}
         </div>
-        <h1 className="text-2xl font-bold mb-2">{course.title}</h1>
+        <h1 className="text-xl font-bold mb-2">{course.title}</h1>
         {course.instructor_name && (
           <p className="text-muted-foreground">by {course.instructor_name}</p>
         )}
@@ -305,7 +305,7 @@ export default function AppCourseDetail() {
       {/* Description */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">About This Course</CardTitle>
+          <CardTitle className="text-base">About This Course</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground whitespace-pre-wrap">{course.description}</p>
