@@ -10,7 +10,10 @@ import {
   Coins,
   LogOut,
   Sparkles,
-  Loader2
+  Loader2,
+  ChevronRight,
+  BookOpen,
+  History
 } from 'lucide-react';
 import { useTalent } from '@/hooks/useTalent';
 import { useCredits } from '@/hooks/useCredits';
@@ -31,6 +34,7 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { cn } from '@/lib/utils';
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -69,7 +73,6 @@ export default function Profile() {
 
     setIsEnhancing(true);
     try {
-      // Call AI to enhance experience descriptions
       const { data, error } = await supabase.functions.invoke('enhance-cover-letter', {
         body: {
           type: 'experience',
@@ -99,68 +102,71 @@ export default function Profile() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6">
-      {/* Profile Header */}
-      <Card className="mb-6">
-        <CardContent className="pt-6">
-          <div className="flex items-start gap-4">
-            <Avatar className="h-20 w-20">
+    <div className="max-w-lg mx-auto px-4 py-6">
+      {/* Profile Hero Header - bKash Style */}
+      <div className="relative mb-6 rounded-3xl overflow-hidden shadow-lg animate-bounce-in">
+        {/* Gradient Background */}
+        <div className="bg-gradient-primary p-6 pb-8">
+          <div className="flex items-start justify-between mb-4">
+            <Avatar className="h-20 w-20 ring-4 ring-primary-foreground/30 shadow-xl">
               <AvatarImage src={talent.profilePhotoUrl || undefined} />
-              <AvatarFallback className="text-xl bg-primary/10 text-primary">
+              <AvatarFallback className="text-2xl bg-primary-foreground/20 text-primary-foreground font-bold">
                 {initials}
               </AvatarFallback>
             </Avatar>
-            
-            <div className="flex-1">
-              <h1 className="text-xl font-bold">{talent.fullName}</h1>
-              <p className="text-muted-foreground">
-                {talent.customProfession || 'Career Explorer'}
-              </p>
-              
-              <div className="flex items-center gap-4 mt-3 text-sm text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <Mail className="h-4 w-4" />
-                  {talent.email}
-                </span>
-                {talent.phone && (
-                  <span className="flex items-center gap-1">
-                    <Phone className="h-4 w-4" />
-                    {talent.phone}
-                  </span>
-                )}
-              </div>
-            </div>
-            
-            <Button variant="outline" size="icon" onClick={handleEditProfile}>
+            <Button 
+              variant="secondary" 
+              size="icon" 
+              className="rounded-xl shadow-md press-scale"
+              onClick={handleEditProfile}
+            >
               <Edit2 className="h-4 w-4" />
             </Button>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Credits Card */}
-      <Card className="mb-6 bg-gradient-to-r from-warning/10 to-warning/5 border-warning/30">
-        <CardContent className="py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-warning/20 rounded-full">
-                <Coins className="h-6 w-6 text-warning" />
-              </div>
-              <div>
-                {creditsLoading ? (
-                  <Skeleton className="h-8 w-16 mb-1" />
-                ) : (
-                  <p className="text-2xl font-bold">{balance}</p>
-                )}
-                <p className="text-sm text-muted-foreground">Credits Available</p>
-              </div>
-            </div>
-            <Button onClick={() => setShowCreditSheet(true)}>
-              Buy Credits
-            </Button>
+          
+          <h1 className="text-xl font-bold text-primary-foreground mb-0.5">{talent.fullName}</h1>
+          <p className="text-primary-foreground/80 text-sm">
+            {talent.customProfession || 'Career Explorer'}
+          </p>
+          
+          <div className="flex items-center gap-4 mt-3 text-xs text-primary-foreground/70">
+            <span className="flex items-center gap-1">
+              <Mail className="h-3.5 w-3.5" />
+              {talent.email}
+            </span>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+
+        {/* Credits Card - Floating */}
+        <div className="px-4 -mt-4">
+          <Card className="border-0 shadow-lg">
+            <CardContent className="py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-warning/15 rounded-xl">
+                    <Coins className="h-6 w-6 text-warning" />
+                  </div>
+                  <div>
+                    {creditsLoading ? (
+                      <Skeleton className="h-7 w-16 mb-1" />
+                    ) : (
+                      <p className="text-2xl font-bold">{balance}</p>
+                    )}
+                    <p className="text-xs text-muted-foreground">Credits Available</p>
+                  </div>
+                </div>
+                <Button 
+                  size="sm"
+                  className="rounded-xl font-semibold press-scale"
+                  onClick={() => setShowCreditSheet(true)}
+                >
+                  Buy Credits
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
       <CreditPurchaseSheet 
         isOpen={showCreditSheet}
@@ -168,35 +174,41 @@ export default function Profile() {
         currentBalance={balance}
       />
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-2 gap-3 mb-6">
+      {/* Quick Actions - Horizontal Scroll */}
+      <div className="flex gap-3 mb-6 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
         <Card 
-          className="cursor-pointer hover:shadow-md transition-shadow"
+          className="cursor-pointer shadow-md border-0 flex-shrink-0 w-[140px] press-scale rounded-2xl"
           onClick={() => navigate('/app/learning/my-courses')}
         >
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <GraduationCap className="h-5 w-5 text-primary" />
+          <CardContent className="p-4 flex flex-col items-center text-center gap-2">
+            <div className="p-3 bg-primary/10 rounded-xl">
+              <BookOpen className="h-5 w-5 text-primary" />
             </div>
-            <div>
-              <p className="font-medium text-sm">My Learning</p>
-              <p className="text-xs text-muted-foreground">View courses</p>
-            </div>
+            <p className="font-semibold text-sm">My Learning</p>
           </CardContent>
         </Card>
         
         <Card 
-          className="cursor-pointer hover:shadow-md transition-shadow"
+          className="cursor-pointer shadow-md border-0 flex-shrink-0 w-[140px] press-scale rounded-2xl"
           onClick={handleEditProfile}
         >
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 bg-accent/10 rounded-lg">
+          <CardContent className="p-4 flex flex-col items-center text-center gap-2">
+            <div className="p-3 bg-accent/10 rounded-xl">
               <FileText className="h-5 w-5 text-accent" />
             </div>
-            <div>
-              <p className="font-medium text-sm">Edit Profile</p>
-              <p className="text-xs text-muted-foreground">Update details</p>
+            <p className="font-semibold text-sm">Edit Profile</p>
+          </CardContent>
+        </Card>
+
+        <Card 
+          className="cursor-pointer shadow-md border-0 flex-shrink-0 w-[140px] press-scale rounded-2xl"
+          onClick={() => navigate('/app/applications')}
+        >
+          <CardContent className="p-4 flex flex-col items-center text-center gap-2">
+            <div className="p-3 bg-secondary/10 rounded-xl">
+              <History className="h-5 w-5 text-secondary" />
             </div>
+            <p className="font-semibold text-sm">Applications</p>
           </CardContent>
         </Card>
       </div>
@@ -204,12 +216,12 @@ export default function Profile() {
       {/* Profile Sections */}
       <div className="space-y-4">
         {/* About */}
-        <Card>
+        <Card className="rounded-2xl shadow-sm border-border/50">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base">About</CardTitle>
-              <Button variant="ghost" size="sm" onClick={handleEditProfile}>
-                <Edit2 className="h-4 w-4" />
+              <CardTitle className="text-base font-semibold">About</CardTitle>
+              <Button variant="ghost" size="sm" onClick={handleEditProfile} className="press-scale">
+                <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
           </CardHeader>
@@ -225,18 +237,19 @@ export default function Profile() {
         </Card>
 
         {/* Experience */}
-        <Card>
+        <Card className="rounded-2xl shadow-sm border-border/50">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base">Experience</CardTitle>
+              <CardTitle className="text-base font-semibold">Experience</CardTitle>
               <Button 
                 variant="ghost" 
                 size="sm" 
                 onClick={() => setShowEnhanceDialog(true)}
                 disabled={!talent.experience || talent.experience.length === 0}
+                className="press-scale text-primary"
               >
                 <Sparkles className="h-4 w-4 mr-1" />
-                Enhance with AI
+                Enhance
               </Button>
             </div>
           </CardHeader>
@@ -245,11 +258,11 @@ export default function Profile() {
               <div className="space-y-3">
                 {(talent.experience as any[]).slice(0, 3).map((exp, i) => (
                   <div key={i} className="flex gap-3">
-                    <div className="p-2 bg-muted rounded-lg h-fit">
+                    <div className="p-2.5 bg-muted rounded-xl h-fit">
                       <Briefcase className="h-4 w-4 text-muted-foreground" />
                     </div>
-                    <div>
-                      <p className="font-medium text-sm">{exp.title || exp.position}</p>
+                    <div className="flex-1">
+                      <p className="font-semibold text-sm">{exp.title || exp.position}</p>
                       <p className="text-xs text-muted-foreground">{exp.company}</p>
                       {exp.description && (
                         <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
@@ -269,12 +282,12 @@ export default function Profile() {
         </Card>
 
         {/* Education */}
-        <Card>
+        <Card className="rounded-2xl shadow-sm border-border/50">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base">Education</CardTitle>
-              <Button variant="ghost" size="sm" onClick={handleEditProfile}>
-                <Edit2 className="h-4 w-4" />
+              <CardTitle className="text-base font-semibold">Education</CardTitle>
+              <Button variant="ghost" size="sm" onClick={handleEditProfile} className="press-scale">
+                <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
           </CardHeader>
@@ -283,11 +296,11 @@ export default function Profile() {
               <div className="space-y-3">
                 {(talent.education as any[]).slice(0, 3).map((edu, i) => (
                   <div key={i} className="flex gap-3">
-                    <div className="p-2 bg-muted rounded-lg h-fit">
+                    <div className="p-2.5 bg-muted rounded-xl h-fit">
                       <GraduationCap className="h-4 w-4 text-muted-foreground" />
                     </div>
                     <div>
-                      <p className="font-medium text-sm">{edu.degree || edu.field}</p>
+                      <p className="font-semibold text-sm">{edu.degree || edu.field}</p>
                       <p className="text-xs text-muted-foreground">{edu.institution}</p>
                     </div>
                   </div>
@@ -302,12 +315,12 @@ export default function Profile() {
         </Card>
 
         {/* Skills */}
-        <Card>
+        <Card className="rounded-2xl shadow-sm border-border/50">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base">Skills</CardTitle>
-              <Button variant="ghost" size="sm" onClick={handleEditProfile}>
-                <Edit2 className="h-4 w-4" />
+              <CardTitle className="text-base font-semibold">Skills</CardTitle>
+              <Button variant="ghost" size="sm" onClick={handleEditProfile} className="press-scale">
+                <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
           </CardHeader>
@@ -315,7 +328,7 @@ export default function Profile() {
             {Array.isArray(talent.skills) && talent.skills.length > 0 ? (
               <div className="flex flex-wrap gap-2">
                 {talent.skills.map((skill, i) => (
-                  <Badge key={i} variant="secondary">
+                  <Badge key={i} variant="secondary" className="rounded-lg">
                     {typeof skill === 'string' ? skill : skill.name}
                   </Badge>
                 ))}
@@ -339,7 +352,7 @@ export default function Profile() {
       <div className="mt-8">
         <Button 
           variant="outline" 
-          className="w-full text-destructive hover:bg-destructive/10"
+          className="w-full rounded-xl text-destructive hover:bg-destructive/10 border-destructive/30 press-scale"
           onClick={handleSignOut}
         >
           <LogOut className="h-4 w-4 mr-2" />
@@ -349,7 +362,7 @@ export default function Profile() {
 
       {/* Enhance with AI Dialog */}
       <Dialog open={showEnhanceDialog} onOpenChange={setShowEnhanceDialog}>
-        <DialogContent>
+        <DialogContent className="rounded-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-primary" />
@@ -363,14 +376,14 @@ export default function Profile() {
           <div className="flex gap-3 mt-4">
             <Button
               variant="outline"
-              className="flex-1"
+              className="flex-1 rounded-xl"
               onClick={() => setShowEnhanceDialog(false)}
               disabled={isEnhancing}
             >
               Cancel
             </Button>
             <Button
-              className="flex-1"
+              className="flex-1 rounded-xl"
               onClick={handleEnhanceWithAI}
               disabled={isEnhancing}
             >

@@ -2,7 +2,6 @@ import { RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 
 interface FeedHeaderProps {
   talentName?: string;
@@ -24,39 +23,36 @@ export function FeedHeader({ talentName, talentPhoto, onRefresh, isRefreshing }:
   return (
     <div className="flex items-center justify-between">
       {/* Left: Avatar + Welcome */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-4">
         <Avatar 
-          className="h-11 w-11 cursor-pointer ring-2 ring-primary/20 hover:ring-primary/40 transition-all"
+          className="h-14 w-14 cursor-pointer ring-2 ring-primary/20 hover:ring-primary/40 transition-all press-scale shadow-md"
           onClick={() => navigate('/app/profile')}
         >
           <AvatarImage src={talentPhoto} alt={talentName || 'User'} />
-          <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+          <AvatarFallback className="bg-gradient-primary text-primary-foreground font-bold text-lg">
             {initials}
           </AvatarFallback>
         </Avatar>
         <div>
-          <h1 className="text-xl font-bold text-foreground">
-            Welcome back, {firstName}!
+          <h1 className="text-2xl font-bold text-foreground">
+            Hi, {firstName}! 👋
           </h1>
           <p className="text-sm text-muted-foreground">
-            Your personalized recommendations
+            Your personalized career feed
           </p>
         </div>
       </div>
 
-      {/* Right: Actions */}
-      <div className="flex items-center gap-2">
-        <NotificationDropdown />
-        <Button
-          variant="outline"
-          size="icon"
-          className="h-10 w-10"
-          onClick={onRefresh}
-          disabled={isRefreshing}
-        >
-          <RefreshCw className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} />
-        </Button>
-      </div>
+      {/* Right: Refresh */}
+      <Button
+        variant="outline"
+        size="icon"
+        className="h-12 w-12 rounded-xl shadow-sm press-scale"
+        onClick={onRefresh}
+        disabled={isRefreshing}
+      >
+        <RefreshCw className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+      </Button>
     </div>
   );
 }
