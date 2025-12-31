@@ -272,9 +272,9 @@ export default function AppMockInterviewSetup() {
           <CardContent className="space-y-6">
             {generationError && (
               <RetryErrorCard
-                errorType={getErrorType(generationError)}
+                type={getErrorType(generationError)}
                 onRetry={handleStartInterview}
-                message={generationError.message}
+                description={generationError.message}
               />
             )}
             

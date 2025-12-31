@@ -200,19 +200,15 @@ export default function AppCareerAssessment() {
           email={email}
           onComplete={handleLeadCaptureComplete}
           onBack={() => setStep("questions")}
-          talentId={talent?.id}
-          userId={user?.id}
-          onServiceUsed={() => addServiceUsed("career_assessment")}
         />
       )}
 
       {/* Processing */}
       {step === "processing" && (
-        <ProcessingCard
-          stages={ASSESSMENT_PROCESSING_STAGES}
-          title="Analyzing Your Responses"
-          description="Our AI is evaluating your career readiness..."
-        />
+          <ProcessingCard
+            stages={ASSESSMENT_PROCESSING_STAGES}
+            title="Analyzing Your Responses"
+          />
       )}
     </div>
   );

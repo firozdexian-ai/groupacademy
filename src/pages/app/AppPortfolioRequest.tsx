@@ -448,15 +448,19 @@ export default function AppPortfolioRequest() {
               </div>
 
               {formData.cvInputMode === 'existing' && hasExistingCv && (
-                <ExistingCVCard cvUrl={talent?.cvUrl || undefined} />
+                <ExistingCVCard 
+                  talent={talent} 
+                  onUseExisting={() => setFormData(prev => ({ ...prev, cvUrl: talent?.cvUrl || '' }))}
+                  onUploadNew={() => setFormData(prev => ({ ...prev, cvInputMode: 'upload' }))}
+                />
               )}
 
               {formData.cvInputMode === 'upload' && (
                 <SimpleFileUpload
                   accept=".pdf,.doc,.docx"
-                  onUpload={(url) => setFormData(prev => ({ ...prev, cvUrl: url }))}
-                  uploadedUrl={formData.cvUrl}
-                  label="Upload CV (PDF/DOC)"
+                  onFileUploaded={(url) => setFormData(prev => ({ ...prev, cvUrl: url }))}
+                  onUrlProvided={(url) => setFormData(prev => ({ ...prev, cvUrl: url }))}
+                  currentValue={formData.cvUrl}
                 />
               )}
 
@@ -473,7 +477,7 @@ export default function AppPortfolioRequest() {
 
               {formData.cvInputMode === 'profile' && (
                 <ProfileBuilderForm
-                  data={formData.profileData}
+                  value={formData.profileData}
                   onChange={(data) => setFormData(prev => ({ ...prev, profileData: data }))}
                 />
               )}
@@ -485,11 +489,14 @@ export default function AppPortfolioRequest() {
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">Upload certificates (optional)</p>
               <MultiFileUpload
-                onUpload={(files) => setFormData(prev => ({ 
+                bucket="portfolio-uploads"
+                value={formData.certificates.map(c => ({ name: c.name, url: c.url }))}
+                onChange={(files) => setFormData(prev => ({ 
                   ...prev, 
                   certificates: files.map(f => ({ name: f.name, url: f.url }))
                 }))}
-                existingFiles={formData.certificates.map(c => ({ name: c.name, url: c.url }))}
+                label="Certificates & Documents"
+                description="Upload your certificates, transcripts, or other supporting documents"
               />
               <div>
                 <Label>Key Achievements</Label>

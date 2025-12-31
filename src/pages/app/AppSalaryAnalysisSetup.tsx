@@ -327,11 +327,12 @@ export default function AppSalaryAnalysisSetup() {
               {hasExistingCv && (
                 <TabsContent value="existing" className="mt-4">
                   <ExistingCVCard 
-                    cvUrl={talent?.cvUrl || undefined}
+                    talent={talent}
                     onUseExisting={() => {
                       if (talent?.cvUrl) setCvUrl(talent.cvUrl);
                       if (talent?.cvText) setCvText(talent.cvText);
                     }}
+                    onUploadNew={() => {}}
                   />
                 </TabsContent>
               )}
