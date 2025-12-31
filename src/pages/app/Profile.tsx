@@ -44,7 +44,7 @@ export default function Profile() {
   };
 
   const handleEditProfile = () => {
-    navigate('/my-profile');
+    navigate('/app/profile/edit');
   };
 
   return (

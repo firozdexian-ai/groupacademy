@@ -19,6 +19,7 @@ import logoLight from '@/assets/logo-horizontal-light.png';
 import logoDark from '@/assets/logo-horizontal-dark.png';
 import { useTheme } from 'next-themes';
 import { CreditBalance } from '@/components/credits/CreditBalance';
+import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
 
 const NAV_ITEMS = [
   { path: '/app/feed', label: 'Feed', icon: Home },
@@ -89,8 +90,11 @@ export function TalentAppShell() {
             ))}
           </nav>
 
-          {/* Right side - Credits, Profile, Menu */}
+          {/* Right side - Notifications, Credits, Profile, Menu */}
           <div className="flex items-center gap-2">
+            {/* Notifications */}
+            <NotificationDropdown />
+
             {/* Credits Display */}
             <div className="hidden sm:block">
               <CreditBalance onClick={() => navigate('/app/profile')} />

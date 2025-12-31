@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { 
   User, Mail, Phone, Briefcase, FileText, ExternalLink, 
   Target, TrendingUp, MessageSquare, Calendar, Award,
-  ClipboardList, Building
+  ClipboardList, Coins, Bot, Bell
 } from "lucide-react";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
@@ -47,6 +47,31 @@ interface TalentProfile {
   profession_category?: { name: string } | null;
 }
 
+interface CreditTransaction {
+  id: string;
+  amount: number;
+  transaction_type: string;
+  description: string | null;
+  created_at: string;
+}
+
+interface AgentSession {
+  id: string;
+  agent_key: string;
+  created_at: string;
+  messages: unknown;
+  credits_charged: number | null;
+}
+
+interface NotificationItem {
+  id: string;
+  title: string;
+  message: string;
+  type: string;
+  is_read: boolean;
+  created_at: string;
+}
+
 export function TalentDetailDialog({ 
   open, 
   onOpenChange, 
@@ -57,6 +82,10 @@ export function TalentDetailDialog({
   const [loading, setLoading] = useState(true);
   const [talent, setTalent] = useState<TalentProfile | null>(null);
   const [activities, setActivities] = useState<TalentActivity[]>([]);
+  const [creditBalance, setCreditBalance] = useState(0);
+  const [transactions, setTransactions] = useState<CreditTransaction[]>([]);
+  const [agentSessions, setAgentSessions] = useState<AgentSession[]>([]);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
 
   useEffect(() => {
     if (open && talentEmail) {
@@ -76,77 +105,35 @@ export function TalentDetailDialog({
 
       if (talentData) {
         setTalent(talentData as TalentProfile);
+
+        // Load additional data with talent ID
+        const talentId = talentData.id;
+        
+        const [creditRes, txRes, sessionsRes, notifsRes, assessments, interviews, salaryAnalyses, portfolios] = await Promise.all([
+          supabase.from('talent_credits').select('balance').eq('talent_id', talentId).single(),
+          supabase.from('credit_transactions').select('id, amount, transaction_type, description, created_at').eq('talent_id', talentId).order('created_at', { ascending: false }).limit(10),
+          supabase.from('agent_chat_sessions').select('id, agent_key, created_at, messages, credits_charged').eq('talent_id', talentId).order('created_at', { ascending: false }).limit(5),
+          supabase.from('notifications').select('id, title, message, type, is_read, created_at').eq('talent_id', talentId).order('created_at', { ascending: false }).limit(10),
+          supabase.from('career_assessments').select('id, created_at, percentage, readiness_level').ilike('email', talentEmail).order('created_at', { ascending: false }),
+          supabase.from('mock_interviews').select('id, created_at, selection_percentage, status, job_title').ilike('email', talentEmail).order('created_at', { ascending: false }),
+          supabase.from('salary_analyses').select('id, created_at, status, job_title').ilike('email', talentEmail).order('created_at', { ascending: false }),
+          supabase.from('portfolio_requests').select('id, created_at, status').ilike('email', talentEmail).order('created_at', { ascending: false })
+        ]);
+
+        setCreditBalance(creditRes.data?.balance || 0);
+        setTransactions(txRes.data || []);
+        setAgentSessions(sessionsRes.data || []);
+        setNotifications(notifsRes.data || []);
+
+        // Build activities
+        const allActivities: TalentActivity[] = [];
+        assessments.data?.forEach(a => allActivities.push({ type: 'assessment', id: a.id, date: a.created_at, score: a.percentage, status: a.readiness_level }));
+        interviews.data?.forEach(i => allActivities.push({ type: 'mock_interview', id: i.id, date: i.created_at, score: i.selection_percentage, status: i.status, title: i.job_title }));
+        salaryAnalyses.data?.forEach(s => allActivities.push({ type: 'salary_analysis', id: s.id, date: s.created_at, status: s.status, title: s.job_title }));
+        portfolios.data?.forEach(p => allActivities.push({ type: 'portfolio_request', id: p.id, date: p.created_at, status: p.status }));
+        allActivities.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        setActivities(allActivities);
       }
-
-      // Load activities in parallel
-      const [assessments, interviews, salaryAnalyses, portfolios] = await Promise.all([
-        supabase
-          .from('career_assessments')
-          .select('id, created_at, percentage, readiness_level')
-          .ilike('email', talentEmail)
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('mock_interviews')
-          .select('id, created_at, selection_percentage, performance_level, status, job_title')
-          .ilike('email', talentEmail)
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('salary_analyses')
-          .select('id, created_at, status, job_title')
-          .ilike('email', talentEmail)
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('portfolio_requests')
-          .select('id, created_at, status')
-          .ilike('email', talentEmail)
-          .order('created_at', { ascending: false })
-      ]);
-
-      const allActivities: TalentActivity[] = [];
-
-      assessments.data?.forEach(a => {
-        allActivities.push({
-          type: 'assessment',
-          id: a.id,
-          date: a.created_at,
-          score: a.percentage,
-          status: a.readiness_level
-        });
-      });
-
-      interviews.data?.forEach(i => {
-        allActivities.push({
-          type: 'mock_interview',
-          id: i.id,
-          date: i.created_at,
-          score: i.selection_percentage,
-          status: i.status,
-          title: i.job_title
-        });
-      });
-
-      salaryAnalyses.data?.forEach(s => {
-        allActivities.push({
-          type: 'salary_analysis',
-          id: s.id,
-          date: s.created_at,
-          status: s.status,
-          title: s.job_title
-        });
-      });
-
-      portfolios.data?.forEach(p => {
-        allActivities.push({
-          type: 'portfolio_request',
-          id: p.id,
-          date: p.created_at,
-          status: p.status
-        });
-      });
-
-      // Sort by date
-      allActivities.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-      setActivities(allActivities);
     } catch (error) {
       console.error('Error loading talent data:', error);
     } finally {
@@ -177,17 +164,13 @@ export function TalentDetailDialog({
   const navigateToResult = (activity: TalentActivity) => {
     switch (activity.type) {
       case 'assessment':
-        navigate(`/assessment/results/${activity.id}`);
+        navigate(`/assessment-results/${activity.id}`);
         break;
       case 'mock_interview':
-        if (activity.status === 'completed') {
-          navigate(`/mock-interview/results/${activity.id}`);
-        }
+        if (activity.status === 'completed') navigate(`/mock-interview/results/${activity.id}`);
         break;
       case 'salary_analysis':
-        if (activity.status === 'completed') {
-          navigate(`/salary-analysis/results/${activity.id}`);
-        }
+        if (activity.status === 'completed') navigate(`/salary-analysis/results/${activity.id}`);
         break;
     }
     onOpenChange(false);
@@ -196,11 +179,8 @@ export function TalentDetailDialog({
   const formatWhatsAppLink = (phone: string | null) => {
     if (!phone) return null;
     let cleaned = phone.replace(/[\s\-\(\)\+]/g, '');
-    if (cleaned.startsWith('880')) {
-      return `https://wa.me/${cleaned}`;
-    } else if (cleaned.startsWith('0')) {
-      return `https://wa.me/880${cleaned.slice(1)}`;
-    }
+    if (cleaned.startsWith('880')) return `https://wa.me/${cleaned}`;
+    if (cleaned.startsWith('0')) return `https://wa.me/880${cleaned.slice(1)}`;
     return `https://wa.me/${cleaned}`;
   };
 
@@ -221,159 +201,142 @@ export function TalentDetailDialog({
           </div>
         ) : talent ? (
           <Tabs defaultValue="profile" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-5 text-xs">
               <TabsTrigger value="profile">Profile</TabsTrigger>
-              <TabsTrigger value="activities">
-                Activities ({activities.length})
-              </TabsTrigger>
+              <TabsTrigger value="activities">Activities</TabsTrigger>
+              <TabsTrigger value="credits">Credits</TabsTrigger>
+              <TabsTrigger value="sessions">AI Chats</TabsTrigger>
+              <TabsTrigger value="notifications">Notifs</TabsTrigger>
             </TabsList>
 
             <TabsContent value="profile" className="mt-4">
-              <ScrollArea className="h-[400px] pr-4">
-                <div className="space-y-6">
-                  {/* Profile Photo */}
+              <ScrollArea className="h-[350px] pr-4">
+                <div className="space-y-4">
                   {talent.profile_photo_url && (
                     <div className="flex justify-center">
-                      <img 
-                        src={talent.profile_photo_url} 
-                        alt={talent.full_name}
-                        className="w-24 h-24 rounded-full object-cover border-2 border-border"
-                      />
+                      <img src={talent.profile_photo_url} alt={talent.full_name} className="w-20 h-20 rounded-full object-cover border-2 border-border" />
                     </div>
                   )}
-
-                  {/* Contact Info */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="flex items-center gap-2">
-                      <Mail className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{talent.email}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{talent.phone || 'No phone'}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Briefcase className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">
-                        {talent.custom_profession || talent.profession_category?.name || 'Not set'}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">
-                        Joined {format(new Date(talent.created_at), 'MMM d, yyyy')}
-                      </span>
-                    </div>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="flex items-center gap-2"><Mail className="h-4 w-4 text-muted-foreground" />{talent.email}</div>
+                    <div className="flex items-center gap-2"><Phone className="h-4 w-4 text-muted-foreground" />{talent.phone || 'No phone'}</div>
+                    <div className="flex items-center gap-2"><Briefcase className="h-4 w-4 text-muted-foreground" />{talent.custom_profession || talent.profession_category?.name || 'Not set'}</div>
+                    <div className="flex items-center gap-2"><Calendar className="h-4 w-4 text-muted-foreground" />Joined {format(new Date(talent.created_at), 'MMM d, yyyy')}</div>
                   </div>
-
                   <Separator />
-
-                  {/* Services Used */}
                   <div>
                     <h4 className="text-sm font-medium mb-2">Services Used</h4>
                     <div className="flex flex-wrap gap-2">
-                      {talent.services_used && talent.services_used.length > 0 ? (
-                        talent.services_used.map((service: string, idx: number) => (
-                          <Badge key={idx} variant="secondary">
-                            {service.replace('_', ' ')}
-                          </Badge>
-                        ))
-                      ) : (
-                        <span className="text-sm text-muted-foreground">No services used yet</span>
-                      )}
+                      {talent.services_used?.length > 0 ? talent.services_used.map((s, i) => <Badge key={i} variant="secondary">{s.replace('_', ' ')}</Badge>) : <span className="text-sm text-muted-foreground">None</span>}
                     </div>
                   </div>
-
                   <Separator />
-
-                  {/* Quick Actions */}
                   <div className="flex flex-wrap gap-2">
-                    {talent.phone && (
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => window.open(formatWhatsAppLink(talent.phone), '_blank')}
-                      >
-                        <MessageSquare className="h-4 w-4 mr-2 text-green-600" />
-                        WhatsApp
-                      </Button>
-                    )}
-                    {talent.cv_url && (
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => window.open(talent.cv_url!, '_blank')}
-                      >
-                        <FileText className="h-4 w-4 mr-2" />
-                        View CV
-                      </Button>
-                    )}
-                    {talent.linkedin_url && (
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => window.open(talent.linkedin_url!, '_blank')}
-                      >
-                        <ExternalLink className="h-4 w-4 mr-2" />
-                        LinkedIn
-                      </Button>
-                    )}
-                    {talent.portfolio_url && (
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => window.open(talent.portfolio_url!, '_blank')}
-                      >
-                        <Briefcase className="h-4 w-4 mr-2" />
-                        Portfolio
-                      </Button>
-                    )}
+                    {talent.phone && <Button variant="outline" size="sm" onClick={() => window.open(formatWhatsAppLink(talent.phone), '_blank')}><MessageSquare className="h-4 w-4 mr-1 text-green-600" />WhatsApp</Button>}
+                    {talent.cv_url && <Button variant="outline" size="sm" onClick={() => window.open(talent.cv_url!, '_blank')}><FileText className="h-4 w-4 mr-1" />CV</Button>}
+                    {talent.linkedin_url && <Button variant="outline" size="sm" onClick={() => window.open(talent.linkedin_url!, '_blank')}><ExternalLink className="h-4 w-4 mr-1" />LinkedIn</Button>}
                   </div>
                 </div>
               </ScrollArea>
             </TabsContent>
 
             <TabsContent value="activities" className="mt-4">
-              <ScrollArea className="h-[400px] pr-4">
+              <ScrollArea className="h-[350px] pr-4">
                 {activities.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Award className="h-12 w-12 mx-auto mb-2 opacity-20" />
-                    <p>No activities recorded yet</p>
-                  </div>
+                  <div className="text-center py-8 text-muted-foreground"><Award className="h-10 w-10 mx-auto mb-2 opacity-20" /><p>No activities yet</p></div>
                 ) : (
-                  <div className="space-y-3">
-                    {activities.map((activity) => (
-                      <div 
-                        key={`${activity.type}-${activity.id}`}
-                        className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors cursor-pointer"
-                        onClick={() => navigateToResult(activity)}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 rounded-full bg-muted">
-                            {getActivityIcon(activity.type)}
-                          </div>
+                  <div className="space-y-2">
+                    {activities.map((a) => (
+                      <div key={`${a.type}-${a.id}`} className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 cursor-pointer" onClick={() => navigateToResult(a)}>
+                        <div className="flex items-center gap-2">
+                          <div className="p-2 rounded-full bg-muted">{getActivityIcon(a.type)}</div>
                           <div>
-                            <p className="font-medium text-sm">
-                              {getActivityLabel(activity.type)}
-                            </p>
-                            {activity.title && (
-                              <p className="text-xs text-muted-foreground">{activity.title}</p>
-                            )}
-                            <p className="text-xs text-muted-foreground">
-                              {format(new Date(activity.date), 'MMM d, yyyy')}
-                            </p>
+                            <p className="font-medium text-sm">{getActivityLabel(a.type)}</p>
+                            <p className="text-xs text-muted-foreground">{format(new Date(a.date), 'MMM d, yyyy')}</p>
                           </div>
                         </div>
                         <div className="text-right">
-                          {activity.score !== undefined && activity.score !== null && (
-                            <p className="font-semibold text-sm">{activity.score}%</p>
-                          )}
-                          {activity.status && (
-                            <Badge variant="outline" className="text-xs">
-                              {activity.status.replace('_', ' ')}
-                            </Badge>
-                          )}
+                          {a.score !== undefined && <p className="font-semibold text-sm">{a.score}%</p>}
+                          {a.status && <Badge variant="outline" className="text-xs">{a.status}</Badge>}
                         </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </ScrollArea>
+            </TabsContent>
+
+            <TabsContent value="credits" className="mt-4">
+              <ScrollArea className="h-[350px] pr-4">
+                <div className="p-4 rounded-lg bg-warning/10 border border-warning/30 mb-4 flex items-center gap-3">
+                  <Coins className="h-8 w-8 text-warning" />
+                  <div>
+                    <p className="text-2xl font-bold">{creditBalance}</p>
+                    <p className="text-sm text-muted-foreground">Credits Available</p>
+                  </div>
+                </div>
+                <h4 className="text-sm font-medium mb-2">Recent Transactions</h4>
+                {transactions.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No transactions</p>
+                ) : (
+                  <div className="space-y-2">
+                    {transactions.map((tx) => (
+                      <div key={tx.id} className="flex items-center justify-between p-2 rounded border text-sm">
+                        <div>
+                          <p className="font-medium">{tx.description || tx.transaction_type}</p>
+                          <p className="text-xs text-muted-foreground">{format(new Date(tx.created_at), 'MMM d, yyyy')}</p>
+                        </div>
+                        <span className={tx.amount >= 0 ? 'text-accent font-medium' : 'text-destructive font-medium'}>
+                          {tx.amount >= 0 ? '+' : ''}{tx.amount}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </ScrollArea>
+            </TabsContent>
+
+            <TabsContent value="sessions" className="mt-4">
+              <ScrollArea className="h-[350px] pr-4">
+                {agentSessions.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground"><Bot className="h-10 w-10 mx-auto mb-2 opacity-20" /><p>No AI chat sessions</p></div>
+                ) : (
+                  <div className="space-y-2">
+                    {agentSessions.map((s) => {
+                      const msgCount = Array.isArray(s.messages) ? s.messages.length : 0;
+                      return (
+                        <div key={s.id} className="p-3 rounded-lg border">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Bot className="h-4 w-4 text-primary" />
+                              <span className="font-medium text-sm capitalize">{s.agent_key.replace(/_/g, ' ')}</span>
+                            </div>
+                            <Badge variant="secondary">{msgCount} msgs</Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1">{format(new Date(s.created_at), 'MMM d, yyyy h:mm a')}</p>
+                          {s.credits_charged && <p className="text-xs text-muted-foreground">Charged: {s.credits_charged} credits</p>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </ScrollArea>
+            </TabsContent>
+
+            <TabsContent value="notifications" className="mt-4">
+              <ScrollArea className="h-[350px] pr-4">
+                {notifications.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground"><Bell className="h-10 w-10 mx-auto mb-2 opacity-20" /><p>No notifications sent</p></div>
+                ) : (
+                  <div className="space-y-2">
+                    {notifications.map((n) => (
+                      <div key={n.id} className={`p-3 rounded-lg border ${!n.is_read ? 'bg-primary/5' : ''}`}>
+                        <div className="flex items-center justify-between">
+                          <p className="font-medium text-sm">{n.title}</p>
+                          <Badge variant={n.is_read ? "secondary" : "default"} className="text-xs">{n.is_read ? 'Read' : 'Unread'}</Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">{n.message}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{format(new Date(n.created_at), 'MMM d, yyyy h:mm a')}</p>
                       </div>
                     ))}
                   </div>

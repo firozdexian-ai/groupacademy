@@ -81,6 +81,11 @@ export default function ServicesHub() {
 
   const handleConfirmService = () => {
     if (selectedService) {
+      if (!canAfford(selectedService.id)) {
+        setShowPurchaseSheet(true);
+        setShowCreditGate(false);
+        return;
+      }
       setShowCreditGate(false);
       navigate(selectedService.href);
     }

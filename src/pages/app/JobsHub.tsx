@@ -64,7 +64,7 @@ export default function JobsHub() {
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
-    navigate(`/jobs?q=${encodeURIComponent(searchQuery)}`);
+    navigate(`/app/jobs?search=${encodeURIComponent(searchQuery)}`);
   }
 
   return (
@@ -97,7 +97,7 @@ export default function JobsHub() {
             <Sparkles className="h-5 w-5 text-warning" />
             <h2 className="text-lg font-semibold">Top Picks for You</h2>
           </div>
-          <Button variant="ghost" size="sm" onClick={() => navigate('/jobs')}>
+          <Button variant="ghost" size="sm" onClick={() => navigate('/app/jobs?all=true')}>
             See all <ChevronRight className="h-4 w-4 ml-1" />
           </Button>
         </div>
@@ -161,7 +161,7 @@ export default function JobsHub() {
             <Card 
               key={collection.filter}
               className="cursor-pointer hover:shadow-md transition-all hover:border-primary/50"
-              onClick={() => navigate(`/jobs?type=${collection.filter}`)}
+              onClick={() => navigate(`/app/jobs?type=${collection.filter}`)}
             >
               <CardContent className="p-4 flex flex-col items-center text-center">
                 <div className="p-3 bg-primary/10 rounded-full mb-2">
@@ -178,11 +178,11 @@ export default function JobsHub() {
       <section>
         <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
         <div className="flex flex-wrap gap-3">
-          <Button variant="outline" onClick={() => navigate('/jobs')}>
+          <Button variant="outline" onClick={() => navigate('/app/jobs?all=true')}>
             <Filter className="h-4 w-4 mr-2" />
             All Jobs
           </Button>
-          <Button variant="outline" onClick={() => navigate('/app/profile')}>
+          <Button variant="outline" onClick={() => navigate('/app/applications')}>
             <Briefcase className="h-4 w-4 mr-2" />
             My Applications
           </Button>
