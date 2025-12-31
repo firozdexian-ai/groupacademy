@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Loader2, LogIn, RefreshCw, AlertCircle } from "lucide-react";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
+import { usePWADetect } from "@/hooks/usePWADetect";
 
 interface AuthGateProps {
   children: React.ReactNode;
@@ -15,12 +16,26 @@ interface AuthGateProps {
 
 export function AuthGate({ children, redirectTo, message }: AuthGateProps) {
   const navigate = useNavigate();
+  const { isPWA } = usePWADetect();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [seconds, setSeconds] = useState(0);
 
-  const checkAuth = async () => {
+  // Use appropriate timeout based on PWA status
+  const authTimeout = isPWA ? TIMEOUTS.PWA_AUTH : TIMEOUTS.AUTH;
+
+  const clearSessionAndRedirect = useCallback(async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn("Error during session cleanup:", e);
+    }
+    const returnUrl = redirectTo || window.location.pathname;
+    navigate(`/auth?redirect=${encodeURIComponent(returnUrl)}`);
+  }, [navigate, redirectTo]);
+
+  const checkAuth = useCallback(async () => {
     setLoading(true);
     setError(null);
     setSeconds(0);
@@ -29,22 +44,54 @@ export function AuthGate({ children, redirectTo, message }: AuthGateProps) {
       // Race between getSession and timeout
       const sessionPromise = supabase.auth.getSession();
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error("timeout")), TIMEOUTS.AUTH);
+        setTimeout(() => reject(new Error("timeout")), authTimeout);
       });
 
-      const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
-      setUser(session?.user ?? null);
+      try {
+        const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
+        setUser(session?.user ?? null);
+      } catch (sessionErr: unknown) {
+        // Check if this is an invalid refresh token error
+        const errorMessage = sessionErr instanceof Error ? sessionErr.message : String(sessionErr);
+        const isInvalidToken = 
+          errorMessage.includes('refresh_token_not_found') ||
+          errorMessage.includes('Invalid Refresh Token') ||
+          errorMessage.includes('Refresh Token Not Found');
+        
+        if (isInvalidToken) {
+          console.log("[AuthGate] Invalid refresh token, clearing session...");
+          await clearSessionAndRedirect();
+          return;
+        }
+        throw sessionErr;
+      }
     } catch (err) {
       console.error("Auth check error:", err);
-      setError("Unable to verify your session. Please try again.");
+      
+      // Check if timeout
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      if (errorMessage === "timeout") {
+        setError("Connection timed out. Please check your network and try again.");
+      } else {
+        setError("Unable to verify your session. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, [authTimeout, clearSessionAndRedirect]);
 
   useEffect(() => {
     // Set up auth listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("[AuthGate] Auth state changed:", event);
+      
+      if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setLoading(false);
+        setError(null);
+        return;
+      }
+      
       setUser(session?.user ?? null);
       setLoading(false);
       setError(null);
@@ -54,7 +101,7 @@ export function AuthGate({ children, redirectTo, message }: AuthGateProps) {
     checkAuth();
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [checkAuth]);
 
   // Progressive loading timer
   useEffect(() => {
@@ -71,6 +118,7 @@ export function AuthGate({ children, redirectTo, message }: AuthGateProps) {
   const getLoadingMessage = () => {
     if (seconds < 5) return "Checking authentication...";
     if (seconds < 10) return "Connecting to server...";
+    if (seconds < 15) return "Still working...";
     return "This is taking longer than expected...";
   };
 

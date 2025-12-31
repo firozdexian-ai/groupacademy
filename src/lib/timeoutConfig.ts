@@ -9,8 +9,11 @@ export const TIMEOUTS = {
   /** Cold-start / first-request after idle (45 seconds) */
   COLD_START: 45000,
 
-  /** Authentication/session checks (15 seconds) */
-  AUTH: 15000,
+  /** Authentication/session checks (20 seconds - increased for slow networks) */
+  AUTH: 20000,
+
+  /** PWA/mobile auth - needs extra time for service worker init (25 seconds) */
+  PWA_AUTH: 25000,
 
   /** Quick checks like email validation (10 seconds) */
   QUICK_CHECK: 10000,

@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, LogIn } from "lucide-react";
 import { usePWADetect } from "@/hooks/usePWADetect";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
 import type { Database } from "@/integrations/supabase/types";
 import logoIcon from "@/assets/logo-icon.png";
 
@@ -29,8 +30,20 @@ export const ProtectedRoute = ({
   const [userRole, setUserRole] = useState<AppRole | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // PWA users get longer timeout since service worker needs to initialize
-  const authTimeout = isPWA ? 15000 : 10000;
+  // Use centralized timeout config - PWA users get longer timeout
+  const authTimeout = isPWA ? TIMEOUTS.PWA_AUTH : TIMEOUTS.AUTH;
+
+  const clearSessionAndRedirect = useCallback(async () => {
+    try {
+      // Clear potentially corrupted session
+      await supabase.auth.signOut();
+    } catch (e) {
+      // Ignore signout errors
+      console.warn("Error during session cleanup:", e);
+    }
+    const returnUrl = location.pathname + location.search;
+    navigate(`/auth?returnTo=${encodeURIComponent(returnUrl)}`, { replace: true });
+  }, [navigate, location]);
 
   const checkAuth = useCallback(async () => {
     setIsChecking(true);
@@ -41,11 +54,28 @@ export const ProtectedRoute = ({
         setTimeout(() => reject(new Error('Auth check timed out')), authTimeout)
       );
 
-      const sessionPromise = supabase.auth.getSession();
-      const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]) as Awaited<typeof sessionPromise>;
+      let session;
+      try {
+        const sessionPromise = supabase.auth.getSession();
+        const result = await Promise.race([sessionPromise, timeoutPromise]) as Awaited<typeof sessionPromise>;
+        session = result.data.session;
+      } catch (sessionErr: unknown) {
+        // Check if this is an invalid refresh token error
+        const errorMessage = sessionErr instanceof Error ? sessionErr.message : String(sessionErr);
+        const isInvalidToken = 
+          errorMessage.includes('refresh_token_not_found') ||
+          errorMessage.includes('Invalid Refresh Token') ||
+          errorMessage.includes('Refresh Token Not Found');
+        
+        if (isInvalidToken) {
+          console.log("[ProtectedRoute] Invalid refresh token, clearing session...");
+          await clearSessionAndRedirect();
+          return;
+        }
+        throw sessionErr;
+      }
         
       if (!session) {
-        // For PWA users, redirect to auth with return URL
         const returnUrl = location.pathname + location.search;
         navigate(`/auth?returnTo=${encodeURIComponent(returnUrl)}`, { replace: true });
         return;
@@ -90,21 +120,44 @@ export const ProtectedRoute = ({
       setIsAuthorized(true);
     } catch (err) {
       console.error("Auth check error:", err);
-      const errorMessage = err instanceof Error && err.message === 'Auth check timed out' 
+      
+      // Check if the error indicates a bad session
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      const isSessionError = 
+        errorMessage.includes('refresh_token') ||
+        errorMessage.includes('Invalid') ||
+        errorMessage.includes('session');
+      
+      if (isSessionError && errorMessage !== 'Auth check timed out') {
+        // Bad session - clear and redirect
+        await clearSessionAndRedirect();
+        return;
+      }
+      
+      const displayError = err instanceof Error && err.message === 'Auth check timed out' 
         ? 'Authorization check timed out' 
         : 'Authentication error';
-      setError(errorMessage);
+      setError(displayError);
     } finally {
       setIsChecking(false);
     }
-  }, [navigate, requireAdmin, requireAnyAdminRole, authTimeout, location]);
+  }, [navigate, requireAdmin, requireAnyAdminRole, authTimeout, location, clearSessionAndRedirect]);
 
   useEffect(() => {
     checkAuth();
     
     // Listen for auth state changes to handle session expiration
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("[ProtectedRoute] Auth state changed:", event);
+      
       if (event === 'SIGNED_OUT' || !session) {
+        navigate("/auth");
+        return;
+      }
+      
+      // Handle token refresh failures
+      if (event === 'TOKEN_REFRESHED' && !session) {
+        console.log("[ProtectedRoute] Token refresh failed, redirecting to auth");
         navigate("/auth");
       }
     });
