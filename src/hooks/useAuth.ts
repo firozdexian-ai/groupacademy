@@ -75,7 +75,11 @@ export const useAuth = () => {
       email: email.trim(),
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/my-learning`,
+        data: {
+          full_name: fullName,
+          phone: phone || '',
+        },
+        emailRedirectTo: `${window.location.origin}/app/feed`,
       },
     });
 
@@ -88,7 +92,7 @@ export const useAuth = () => {
 
     if (!authData.user) throw new Error('Signup failed');
 
-    // Wait for session to establish
+    // Wait for session to establish and trigger to create talent record
     await new Promise(resolve => setTimeout(resolve, 800));
     
     // Verify session exists
@@ -98,13 +102,7 @@ export const useAuth = () => {
       return false;
     }
 
-    // Create student profile with retry logic
-    const profileCreated = await createStudentProfile(authData.user.id, fullName, email, phone);
-    
-    if (!profileCreated) {
-      toast.warning('Account created! Please complete your profile.');
-    }
-
+    // The database trigger handle_new_user_talent creates the talent profile automatically
     toast.success('Account created successfully!');
     return true;
   };
@@ -146,65 +144,16 @@ export const useAuth = () => {
   };
 };
 
-// Shared student profile creation logic with retry and timeout
+// Legacy function - kept for backward compatibility but no longer used
+// The database trigger handle_new_user_talent now handles profile creation
+// @deprecated Use the database trigger instead
 export const createStudentProfile = async (
-  userId: string,
-  fullName: string,
-  email: string,
-  phone?: string,
-  status: 'free_learner' | 'lead' | 'enrolled' | 'graduated' = 'free_learner'
+  _userId: string,
+  _fullName: string,
+  _email: string,
+  _phone?: string,
+  _status: 'free_learner' | 'lead' | 'enrolled' | 'graduated' = 'free_learner'
 ): Promise<boolean> => {
-  const maxRetries = 3;
-  const delays = [500, 1000, 2000];
-  const timeoutMs = 15000; // 15 second timeout per attempt
-
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    try {
-      // Create timeout promise
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Profile creation timed out')), timeoutMs);
-      });
-
-      const insertPromise = (async () => {
-        const { error: profileError } = await supabase.from('students').insert([
-          {
-            user_id: userId,
-            student_id: '',
-            full_name: fullName,
-            email: email,
-            phone: phone || '',
-            status: status,
-          },
-        ]);
-
-        if (profileError) {
-          if (profileError.code === '23505') {
-            await new Promise(resolve => setTimeout(resolve, 300));
-            const { data: existingProfile } = await supabase
-              .from('students')
-              .select('id')
-              .eq('user_id', userId)
-              .maybeSingle();
-            
-            if (existingProfile) {
-              return true;
-            }
-          }
-          throw profileError;
-        }
-
-        return true;
-      })();
-
-      const result = await Promise.race([insertPromise, timeoutPromise]);
-      return result;
-    } catch (error: any) {
-      console.error(`Profile creation attempt ${attempt + 1} failed:`, error);
-      if (attempt < maxRetries - 1) {
-        await new Promise(resolve => setTimeout(resolve, delays[attempt]));
-      }
-    }
-  }
-
-  return false;
+  console.warn('[useAuth] createStudentProfile is deprecated. Talent profiles are now created via database trigger.');
+  return true;
 };
