@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { cn } from "@/lib/utils";
 
 interface Banner {
   id: string;
@@ -11,7 +12,11 @@ interface Banner {
   display_order: number;
 }
 
-export const BannerCarousel = () => {
+interface BannerCarouselProps {
+  compact?: boolean;
+}
+
+export const BannerCarousel = ({ compact = false }: BannerCarouselProps) => {
   const navigate = useNavigate();
   const [banners, setBanners] = useState<Banner[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -80,7 +85,7 @@ export const BannerCarousel = () => {
 
   const handleBannerClick = (banner: Banner) => {
     if (banner.link_content_id && contentSlugs[banner.link_content_id]) {
-      navigate(`/courses/${contentSlugs[banner.link_content_id]}`);
+      navigate(`/app/learning/courses/${contentSlugs[banner.link_content_id]}`);
     }
   };
 
@@ -97,7 +102,10 @@ export const BannerCarousel = () => {
   }
 
   return (
-    <div className="relative w-full h-64 sm:h-72 md:h-80 lg:h-[400px] rounded-xl overflow-hidden bg-muted mb-8 group">
+    <div className={cn(
+      "relative w-full rounded-xl overflow-hidden bg-muted group",
+      compact ? "h-40 mb-4" : "h-64 sm:h-72 md:h-80 lg:h-[400px] mb-8"
+    )}>
       {/* Banner Image with optimized loading */}
       <img
         src={banners[currentIndex].image_url}

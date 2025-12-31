@@ -8,10 +8,11 @@ import { OnboardingWizard } from '@/components/onboarding/OnboardingWizard';
 import { FeedCardRedesigned } from '@/components/feed/FeedCardRedesigned';
 import { FeedFilters } from '@/components/feed/FeedFilters';
 import { FeedSkeleton } from '@/components/feed/FeedSkeleton';
-import { CareerInsightsCarousel } from '@/components/feed/CareerInsightsCarousel';
+import { CareerInsightsStack } from '@/components/feed/CareerInsightsStack';
 import { FeedHeader } from '@/components/feed/FeedHeader';
 import { FloatingAIButton } from '@/components/feed/FloatingAIButton';
 import { PersonalizedPromptCard } from '@/components/feed/PersonalizedPromptCard';
+import { BannerCarousel } from '@/components/BannerCarousel';
 import { useState, useEffect } from 'react';
 
 export default function Feed() {
@@ -92,11 +93,14 @@ export default function Feed() {
         isRefreshing={isRefreshing}
       />
 
+      {/* Banner Carousel */}
+      <BannerCarousel compact />
+
       {/* Personalized Service Prompts */}
       <PersonalizedPromptCard />
 
-      {/* Career Insights Carousel */}
-      <CareerInsightsCarousel insights={insights} />
+      {/* Career Insights - Vertical Stack */}
+      <CareerInsightsStack insights={insights} />
 
       {/* Filters */}
       <FeedFilters

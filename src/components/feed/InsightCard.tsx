@@ -5,6 +5,7 @@ interface InsightCardProps {
   insight: string;
   index: number;
   className?: string;
+  fullWidth?: boolean;
 }
 
 // Determine icon based on insight content keywords
@@ -70,23 +71,24 @@ function getInsightConfig(insight: string, index: number) {
   return defaults[index % defaults.length];
 }
 
-export function InsightCard({ insight, index, className }: InsightCardProps) {
+export function InsightCard({ insight, index, className, fullWidth = false }: InsightCardProps) {
   const config = getInsightConfig(insight, index);
   const Icon = config.icon;
 
   return (
     <div 
       className={cn(
-        "flex-shrink-0 w-[260px] p-4 rounded-xl border bg-gradient-to-br backdrop-blur-sm",
+        "p-4 rounded-xl border bg-gradient-to-br backdrop-blur-sm",
+        fullWidth ? "w-full min-h-[72px]" : "flex-shrink-0 w-[260px]",
         config.gradient,
         config.borderColor,
-        "hover:scale-[1.02] transition-transform duration-200",
+        "hover:scale-[1.01] transition-transform duration-200",
         className
       )}
     >
       <div className="flex items-start gap-3">
         <div className={cn(
-          "p-2 rounded-lg bg-background/80 shadow-sm",
+          "p-2 rounded-lg bg-background/80 shadow-sm flex-shrink-0",
           config.iconColor
         )}>
           <Icon className="h-4 w-4" />
