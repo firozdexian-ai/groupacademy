@@ -367,9 +367,58 @@ export function JobsManager() {
 
     setSaving(true);
     try {
+      // Step 1: Find or create company
+      let companyId: string | null = null;
+      const companyName = formData.company_name.trim();
+      
+      if (companyName) {
+        // Check if company exists (case-insensitive match)
+        const { data: existingCompany } = await supabase
+          .from("companies")
+          .select("id, logo_url")
+          .ilike("name", companyName)
+          .maybeSingle();
+        
+        if (existingCompany) {
+          companyId = existingCompany.id;
+          
+          // Update company logo if we have one and company doesn't
+          if (formData.company_logo_url?.trim() && !existingCompany.logo_url) {
+            await supabase
+              .from("companies")
+              .update({ logo_url: formData.company_logo_url.trim() })
+              .eq("id", existingCompany.id);
+          }
+        } else {
+          // Create new company
+          const emailDomain = formData.application_email?.trim()
+            ? formData.application_email.split('@')[1]
+            : null;
+          
+          const { data: newCompany, error: companyError } = await supabase
+            .from("companies")
+            .insert({
+              name: companyName,
+              logo_url: formData.company_logo_url?.trim() || null,
+              primary_email: formData.application_email?.trim() || null,
+              website: emailDomain ? `https://${emailDomain}` : null,
+              is_verified: false,
+            })
+            .select("id")
+            .single();
+          
+          if (!companyError && newCompany) {
+            companyId = newCompany.id;
+            console.log("Created new company:", companyName);
+          }
+        }
+      }
+
+      // Step 2: Prepare job data with company_id
       const jobData = {
         title: formData.title.trim(),
-        company_name: formData.company_name.trim(),
+        company_name: companyName,
+        company_id: companyId,
         company_logo_url: formData.company_logo_url?.trim() || null,
         location: formData.location?.trim() || null,
         job_type: formData.job_type as "full_time" | "part_time" | "contract" | "internship" | "freelance" | "remote",

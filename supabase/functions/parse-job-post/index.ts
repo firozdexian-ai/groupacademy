@@ -68,6 +68,7 @@ Return a JSON object with the following structure:
   "title": "string - job title (e.g., 'Junior Graphics Designer')",
   "company_name": "string - company/organization name",
   "company_about": "string or null - brief description of the company if mentioned",
+  "company_website": "string or null - company website URL if mentioned",
   "location": "string or null - job location (city, area)",
   "job_type": "string - one of: full_time, part_time, contract, internship, freelance, remote",
   "experience_level": "string - one of: entry, mid, senior, executive (infer from title like 'Junior', 'Senior', etc.)",
@@ -90,6 +91,7 @@ Important:
 - For experience_level: 'Junior' or 'Entry' = 'entry', 'Senior' or 'Lead' = 'senior', 'Manager/Director/VP' = 'executive', otherwise 'mid'
 - Parse salary amounts (remove BDT/Tk symbols, handle 'K' for thousands)
 - Extract application email/URL if provided
+- Extract company website if mentioned in the post
 - Return ONLY valid JSON, no markdown or extra text`;
 
     const userPrompt = `Parse the following job post and extract structured information:
