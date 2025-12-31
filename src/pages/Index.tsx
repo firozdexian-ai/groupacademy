@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +7,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { useAuth } from "@/hooks/useAuth";
+import { usePWADetect } from "@/hooks/usePWADetect";
+import logoIcon from "@/assets/logo-icon.png";
 
 // Import brand assets
 import heroIllustration from "@/assets/hero-illustration.png";
@@ -20,13 +22,61 @@ import iconAiAssistant from "@/assets/icons/icon-ai-assistant.png";
 const Index = () => {
   const navigate = useNavigate();
   const { user, isLoading } = useAuth();
+  const { isPWA, isLoading: isPWALoading } = usePWADetect();
+  const [pwaChecked, setPwaChecked] = useState(false);
 
-  // Redirect logged-in users to app
+  // Handle PWA users - redirect them directly without showing marketing page
   useEffect(() => {
-    if (!isLoading && user) {
+    if (isPWALoading) return;
+    
+    if (isPWA) {
+      setPwaChecked(true);
+      if (!isLoading) {
+        if (user) {
+          navigate('/app/feed', { replace: true });
+        } else {
+          navigate('/auth', { replace: true });
+        }
+      }
+    } else {
+      setPwaChecked(true);
+    }
+  }, [isPWA, isPWALoading, user, isLoading, navigate]);
+
+  // Redirect authenticated web users to feed
+  useEffect(() => {
+    if (!isLoading && user && !isPWA && pwaChecked) {
       navigate('/app/feed', { replace: true });
     }
-  }, [user, isLoading, navigate]);
+  }, [user, isLoading, navigate, isPWA, pwaChecked]);
+
+  // Show branded loading screen for PWA users
+  if (isPWALoading || (isPWA && (isLoading || !pwaChecked))) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center">
+        <img 
+          src={logoIcon} 
+          alt="GroUp Academy" 
+          className="w-20 h-20 mb-6 animate-pulse"
+        />
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+          <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+          <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+        </div>
+        <p className="text-muted-foreground text-sm mt-4">Loading your career journey...</p>
+      </div>
+    );
+  }
+
+  // If authenticated, show loading while redirecting
+  if (user && !isPWA) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
 
   const services = [
     {

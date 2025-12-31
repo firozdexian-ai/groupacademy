@@ -1,10 +1,12 @@
 import { useEffect, useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, LogIn } from "lucide-react";
+import { usePWADetect } from "@/hooks/usePWADetect";
 import type { Database } from "@/integrations/supabase/types";
+import logoIcon from "@/assets/logo-icon.png";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
 
@@ -20,27 +22,32 @@ export const ProtectedRoute = ({
   requireAnyAdminRole = false 
 }: ProtectedRouteProps) => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { isPWA } = usePWADetect();
   const [isChecking, setIsChecking] = useState(true);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [userRole, setUserRole] = useState<AppRole | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // PWA users get longer timeout since service worker needs to initialize
+  const authTimeout = isPWA ? 15000 : 10000;
 
   const checkAuth = useCallback(async () => {
     setIsChecking(true);
     setError(null);
     
     try {
-      // Add 10-second timeout to prevent infinite loading
       const timeoutPromise = new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('Auth check timed out')), 10000)
+        setTimeout(() => reject(new Error('Auth check timed out')), authTimeout)
       );
 
       const sessionPromise = supabase.auth.getSession();
       const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]) as Awaited<typeof sessionPromise>;
         
       if (!session) {
-        toast.error("Please sign in to access this page");
-        navigate("/auth");
+        // For PWA users, redirect to auth with return URL
+        const returnUrl = location.pathname + location.search;
+        navigate(`/auth?returnTo=${encodeURIComponent(returnUrl)}`, { replace: true });
         return;
       }
 
@@ -90,7 +97,7 @@ export const ProtectedRoute = ({
     } finally {
       setIsChecking(false);
     }
-  }, [navigate, requireAdmin, requireAnyAdminRole]);
+  }, [navigate, requireAdmin, requireAnyAdminRole, authTimeout, location]);
 
   useEffect(() => {
     checkAuth();
@@ -106,6 +113,25 @@ export const ProtectedRoute = ({
   }, [checkAuth, navigate]);
 
   if (isChecking) {
+    // Show branded loading for PWA users
+    if (isPWA) {
+      return (
+        <div className="min-h-screen bg-background flex flex-col items-center justify-center">
+          <img 
+            src={logoIcon} 
+            alt="GroUp Academy" 
+            className="w-16 h-16 mb-4 animate-pulse"
+          />
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+            <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+            <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+          </div>
+          <p className="text-muted-foreground text-sm mt-4">Loading...</p>
+        </div>
+      );
+    }
+    
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">

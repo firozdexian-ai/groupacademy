@@ -13,10 +13,12 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { useTalent } from '@/hooks/useTalent';
+import { usePWADetect } from '@/hooks/usePWADetect';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import logoLight from '@/assets/logo-horizontal-light.png';
 import logoDark from '@/assets/logo-horizontal-dark.png';
+import logoIcon from '@/assets/logo-icon.png';
 import { useTheme } from 'next-themes';
 import { CreditBalance } from '@/components/credits/CreditBalance';
 import { NotificationDropdown } from '@/components/notifications/NotificationDropdown';
@@ -32,6 +34,7 @@ const NAV_ITEMS = [
 
 export function TalentAppShell() {
   const { talent, signOut, isLoading } = useTalent();
+  const { isPWA } = usePWADetect();
   const navigate = useNavigate();
   const location = useLocation();
   const { theme } = useTheme();
@@ -42,8 +45,25 @@ export function TalentAppShell() {
     navigate('/');
   };
 
-  // Show loading state while checking auth
+  // Show branded loading state for PWA users
   if (isLoading) {
+    if (isPWA) {
+      return (
+        <div className="min-h-screen bg-background flex flex-col items-center justify-center">
+          <img 
+            src={logoIcon} 
+            alt="GroUp Academy" 
+            className="w-16 h-16 mb-4 animate-pulse"
+          />
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+            <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+            <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+          </div>
+        </div>
+      );
+    }
+    
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
@@ -51,9 +71,10 @@ export function TalentAppShell() {
     );
   }
 
-  // Redirect if not authenticated
+  // Redirect if not authenticated - include return URL for PWA users
   if (!talent) {
-    navigate('/auth', { state: { from: location.pathname } });
+    const returnUrl = encodeURIComponent(location.pathname + location.search);
+    navigate(`/auth?returnTo=${returnUrl}`, { replace: true });
     return null;
   }
 
