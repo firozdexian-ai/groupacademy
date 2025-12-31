@@ -26,6 +26,9 @@ interface FeedItem {
   slug?: string;
   matchScore?: number;
   matchReason?: string;
+  skills?: string[];
+  location?: string;
+  companyLogo?: string;
 }
 
 serve(async (req) => {
@@ -108,11 +111,11 @@ serve(async (req) => {
 
     const dismissedIds = new Set(dismissedInteractions?.map(i => i.item_id) || []);
 
-    // Fetch jobs and courses in parallel
-    const [jobsResult, coursesResult] = await Promise.all([
+    // Fetch jobs and courses in parallel - include company info for logo
+    const [jobsResult, coursesResult, companiesResult] = await Promise.all([
       supabase
         .from("jobs")
-        .select("id, title, description, company_name, location, job_type, experience_level, created_at")
+        .select("id, title, description, company_name, company_id, location, job_type, experience_level, requirements, created_at")
         .eq("is_active", true)
         .order("created_at", { ascending: false })
         .limit(20),
@@ -121,11 +124,45 @@ serve(async (req) => {
         .select("id, title, description, thumbnail_url, created_at, slug, content_type")
         .eq("is_published", true)
         .order("created_at", { ascending: false })
-        .limit(20)
+        .limit(20),
+      supabase
+        .from("companies")
+        .select("id, logo_url")
     ]);
 
     const jobs = (jobsResult.data || []).filter(j => !dismissedIds.has(j.id));
     const courses = (coursesResult.data || []).filter(c => !dismissedIds.has(c.id));
+    
+    // Create company logo map
+    const companyLogoMap = new Map<string, string>();
+    (companiesResult.data || []).forEach(c => {
+      if (c.logo_url) {
+        companyLogoMap.set(c.id, c.logo_url);
+      }
+    });
+
+    // Helper to extract skills from job requirements
+    const extractSkillsFromJob = (job: any): string[] => {
+      const skills: string[] = [];
+      if (job.requirements) {
+        try {
+          const reqs = typeof job.requirements === 'string' 
+            ? JSON.parse(job.requirements) 
+            : job.requirements;
+          if (Array.isArray(reqs)) {
+            // Take first 5 items that look like skills (short strings)
+            reqs.slice(0, 5).forEach((req: any) => {
+              if (typeof req === 'string' && req.length < 30) {
+                skills.push(req);
+              }
+            });
+          }
+        } catch (e) {
+          // Ignore parse errors
+        }
+      }
+      return skills;
+    };
 
     // Prepare items for AI scoring
     interface ItemToScore {
@@ -256,6 +293,9 @@ Example format:
 
     for (const job of jobs) {
       const scoreData = scoreMap.get(job.id);
+      const jobSkills = extractSkillsFromJob(job);
+      const companyLogo = job.company_id ? companyLogoMap.get(job.company_id) : undefined;
+      
       recommendations.push({
         id: job.id,
         type: "job",
@@ -264,7 +304,10 @@ Example format:
         company: job.company_name,
         createdAt: job.created_at || new Date().toISOString(),
         matchScore: scoreData?.score || 50,
-        matchReason: scoreData?.reason || "Potential match"
+        matchReason: scoreData?.reason || "Potential match",
+        skills: jobSkills,
+        location: job.location || undefined,
+        companyLogo: companyLogo
       });
     }
 

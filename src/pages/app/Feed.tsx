@@ -1,14 +1,15 @@
 import { useNavigate } from 'react-router-dom';
-import { RefreshCw, Inbox } from 'lucide-react';
+import { Inbox, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useTalent } from '@/hooks/useTalent';
 import { useFeedRecommendations } from '@/hooks/useFeedRecommendations';
 import { OnboardingWizard } from '@/components/onboarding/OnboardingWizard';
-import { FeedCard } from '@/components/feed/FeedCard';
+import { FeedCardRedesigned } from '@/components/feed/FeedCardRedesigned';
 import { FeedFilters } from '@/components/feed/FeedFilters';
 import { FeedSkeleton } from '@/components/feed/FeedSkeleton';
-import { CareerInsightsCard } from '@/components/feed/CareerInsightsCard';
+import { CareerInsightsCarousel } from '@/components/feed/CareerInsightsCarousel';
+import { FeedHeader } from '@/components/feed/FeedHeader';
 import { useState, useEffect } from 'react';
 
 export default function Feed() {
@@ -80,33 +81,17 @@ export default function Feed() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">
-            Welcome back, {talent?.fullName?.split(' ')[0] || 'there'}!
-          </h1>
-          <p className="text-muted-foreground">Here are your personalized recommendations</p>
-        </div>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => refresh(true)}
-          disabled={isRefreshing}
-          className="flex-shrink-0"
-        >
-          <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-        </Button>
-      </div>
-
-      {/* Career Insights */}
-      <CareerInsightsCard
-        insights={insights}
+    <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
+      {/* Header with Avatar and Notifications */}
+      <FeedHeader
+        talentName={talent?.fullName}
+        talentPhoto={talent?.profilePhotoUrl}
         onRefresh={() => refresh(true)}
         isRefreshing={isRefreshing}
-        hasGeneratedOnce={hasGeneratedOnce}
       />
+
+      {/* Career Insights Carousel */}
+      <CareerInsightsCarousel insights={insights} />
 
       {/* Filters */}
       <FeedFilters
@@ -149,9 +134,9 @@ export default function Feed() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {items.map(item => (
-            <FeedCard
+            <FeedCardRedesigned
               key={item.id}
               item={item}
               onInterested={() => handleInterested(item)}

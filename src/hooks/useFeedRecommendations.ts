@@ -15,6 +15,9 @@ export interface FeedItem {
   slug?: string;
   matchScore?: number;
   matchReason?: string;
+  skills?: string[];
+  location?: string;
+  companyLogo?: string;
 }
 
 export type FeedFilterType = 'all' | 'job' | 'course' | 'video';

@@ -1,4 +1,4 @@
-import { Briefcase, Play, BookOpen, LayoutGrid, ArrowUpDown } from 'lucide-react';
+import { Briefcase, Play, BookOpen, LayoutGrid, ArrowUpDown, SlidersHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { 
   Select, 
@@ -70,17 +70,30 @@ export function FeedFilters({ filters, onChange, counts }: FeedFiltersProps) {
         })}
       </div>
 
-      {/* Sort Dropdown */}
-      <Select value={filters.sort} onValueChange={handleSortChange}>
-        <SelectTrigger className="w-[130px] h-8 text-xs">
-          <ArrowUpDown className="h-3 w-3 mr-1.5" />
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="match" className="text-xs">Best Match</SelectItem>
-          <SelectItem value="newest" className="text-xs">Newest First</SelectItem>
-        </SelectContent>
-      </Select>
+      {/* Right side: Sort + Filter icon */}
+      <div className="flex items-center gap-2">
+        {/* Sort Dropdown */}
+        <Select value={filters.sort} onValueChange={handleSortChange}>
+          <SelectTrigger className="w-[120px] h-8 text-xs">
+            <ArrowUpDown className="h-3 w-3 mr-1.5" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="match" className="text-xs">Best Match</SelectItem>
+            <SelectItem value="newest" className="text-xs">Newest</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* Filter/Settings Icon */}
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-8 w-8"
+          onClick={() => {/* Future: Advanced filters */}}
+        >
+          <SlidersHorizontal className="h-4 w-4" />
+        </Button>
+      </div>
     </div>
   );
 }
