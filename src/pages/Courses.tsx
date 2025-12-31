@@ -11,7 +11,7 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { CardGridSkeleton } from "@/components/ui/page-loading-skeleton";
 import { ErrorState } from "@/components/ui/error-state";
-import { useQueryWithTimeout } from "@/hooks/useQueryWithTimeout";
+import { useQuery } from "@tanstack/react-query";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 
 type ContentType = "free_video" | "recorded_course" | "live_webinar" | "batch_class" | "offline_seminar";
@@ -42,21 +42,30 @@ const Courses = () => {
   const navigate = useNavigate();
   const [selectedType, setSelectedType] = useState<ContentType | "all">("all");
 
-  const { data: courses = [], isLoading, error, refetch } = useQueryWithTimeout({
+  // Use standard useQuery with signal from queryFn context
+  const { data: courses = [], isLoading, error, refetch } = useQuery({
     queryKey: ["courses"],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
       const { data, error } = await supabase
         .from("content")
         .select("*")
         .eq("is_published", true)
         .eq("is_private", false)
         .order("display_order", { ascending: true })
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .abortSignal(signal);
 
       if (error) throw error;
       return data as Course[];
     },
-    timeout: TIMEOUTS.DEFAULT,
+    staleTime: 5 * 60 * 1000,
+    retry: (failureCount, error) => {
+      // Don't retry on abort
+      if (error instanceof Error && (error.name === "AbortError" || error.message.includes("aborted"))) {
+        return false;
+      }
+      return failureCount < 2;
+    },
   });
 
   const filteredCourses =

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/Navbar";
@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getIcon } from "@/lib/iconMap";
-import { withTimeout } from "@/hooks/useQueryWithTimeout";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { 
   GraduationCap, 
   Building2, 
@@ -59,45 +59,63 @@ export default function Professions() {
   const [selectedAcademy, setSelectedAcademy] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
   const [loadingError, setLoadingError] = useState<string | null>(null);
+  
+  // Abort controller ref
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     loadData();
+    
+    // Cleanup on unmount
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, []);
 
   const loadData = async () => {
+    // Cancel any in-flight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    
     setLoadingError(null);
+    setIsLoading(true);
+    
+    const timeoutId = setTimeout(() => controller.abort(), TIMEOUTS.DEFAULT);
+    
     try {
-      // Load all data with timeout protection
-      const academiesPromise = supabase
-        .from("academies")
-        .select("*")
-        .eq("is_active", true)
-        .order("display_order");
-
-      const schoolsPromise = supabase
-        .from("schools")
-        .select("*")
-        .eq("is_active", true)
-        .order("display_order");
-
-      const professionsPromise = supabase
-        .from("profession_categories")
-        .select(`
-          *,
-          ai_instructors(name)
-        `)
-        .eq("is_active", true)
-        .not("school_id", "is", null)
-        .order("display_order");
-
-      // Race all queries against a single timeout
-      const results = await withTimeout(
-        Promise.all([academiesPromise, schoolsPromise, professionsPromise]),
-        15000,
-        "Loading timed out"
-      );
-
-      const [academiesResult, schoolsResult, professionsResult] = results;
+      // Load all data with proper abort signals
+      const [academiesResult, schoolsResult, professionsResult] = await Promise.all([
+        supabase
+          .from("academies")
+          .select("*")
+          .eq("is_active", true)
+          .order("display_order")
+          .abortSignal(controller.signal),
+        supabase
+          .from("schools")
+          .select("*")
+          .eq("is_active", true)
+          .order("display_order")
+          .abortSignal(controller.signal),
+        supabase
+          .from("profession_categories")
+          .select(`
+            *,
+            ai_instructors(name)
+          `)
+          .eq("is_active", true)
+          .not("school_id", "is", null)
+          .order("display_order")
+          .abortSignal(controller.signal),
+      ]);
+      
+      clearTimeout(timeoutId);
 
       if (academiesResult.error) throw academiesResult.error;
       if (schoolsResult.error) throw schoolsResult.error;
@@ -111,12 +129,20 @@ export default function Professions() {
         setSelectedAcademy(academiesResult.data[0].slug);
       }
     } catch (error: any) {
+      clearTimeout(timeoutId);
+      
+      // Ignore abort errors
+      if (error?.name === "AbortError") {
+        return;
+      }
+      
       console.error("Error loading data:", error);
-      setLoadingError(error.message?.includes("timed out") 
-        ? "Loading took too long. Please try again."
-        : "Failed to load professions. Please try again.");
+      setLoadingError("Failed to load professions. Please try again.");
     } finally {
-      setIsLoading(false);
+      // Only update loading state if this is still the active request
+      if (abortControllerRef.current === controller) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -127,8 +153,6 @@ export default function Professions() {
   const getProfessionLinesForSchool = (schoolId: string) => {
     return professionLines.filter((p) => p.school_id === schoolId);
   };
-
-  
 
   if (isLoading) {
     return (

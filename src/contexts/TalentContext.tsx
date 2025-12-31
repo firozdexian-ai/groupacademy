@@ -137,8 +137,11 @@ export function TalentProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Initialize auth state
+  // Initialize auth state with timeout protection
   useEffect(() => {
+    let authTimeoutId: NodeJS.Timeout | null = null;
+    let isInitialized = false;
+
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
@@ -157,22 +160,50 @@ export function TalentProvider({ children }: { children: React.ReactNode }) {
       }
     );
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        fetchTalent(session.user.id, session.user.email);
-      }
-      
-      setIsAuthLoading(false);
-    }).catch((error) => {
-      console.error('[TalentContext] Error getting session:', error);
-      setIsAuthLoading(false);
-    });
+    // THEN check for existing session with timeout fallback
+    const initializeSession = async () => {
+      // Set a hard timeout - if session check hangs, proceed without auth
+      authTimeoutId = setTimeout(() => {
+        if (!isInitialized) {
+          console.warn('[TalentContext] Session check timed out after 8s, proceeding without auth');
+          isInitialized = true;
+          setIsAuthLoading(false);
+        }
+      }, 8000);
 
-    return () => subscription.unsubscribe();
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (isInitialized) return; // Timeout already fired
+        isInitialized = true;
+        
+        if (authTimeoutId) clearTimeout(authTimeoutId);
+        
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        if (session?.user) {
+          fetchTalent(session.user.id, session.user.email);
+        }
+        
+        setIsAuthLoading(false);
+      } catch (error) {
+        if (isInitialized) return; // Timeout already fired
+        isInitialized = true;
+        
+        if (authTimeoutId) clearTimeout(authTimeoutId);
+        
+        console.error('[TalentContext] Error getting session:', error);
+        setIsAuthLoading(false);
+      }
+    };
+
+    initializeSession();
+
+    return () => {
+      if (authTimeoutId) clearTimeout(authTimeoutId);
+      subscription.unsubscribe();
+    };
   }, [fetchTalent]);
 
   // Refresh talent profile

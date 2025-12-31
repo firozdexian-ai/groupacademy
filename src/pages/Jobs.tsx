@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/Navbar";
@@ -16,7 +16,6 @@ import {
   Filter
 } from "lucide-react";
 import { format } from "date-fns";
-import { withTimeout, isTimeoutError } from "@/hooks/useDataFetch";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 
 interface Job {
@@ -69,6 +68,9 @@ const Jobs = () => {
   const [error, setError] = useState<Error | null>(null);
   const [totalCount, setTotalCount] = useState(0);
   
+  // Abort controller ref to cancel in-flight requests
+  const abortControllerRef = useRef<AbortController | null>(null);
+  
   // Filters
   const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
   const [categoryFilter, setCategoryFilter] = useState(searchParams.get("category") || "all");
@@ -92,17 +94,28 @@ const Jobs = () => {
       clearTimeout(timeoutId);
       if (error) throw error;
       setCategories(data || []);
-    } catch (err) {
+    } catch (err: any) {
       clearTimeout(timeoutId);
-      console.error("Error loading categories:", err);
+      // Only log non-abort errors
+      if (err?.name !== "AbortError") {
+        console.error("Error loading categories:", err);
+      }
     }
   }, []);
 
   const loadJobs = useCallback(async () => {
+    // Cancel any in-flight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    // Create new controller for this request
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    
     setLoading(true);
     setError(null);
     
-    const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), TIMEOUTS.DEFAULT);
     
     try {
@@ -111,7 +124,8 @@ const Jobs = () => {
         .select("*", { count: "exact" })
         .eq("is_active", true)
         .order("is_featured", { ascending: false })
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .abortSignal(controller.signal);
 
       // Apply filters
       if (categoryFilter !== "all") {
@@ -135,13 +149,7 @@ const Jobs = () => {
       const to = from + JOBS_PER_PAGE - 1;
       query = query.range(from, to);
 
-      const abortPromise = new Promise<never>((_, reject) => {
-        controller.signal.addEventListener('abort', () => 
-          reject(new Error("Loading took too long"))
-        );
-      });
-
-      const { data, error, count } = await Promise.race([query, abortPromise]);
+      const { data, error, count } = await query;
       clearTimeout(timeoutId);
       
       if (error) throw error;
@@ -149,16 +157,31 @@ const Jobs = () => {
       setTotalCount(count || 0);
     } catch (err: any) {
       clearTimeout(timeoutId);
-      const isAbort = err?.message?.includes("timed out") || err?.message?.includes("too long");
-      const error = isAbort 
-        ? new Error("Loading took too long. Please try again.")
-        : (err instanceof Error ? err : new Error('Failed to load jobs'));
-      setError(error);
+      
+      // Ignore abort errors (they're expected when user changes filters quickly)
+      if (err?.name === "AbortError") {
+        return;
+      }
+      
+      const errorObj = err instanceof Error ? err : new Error('Failed to load jobs');
+      setError(errorObj);
       console.error("Error loading jobs:", err);
     } finally {
-      setLoading(false);
+      // Only update loading state if this is still the active request
+      if (abortControllerRef.current === controller) {
+        setLoading(false);
+      }
     }
   }, [categoryFilter, jobTypeFilter, experienceFilter, locationFilter, searchQuery, currentPage]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   useEffect(() => {
     loadCategories();
@@ -423,102 +446,108 @@ const Jobs = () => {
             </div>
 
             {/* Error State */}
-            {error && !loading && (
-              <div className="py-12">
-                <ErrorState
-                  type={isTimeoutError(error) ? "timeout" : "server"}
-                  title={isTimeoutError(error) ? "Loading took too long" : "Failed to load jobs"}
-                  description={isTimeoutError(error) 
-                    ? "The server is taking longer than expected. Please try again." 
-                    : "Something went wrong while loading jobs. Please try again."}
-                  onRetry={loadJobs}
-                  className="max-w-md mx-auto"
-                />
-              </div>
+            {error && (
+              <ErrorState
+                type="server"
+                title="Failed to load jobs"
+                description={error.message}
+                onRetry={loadJobs}
+              />
             )}
 
             {/* Loading State */}
-            {loading && !error ? (
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {[1, 2, 3, 4, 5, 6].map((i) => (
-                  <Card key={i} className="p-5">
-                    <div className="flex items-start gap-4">
-                      <Skeleton className="h-12 w-12 rounded-lg" />
-                      <div className="flex-1 space-y-3">
-                        <Skeleton className="h-5 w-3/4" />
-                        <Skeleton className="h-4 w-1/2" />
-                        <div className="flex gap-2">
-                          <Skeleton className="h-6 w-16" />
-                          <Skeleton className="h-6 w-20" />
+            {loading && !error && (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {[...Array(6)].map((_, i) => (
+                  <Card key={i}>
+                    <CardContent className="p-5">
+                      <div className="flex items-start gap-4">
+                        <Skeleton className="w-12 h-12 rounded-lg" />
+                        <div className="flex-1 space-y-3">
+                          <Skeleton className="h-5 w-3/4" />
+                          <Skeleton className="h-4 w-1/2" />
+                          <div className="flex gap-2">
+                            <Skeleton className="h-6 w-20" />
+                            <Skeleton className="h-6 w-16" />
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    </CardContent>
                   </Card>
                 ))}
               </div>
-            ) : !error && jobs.length === 0 ? (
-              <div className="text-center py-20">
-                <Briefcase className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-xl font-semibold mb-2">No jobs found</h3>
-                <p className="text-muted-foreground mb-4">Try adjusting your filters or search query</p>
-                <Button onClick={clearFilters} variant="outline">Clear Filters</Button>
-              </div>
-            ) : !error && (
+            )}
+
+            {/* Jobs Grid */}
+            {!loading && !error && (
               <>
-                {/* Featured Jobs */}
-                {featuredJobs.length > 0 && (
-                  <div className="mb-8">
-                    <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                      <Star className="w-5 h-5 text-yellow-500" />
-                      Featured Jobs
-                    </h2>
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {featuredJobs.map(job => (
-                        <JobCard key={job.id} job={job} featured />
-                      ))}
-                    </div>
+                {jobs.length === 0 ? (
+                  <div className="text-center py-16">
+                    <Briefcase className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold mb-2">No jobs found</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Try adjusting your filters or search query
+                    </p>
+                    <Button variant="outline" onClick={clearFilters}>
+                      Clear Filters
+                    </Button>
                   </div>
-                )}
-
-                {/* Regular Jobs */}
-                {regularJobs.length > 0 && (
-                  <div>
+                ) : (
+                  <>
+                    {/* Featured Jobs */}
                     {featuredJobs.length > 0 && (
-                      <h2 className="text-lg font-semibold mb-4">All Jobs</h2>
+                      <div className="mb-8">
+                        <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                          <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
+                          Featured Jobs
+                        </h2>
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                          {featuredJobs.map(job => (
+                            <JobCard key={job.id} job={job} featured />
+                          ))}
+                        </div>
+                      </div>
                     )}
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {regularJobs.map(job => (
-                        <JobCard key={job.id} job={job} />
-                      ))}
-                    </div>
-                  </div>
-                )}
 
-                {/* Pagination */}
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-center gap-2 mt-8">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                      disabled={currentPage === 1}
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                      Previous
-                    </Button>
-                    <span className="text-sm text-muted-foreground px-4">
-                      Page {currentPage} of {totalPages}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                      disabled={currentPage === totalPages}
-                    >
-                      Next
-                      <ChevronRight className="w-4 h-4" />
-                    </Button>
-                  </div>
+                    {/* Regular Jobs */}
+                    {regularJobs.length > 0 && (
+                      <div>
+                        {featuredJobs.length > 0 && (
+                          <h2 className="text-xl font-semibold mb-4">All Jobs</h2>
+                        )}
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                          {regularJobs.map(job => (
+                            <JobCard key={job.id} job={job} />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                      <div className="flex justify-center items-center gap-2 mt-8">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                          disabled={currentPage === 1}
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                        </Button>
+                        <span className="text-sm text-muted-foreground px-4">
+                          Page {currentPage} of {totalPages}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                          disabled={currentPage === totalPages}
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </>
                 )}
               </>
             )}
