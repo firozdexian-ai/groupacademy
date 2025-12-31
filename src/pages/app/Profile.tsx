@@ -253,8 +253,10 @@ export default function Profile() {
           <CardContent>
             {Array.isArray(talent.skills) && talent.skills.length > 0 ? (
               <div className="flex flex-wrap gap-2">
-                {(talent.skills as string[]).map((skill, i) => (
-                  <Badge key={i} variant="secondary">{skill}</Badge>
+                {talent.skills.map((skill, i) => (
+                  <Badge key={i} variant="secondary">
+                    {typeof skill === 'string' ? skill : skill.name}
+                  </Badge>
                 ))}
               </div>
             ) : (

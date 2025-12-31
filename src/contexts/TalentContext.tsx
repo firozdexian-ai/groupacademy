@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
+import { Education, Experience, Skill } from '@/types/common';
 
 export interface TalentProfile {
   id: string;
@@ -16,11 +17,11 @@ export interface TalentProfile {
   currentStatus: string | null;
   fieldOfStudy: string | null;
   institution: string | null;
-  education: any[];
-  experience: any[];
-  skills: any[];
-  projects: any[];
-  achievements: any[];
+  education: Education[];
+  experience: Experience[];
+  skills: Skill[];
+  projects: Record<string, unknown>[];
+  achievements: Record<string, unknown>[];
   linkedinUrl: string | null;
   portfolioUrl: string | null;
   profilePhotoUrl: string | null;
@@ -321,7 +322,7 @@ export function TalentProvider({ children }: { children: React.ReactNode }) {
           full_name: fullName,
           phone: phone || '',
         },
-        emailRedirectTo: `${window.location.origin}/my-learning`,
+        emailRedirectTo: `${window.location.origin}/app/feed`,
       },
     });
 

@@ -23,6 +23,7 @@ import { AIAgentsManager } from "@/components/dashboard/AIAgentsManager";
 import { CreditsManager } from "@/components/dashboard/CreditsManager";
 import { NotificationsManager } from "@/components/dashboard/NotificationsManager";
 import { AgentSessionsManager } from "@/components/dashboard/AgentSessionsManager";
+import { EnrollmentsManager } from "@/components/dashboard/EnrollmentsManager";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -47,6 +48,7 @@ const tabAccessMap: Record<string, AppRole[]> = {
   leads: ["admin"],
   interviews: ["admin"],
   salary: ["admin"],
+  enrollments: ["admin"],
   professions: ["admin"],
   jobs: ["admin"],
   applications: ["admin"],
@@ -211,6 +213,8 @@ const Dashboard = () => {
         return <MockInterviewLeadsManager />;
       case "salary":
         return <SalaryAnalysisLeadsManager />;
+      case "enrollments":
+        return <EnrollmentsManager />;
       case "professions":
         return <ProfessionsManager />;
       case "jobs":

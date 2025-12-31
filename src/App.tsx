@@ -132,8 +132,7 @@ export default function App() {
                   <Route path="/salary-analysis/setup" element={<SalaryAnalysisSetup />} />
                   <Route path="/salary-analysis/processing/:id" element={<SalaryAnalysisProcessing />} />
                   <Route path="/salary-analysis/results/:id" element={<SalaryAnalysisResults />} />
-                  <Route path="/my-profile" element={<TalentPortal />} />
-                  <Route path="/courses/:slug" element={<CourseDetail />} />
+                  <Route path="/my-profile" element={<Navigate to="/app/profile" replace />} />
                   <Route
                     path="/dashboard"
                     element={
@@ -142,14 +141,12 @@ export default function App() {
                       </ProtectedRoute>
                     }
                   />
+                  {/* Legacy route - redirect to app shell */}
                   <Route
                     path="/my-learning"
-                    element={
-                      <ProtectedRoute>
-                        <MyLearning />
-                      </ProtectedRoute>
-                    }
+                    element={<Navigate to="/app/learning/my-courses" replace />}
                   />
+                  <Route path="/courses/:slug" element={<CourseDetail />} />
                   <Route
                     path="/learn/:slug"
                     element={
@@ -305,7 +302,9 @@ export default function App() {
                     <Route path="services/salary-analysis" element={<AppSalaryAnalysisSetup />} />
                     <Route path="services/portfolio" element={<AppPortfolioRequest />} />
                     <Route path="jobs" element={<JobsHub />} />
+                    <Route path="jobs/all" element={<AppJobs />} />
                     <Route path="jobs/:id" element={<AppJobDetail />} />
+                    <Route path="jobs/:id/apply" element={<AppJobApplication />} />
                     <Route path="applications" element={<MyApplications />} />
                     <Route path="abroad" element={<CareerAbroad />} />
                     <Route path="agents" element={<AIAgents />} />
@@ -313,7 +312,8 @@ export default function App() {
                     <Route path="profile" element={<Profile />} />
                     <Route path="profile/edit" element={<ProfileEdit />} />
                     <Route path="services/my-results" element={<MyResults />} />
-                    <Route path="profile" element={<Profile />} />
+                    <Route path="notifications" element={<Notifications />} />
+                    <Route path="learn/:slug" element={<ImmersiveCoursePlayer />} />
                   </Route>
                   
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
