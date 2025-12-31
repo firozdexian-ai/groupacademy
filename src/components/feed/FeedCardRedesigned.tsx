@@ -16,11 +16,11 @@ export function FeedCardRedesigned({ item, onInterested, onNotInterested }: Feed
   const getTypeIcon = () => {
     switch (item.type) {
       case 'job':
-        return <Briefcase className="h-3.5 w-3.5" />;
+        return <Briefcase className="h-3 w-3" />;
       case 'video':
-        return <Play className="h-3.5 w-3.5" />;
+        return <Play className="h-3 w-3" />;
       case 'course':
-        return <BookOpen className="h-3.5 w-3.5" />;
+        return <BookOpen className="h-3 w-3" />;
     }
   };
 
@@ -35,7 +35,6 @@ export function FeedCardRedesigned({ item, onInterested, onNotInterested }: Feed
     }
   };
 
-  // Get gradient background based on type for fallback
   const getGradientBackground = () => {
     switch (item.type) {
       case 'job':
@@ -47,17 +46,15 @@ export function FeedCardRedesigned({ item, onInterested, onNotInterested }: Feed
     }
   };
 
-  // Company logo - smaller, for the info section
   const companyLogo = item.type === 'job' 
     ? item.companyLogo || null
     : item.thumbnail;
 
-  // Determine if we have media to show
   const hasMedia = !!item.mediaUrl;
   const isVideo = item.mediaType === 'youtube';
 
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 border-border/50 hover:border-primary/30 relative rounded-2xl animate-bounce-in">
+    <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 border-border/50 hover:border-primary/30 relative rounded-xl animate-bounce-in">
       {/* Media Section - 16:9 aspect ratio */}
       <div className="relative aspect-video overflow-hidden bg-muted">
         {hasMedia ? (
@@ -67,111 +64,109 @@ export function FeedCardRedesigned({ item, onInterested, onNotInterested }: Feed
               alt={item.title}
               className="w-full h-full object-cover"
             />
-            {/* Video Play Overlay */}
+            {/* Video Play Overlay - Compact */}
             {isVideo && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
-                  <Play className="h-8 w-8 text-destructive fill-destructive ml-1" />
+                <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
+                  <Play className="h-5 w-5 text-destructive fill-destructive ml-0.5" />
                 </div>
               </div>
             )}
           </>
         ) : (
-          // Gradient fallback with icon
+          // Gradient fallback with compact icon
           <div className={cn(
             'w-full h-full flex items-center justify-center bg-gradient-to-br',
             getGradientBackground()
           )}>
-            <div className="w-20 h-20 rounded-full bg-background/80 flex items-center justify-center shadow-md">
-              {item.type === 'job' && <Briefcase className="h-10 w-10 text-primary" />}
-              {item.type === 'video' && <Play className="h-10 w-10 text-destructive" />}
-              {item.type === 'course' && <BookOpen className="h-10 w-10 text-accent-foreground" />}
+            <div className="w-14 h-14 rounded-full bg-background/80 flex items-center justify-center shadow-md">
+              {item.type === 'job' && <Briefcase className="h-6 w-6 text-primary" />}
+              {item.type === 'video' && <Play className="h-6 w-6 text-destructive" />}
+              {item.type === 'course' && <BookOpen className="h-6 w-6 text-accent-foreground" />}
             </div>
           </div>
         )}
 
-        {/* Match Score Badge - Top Right Overlay */}
+        {/* Match Score Badge - Top Right */}
         {item.matchScore !== undefined && (
-          <div className="absolute top-3 right-3 z-10">
-            <CircularMatchBadge score={item.matchScore} size="md" />
+          <div className="absolute top-2 right-2 z-10">
+            <CircularMatchBadge score={item.matchScore} size="sm" />
           </div>
         )}
 
-        {/* Type Badge - Top Left Overlay */}
-        <div className="absolute top-3 left-3 z-10">
+        {/* Type Badge - Top Left */}
+        <div className="absolute top-2 left-2 z-10">
           <Badge variant="outline" className={cn(
-            'text-[10px] gap-1 rounded-lg backdrop-blur-sm bg-background/80 border-background/50',
+            'text-[10px] gap-1 rounded-md backdrop-blur-sm bg-background/80 border-background/50 px-1.5 py-0.5',
             getTypeBadgeStyles()
           )}>
             {getTypeIcon()}
-            <span className="capitalize font-semibold">{item.type}</span>
+            <span className="capitalize font-medium">{item.type}</span>
           </Badge>
         </div>
       </div>
 
-      <CardContent className="p-4">
+      <CardContent className="p-3">
         {/* Company/Source Info */}
-        <div className="flex items-center gap-3 mb-3">
-          {/* Company Logo / Thumbnail (smaller) */}
+        <div className="flex items-center gap-2 mb-2">
+          {/* Company Logo - Compact */}
           <div className="flex-shrink-0">
             {companyLogo ? (
               <img
                 src={companyLogo}
                 alt={item.company || item.title}
-                className="w-10 h-10 rounded-xl object-cover ring-1 ring-border bg-muted"
+                className="w-8 h-8 rounded-lg object-cover ring-1 ring-border bg-muted"
               />
             ) : (
-              <div className="w-10 h-10 rounded-xl bg-gradient-primary flex items-center justify-center">
-                <Building2 className="h-5 w-5 text-primary-foreground" />
+              <div className="w-8 h-8 rounded-lg bg-gradient-primary flex items-center justify-center">
+                <Building2 className="h-4 w-4 text-primary-foreground" />
               </div>
             )}
           </div>
 
           <div className="flex-1 min-w-0">
-            {/* Company Name */}
             {item.company && (
-              <p className="text-sm text-foreground font-medium truncate">{item.company}</p>
+              <p className="text-xs text-foreground font-medium truncate">{item.company}</p>
             )}
-            {/* Location */}
             {item.location && (
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <MapPin className="h-3 w-3" />
+              <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                <MapPin className="h-2.5 w-2.5" />
                 <span className="truncate">{item.location}</span>
               </div>
             )}
           </div>
         </div>
 
-        {/* Title */}
-        <h3 className="font-bold text-foreground line-clamp-2 mb-2 text-base leading-tight">{item.title}</h3>
+        {/* Title - Compact */}
+        <h3 className="font-semibold text-foreground line-clamp-2 mb-1.5 text-sm leading-snug">{item.title}</h3>
 
         {/* Skills */}
         {item.skills && item.skills.length > 0 && (
-          <SkillTagBadge skills={item.skills} maxVisible={3} className="mb-2" />
+          <SkillTagBadge skills={item.skills} maxVisible={3} className="mb-1.5" />
         )}
 
         {/* Match Reason */}
         {item.matchReason && (
-          <p className="text-xs text-muted-foreground italic line-clamp-1">
+          <p className="text-[10px] text-muted-foreground italic line-clamp-1">
             "{item.matchReason}"
           </p>
         )}
 
-        {/* Tinder-style Action Buttons */}
-        <div className="flex items-center justify-center gap-8 mt-4 pt-4 border-t border-border/50">
+        {/* Compact Action Buttons */}
+        <div className="flex items-center justify-center gap-6 mt-3 pt-3 border-t border-border/50">
           {/* Dismiss Button */}
           <button
             onClick={(e) => {
               e.stopPropagation();
               onNotInterested();
             }}
-            className="w-14 h-14 rounded-full bg-card border-2 border-destructive/30 
-                       flex items-center justify-center shadow-lg 
+            className="w-11 h-11 rounded-full bg-card border-2 border-destructive/30 
+                       flex items-center justify-center shadow-md 
                        hover:scale-110 hover:border-destructive/60 hover:bg-destructive/5
                        active:scale-95 transition-all duration-200 press-scale"
             aria-label="Not interested"
           >
-            <X className="h-6 w-6 text-destructive" />
+            <X className="h-5 w-5 text-destructive" />
           </button>
 
           {/* Interested Button */}
@@ -180,13 +175,13 @@ export function FeedCardRedesigned({ item, onInterested, onNotInterested }: Feed
               e.stopPropagation();
               onInterested();
             }}
-            className="w-14 h-14 rounded-full bg-card border-2 border-success/30 
-                       flex items-center justify-center shadow-lg 
+            className="w-11 h-11 rounded-full bg-card border-2 border-success/30 
+                       flex items-center justify-center shadow-md 
                        hover:scale-110 hover:border-success/60 hover:bg-success/5
                        active:scale-95 transition-all duration-200 press-scale"
             aria-label="Interested"
           >
-            <Heart className="h-6 w-6 text-success" />
+            <Heart className="h-5 w-5 text-success" />
           </button>
         </div>
       </CardContent>

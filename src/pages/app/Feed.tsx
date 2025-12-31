@@ -44,13 +44,11 @@ export default function Feed() {
   const handleOnboardingComplete = async () => {
     setShowOnboarding(false);
     await refreshTalent();
-    // Refresh recommendations after onboarding
     refresh(true);
   };
 
   const handleInterested = async (item: typeof items[0]) => {
     await markInterested(item);
-    // Navigate to the item - use app routes to stay within shell
     if (item.type === 'job') {
       navigate(`/app/jobs/${item.id}`);
     } else if (item.slug) {
@@ -58,7 +56,6 @@ export default function Feed() {
     }
   };
 
-  // Calculate counts for filters
   const counts = {
     all: items.length,
     job: items.filter(i => i.type === 'job').length,
@@ -66,17 +63,16 @@ export default function Feed() {
     video: items.filter(i => i.type === 'video').length
   };
 
-  // Show onboarding wizard if not completed
   if (showOnboarding) {
     return <OnboardingWizard onComplete={handleOnboardingComplete} />;
   }
 
   if (isLoading) {
     return (
-      <div className="max-w-lg mx-auto px-4 py-6">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold">Welcome back!</h1>
-          <p className="text-muted-foreground">Analyzing your profile for best matches...</p>
+      <div className="max-w-lg mx-auto px-4 py-4">
+        <div className="mb-4">
+          <h1 className="text-xl font-bold">Welcome back!</h1>
+          <p className="text-xs text-muted-foreground">Analyzing your profile...</p>
         </div>
         <FeedSkeleton />
       </div>
@@ -84,7 +80,7 @@ export default function Feed() {
   }
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
+    <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
       {/* Header with Avatar */}
       <FeedHeader
         talentName={talent?.fullName}
@@ -111,14 +107,14 @@ export default function Feed() {
 
       {/* Error State */}
       {error && (
-        <Card className="border-destructive/50 bg-destructive/5 rounded-2xl">
-          <CardContent className="p-4 text-center">
-            <p className="text-sm text-destructive">{error}</p>
+        <Card className="border-destructive/50 bg-destructive/5 rounded-xl">
+          <CardContent className="p-3 text-center">
+            <p className="text-xs text-destructive">{error}</p>
             <Button 
               variant="outline" 
               size="sm" 
               onClick={() => refresh()}
-              className="mt-2"
+              className="mt-2 text-xs h-7"
             >
               Try again
             </Button>
@@ -128,26 +124,26 @@ export default function Feed() {
 
       {/* Feed Items */}
       {items.length === 0 ? (
-        <Card className="rounded-2xl">
-          <CardContent className="p-8 text-center">
-            <Inbox className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground mb-4">
+        <Card className="rounded-xl">
+          <CardContent className="p-6 text-center">
+            <Inbox className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+            <p className="text-sm text-muted-foreground mb-3">
               {filters.type === 'all' 
-                ? "No recommendations available right now."
+                ? "No recommendations available."
                 : `No ${filters.type}s to show.`}
             </p>
-            <Button onClick={() => refresh(true)}>
-              <RefreshCw className="h-4 w-4 mr-2" />
+            <Button size="sm" onClick={() => refresh(true)} className="text-xs h-8">
+              <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
               Refresh Feed
             </Button>
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {items.map((item, index) => (
             <div 
               key={item.id}
-              style={{ animationDelay: `${index * 100}ms` }}
+              style={{ animationDelay: `${index * 80}ms` }}
             >
               <FeedCardRedesigned
                 item={item}

@@ -5,12 +5,10 @@ import {
   Mic, 
   DollarSign, 
   Palette,
-  Coins,
-  ChevronRight
+  Coins
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CreditBalance } from '@/components/credits/CreditBalance';
 import { CreditGateModal } from '@/components/credits/CreditGateModal';
 import { CreditPurchaseSheet } from '@/components/credits/CreditPurchaseSheet';
 import { ServiceUsageBadge } from '@/components/credits/ServiceUsageBadge';
@@ -22,10 +20,9 @@ import { cn } from '@/lib/utils';
 interface ServiceCardData {
   id: ServiceType;
   title: string;
-  description: string;
   icon: React.ElementType;
   href: string;
-  gradient: string;
+  iconColor: string;
   iconBg: string;
 }
 
@@ -33,38 +30,34 @@ const CAREER_SERVICES: ServiceCardData[] = [
   {
     id: 'CAREER_ASSESSMENT',
     title: 'Career Scorecard',
-    description: 'AI-powered readiness analysis',
     icon: ClipboardCheck,
     href: '/app/services/assessment',
-    gradient: 'from-primary/20 to-primary/5',
-    iconBg: 'bg-primary/15',
+    iconColor: 'text-primary',
+    iconBg: 'bg-primary/10',
   },
   {
     id: 'MOCK_INTERVIEW',
     title: 'Mock Interview',
-    description: 'Practice with AI feedback',
     icon: Mic,
     href: '/app/services/mock-interview',
-    gradient: 'from-accent/20 to-accent/5',
-    iconBg: 'bg-accent/15',
+    iconColor: 'text-accent-foreground',
+    iconBg: 'bg-accent/10',
   },
   {
     id: 'SALARY_ANALYSIS',
     title: 'Salary Analysis',
-    description: 'Market insights & negotiation',
     icon: DollarSign,
     href: '/app/services/salary-analysis',
-    gradient: 'from-warning/20 to-warning/5',
-    iconBg: 'bg-warning/15',
+    iconColor: 'text-warning',
+    iconBg: 'bg-warning/10',
   },
   {
     id: 'PORTFOLIO',
-    title: 'Digital Portfolio',
-    description: 'Professional showcase website',
+    title: 'Portfolio',
     icon: Palette,
     href: '/app/services/portfolio',
-    gradient: 'from-secondary/20 to-secondary/5',
-    iconBg: 'bg-secondary/15',
+    iconColor: 'text-secondary',
+    iconBg: 'bg-secondary/10',
   }
 ];
 
@@ -99,30 +92,30 @@ export default function ServicesHub() {
   };
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-6">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">Career Services</h1>
-        <p className="text-muted-foreground">AI-powered tools for your career</p>
+    <div className="max-w-lg mx-auto px-4 py-4">
+      {/* Compact Header */}
+      <div className="mb-4">
+        <h1 className="text-xl font-bold">Career Services</h1>
+        <p className="text-xs text-muted-foreground">AI-powered tools</p>
       </div>
 
-      {/* Credits Hero Card */}
-      <Card className="mb-6 overflow-hidden border-0 shadow-lg">
-        <div className="bg-gradient-primary p-5">
+      {/* Compact Credits Card */}
+      <Card className="mb-4 overflow-hidden border-0 shadow-md">
+        <div className="bg-gradient-primary p-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-primary-foreground/20 rounded-2xl backdrop-blur-sm">
-                <Coins className="h-7 w-7 text-primary-foreground" />
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary-foreground/20 rounded-xl backdrop-blur-sm">
+                <Coins className="h-5 w-5 text-primary-foreground" />
               </div>
               <div>
-                <p className="text-3xl font-bold text-primary-foreground">{balance}</p>
-                <p className="text-sm text-primary-foreground/80">Credits Available</p>
+                <p className="text-2xl font-bold text-primary-foreground">{balance}</p>
+                <p className="text-xs text-primary-foreground/80">Credits</p>
               </div>
             </div>
             <Button 
               variant="secondary" 
               size="sm" 
-              className="rounded-xl font-semibold press-scale shadow-md"
+              className="rounded-xl text-xs h-8 font-semibold press-scale shadow-sm"
               onClick={() => setShowPurchaseSheet(true)}
             >
               Buy More
@@ -131,8 +124,8 @@ export default function ServicesHub() {
         </div>
       </Card>
 
-      {/* Services Grid - 2x2 bKash Style */}
-      <div className="grid grid-cols-2 gap-4 mb-8">
+      {/* 2x2 Compact Grid - bKash Style */}
+      <div className="grid grid-cols-2 gap-3 mb-6">
         {CAREER_SERVICES.map((service, index) => {
           const cost = getServiceCost(service.id);
           const affordable = canAfford(service.id);
@@ -140,45 +133,34 @@ export default function ServicesHub() {
           return (
             <Card 
               key={service.id}
-              className={cn(
-                'cursor-pointer border-0 shadow-md overflow-hidden press-scale rounded-2xl',
-                'animate-bounce-in'
-              )}
-              style={{ animationDelay: `${index * 100}ms` }}
+              className="cursor-pointer border-0 shadow-sm overflow-hidden press-scale rounded-xl animate-bounce-in"
+              style={{ animationDelay: `${index * 50}ms` }}
               onClick={() => handleServiceClick(service)}
             >
-              <CardContent className={cn('p-0')}>
-                {/* Gradient Background */}
-                <div className={cn('bg-gradient-to-br p-5', service.gradient)}>
-                  {/* Icon */}
-                  <div className={cn(
-                    'w-14 h-14 rounded-2xl flex items-center justify-center mb-4 shadow-sm',
-                    service.iconBg
-                  )}>
-                    <service.icon className="h-7 w-7 text-foreground" />
+              <CardContent className="p-3">
+                {/* Compact Icon */}
+                <div className={cn(
+                  'w-11 h-11 rounded-xl flex items-center justify-center mb-2',
+                  service.iconBg
+                )}>
+                  <service.icon className={cn('h-5 w-5', service.iconColor)} />
+                </div>
+                
+                {/* Title */}
+                <h3 className="font-semibold text-xs text-foreground mb-1.5 leading-tight">{service.title}</h3>
+                
+                {/* Cost & Usage - Inline */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1">
+                    <Coins className="h-3 w-3 text-warning" />
+                    <span className={cn(
+                      'text-xs font-medium',
+                      affordable ? 'text-foreground' : 'text-destructive'
+                    )}>
+                      {cost}
+                    </span>
                   </div>
-                  
-                  {/* Title */}
-                  <h3 className="font-bold text-foreground mb-1">{service.title}</h3>
-                  
-                  {/* Description */}
-                  <p className="text-xs text-muted-foreground mb-3 line-clamp-1">
-                    {service.description}
-                  </p>
-                  
-                  {/* Cost & Usage */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <Coins className="h-4 w-4 text-warning" />
-                      <span className={cn(
-                        'text-sm font-semibold',
-                        affordable ? 'text-foreground' : 'text-destructive'
-                      )}>
-                        {cost}
-                      </span>
-                    </div>
-                    <ServiceUsageBadge serviceType={service.id} />
-                  </div>
+                  <ServiceUsageBadge serviceType={service.id} />
                 </div>
               </CardContent>
             </Card>
