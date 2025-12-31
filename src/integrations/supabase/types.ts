@@ -194,6 +194,44 @@ export type Database = {
           },
         ]
       }
+      ai_recommendations: {
+        Row: {
+          career_insights: Json | null
+          created_at: string | null
+          expires_at: string | null
+          generated_at: string | null
+          id: string
+          recommendations: Json
+          talent_id: string
+        }
+        Insert: {
+          career_insights?: Json | null
+          created_at?: string | null
+          expires_at?: string | null
+          generated_at?: string | null
+          id?: string
+          recommendations?: Json
+          talent_id: string
+        }
+        Update: {
+          career_insights?: Json | null
+          created_at?: string | null
+          expires_at?: string | null
+          generated_at?: string | null
+          id?: string
+          recommendations?: Json
+          talent_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_recommendations_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assessment_access_codes: {
         Row: {
           code: string
@@ -802,6 +840,41 @@ export type Database = {
           },
           {
             foreignKeyName: "enrollments_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feed_interactions: {
+        Row: {
+          created_at: string | null
+          id: string
+          interaction_type: string
+          item_id: string
+          item_type: string
+          talent_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          interaction_type: string
+          item_id: string
+          item_type: string
+          talent_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          interaction_type?: string
+          item_id?: string
+          item_type?: string
+          talent_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feed_interactions_talent_id_fkey"
             columns: ["talent_id"]
             isOneToOne: false
             referencedRelation: "talents"

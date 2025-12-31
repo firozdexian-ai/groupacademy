@@ -1,33 +1,34 @@
-import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ThumbsUp, ThumbsDown, Briefcase, Play, BookOpen } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { RefreshCw, Inbox } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
 import { useTalent } from '@/hooks/useTalent';
+import { useFeedRecommendations } from '@/hooks/useFeedRecommendations';
 import { OnboardingWizard } from '@/components/onboarding/OnboardingWizard';
-import { cn } from '@/lib/utils';
-
-interface FeedItem {
-  id: string;
-  type: 'job' | 'course' | 'video';
-  title: string;
-  description: string;
-  company?: string;
-  thumbnail?: string;
-  createdAt: string;
-  slug?: string;
-}
+import { FeedCard } from '@/components/feed/FeedCard';
+import { FeedFilters } from '@/components/feed/FeedFilters';
+import { FeedSkeleton } from '@/components/feed/FeedSkeleton';
+import { CareerInsightsCard } from '@/components/feed/CareerInsightsCard';
+import { useState, useEffect } from 'react';
 
 export default function Feed() {
   const navigate = useNavigate();
   const { talent, refreshTalent } = useTalent();
-  const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
   const [showOnboarding, setShowOnboarding] = useState(false);
+  
+  const {
+    items,
+    insights,
+    isLoading,
+    isRefreshing,
+    error,
+    filters,
+    setFilters,
+    refresh,
+    markInterested,
+    markNotInterested,
+    hasGeneratedOnce
+  } = useFeedRecommendations();
 
   // Check if onboarding is needed
   useEffect(() => {
@@ -36,107 +37,29 @@ export default function Feed() {
     }
   }, [talent]);
 
-  useEffect(() => {
-    fetchFeed();
-  }, []);
+  const handleOnboardingComplete = async () => {
+    setShowOnboarding(false);
+    await refreshTalent();
+    // Refresh recommendations after onboarding
+    refresh(true);
+  };
 
-  async function fetchFeed() {
-    setLoading(true);
-    try {
-      // Fetch jobs, courses in parallel
-      const [jobsResult, coursesResult] = await Promise.all([
-        supabase
-          .from('jobs')
-          .select('id, title, description, company_name, created_at')
-          .eq('is_active', true)
-          .order('created_at', { ascending: false })
-          .limit(10),
-        supabase
-          .from('content')
-          .select('id, title, description, thumbnail_url, created_at, slug, content_type')
-          .eq('is_published', true)
-          .order('created_at', { ascending: false })
-          .limit(10)
-      ]);
-
-      const items: FeedItem[] = [];
-
-      // Add jobs
-      if (jobsResult.data) {
-        jobsResult.data.forEach(job => {
-          items.push({
-            id: job.id,
-            type: 'job',
-            title: job.title,
-            description: job.description?.substring(0, 150) + '...' || '',
-            company: job.company_name,
-            createdAt: job.created_at || ''
-          });
-        });
-      }
-
-      // Add courses
-      if (coursesResult.data) {
-        coursesResult.data.forEach(course => {
-          items.push({
-            id: course.id,
-            type: course.content_type === 'free_video' ? 'video' : 'course',
-            title: course.title,
-            description: course.description?.substring(0, 150) + '...' || '',
-            thumbnail: course.thumbnail_url || undefined,
-            createdAt: course.created_at || '',
-            slug: course.slug
-          });
-        });
-      }
-
-      // Sort by date and interleave
-      items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      setFeedItems(items);
-    } catch (error) {
-      console.error('Error fetching feed:', error);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function handleInterested(item: FeedItem) {
+  const handleInterested = async (item: typeof items[0]) => {
+    await markInterested(item);
+    // Navigate to the item
     if (item.type === 'job') {
       navigate(`/jobs/${item.id}`);
     } else if (item.slug) {
       navigate(`/courses/${item.slug}`);
     }
-  }
-
-  function handleNotInterested(itemId: string) {
-    setDismissedIds(prev => new Set([...prev, itemId]));
-  }
-
-  const getTypeIcon = (type: FeedItem['type']) => {
-    switch (type) {
-      case 'job':
-        return <Briefcase className="h-4 w-4" />;
-      case 'video':
-        return <Play className="h-4 w-4" />;
-      case 'course':
-        return <BookOpen className="h-4 w-4" />;
-    }
   };
 
-  const getTypeBadgeColor = (type: FeedItem['type']) => {
-    switch (type) {
-      case 'job':
-        return 'bg-primary/10 text-primary border-primary/20';
-      case 'video':
-        return 'bg-destructive/10 text-destructive border-destructive/20';
-      case 'course':
-        return 'bg-accent/10 text-accent-foreground border-accent/20';
-    }
-  };
-
-  const handleOnboardingComplete = async () => {
-    setShowOnboarding(false);
-    await refreshTalent();
+  // Calculate counts for filters
+  const counts = {
+    all: items.length,
+    job: items.filter(i => i.type === 'job').length,
+    course: items.filter(i => i.type === 'course').length,
+    video: items.filter(i => i.type === 'video').length
   };
 
   // Show onboarding wizard if not completed
@@ -144,93 +67,96 @@ export default function Feed() {
     return <OnboardingWizard onComplete={handleOnboardingComplete} />;
   }
 
-  const visibleItems = feedItems.filter(item => !dismissedIds.has(item.id));
-
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
-        <h1 className="text-2xl font-bold">Your Feed</h1>
-        {[1, 2, 3].map(i => (
-          <Card key={i}>
-            <CardContent className="p-4">
-              <Skeleton className="h-6 w-3/4 mb-2" />
-              <Skeleton className="h-4 w-full mb-1" />
-              <Skeleton className="h-4 w-2/3" />
-            </CardContent>
-          </Card>
-        ))}
+      <div className="max-w-2xl mx-auto px-4 py-6">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold">Welcome back!</h1>
+          <p className="text-muted-foreground">Analyzing your profile for best matches...</p>
+        </div>
+        <FeedSkeleton />
       </div>
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">Welcome back, {talent?.fullName?.split(' ')[0] || 'there'}!</h1>
-        <p className="text-muted-foreground">Here's what's new for you</p>
+    <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
+      {/* Header */}
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">
+            Welcome back, {talent?.fullName?.split(' ')[0] || 'there'}!
+          </h1>
+          <p className="text-muted-foreground">Here are your personalized recommendations</p>
+        </div>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => refresh(true)}
+          disabled={isRefreshing}
+          className="flex-shrink-0"
+        >
+          <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+        </Button>
       </div>
 
-      {visibleItems.length === 0 ? (
+      {/* Career Insights */}
+      <CareerInsightsCard
+        insights={insights}
+        onRefresh={() => refresh(true)}
+        isRefreshing={isRefreshing}
+        hasGeneratedOnce={hasGeneratedOnce}
+      />
+
+      {/* Filters */}
+      <FeedFilters
+        filters={filters}
+        onChange={setFilters}
+        counts={counts}
+      />
+
+      {/* Error State */}
+      {error && (
+        <Card className="border-destructive/50 bg-destructive/5">
+          <CardContent className="p-4 text-center">
+            <p className="text-sm text-destructive">{error}</p>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => refresh()}
+              className="mt-2"
+            >
+              Try again
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Feed Items */}
+      {items.length === 0 ? (
         <Card>
           <CardContent className="p-8 text-center">
-            <p className="text-muted-foreground">No new items in your feed.</p>
-            <Button className="mt-4" onClick={fetchFeed}>
+            <Inbox className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground mb-4">
+              {filters.type === 'all' 
+                ? "No recommendations available right now."
+                : `No ${filters.type}s to show.`}
+            </p>
+            <Button onClick={() => refresh(true)}>
+              <RefreshCw className="h-4 w-4 mr-2" />
               Refresh Feed
             </Button>
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
-          {visibleItems.map(item => (
-            <Card key={item.id} className="overflow-hidden hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  {item.thumbnail && (
-                    <img 
-                      src={item.thumbnail} 
-                      alt={item.title}
-                      className="w-20 h-20 object-cover rounded-lg flex-shrink-0"
-                    />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <Badge variant="outline" className={cn('text-xs', getTypeBadgeColor(item.type))}>
-                        {getTypeIcon(item.type)}
-                        <span className="ml-1 capitalize">{item.type}</span>
-                      </Badge>
-                      {item.company && (
-                        <span className="text-xs text-muted-foreground">{item.company}</span>
-                      )}
-                    </div>
-                    <h3 className="font-semibold text-foreground line-clamp-2">{item.title}</h3>
-                    <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
-                      {item.description}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex items-center gap-2 mt-4 pt-3 border-t border-border">
-                  <Button 
-                    size="sm" 
-                    className="flex-1"
-                    onClick={() => handleInterested(item)}
-                  >
-                    <ThumbsUp className="h-4 w-4 mr-2" />
-                    Interested
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => handleNotInterested(item.id)}
-                  >
-                    <ThumbsDown className="h-4 w-4 mr-2" />
-                    Not for me
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+        <div className="space-y-3">
+          {items.map(item => (
+            <FeedCard
+              key={item.id}
+              item={item}
+              onInterested={() => handleInterested(item)}
+              onNotInterested={() => markNotInterested(item.id)}
+            />
           ))}
         </div>
       )}
