@@ -277,13 +277,13 @@ const Index = () => {
       </section>
 
       {/* Blog Section for SEO */}
-      {blogPosts.length > 0 && (
-        <section className="container mx-auto px-6 py-12 border-t">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-heading font-bold mb-2">From Our Blog</h2>
-            <p className="text-muted-foreground">Career insights and industry updates</p>
-          </div>
+      <section className="container mx-auto px-6 py-12 border-t">
+        <div className="text-center mb-8">
+          <h2 className="text-2xl font-heading font-bold mb-2">From Our Blog</h2>
+          <p className="text-muted-foreground">Career insights and industry updates</p>
+        </div>
 
+        {blogPosts.length > 0 ? (
           <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {blogPosts.map((post) => (
               <Card 
@@ -309,15 +309,29 @@ const Index = () => {
               </Card>
             ))}
           </div>
+        ) : (
+          <div className="max-w-md mx-auto text-center py-8">
+            <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+              <Sparkles className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <p className="text-muted-foreground mb-4">
+              Career insights coming soon. Sign up to be notified when we publish new articles.
+            </p>
+            <Button variant="outline" onClick={() => navigate("/auth?tab=signup")}>
+              Get Notified
+            </Button>
+          </div>
+        )}
 
+        {blogPosts.length > 0 && (
           <div className="text-center mt-8">
             <Button variant="outline" onClick={() => navigate("/blog")}>
               View All Articles
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </div>
-        </section>
-      )}
+        )}
+      </section>
 
       {/* Simple Footer */}
       <footer className="border-t bg-muted/30 mt-auto">
@@ -326,7 +340,7 @@ const Index = () => {
             <div className="flex items-center gap-2">
               <img src={logoIcon} alt="GroUp" className="w-8 h-8" />
               <span className="text-sm text-muted-foreground">
-                © 2024 GroUp Academy. All rights reserved.
+                © {new Date().getFullYear()} GroUp Academy. All rights reserved.
               </span>
             </div>
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
