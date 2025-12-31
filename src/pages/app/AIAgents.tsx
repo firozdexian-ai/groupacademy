@@ -81,7 +81,7 @@ const AI_AGENTS = [
 
 export default function AIAgents() {
   const navigate = useNavigate();
-  const costPerSession = CREDIT_CONFIG.SERVICES.AI_AGENT_CHAT.perSession;
+  const costPerSession = CREDIT_CONFIG.SERVICES.AI_AGENT_CHAT.cost;
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6">

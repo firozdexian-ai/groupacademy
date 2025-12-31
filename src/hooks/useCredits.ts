@@ -22,10 +22,8 @@ interface CreditBalance {
 interface UseCreditsReturn {
   balance: number;
   isLoading: boolean;
-  canAfford: (service: ServiceType, usageCount?: number) => boolean;
-  getServiceCost: (service: ServiceType, usageCount?: number) => number;
-  getUsageCount: (service: ServiceType) => number;
-  isFirstUse: (service: ServiceType) => boolean;
+  canAfford: (service: ServiceType) => boolean;
+  getServiceCost: (service: ServiceType) => number;
   deductCredits: (service: ServiceType, referenceId?: string, description?: string) => Promise<boolean>;
   addCredits: (amount: number, type: 'welcome_bonus' | 'purchase' | 'refund', description?: string) => Promise<boolean>;
   refreshBalance: () => Promise<void>;
@@ -89,43 +87,14 @@ export function useCredits(): UseCreditsReturn {
     fetchBalance();
   }, [fetchBalance]);
 
-  // Get usage count for a service from talent's services_used
-  const getUsageCount = useCallback((service: ServiceType): number => {
-    if (!talent?.servicesUsed) return 0;
-    
-    // Map service type to the tracked service name
-    const serviceNameMap: Record<ServiceType, string> = {
-      CAREER_ASSESSMENT: 'career_assessment',
-      MOCK_INTERVIEW: 'mock_interview',
-      SALARY_ANALYSIS: 'salary_analysis',
-      JOB_APPLICATION: 'job_application',
-      PORTFOLIO: 'portfolio',
-      IELTS_MOCK: 'ielts_mock',
-      AI_AGENT_CHAT: 'ai_agent_chat',
-      SUGGESTED_JOBS: 'suggested_jobs',
-    };
-    
-    const serviceName = serviceNameMap[service] || service.toLowerCase();
-    return talent.servicesUsed.filter((s: string) => s === serviceName).length;
-  }, [talent?.servicesUsed]);
-
-  // Check if this is the first use (cost would be 0)
-  const isFirstUse = useCallback((service: ServiceType): boolean => {
-    const usageCount = getUsageCount(service);
-    const cost = getServiceCost(service, usageCount);
-    return cost === 0;
-  }, [getUsageCount]);
-
-  const canAfford = useCallback((service: ServiceType, usageCount?: number): boolean => {
-    const count = usageCount ?? getUsageCount(service);
-    const cost = getServiceCost(service, count);
+  const canAfford = useCallback((service: ServiceType): boolean => {
+    const cost = getServiceCost(service);
     return creditData.balance >= cost;
-  }, [creditData.balance, getUsageCount]);
+  }, [creditData.balance]);
 
-  const getServiceCostForUser = useCallback((service: ServiceType, usageCount?: number): number => {
-    const count = usageCount ?? getUsageCount(service);
-    return getServiceCost(service, count);
-  }, [getUsageCount]);
+  const getServiceCostForUser = useCallback((service: ServiceType): number => {
+    return getServiceCost(service);
+  }, []);
 
   const deductCredits = useCallback(async (
     service: ServiceType,
@@ -134,10 +103,7 @@ export function useCredits(): UseCreditsReturn {
   ): Promise<boolean> => {
     if (!talent?.id) return false;
 
-    const usageCount = getUsageCount(service);
-    const cost = getServiceCost(service, usageCount);
-
-    if (cost === 0) return true; // Free service
+    const cost = getServiceCost(service);
 
     if (creditData.balance < cost) {
       toast({
@@ -185,7 +151,7 @@ export function useCredits(): UseCreditsReturn {
       });
       return false;
     }
-  }, [talent?.id, getUsageCount, creditData.balance, toast]);
+  }, [talent?.id, creditData.balance, toast]);
 
   const addCredits = useCallback(async (
     amount: number,
@@ -264,8 +230,6 @@ export function useCredits(): UseCreditsReturn {
     isLoading: creditData.isLoading,
     canAfford,
     getServiceCost: getServiceCostForUser,
-    getUsageCount,
-    isFirstUse,
     deductCredits,
     addCredits,
     refreshBalance: fetchBalance,

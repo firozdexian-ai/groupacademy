@@ -75,24 +75,35 @@ export function WelcomeBonus({ onContinue }: WelcomeBonusProps) {
         onClick={() => setShowExplanation(!showExplanation)}
         className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
       >
-        What are credits?
+        What can I do with these credits?
         {showExplanation ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
       </button>
 
       {showExplanation && (
         <div className="bg-muted/50 rounded-lg p-4 mb-6 max-w-md text-left animate-in fade-in slide-in-from-top-2 duration-300">
-          <p className="text-sm text-muted-foreground">
-            Credits are your currency for premium career services. Use them for:
+          <p className="text-sm text-muted-foreground mb-3">
+            Your 250 credits can be used for premium career services:
           </p>
-          <ul className="text-sm text-muted-foreground mt-2 space-y-1">
-            <li>• AI Mock Interviews</li>
-            <li>• Salary Analysis Reports</li>
-            <li>• Job Applications</li>
-            <li>• Career Assessments</li>
-            <li>• And more!</li>
+          <ul className="text-sm text-muted-foreground space-y-1.5">
+            <li className="flex justify-between">
+              <span>• Career Assessment</span>
+              <span className="text-warning font-medium">50 credits</span>
+            </li>
+            <li className="flex justify-between">
+              <span>• AI Mock Interview</span>
+              <span className="text-warning font-medium">50 credits</span>
+            </li>
+            <li className="flex justify-between">
+              <span>• Salary Analysis</span>
+              <span className="text-warning font-medium">50 credits</span>
+            </li>
+            <li className="flex justify-between">
+              <span>• Job Application</span>
+              <span className="text-warning font-medium">25 credits</span>
+            </li>
           </ul>
-          <p className="text-sm text-muted-foreground mt-2">
-            <span className="text-warning font-medium">1 credit = ৳2</span>
+          <p className="text-sm text-muted-foreground mt-3 pt-3 border-t border-border">
+            <span className="text-warning font-medium">Example:</span> Use all 5 core services, or 5 assessments, or 10 job applications!
           </p>
         </div>
       )}

@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { Coins, Sparkles, AlertCircle, ArrowRight, Loader2 } from 'lucide-react';
+import { Coins, AlertCircle, ArrowRight, Loader2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -9,7 +8,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 
 interface CreditGateModalProps {
   isOpen: boolean;
@@ -19,7 +17,6 @@ interface CreditGateModalProps {
   serviceName: string;
   cost: number;
   currentBalance: number;
-  isFirstUse: boolean;
   isLoading?: boolean;
 }
 
@@ -31,7 +28,6 @@ export function CreditGateModal({
   serviceName,
   cost,
   currentBalance,
-  isFirstUse,
   isLoading = false,
 }: CreditGateModalProps) {
   const canAfford = currentBalance >= cost;
@@ -42,12 +38,7 @@ export function CreditGateModal({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            {isFirstUse ? (
-              <>
-                <Sparkles className="h-5 w-5 text-accent" />
-                First Use - FREE!
-              </>
-            ) : canAfford ? (
+            {canAfford ? (
               <>
                 <Coins className="h-5 w-5 text-warning" />
                 Confirm Credit Usage
@@ -60,9 +51,7 @@ export function CreditGateModal({
             )}
           </DialogTitle>
           <DialogDescription>
-            {isFirstUse
-              ? `Your first ${serviceName} is completely free!`
-              : canAfford
+            {canAfford
               ? `This will use credits from your balance.`
               : `You don't have enough credits for ${serviceName}.`}
           </DialogDescription>
@@ -78,53 +67,41 @@ export function CreditGateModal({
             <span className="text-sm text-muted-foreground">Cost</span>
             <div className="flex items-center gap-1.5">
               <Coins className="h-4 w-4 text-warning" />
-              <span className={cn(
-                "font-semibold",
-                isFirstUse && "line-through text-muted-foreground"
-              )}>
-                {cost}
-              </span>
-              {isFirstUse && (
-                <span className="font-semibold text-accent ml-1">FREE</span>
-              )}
+              <span className="font-semibold">{cost}</span>
             </div>
           </div>
 
-          {!isFirstUse && (
-            <>
-              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                <span className="text-sm text-muted-foreground">Current Balance</span>
-                <div className="flex items-center gap-1.5">
-                  <Coins className="h-4 w-4 text-warning" />
-                  <span className="font-semibold">{currentBalance}</span>
-                </div>
+          <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+            <span className="text-sm text-muted-foreground">Current Balance</span>
+            <div className="flex items-center gap-1.5">
+              <Coins className="h-4 w-4 text-warning" />
+              <span className="font-semibold">{currentBalance}</span>
+            </div>
+          </div>
+
+          {canAfford && (
+            <div className="flex items-center justify-between p-3 border-2 border-primary/20 rounded-lg bg-primary/5">
+              <span className="text-sm font-medium">Balance After</span>
+              <div className="flex items-center gap-1.5">
+                <Coins className="h-4 w-4 text-warning" />
+                <span className="font-bold text-primary">{balanceAfter}</span>
               </div>
+            </div>
+          )}
 
-              {canAfford && (
-                <div className="flex items-center justify-between p-3 border-2 border-primary/20 rounded-lg bg-primary/5">
-                  <span className="text-sm font-medium">Balance After</span>
-                  <div className="flex items-center gap-1.5">
-                    <Coins className="h-4 w-4 text-warning" />
-                    <span className="font-bold text-primary">{balanceAfter}</span>
-                  </div>
-                </div>
-              )}
-
-              {!canAfford && (
-                <div className="flex items-center justify-between p-3 border-2 border-destructive/20 rounded-lg bg-destructive/5">
-                  <span className="text-sm font-medium text-destructive">Credits Needed</span>
-                  <div className="flex items-center gap-1.5">
-                    <Coins className="h-4 w-4 text-destructive" />
-                    <span className="font-bold text-destructive">{cost - currentBalance}</span>
-                  </div>
-                </div>
-              )}
-            </>
+          {!canAfford && (
+            <div className="flex items-center justify-between p-3 border-2 border-destructive/20 rounded-lg bg-destructive/5">
+              <span className="text-sm font-medium text-destructive">Credits Needed</span>
+              <div className="flex items-center gap-1.5">
+                <Coins className="h-4 w-4 text-destructive" />
+                <span className="font-bold text-destructive">{cost - currentBalance}</span>
+              </div>
+            </div>
           )}
         </div>
 
         <DialogFooter className="flex-col sm:flex-row gap-2">
-          {canAfford || isFirstUse ? (
+          {canAfford ? (
             <>
               <Button variant="outline" onClick={onClose} disabled={isLoading}>
                 Cancel
@@ -134,11 +111,6 @@ export function CreditGateModal({
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Starting...
-                  </>
-                ) : isFirstUse ? (
-                  <>
-                    Start Free
-                    <Sparkles className="ml-2 h-4 w-4" />
                   </>
                 ) : (
                   <>

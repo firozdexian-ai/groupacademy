@@ -10,47 +10,42 @@ export const CREDIT_CONFIG = {
   SERVICES: {
     CAREER_ASSESSMENT: {
       name: 'Career Readiness Scorecard',
-      first: 0,
-      subsequent: 50,
+      cost: 50,
       description: 'AI-powered career readiness analysis'
     },
     MOCK_INTERVIEW: {
       name: 'AI Mock Interview',
-      first: 0,
-      subsequent: 50,
+      cost: 50,
       description: 'Practice interviews with AI feedback'
     },
     SALARY_ANALYSIS: {
       name: 'AI Salary Analysis',
-      first: 0,
-      subsequent: 50,
+      cost: 50,
       description: 'Market salary insights and negotiation tips'
     },
     JOB_APPLICATION: {
       name: 'Job Application',
-      freeCount: 5,
-      subsequent: 25,
+      cost: 25,
       description: 'Apply to jobs with AI-enhanced cover letters'
     },
     PORTFOLIO: {
       name: 'Digital Portfolio',
-      first: 0,
-      subsequent: 1000,
+      cost: 500,
       description: 'Professional portfolio website creation'
     },
     IELTS_MOCK: {
       name: 'IELTS Mock Test',
-      each: 100,
+      cost: 100,
       description: 'AI-powered IELTS practice tests'
     },
     AI_AGENT_CHAT: {
       name: 'AI Agent Session',
-      perSession: 10,
+      cost: 10,
       description: 'Chat with AI career experts'
     },
     SUGGESTED_JOBS: {
       name: 'AI Job Suggestions',
-      each: 20,
+      cost: 20,
       description: 'Get personalized job recommendations'
     }
   },
@@ -66,28 +61,10 @@ export const CREDIT_CONFIG = {
 export type ServiceType = keyof typeof CREDIT_CONFIG.SERVICES;
 
 /**
- * Calculate the cost in credits for a service
+ * Get the cost in credits for a service (flat rate)
  */
-export function getServiceCost(service: ServiceType, usageCount: number): number {
-  const config = CREDIT_CONFIG.SERVICES[service];
-  
-  if ('first' in config) {
-    return usageCount === 0 ? config.first : config.subsequent;
-  }
-  
-  if ('freeCount' in config) {
-    return usageCount < config.freeCount ? 0 : config.subsequent;
-  }
-  
-  if ('each' in config) {
-    return config.each;
-  }
-  
-  if ('perSession' in config) {
-    return config.perSession;
-  }
-  
-  return 0;
+export function getServiceCost(service: ServiceType): number {
+  return CREDIT_CONFIG.SERVICES[service].cost;
 }
 
 /**

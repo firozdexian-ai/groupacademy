@@ -163,7 +163,7 @@ export function useFeedRecommendations(): UseFeedRecommendationsResult {
   const refresh = useCallback(async (forceAI = false) => {
     if (forceAI && hasGeneratedOnce) {
       // Check if user can afford refresh (20 credits)
-      if (!canAfford('SUGGESTED_JOBS', 1)) {
+      if (!canAfford('SUGGESTED_JOBS')) {
         toast({
           title: "Insufficient credits",
           description: "You need 20 credits to refresh AI recommendations",

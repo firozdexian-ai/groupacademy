@@ -68,7 +68,7 @@ const CAREER_SERVICES: ServiceCardData[] = [
 
 export default function ServicesHub() {
   const navigate = useNavigate();
-  const { balance, isLoading, getUsageCount, isFirstUse, getServiceCost, canAfford } = useCredits();
+  const { balance, getServiceCost, canAfford } = useCredits();
   
   const [selectedService, setSelectedService] = useState<ServiceCardData | null>(null);
   const [showCreditGate, setShowCreditGate] = useState(false);
@@ -98,7 +98,7 @@ export default function ServicesHub() {
         <p className="text-muted-foreground">AI-powered tools to accelerate your career</p>
       </div>
 
-      {/* Credits reminder */}
+      {/* Credits info */}
       <Card className="mb-6 bg-gradient-to-r from-primary/5 to-secondary/5 border-primary/20">
         <CardContent className="py-4">
           <div className="flex items-center justify-between">
@@ -107,10 +107,9 @@ export default function ServicesHub() {
                 <Coins className="h-5 w-5 text-warning" />
               </div>
               <div>
-                <p className="font-medium">Your first use of each service is FREE!</p>
+                <p className="font-medium">Use your welcome credits to explore services</p>
                 <p className="text-sm text-muted-foreground">
-                  After that, services cost credits. You have{' '}
-                  <CreditBalance variant="compact" className="inline-flex" />
+                  You have <CreditBalance variant="compact" className="inline-flex" />
                 </p>
               </div>
             </div>
@@ -123,10 +122,8 @@ export default function ServicesHub() {
 
       <div className="grid gap-4 md:grid-cols-2">
         {CAREER_SERVICES.map((service) => {
-          const usageCount = getUsageCount(service.id);
-          const cost = getServiceCost(service.id, usageCount);
-          const firstUse = isFirstUse(service.id);
-          const affordable = canAfford(service.id, usageCount);
+          const cost = getServiceCost(service.id);
+          const affordable = canAfford(service.id);
           
           return (
             <Card 
@@ -139,21 +136,19 @@ export default function ServicesHub() {
                   <div className={`p-3 rounded-xl ${service.bgColor} group-hover:scale-110 transition-transform`}>
                     <service.icon className={`h-6 w-6 ${service.color}`} />
                   </div>
-                  <ServiceUsageBadge serviceType={service.id} usageCount={usageCount} />
+                  <ServiceUsageBadge serviceType={service.id} />
                 </div>
               </CardHeader>
               <CardContent>
                 <CardTitle className="text-lg mb-1">{service.title}</CardTitle>
                 <CardDescription className="mb-3">{service.description}</CardDescription>
                 
-                {!firstUse && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <Coins className="h-4 w-4 text-warning" />
-                    <span className={affordable ? "text-muted-foreground" : "text-destructive"}>
-                      {affordable ? `${cost} credits` : `Need ${cost - balance} more credits`}
-                    </span>
-                  </div>
-                )}
+                <div className="flex items-center gap-2 text-sm">
+                  <Coins className="h-4 w-4 text-warning" />
+                  <span className={affordable ? "text-muted-foreground" : "text-destructive"}>
+                    {affordable ? `${cost} credits` : `Need ${cost - balance} more credits`}
+                  </span>
+                </div>
               </CardContent>
             </Card>
           );
@@ -175,7 +170,6 @@ export default function ServicesHub() {
           serviceName={selectedService.title}
           cost={getServiceCost(selectedService.id)}
           currentBalance={balance}
-          isFirstUse={isFirstUse(selectedService.id)}
         />
       )}
 

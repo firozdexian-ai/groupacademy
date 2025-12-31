@@ -7,8 +7,7 @@ import {
   Globe, 
   Bot,
   ChevronLeft,
-  ChevronRight,
-  Sparkles
+  ChevronRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -23,8 +22,7 @@ const SERVICES = [
     icon: ClipboardCheck,
     name: 'Career Readiness Scorecard',
     description: 'AI-powered analysis of your career readiness with personalized improvement tips',
-    cost: CREDIT_CONFIG.SERVICES.CAREER_ASSESSMENT.subsequent,
-    firstFree: true,
+    cost: CREDIT_CONFIG.SERVICES.CAREER_ASSESSMENT.cost,
     color: 'from-blue-500/20 to-blue-500/5',
     iconColor: 'text-blue-500',
   },
@@ -32,8 +30,7 @@ const SERVICES = [
     icon: MessageSquare,
     name: 'AI Mock Interview',
     description: 'Practice interviews with AI that gives real-time feedback on your answers',
-    cost: CREDIT_CONFIG.SERVICES.MOCK_INTERVIEW.subsequent,
-    firstFree: true,
+    cost: CREDIT_CONFIG.SERVICES.MOCK_INTERVIEW.cost,
     color: 'from-purple-500/20 to-purple-500/5',
     iconColor: 'text-purple-500',
   },
@@ -41,8 +38,7 @@ const SERVICES = [
     icon: TrendingUp,
     name: 'Salary Analysis',
     description: 'Know your market value with AI-powered salary insights and negotiation tips',
-    cost: CREDIT_CONFIG.SERVICES.SALARY_ANALYSIS.subsequent,
-    firstFree: true,
+    cost: CREDIT_CONFIG.SERVICES.SALARY_ANALYSIS.cost,
     color: 'from-green-500/20 to-green-500/5',
     iconColor: 'text-green-500',
   },
@@ -50,8 +46,7 @@ const SERVICES = [
     icon: Send,
     name: 'Job Applications',
     description: 'Apply to jobs with AI-enhanced cover letters and one-click submission',
-    cost: CREDIT_CONFIG.SERVICES.JOB_APPLICATION.subsequent,
-    freeCount: CREDIT_CONFIG.SERVICES.JOB_APPLICATION.freeCount,
+    cost: CREDIT_CONFIG.SERVICES.JOB_APPLICATION.cost,
     color: 'from-orange-500/20 to-orange-500/5',
     iconColor: 'text-orange-500',
   },
@@ -59,8 +54,7 @@ const SERVICES = [
     icon: Globe,
     name: 'Digital Portfolio',
     description: 'Get a professional portfolio website built by our team',
-    cost: CREDIT_CONFIG.SERVICES.PORTFOLIO.subsequent,
-    firstFree: true,
+    cost: CREDIT_CONFIG.SERVICES.PORTFOLIO.cost,
     color: 'from-pink-500/20 to-pink-500/5',
     iconColor: 'text-pink-500',
   },
@@ -68,7 +62,7 @@ const SERVICES = [
     icon: Bot,
     name: 'AI Career Agents',
     description: 'Chat with AI career experts for personalized guidance anytime',
-    cost: CREDIT_CONFIG.SERVICES.AI_AGENT_CHAT.perSession,
+    cost: CREDIT_CONFIG.SERVICES.AI_AGENT_CHAT.cost,
     color: 'from-cyan-500/20 to-cyan-500/5',
     iconColor: 'text-cyan-500',
   },
@@ -142,21 +136,9 @@ export function ServicesTour({ onComplete }: ServicesTourProps) {
           </p>
 
           {/* Cost Badge */}
-          <div className="flex justify-center gap-2">
-            {currentService.firstFree && (
-              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-success/20 text-success text-sm font-medium">
-                <Sparkles className="h-3 w-3" />
-                First one FREE!
-              </span>
-            )}
-            {currentService.freeCount && (
-              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-success/20 text-success text-sm font-medium">
-                <Sparkles className="h-3 w-3" />
-                {currentService.freeCount} FREE!
-              </span>
-            )}
-            <span className="inline-flex items-center px-3 py-1 rounded-full bg-muted text-muted-foreground text-sm">
-              {currentService.cost} credits after
+          <div className="flex justify-center">
+            <span className="inline-flex items-center px-3 py-1 rounded-full bg-warning/20 text-warning text-sm font-medium">
+              {currentService.cost} credits per use
             </span>
           </div>
         </div>
