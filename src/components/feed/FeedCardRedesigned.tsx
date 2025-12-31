@@ -41,15 +41,15 @@ export function FeedCardRedesigned({ item, onInterested, onNotInterested }: Feed
     : item.thumbnail;
 
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 border-border/50 hover:border-primary/30 relative">
+    <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 border-border/50 hover:border-primary/30 relative rounded-2xl animate-bounce-in">
       {/* Match Score Badge - Top Right */}
       {item.matchScore !== undefined && (
-        <div className="absolute top-3 right-3 z-10">
+        <div className="absolute top-4 right-4 z-10">
           <CircularMatchBadge score={item.matchScore} size="md" />
         </div>
       )}
 
-      <CardContent className="p-4">
+      <CardContent className="p-5">
         <div className="flex items-start gap-4">
           {/* Company Logo / Thumbnail */}
           <div className="flex-shrink-0">
@@ -57,42 +57,42 @@ export function FeedCardRedesigned({ item, onInterested, onNotInterested }: Feed
               <img
                 src={companyLogo}
                 alt={item.company || item.title}
-                className="w-14 h-14 rounded-xl object-cover ring-1 ring-border bg-muted"
+                className="w-16 h-16 rounded-2xl object-cover ring-1 ring-border bg-muted shadow-sm"
               />
             ) : (
-              <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center ring-1 ring-primary/20">
-                <Building2 className="h-6 w-6 text-primary" />
+              <div className="w-16 h-16 rounded-2xl bg-gradient-primary flex items-center justify-center shadow-md">
+                <Building2 className="h-7 w-7 text-primary-foreground" />
               </div>
             )}
           </div>
 
           {/* Content */}
-          <div className="flex-1 min-w-0 pr-12">
+          <div className="flex-1 min-w-0 pr-14">
             {/* Type Badge */}
-            <Badge variant="outline" className={cn('text-[10px] gap-1 mb-2', getTypeBadgeStyles())}>
+            <Badge variant="outline" className={cn('text-[10px] gap-1 mb-2.5 rounded-lg', getTypeBadgeStyles())}>
               {getTypeIcon()}
-              <span className="capitalize">{item.type}</span>
+              <span className="capitalize font-semibold">{item.type}</span>
             </Badge>
 
             {/* Title */}
-            <h3 className="font-semibold text-foreground line-clamp-2 mb-1">{item.title}</h3>
+            <h3 className="font-bold text-foreground line-clamp-2 mb-1.5 text-base">{item.title}</h3>
 
             {/* Company Name */}
             {item.company && (
-              <p className="text-sm text-muted-foreground mb-1">{item.company}</p>
+              <p className="text-sm text-muted-foreground mb-1.5 font-medium">{item.company}</p>
             )}
 
             {/* Location */}
             {item.location && (
-              <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
-                <MapPin className="h-3 w-3" />
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-3">
+                <MapPin className="h-3.5 w-3.5" />
                 <span>{item.location}</span>
               </div>
             )}
 
             {/* Skills */}
             {item.skills && item.skills.length > 0 && (
-              <SkillTagBadge skills={item.skills} maxVisible={3} className="mb-2" />
+              <SkillTagBadge skills={item.skills} maxVisible={3} className="mb-2.5" />
             )}
 
             {/* Match Reason */}
@@ -104,21 +104,21 @@ export function FeedCardRedesigned({ item, onInterested, onNotInterested }: Feed
           </div>
         </div>
 
-        {/* Tinder-style Action Buttons */}
-        <div className="flex items-center justify-center gap-6 mt-5 pt-4 border-t border-border/50">
+        {/* Tinder-style Action Buttons - Larger */}
+        <div className="flex items-center justify-center gap-8 mt-6 pt-5 border-t border-border/50">
           {/* Dismiss Button */}
           <button
             onClick={(e) => {
               e.stopPropagation();
               onNotInterested();
             }}
-            className="w-14 h-14 rounded-full bg-card border-2 border-destructive/30 
+            className="w-16 h-16 rounded-full bg-card border-2 border-destructive/30 
                        flex items-center justify-center shadow-lg 
                        hover:scale-110 hover:border-destructive/60 hover:bg-destructive/5
-                       active:scale-95 transition-all duration-200"
+                       active:scale-95 transition-all duration-200 press-scale"
             aria-label="Not interested"
           >
-            <X className="h-6 w-6 text-destructive" />
+            <X className="h-7 w-7 text-destructive" />
           </button>
 
           {/* Interested Button */}
@@ -127,13 +127,13 @@ export function FeedCardRedesigned({ item, onInterested, onNotInterested }: Feed
               e.stopPropagation();
               onInterested();
             }}
-            className="w-14 h-14 rounded-full bg-card border-2 border-success/30 
+            className="w-16 h-16 rounded-full bg-card border-2 border-success/30 
                        flex items-center justify-center shadow-lg 
                        hover:scale-110 hover:border-success/60 hover:bg-success/5
-                       active:scale-95 transition-all duration-200"
+                       active:scale-95 transition-all duration-200 press-scale"
             aria-label="Interested"
           >
-            <Heart className="h-6 w-6 text-success" />
+            <Heart className="h-7 w-7 text-success" />
           </button>
         </div>
       </CardContent>

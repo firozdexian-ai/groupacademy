@@ -72,7 +72,7 @@ export default function Feed() {
 
   if (isLoading) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-6">
+      <div className="max-w-lg mx-auto px-4 py-6">
         <div className="mb-6">
           <h1 className="text-2xl font-bold">Welcome back!</h1>
           <p className="text-muted-foreground">Analyzing your profile for best matches...</p>
@@ -83,8 +83,8 @@ export default function Feed() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 space-y-5">
-      {/* Header with Avatar and Notifications */}
+    <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
+      {/* Header with Avatar */}
       <FeedHeader
         talentName={talent?.fullName}
         talentPhoto={talent?.profilePhotoUrl}
@@ -107,7 +107,7 @@ export default function Feed() {
 
       {/* Error State */}
       {error && (
-        <Card className="border-destructive/50 bg-destructive/5">
+        <Card className="border-destructive/50 bg-destructive/5 rounded-2xl">
           <CardContent className="p-4 text-center">
             <p className="text-sm text-destructive">{error}</p>
             <Button 
@@ -124,7 +124,7 @@ export default function Feed() {
 
       {/* Feed Items */}
       {items.length === 0 ? (
-        <Card>
+        <Card className="rounded-2xl">
           <CardContent className="p-8 text-center">
             <Inbox className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <p className="text-muted-foreground mb-4">
@@ -140,13 +140,17 @@ export default function Feed() {
         </Card>
       ) : (
         <div className="space-y-4">
-          {items.map(item => (
-            <FeedCardRedesigned
+          {items.map((item, index) => (
+            <div 
               key={item.id}
-              item={item}
-              onInterested={() => handleInterested(item)}
-              onNotInterested={() => markNotInterested(item.id)}
-            />
+              style={{ animationDelay: `${index * 100}ms` }}
+            >
+              <FeedCardRedesigned
+                item={item}
+                onInterested={() => handleInterested(item)}
+                onNotInterested={() => markNotInterested(item.id)}
+              />
+            </div>
           ))}
         </div>
       )}

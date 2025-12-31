@@ -25,11 +25,11 @@ import { NotificationDropdown } from '@/components/notifications/NotificationDro
 
 const NAV_ITEMS = [
   { path: '/app/feed', label: 'Feed', icon: Home },
-  { path: '/app/learning', label: 'Learning', icon: GraduationCap },
+  { path: '/app/learning', label: 'Learn', icon: GraduationCap },
   { path: '/app/services', label: 'Services', icon: Sparkles },
   { path: '/app/jobs', label: 'Jobs', icon: Briefcase },
   { path: '/app/abroad', label: 'Abroad', icon: Globe },
-  { path: '/app/agents', label: 'AI Agents', icon: Bot },
+  { path: '/app/agents', label: 'AI', icon: Bot },
 ];
 
 export function TalentAppShell() {
@@ -83,7 +83,7 @@ export function TalentAppShell() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Top Header - Desktop & Mobile */}
-      <header className="sticky top-0 z-50 bg-card border-b border-border shadow-sm">
+      <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-md border-b border-border/50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
           {/* Logo */}
           <NavLink to="/app/feed" className="flex items-center">
@@ -98,7 +98,7 @@ export function TalentAppShell() {
                 to={item.path}
                 className={({ isActive }) =>
                   cn(
-                    'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors',
+                    'flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all press-scale',
                     isActive
                       ? 'bg-primary/10 text-primary'
                       : 'text-muted-foreground hover:bg-muted hover:text-foreground'
@@ -125,7 +125,7 @@ export function TalentAppShell() {
             <Button
               variant="ghost"
               size="icon"
-              className="hidden md:flex"
+              className="hidden md:flex rounded-xl"
               onClick={() => navigate('/app/profile')}
             >
               <User className="h-5 w-5" />
@@ -135,7 +135,7 @@ export function TalentAppShell() {
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden"
+              className="md:hidden rounded-xl"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             >
               {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -145,7 +145,7 @@ export function TalentAppShell() {
 
         {/* Mobile Menu Dropdown */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-border bg-card">
+          <div className="md:hidden border-t border-border/50 bg-card/95 backdrop-blur-md animate-slide-up">
             <div className="p-4 space-y-2">
               {/* Credits for mobile */}
               <CreditBalance variant="full" className="mb-3" />
@@ -155,7 +155,7 @@ export function TalentAppShell() {
                 onClick={() => setMobileMenuOpen(false)}
                 className={({ isActive }) =>
                   cn(
-                    'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium',
+                    'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium press-scale',
                     isActive
                       ? 'bg-primary/10 text-primary'
                       : 'text-foreground hover:bg-muted'
@@ -168,7 +168,7 @@ export function TalentAppShell() {
 
               <button
                 onClick={handleSignOut}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10"
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-destructive hover:bg-destructive/10 press-scale"
               >
                 <LogOut className="h-5 w-5" />
                 <span>Sign Out</span>
@@ -179,28 +179,45 @@ export function TalentAppShell() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 pb-20 md:pb-6">
+      <main className="flex-1 pb-24 md:pb-6">
         <Outlet />
       </main>
 
-      {/* Bottom Navigation - Mobile Only */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50">
-        <div className="flex items-center justify-around h-16">
-          {NAV_ITEMS.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }) =>
-                cn(
-                  'flex flex-col items-center justify-center gap-0.5 px-3 py-2 min-w-[60px]',
-                  isActive ? 'text-primary' : 'text-muted-foreground'
-                )
-              }
-            >
-              <item.icon className="h-5 w-5" />
-              <span className="text-[10px] font-medium">{item.label}</span>
-            </NavLink>
-          ))}
+      {/* Bottom Navigation - Mobile Only - bKash Style */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-md nav-float safe-bottom">
+        <div className="flex items-center justify-around h-[72px] px-2">
+          {NAV_ITEMS.map((item) => {
+            const isActive = location.pathname.startsWith(item.path);
+            return (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                className={cn(
+                  'flex flex-col items-center justify-center gap-1 min-w-[56px] py-2 px-3 rounded-2xl transition-all press-scale',
+                  isActive 
+                    ? 'text-primary' 
+                    : 'text-muted-foreground'
+                )}
+              >
+                {/* Active pill indicator */}
+                <div className={cn(
+                  'p-2 rounded-xl transition-all',
+                  isActive && 'bg-primary/15'
+                )}>
+                  <item.icon className={cn(
+                    'h-6 w-6 transition-all',
+                    isActive && 'scale-110'
+                  )} />
+                </div>
+                <span className={cn(
+                  'text-[10px] font-semibold transition-all',
+                  isActive && 'text-primary'
+                )}>
+                  {item.label}
+                </span>
+              </NavLink>
+            );
+          })}
         </div>
       </nav>
     </div>

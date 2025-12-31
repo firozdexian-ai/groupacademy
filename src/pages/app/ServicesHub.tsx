@@ -5,9 +5,10 @@ import {
   Mic, 
   DollarSign, 
   Palette,
-  Coins
+  Coins,
+  ChevronRight
 } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CreditBalance } from '@/components/credits/CreditBalance';
 import { CreditGateModal } from '@/components/credits/CreditGateModal';
@@ -16,6 +17,7 @@ import { ServiceUsageBadge } from '@/components/credits/ServiceUsageBadge';
 import { ServiceHistoryCard } from '@/components/credits/ServiceHistoryCard';
 import { useCredits } from '@/hooks/useCredits';
 import { ServiceType } from '@/lib/creditPricing';
+import { cn } from '@/lib/utils';
 
 interface ServiceCardData {
   id: ServiceType;
@@ -23,46 +25,46 @@ interface ServiceCardData {
   description: string;
   icon: React.ElementType;
   href: string;
-  color: string;
-  bgColor: string;
+  gradient: string;
+  iconBg: string;
 }
 
 const CAREER_SERVICES: ServiceCardData[] = [
   {
     id: 'CAREER_ASSESSMENT',
-    title: 'Career Readiness Scorecard',
-    description: 'Discover your strengths and areas for improvement with AI-powered analysis',
+    title: 'Career Scorecard',
+    description: 'AI-powered readiness analysis',
     icon: ClipboardCheck,
     href: '/app/services/assessment',
-    color: 'text-primary',
-    bgColor: 'bg-primary/10',
+    gradient: 'from-primary/20 to-primary/5',
+    iconBg: 'bg-primary/15',
   },
   {
     id: 'MOCK_INTERVIEW',
-    title: 'AI Mock Interview',
-    description: 'Practice with realistic interview questions and get instant AI feedback',
+    title: 'Mock Interview',
+    description: 'Practice with AI feedback',
     icon: Mic,
     href: '/app/services/mock-interview',
-    color: 'text-accent',
-    bgColor: 'bg-accent/10',
+    gradient: 'from-accent/20 to-accent/5',
+    iconBg: 'bg-accent/15',
   },
   {
     id: 'SALARY_ANALYSIS',
-    title: 'AI Salary Analysis',
-    description: 'Get market salary insights and negotiation strategies for your role',
+    title: 'Salary Analysis',
+    description: 'Market insights & negotiation',
     icon: DollarSign,
     href: '/app/services/salary-analysis',
-    color: 'text-warning',
-    bgColor: 'bg-warning/10',
+    gradient: 'from-warning/20 to-warning/5',
+    iconBg: 'bg-warning/15',
   },
   {
     id: 'PORTFOLIO',
     title: 'Digital Portfolio',
-    description: 'Get a professionally designed portfolio website to showcase your work',
+    description: 'Professional showcase website',
     icon: Palette,
     href: '/app/services/portfolio',
-    color: 'text-secondary',
-    bgColor: 'bg-secondary/10',
+    gradient: 'from-secondary/20 to-secondary/5',
+    iconBg: 'bg-secondary/15',
   }
 ];
 
@@ -97,62 +99,86 @@ export default function ServicesHub() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6">
+    <div className="max-w-lg mx-auto px-4 py-6">
+      {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Career Services</h1>
-        <p className="text-muted-foreground">AI-powered tools to accelerate your career</p>
+        <p className="text-muted-foreground">AI-powered tools for your career</p>
       </div>
 
-      {/* Credits info */}
-      <Card className="mb-6 bg-gradient-to-r from-primary/5 to-secondary/5 border-primary/20">
-        <CardContent className="py-4">
+      {/* Credits Hero Card */}
+      <Card className="mb-6 overflow-hidden border-0 shadow-lg">
+        <div className="bg-gradient-primary p-5">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-warning/10 rounded-full">
-                <Coins className="h-5 w-5 text-warning" />
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-primary-foreground/20 rounded-2xl backdrop-blur-sm">
+                <Coins className="h-7 w-7 text-primary-foreground" />
               </div>
               <div>
-                <p className="font-medium">Use your welcome credits to explore services</p>
-                <p className="text-sm text-muted-foreground">
-                  You have <CreditBalance variant="compact" className="inline-flex" />
-                </p>
+                <p className="text-3xl font-bold text-primary-foreground">{balance}</p>
+                <p className="text-sm text-primary-foreground/80">Credits Available</p>
               </div>
             </div>
-            <Button variant="outline" size="sm" onClick={() => setShowPurchaseSheet(true)}>
-              Buy Credits
+            <Button 
+              variant="secondary" 
+              size="sm" 
+              className="rounded-xl font-semibold press-scale shadow-md"
+              onClick={() => setShowPurchaseSheet(true)}
+            >
+              Buy More
             </Button>
           </div>
-        </CardContent>
+        </div>
       </Card>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        {CAREER_SERVICES.map((service) => {
+      {/* Services Grid - 2x2 bKash Style */}
+      <div className="grid grid-cols-2 gap-4 mb-8">
+        {CAREER_SERVICES.map((service, index) => {
           const cost = getServiceCost(service.id);
           const affordable = canAfford(service.id);
           
           return (
             <Card 
               key={service.id}
-              className="cursor-pointer hover:shadow-md transition-all group"
+              className={cn(
+                'cursor-pointer border-0 shadow-md overflow-hidden press-scale rounded-2xl',
+                'animate-bounce-in'
+              )}
+              style={{ animationDelay: `${index * 100}ms` }}
               onClick={() => handleServiceClick(service)}
             >
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className={`p-3 rounded-xl ${service.bgColor} group-hover:scale-110 transition-transform`}>
-                    <service.icon className={`h-6 w-6 ${service.color}`} />
+              <CardContent className={cn('p-0')}>
+                {/* Gradient Background */}
+                <div className={cn('bg-gradient-to-br p-5', service.gradient)}>
+                  {/* Icon */}
+                  <div className={cn(
+                    'w-14 h-14 rounded-2xl flex items-center justify-center mb-4 shadow-sm',
+                    service.iconBg
+                  )}>
+                    <service.icon className="h-7 w-7 text-foreground" />
                   </div>
-                  <ServiceUsageBadge serviceType={service.id} />
-                </div>
-              </CardHeader>
-              <CardContent>
-                <CardTitle className="text-lg mb-1">{service.title}</CardTitle>
-                <CardDescription className="mb-3">{service.description}</CardDescription>
-                
-                <div className="flex items-center gap-2 text-sm">
-                  <Coins className="h-4 w-4 text-warning" />
-                  <span className={affordable ? "text-muted-foreground" : "text-destructive"}>
-                    {affordable ? `${cost} credits` : `Need ${cost - balance} more credits`}
-                  </span>
+                  
+                  {/* Title */}
+                  <h3 className="font-bold text-foreground mb-1">{service.title}</h3>
+                  
+                  {/* Description */}
+                  <p className="text-xs text-muted-foreground mb-3 line-clamp-1">
+                    {service.description}
+                  </p>
+                  
+                  {/* Cost & Usage */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <Coins className="h-4 w-4 text-warning" />
+                      <span className={cn(
+                        'text-sm font-semibold',
+                        affordable ? 'text-foreground' : 'text-destructive'
+                      )}>
+                        {cost}
+                      </span>
+                    </div>
+                    <ServiceUsageBadge serviceType={service.id} />
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -161,9 +187,7 @@ export default function ServicesHub() {
       </div>
 
       {/* Service History */}
-      <div className="mt-8">
-        <ServiceHistoryCard />
-      </div>
+      <ServiceHistoryCard />
 
       {/* Credit Gate Modal */}
       {selectedService && (
