@@ -120,9 +120,30 @@ export function AgentChatDialog({
       <ScrollArea ref={scrollAreaRef} className="flex-1 p-4">
         <div className="space-y-4">
           {messages.length === 0 && (
-            <div className="text-center text-muted-foreground py-8">
-              <p>Start the conversation!</p>
-              <p className="text-sm mt-1">Ask {agent.name} anything about their expertise.</p>
+            <div className="flex flex-col items-center justify-center py-12 px-4">
+              {/* Waving Hand Greeting - bKash Ava Style */}
+              <div className="text-5xl mb-4 animate-bounce">👋</div>
+              <h3 className="text-lg font-semibold mb-1">Hello, I'm {agent.name}</h3>
+              <p className="text-sm text-muted-foreground mb-6">How can I help you today?</p>
+              
+              {/* Quick Suggestion Chips */}
+              <div className="flex flex-wrap justify-center gap-2 max-w-sm">
+                {[
+                  "Review my CV",
+                  "Interview tips",
+                  "Career advice",
+                  "Skill guidance"
+                ].map((suggestion) => (
+                  <button
+                    key={suggestion}
+                    onClick={() => onSendMessage(suggestion)}
+                    disabled={isStreaming || isSessionExpired}
+                    className="px-3 py-1.5 text-xs font-medium rounded-full border bg-muted/50 hover:bg-primary/10 hover:border-primary/30 transition-colors disabled:opacity-50"
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
           
