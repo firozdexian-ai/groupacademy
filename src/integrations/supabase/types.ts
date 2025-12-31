@@ -2075,6 +2075,8 @@ export type Database = {
           is_featured: boolean | null
           learner_status: string | null
           linkedin_url: string | null
+          onboarding_completed_at: string | null
+          onboarding_step: number | null
           phone: string | null
           portfolio_url: string | null
           profession_category_id: string | null
@@ -2104,6 +2106,8 @@ export type Database = {
           is_featured?: boolean | null
           learner_status?: string | null
           linkedin_url?: string | null
+          onboarding_completed_at?: string | null
+          onboarding_step?: number | null
           phone?: string | null
           portfolio_url?: string | null
           profession_category_id?: string | null
@@ -2133,6 +2137,8 @@ export type Database = {
           is_featured?: boolean | null
           learner_status?: string | null
           linkedin_url?: string | null
+          onboarding_completed_at?: string | null
+          onboarding_step?: number | null
           phone?: string | null
           portfolio_url?: string | null
           profession_category_id?: string | null

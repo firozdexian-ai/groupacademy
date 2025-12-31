@@ -30,6 +30,9 @@ export interface TalentProfile {
   studentId: string | null;
   createdAt: string;
   updatedAt: string;
+  // Onboarding fields
+  onboardingCompletedAt: string | null;
+  onboardingStep: number;
 }
 
 interface TalentContextValue {
@@ -89,6 +92,9 @@ function mapRowToTalent(row: any): TalentProfile {
     studentId: row.student_id,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    // Onboarding fields
+    onboardingCompletedAt: row.onboarding_completed_at || null,
+    onboardingStep: row.onboarding_step || 0,
   };
 }
 

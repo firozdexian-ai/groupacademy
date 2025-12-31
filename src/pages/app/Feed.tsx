@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ThumbsUp, ThumbsDown, Briefcase, Play, BookOpen, Loader2 } from 'lucide-react';
+import { ThumbsUp, ThumbsDown, Briefcase, Play, BookOpen } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useTalent } from '@/hooks/useTalent';
+import { OnboardingWizard } from '@/components/onboarding/OnboardingWizard';
+import { cn } from '@/lib/utils';
 
 interface FeedItem {
   id: string;
@@ -21,10 +23,18 @@ interface FeedItem {
 
 export default function Feed() {
   const navigate = useNavigate();
-  const { talent } = useTalent();
+  const { talent, refreshTalent } = useTalent();
   const [feedItems, setFeedItems] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  // Check if onboarding is needed
+  useEffect(() => {
+    if (talent && !talent.onboardingCompletedAt) {
+      setShowOnboarding(true);
+    }
+  }, [talent]);
 
   useEffect(() => {
     fetchFeed();
@@ -100,7 +110,6 @@ export default function Feed() {
 
   function handleNotInterested(itemId: string) {
     setDismissedIds(prev => new Set([...prev, itemId]));
-    // TODO: Save to feed_interactions table
   }
 
   const getTypeIcon = (type: FeedItem['type']) => {
@@ -124,6 +133,16 @@ export default function Feed() {
         return 'bg-accent/10 text-accent-foreground border-accent/20';
     }
   };
+
+  const handleOnboardingComplete = async () => {
+    setShowOnboarding(false);
+    await refreshTalent();
+  };
+
+  // Show onboarding wizard if not completed
+  if (showOnboarding) {
+    return <OnboardingWizard onComplete={handleOnboardingComplete} />;
+  }
 
   const visibleItems = feedItems.filter(item => !dismissedIds.has(item.id));
 
@@ -217,8 +236,4 @@ export default function Feed() {
       )}
     </div>
   );
-}
-
-function cn(...classes: (string | boolean | undefined)[]) {
-  return classes.filter(Boolean).join(' ');
 }
