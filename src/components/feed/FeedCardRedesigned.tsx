@@ -55,56 +55,61 @@ export function FeedCardRedesigned({ item, onInterested, onNotInterested }: Feed
 
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 border-border/50 hover:border-primary/30 relative rounded-xl animate-bounce-in">
-      {/* Media Section - 16:9 aspect ratio */}
-      <div className="relative aspect-video overflow-hidden bg-muted">
-        {hasMedia ? (
-          <>
-            <img
-              src={item.mediaUrl}
-              alt={item.title}
-              className="w-full h-full object-cover"
-            />
-            {/* Video Play Overlay - Compact */}
-            {isVideo && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
-                  <Play className="h-5 w-5 text-destructive fill-destructive ml-0.5" />
-                </div>
+      {/* Conditional Media/Header Section */}
+      {hasMedia ? (
+        // Actual media - show shorter aspect ratio
+        <div className="relative aspect-[2/1] overflow-hidden bg-muted">
+          <img
+            src={item.mediaUrl}
+            alt={item.title}
+            className="w-full h-full object-cover"
+          />
+          {/* Video Play Overlay */}
+          {isVideo && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+              <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
+                <Play className="h-4 w-4 text-destructive fill-destructive ml-0.5" />
               </div>
-            )}
-          </>
-        ) : (
-          // Gradient fallback with compact icon
-          <div className={cn(
-            'w-full h-full flex items-center justify-center bg-gradient-to-br',
-            getGradientBackground()
-          )}>
-            <div className="w-14 h-14 rounded-full bg-background/80 flex items-center justify-center shadow-md">
-              {item.type === 'job' && <Briefcase className="h-6 w-6 text-primary" />}
-              {item.type === 'video' && <Play className="h-6 w-6 text-destructive" />}
-              {item.type === 'course' && <BookOpen className="h-6 w-6 text-accent-foreground" />}
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Match Score Badge - Top Right */}
-        {item.matchScore !== undefined && (
-          <div className="absolute top-2 right-2 z-10">
-            <CircularMatchBadge score={item.matchScore} size="sm" />
-          </div>
-        )}
+          {/* Match Score Badge - Top Right */}
+          {item.matchScore !== undefined && (
+            <div className="absolute top-2 right-2 z-10">
+              <CircularMatchBadge score={item.matchScore} size="sm" />
+            </div>
+          )}
 
-        {/* Type Badge - Top Left */}
-        <div className="absolute top-2 left-2 z-10">
+          {/* Type Badge - Top Left */}
+          <div className="absolute top-2 left-2 z-10">
+            <Badge variant="outline" className={cn(
+              'text-[10px] gap-1 rounded-md backdrop-blur-sm bg-background/80 border-background/50 px-1.5 py-0.5',
+              getTypeBadgeStyles()
+            )}>
+              {getTypeIcon()}
+              <span className="capitalize font-medium">{item.type}</span>
+            </Badge>
+          </div>
+        </div>
+      ) : (
+        // No media - compact header row with badges inline
+        <div className={cn(
+          'flex items-center justify-between p-2.5 bg-gradient-to-r border-b border-border/30',
+          getGradientBackground()
+        )}>
           <Badge variant="outline" className={cn(
-            'text-[10px] gap-1 rounded-md backdrop-blur-sm bg-background/80 border-background/50 px-1.5 py-0.5',
+            'text-[10px] gap-1 rounded-md px-1.5 py-0.5',
             getTypeBadgeStyles()
           )}>
             {getTypeIcon()}
             <span className="capitalize font-medium">{item.type}</span>
           </Badge>
+          
+          {item.matchScore !== undefined && (
+            <CircularMatchBadge score={item.matchScore} size="sm" />
+          )}
         </div>
-      </div>
+      )}
 
       <CardContent className="p-3">
         {/* Company/Source Info */}
@@ -153,7 +158,7 @@ export function FeedCardRedesigned({ item, onInterested, onNotInterested }: Feed
         )}
 
         {/* Compact Action Buttons */}
-        <div className="flex items-center justify-center gap-6 mt-3 pt-3 border-t border-border/50">
+        <div className="flex items-center justify-center gap-4 mt-2 pt-2 border-t border-border/50">
           {/* Dismiss Button */}
           <button
             onClick={(e) => {
