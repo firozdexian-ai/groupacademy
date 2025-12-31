@@ -7,7 +7,6 @@ import {
   Bot,
   Sparkles,
   User,
-  Coins,
   LogOut,
   Menu,
   X
@@ -19,6 +18,7 @@ import { cn } from '@/lib/utils';
 import logoLight from '@/assets/logo-horizontal-light.png';
 import logoDark from '@/assets/logo-horizontal-dark.png';
 import { useTheme } from 'next-themes';
+import { CreditBalance } from '@/components/credits/CreditBalance';
 
 const NAV_ITEMS = [
   { path: '/app/feed', label: 'Feed', icon: Home },
@@ -92,15 +92,9 @@ export function TalentAppShell() {
           {/* Right side - Credits, Profile, Menu */}
           <div className="flex items-center gap-2">
             {/* Credits Display */}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="hidden sm:flex items-center gap-1.5 text-muted-foreground"
-              onClick={() => navigate('/app/profile')}
-            >
-              <Coins className="h-4 w-4 text-warning" />
-              <span className="font-medium">250</span>
-            </Button>
+            <div className="hidden sm:block">
+              <CreditBalance onClick={() => navigate('/app/profile')} />
+            </div>
 
             {/* Profile */}
             <Button
@@ -129,13 +123,7 @@ export function TalentAppShell() {
           <div className="md:hidden border-t border-border bg-card">
             <div className="p-4 space-y-2">
               {/* Credits for mobile */}
-              <div className="flex items-center justify-between py-2 px-3 bg-muted rounded-lg mb-3">
-                <span className="text-sm text-muted-foreground">Credits</span>
-                <div className="flex items-center gap-1.5">
-                  <Coins className="h-4 w-4 text-warning" />
-                  <span className="font-semibold">250</span>
-                </div>
-              </div>
+              <CreditBalance variant="full" className="mb-3" />
 
               <NavLink
                 to="/app/profile"

@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { BootGate } from "@/components/BootGate";
 import { TalentProvider } from "@/contexts/TalentContext";
@@ -49,8 +49,19 @@ import SalaryAnalysisSetup from "./pages/SalaryAnalysisSetup";
 import SalaryAnalysisProcessing from "./pages/SalaryAnalysisProcessing";
 import SalaryAnalysisResults from "./pages/SalaryAnalysisResults";
 import TalentPortal from "./pages/TalentPortal";
+import Organization from "./pages/Organization";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+
+// New App Shell Pages
+import { TalentAppShell } from "./layouts/TalentAppShell";
+import Feed from "./pages/app/Feed";
+import LearningHub from "./pages/app/LearningHub";
+import ServicesHub from "./pages/app/ServicesHub";
+import JobsHub from "./pages/app/JobsHub";
+import CareerAbroad from "./pages/app/CareerAbroad";
+import AIAgents from "./pages/app/AIAgents";
+import Profile from "./pages/app/Profile";
 
 // Configure QueryClient with global defaults
 const queryClient = new QueryClient({
@@ -249,6 +260,28 @@ export default function App() {
                       </ProtectedRoute>
                     }
                   />
+                  {/* Organization placeholder */}
+                  <Route path="/org" element={<Organization />} />
+                  
+                  {/* New authenticated app shell routes */}
+                  <Route path="/app" element={<Navigate to="/app/feed" replace />} />
+                  <Route
+                    path="/app/*"
+                    element={
+                      <ProtectedRoute>
+                        <TalentAppShell />
+                      </ProtectedRoute>
+                    }
+                  >
+                    <Route path="feed" element={<Feed />} />
+                    <Route path="learning" element={<LearningHub />} />
+                    <Route path="services" element={<ServicesHub />} />
+                    <Route path="jobs" element={<JobsHub />} />
+                    <Route path="abroad" element={<CareerAbroad />} />
+                    <Route path="agents" element={<AIAgents />} />
+                    <Route path="profile" element={<Profile />} />
+                  </Route>
+                  
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
