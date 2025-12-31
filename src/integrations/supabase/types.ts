@@ -103,6 +103,101 @@ export type Database = {
           },
         ]
       }
+      agent_chat_sessions: {
+        Row: {
+          agent_key: string
+          created_at: string | null
+          credits_charged: number | null
+          id: string
+          is_active: boolean | null
+          messages: Json | null
+          session_expires_at: string | null
+          session_started_at: string | null
+          talent_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          agent_key: string
+          created_at?: string | null
+          credits_charged?: number | null
+          id?: string
+          is_active?: boolean | null
+          messages?: Json | null
+          session_expires_at?: string | null
+          session_started_at?: string | null
+          talent_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          agent_key?: string
+          created_at?: string | null
+          credits_charged?: number | null
+          id?: string
+          is_active?: boolean | null
+          messages?: Json | null
+          session_expires_at?: string | null
+          session_started_at?: string | null
+          talent_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_chat_sessions_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_agents: {
+        Row: {
+          agent_key: string
+          bg_color: string | null
+          color: string | null
+          created_at: string | null
+          description: string
+          display_order: number | null
+          expertise_areas: string[] | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          system_prompt: string
+          updated_at: string | null
+        }
+        Insert: {
+          agent_key: string
+          bg_color?: string | null
+          color?: string | null
+          created_at?: string | null
+          description: string
+          display_order?: number | null
+          expertise_areas?: string[] | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          system_prompt: string
+          updated_at?: string | null
+        }
+        Update: {
+          agent_key?: string
+          bg_color?: string | null
+          color?: string | null
+          created_at?: string | null
+          description?: string
+          display_order?: number | null
+          expertise_areas?: string[] | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          system_prompt?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       ai_chat_sessions: {
         Row: {
           ai_instructor_id: string

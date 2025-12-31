@@ -1,87 +1,157 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Bot, 
   Briefcase, 
   FileText, 
   Mic, 
   DollarSign,
   BookOpen,
   Lightbulb,
-  Building2,
-  MessageCircle,
   Coins
 } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { CREDIT_CONFIG } from '@/lib/creditPricing';
+import { AgentCard } from '@/components/ai-agents/AgentCard';
+import { RecentConversations } from '@/components/ai-agents/RecentConversations';
+import { useAgentChat } from '@/hooks/useAgentChat';
+import { useCredits } from '@/hooks/useCredits';
+import { CreditGateModal } from '@/components/credits/CreditGateModal';
+import { toast } from 'sonner';
 
 const AI_AGENTS = [
   {
     id: 'career-consultant',
     name: 'Career Consultant',
-    description: 'Get personalized career advice, job search strategies, and guidance on your career path',
+    description: 'Get personalized career advice, explore new opportunities, and plan your professional journey with expert guidance.',
     icon: Briefcase,
     color: 'text-primary',
     bgColor: 'bg-primary/10',
-    expertise: ['Career Planning', 'Job Search', 'Career Change'],
-    available: false
+    expertise: ['Career Planning', 'Job Search', 'Career Change']
   },
   {
     id: 'cv-coach',
     name: 'CV Coach',
-    description: 'Improve your CV with expert feedback, formatting tips, and content optimization',
+    description: 'Get your resume reviewed, learn ATS optimization techniques, and craft compelling cover letters that stand out.',
     icon: FileText,
-    color: 'text-accent',
-    bgColor: 'bg-accent/10',
-    expertise: ['CV Review', 'ATS Optimization', 'Cover Letters'],
-    available: false
+    color: 'text-green-600',
+    bgColor: 'bg-green-500/10',
+    expertise: ['CV Review', 'ATS Optimization', 'Cover Letters']
   },
   {
     id: 'interview-coach',
     name: 'Interview Coach',
-    description: 'Practice interview questions and get tips for acing your next interview',
+    description: 'Prepare for interviews with practice questions, feedback on your answers, and strategies to boost your confidence.',
     icon: Mic,
-    color: 'text-warning',
-    bgColor: 'bg-warning/10',
-    expertise: ['Mock Practice', 'Common Questions', 'Confidence'],
-    available: false
+    color: 'text-purple-600',
+    bgColor: 'bg-purple-500/10',
+    expertise: ['Mock Practice', 'STAR Method', 'Confidence']
   },
   {
     id: 'salary-negotiator',
     name: 'Salary Negotiator',
-    description: 'Learn negotiation tactics and get scripts for salary discussions',
+    description: 'Master the art of salary negotiation with strategies, scripts, and market insights tailored to your industry.',
     icon: DollarSign,
-    color: 'text-secondary',
-    bgColor: 'bg-secondary/10',
-    expertise: ['Negotiation', 'Market Rates', 'Benefits'],
-    available: false
+    color: 'text-amber-600',
+    bgColor: 'bg-amber-500/10',
+    expertise: ['Negotiation', 'Market Rates', 'Benefits']
   },
   {
     id: 'ielts-tutor',
     name: 'IELTS Tutor',
-    description: 'Practice English and prepare for your IELTS exam with AI guidance',
+    description: 'Practice English, get IELTS exam strategies, and improve your speaking and writing skills with personalized guidance.',
     icon: BookOpen,
-    color: 'text-destructive',
-    bgColor: 'bg-destructive/10',
-    expertise: ['Speaking', 'Writing', 'Test Strategies'],
-    available: false
+    color: 'text-red-600',
+    bgColor: 'bg-red-500/10',
+    expertise: ['Speaking', 'Writing', 'Test Strategies']
   },
   {
     id: 'skill-advisor',
     name: 'Skill Advisor',
-    description: 'Get recommendations for skills to learn based on your career goals',
+    description: 'Discover in-demand skills, get personalized learning paths, and stay ahead with industry trend insights.',
     icon: Lightbulb,
-    color: 'text-muted-foreground',
-    bgColor: 'bg-muted',
-    expertise: ['Skill Gaps', 'Learning Paths', 'Industry Trends'],
-    available: false
+    color: 'text-cyan-600',
+    bgColor: 'bg-cyan-500/10',
+    expertise: ['Skill Gaps', 'Learning Paths', 'Industry Trends']
   }
 ];
 
 export default function AIAgents() {
   const navigate = useNavigate();
+  const [showCreditGate, setShowCreditGate] = useState(false);
+  const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
+  
+  const { recentSessions, loadSession, startNewSession } = useAgentChat();
+  const { balance, deductCredits } = useCredits();
+  
   const costPerSession = CREDIT_CONFIG.SERVICES.AI_AGENT_CHAT.cost;
+
+  // Check if agent has active session
+  const getActiveSession = (agentKey: string) => {
+    return recentSessions.find(
+      s => s.agent_key === agentKey && 
+      s.is_active && 
+      new Date(s.session_expires_at) > new Date()
+    );
+  };
+
+  const handleAgentClick = (agentId: string) => {
+    const activeSession = getActiveSession(agentId);
+    
+    if (activeSession) {
+      // Resume existing session
+      navigate(`/app/agents/${agentId}`);
+    } else {
+      // Show credit gate for new session
+      setSelectedAgent(agentId);
+      setShowCreditGate(true);
+    }
+  };
+
+  const handleConfirmCredit = async () => {
+    if (!selectedAgent) return;
+
+    const success = await deductCredits('AI_AGENT_CHAT', `AI Agent: ${selectedAgent}`);
+    if (success) {
+      const session = await startNewSession(selectedAgent);
+      if (session) {
+        setShowCreditGate(false);
+        navigate(`/app/agents/${selectedAgent}`);
+        toast.success('Session started! You have 30 minutes.');
+      } else {
+        toast.error('Failed to start session');
+      }
+    }
+    setShowCreditGate(false);
+  };
+
+  const handleResumeSession = (agentId: string) => {
+    navigate(`/app/agents/${agentId}`);
+  };
+
+  const handleSelectSession = async (sessionId: string) => {
+    const session = recentSessions.find(s => s.id === sessionId);
+    if (session) {
+      navigate(`/app/agents/${session.agent_key}`);
+    }
+  };
+
+  const getAgentName = (agentKey: string) => {
+    const agent = AI_AGENTS.find(a => a.id === agentKey);
+    return agent?.name || agentKey;
+  };
+
+  const getAgentIcon = (agentKey: string) => {
+    const agent = AI_AGENTS.find(a => a.id === agentKey);
+    if (!agent) return null;
+    const Icon = agent.icon;
+    return (
+      <div className={`p-2 rounded-lg ${agent.bgColor}`}>
+        <Icon className={`h-4 w-4 ${agent.color}`} />
+      </div>
+    );
+  };
+
+  const selectedAgentData = selectedAgent ? AI_AGENTS.find(a => a.id === selectedAgent) : null;
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6">
@@ -89,6 +159,18 @@ export default function AIAgents() {
         <h1 className="text-2xl font-bold">AI Agents</h1>
         <p className="text-muted-foreground">Chat with AI experts for career guidance</p>
       </div>
+
+      {/* Credit Gate Modal */}
+      <CreditGateModal
+        isOpen={showCreditGate}
+        onClose={() => setShowCreditGate(false)}
+        onConfirm={handleConfirmCredit}
+        onBuyCredits={() => setShowCreditGate(false)}
+        serviceName={selectedAgentData ? `${selectedAgentData.name} Chat` : 'AI Agent Chat'}
+        cost={costPerSession}
+        currentBalance={balance}
+        isLoading={false}
+      />
 
       {/* Cost Info */}
       <Card className="mb-6 bg-gradient-to-r from-primary/5 to-secondary/5 border-primary/20">
@@ -107,64 +189,34 @@ export default function AIAgents() {
         </CardContent>
       </Card>
 
-      {/* Coming Soon Notice */}
-      <Card className="mb-6 border-warning/50 bg-warning/5">
-        <CardContent className="py-4">
-          <div className="flex items-center gap-3">
-            <Bot className="h-6 w-6 text-warning" />
-            <div>
-              <p className="font-medium text-warning">AI Agents Coming Soon!</p>
-              <p className="text-sm text-muted-foreground">
-                We're building intelligent AI agents to help you with every aspect of your career.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Agent Grid */}
       <div className="grid gap-4 md:grid-cols-2">
         {AI_AGENTS.map((agent) => (
-          <Card 
+          <AgentCard
             key={agent.id}
-            className="opacity-75"
-          >
-            <CardHeader className="pb-3">
-              <div className="flex items-start justify-between">
-                <div className={`p-3 rounded-xl ${agent.bgColor}`}>
-                  <agent.icon className={`h-6 w-6 ${agent.color}`} />
-                </div>
-                <Badge variant="secondary" className="text-xs">
-                  Coming Soon
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <CardTitle className="text-lg mb-1">{agent.name}</CardTitle>
-              <CardDescription className="mb-3">{agent.description}</CardDescription>
-              
-              <div className="flex flex-wrap gap-1.5">
-                {agent.expertise.map(skill => (
-                  <Badge key={skill} variant="outline" className="text-xs">
-                    {skill}
-                  </Badge>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+            id={agent.id}
+            name={agent.name}
+            description={agent.description}
+            icon={agent.icon}
+            color={agent.color}
+            bgColor={agent.bgColor}
+            expertise={agent.expertise}
+            hasActiveSession={!!getActiveSession(agent.id)}
+            onClick={() => handleAgentClick(agent.id)}
+            onResume={() => handleResumeSession(agent.id)}
+          />
         ))}
       </div>
 
-      {/* Recent Conversations - Placeholder */}
+      {/* Recent Conversations */}
       <section className="mt-8">
         <h2 className="text-lg font-semibold mb-4">Recent Conversations</h2>
-        <Card>
-          <CardContent className="p-8 text-center text-muted-foreground">
-            <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>No conversations yet</p>
-            <p className="text-sm mt-1">Start chatting with an AI agent to get career help</p>
-          </CardContent>
-        </Card>
+        <RecentConversations
+          sessions={recentSessions}
+          onSelectSession={handleSelectSession}
+          getAgentName={getAgentName}
+          getAgentIcon={getAgentIcon}
+        />
       </section>
     </div>
   );

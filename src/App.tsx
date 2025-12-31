@@ -62,6 +62,7 @@ import ServicesHub from "./pages/app/ServicesHub";
 import JobsHub from "./pages/app/JobsHub";
 import CareerAbroad from "./pages/app/CareerAbroad";
 import AIAgents from "./pages/app/AIAgents";
+import AgentChat from "./pages/app/AgentChat";
 import Profile from "./pages/app/Profile";
 import AppJobDetail from "./pages/app/AppJobDetail";
 import AppProfessions from "./pages/app/AppProfessions";
