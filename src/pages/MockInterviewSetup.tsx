@@ -43,6 +43,7 @@ interface InterviewConfig {
   difficulty: "easy" | "medium" | "hard";
   professionCategoryId: string | null;
   additionalNotes: string;
+  useProfileContext: boolean;
 }
 
 function MockInterviewSetupContent() {
@@ -69,7 +70,8 @@ function MockInterviewSetupContent() {
     questionCount: 5,
     difficulty: "medium",
     professionCategoryId: null,
-    additionalNotes: ""
+    additionalNotes: "",
+    useProfileContext: true
   });
   
   // Profession categories
@@ -291,6 +293,23 @@ function MockInterviewSetupContent() {
     });
 
     try {
+      // Build candidate profile data if enabled
+      let candidateProfile = null;
+      if (config.useProfileContext && talent) {
+        candidateProfile = {
+          skills: Array.isArray(talent.skills) 
+            ? talent.skills.map((s: any) => typeof s === 'string' ? s : s.name || s.skill || String(s))
+            : [],
+          experience: Array.isArray(talent.experience) 
+            ? talent.experience.map((e: any) => `${e.position || e.title || ''} at ${e.company || ''}`.trim()).filter(Boolean)
+            : [],
+          education: Array.isArray(talent.education)
+            ? talent.education.map((e: any) => `${e.degree || ''} from ${e.institution || ''}`.trim()).filter(Boolean)
+            : [],
+          cvSummary: talent.cvText?.substring(0, 1000) || null
+        };
+      }
+
       // Call edge function to generate questions
       const functionPromise = supabase.functions.invoke("generate-interview-questions", {
         body: {
@@ -298,7 +317,8 @@ function MockInterviewSetupContent() {
           questionCount: config.questionCount,
           difficulty: config.difficulty,
           professionCategoryId: isValidUUID(config.professionCategoryId) ? config.professionCategoryId : null,
-          additionalNotes: config.additionalNotes
+          additionalNotes: config.additionalNotes,
+          candidateProfile
         }
       });
 
@@ -740,6 +760,27 @@ function MockInterviewSetupContent() {
                   className="min-h-[100px] resize-none"
                 />
               </div>
+
+              {/* Use Profile Context - Only show if talent has profile data */}
+              {talent && (talent.skills?.length > 0 || talent.experience?.length > 0 || talent.cvText) && (
+                <div className="flex items-center space-x-3 p-4 rounded-lg border bg-muted/30">
+                  <input
+                    type="checkbox"
+                    id="useProfileContext"
+                    checked={config.useProfileContext}
+                    onChange={(e) => setConfig({ ...config, useProfileContext: e.target.checked })}
+                    className="h-4 w-4 rounded border-input text-primary focus:ring-primary"
+                  />
+                  <div className="flex-1">
+                    <Label htmlFor="useProfileContext" className="cursor-pointer font-medium">
+                      Use my profile for personalized questions
+                    </Label>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      AI will tailor questions based on your skills, experience, and CV
+                    </p>
+                  </div>
+                </div>
+              )}
 
               <div className="flex gap-3 pt-4">
                 <Button 

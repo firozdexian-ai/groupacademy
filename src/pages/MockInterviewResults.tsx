@@ -33,6 +33,7 @@ import { MockInterviewPDFTemplate } from "@/components/mock-interview/MockInterv
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { RetryErrorCard, getErrorType } from "@/components/ui/retry-error-card";
+import { ServiceRecommendations } from "@/components/ServiceRecommendations";
 
 interface Question {
   id: string;
@@ -602,26 +603,51 @@ export default function MockInterviewResults() {
           </CardContent>
         </Card>
 
-        {/* Build Portfolio CTA */}
-        <Card className="border-primary/20 bg-primary/5 mb-4">
+        {/* Service Recommendations */}
+        <ServiceRecommendations currentService="mock_interview" className="mb-4" />
+
+        {/* Recommended Courses */}
+        <Card className="border-secondary/20 bg-secondary/5">
           <CardContent className="py-6">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center shrink-0">
-                  <FileText className="w-6 h-6 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-semibold mb-1">Stand Out with a Digital Portfolio</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Complement your interview skills with a professional portfolio that showcases your achievements.
-                  </p>
-                </div>
-              </div>
-              <Button variant="outline" onClick={() => navigate("/portfolio-request")} className="shrink-0">
-                Get Your Portfolio
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
+            <div className="mb-4">
+              <h3 className="font-semibold mb-1">Recommended Courses for You</h3>
+              <p className="text-sm text-muted-foreground">
+                Boost your interview skills with these personalized recommendations.
+              </p>
             </div>
+            
+            {loadingCourses ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : recommendedCourses.length > 0 ? (
+              <div className="grid sm:grid-cols-3 gap-4 mb-4">
+                {recommendedCourses.map((course) => (
+                  <div
+                    key={course.id}
+                    onClick={() => navigate(`/courses/${course.slug}`)}
+                    className="cursor-pointer rounded-lg border bg-card p-4 hover:shadow-md transition-shadow"
+                  >
+                    {course.thumbnail_url && (
+                      <img
+                        src={course.thumbnail_url}
+                        alt={course.title}
+                        className="w-full h-24 object-cover rounded-md mb-3"
+                      />
+                    )}
+                    <h4 className="font-medium text-sm mb-1 line-clamp-2">{course.title}</h4>
+                    {course.estimated_hours && (
+                      <p className="text-xs text-muted-foreground">{course.estimated_hours}h estimated</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : null}
+            
+            <Button variant="secondary" onClick={() => navigate("/courses")} className="w-full sm:w-auto">
+              Explore All Courses
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
           </CardContent>
         </Card>
 

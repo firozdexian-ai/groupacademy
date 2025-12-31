@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { jobDescription, questionCount, difficulty, professionCategoryId, additionalNotes } = await req.json();
+    const { jobDescription, questionCount, difficulty, professionCategoryId, additionalNotes, candidateProfile } = await req.json();
 
     if (!jobDescription) {
       return new Response(
@@ -48,6 +48,27 @@ serve(async (req) => {
       }
     }
 
+    // Build candidate context if provided
+    let candidateContext = '';
+    if (candidateProfile) {
+      const parts = [];
+      if (candidateProfile.skills?.length > 0) {
+        parts.push(`Skills: ${candidateProfile.skills.join(', ')}`);
+      }
+      if (candidateProfile.experience?.length > 0) {
+        parts.push(`Experience: ${candidateProfile.experience.join('; ')}`);
+      }
+      if (candidateProfile.education?.length > 0) {
+        parts.push(`Education: ${candidateProfile.education.join('; ')}`);
+      }
+      if (candidateProfile.cvSummary) {
+        parts.push(`CV Summary: ${candidateProfile.cvSummary.substring(0, 500)}`);
+      }
+      if (parts.length > 0) {
+        candidateContext = `\n\nCANDIDATE PROFILE (use this to personalize questions and assess fit):\n${parts.join('\n')}`;
+      }
+    }
+
     const difficultyGuide = {
       easy: 'Ask straightforward questions suitable for entry-level candidates. Focus on basic concepts and common scenarios.',
       medium: 'Ask moderately challenging questions suitable for mid-level candidates. Include behavioral and situational questions.',
@@ -60,11 +81,14 @@ JOB DESCRIPTION:
 ${jobDescription}
 
 ${professionContext}
+${candidateContext}
 
 ${additionalNotes ? `ADDITIONAL CONTEXT FROM CANDIDATE: ${additionalNotes}` : ''}
 
 DIFFICULTY LEVEL: ${difficulty}
 ${difficultyGuide[difficulty as keyof typeof difficultyGuide] || difficultyGuide.medium}
+
+${candidateProfile ? 'IMPORTANT: Tailor some questions to probe the candidate\'s specific experience and skills mentioned in their profile. Ask about gaps between their background and the job requirements.' : ''}
 
 Generate exactly ${questionCount} interview questions. For each question, provide:
 1. The question itself (clear and professional)

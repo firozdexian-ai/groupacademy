@@ -13,11 +13,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, User, GraduationCap, Briefcase, Sparkles } from "lucide-react";
+import { Loader2, User, GraduationCap, Briefcase, Sparkles, Camera } from "lucide-react";
 import { toast } from "sonner";
 import { EducationEditor, EducationEntry } from "./EducationEditor";
 import { ExperienceEditor, ExperienceEntry } from "./ExperienceEditor";
 import { SkillsEditor } from "./SkillsEditor";
+import { ProfilePhotoUpload } from "./ProfilePhotoUpload";
 
 interface ProfileEditDialogProps {
   open: boolean;
@@ -37,6 +38,7 @@ export function ProfileEditDialog({
   const [linkedinUrl, setLinkedinUrl] = useState(talent.linkedinUrl || "");
   const [portfolioUrl, setPortfolioUrl] = useState(talent.portfolioUrl || "");
   const [customProfession, setCustomProfession] = useState(talent.customProfession || "");
+  const [profilePhotoUrl, setProfilePhotoUrl] = useState(talent.profilePhotoUrl || "");
   
   // Education, experience, skills state
   const [education, setEducation] = useState<EducationEntry[]>([]);
@@ -54,6 +56,7 @@ export function ProfileEditDialog({
       setLinkedinUrl(talent.linkedinUrl || "");
       setPortfolioUrl(talent.portfolioUrl || "");
       setCustomProfession(talent.customProfession || "");
+      setProfilePhotoUrl(talent.profilePhotoUrl || "");
       
       // Parse education array
       if (talent.education && Array.isArray(talent.education)) {
@@ -110,6 +113,7 @@ export function ProfileEditDialog({
         linkedin_url: linkedinUrl.trim() || null,
         portfolio_url: portfolioUrl.trim() || null,
         custom_profession: customProfession.trim() || null,
+        profile_photo_url: profilePhotoUrl || null,
         education: education.filter(e => e.institution || e.degree),
         experience: experience.filter(e => e.company || e.position),
         skills: skills.filter(s => s.trim()),
@@ -150,7 +154,11 @@ export function ProfileEditDialog({
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="photo" className="text-xs">
+              <Camera className="h-3 w-3 mr-1 hidden sm:inline" />
+              Photo
+            </TabsTrigger>
             <TabsTrigger value="basic" className="text-xs">
               <User className="h-3 w-3 mr-1 hidden sm:inline" />
               Basic
@@ -170,6 +178,16 @@ export function ProfileEditDialog({
           </TabsList>
 
           <ScrollArea className="h-[400px] mt-4 pr-4">
+            <TabsContent value="photo" className="mt-0">
+              <div className="py-6">
+                <ProfilePhotoUpload
+                  currentPhotoUrl={profilePhotoUrl}
+                  fullName={fullName}
+                  onPhotoChange={setProfilePhotoUrl}
+                />
+              </div>
+            </TabsContent>
+
             <TabsContent value="basic" className="space-y-4 mt-0">
               <div className="space-y-2">
                 <Label htmlFor="fullName">Full Name *</Label>
