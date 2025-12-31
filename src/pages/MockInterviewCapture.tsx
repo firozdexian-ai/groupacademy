@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useTalent } from "@/hooks/useTalent";
+import { useCredits } from "@/hooks/useCredits";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -9,6 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ProcessingCard } from "@/components/ui/processing-card";
+import { CreditGateModal } from "@/components/credits/CreditGateModal";
+import { CreditPurchaseSheet } from "@/components/credits/CreditPurchaseSheet";
 import { 
   ArrowRight, 
   User,
@@ -30,6 +33,7 @@ export default function MockInterviewCapture() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { talent, addServiceUsed } = useTalent();
+  const { canAfford, deductCredits, getServiceCost, balance } = useCredits();
   
   const [interview, setInterview] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -38,6 +42,8 @@ export default function MockInterviewCapture() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [autoFilled, setAutoFilled] = useState(false);
+  const [showCreditGate, setShowCreditGate] = useState(false);
+  const [showCreditSheet, setShowCreditSheet] = useState(false);
 
   // Auto-fill from talent profile
   useEffect(() => {
@@ -83,6 +89,12 @@ export default function MockInterviewCapture() {
       return;
     }
 
+    // Check credits for logged-in users
+    if (talent && !canAfford('MOCK_INTERVIEW')) {
+      setShowCreditGate(true);
+      return;
+    }
+
     setIsSubmitting(true);
     setSubmissionError(null);
 
@@ -104,8 +116,9 @@ export default function MockInterviewCapture() {
 
       if (error) throw error;
 
-      // Track service usage
+      // Deduct credits and track service usage for logged-in users
       if (talent) {
+        await deductCredits('MOCK_INTERVIEW', id, 'AI Mock Interview Analysis');
         await addServiceUsed("mock_interview");
       }
 
@@ -115,6 +128,11 @@ export default function MockInterviewCapture() {
       console.error("Error submitting interview:", error);
       setSubmissionError("Failed to analyze interview. Please try again.");
     }
+  };
+
+  const handleBuyCredits = () => {
+    setShowCreditGate(false);
+    setShowCreditSheet(true);
   };
 
   const handleRetry = () => {
@@ -222,6 +240,24 @@ export default function MockInterviewCapture() {
       </main>
 
       <Footer />
+
+      {/* Credit Gate Modal */}
+      <CreditGateModal
+        isOpen={showCreditGate}
+        onClose={() => setShowCreditGate(false)}
+        serviceName="Mock Interview Analysis"
+        cost={getServiceCost('MOCK_INTERVIEW')}
+        currentBalance={balance}
+        onConfirm={handleSubmit}
+        onBuyCredits={handleBuyCredits}
+      />
+
+      {/* Credit Purchase Sheet */}
+      <CreditPurchaseSheet
+        isOpen={showCreditSheet}
+        onClose={() => setShowCreditSheet(false)}
+        currentBalance={balance}
+      />
     </div>
   );
 }

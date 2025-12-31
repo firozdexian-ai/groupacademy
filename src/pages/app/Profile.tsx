@@ -16,16 +16,20 @@ import {
   Sparkles
 } from 'lucide-react';
 import { useTalent } from '@/hooks/useTalent';
+import { useCredits } from '@/hooks/useCredits';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
-import { CREDIT_CONFIG } from '@/lib/creditPricing';
+import { Skeleton } from '@/components/ui/skeleton';
+import { CreditPurchaseSheet } from '@/components/credits/CreditPurchaseSheet';
 
 export default function Profile() {
   const navigate = useNavigate();
   const { talent, signOut } = useTalent();
+  const { balance, isLoading: creditsLoading } = useCredits();
+  const [showCreditSheet, setShowCreditSheet] = useState(false);
   
   if (!talent) {
     return null;
@@ -95,16 +99,26 @@ export default function Profile() {
                 <Coins className="h-6 w-6 text-warning" />
               </div>
               <div>
-                <p className="text-2xl font-bold">250</p>
+                {creditsLoading ? (
+                  <Skeleton className="h-8 w-16 mb-1" />
+                ) : (
+                  <p className="text-2xl font-bold">{balance}</p>
+                )}
                 <p className="text-sm text-muted-foreground">Credits Available</p>
               </div>
             </div>
-            <Button>
+            <Button onClick={() => setShowCreditSheet(true)}>
               Buy Credits
             </Button>
           </div>
         </CardContent>
       </Card>
+
+      <CreditPurchaseSheet 
+        isOpen={showCreditSheet}
+        onClose={() => setShowCreditSheet(false)}
+        currentBalance={balance}
+      />
 
       {/* Quick Actions */}
       <div className="grid grid-cols-2 gap-3 mb-6">

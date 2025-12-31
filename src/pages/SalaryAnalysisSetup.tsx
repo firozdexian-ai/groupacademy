@@ -18,14 +18,18 @@ import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { useProgressiveLoadingMessage } from "@/hooks/useProgressiveLoadingMessage";
 import { AuthGate } from "@/components/AuthGate";
 import { useTalent } from "@/hooks/useTalent";
+import { useCredits } from "@/hooks/useCredits";
 import { ExistingCVCard } from "@/components/cv/ExistingCVCard";
 import { ProfileCompletionPrompt } from "@/components/profile/ProfileCompletionPrompt";
 import { RetryErrorCard, getErrorType } from "@/components/ui/retry-error-card";
+import { CreditGateModal } from "@/components/credits/CreditGateModal";
+import { CreditPurchaseSheet } from "@/components/credits/CreditPurchaseSheet";
 
 const SalaryAnalysisSetupContent = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { talent, user, addServiceUsed, updateTalent, refreshTalent } = useTalent();
+  const { canAfford, getServiceCost, balance } = useCredits();
   
   const [email, setEmail] = useState("");
   const [accessCode, setAccessCode] = useState("");
@@ -47,8 +51,9 @@ const SalaryAnalysisSetupContent = () => {
   
   const [professionCategories, setProfessionCategories] = useState<any[]>([]);
   const [selectedProfession, setSelectedProfession] = useState("");
-  
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showCreditGate, setShowCreditGate] = useState(false);
+  const [showCreditSheet, setShowCreditSheet] = useState(false);
 
   // Check if talent has existing CV
   const hasExistingCv = !!(talent?.cvUrl || talent?.cvText);
@@ -263,6 +268,12 @@ const SalaryAnalysisSetupContent = () => {
       return;
     }
 
+    // Check credits for logged-in users
+    if (talent && !canAfford('SALARY_ANALYSIS')) {
+      setShowCreditGate(true);
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       // Validate UUID before submission
@@ -296,11 +307,8 @@ const SalaryAnalysisSetupContent = () => {
 
       if (error) throw error;
 
-      // Track service usage in talent profile
-      if (talent?.id) {
-        await addServiceUsed('salary_analysis');
-        console.log('[SalaryAnalysisSetup] Service usage tracked for talent:', talent.id);
-      }
+      // Note: Credit deduction happens in SalaryAnalysisProcessing after successful analysis
+      // Service usage tracking also moves there
 
       navigate(`/salary-analysis/processing/${tempAnalysisId}`);
     } catch (error) {
@@ -605,6 +613,30 @@ const SalaryAnalysisSetupContent = () => {
       </div>
 
       <Footer />
+
+      {/* Credit Gate Modal */}
+      <CreditGateModal
+        isOpen={showCreditGate}
+        onClose={() => setShowCreditGate(false)}
+        serviceName="Salary Analysis"
+        cost={getServiceCost('SALARY_ANALYSIS')}
+        currentBalance={balance}
+        onConfirm={() => {
+          setShowCreditGate(false);
+          handleSubmit();
+        }}
+        onBuyCredits={() => {
+          setShowCreditGate(false);
+          setShowCreditSheet(true);
+        }}
+      />
+
+      {/* Credit Purchase Sheet */}
+      <CreditPurchaseSheet
+        isOpen={showCreditSheet}
+        onClose={() => setShowCreditSheet(false)}
+        currentBalance={balance}
+      />
     </div>
   );
 };

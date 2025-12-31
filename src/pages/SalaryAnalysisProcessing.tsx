@@ -7,17 +7,22 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useTalent } from "@/hooks/useTalent";
+import { useCredits } from "@/hooks/useCredits";
 import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
 
 const SalaryAnalysisProcessing = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { talent, addServiceUsed } = useTalent();
+  const { deductCredits } = useCredits();
   
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState("Initializing...");
   const [error, setError] = useState<string | null>(null);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [creditsDeducted, setCreditsDeducted] = useState(false);
 
   const runAnalysis = async () => {
     if (!id) return;
@@ -51,6 +56,13 @@ const SalaryAnalysisProcessing = () => {
 
       setProgress(90);
       setStatus("Finalizing results...");
+
+      // Deduct credits and track service usage after successful analysis (only once)
+      if (talent && !creditsDeducted) {
+        await deductCredits('SALARY_ANALYSIS', id, 'AI Salary Analysis');
+        await addServiceUsed('salary_analysis');
+        setCreditsDeducted(true);
+      }
 
       // Small delay for UX
       await new Promise(resolve => setTimeout(resolve, 1000));
