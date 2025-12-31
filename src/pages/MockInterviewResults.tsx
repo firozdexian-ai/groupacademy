@@ -32,6 +32,7 @@ import { ErrorState } from "@/components/ui/error-state";
 import { MockInterviewPDFTemplate } from "@/components/mock-interview/MockInterviewPDFTemplate";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import { RetryErrorCard, getErrorType } from "@/components/ui/retry-error-card";
 
 interface Question {
   id: string;
@@ -284,12 +285,13 @@ export default function MockInterviewResults() {
       <div className="min-h-screen bg-background flex flex-col">
         <Navbar />
         <main className="flex-1 flex items-center justify-center p-4">
-          <ErrorState
-            type="server"
-            title="Failed to Load Results"
-            description={loadError}
-            onRetry={() => { setLoading(true); loadInterview(); }}
-          />
+          <div className="max-w-md w-full">
+            <RetryErrorCard
+              type={getErrorType({ message: loadError })}
+              description={loadError}
+              onRetry={() => { setLoading(true); loadInterview(); }}
+            />
+          </div>
         </main>
         <Footer />
       </div>

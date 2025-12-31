@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
+import { RetryErrorCard, getErrorType } from "@/components/ui/retry-error-card";
 
 interface RecommendedCourse {
   id: string;
@@ -161,23 +162,12 @@ const SalaryAnalysisResults = () => {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
-        <div className="container mx-auto py-20">
-          <Card className="max-w-md mx-auto">
-            <CardContent className="pt-6 text-center">
-              <Target className="h-12 w-12 text-destructive mx-auto mb-4" />
-              <h2 className="text-xl font-semibold mb-2">Failed to Load Results</h2>
-              <p className="text-muted-foreground mb-4">{loadError}</p>
-              <div className="flex gap-2 justify-center">
-                <Button onClick={() => { setIsLoading(true); fetchAnalysis(); }}>
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Try Again
-                </Button>
-                <Button variant="outline" asChild>
-                  <Link to="/salary-analysis">Back</Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="container mx-auto py-20 max-w-md">
+          <RetryErrorCard
+            type={getErrorType({ message: loadError })}
+            description={loadError}
+            onRetry={() => { setIsLoading(true); fetchAnalysis(); }}
+          />
         </div>
         <Footer />
       </div>

@@ -25,6 +25,7 @@ import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { ScorecardPDFTemplate } from "@/components/assessment/ScorecardPDFTemplate";
 import { generateScorecardPDF } from "@/lib/assessmentPdfGenerator";
+import { RetryErrorCard, getErrorType } from "@/components/ui/retry-error-card";
 
 interface Assessment {
   id: string;
@@ -286,25 +287,20 @@ export default function AssessmentResults() {
     return (
       <div className="min-h-screen bg-background flex flex-col">
         <Navbar />
-        <main className="flex-1 flex items-center justify-center">
-          <Card className="max-w-md mx-4">
-            <CardContent className="pt-6 text-center">
-              <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Unable to Load Results</h3>
-              <p className="text-muted-foreground mb-4">
-                {loadError || "Assessment not found."}
-              </p>
-              <div className="flex gap-3 justify-center">
-                <Button variant="outline" onClick={() => navigate("/career-assessment")}>
-                  Start New Assessment
-                </Button>
-                <Button onClick={loadAssessment}>
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Try Again
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+        <main className="flex-1 flex items-center justify-center p-4">
+          <div className="max-w-md w-full">
+            <RetryErrorCard
+              type={getErrorType({ message: loadError })}
+              title="Unable to Load Results"
+              description={loadError || "Assessment not found."}
+              onRetry={loadAssessment}
+            />
+            <div className="mt-4 text-center">
+              <Button variant="outline" onClick={() => navigate("/career-assessment")}>
+                Start New Assessment
+              </Button>
+            </div>
+          </div>
         </main>
         <Footer />
       </div>

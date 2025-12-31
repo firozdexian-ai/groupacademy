@@ -28,6 +28,7 @@ import { useProgressiveLoadingMessage } from "@/hooks/useProgressiveLoadingMessa
 import { AuthGate } from "@/components/AuthGate";
 import { useTalent } from "@/hooks/useTalent";
 import { ProfileCompletionPrompt } from "@/components/profile/ProfileCompletionPrompt";
+import { RetryErrorCard, getErrorType } from "@/components/ui/retry-error-card";
 
 interface ProfessionCategory {
   id: string;
@@ -76,6 +77,7 @@ function MockInterviewSetupContent() {
   
   // Generation state
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generationError, setGenerationError] = useState<Error | null>(null);
 
   // Auto-fill email from talent profile
   useEffect(() => {
@@ -352,10 +354,7 @@ function MockInterviewSetupContent() {
       navigate(`/mock-interview/questions/${tempInterviewId}`);
     } catch (error: any) {
       console.error("Error generating questions:", error);
-      const errorMessage = error?.message === "Generation timed out"
-        ? "Question generation took too long. Please try again."
-        : error?.message || "Failed to generate questions. Please try again.";
-      toast.error(errorMessage);
+      setGenerationError(error);
       setStep("configuration");
       setIsGenerating(false);
     }
@@ -766,13 +765,24 @@ function MockInterviewSetupContent() {
         {step === "generating" && (
           <Card>
             <CardContent className="py-16">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mx-auto mb-6"></div>
-                <h2 className="text-2xl font-bold mb-2">Generating Your Interview</h2>
-                <p className="text-muted-foreground">
-                  Our AI is analyzing the job description and creating tailored interview questions...
-                </p>
-              </div>
+              {generationError ? (
+                <RetryErrorCard
+                  type={getErrorType(generationError)}
+                  description={generationError.message}
+                  onRetry={() => {
+                    setGenerationError(null);
+                    handleStartInterview();
+                  }}
+                />
+              ) : (
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary mx-auto mb-6"></div>
+                  <h2 className="text-2xl font-bold mb-2">Generating Your Interview</h2>
+                  <p className="text-muted-foreground">
+                    Our AI is analyzing the job description and creating tailored interview questions...
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}

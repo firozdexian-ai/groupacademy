@@ -20,6 +20,7 @@ import { AuthGate } from "@/components/AuthGate";
 import { useTalent } from "@/hooks/useTalent";
 import { ExistingCVCard } from "@/components/cv/ExistingCVCard";
 import { ProfileCompletionPrompt } from "@/components/profile/ProfileCompletionPrompt";
+import { RetryErrorCard, getErrorType } from "@/components/ui/retry-error-card";
 
 const SalaryAnalysisSetupContent = () => {
   const navigate = useNavigate();
