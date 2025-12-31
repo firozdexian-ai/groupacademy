@@ -1,18 +1,33 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   ClipboardCheck, 
   Mic, 
   DollarSign, 
   Palette,
-  Sparkles,
   Coins
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { CREDIT_CONFIG } from '@/lib/creditPricing';
+import { CreditBalance } from '@/components/credits/CreditBalance';
+import { CreditGateModal } from '@/components/credits/CreditGateModal';
+import { CreditPurchaseSheet } from '@/components/credits/CreditPurchaseSheet';
+import { ServiceUsageBadge } from '@/components/credits/ServiceUsageBadge';
+import { ServiceHistoryCard } from '@/components/credits/ServiceHistoryCard';
+import { useCredits } from '@/hooks/useCredits';
+import { ServiceType } from '@/lib/creditPricing';
 
-const CAREER_SERVICES = [
+interface ServiceCardData {
+  id: ServiceType;
+  title: string;
+  description: string;
+  icon: React.ElementType;
+  href: string;
+  color: string;
+  bgColor: string;
+}
+
+const CAREER_SERVICES: ServiceCardData[] = [
   {
     id: 'CAREER_ASSESSMENT',
     title: 'Career Readiness Scorecard',
@@ -21,7 +36,6 @@ const CAREER_SERVICES = [
     href: '/career-assessment',
     color: 'text-primary',
     bgColor: 'bg-primary/10',
-    firstFree: true
   },
   {
     id: 'MOCK_INTERVIEW',
@@ -31,7 +45,6 @@ const CAREER_SERVICES = [
     href: '/mock-interview',
     color: 'text-accent',
     bgColor: 'bg-accent/10',
-    firstFree: true
   },
   {
     id: 'SALARY_ANALYSIS',
@@ -41,7 +54,6 @@ const CAREER_SERVICES = [
     href: '/salary-analysis',
     color: 'text-warning',
     bgColor: 'bg-warning/10',
-    firstFree: true
   },
   {
     id: 'PORTFOLIO',
@@ -51,21 +63,32 @@ const CAREER_SERVICES = [
     href: '/portfolio-request',
     color: 'text-secondary',
     bgColor: 'bg-secondary/10',
-    firstFree: true
   }
 ];
 
 export default function ServicesHub() {
   const navigate = useNavigate();
+  const { balance, isLoading, getUsageCount, isFirstUse, getServiceCost, canAfford } = useCredits();
+  
+  const [selectedService, setSelectedService] = useState<ServiceCardData | null>(null);
+  const [showCreditGate, setShowCreditGate] = useState(false);
+  const [showPurchaseSheet, setShowPurchaseSheet] = useState(false);
 
-  const getServiceCost = (serviceId: string) => {
-    const config = CREDIT_CONFIG.SERVICES[serviceId as keyof typeof CREDIT_CONFIG.SERVICES];
-    if (!config) return null;
-    
-    if ('first' in config) {
-      return { first: config.first, subsequent: config.subsequent };
+  const handleServiceClick = (service: ServiceCardData) => {
+    setSelectedService(service);
+    setShowCreditGate(true);
+  };
+
+  const handleConfirmService = () => {
+    if (selectedService) {
+      setShowCreditGate(false);
+      navigate(selectedService.href);
     }
-    return null;
+  };
+
+  const handleBuyCredits = () => {
+    setShowCreditGate(false);
+    setShowPurchaseSheet(true);
   };
 
   return (
@@ -86,11 +109,12 @@ export default function ServicesHub() {
               <div>
                 <p className="font-medium">Your first use of each service is FREE!</p>
                 <p className="text-sm text-muted-foreground">
-                  After that, services cost credits. You have <span className="font-semibold text-foreground">250 credits</span>.
+                  After that, services cost credits. You have{' '}
+                  <CreditBalance variant="compact" className="inline-flex" />
                 </p>
               </div>
             </div>
-            <Button variant="outline" size="sm" onClick={() => navigate('/app/profile')}>
+            <Button variant="outline" size="sm" onClick={() => setShowPurchaseSheet(true)}>
               Buy Credits
             </Button>
           </div>
@@ -99,37 +123,34 @@ export default function ServicesHub() {
 
       <div className="grid gap-4 md:grid-cols-2">
         {CAREER_SERVICES.map((service) => {
-          const cost = getServiceCost(service.id);
+          const usageCount = getUsageCount(service.id);
+          const cost = getServiceCost(service.id, usageCount);
+          const firstUse = isFirstUse(service.id);
+          const affordable = canAfford(service.id, usageCount);
           
           return (
             <Card 
               key={service.id}
               className="cursor-pointer hover:shadow-md transition-all group"
-              onClick={() => navigate(service.href)}
+              onClick={() => handleServiceClick(service)}
             >
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div className={`p-3 rounded-xl ${service.bgColor} group-hover:scale-110 transition-transform`}>
                     <service.icon className={`h-6 w-6 ${service.color}`} />
                   </div>
-                  {service.firstFree && (
-                    <Badge className="bg-accent text-accent-foreground">
-                      <Sparkles className="h-3 w-3 mr-1" />
-                      First FREE
-                    </Badge>
-                  )}
+                  <ServiceUsageBadge serviceType={service.id} usageCount={usageCount} />
                 </div>
               </CardHeader>
               <CardContent>
                 <CardTitle className="text-lg mb-1">{service.title}</CardTitle>
                 <CardDescription className="mb-3">{service.description}</CardDescription>
                 
-                {cost && (
+                {!firstUse && (
                   <div className="flex items-center gap-2 text-sm">
                     <Coins className="h-4 w-4 text-warning" />
-                    <span className="text-muted-foreground">
-                      {cost.first === 0 ? 'Free first time' : `${cost.first} credits`}
-                      {cost.subsequent > 0 && ` • ${cost.subsequent} credits after`}
+                    <span className={affordable ? "text-muted-foreground" : "text-destructive"}>
+                      {affordable ? `${cost} credits` : `Need ${cost - balance} more credits`}
                     </span>
                   </div>
                 )}
@@ -138,6 +159,32 @@ export default function ServicesHub() {
           );
         })}
       </div>
+
+      {/* Service History */}
+      <div className="mt-8">
+        <ServiceHistoryCard />
+      </div>
+
+      {/* Credit Gate Modal */}
+      {selectedService && (
+        <CreditGateModal
+          isOpen={showCreditGate}
+          onClose={() => setShowCreditGate(false)}
+          onConfirm={handleConfirmService}
+          onBuyCredits={handleBuyCredits}
+          serviceName={selectedService.title}
+          cost={getServiceCost(selectedService.id)}
+          currentBalance={balance}
+          isFirstUse={isFirstUse(selectedService.id)}
+        />
+      )}
+
+      {/* Credit Purchase Sheet */}
+      <CreditPurchaseSheet
+        isOpen={showPurchaseSheet}
+        onClose={() => setShowPurchaseSheet(false)}
+        currentBalance={balance}
+      />
     </div>
   );
 }

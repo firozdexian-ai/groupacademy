@@ -12,6 +12,7 @@ import { z } from "zod";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { useTalent } from "@/hooks/useTalent";
+import { useCredits } from "@/hooks/useCredits";
 
 const leadSchema = z.object({
   full_name: z.string().trim().min(2, "Name must be at least 2 characters").max(100),
@@ -38,6 +39,7 @@ export function LeadCaptureForm({
 }: LeadCaptureFormProps) {
   const navigate = useNavigate();
   const { talent, user, addServiceUsed } = useTalent();
+  const { deductCredits } = useCredits();
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -161,10 +163,11 @@ export function LeadCaptureForm({
         throw error;
       }
 
-      // Track service usage in talent profile
+      // Track service usage and deduct credits
       if (talent?.id) {
         await addServiceUsed('career_assessment');
-        console.log("[LeadCaptureForm] Service usage tracked for talent:", talent.id);
+        await deductCredits('CAREER_ASSESSMENT', tempAssessmentId, 'Career Readiness Scorecard');
+        console.log("[LeadCaptureForm] Service usage and credits processed for talent:", talent.id);
       }
 
       console.log("[LeadCaptureForm] Assessment saved successfully:", tempAssessmentId);
