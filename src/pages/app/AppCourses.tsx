@@ -68,17 +68,17 @@ export default function AppCourses() {
       </Button>
 
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">Courses</h1>
+        <h1 className="text-xl font-bold">Courses</h1>
         <p className="text-muted-foreground">Self-paced courses and workshops</p>
       </div>
 
       <Tabs value={selectedType} onValueChange={(v) => setSelectedType(v as any)} className="mb-6">
-        <TabsList className="w-full justify-start overflow-x-auto">
-          <TabsTrigger value="all" className="text-xs">All</TabsTrigger>
-          <TabsTrigger value="free_video" className="text-xs">Videos</TabsTrigger>
-          <TabsTrigger value="recorded_course" className="text-xs">Courses</TabsTrigger>
-          <TabsTrigger value="live_webinar" className="text-xs">Webinars</TabsTrigger>
-          <TabsTrigger value="batch_class" className="text-xs">Classes</TabsTrigger>
+        <TabsList className="w-full justify-start overflow-x-auto h-9">
+          <TabsTrigger value="all" className="text-xs h-8">All</TabsTrigger>
+          <TabsTrigger value="free_video" className="text-xs h-8">Videos</TabsTrigger>
+          <TabsTrigger value="recorded_course" className="text-xs h-8">Courses</TabsTrigger>
+          <TabsTrigger value="live_webinar" className="text-xs h-8">Webinars</TabsTrigger>
+          <TabsTrigger value="batch_class" className="text-xs h-8">Classes</TabsTrigger>
         </TabsList>
       </Tabs>
 
@@ -121,12 +121,12 @@ export default function AppCourses() {
                     />
                   </div>
                 ) : (
-                  <div className="h-24 bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                    <Icon className="w-10 h-10 text-primary/50" />
+                  <div className="h-20 bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                    <Icon className="w-8 h-8 text-primary/50" />
                   </div>
                 )}
                 
-                <CardHeader className="pb-2">
+                <CardHeader className="pb-1.5">
                   <div className="flex items-center gap-2 mb-1">
                     <Badge variant="secondary" className="text-xs">{config.label}</Badge>
                     {course.price === 0 ? (

@@ -82,18 +82,18 @@ export default function JobsHub() {
     <div className="max-w-4xl mx-auto px-4 py-6 space-y-8">
       {/* Hero Section */}
       <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent rounded-3xl p-6">
-        <h1 className="text-2xl font-bold mb-1">Find Your Dream Job</h1>
+        <h1 className="text-xl font-bold mb-1">Find Your Dream Job</h1>
         <p className="text-muted-foreground mb-5">Discover opportunities that match your skills</p>
 
         {/* Search Bar */}
         <form onSubmit={handleSearch}>
           <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search jobs, companies, skills..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-12 pr-24 h-14 text-base rounded-2xl border-2 focus:border-primary bg-background"
+              className="pl-11 pr-24 h-12 text-base rounded-2xl border-2 focus:border-primary bg-background"
             />
             <Button 
               type="submit" 
@@ -116,9 +116,9 @@ export default function JobsHub() {
               style={{ animationDelay: `${index * 50}ms` }}
               onClick={() => navigate(`/app/jobs?type=${collection.filter}`)}
             >
-              <CardContent className="p-5 flex flex-col items-center text-center">
-                <div className="w-14 h-14 bg-background/80 rounded-2xl flex items-center justify-center mb-3 shadow-sm">
-                  <collection.icon className="h-7 w-7 text-primary" />
+              <CardContent className="p-4 flex flex-col items-center text-center">
+                <div className="w-11 h-11 bg-background/80 rounded-xl flex items-center justify-center mb-2 shadow-sm">
+                  <collection.icon className="h-5 w-5 text-primary" />
                 </div>
                 <span className="font-bold text-sm">{collection.label}</span>
                 <span className="text-xs text-muted-foreground mt-0.5">View jobs</span>
@@ -149,9 +149,9 @@ export default function JobsHub() {
           <div className="space-y-4">
             {[1, 2, 3].map(i => (
               <Card key={i} className="overflow-hidden">
-                <CardContent className="p-5">
-                  <div className="flex gap-4">
-                    <Skeleton className="h-14 w-14 rounded-2xl shrink-0" />
+                <CardContent className="p-4">
+                  <div className="flex gap-3">
+                    <Skeleton className="h-11 w-11 rounded-xl shrink-0" />
                     <div className="flex-1 space-y-2">
                       <Skeleton className="h-5 w-3/4" />
                       <Skeleton className="h-4 w-1/2" />
@@ -164,8 +164,8 @@ export default function JobsHub() {
           </div>
         ) : topPicks.length === 0 ? (
           <Card className="border-dashed">
-            <CardContent className="p-8 text-center">
-              <Briefcase className="h-12 w-12 text-muted-foreground/50 mx-auto mb-3" />
+            <CardContent className="p-6 text-center">
+              <Briefcase className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
               <p className="text-muted-foreground">No job openings available right now.</p>
               <p className="text-sm text-muted-foreground/70">Check back soon!</p>
             </CardContent>
@@ -179,18 +179,18 @@ export default function JobsHub() {
                 style={{ animationDelay: `${index * 100}ms` }}
                 onClick={() => navigate(`/app/jobs/${job.id}`)}
               >
-                <CardContent className="p-5">
-                  <div className="flex gap-4">
+                <CardContent className="p-4">
+                  <div className="flex gap-3">
                     {/* Company Logo */}
                     {job.company_logo_url ? (
                       <img 
                         src={job.company_logo_url} 
                         alt={job.company_name}
-                        className="w-14 h-14 rounded-2xl object-cover bg-muted shrink-0"
+                        className="w-11 h-11 rounded-xl object-cover bg-muted shrink-0"
                       />
                     ) : (
-                      <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
-                        <Building2 className="w-7 h-7 text-primary" />
+                      <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                        <Building2 className="w-5 h-5 text-primary" />
                       </div>
                     )}
 
@@ -217,8 +217,8 @@ export default function JobsHub() {
 
                     {/* Arrow */}
                     <div className="self-center">
-                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        <ArrowRight className="h-5 w-5 text-primary" />
+                      <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
+                        <ArrowRight className="h-4 w-4 text-primary" />
                       </div>
                     </div>
                   </div>
@@ -235,7 +235,7 @@ export default function JobsHub() {
         <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
           <Button 
             variant="outline" 
-            className="rounded-full h-12 px-5 shrink-0 gap-2 press-scale"
+            className="rounded-full h-10 px-4 shrink-0 gap-2 press-scale"
             onClick={() => navigate('/app/jobs?all=true')}
           >
             <Search className="h-4 w-4" />
@@ -243,7 +243,7 @@ export default function JobsHub() {
           </Button>
           <Button 
             variant="outline" 
-            className="rounded-full h-12 px-5 shrink-0 gap-2 press-scale"
+            className="rounded-full h-10 px-4 shrink-0 gap-2 press-scale"
             onClick={() => navigate('/app/applications')}
           >
             <FileText className="h-4 w-4" />
