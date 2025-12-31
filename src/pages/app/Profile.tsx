@@ -121,7 +121,7 @@ export default function Profile() {
       <div className="grid grid-cols-2 gap-3 mb-6">
         <Card 
           className="cursor-pointer hover:shadow-md transition-shadow"
-          onClick={() => navigate('/my-learning')}
+          onClick={() => navigate('/app/learning/my-courses')}
         >
           <CardContent className="p-4 flex items-center gap-3">
             <div className="p-2 bg-primary/10 rounded-lg">
