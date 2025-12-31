@@ -10,6 +10,8 @@ import { FeedFilters } from '@/components/feed/FeedFilters';
 import { FeedSkeleton } from '@/components/feed/FeedSkeleton';
 import { CareerInsightsCarousel } from '@/components/feed/CareerInsightsCarousel';
 import { FeedHeader } from '@/components/feed/FeedHeader';
+import { FloatingAIButton } from '@/components/feed/FloatingAIButton';
+import { PersonalizedPromptCard } from '@/components/feed/PersonalizedPromptCard';
 import { useState, useEffect } from 'react';
 
 export default function Feed() {
@@ -90,6 +92,9 @@ export default function Feed() {
         isRefreshing={isRefreshing}
       />
 
+      {/* Personalized Service Prompts */}
+      <PersonalizedPromptCard />
+
       {/* Career Insights Carousel */}
       <CareerInsightsCarousel insights={insights} />
 
@@ -145,6 +150,9 @@ export default function Feed() {
           ))}
         </div>
       )}
+
+      {/* Floating AI Assistant Button */}
+      <FloatingAIButton showPrompt={!talent?.servicesUsed?.length} />
     </div>
   );
 }
