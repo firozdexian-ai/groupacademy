@@ -47,11 +47,11 @@ export default function Feed() {
 
   const handleInterested = async (item: typeof items[0]) => {
     await markInterested(item);
-    // Navigate to the item
+    // Navigate to the item - use app routes to stay within shell
     if (item.type === 'job') {
-      navigate(`/jobs/${item.id}`);
+      navigate(`/app/jobs/${item.id}`);
     } else if (item.slug) {
-      navigate(`/courses/${item.slug}`);
+      navigate(`/app/learning/courses/${item.slug}`);
     }
   };
 
