@@ -446,11 +446,15 @@ const Jobs = () => {
             </div>
 
             {/* Error State */}
-            {error && (
+            {error && !loading && (
               <ErrorState
-                type="server"
+                type={error.name === "AbortError" || error.message.includes("timed out") ? "timeout" : "server"}
                 title="Failed to load jobs"
-                description={error.message}
+                description={
+                  error.name === "AbortError" || error.message.includes("timed out")
+                    ? "The request took too long. Please try again."
+                    : error.message || "We couldn't load the jobs. Please try again."
+                }
                 onRetry={loadJobs}
               />
             )}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -13,12 +13,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+const AUTH_TIMEOUT = 5000; // 5 seconds max for auth checks
+
 export const Navbar = () => {
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     checkAuth();
@@ -35,25 +38,69 @@ export const Navbar = () => {
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, []);
 
   const checkAuth = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user) {
-      setIsLoggedIn(true);
-      await checkUserRole(session.user.id);
+    try {
+      // Use a timeout for session check
+      const sessionPromise = supabase.auth.getSession();
+      const timeoutPromise = new Promise<null>((resolve) => 
+        setTimeout(() => resolve(null), AUTH_TIMEOUT)
+      );
+      
+      const result = await Promise.race([sessionPromise, timeoutPromise]);
+      
+      if (result && 'data' in result && result.data.session?.user) {
+        setIsLoggedIn(true);
+        await checkUserRole(result.data.session.user.id);
+      }
+    } catch (err) {
+      // Silently fail - navbar should still render
+      console.warn("[Navbar] Auth check failed:", err);
     }
   };
 
   const checkUserRole = async (userId: string) => {
-    const { data } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .eq("role", "admin")
-      .maybeSingle();
-    setIsAdmin(!!data);
+    // Cancel any previous role check
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    
+    const timeoutId = setTimeout(() => controller.abort(), AUTH_TIMEOUT);
+    
+    try {
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .eq("role", "admin")
+        .maybeSingle();
+      
+      clearTimeout(timeoutId);
+      
+      // Only update if this is still the active request
+      if (abortControllerRef.current === controller && !controller.signal.aborted) {
+        setIsAdmin(!!data);
+      }
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+      if (err?.name !== "AbortError") {
+        console.warn("[Navbar] Role check failed:", err);
+      }
+      // Default to non-admin on failure
+      if (abortControllerRef.current === controller) {
+        setIsAdmin(false);
+      }
+    }
   };
 
   const handleSignOut = async () => {

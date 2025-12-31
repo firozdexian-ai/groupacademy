@@ -3,35 +3,44 @@ import { useQuery, UseQueryOptions, UseQueryResult } from "@tanstack/react-query
 const DEFAULT_TIMEOUT = 30000; // 30 seconds
 
 interface QueryWithTimeoutOptions<TData, TError> extends Omit<UseQueryOptions<TData, TError>, "queryFn"> {
-  queryFn: () => Promise<TData>;
+  /** Query function that receives an AbortSignal for proper cancellation */
+  queryFn: (signal: AbortSignal) => Promise<TData>;
   timeout?: number;
 }
 
 /**
- * Custom hook that wraps useQuery with a timeout mechanism
- * Automatically rejects queries that take longer than the specified timeout
+ * Custom hook that wraps useQuery with real abort support
+ * Uses AbortSignal to actually cancel network requests on timeout
  */
 export function useQueryWithTimeout<TData = unknown, TError = Error>({
   queryFn,
   timeout = DEFAULT_TIMEOUT,
   ...options
 }: QueryWithTimeoutOptions<TData, TError>): UseQueryResult<TData, TError> {
-  const wrappedQueryFn = async (): Promise<TData> => {
+  
+  // Wrap queryFn to use the signal from React Query AND add timeout
+  const wrappedQueryFn = async ({ signal }: { signal: AbortSignal }): Promise<TData> => {
     const controller = new AbortController();
+    
+    // Abort our controller when React Query's signal aborts
+    const handleAbort = () => controller.abort();
+    signal.addEventListener("abort", handleAbort);
+    
+    // Set up timeout
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
     try {
-      const result = await Promise.race([
-        queryFn(),
-        new Promise<never>((_, reject) => {
-          controller.signal.addEventListener("abort", () => {
-            reject(new Error(`Request timed out after ${timeout / 1000} seconds`));
-          });
-        })
-      ]);
+      const result = await queryFn(controller.signal);
       return result;
+    } catch (err: any) {
+      // Convert abort to timeout error if our timeout triggered it
+      if (err?.name === "AbortError" && !signal.aborted) {
+        throw new Error(`Request timed out after ${timeout / 1000} seconds`);
+      }
+      throw err;
     } finally {
       clearTimeout(timeoutId);
+      signal.removeEventListener("abort", handleAbort);
     }
   };
 
@@ -39,11 +48,13 @@ export function useQueryWithTimeout<TData = unknown, TError = Error>({
     ...options,
     queryFn: wrappedQueryFn,
     retry: (failureCount, error) => {
-      // Don't retry on timeout errors - user should manually retry
-      if (error instanceof Error && error.message.includes("timed out")) {
+      // Don't retry on timeout/abort errors
+      if (error instanceof Error && (
+        error.message.includes("timed out") ||
+        error.name === "AbortError"
+      )) {
         return false;
       }
-      // Default retry logic (up to 3 times)
       return failureCount < 2;
     },
     retryDelay: 1000,

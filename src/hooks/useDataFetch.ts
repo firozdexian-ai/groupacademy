@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
 
 const DEFAULT_TIMEOUT = 15000; // 15 seconds
@@ -18,10 +18,10 @@ export interface UseDataFetchResult<T> {
 }
 
 /**
- * Generic hook for fetching data with timeout protection and error handling
+ * Generic hook for fetching data with real abort support and timeout protection
  */
 export function useDataFetch<T>(
-  fetchFn: () => Promise<T>,
+  fetchFn: (signal: AbortSignal) => Promise<T>,
   options: UseDataFetchOptions = {}
 ): UseDataFetchResult<T> {
   const { 
@@ -34,44 +34,71 @@ export function useDataFetch<T>(
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [isTimeout, setIsTimeout] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   const refetch = useCallback(async () => {
+    // Cancel any in-flight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    
     setIsLoading(true);
     setError(null);
     setIsTimeout(false);
 
-    const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
     try {
-      const result = await Promise.race([
-        fetchFn(),
-        new Promise<never>((_, reject) => {
-          controller.signal.addEventListener('abort', () => {
-            reject(new Error(`Request timed out after ${timeout / 1000} seconds`));
-          });
-        })
-      ]);
+      const result = await fetchFn(controller.signal);
+      clearTimeout(timeoutId);
       
-      setData(result);
-      setError(null);
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('Unknown error');
-      setError(error);
+      // Only update state if this is still the active request
+      if (abortControllerRef.current === controller) {
+        setData(result);
+        setError(null);
+      }
+    } catch (err: any) {
+      clearTimeout(timeoutId);
       
-      if (error.message.includes('timed out')) {
-        setIsTimeout(true);
-        if (showErrorToast) {
-          toast.error('Request timed out. Please try again.');
+      // Ignore aborted requests (user navigated away or new request started)
+      if (err?.name === 'AbortError' || controller.signal.aborted) {
+        // Check if it was a timeout (our timeout triggered the abort)
+        if (abortControllerRef.current === controller) {
+          setIsTimeout(true);
+          setError(new Error('Request timed out. Please try again.'));
+          if (showErrorToast) {
+            toast.error('Request timed out. Please try again.');
+          }
         }
-      } else if (showErrorToast) {
-        toast.error(errorMessage);
+        return;
       }
       
-      console.error('Data fetch error:', error);
+      if (abortControllerRef.current === controller) {
+        const errorObj = err instanceof Error ? err : new Error('Unknown error');
+        setError(errorObj);
+        
+        if (showErrorToast) {
+          toast.error(errorMessage);
+        }
+        
+        console.error('Data fetch error:', errorObj);
+      }
     } finally {
-      clearTimeout(timeoutId);
-      setIsLoading(false);
+      if (abortControllerRef.current === controller) {
+        setIsLoading(false);
+      }
     }
   }, [fetchFn, timeout, showErrorToast, errorMessage]);
 
@@ -79,11 +106,25 @@ export function useDataFetch<T>(
 }
 
 /**
+ * Check if an error is a timeout/abort error
+ */
+export function isTimeoutError(error: unknown): boolean {
+  if (!error) return false;
+  if (error instanceof Error) {
+    return error.name === 'AbortError' || 
+           error.message.includes('timed out') ||
+           error.message.includes('aborted');
+  }
+  return false;
+}
+
+/**
  * Utility function to wrap any async function with a timeout
+ * Note: This creates a fake timeout - prefer using AbortSignal when possible
  */
 export async function withTimeout<T>(
   promise: Promise<T>,
-  timeoutMs: number = DEFAULT_TIMEOUT,
+  timeoutMs: number = 15000,
   errorMessage?: string
 ): Promise<T> {
   const controller = new AbortController();
@@ -101,11 +142,4 @@ export async function withTimeout<T>(
   } finally {
     clearTimeout(timeoutId);
   }
-}
-
-/**
- * Check if an error is a timeout error
- */
-export function isTimeoutError(error: unknown): boolean {
-  return error instanceof Error && error.message.includes('timed out');
 }

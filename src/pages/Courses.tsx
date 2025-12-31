@@ -113,14 +113,29 @@ const Courses = () => {
             <CardGridSkeleton count={6} columns={3} />
           ) : error ? (
             <ErrorState
-              type="server"
+              type={error.name === 'AbortError' ? 'timeout' : 'server'}
               title="Failed to load courses"
-              description="We couldn't load the courses. Please try again."
+              description={error.name === 'AbortError' 
+                ? "The request took too long. Please try again."
+                : "We couldn't load the courses. Please try again."}
               onRetry={() => refetch()}
             />
+          ) : courses.length === 0 ? (
+            <div className="text-center py-20">
+              <BookOpen className="h-12 w-12 mx-auto text-muted-foreground/30 mb-4" />
+              <p className="text-lg text-muted-foreground">No published courses yet</p>
+              <p className="text-sm text-muted-foreground mt-1">Check back soon for new content</p>
+            </div>
           ) : filteredCourses.length === 0 ? (
             <div className="text-center py-20">
-              <p className="text-lg text-muted-foreground">No courses available yet</p>
+              <p className="text-lg text-muted-foreground">No courses match this filter</p>
+              <Button 
+                variant="outline" 
+                className="mt-4"
+                onClick={() => setSelectedType("all")}
+              >
+                View All Courses
+              </Button>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
