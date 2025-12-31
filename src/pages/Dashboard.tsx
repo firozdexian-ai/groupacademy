@@ -24,6 +24,10 @@ import { CreditsManager } from "@/components/dashboard/CreditsManager";
 import { NotificationsManager } from "@/components/dashboard/NotificationsManager";
 import { AgentSessionsManager } from "@/components/dashboard/AgentSessionsManager";
 import { EnrollmentsManager } from "@/components/dashboard/EnrollmentsManager";
+import { StudyAbroadManager } from "@/components/dashboard/StudyAbroadManager";
+import { IELTSResourcesManager } from "@/components/dashboard/IELTSResourcesManager";
+import { CompetitionsManager } from "@/components/dashboard/CompetitionsManager";
+import { BlogManager } from "@/components/dashboard/BlogManager";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -63,6 +67,10 @@ const tabAccessMap: Record<string, AppRole[]> = {
   "agent-sessions": ["admin"],
   credits: ["admin"],
   notifications: ["admin"],
+  "study-abroad": ["admin"],
+  ielts: ["admin"],
+  competitions: ["admin"],
+  blog: ["admin"],
 };
 
 const Dashboard = () => {
@@ -237,6 +245,14 @@ const Dashboard = () => {
         return <CreditsManager />;
       case "notifications":
         return <NotificationsManager />;
+      case "study-abroad":
+        return <StudyAbroadManager />;
+      case "ielts":
+        return <IELTSResourcesManager />;
+      case "competitions":
+        return <CompetitionsManager />;
+      case "blog":
+        return <BlogManager />;
       default:
         return userRole === "talent_exec" ? <CVOutreachGenerator /> : <DashboardOverview />;
     }
@@ -268,6 +284,10 @@ const Dashboard = () => {
       "agent-sessions": "Agent Sessions",
       credits: "Credits Manager",
       notifications: "Notifications",
+      "study-abroad": "Study Abroad Programs",
+      ielts: "IELTS Resources",
+      competitions: "Competitions",
+      blog: "Blog Posts",
     };
     return titles[activeTab] || "Dashboard";
   };

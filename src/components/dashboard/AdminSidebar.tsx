@@ -23,6 +23,9 @@ import {
   Bot,
   Coins,
   Bell,
+  Globe,
+  Trophy,
+  FileText,
 } from "lucide-react";
 import {
   Sidebar,
@@ -127,6 +130,17 @@ const navGroups: NavGroup[] = [
       { title: "Banners", icon: Image, value: "banners" },
       { title: "Professions", icon: GraduationCap, value: "professions" },
       { title: "Team Members", icon: UserCog, value: "team" },
+    ],
+  },
+  {
+    title: "Content & Abroad",
+    icon: Globe,
+    roles: ["admin"],
+    items: [
+      { title: "Study Abroad", icon: GraduationCap, value: "study-abroad" },
+      { title: "IELTS Resources", icon: BookOpen, value: "ielts" },
+      { title: "Competitions", icon: Trophy, value: "competitions" },
+      { title: "Blog Posts", icon: FileText, value: "blog" },
     ],
   },
 ];

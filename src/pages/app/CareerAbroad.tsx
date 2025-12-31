@@ -43,7 +43,7 @@ const ABROAD_SECTIONS = [
     icon: Briefcase,
     color: 'text-warning',
     bgColor: 'bg-warning/10',
-    badge: 'Coming Soon'
+    href: '/app/jobs?location=abroad'
   }
 ];
 
@@ -62,23 +62,19 @@ export default function CareerAbroad() {
         {ABROAD_SECTIONS.map((section) => (
           <Card 
             key={section.title}
-            className={`cursor-pointer hover:shadow-md transition-all ${section.badge ? 'opacity-75' : ''}`}
-            onClick={() => section.href && navigate(section.href)}
+            className="cursor-pointer hover:shadow-md transition-all"
+            onClick={() => navigate(section.href)}
           >
             <CardHeader className="pb-3">
-              <div className="flex items-start justify-between">
-                <div className={`p-3 rounded-xl ${section.bgColor}`}>
-                  <section.icon className={`h-6 w-6 ${section.color}`} />
-                </div>
-                {section.badge && (
-                  <Badge variant="secondary" className="text-xs">
-                    {section.badge}
-                  </Badge>
-                )}
+              <div className={`p-3 rounded-xl ${section.bgColor} w-fit`}>
+                <section.icon className={`h-6 w-6 ${section.color}`} />
               </div>
             </CardHeader>
             <CardContent>
-              <CardTitle className="text-lg mb-1">{section.title}</CardTitle>
+              <CardTitle className="text-lg mb-1 flex items-center gap-2">
+                {section.title}
+                <ArrowRight className="h-4 w-4 text-muted-foreground" />
+              </CardTitle>
               <CardDescription>{section.description}</CardDescription>
             </CardContent>
           </Card>
@@ -92,29 +88,34 @@ export default function CareerAbroad() {
           {COUNTRIES.map(country => (
             <Card 
               key={country.code}
-              className="cursor-not-allowed opacity-75"
+              className="cursor-pointer hover:shadow-md transition-all"
+              onClick={() => navigate(`/app/abroad/study?country=${country.code}`)}
             >
               <CardContent className="p-4 flex items-center gap-3">
                 <span className="text-2xl">{country.flag}</span>
                 <div className="flex-1">
                   <p className="font-medium text-sm">{country.name}</p>
-                  <p className="text-xs text-muted-foreground">Coming Soon</p>
+                  <p className="text-xs text-muted-foreground">View Programs</p>
                 </div>
+                <ArrowRight className="h-4 w-4 text-muted-foreground" />
               </CardContent>
             </Card>
           ))}
         </div>
       </section>
 
-      {/* IELTS Preview */}
-      <Card className="bg-gradient-to-r from-primary/5 to-secondary/5 border-primary/20">
+      {/* IELTS CTA */}
+      <Card 
+        className="bg-gradient-to-r from-primary/5 to-secondary/5 border-primary/20 cursor-pointer hover:shadow-md transition-all"
+        onClick={() => navigate('/app/abroad/ielts')}
+      >
         <CardContent className="p-6">
           <div className="flex items-start gap-4">
             <div className="p-3 bg-primary/10 rounded-xl">
               <BookOpen className="h-8 w-8 text-primary" />
             </div>
             <div className="flex-1">
-              <h3 className="text-lg font-semibold mb-1">IELTS Preparation Coming Soon!</h3>
+              <h3 className="text-lg font-semibold mb-1">Start IELTS Preparation</h3>
               <p className="text-muted-foreground mb-4">
                 Practice with AI-powered mock tests for Listening, Reading, Writing, and Speaking. 
                 Get instant feedback and improve your scores.
@@ -123,9 +124,10 @@ export default function CareerAbroad() {
                 <Badge variant="outline">AI Mock Tests</Badge>
                 <Badge variant="outline">Study Materials</Badge>
                 <Badge variant="outline">Score Tracking</Badge>
-                <Badge variant="outline">Test Booking</Badge>
+                <Badge variant="outline">Practice Tests</Badge>
               </div>
             </div>
+            <ArrowRight className="h-5 w-5 text-muted-foreground" />
           </div>
         </CardContent>
       </Card>
