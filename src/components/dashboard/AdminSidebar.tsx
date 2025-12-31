@@ -45,7 +45,6 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
@@ -67,6 +66,19 @@ interface NavGroup {
 
 const navGroups: NavGroup[] = [
   {
+    title: "Talent Management",
+    icon: DatabaseIcon,
+    roles: ["admin", "talent_exec"],
+    items: [
+      { title: "Talent Pool", icon: DatabaseIcon, value: "talent" },
+      { title: "Assessment Leads", icon: ClipboardList, value: "leads" },
+      { title: "Mock Interviews", icon: MessageSquare, value: "interviews" },
+      { title: "Salary Analysis", icon: TrendingUp, value: "salary" },
+      { title: "Portfolio Requests", icon: Briefcase, value: "portfolios" },
+      { title: "CV Outreach", icon: Send, value: "outreach" },
+    ],
+  },
+  {
     title: "Content Management",
     icon: BookOpen,
     roles: ["admin"],
@@ -77,48 +89,20 @@ const navGroups: NavGroup[] = [
       { title: "Webinars", icon: Tv, value: "webinars" },
       { title: "Batch Classes", icon: Users, value: "batches" },
       { title: "Seminars", icon: Calendar, value: "seminars" },
+      { title: "Blog Posts", icon: FileText, value: "blog" },
+      { title: "Study Abroad", icon: GraduationCap, value: "study-abroad" },
+      { title: "IELTS Resources", icon: BookOpen, value: "ielts" },
+      { title: "Competitions", icon: Trophy, value: "competitions" },
     ],
   },
   {
-    title: "Career Services Leads",
-    icon: ClipboardList,
-    roles: ["admin"],
-    items: [
-      { title: "Assessment Leads", icon: ClipboardList, value: "leads" },
-      { title: "Mock Interviews", icon: MessageSquare, value: "interviews" },
-      { title: "Portfolio Requests", icon: Briefcase, value: "portfolios" },
-      { title: "Salary Analysis", icon: TrendingUp, value: "salary" },
-    ],
-  },
-  {
-    title: "Jobs Board",
+    title: "Jobs & Companies",
     icon: Building2,
     roles: ["admin"],
     items: [
       { title: "Manage Jobs", icon: Building2, value: "jobs" },
       { title: "Applications", icon: FileCheck, value: "applications" },
       { title: "Companies", icon: Building2, value: "companies" },
-    ],
-  },
-  {
-    title: "Talent & Outreach",
-    icon: DatabaseIcon,
-    roles: ["admin", "talent_exec"],
-    items: [
-      { title: "CV Outreach", icon: Send, value: "outreach" },
-      { title: "Talent Pool", icon: DatabaseIcon, value: "talent" },
-      { title: "Portfolio Requests", icon: Briefcase, value: "portfolios" },
-    ],
-  },
-  {
-    title: "AI & Credits",
-    icon: Bot,
-    roles: ["admin"],
-    items: [
-      { title: "AI Agents", icon: Bot, value: "ai-agents" },
-      { title: "Agent Sessions", icon: MessageSquare, value: "agent-sessions" },
-      { title: "Credits", icon: Coins, value: "credits" },
-      { title: "Notifications", icon: Bell, value: "notifications" },
     ],
   },
   {
@@ -129,18 +113,11 @@ const navGroups: NavGroup[] = [
       { title: "Access Codes", icon: Key, value: "codes" },
       { title: "Banners", icon: Image, value: "banners" },
       { title: "Professions", icon: GraduationCap, value: "professions" },
+      { title: "AI Agents", icon: Bot, value: "ai-agents" },
+      { title: "Agent Sessions", icon: MessageSquare, value: "agent-sessions" },
+      { title: "Credits", icon: Coins, value: "credits" },
+      { title: "Notifications", icon: Bell, value: "notifications" },
       { title: "Team Members", icon: UserCog, value: "team" },
-    ],
-  },
-  {
-    title: "Content & Abroad",
-    icon: Globe,
-    roles: ["admin"],
-    items: [
-      { title: "Study Abroad", icon: GraduationCap, value: "study-abroad" },
-      { title: "IELTS Resources", icon: BookOpen, value: "ielts" },
-      { title: "Competitions", icon: Trophy, value: "competitions" },
-      { title: "Blog Posts", icon: FileText, value: "blog" },
     ],
   },
 ];
@@ -179,14 +156,6 @@ export function AdminSidebar({ activeTab, onTabChange, userRole = "admin" }: Adm
   };
 
   const openGroups = getOpenGroups();
-
-  // Get default tab for the user's role
-  const getDefaultTab = () => {
-    if (userRole === "talent_exec") {
-      return "outreach";
-    }
-    return "overview";
-  };
 
   return (
     <Sidebar collapsible="icon" className="border-r">
@@ -266,24 +235,12 @@ export function AdminSidebar({ activeTab, onTabChange, userRole = "admin" }: Adm
           </Collapsible>
         ))}
 
-        {/* Quick Links - Only for admin */}
+        {/* LMS Quick Links - Only for admin (kept for course management) */}
         {userRole === "admin" && (
           <SidebarGroup className="mt-4">
-            <SidebarGroupLabel>Quick Links</SidebarGroupLabel>
+            <SidebarGroupLabel>Course Management</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton onClick={() => navigate("/students")} tooltip="Students">
-                    <Users className="w-4 h-4" />
-                    <span>Students</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton onClick={() => navigate("/enrollments")} tooltip="Enrollments">
-                    <BookOpen className="w-4 h-4" />
-                    <span>Enrollments</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton onClick={() => navigate("/instructors")} tooltip="Instructors">
                     <Users className="w-4 h-4" />

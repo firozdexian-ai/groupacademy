@@ -9,7 +9,8 @@ import {
   Edit2,
   Coins,
   LogOut,
-  Sparkles
+  Sparkles,
+  Loader2
 } from 'lucide-react';
 import { useTalent } from '@/hooks/useTalent';
 import { useCredits } from '@/hooks/useCredits';
@@ -21,12 +22,23 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { CreditPurchaseSheet } from '@/components/credits/CreditPurchaseSheet';
 import { ApplicationHistoryCard } from '@/components/profile/ApplicationHistoryCard';
 import { ServiceHistoryCard } from '@/components/profile/ServiceHistoryCard';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function Profile() {
   const navigate = useNavigate();
-  const { talent, signOut } = useTalent();
+  const { talent, signOut, updateTalent, refreshTalent } = useTalent();
   const { balance, isLoading: creditsLoading } = useCredits();
   const [showCreditSheet, setShowCreditSheet] = useState(false);
+  const [showEnhanceDialog, setShowEnhanceDialog] = useState(false);
+  const [isEnhancing, setIsEnhancing] = useState(false);
   
   if (!talent) {
     return null;
@@ -45,6 +57,45 @@ export default function Profile() {
 
   const handleEditProfile = () => {
     navigate('/app/profile/edit');
+  };
+
+  const handleEnhanceWithAI = async () => {
+    if (!talent.experience || talent.experience.length === 0) {
+      toast.error('Please add some work experience first');
+      setShowEnhanceDialog(false);
+      navigate('/app/profile/edit');
+      return;
+    }
+
+    setIsEnhancing(true);
+    try {
+      // Call AI to enhance experience descriptions
+      const { data, error } = await supabase.functions.invoke('enhance-cover-letter', {
+        body: {
+          type: 'experience',
+          experience: talent.experience,
+          profession: talent.customProfession || 'professional'
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.enhancedExperience) {
+        await updateTalent({
+          experience: data.enhancedExperience
+        });
+        await refreshTalent();
+        toast.success('Experience descriptions enhanced!');
+      } else {
+        toast.info('No enhancements made');
+      }
+    } catch (error) {
+      console.error('Error enhancing experience:', error);
+      toast.error('Failed to enhance experience. Please try again.');
+    } finally {
+      setIsEnhancing(false);
+      setShowEnhanceDialog(false);
+    }
   };
 
   return (
@@ -178,7 +229,12 @@ export default function Profile() {
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base">Experience</CardTitle>
-              <Button variant="ghost" size="sm" onClick={handleEditProfile}>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setShowEnhanceDialog(true)}
+                disabled={!talent.experience || talent.experience.length === 0}
+              >
                 <Sparkles className="h-4 w-4 mr-1" />
                 Enhance with AI
               </Button>
@@ -195,6 +251,11 @@ export default function Profile() {
                     <div>
                       <p className="font-medium text-sm">{exp.title || exp.position}</p>
                       <p className="text-xs text-muted-foreground">{exp.company}</p>
+                      {exp.description && (
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                          {exp.description}
+                        </p>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -285,6 +346,49 @@ export default function Profile() {
           Sign Out
         </Button>
       </div>
+
+      {/* Enhance with AI Dialog */}
+      <Dialog open={showEnhanceDialog} onOpenChange={setShowEnhanceDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              Enhance Experience with AI
+            </DialogTitle>
+            <DialogDescription>
+              AI will improve your work experience descriptions to be more impactful and professional. 
+              This helps your profile stand out to employers.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-3 mt-4">
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => setShowEnhanceDialog(false)}
+              disabled={isEnhancing}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="flex-1"
+              onClick={handleEnhanceWithAI}
+              disabled={isEnhancing}
+            >
+              {isEnhancing ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Enhancing...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Enhance Now
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

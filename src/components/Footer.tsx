@@ -28,27 +28,33 @@ export const Footer = () => {
             </p>
           </div>
 
-          {/* Quick Links */}
+          {/* Platform */}
           <div>
             <h4 className="font-semibold mb-3">Platform</h4>
             <nav className="flex flex-col gap-2 text-sm">
               <button
-                onClick={() => navigate("/courses")}
+                onClick={() => navigate("/auth?returnTo=/app/learning/courses")}
                 className="text-muted-foreground hover:text-foreground transition-colors text-left"
               >
                 Courses
               </button>
               <button
-                onClick={() => navigate("/professions")}
+                onClick={() => navigate("/auth?returnTo=/app/learning/tracks")}
                 className="text-muted-foreground hover:text-foreground transition-colors text-left"
               >
-                Professions
+                Career Tracks
               </button>
               <button
-                onClick={() => navigate("/jobs")}
+                onClick={() => navigate("/auth?returnTo=/app/jobs")}
                 className="text-muted-foreground hover:text-foreground transition-colors text-left"
               >
                 Jobs
+              </button>
+              <button
+                onClick={() => navigate("/blog")}
+                className="text-muted-foreground hover:text-foreground transition-colors text-left"
+              >
+                Blog
               </button>
             </nav>
           </div>
@@ -58,25 +64,25 @@ export const Footer = () => {
             <h4 className="font-semibold mb-3">Career Services</h4>
             <nav className="flex flex-col gap-2 text-sm">
               <button
-                onClick={() => navigate("/career-assessment")}
+                onClick={() => navigate("/auth?returnTo=/app/services/assessment")}
                 className="text-muted-foreground hover:text-foreground transition-colors text-left"
               >
                 Career Scorecard
               </button>
               <button
-                onClick={() => navigate("/mock-interview")}
+                onClick={() => navigate("/auth?returnTo=/app/services/mock-interview")}
                 className="text-muted-foreground hover:text-foreground transition-colors text-left"
               >
                 Mock Interview
               </button>
               <button
-                onClick={() => navigate("/salary-analysis")}
+                onClick={() => navigate("/auth?returnTo=/app/services/salary-analysis")}
                 className="text-muted-foreground hover:text-foreground transition-colors text-left"
               >
                 Salary Analysis
               </button>
               <button
-                onClick={() => navigate("/portfolio-request")}
+                onClick={() => navigate("/auth?returnTo=/app/services/portfolio")}
                 className="text-muted-foreground hover:text-foreground transition-colors text-left"
               >
                 Digital Portfolio
@@ -89,7 +95,7 @@ export const Footer = () => {
             <h4 className="font-semibold mb-3">Account</h4>
             <nav className="flex flex-col gap-2 text-sm">
               <button
-                onClick={() => navigate("/my-learning")}
+                onClick={() => navigate("/auth?returnTo=/app/learning/my-courses")}
                 className="text-muted-foreground hover:text-foreground transition-colors text-left"
               >
                 My Learning
@@ -99,6 +105,12 @@ export const Footer = () => {
                 className="text-muted-foreground hover:text-foreground transition-colors text-left"
               >
                 Sign In
+              </button>
+              <button
+                onClick={() => navigate("/org")}
+                className="text-muted-foreground hover:text-foreground transition-colors text-left"
+              >
+                For Organizations
               </button>
             </nav>
           </div>

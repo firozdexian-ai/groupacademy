@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, Loader2, FileText, Trash2, ExternalLink } from 'lucide-react';
 import { useTalent } from '@/hooks/useTalent';
@@ -9,6 +9,9 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { ProfilePhotoUpload } from '@/components/profile/ProfilePhotoUpload';
+import { SkillsEditor } from '@/components/profile/SkillsEditor';
+import { ExperienceEditor, ExperienceEntry } from '@/components/profile/ExperienceEditor';
+import { EducationEditor, EducationEntry } from '@/components/profile/EducationEditor';
 import { supabase } from '@/integrations/supabase/client';
 
 export default function ProfileEdit() {
@@ -29,6 +32,63 @@ export default function ProfileEdit() {
     linkedinUrl: talent?.linkedinUrl || '',
     portfolioUrl: talent?.portfolioUrl || ''
   });
+
+  // Parse skills from talent data
+  const parseSkills = (): string[] => {
+    if (!talent?.skills) return [];
+    return talent.skills.map((s: any) => 
+      typeof s === 'string' ? s : (s?.name || s?.skill || String(s))
+    );
+  };
+
+  // Parse experience from talent data
+  const parseExperience = (): ExperienceEntry[] => {
+    if (!talent?.experience) return [];
+    return talent.experience.map((exp: any) => ({
+      company: exp.company || '',
+      position: exp.position || exp.title || '',
+      startDate: exp.startDate || exp.start_date || '',
+      endDate: exp.endDate || exp.end_date || '',
+      description: exp.description || ''
+    }));
+  };
+
+  // Parse education from talent data
+  const parseEducation = (): EducationEntry[] => {
+    if (!talent?.education) return [];
+    return talent.education.map((edu: any) => ({
+      institution: edu.institution || '',
+      degree: edu.degree || '',
+      fieldOfStudy: edu.fieldOfStudy || edu.field_of_study || edu.field || '',
+      startYear: edu.startYear || edu.start_year || '',
+      endYear: edu.endYear || edu.end_year || edu.year || ''
+    }));
+  };
+
+  const [skills, setSkills] = useState<string[]>(parseSkills());
+  const [experience, setExperience] = useState<ExperienceEntry[]>(parseExperience());
+  const [education, setEducation] = useState<EducationEntry[]>(parseEducation());
+
+  // Update states when talent loads
+  useEffect(() => {
+    if (talent) {
+      setFormData({
+        fullName: talent.fullName || '',
+        phone: talent.phone || '',
+        customProfession: talent.customProfession || '',
+        currentStatus: talent.currentStatus || '',
+        institution: talent.institution || '',
+        fieldOfStudy: talent.fieldOfStudy || '',
+        linkedinUrl: talent.linkedinUrl || '',
+        portfolioUrl: talent.portfolioUrl || ''
+      });
+      setProfilePhotoUrl(talent.profilePhotoUrl || '');
+      setCvUrl(talent.cvUrl || '');
+      setSkills(parseSkills());
+      setExperience(parseExperience());
+      setEducation(parseEducation());
+    }
+  }, [talent?.id]);
 
   const handlePhotoChange = (url: string | null) => {
     setProfilePhotoUrl(url || '');
@@ -104,7 +164,10 @@ export default function ProfileEdit() {
         linkedinUrl: formData.linkedinUrl,
         portfolioUrl: formData.portfolioUrl,
         profilePhotoUrl: profilePhotoUrl || undefined,
-        cvUrl: cvUrl || undefined
+        cvUrl: cvUrl || undefined,
+        skills: skills as any,
+        experience: experience as any,
+        education: education as any
       });
       
       toast.success('Profile updated successfully');
@@ -252,31 +315,33 @@ export default function ProfileEdit() {
           </CardContent>
         </Card>
 
+        {/* Skills */}
+        <Card>
+          <CardContent className="pt-6">
+            <SkillsEditor 
+              skills={skills} 
+              onChange={setSkills} 
+            />
+          </CardContent>
+        </Card>
+
+        {/* Experience */}
+        <Card>
+          <CardContent className="pt-6">
+            <ExperienceEditor
+              experience={experience}
+              onChange={setExperience}
+            />
+          </CardContent>
+        </Card>
+
         {/* Education */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Education</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="institution">Institution</Label>
-              <Input
-                id="institution"
-                value={formData.institution}
-                onChange={(e) => handleChange('institution', e.target.value)}
-                placeholder="University or school name"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="fieldOfStudy">Field of Study</Label>
-              <Input
-                id="fieldOfStudy"
-                value={formData.fieldOfStudy}
-                onChange={(e) => handleChange('fieldOfStudy', e.target.value)}
-                placeholder="e.g., Computer Science, Business Administration"
-              />
-            </div>
+          <CardContent className="pt-6">
+            <EducationEditor
+              education={education}
+              onChange={setEducation}
+            />
           </CardContent>
         </Card>
 
