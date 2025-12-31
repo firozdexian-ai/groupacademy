@@ -18,6 +18,9 @@ export interface FeedItem {
   skills?: string[];
   location?: string;
   companyLogo?: string;
+  mediaUrl?: string;
+  mediaType?: 'image' | 'youtube';
+  youtubeUrl?: string;
 }
 
 export type FeedFilterType = 'all' | 'job' | 'course' | 'video';
@@ -112,36 +115,60 @@ export function useFeedRecommendations(): UseFeedRecommendationsResult {
       const [jobsResult, coursesResult] = await Promise.all([
         supabase
           .from('jobs')
-          .select('id, title, description, company_name, created_at')
+          .select('id, title, description, company_name, company_logo_url, source_image_url, location, created_at')
           .eq('is_active', true)
           .order('created_at', { ascending: false })
           .limit(15),
         supabase
           .from('content')
-          .select('id, title, description, thumbnail_url, created_at, slug, content_type')
+          .select('id, title, description, thumbnail_url, cover_image_url, youtube_url, created_at, slug, content_type')
           .eq('is_published', true)
           .order('created_at', { ascending: false })
           .limit(15)
       ]);
 
+      // Helper to extract YouTube thumbnail
+      const getYoutubeThumbnail = (url: string): string | null => {
+        const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/);
+        return match ? `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg` : null;
+      };
+
       const items: FeedItem[] = [];
 
       if (jobsResult.data) {
         jobsResult.data.forEach(job => {
+          const mediaUrl = job.source_image_url || job.company_logo_url || undefined;
           items.push({
             id: job.id,
             type: 'job',
             title: job.title,
             description: job.description?.substring(0, 150) + '...' || '',
             company: job.company_name,
+            companyLogo: job.company_logo_url || undefined,
+            location: job.location || undefined,
             createdAt: job.created_at || '',
-            matchScore: 50
+            matchScore: 50,
+            mediaUrl: mediaUrl,
+            mediaType: mediaUrl ? 'image' : undefined
           });
         });
       }
 
       if (coursesResult.data) {
         coursesResult.data.forEach(course => {
+          let mediaUrl = course.cover_image_url || course.thumbnail_url || undefined;
+          let mediaType: 'image' | 'youtube' | undefined = mediaUrl ? 'image' : undefined;
+          let youtubeUrl: string | undefined = undefined;
+          
+          if (course.youtube_url) {
+            youtubeUrl = course.youtube_url;
+            const ytThumb = getYoutubeThumbnail(course.youtube_url);
+            if (ytThumb) {
+              mediaUrl = ytThumb;
+              mediaType = 'youtube';
+            }
+          }
+          
           items.push({
             id: course.id,
             type: course.content_type === 'free_video' ? 'video' : 'course',
@@ -150,7 +177,10 @@ export function useFeedRecommendations(): UseFeedRecommendationsResult {
             thumbnail: course.thumbnail_url || undefined,
             createdAt: course.created_at || '',
             slug: course.slug,
-            matchScore: 50
+            matchScore: 50,
+            mediaUrl: mediaUrl,
+            mediaType: mediaType,
+            youtubeUrl: youtubeUrl
           });
         });
       }

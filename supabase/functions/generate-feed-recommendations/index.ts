@@ -29,6 +29,9 @@ interface FeedItem {
   skills?: string[];
   location?: string;
   companyLogo?: string;
+  mediaUrl?: string;
+  mediaType?: "image" | "youtube";
+  youtubeUrl?: string;
 }
 
 serve(async (req) => {
@@ -111,17 +114,17 @@ serve(async (req) => {
 
     const dismissedIds = new Set(dismissedInteractions?.map(i => i.item_id) || []);
 
-    // Fetch jobs and courses in parallel - include company info for logo
+    // Fetch jobs and courses in parallel - include company info for logo and media
     const [jobsResult, coursesResult, companiesResult] = await Promise.all([
       supabase
         .from("jobs")
-        .select("id, title, description, company_name, company_id, location, job_type, experience_level, requirements, created_at")
+        .select("id, title, description, company_name, company_id, company_logo_url, source_image_url, location, job_type, experience_level, requirements, created_at")
         .eq("is_active", true)
         .order("created_at", { ascending: false })
         .limit(20),
       supabase
         .from("content")
-        .select("id, title, description, thumbnail_url, created_at, slug, content_type")
+        .select("id, title, description, thumbnail_url, cover_image_url, youtube_url, created_at, slug, content_type")
         .eq("is_published", true)
         .order("created_at", { ascending: false })
         .limit(20),
@@ -291,10 +294,20 @@ Example format:
     // Build final recommendations with scores
     const recommendations: FeedItem[] = [];
 
+    // Helper to extract YouTube video ID and get thumbnail
+    const getYoutubeThumbnail = (url: string): string | null => {
+      const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/);
+      return match ? `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg` : null;
+    };
+
     for (const job of jobs) {
       const scoreData = scoreMap.get(job.id);
       const jobSkills = extractSkillsFromJob(job);
-      const companyLogo = job.company_id ? companyLogoMap.get(job.company_id) : undefined;
+      const companyLogo = job.company_id ? companyLogoMap.get(job.company_id) : (job.company_logo_url || undefined);
+      
+      // Determine media for job - prefer source_image_url
+      const mediaUrl = job.source_image_url || companyLogo || undefined;
+      const mediaType = mediaUrl ? "image" as const : undefined;
       
       recommendations.push({
         id: job.id,
@@ -307,22 +320,43 @@ Example format:
         matchReason: scoreData?.reason || "Potential match",
         skills: jobSkills,
         location: job.location || undefined,
-        companyLogo: companyLogo
+        companyLogo: companyLogo,
+        mediaUrl: mediaUrl,
+        mediaType: mediaType
       });
     }
 
     for (const course of courses) {
       const scoreData = scoreMap.get(course.id);
+      const isVideo = course.content_type === "free_video";
+      
+      // Determine media for content - prioritize youtube for videos
+      let mediaUrl = course.cover_image_url || course.thumbnail_url || undefined;
+      let mediaType: "image" | "youtube" | undefined = mediaUrl ? "image" : undefined;
+      let youtubeUrl: string | undefined = undefined;
+      
+      if (course.youtube_url) {
+        youtubeUrl = course.youtube_url;
+        const ytThumb = getYoutubeThumbnail(course.youtube_url);
+        if (ytThumb) {
+          mediaUrl = ytThumb;
+          mediaType = "youtube";
+        }
+      }
+      
       recommendations.push({
         id: course.id,
-        type: course.content_type === "free_video" ? "video" : "course",
+        type: isVideo ? "video" : "course",
         title: course.title,
         description: course.description?.substring(0, 150) + "..." || "",
         thumbnail: course.thumbnail_url || undefined,
         createdAt: course.created_at || new Date().toISOString(),
         slug: course.slug,
         matchScore: scoreData?.score || 50,
-        matchReason: scoreData?.reason || "Recommended for you"
+        matchReason: scoreData?.reason || "Recommended for you",
+        mediaUrl: mediaUrl,
+        mediaType: mediaType,
+        youtubeUrl: youtubeUrl
       });
     }
 
