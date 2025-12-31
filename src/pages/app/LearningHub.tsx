@@ -9,7 +9,7 @@ const LEARNING_SECTIONS = [
     title: 'Career Tracks',
     description: 'Structured learning paths for your profession',
     icon: GraduationCap,
-    href: '/professions',
+    href: '/app/learning/tracks',
     color: 'text-primary',
     bgColor: 'bg-primary/10'
   },
@@ -17,7 +17,7 @@ const LEARNING_SECTIONS = [
     title: 'Courses',
     description: 'Self-paced courses and workshops',
     icon: BookOpen,
-    href: '/courses',
+    href: '/app/learning/courses',
     color: 'text-secondary',
     bgColor: 'bg-secondary/10'
   },
@@ -98,7 +98,7 @@ export default function LearningHub() {
             <BookOpen className="h-4 w-4 mr-2" />
             My Learning
           </Button>
-          <Button variant="outline" onClick={() => navigate('/professions')}>
+          <Button variant="outline" onClick={() => navigate('/app/learning/tracks')}>
             <GraduationCap className="h-4 w-4 mr-2" />
             Explore Career Tracks
           </Button>

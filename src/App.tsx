@@ -62,6 +62,11 @@ import JobsHub from "./pages/app/JobsHub";
 import CareerAbroad from "./pages/app/CareerAbroad";
 import AIAgents from "./pages/app/AIAgents";
 import Profile from "./pages/app/Profile";
+import AppJobDetail from "./pages/app/AppJobDetail";
+import AppProfessions from "./pages/app/AppProfessions";
+import AppProfessionDetail from "./pages/app/AppProfessionDetail";
+import AppCourses from "./pages/app/AppCourses";
+import AppCourseDetail from "./pages/app/AppCourseDetail";
 
 // Configure QueryClient with global defaults
 const queryClient = new QueryClient({
@@ -275,8 +280,13 @@ export default function App() {
                   >
                     <Route path="feed" element={<Feed />} />
                     <Route path="learning" element={<LearningHub />} />
+                    <Route path="learning/tracks" element={<AppProfessions />} />
+                    <Route path="learning/tracks/:slug" element={<AppProfessionDetail />} />
+                    <Route path="learning/courses" element={<AppCourses />} />
+                    <Route path="learning/courses/:slug" element={<AppCourseDetail />} />
                     <Route path="services" element={<ServicesHub />} />
                     <Route path="jobs" element={<JobsHub />} />
+                    <Route path="jobs/:id" element={<AppJobDetail />} />
                     <Route path="abroad" element={<CareerAbroad />} />
                     <Route path="agents" element={<AIAgents />} />
                     <Route path="profile" element={<Profile />} />

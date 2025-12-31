@@ -125,7 +125,7 @@ export default function JobsHub() {
               <Card 
                 key={job.id}
                 className="cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => navigate(`/jobs/${job.id}`)}
+                onClick={() => navigate(`/app/jobs/${job.id}`)}
               >
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between">
