@@ -9,10 +9,11 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, Search, Mail, Phone, Calendar } from "lucide-react";
+import { Download, Search, Mail, Phone, Calendar, User } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { AssessmentCodeGenerator } from "./AssessmentCodeGenerator";
+import { TalentDetailDialog } from "./TalentDetailDialog";
 
 interface AssessmentLead {
   id: string;
@@ -41,6 +42,8 @@ export function AssessmentLeadsManager() {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [readinessFilter, setReadinessFilter] = useState<string>("all");
+  const [selectedTalentEmail, setSelectedTalentEmail] = useState<string | null>(null);
+  const [selectedTalentName, setSelectedTalentName] = useState<string>("");
 
   useEffect(() => {
     loadLeads();
@@ -206,7 +209,20 @@ export function AssessmentLeadsManager() {
                       </span>
                     </TableCell>
                     <TableCell>
-                      <AssessmentCodeGenerator leadEmail={lead.email} leadName={lead.full_name} />
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedTalentEmail(lead.email);
+                            setSelectedTalentName(lead.full_name);
+                          }}
+                          title="View Talent Profile"
+                        >
+                          <User className="h-4 w-4" />
+                        </Button>
+                        <AssessmentCodeGenerator leadEmail={lead.email} leadName={lead.full_name} />
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -215,6 +231,18 @@ export function AssessmentLeadsManager() {
           </div>
         )}
       </CardContent>
+
+      <TalentDetailDialog
+        open={!!selectedTalentEmail}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedTalentEmail(null);
+            setSelectedTalentName("");
+          }
+        }}
+        talentEmail={selectedTalentEmail || ""}
+        talentName={selectedTalentName}
+      />
     </Card>
   );
 }

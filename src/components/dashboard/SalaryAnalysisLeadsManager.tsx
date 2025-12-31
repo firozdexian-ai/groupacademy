@@ -23,9 +23,10 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Download, Search, Eye, Loader2, TrendingUp } from "lucide-react";
+import { Download, Search, Eye, Loader2, TrendingUp, User } from "lucide-react";
 import { format } from "date-fns";
 import { SalaryAnalysisCodeGenerator } from "./SalaryAnalysisCodeGenerator";
+import { TalentDetailDialog } from "./TalentDetailDialog";
 import { useNavigate } from "react-router-dom";
 
 interface SalaryAnalysisLead {
@@ -64,6 +65,8 @@ export const SalaryAnalysisLeadsManager = () => {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [selectedTalentEmail, setSelectedTalentEmail] = useState<string | null>(null);
+  const [selectedTalentName, setSelectedTalentName] = useState<string>("");
 
   useEffect(() => {
     loadLeads();
@@ -253,6 +256,17 @@ export const SalaryAnalysisLeadsManager = () => {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedTalentEmail(lead.email);
+                            setSelectedTalentName(lead.full_name);
+                          }}
+                          title="View Talent Profile"
+                        >
+                          <User className="h-4 w-4" />
+                        </Button>
                         {lead.status === "completed" && (
                           <Button
                             variant="outline"
@@ -276,6 +290,18 @@ export const SalaryAnalysisLeadsManager = () => {
           </Table>
         </div>
       </CardContent>
+
+      <TalentDetailDialog
+        open={!!selectedTalentEmail}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedTalentEmail(null);
+            setSelectedTalentName("");
+          }
+        }}
+        talentEmail={selectedTalentEmail || ""}
+        talentName={selectedTalentName}
+      />
     </Card>
   );
 };

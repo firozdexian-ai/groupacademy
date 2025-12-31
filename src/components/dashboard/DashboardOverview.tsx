@@ -10,14 +10,23 @@ import StatsCard from "@/components/dashboard/StatsCard";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 
 interface DashboardStats {
+  totalTalents: number;
   totalLearners: number;
   activeEnrollments: number;
   revenue: number;
   freeVideoViews: number;
+  assessments: {
+    total: number;
+    thisWeek: number;
+  };
   mockInterviews: {
     total: number;
     completed: number;
     avgScore: number;
+  };
+  salaryAnalyses: {
+    total: number;
+    completed: number;
   };
   portfolios: {
     total: number;
@@ -30,15 +39,24 @@ interface DashboardStats {
 
 export function DashboardOverview() {
   const navigate = useNavigate();
-  const [stats, setStats] = useState<DashboardStats>({
+const [stats, setStats] = useState<DashboardStats>({
+    totalTalents: 0,
     totalLearners: 0,
     activeEnrollments: 0,
     revenue: 0,
     freeVideoViews: 0,
+    assessments: {
+      total: 0,
+      thisWeek: 0,
+    },
     mockInterviews: {
       total: 0,
       completed: 0,
       avgScore: 0,
+    },
+    salaryAnalyses: {
+      total: 0,
+      completed: 0,
     },
     portfolios: {
       total: 0,
@@ -59,13 +77,21 @@ export function DashboardOverview() {
     setStatsError(null);
     setIsLoading(true);
     try {
-      // Load students count with timeout
-      const { count: studentsCount, error: studentsError } = await withTimeout(
-        Promise.resolve(supabase.from("students").select("*", { count: "exact", head: true })),
+      // Load talents count with timeout
+      const { count: talentsCount, error: talentsError } = await withTimeout(
+        Promise.resolve(supabase.from("talents").select("*", { count: "exact", head: true })),
         30000,
         "Loading timed out"
       );
-      if (studentsError) throw studentsError;
+      if (talentsError) throw talentsError;
+
+      // Load students with enrollments (learners)
+      const { count: learnersCount, error: learnersError } = await withTimeout(
+        Promise.resolve(supabase.from("enrollments").select("student_id", { count: "exact", head: true })),
+        15000,
+        "Loading learners timed out"
+      );
+      if (learnersError) throw learnersError;
 
       // Load active enrollments with timeout
       const { count: enrollmentsCount, error: enrollmentsError } = await withTimeout(
@@ -102,6 +128,21 @@ export function DashboardOverview() {
       );
       if (videoError) throw videoError;
 
+      // Career assessment stats
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+      const { data: assessmentsData, error: assessmentsError } = await withTimeout(
+        Promise.resolve(supabase
+          .from("career_assessments")
+          .select("created_at")),
+        15000,
+        "Loading assessments timed out"
+      );
+      if (assessmentsError) throw assessmentsError;
+
+      const totalAssessments = assessmentsData?.length || 0;
+      const thisWeekAssessments = assessmentsData?.filter(a => new Date(a.created_at) >= oneWeekAgo).length || 0;
+
       // Mock interview stats with timeout
       const { data: interviews, error: interviewsError } = await withTimeout(
         Promise.resolve(supabase
@@ -118,6 +159,19 @@ export function DashboardOverview() {
       const avgScore = completedWithScores.length > 0 
         ? Math.round(completedWithScores.reduce((sum, i) => sum + (i.selection_percentage || 0), 0) / completedWithScores.length)
         : 0;
+
+      // Salary analysis stats
+      const { data: salaryData, error: salaryError } = await withTimeout(
+        Promise.resolve(supabase
+          .from("salary_analyses")
+          .select("status")),
+        15000,
+        "Loading salary analyses timed out"
+      );
+      if (salaryError) throw salaryError;
+
+      const totalSalaryAnalyses = salaryData?.length || 0;
+      const completedSalaryAnalyses = salaryData?.filter(s => s.status === "completed").length || 0;
 
       // Portfolio stats with timeout
       const { data: portfolioData, error: portfolioError } = await withTimeout(
@@ -136,14 +190,23 @@ export function DashboardOverview() {
       const FREE_LIMIT = 1000;
 
       setStats({
-        totalLearners: studentsCount || 0,
+        totalTalents: talentsCount || 0,
+        totalLearners: learnersCount || 0,
         activeEnrollments: enrollmentsCount || 0,
         revenue: totalRevenue,
         freeVideoViews: videoCount || 0,
+        assessments: {
+          total: totalAssessments,
+          thisWeek: thisWeekAssessments,
+        },
         mockInterviews: {
           total: totalInterviews,
           completed: completedInterviews,
           avgScore: avgScore,
+        },
+        salaryAnalyses: {
+          total: totalSalaryAnalyses,
+          completed: completedSalaryAnalyses,
         },
         portfolios: {
           total: totalPortfolios,
@@ -227,10 +290,10 @@ export function DashboardOverview() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           <StatsCard
-            title="Total Learners"
-            value={stats.totalLearners}
+            title="Total Talents"
+            value={stats.totalTalents}
             icon={Users}
           />
           <StatsCard
@@ -246,10 +309,11 @@ export function DashboardOverview() {
             variant="success"
           />
           <StatsCard
-            title="Free Video Views"
-            value={stats.freeVideoViews}
-            icon={Video}
+            title="Career Assessments"
+            value={stats.assessments.total}
+            icon={Target}
             variant="accent"
+            trend={stats.assessments.thisWeek > 0 ? `${stats.assessments.thisWeek} this week` : undefined}
           />
           <StatsCard
             title="Mock Interviews"
@@ -260,12 +324,25 @@ export function DashboardOverview() {
             trendLabel={stats.mockInterviews.avgScore > 0 ? `• Avg: ${stats.mockInterviews.avgScore}%` : undefined}
           />
           <StatsCard
+            title="Salary Analyses"
+            value={stats.salaryAnalyses.total}
+            icon={DollarSign}
+            variant="secondary"
+            trend={stats.salaryAnalyses.total > 0 ? `${stats.salaryAnalyses.completed} completed` : undefined}
+          />
+          <StatsCard
             title="Portfolio Requests"
             value={stats.portfolios.total}
             icon={Briefcase}
-            variant="secondary"
+            variant="accent"
             trend={`${stats.portfolios.freeRemaining} free slots left`}
             trendLabel={stats.portfolios.pending > 0 ? `• ${stats.portfolios.pending} pending` : undefined}
+          />
+          <StatsCard
+            title="Free Videos"
+            value={stats.freeVideoViews}
+            icon={Video}
+            variant="default"
           />
         </div>
       )}

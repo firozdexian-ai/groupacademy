@@ -9,10 +9,11 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, Search, Mail, Phone, Calendar, ExternalLink } from "lucide-react";
+import { Download, Search, Mail, Phone, Calendar, ExternalLink, User } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { MockInterviewCodeGenerator } from "./MockInterviewCodeGenerator";
+import { TalentDetailDialog } from "./TalentDetailDialog";
 import { useNavigate } from "react-router-dom";
 
 interface MockInterviewLead {
@@ -55,6 +56,8 @@ export function MockInterviewLeadsManager() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [performanceFilter, setPerformanceFilter] = useState<string>("all");
+  const [selectedTalentEmail, setSelectedTalentEmail] = useState<string | null>(null);
+  const [selectedTalentName, setSelectedTalentName] = useState<string>("");
 
   useEffect(() => {
     loadLeads();
@@ -261,6 +264,17 @@ export function MockInterviewLeadsManager() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedTalentEmail(lead.email);
+                            setSelectedTalentName(lead.full_name);
+                          }}
+                          title="View Talent Profile"
+                        >
+                          <User className="h-4 w-4" />
+                        </Button>
                         {lead.status === "completed" && (
                           <Button
                             variant="ghost"
@@ -280,6 +294,18 @@ export function MockInterviewLeadsManager() {
           </div>
         )}
       </CardContent>
+
+      <TalentDetailDialog
+        open={!!selectedTalentEmail}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedTalentEmail(null);
+            setSelectedTalentName("");
+          }
+        }}
+        talentEmail={selectedTalentEmail || ""}
+        talentName={selectedTalentName}
+      />
     </Card>
   );
 }

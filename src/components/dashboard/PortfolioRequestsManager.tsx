@@ -13,8 +13,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { Search, ExternalLink, Loader2, Eye, FileText, MessageCircle, Gift, Sparkles } from "lucide-react";
+import { Search, ExternalLink, Loader2, Eye, FileText, MessageCircle, Gift, Sparkles, User } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { TalentDetailDialog } from "./TalentDetailDialog";
 
 const FREE_PORTFOLIO_LIMIT = 1000;
 
@@ -71,6 +72,8 @@ export default function PortfolioRequestsManager() {
   const [selectedRequest, setSelectedRequest] = useState<PortfolioRequest | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [selectedTalentEmail, setSelectedTalentEmail] = useState<string | null>(null);
+  const [selectedTalentName, setSelectedTalentName] = useState<string>("");
   
   // Edit form state
   const [editStatus, setEditStatus] = useState("");
@@ -305,6 +308,18 @@ export default function PortfolioRequestsManager() {
                   <TableCell>{format(new Date(request.created_at), 'MMM d, yyyy')}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8"
+                        onClick={() => {
+                          setSelectedTalentEmail(request.email);
+                          setSelectedTalentName(request.full_name);
+                        }}
+                        title="View Talent Profile"
+                      >
+                        <User className="h-4 w-4" />
+                      </Button>
                       <Button 
                         variant="ghost" 
                         size="icon" 
@@ -553,6 +568,18 @@ export default function PortfolioRequestsManager() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <TalentDetailDialog
+        open={!!selectedTalentEmail}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedTalentEmail(null);
+            setSelectedTalentName("");
+          }
+        }}
+        talentEmail={selectedTalentEmail || ""}
+        talentName={selectedTalentName}
+      />
     </div>
   );
 }
