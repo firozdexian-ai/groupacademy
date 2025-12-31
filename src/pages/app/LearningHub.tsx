@@ -94,7 +94,7 @@ export default function LearningHub() {
       <div className="mt-8">
         <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
         <div className="flex flex-wrap gap-3">
-          <Button variant="outline" onClick={() => navigate('/my-learning')}>
+          <Button variant="outline" onClick={() => navigate('/app/learning/my-courses')}>
             <BookOpen className="h-4 w-4 mr-2" />
             My Learning
           </Button>

@@ -1,4 +1,5 @@
 import { Toaster } from "@/components/ui/toaster";
+import AppMyLearning from "./pages/app/AppMyLearning";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -288,6 +289,7 @@ export default function App() {
                     <Route path="learning/tracks/:slug" element={<AppProfessionDetail />} />
                     <Route path="learning/courses" element={<AppCourses />} />
                     <Route path="learning/courses/:slug" element={<AppCourseDetail />} />
+                    <Route path="learning/my-courses" element={<AppMyLearning />} />
                     <Route path="services" element={<ServicesHub />} />
                     <Route path="services/assessment" element={<AppCareerAssessment />} />
                     <Route path="services/mock-interview" element={<AppMockInterviewSetup />} />
