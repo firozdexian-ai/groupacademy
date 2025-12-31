@@ -61,22 +61,22 @@ export default function Notifications() {
 
       {/* Notifications List */}
       {isLoading ? (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {[1, 2, 3, 4, 5].map((i) => (
-            <Skeleton key={i} className="h-20 w-full" />
+            <Skeleton key={i} className="h-16 w-full" />
           ))}
         </div>
       ) : filteredNotifications.length === 0 ? (
         <Card>
-          <CardContent className="py-12 text-center">
-            <BellOff className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground">
+          <CardContent className="py-10 text-center">
+            <BellOff className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+            <p className="text-sm text-muted-foreground">
               {filter === 'unread' ? 'No unread notifications' : 'No notifications yet'}
             </p>
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {filteredNotifications.map((notification) => {
             const IconComponent = getNotificationIcon(notification.icon || '', notification.type);
             
@@ -88,12 +88,12 @@ export default function Notifications() {
                 }`}
                 onClick={() => handleNotificationClick(notification)}
               >
-                <CardContent className="p-4">
-                  <div className="flex gap-3">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+                <CardContent className="p-3">
+                  <div className="flex gap-2.5">
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
                       !notification.isRead ? 'bg-primary/10' : 'bg-muted'
                     }`}>
-                      <IconComponent className={`h-5 w-5 ${
+                      <IconComponent className={`h-4 w-4 ${
                         !notification.isRead ? 'text-primary' : 'text-muted-foreground'
                       }`} />
                     </div>

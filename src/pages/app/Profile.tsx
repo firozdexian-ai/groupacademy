@@ -140,24 +140,24 @@ export default function Profile() {
         {/* Credits Card - Floating */}
         <div className="px-4 -mt-4">
           <Card className="border-0 shadow-lg">
-            <CardContent className="py-4">
+            <CardContent className="py-3">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 bg-warning/15 rounded-xl">
-                    <Coins className="h-6 w-6 text-warning" />
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 bg-warning/15 rounded-lg">
+                    <Coins className="h-5 w-5 text-warning" />
                   </div>
                   <div>
                     {creditsLoading ? (
-                      <Skeleton className="h-7 w-16 mb-1" />
+                      <Skeleton className="h-6 w-14 mb-0.5" />
                     ) : (
-                      <p className="text-2xl font-bold">{balance}</p>
+                      <p className="text-xl font-bold">{balance}</p>
                     )}
-                    <p className="text-xs text-muted-foreground">Credits Available</p>
+                    <p className="text-[10px] text-muted-foreground">Credits Available</p>
                   </div>
                 </div>
                 <Button 
                   size="sm"
-                  className="rounded-xl font-semibold press-scale"
+                  className="rounded-lg font-semibold press-scale h-8 text-xs"
                   onClick={() => setShowCreditSheet(true)}
                 >
                   Buy Credits
@@ -175,40 +175,40 @@ export default function Profile() {
       />
 
       {/* Quick Actions - Horizontal Scroll */}
-      <div className="flex gap-3 mb-6 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+      <div className="flex gap-2 mb-5 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-hide">
         <Card 
-          className="cursor-pointer shadow-md border-0 flex-shrink-0 w-[140px] press-scale rounded-2xl"
+          className="cursor-pointer shadow-sm border-0 flex-shrink-0 w-[110px] press-scale rounded-xl"
           onClick={() => navigate('/app/learning/my-courses')}
         >
-          <CardContent className="p-4 flex flex-col items-center text-center gap-2">
-            <div className="p-3 bg-primary/10 rounded-xl">
-              <BookOpen className="h-5 w-5 text-primary" />
+          <CardContent className="p-3 flex flex-col items-center text-center gap-1.5">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <BookOpen className="h-4 w-4 text-primary" />
             </div>
-            <p className="font-semibold text-sm">My Learning</p>
+            <p className="font-semibold text-xs">My Learning</p>
           </CardContent>
         </Card>
         
         <Card 
-          className="cursor-pointer shadow-md border-0 flex-shrink-0 w-[140px] press-scale rounded-2xl"
+          className="cursor-pointer shadow-sm border-0 flex-shrink-0 w-[110px] press-scale rounded-xl"
           onClick={handleEditProfile}
         >
-          <CardContent className="p-4 flex flex-col items-center text-center gap-2">
-            <div className="p-3 bg-accent/10 rounded-xl">
-              <FileText className="h-5 w-5 text-accent" />
+          <CardContent className="p-3 flex flex-col items-center text-center gap-1.5">
+            <div className="p-2 bg-accent/10 rounded-lg">
+              <FileText className="h-4 w-4 text-accent" />
             </div>
-            <p className="font-semibold text-sm">Edit Profile</p>
+            <p className="font-semibold text-xs">Edit Profile</p>
           </CardContent>
         </Card>
 
         <Card 
-          className="cursor-pointer shadow-md border-0 flex-shrink-0 w-[140px] press-scale rounded-2xl"
+          className="cursor-pointer shadow-sm border-0 flex-shrink-0 w-[110px] press-scale rounded-xl"
           onClick={() => navigate('/app/applications')}
         >
-          <CardContent className="p-4 flex flex-col items-center text-center gap-2">
-            <div className="p-3 bg-secondary/10 rounded-xl">
-              <History className="h-5 w-5 text-secondary" />
+          <CardContent className="p-3 flex flex-col items-center text-center gap-1.5">
+            <div className="p-2 bg-secondary/10 rounded-lg">
+              <History className="h-4 w-4 text-secondary" />
             </div>
-            <p className="font-semibold text-sm">Applications</p>
+            <p className="font-semibold text-xs">Applications</p>
           </CardContent>
         </Card>
       </div>

@@ -163,18 +163,20 @@ export default function MyApplications() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">My Applications</h1>
-        <p className="text-muted-foreground">Track your job applications</p>
+      <div className="mb-4">
+        <h1 className="text-xl font-bold">My Applications</h1>
+        <p className="text-sm text-muted-foreground">Track your job applications</p>
       </div>
 
       <Tabs defaultValue="all">
-        <TabsList className="mb-6">
-          <TabsTrigger value="all">All ({applications.length})</TabsTrigger>
-          <TabsTrigger value="submitted">Submitted</TabsTrigger>
-          <TabsTrigger value="reviewed">Reviewed</TabsTrigger>
-          <TabsTrigger value="shortlisted">Shortlisted</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto -mx-4 px-4 mb-4">
+          <TabsList className="w-max">
+            <TabsTrigger value="all" className="text-xs h-8">All ({applications.length})</TabsTrigger>
+            <TabsTrigger value="submitted" className="text-xs h-8">Submitted</TabsTrigger>
+            <TabsTrigger value="reviewed" className="text-xs h-8">Reviewed</TabsTrigger>
+            <TabsTrigger value="shortlisted" className="text-xs h-8">Shortlisted</TabsTrigger>
+          </TabsList>
+        </div>
 
         {['all', 'submitted', 'reviewed', 'shortlisted'].map(tab => (
           <TabsContent key={tab} value={tab}>
@@ -186,10 +188,10 @@ export default function MyApplications() {
               </div>
             ) : filterByStatus(tab).length === 0 ? (
               <Card>
-                <CardContent className="p-8 text-center">
-                  <Briefcase className="h-12 w-12 mx-auto text-muted-foreground/30 mb-2" />
-                  <p className="text-muted-foreground">No applications yet</p>
-                  <p className="text-sm text-muted-foreground/70 mt-1">
+                <CardContent className="p-6 text-center">
+                  <Briefcase className="h-10 w-10 mx-auto text-muted-foreground/30 mb-2" />
+                  <p className="text-sm text-muted-foreground">No applications yet</p>
+                  <p className="text-xs text-muted-foreground/70 mt-1">
                     Apply to jobs to track them here
                   </p>
                 </CardContent>

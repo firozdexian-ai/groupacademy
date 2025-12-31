@@ -211,18 +211,20 @@ export default function MyResults() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">My Results</h1>
-        <p className="text-muted-foreground">View your past assessments and service results</p>
+      <div className="mb-4">
+        <h1 className="text-xl font-bold">My Results</h1>
+        <p className="text-sm text-muted-foreground">View your past assessments and service results</p>
       </div>
 
       <Tabs defaultValue="all">
-        <TabsList className="mb-6">
-          <TabsTrigger value="all">All ({results.length})</TabsTrigger>
-          <TabsTrigger value="assessment">Assessments</TabsTrigger>
-          <TabsTrigger value="interview">Interviews</TabsTrigger>
-          <TabsTrigger value="salary">Salary</TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto -mx-4 px-4 mb-4">
+          <TabsList className="w-max">
+            <TabsTrigger value="all" className="text-xs h-8">All ({results.length})</TabsTrigger>
+            <TabsTrigger value="assessment" className="text-xs h-8">Assessments</TabsTrigger>
+            <TabsTrigger value="interview" className="text-xs h-8">Interviews</TabsTrigger>
+            <TabsTrigger value="salary" className="text-xs h-8">Salary</TabsTrigger>
+          </TabsList>
+        </div>
 
         {['all', 'assessment', 'interview', 'salary'].map(tab => (
           <TabsContent key={tab} value={tab}>
@@ -234,10 +236,10 @@ export default function MyResults() {
               </div>
             ) : filterByType(tab).length === 0 ? (
               <Card>
-                <CardContent className="p-8 text-center">
-                  <Award className="h-12 w-12 mx-auto text-muted-foreground/30 mb-2" />
-                  <p className="text-muted-foreground">No results yet</p>
-                  <p className="text-sm text-muted-foreground/70 mt-1">
+                <CardContent className="p-6 text-center">
+                  <Award className="h-10 w-10 mx-auto text-muted-foreground/30 mb-2" />
+                  <p className="text-sm text-muted-foreground">No results yet</p>
+                  <p className="text-xs text-muted-foreground/70 mt-1">
                     Complete services to see your results here
                   </p>
                 </CardContent>
