@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { WelcomeBonus } from './WelcomeBonus';
 import { ProfileQuickSetup } from './ProfileQuickSetup';
-import { CVUploadStep } from './CVUploadStep';
 import { ServicesTour } from './ServicesTour';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { toast } from 'sonner';
@@ -13,22 +12,24 @@ interface OnboardingWizardProps {
   onComplete: () => void;
 }
 
+// Simplified to 3 steps for better completion rate
 const STEPS = [
   { id: 'welcome', label: 'Welcome' },
   { id: 'profile', label: 'Profile' },
-  { id: 'cv', label: 'CV Upload' },
-  { id: 'services', label: 'Services' },
+  { id: 'explore', label: 'Explore' },
 ];
 
 export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
   const [currentStep, setCurrentStep] = useState(0);
-  const { completeOnboarding, skipOnboarding } = useOnboarding();
+  const { completeOnboarding, skipOnboarding, updateStep } = useOnboarding();
 
   const progress = ((currentStep + 1) / STEPS.length) * 100;
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentStep < STEPS.length - 1) {
-      setCurrentStep(currentStep + 1);
+      const nextStep = currentStep + 1;
+      await updateStep(nextStep);
+      setCurrentStep(nextStep);
     }
   };
 
@@ -56,9 +57,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
         return <WelcomeBonus onContinue={handleNext} />;
       case 'profile':
         return <ProfileQuickSetup onContinue={handleNext} onSkip={handleNext} />;
-      case 'cv':
-        return <CVUploadStep onContinue={handleNext} onSkip={handleNext} />;
-      case 'services':
+      case 'explore':
         return <ServicesTour onComplete={handleComplete} />;
       default:
         return null;

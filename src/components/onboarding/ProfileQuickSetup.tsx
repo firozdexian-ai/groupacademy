@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Camera, User, Loader2 } from 'lucide-react';
+import { Camera, User, Loader2, Sparkles } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -22,8 +22,8 @@ interface ProfessionCategory {
 const STATUS_OPTIONS = [
   { value: 'student', label: 'Student' },
   { value: 'fresh_graduate', label: 'Fresh Graduate' },
+  { value: 'job_seeking', label: 'Actively Job Seeking' },
   { value: 'working', label: 'Working Professional' },
-  { value: 'career_switcher', label: 'Career Switcher' },
 ];
 
 export function ProfileQuickSetup({ onContinue, onSkip }: ProfileQuickSetupProps) {
@@ -54,6 +54,16 @@ export function ProfileQuickSetup({ onContinue, onSkip }: ProfileQuickSetupProps
   async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file || !talent?.id) return;
+
+    // Validate
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image must be less than 5MB');
+      return;
+    }
 
     setIsUploading(true);
     try {
@@ -103,45 +113,55 @@ export function ProfileQuickSetup({ onContinue, onSkip }: ProfileQuickSetupProps
   return (
     <div className="flex flex-col items-center px-4 py-6 max-w-md mx-auto">
       <h2 className="text-2xl font-bold text-foreground mb-2 text-center">
-        Quick Profile Setup
+        Let's set up your profile
       </h2>
-      <p className="text-muted-foreground text-center mb-8">
-        Help us personalize your experience
+      <p className="text-muted-foreground text-center mb-6">
+        A complete profile helps you get better matches
       </p>
 
-      {/* Profile Photo */}
-      <div className="mb-8">
-        <Label className="block text-center mb-3">Profile Photo</Label>
-        <div className="relative">
-          <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center overflow-hidden border-2 border-dashed border-border">
-            {profilePhoto ? (
-              <img src={profilePhoto} alt="Profile" className="w-full h-full object-cover" />
-            ) : (
-              <User className="h-10 w-10 text-muted-foreground" />
-            )}
+      {/* Profile Photo - PRIORITY FIRST */}
+      <div className="mb-6 w-full">
+        <div className="flex flex-col items-center p-4 rounded-xl bg-primary/5 border border-primary/20">
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <Label className="text-sm font-medium text-primary">Stand out to recruiters</Label>
           </div>
-          <label className="absolute bottom-0 right-0 w-8 h-8 bg-primary rounded-full flex items-center justify-center cursor-pointer hover:bg-primary/90 transition-colors">
-            {isUploading ? (
-              <Loader2 className="h-4 w-4 text-primary-foreground animate-spin" />
-            ) : (
-              <Camera className="h-4 w-4 text-primary-foreground" />
-            )}
-            <input 
-              type="file" 
-              accept="image/*" 
-              className="hidden" 
-              onChange={handlePhotoUpload}
-              disabled={isUploading}
-            />
-          </label>
+          
+          <div className="relative mb-3">
+            <div className="w-28 h-28 rounded-full bg-muted flex items-center justify-center overflow-hidden border-4 border-background shadow-lg">
+              {profilePhoto ? (
+                <img src={profilePhoto} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                <User className="h-12 w-12 text-muted-foreground" />
+              )}
+            </div>
+            <label className="absolute bottom-0 right-0 w-10 h-10 bg-primary rounded-full flex items-center justify-center cursor-pointer hover:bg-primary/90 transition-colors shadow-lg">
+              {isUploading ? (
+                <Loader2 className="h-5 w-5 text-primary-foreground animate-spin" />
+              ) : (
+                <Camera className="h-5 w-5 text-primary-foreground" />
+              )}
+              <input 
+                type="file" 
+                accept="image/*" 
+                className="hidden" 
+                onChange={handlePhotoUpload}
+                disabled={isUploading}
+              />
+            </label>
+          </div>
+          
+          <p className="text-xs text-muted-foreground text-center">
+            {profilePhoto ? 'Tap to change photo' : 'Add a profile photo'}
+          </p>
         </div>
       </div>
 
       {/* Profession */}
-      <div className="w-full mb-6">
-        <Label className="mb-2 block">What field are you in?</Label>
+      <div className="w-full mb-5">
+        <Label className="mb-2 block text-sm font-medium">What field are you in?</Label>
         <Select value={selectedProfession} onValueChange={setSelectedProfession}>
-          <SelectTrigger>
+          <SelectTrigger className="h-12">
             <SelectValue placeholder="Select your profession" />
           </SelectTrigger>
           <SelectContent>
@@ -153,17 +173,21 @@ export function ProfileQuickSetup({ onContinue, onSkip }: ProfileQuickSetupProps
       </div>
 
       {/* Current Status */}
-      <div className="w-full mb-8">
-        <Label className="mb-3 block">What's your current status?</Label>
+      <div className="w-full mb-6">
+        <Label className="mb-3 block text-sm font-medium">What's your current status?</Label>
         <RadioGroup value={currentStatus} onValueChange={setCurrentStatus} className="space-y-2">
           {STATUS_OPTIONS.map(option => (
             <div 
               key={option.value} 
-              className="flex items-center space-x-3 p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors cursor-pointer"
+              className={`flex items-center space-x-3 p-3 rounded-lg border transition-colors cursor-pointer ${
+                currentStatus === option.value 
+                  ? 'border-primary bg-primary/5' 
+                  : 'border-border hover:bg-muted/50'
+              }`}
               onClick={() => setCurrentStatus(option.value)}
             >
               <RadioGroupItem value={option.value} id={option.value} />
-              <Label htmlFor={option.value} className="cursor-pointer flex-1">
+              <Label htmlFor={option.value} className="cursor-pointer flex-1 text-sm">
                 {option.label}
               </Label>
             </div>
@@ -177,7 +201,7 @@ export function ProfileQuickSetup({ onContinue, onSkip }: ProfileQuickSetupProps
           size="lg" 
           onClick={handleContinue}
           disabled={isSaving}
-          className="w-full"
+          className="w-full h-12"
         >
           {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
           Continue

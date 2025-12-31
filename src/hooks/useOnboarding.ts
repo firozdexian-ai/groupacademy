@@ -12,8 +12,8 @@ export function useOnboarding() {
   const { talent, refreshTalent } = useTalent();
   const [isUpdating, setIsUpdating] = useState(false);
 
-  const isOnboardingComplete = !!(talent as any)?.onboardingCompletedAt;
-  const currentStep = (talent as any)?.onboardingStep || 0;
+  const isOnboardingComplete = !!talent?.onboardingCompletedAt;
+  const currentStep = talent?.onboardingStep || 0;
 
   const updateStep = useCallback(async (step: number) => {
     if (!talent?.id) return false;
@@ -22,7 +22,7 @@ export function useOnboarding() {
     try {
       const { error } = await supabase
         .from('talents')
-        .update({ onboarding_step: step } as any)
+        .update({ onboarding_step: step })
         .eq('id', talent.id);
 
       if (error) {
@@ -48,8 +48,8 @@ export function useOnboarding() {
         .from('talents')
         .update({ 
           onboarding_completed_at: new Date().toISOString(),
-          onboarding_step: 4 
-        } as any)
+          onboarding_step: 3 // Final step for 3-step onboarding
+        })
         .eq('id', talent.id);
 
       if (error) {
