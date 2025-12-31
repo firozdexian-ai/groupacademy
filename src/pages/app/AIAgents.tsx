@@ -120,7 +120,7 @@ export default function AIAgents() {
   const handleConfirmCredit = async () => {
     if (!selectedAgent) return;
 
-    const success = await deductCredits('AI_AGENT_CHAT', `AI Agent: ${selectedAgent}`);
+    const success = await deductCredits('AI_AGENT_CHAT', undefined, `AI Agent: ${selectedAgent} session`);
     if (success) {
       const session = await startNewSession(selectedAgent);
       if (session) {

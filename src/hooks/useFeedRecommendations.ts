@@ -205,7 +205,7 @@ export function useFeedRecommendations(): UseFeedRecommendationsResult {
         return;
       }
 
-      const success = await deductCredits('SUGGESTED_JOBS', 'AI feed refresh');
+      const success = await deductCredits('SUGGESTED_JOBS', undefined, 'AI feed refresh');
       if (!success) return;
     }
 
