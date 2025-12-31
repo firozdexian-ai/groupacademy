@@ -20,6 +20,9 @@ import {
   ChevronDown,
   LogOut,
   UserCog,
+  Bot,
+  Coins,
+  Bell,
 } from "lucide-react";
 import {
   Sidebar,
@@ -102,6 +105,17 @@ const navGroups: NavGroup[] = [
       { title: "CV Outreach", icon: Send, value: "outreach" },
       { title: "Talent Pool", icon: DatabaseIcon, value: "talent" },
       { title: "Portfolio Requests", icon: Briefcase, value: "portfolios" },
+    ],
+  },
+  {
+    title: "AI & Credits",
+    icon: Bot,
+    roles: ["admin"],
+    items: [
+      { title: "AI Agents", icon: Bot, value: "ai-agents" },
+      { title: "Agent Sessions", icon: MessageSquare, value: "agent-sessions" },
+      { title: "Credits", icon: Coins, value: "credits" },
+      { title: "Notifications", icon: Bell, value: "notifications" },
     ],
   },
   {

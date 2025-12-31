@@ -19,6 +19,10 @@ import { CVOutreachGenerator } from "@/components/dashboard/CVOutreachGenerator"
 import { TalentPoolManager } from "@/components/dashboard/TalentPoolManager";
 import { CompaniesManager } from "@/components/dashboard/CompaniesManager";
 import { TeamManager } from "@/components/dashboard/TeamManager";
+import { AIAgentsManager } from "@/components/dashboard/AIAgentsManager";
+import { CreditsManager } from "@/components/dashboard/CreditsManager";
+import { NotificationsManager } from "@/components/dashboard/NotificationsManager";
+import { AgentSessionsManager } from "@/components/dashboard/AgentSessionsManager";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -52,6 +56,11 @@ const tabAccessMap: Record<string, AppRole[]> = {
   outreach: ["admin", "talent_exec"],
   talent: ["admin", "talent_exec"],
   portfolios: ["admin", "talent_exec"],
+  // AI & Credits tabs
+  "ai-agents": ["admin"],
+  "agent-sessions": ["admin"],
+  credits: ["admin"],
+  notifications: ["admin"],
 };
 
 const Dashboard = () => {
@@ -216,6 +225,14 @@ const Dashboard = () => {
         return <CompaniesManager />;
       case "team":
         return <TeamManager />;
+      case "ai-agents":
+        return <AIAgentsManager />;
+      case "agent-sessions":
+        return <AgentSessionsManager />;
+      case "credits":
+        return <CreditsManager />;
+      case "notifications":
+        return <NotificationsManager />;
       default:
         return userRole === "talent_exec" ? <CVOutreachGenerator /> : <DashboardOverview />;
     }
@@ -243,6 +260,10 @@ const Dashboard = () => {
       talent: "Talent Pool",
       companies: "Companies",
       team: "Team Members",
+      "ai-agents": "AI Agents",
+      "agent-sessions": "Agent Sessions",
+      credits: "Credits Manager",
+      notifications: "Notifications",
     };
     return titles[activeTab] || "Dashboard";
   };
