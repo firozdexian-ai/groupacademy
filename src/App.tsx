@@ -300,6 +300,7 @@ export default function App() {
                     <Route path="jobs/:id" element={<AppJobDetail />} />
                     <Route path="abroad" element={<CareerAbroad />} />
                     <Route path="agents" element={<AIAgents />} />
+                    <Route path="agents/:agentKey" element={<AgentChat />} />
                     <Route path="profile" element={<Profile />} />
                   </Route>
                   
