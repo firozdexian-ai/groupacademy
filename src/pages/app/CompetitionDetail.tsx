@@ -101,7 +101,7 @@ export default function CompetitionDetail() {
   if (!competition) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-12 text-center">
-        <Trophy className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+        <Trophy className="h-10 w-10 mx-auto text-muted-foreground mb-4" />
         <h2 className="text-xl font-semibold mb-2">Competition Not Found</h2>
         <Button onClick={() => navigate('/app/learning/competitions')}>
           <ArrowLeft className="h-4 w-4 mr-2" />
@@ -132,9 +132,9 @@ export default function CompetitionDetail() {
             )}
             <Badge className={`${statusConfig.color} text-white`}>{statusConfig.label}</Badge>
           </div>
-          <h1 className="text-2xl font-bold">{competition.title}</h1>
+          <h1 className="text-xl font-bold">{competition.title}</h1>
         </div>
-        <Trophy className="h-8 w-8 text-warning" />
+        <Trophy className="h-6 w-6 text-warning" />
       </div>
 
       {/* Featured Image */}

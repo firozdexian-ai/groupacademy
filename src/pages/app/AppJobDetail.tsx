@@ -128,7 +128,7 @@ export default function AppJobDetail() {
       <div className="max-w-4xl mx-auto px-4 py-6">
         <Card>
           <CardContent className="pt-6 text-center">
-            <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+            <AlertCircle className="h-10 w-10 text-destructive mx-auto mb-4" />
             <h2 className="text-lg font-semibold mb-2">Failed to Load Job</h2>
             <p className="text-muted-foreground mb-4">{loadError || "Job not found"}</p>
             <div className="flex gap-2 justify-center">
@@ -166,11 +166,11 @@ export default function AppJobDetail() {
           <img 
             src={job.company_logo_url} 
             alt={job.company_name}
-            className="w-16 h-16 rounded-xl object-cover bg-muted"
+            className="w-14 h-14 rounded-xl object-cover bg-muted"
           />
         ) : (
-          <div className="w-16 h-16 rounded-xl bg-primary/10 flex items-center justify-center">
-            <Building2 className="w-8 h-8 text-primary" />
+          <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center">
+            <Building2 className="w-6 h-6 text-primary" />
           </div>
         )}
 

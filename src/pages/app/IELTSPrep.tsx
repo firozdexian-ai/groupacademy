@@ -76,7 +76,7 @@ export default function IELTSPrep() {
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">IELTS Preparation</h1>
+          <h1 className="text-xl font-bold">IELTS Preparation</h1>
           <p className="text-muted-foreground">Master all four IELTS sections</p>
         </div>
       </div>
@@ -94,8 +94,8 @@ export default function IELTSPrep() {
               onClick={() => setActiveSection(section.id)}
             >
               <CardContent className="p-4">
-                <div className={`p-3 rounded-xl ${section.bgColor} w-fit mb-3`}>
-                  <SectionIcon className={`h-6 w-6 ${section.color}`} />
+                <div className={`p-2.5 rounded-xl ${section.bgColor} w-fit mb-3`}>
+                  <SectionIcon className={`h-5 w-5 ${section.color}`} />
                 </div>
                 <h3 className="font-semibold">{section.name}</h3>
                 <p className="text-sm text-muted-foreground">
@@ -199,7 +199,7 @@ export default function IELTSPrep() {
           <Card className="py-12">
             <CardContent className="text-center">
               {currentSection && (
-                <currentSection.icon className={`h-12 w-12 mx-auto ${currentSection.color} mb-4`} />
+                <currentSection.icon className={`h-10 w-10 mx-auto ${currentSection.color} mb-4`} />
               )}
               <h3 className="text-lg font-semibold mb-2">No Resources Yet</h3>
               <p className="text-muted-foreground mb-4">
@@ -218,8 +218,8 @@ export default function IELTSPrep() {
         <CardContent className="p-6">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-primary/10 rounded-xl">
-                <Mic className="h-8 w-8 text-primary" />
+              <div className="p-2.5 bg-primary/10 rounded-xl">
+                <Mic className="h-6 w-6 text-primary" />
               </div>
               <div>
                 <h3 className="font-semibold mb-1">AI-Powered Speaking Practice</h3>

@@ -60,7 +60,7 @@ export default function StudyAbroadDetail() {
   if (!program) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-12 text-center">
-        <GraduationCap className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+        <GraduationCap className="h-10 w-10 mx-auto text-muted-foreground mb-4" />
         <h2 className="text-xl font-semibold mb-2">Program Not Found</h2>
         <p className="text-muted-foreground mb-4">This program may have been removed.</p>
         <Button onClick={() => navigate('/app/abroad/study')}>
@@ -83,7 +83,7 @@ export default function StudyAbroadDetail() {
         <div className="flex-1">
           <div className="flex items-center gap-2">
             <span className="text-2xl">{COUNTRIES[program.country_code] || '🌍'}</span>
-            <h1 className="text-2xl font-bold">{program.university_name}</h1>
+            <h1 className="text-xl font-bold">{program.university_name}</h1>
           </div>
           <p className="text-muted-foreground">{program.country_name}</p>
         </div>
@@ -102,7 +102,7 @@ export default function StudyAbroadDetail() {
         <CardHeader>
           <div className="flex items-start justify-between">
             <div>
-              <CardTitle className="text-xl">{program.program_name}</CardTitle>
+              <CardTitle className="text-lg">{program.program_name}</CardTitle>
               {program.field_of_study && (
                 <CardDescription className="mt-1">{program.field_of_study}</CardDescription>
               )}
