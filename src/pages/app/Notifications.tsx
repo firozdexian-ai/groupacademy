@@ -78,7 +78,7 @@ export default function Notifications() {
       ) : (
         <div className="space-y-3">
           {filteredNotifications.map((notification) => {
-            const IconComponent = getNotificationIcon(notification.type);
+            const IconComponent = getNotificationIcon(notification.icon || '', notification.type);
             
             return (
               <Card 
