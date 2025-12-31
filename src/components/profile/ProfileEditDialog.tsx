@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { TalentProfile } from "@/contexts/TalentContext";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
@@ -104,8 +105,6 @@ export function ProfileEditDialog({
 
     setIsSaving(true);
     try {
-      // Import updateTalent from context dynamically to use in dialog
-      const { supabase } = await import("@/integrations/supabase/client");
       
       const updateData: any = {
         full_name: fullName.trim(),
