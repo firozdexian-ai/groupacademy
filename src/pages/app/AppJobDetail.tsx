@@ -108,7 +108,7 @@ export default function AppJobDetail() {
     if (job?.application_type === "link" && job.application_url) {
       window.open(job.application_url, "_blank");
     } else {
-      navigate(`/jobs/${id}/apply`);
+      navigate(`/app/jobs/${id}/apply`);
     }
   };
 

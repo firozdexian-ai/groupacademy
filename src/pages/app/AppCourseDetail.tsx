@@ -286,7 +286,7 @@ export default function AppCourseDetail() {
         <Button 
           size="lg" 
           className="w-full mb-6"
-          onClick={() => navigate(`/learn/${course.slug}`)}
+          onClick={() => navigate(`/app/learn/${course.slug}`)}
         >
           <Play className="h-4 w-4 mr-2" />
           Continue Learning

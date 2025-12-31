@@ -120,7 +120,7 @@ export default function AppMyLearning() {
 
             <div className="flex flex-wrap gap-2">
               <Button
-                onClick={() => navigate(`/learn/${enrollment.content.slug}`)}
+                onClick={() => navigate(`/app/learn/${enrollment.content.slug}`)}
                 size="sm"
               >
                 Continue Learning

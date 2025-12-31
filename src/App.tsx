@@ -77,6 +77,9 @@ import AppEvents from "./pages/app/AppEvents";
 import MyResults from "./pages/app/MyResults";
 import MyApplications from "./pages/app/MyApplications";
 import ProfileEdit from "./pages/app/ProfileEdit";
+import AppJobs from "./pages/app/AppJobs";
+import AppJobApplication from "./pages/app/AppJobApplication";
+import Notifications from "./pages/app/Notifications";
 
 // Configure QueryClient with global defaults
 const queryClient = new QueryClient({
