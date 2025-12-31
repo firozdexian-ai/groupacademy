@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useTalent } from '@/hooks/useTalent';
+import { useCredits } from '@/hooks/useCredits';
 
 export interface OnboardingState {
   currentStep: number;
@@ -10,6 +11,7 @@ export interface OnboardingState {
 
 export function useOnboarding() {
   const { talent, refreshTalent } = useTalent();
+  const { addCredits } = useCredits();
   const [isUpdating, setIsUpdating] = useState(false);
 
   const isOnboardingComplete = !!talent?.onboardingCompletedAt;
@@ -44,6 +46,27 @@ export function useOnboarding() {
     
     setIsUpdating(true);
     try {
+      // Check if user already has credits (prevent double bonus)
+      const { data: existingCredits } = await supabase
+        .from('talent_credits')
+        .select('id')
+        .eq('talent_id', talent.id)
+        .maybeSingle();
+
+      // Give welcome bonus only if no existing credits
+      if (!existingCredits) {
+        const creditsGiven = await addCredits(250, 'welcome_bonus', 'Welcome bonus for new users');
+        if (!creditsGiven) {
+          console.error('[useOnboarding] Failed to add welcome bonus');
+          // Continue anyway - don't block onboarding completion
+        } else {
+          console.log('[useOnboarding] Welcome bonus of 250 credits given');
+        }
+      } else {
+        console.log('[useOnboarding] User already has credits, skipping welcome bonus');
+      }
+
+      // Mark onboarding complete
       const { error } = await supabase
         .from('talents')
         .update({ 
@@ -65,7 +88,7 @@ export function useOnboarding() {
     } finally {
       setIsUpdating(false);
     }
-  }, [talent?.id, refreshTalent]);
+  }, [talent?.id, refreshTalent, addCredits]);
 
   const skipOnboarding = useCallback(async () => {
     return completeOnboarding();
