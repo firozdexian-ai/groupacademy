@@ -4,6 +4,7 @@ import {
   Briefcase, FileText, Mic, DollarSign, BookOpen, Lightbulb 
 } from 'lucide-react';
 import { CREDIT_CONFIG } from '@/lib/creditPricing';
+import { AgentChatDialog } from '@/components/ai-agents/AgentChatDialog';
 import { useAgentChat } from '@/hooks/useAgentChat';
 import { useCredits } from '@/hooks/useCredits';
 import { CreditGateModal } from '@/components/credits/CreditGateModal';
@@ -61,10 +62,10 @@ export default function AgentChat() {
     timeRemaining
   } = useAgentChat();
 
-  const { balance, canAfford, deductCredits, getServiceCostForUser } = useCredits();
+  const { balance, deductCredits } = useCredits();
 
   const agent = agentKey ? AGENTS[agentKey] : null;
-  const serviceCost = getServiceCostForUser('AI_AGENT_CHAT');
+  const serviceCost = CREDIT_CONFIG.SERVICES.AI_AGENT_CHAT.cost;
 
   // Check for existing active session or show credit gate
   useEffect(() => {
