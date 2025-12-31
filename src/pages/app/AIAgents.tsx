@@ -7,11 +7,15 @@ import {
   DollarSign,
   BookOpen,
   Lightbulb,
-  Coins
+  Coins,
+  Sparkles,
+  ArrowRight,
+  Clock,
+  MessageCircle
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { CREDIT_CONFIG } from '@/lib/creditPricing';
-import { AgentCard } from '@/components/ai-agents/AgentCard';
 import { RecentConversations } from '@/components/ai-agents/RecentConversations';
 import { useAgentChat } from '@/hooks/useAgentChat';
 import { useCredits } from '@/hooks/useCredits';
@@ -22,55 +26,55 @@ const AI_AGENTS = [
   {
     id: 'career-consultant',
     name: 'Career Consultant',
-    description: 'Get personalized career advice, explore new opportunities, and plan your professional journey with expert guidance.',
+    shortName: 'Career',
+    description: 'Plan your professional journey',
     icon: Briefcase,
-    color: 'text-primary',
-    bgColor: 'bg-primary/10',
+    gradient: 'from-blue-500 to-indigo-600',
     expertise: ['Career Planning', 'Job Search', 'Career Change']
   },
   {
     id: 'cv-coach',
     name: 'CV Coach',
-    description: 'Get your resume reviewed, learn ATS optimization techniques, and craft compelling cover letters that stand out.',
+    shortName: 'CV Coach',
+    description: 'Optimize your resume',
     icon: FileText,
-    color: 'text-green-600',
-    bgColor: 'bg-green-500/10',
+    gradient: 'from-emerald-500 to-teal-600',
     expertise: ['CV Review', 'ATS Optimization', 'Cover Letters']
   },
   {
     id: 'interview-coach',
     name: 'Interview Coach',
-    description: 'Prepare for interviews with practice questions, feedback on your answers, and strategies to boost your confidence.',
+    shortName: 'Interview',
+    description: 'Ace your interviews',
     icon: Mic,
-    color: 'text-purple-600',
-    bgColor: 'bg-purple-500/10',
+    gradient: 'from-purple-500 to-violet-600',
     expertise: ['Mock Practice', 'STAR Method', 'Confidence']
   },
   {
     id: 'salary-negotiator',
     name: 'Salary Negotiator',
-    description: 'Master the art of salary negotiation with strategies, scripts, and market insights tailored to your industry.',
+    shortName: 'Salary',
+    description: 'Negotiate better offers',
     icon: DollarSign,
-    color: 'text-amber-600',
-    bgColor: 'bg-amber-500/10',
+    gradient: 'from-amber-500 to-orange-600',
     expertise: ['Negotiation', 'Market Rates', 'Benefits']
   },
   {
     id: 'ielts-tutor',
     name: 'IELTS Tutor',
-    description: 'Practice English, get IELTS exam strategies, and improve your speaking and writing skills with personalized guidance.',
+    shortName: 'IELTS',
+    description: 'Master English tests',
     icon: BookOpen,
-    color: 'text-red-600',
-    bgColor: 'bg-red-500/10',
+    gradient: 'from-rose-500 to-red-600',
     expertise: ['Speaking', 'Writing', 'Test Strategies']
   },
   {
     id: 'skill-advisor',
     name: 'Skill Advisor',
-    description: 'Discover in-demand skills, get personalized learning paths, and stay ahead with industry trend insights.',
+    shortName: 'Skills',
+    description: 'Learn in-demand skills',
     icon: Lightbulb,
-    color: 'text-cyan-600',
-    bgColor: 'bg-cyan-500/10',
+    gradient: 'from-cyan-500 to-blue-600',
     expertise: ['Skill Gaps', 'Learning Paths', 'Industry Trends']
   }
 ];
@@ -124,10 +128,6 @@ export default function AIAgents() {
     setShowCreditGate(false);
   };
 
-  const handleResumeSession = (agentId: string) => {
-    navigate(`/app/agents/${agentId}`);
-  };
-
   const handleSelectSession = async (sessionId: string) => {
     const session = recentSessions.find(s => s.id === sessionId);
     if (session) {
@@ -145,8 +145,8 @@ export default function AIAgents() {
     if (!agent) return null;
     const Icon = agent.icon;
     return (
-      <div className={`p-2 rounded-lg ${agent.bgColor}`}>
-        <Icon className={`h-4 w-4 ${agent.color}`} />
+      <div className={`p-2 rounded-lg bg-gradient-to-br ${agent.gradient}`}>
+        <Icon className="h-4 w-4 text-white" />
       </div>
     );
   };
@@ -155,11 +155,6 @@ export default function AIAgents() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">AI Agents</h1>
-        <p className="text-muted-foreground">Chat with AI experts for career guidance</p>
-      </div>
-
       {/* Credit Gate Modal */}
       <CreditGateModal
         isOpen={showCreditGate}
@@ -172,45 +167,118 @@ export default function AIAgents() {
         isLoading={false}
       />
 
-      {/* Cost Info */}
-      <Card className="mb-6 bg-gradient-to-r from-primary/5 to-secondary/5 border-primary/20">
+      {/* Hero Section */}
+      <div className="relative mb-6 rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-secondary p-6 text-white overflow-hidden">
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMtNi42MjcgMC0xMiA1LjM3My0xMiAxMnM1LjM3MyAxMiAxMiAxMiAxMi01LjM3MyAxMi0xMi01LjM3My0xMi0xMi0xMnptMCAxOGMtMy4zMTQgMC02LTIuNjg2LTYtNnMyLjY4Ni02IDYtNiA2IDIuNjg2IDYgNi0yLjY4NiA2LTYgNnoiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4wNSkiLz48L2c+PC9zdmc+')] opacity-30" />
+        <div className="relative z-10">
+          <div className="flex items-center gap-2 mb-2">
+            <Sparkles className="h-5 w-5" />
+            <span className="text-sm font-medium opacity-90">AI-Powered</span>
+          </div>
+          <h1 className="text-2xl font-bold mb-1">AI Career Experts</h1>
+          <p className="text-white/80 text-sm">Chat with specialized AI agents for personalized career guidance</p>
+        </div>
+      </div>
+
+      {/* Cost Info Card */}
+      <Card className="mb-6 border-2 border-warning/30 bg-gradient-to-r from-warning/5 to-warning/10">
         <CardContent className="py-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-warning/10 rounded-full">
-              <Coins className="h-5 w-5 text-warning" />
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-warning/20 rounded-xl">
+              <Coins className="h-6 w-6 text-warning" />
             </div>
-            <div>
-              <p className="font-medium">Each chat session costs {costPerSession} credits</p>
-              <p className="text-sm text-muted-foreground">
-                Get unlimited messages within a session. Sessions last 30 minutes.
-              </p>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl font-bold">{costPerSession}</span>
+                <span className="text-muted-foreground">credits per session</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Clock className="h-3.5 w-3.5" />
+                <span>30 min unlimited messages</span>
+              </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Agent Grid */}
-      <div className="grid gap-4 md:grid-cols-2">
-        {AI_AGENTS.map((agent) => (
-          <AgentCard
-            key={agent.id}
-            id={agent.id}
-            name={agent.name}
-            description={agent.description}
-            icon={agent.icon}
-            color={agent.color}
-            bgColor={agent.bgColor}
-            expertise={agent.expertise}
-            hasActiveSession={!!getActiveSession(agent.id)}
-            onClick={() => handleAgentClick(agent.id)}
-            onResume={() => handleResumeSession(agent.id)}
-          />
-        ))}
+      {/* Agent Grid - bKash Style 2x2 */}
+      <div className="grid grid-cols-2 gap-4 mb-8">
+        {AI_AGENTS.map((agent, index) => {
+          const Icon = agent.icon;
+          const hasActive = !!getActiveSession(agent.id);
+          
+          return (
+            <Card
+              key={agent.id}
+              onClick={() => handleAgentClick(agent.id)}
+              className={`
+                relative overflow-hidden cursor-pointer
+                transition-all duration-200
+                active:scale-95 hover:shadow-lg
+                border-2 hover:border-primary/30
+                animate-bounce-in
+              `}
+              style={{ animationDelay: `${index * 50}ms` }}
+            >
+              {/* Active Session Badge */}
+              {hasActive && (
+                <div className="absolute top-2 right-2 z-10">
+                  <Badge className="bg-green-500 text-white text-[10px] px-1.5 py-0.5">
+                    <span className="animate-pulse mr-1">●</span> Active
+                  </Badge>
+                </div>
+              )}
+              
+              <CardContent className="p-4 flex flex-col items-center text-center">
+                {/* Large Icon with Gradient Background */}
+                <div className={`
+                  w-16 h-16 rounded-2xl bg-gradient-to-br ${agent.gradient}
+                  flex items-center justify-center mb-3
+                  shadow-lg
+                  transition-transform duration-200
+                  group-hover:scale-105
+                `}>
+                  <Icon className="h-8 w-8 text-white" />
+                </div>
+                
+                {/* Agent Name */}
+                <h3 className="font-bold text-base mb-1">{agent.shortName}</h3>
+                
+                {/* Short Description */}
+                <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
+                  {agent.description}
+                </p>
+                
+                {/* Action Indicator */}
+                <div className="flex items-center gap-1 text-xs text-primary font-medium">
+                  {hasActive ? (
+                    <>
+                      <MessageCircle className="h-3 w-3" />
+                      <span>Continue</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Start Chat</span>
+                      <ArrowRight className="h-3 w-3" />
+                    </>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
-      {/* Recent Conversations */}
-      <section className="mt-8">
-        <h2 className="text-lg font-semibold mb-4">Recent Conversations</h2>
+      {/* Recent Conversations Section */}
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold">Recent Chats</h2>
+          {recentSessions.length > 0 && (
+            <Badge variant="secondary" className="text-xs">
+              {recentSessions.length} sessions
+            </Badge>
+          )}
+        </div>
         <RecentConversations
           sessions={recentSessions}
           onSelectSession={handleSelectSession}
