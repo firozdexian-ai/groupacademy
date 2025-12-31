@@ -61,25 +61,18 @@ export default function LearningHub() {
         {LEARNING_SECTIONS.map((section) => (
           <Card 
             key={section.title}
-            className={`cursor-pointer hover:shadow-md transition-all ${section.badge ? 'opacity-75' : ''}`}
-            onClick={() => !section.badge && navigate(section.href)}
+            className="cursor-pointer hover:shadow-md transition-all"
+            onClick={() => navigate(section.href)}
           >
             <CardHeader className="pb-3">
-              <div className="flex items-start justify-between">
-                <div className={`p-3 rounded-xl ${section.bgColor}`}>
-                  <section.icon className={`h-6 w-6 ${section.color}`} />
-                </div>
-                {section.badge && (
-                  <Badge variant="secondary" className="text-xs">
-                    {section.badge}
-                  </Badge>
-                )}
+              <div className={`p-3 rounded-xl ${section.bgColor} w-fit`}>
+                <section.icon className={`h-6 w-6 ${section.color}`} />
               </div>
             </CardHeader>
             <CardContent>
               <CardTitle className="text-lg mb-1 flex items-center justify-between">
                 {section.title}
-                {!section.badge && <ArrowRight className="h-4 w-4 text-muted-foreground" />}
+                <ArrowRight className="h-4 w-4 text-muted-foreground" />
               </CardTitle>
               <CardDescription>{section.description}</CardDescription>
             </CardContent>
