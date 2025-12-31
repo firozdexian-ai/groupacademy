@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -61,7 +62,15 @@ const JOBS_PER_PAGE = 12;
 
 const Jobs = () => {
   const navigate = useNavigate();
+  const { user, isLoading: authLoading } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  // Redirect logged-in users to app jobs hub
+  useEffect(() => {
+    if (!authLoading && user) {
+      navigate('/app/jobs', { replace: true });
+    }
+  }, [user, authLoading, navigate]);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [categories, setCategories] = useState<ProfessionCategory[]>([]);
   const [loading, setLoading] = useState(true);

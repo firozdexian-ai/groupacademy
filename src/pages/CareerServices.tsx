@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -32,7 +33,15 @@ interface ServiceProgress {
 
 const CareerServices = () => {
   const navigate = useNavigate();
+  const { user: authUser, isLoading: authLoading } = useAuth();
   const { talent, user } = useTalent();
+
+  // Redirect logged-in users to app services hub
+  useEffect(() => {
+    if (!authLoading && authUser) {
+      navigate('/app/services', { replace: true });
+    }
+  }, [authUser, authLoading, navigate]);
   const [progress, setProgress] = useState<ServiceProgress>({
     assessment: false,
     mockInterview: false,

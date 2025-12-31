@@ -33,7 +33,6 @@ import { MockInterviewPDFTemplate } from "@/components/mock-interview/MockInterv
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { RetryErrorCard, getErrorType } from "@/components/ui/retry-error-card";
-import { ServiceRecommendations } from "@/components/ServiceRecommendations";
 
 interface Question {
   id: string;
@@ -602,9 +601,6 @@ export default function MockInterviewResults() {
             </div>
           </CardContent>
         </Card>
-
-        {/* Service Recommendations */}
-        <ServiceRecommendations currentService="mock_interview" className="mb-4" />
 
         {/* Recommended Courses */}
         <Card className="border-secondary/20 bg-secondary/5">

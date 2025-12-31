@@ -18,7 +18,6 @@ import {
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { RetryErrorCard, getErrorType } from "@/components/ui/retry-error-card";
-import { ServiceRecommendations } from "@/components/ServiceRecommendations";
 
 interface RecommendedCourse {
   id: string;

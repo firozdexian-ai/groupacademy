@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryWithTimeout } from "@/hooks/useQueryWithTimeout";
@@ -8,7 +9,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Navbar } from "@/components/Navbar";
-import { ProfileCompletionForm } from "@/components/ProfileCompletionForm";
 import { BookOpen, Calendar, CheckCircle, Clock, MessageCircle } from "lucide-react";
 import { PageLoadingSkeleton } from "@/components/ui/page-loading-skeleton";
 import { ErrorState } from "@/components/ui/error-state";
@@ -31,7 +31,14 @@ interface Enrollment {
 
 const MyLearning = () => {
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
+  const { user, signOut, isLoading: authLoading } = useAuth();
+
+  // Redirect to app learning hub
+  useEffect(() => {
+    if (!authLoading && user) {
+      navigate('/app/learning', { replace: true });
+    }
+  }, [user, authLoading, navigate]);
 
   // Fetch student profile with timeout
   const { data: studentProfile, isLoading: profileLoading, error: profileError, refetch: refetchProfile } = useQueryWithTimeout({
@@ -123,14 +130,18 @@ const MyLearning = () => {
     );
   }
 
-  // Show profile completion form if profile is missing
+  // Redirect to auth if profile is missing (user should complete onboarding in app)
   if (!studentProfile) {
     return (
       <>
         <Navbar />
         <div className="min-h-screen bg-background flex items-center justify-center p-4 sm:p-6">
-          <div className="max-w-md w-full">
-            <ProfileCompletionForm user={user} onComplete={handleProfileComplete} />
+          <div className="max-w-md w-full text-center">
+            <h2 className="text-xl font-bold mb-4">Complete Your Profile</h2>
+            <p className="text-muted-foreground mb-6">Please complete your profile to access your learning.</p>
+            <Button onClick={() => navigate("/app/profile")}>
+              Complete Profile
+            </Button>
           </div>
         </div>
       </>

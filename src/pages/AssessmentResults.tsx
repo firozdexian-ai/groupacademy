@@ -26,7 +26,6 @@ import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { ScorecardPDFTemplate } from "@/components/assessment/ScorecardPDFTemplate";
 import { generateScorecardPDF } from "@/lib/assessmentPdfGenerator";
 import { RetryErrorCard, getErrorType } from "@/components/ui/retry-error-card";
-import { ServiceRecommendations } from "@/components/ServiceRecommendations";
 
 interface Assessment {
   id: string;
@@ -609,9 +608,6 @@ export default function AssessmentResults() {
               </CardContent>
             </Card>
           </div>
-
-          {/* Service Recommendations */}
-          <ServiceRecommendations currentService="assessment" className="mb-6" />
 
           {/* Footer Info */}
           <div className="text-center mt-8 text-sm text-muted-foreground">

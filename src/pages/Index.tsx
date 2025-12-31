@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -5,6 +6,7 @@ import { ArrowRight, Briefcase, CheckCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
+import { useAuth } from "@/hooks/useAuth";
 
 // Import brand assets
 import heroIllustration from "@/assets/hero-illustration.png";
@@ -17,6 +19,14 @@ import iconAiAssistant from "@/assets/icons/icon-ai-assistant.png";
 
 const Index = () => {
   const navigate = useNavigate();
+  const { user, isLoading } = useAuth();
+
+  // Redirect logged-in users to app
+  useEffect(() => {
+    if (!isLoading && user) {
+      navigate('/app/feed', { replace: true });
+    }
+  }, [user, isLoading, navigate]);
 
   const services = [
     {

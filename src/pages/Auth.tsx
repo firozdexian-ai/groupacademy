@@ -30,7 +30,7 @@ const Auth = () => {
   // Redirect if already logged in
   useEffect(() => {
     if (!authLoading && user) {
-      const returnTo = searchParams.get('returnTo') || '/my-learning';
+      const returnTo = searchParams.get('returnTo') || '/app/feed';
       navigate(returnTo);
     }
   }, [user, authLoading, navigate, searchParams]);
@@ -66,7 +66,7 @@ const Auth = () => {
         TIMEOUTS.AUTH,
         "Sign in timed out. Please try again."
       );
-      const returnTo = searchParams.get('returnTo') || '/my-learning';
+      const returnTo = searchParams.get('returnTo') || '/app/feed';
       navigate(returnTo);
     } catch (error: any) {
       toast.error(error.message || "Failed to sign in");
@@ -105,7 +105,7 @@ const Auth = () => {
       );
 
       if (success) {
-        const returnTo = searchParams.get('returnTo') || '/my-learning';
+        const returnTo = searchParams.get('returnTo') || '/app/feed';
         navigate(returnTo);
       } else {
         setActiveTab("login");

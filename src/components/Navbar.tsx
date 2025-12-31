@@ -2,16 +2,10 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Moon, Sun, ChevronDown } from "lucide-react";
+import { Menu, X, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import logoLight from "@/assets/logo-horizontal-light.png";
 import logoDark from "@/assets/logo-horizontal-dark.png";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 const AUTH_TIMEOUT = 5000; // 5 seconds max for auth checks
 
@@ -137,45 +131,13 @@ export const Navbar = () => {
             <Button variant="ghost" onClick={() => navigate("/courses")}>
               Courses
             </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="gap-1">
-                  Career Services
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
-                <DropdownMenuItem onClick={() => navigate("/career-services")}>
-                  Overview
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/career-assessment")}>
-                  Career Readiness Scorecard
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/mock-interview")}>
-                  AI Mock Interview
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/salary-analysis")}>
-                  AI Salary Analysis
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/portfolio-request")}>
-                  Digital Portfolio
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
             <Button variant="ghost" onClick={() => navigate("/jobs")}>
               Jobs
             </Button>
-            {isLoggedIn && (
-              <>
-                <Button variant="ghost" onClick={() => navigate("/my-learning")}>
-                  My Learning
-                </Button>
-                {isAdmin && (
-                  <Button variant="ghost" onClick={() => navigate("/dashboard")}>
-                    Dashboard
-                  </Button>
-                )}
-              </>
+            {isAdmin && (
+              <Button variant="ghost" onClick={() => navigate("/dashboard")}>
+                Dashboard
+              </Button>
             )}
           </nav>
 
@@ -193,29 +155,11 @@ export const Navbar = () => {
               <span className="sr-only">Toggle theme</span>
             </Button>
 
-            {/* Auth Buttons */}
+          {/* Auth Buttons */}
             {isLoggedIn ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild className="hidden md:flex">
-                  <Button variant="outline">Account</Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => navigate("/my-profile")}>
-                    My Profile
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate("/my-learning")}>
-                    My Learning
-                  </DropdownMenuItem>
-                  {isAdmin && (
-                    <DropdownMenuItem onClick={() => navigate("/dashboard")}>
-                      Dashboard
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuItem onClick={handleSignOut}>
-                    Sign Out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <Button onClick={() => navigate("/app/feed")} className="hidden md:flex">
+                Go to App
+              </Button>
             ) : (
               <Button onClick={() => navigate("/auth")} className="hidden md:flex">
                 Sign In
@@ -246,31 +190,21 @@ export const Navbar = () => {
             <Button variant="ghost" onClick={() => { navigate("/courses"); setMobileMenuOpen(false); }} className="justify-start">
               Courses
             </Button>
-            <Button variant="ghost" onClick={() => { navigate("/career-services"); setMobileMenuOpen(false); }} className="justify-start">
-              Career Services
-            </Button>
             <Button variant="ghost" onClick={() => { navigate("/jobs"); setMobileMenuOpen(false); }} className="justify-start">
               Jobs
             </Button>
-            {isLoggedIn && (
+            {isLoggedIn ? (
               <>
-                <Button variant="ghost" onClick={() => { navigate("/my-profile"); setMobileMenuOpen(false); }} className="justify-start">
-                  My Profile
-                </Button>
-                <Button variant="ghost" onClick={() => { navigate("/my-learning"); setMobileMenuOpen(false); }} className="justify-start">
-                  My Learning
-                </Button>
                 {isAdmin && (
                   <Button variant="ghost" onClick={() => { navigate("/dashboard"); setMobileMenuOpen(false); }} className="justify-start">
                     Dashboard
                   </Button>
                 )}
-                <Button variant="outline" onClick={() => { handleSignOut(); setMobileMenuOpen(false); }} className="justify-start">
-                  Sign Out
+                <Button onClick={() => { navigate("/app/feed"); setMobileMenuOpen(false); }}>
+                  Go to App
                 </Button>
               </>
-            )}
-            {!isLoggedIn && (
+            ) : (
               <Button onClick={() => { navigate("/auth"); setMobileMenuOpen(false); }}>
                 Sign In
               </Button>

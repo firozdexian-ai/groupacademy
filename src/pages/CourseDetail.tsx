@@ -13,7 +13,6 @@ import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CourseShareButtons } from "@/components/CourseShareButtons";
 import { AccessCodeDialog } from "@/components/AccessCodeDialog";
-import { ProfileCompletionForm } from "@/components/ProfileCompletionForm";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { GraduationCap, Video, BookOpen, Calendar, Users, MapPin, Clock, ArrowLeft, CheckCircle, Play, MessageCircle, Key, Youtube, Eye, EyeOff, RefreshCw, AlertCircle } from "lucide-react";
@@ -842,7 +841,15 @@ const CourseDetail = () => {
                   ) : user ? (
                    <>
                      {!studentProfile ? (
-                       <ProfileCompletionForm user={user} onComplete={handleProfileComplete} />
+                       <div className="p-4 bg-muted rounded-lg text-center">
+                         <p className="text-sm font-medium mb-2">Complete Your Profile</p>
+                         <p className="text-sm text-muted-foreground mb-3">
+                           Please complete your profile to enroll in courses.
+                         </p>
+                         <Button onClick={() => window.location.href = '/app/profile'}>
+                           Complete Profile
+                         </Button>
+                       </div>
                      ) : course.price > 0 ? (
                        <>
                          <div className="space-y-3">
