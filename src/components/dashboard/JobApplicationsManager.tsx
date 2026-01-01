@@ -10,13 +10,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
-import { Search, Download, ExternalLink, FileText, Mail, RefreshCw, Loader2, Copy, Forward, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Search, Download, ExternalLink, FileText, Mail, RefreshCw, Loader2, Copy, Forward, CheckCircle2, AlertTriangle, Brain } from 'lucide-react';
 import { format } from 'date-fns';
 import type { Database } from '@/integrations/supabase/types';
 
 type ApplicationStatus = Database['public']['Enums']['application_status'];
 type DeliveryStatus = Database['public']['Enums']['delivery_status'];
 type ApplicationType = Database['public']['Enums']['application_type'];
+
+interface JobAssessment {
+  id: string;
+  ai_score: number | null;
+  status: string;
+}
 
 interface JobApplication {
   id: string;
@@ -36,12 +42,14 @@ interface JobApplication {
     application_type: ApplicationType;
     application_email: string | null;
     application_url: string | null;
+    ai_assessment_enabled: boolean | null;
   } | null;
   talents: {
     full_name: string;
     email: string;
     phone: string | null;
   } | null;
+  job_assessments?: JobAssessment[];
 }
 
 const APPLICATION_STATUSES: { value: ApplicationStatus; label: string }[] = [
@@ -81,7 +89,7 @@ export const JobApplicationsManager = () => {
             .from('job_applications')
             .select(`
               *,
-              jobs (title, company_name, application_type, application_email, application_url),
+              jobs (title, company_name, application_type, application_email, application_url, ai_assessment_enabled),
               talents (full_name, email, phone)
             `)
             .order('created_at', { ascending: false })
@@ -423,6 +431,7 @@ This application was submitted via GroUp Academy Jobs Board.
                 <TableHead>Applicant</TableHead>
                 <TableHead>Job</TableHead>
                 <TableHead>Type</TableHead>
+                <TableHead>AI Score</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Delivery</TableHead>
                 <TableHead>Paid</TableHead>
@@ -433,7 +442,7 @@ This application was submitted via GroUp Academy Jobs Board.
             <TableBody>
               {filteredApplications.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                     No applications found
                   </TableCell>
                 </TableRow>
@@ -463,6 +472,26 @@ This application was submitted via GroUp Academy Jobs Board.
                       <Badge variant={app.jobs?.application_type === 'link' ? 'secondary' : 'outline'}>
                         {app.jobs?.application_type === 'link' ? 'Link' : 'Email'}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {app.jobs?.ai_assessment_enabled ? (
+                        app.job_assessments && app.job_assessments.length > 0 ? (
+                          <div className="flex items-center gap-1">
+                            <Brain className="h-4 w-4 text-primary" />
+                            <span className={`font-semibold ${
+                              (app.job_assessments[0].ai_score || 0) >= 70 ? 'text-green-600' :
+                              (app.job_assessments[0].ai_score || 0) >= 50 ? 'text-amber-600' :
+                              'text-red-600'
+                            }`}>
+                              {app.job_assessments[0].ai_score !== null ? `${app.job_assessments[0].ai_score}%` : 'Pending'}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">Not taken</span>
+                        )
+                      ) : (
+                        <span className="text-sm text-muted-foreground">N/A</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Select

@@ -20,6 +20,7 @@ interface Job {
   company_name: string;
   company_logo_url: string | null;
   application_email: string | null;
+  ai_assessment_enabled: boolean | null;
 }
 
 export default function AppJobApplication() {
@@ -46,7 +47,7 @@ export default function AppJobApplication() {
     try {
       const { data, error } = await supabase
         .from('jobs')
-        .select('id, title, company_name, company_logo_url, application_email')
+        .select('id, title, company_name, company_logo_url, application_email, ai_assessment_enabled')
         .eq('id', id)
         .single();
 
@@ -102,6 +103,28 @@ export default function AppJobApplication() {
           coverLetter: coverLetter
         }
       });
+
+      // Check if AI assessment is enabled for this job
+      if (job.ai_assessment_enabled) {
+        try {
+          const { data: assessmentData, error: assessmentError } = await supabase.functions.invoke('generate-job-assessment', {
+            body: {
+              jobId: job.id,
+              talentId: talent.id
+            }
+          });
+
+          if (!assessmentError && assessmentData?.assessmentId) {
+            toast.success('Application submitted! Complete the AI assessment to improve your chances.');
+            refreshBalance();
+            navigate(`/app/job-assessment/${assessmentData.assessmentId}`);
+            return;
+          }
+        } catch (assessmentErr) {
+          console.error('Error generating assessment:', assessmentErr);
+          // Continue with normal flow if assessment generation fails
+        }
+      }
 
       setSubmitted(true);
       toast.success('Application submitted successfully!');
