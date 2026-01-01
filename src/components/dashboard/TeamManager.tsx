@@ -29,7 +29,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
-import { Trash2, UserPlus, Shield, Users, Eye, Mail, Phone, Calendar, Briefcase } from "lucide-react";
+import { Trash2, UserPlus, Shield, Users, Eye, Mail, Phone, Calendar, Briefcase, KeyRound, Copy, Check } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import type { Database } from "@/integrations/supabase/types";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
@@ -65,6 +66,15 @@ export function TeamManager() {
   const [newEmail, setNewEmail] = useState("");
   const [newRole, setNewRole] = useState<AppRole>("talent_exec");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Password reset state
+  const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
+  const [resetMember, setResetMember] = useState<TeamMember | null>(null);
+  const [resetMethod, setResetMethod] = useState<"email" | "temporary">("email");
+  const [isResetting, setIsResetting] = useState(false);
+  const [tempPassword, setTempPassword] = useState<string | null>(null);
+  const [resetLink, setResetLink] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     fetchTeamMembers();
@@ -217,6 +227,71 @@ export function TeamManager() {
   const handleViewDetails = (member: TeamMember) => {
     setSelectedMember(member);
     setIsDetailDialogOpen(true);
+  };
+
+  const handleOpenResetDialog = (member: TeamMember) => {
+    setResetMember(member);
+    setResetMethod("email");
+    setTempPassword(null);
+    setResetLink(null);
+    setCopied(false);
+    setIsResetDialogOpen(true);
+  };
+
+  const handleResetPassword = async () => {
+    if (!resetMember?.talent) return;
+
+    setIsResetting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error("You must be logged in");
+        return;
+      }
+
+      const response = await supabase.functions.invoke("admin-reset-password", {
+        body: {
+          targetUserId: resetMember.user_id,
+          targetEmail: resetMember.talent.email,
+          method: resetMethod,
+        },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || "Failed to reset password");
+      }
+
+      const data = response.data;
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      if (resetMethod === "temporary" && data.temporaryPassword) {
+        setTempPassword(data.temporaryPassword);
+        toast.success("Temporary password generated");
+      } else if (resetMethod === "email") {
+        if (data.resetLink) {
+          setResetLink(data.resetLink);
+          toast.success("Reset link generated - share it with the user");
+        } else {
+          toast.success("Password reset email sent");
+          setIsResetDialogOpen(false);
+        }
+      }
+    } catch (error: any) {
+      console.error("Password reset error:", error);
+      toast.error(error.message || "Failed to reset password");
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
+  const handleCopy = async (text: string) => {
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    toast.success("Copied to clipboard");
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const getRoleBadgeVariant = (role: AppRole) => {
@@ -422,13 +497,24 @@ export function TeamManager() {
                         variant="ghost"
                         size="icon"
                         onClick={() => handleViewDetails(member)}
+                        title="View details"
                       >
                         <Eye className="w-4 h-4" />
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
+                        onClick={() => handleOpenResetDialog(member)}
+                        title="Reset password"
+                        disabled={!member.talent}
+                      >
+                        <KeyRound className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => handleRemoveRole(member.id, member.role)}
+                        title="Remove role"
                       >
                         <Trash2 className="w-4 h-4 text-destructive" />
                       </Button>
@@ -513,6 +599,151 @@ export function TeamManager() {
                   User ID: <code className="bg-muted px-1 py-0.5 rounded">{selectedMember.user_id}</code>
                 </p>
               </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Password Reset Dialog */}
+      <Dialog open={isResetDialogOpen} onOpenChange={(open) => {
+        if (!open) {
+          setTempPassword(null);
+          setResetLink(null);
+        }
+        setIsResetDialogOpen(open);
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <KeyRound className="w-5 h-5" />
+              Reset Password
+            </DialogTitle>
+            <DialogDescription>
+              Reset password for {resetMember?.talent?.full_name || "this user"}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {resetMember?.talent && (
+            <div className="space-y-4">
+              {/* User Info */}
+              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                <Avatar className="h-10 w-10">
+                  <AvatarImage src={resetMember.talent.profile_photo_url || ""} />
+                  <AvatarFallback className="bg-primary/10 text-primary">
+                    {getInitials(resetMember.talent.full_name)}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-medium">{resetMember.talent.full_name}</p>
+                  <p className="text-sm text-muted-foreground">{resetMember.talent.email}</p>
+                </div>
+              </div>
+
+              {/* Show result if available */}
+              {tempPassword && (
+                <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg space-y-2">
+                  <p className="text-sm font-medium text-amber-600">Temporary Password Generated</p>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 p-2 bg-background rounded border text-sm font-mono">
+                      {tempPassword}
+                    </code>
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      onClick={() => handleCopy(tempPassword)}
+                    >
+                      {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Share this password securely. The user should change it immediately after logging in.
+                  </p>
+                </div>
+              )}
+
+              {resetLink && (
+                <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg space-y-2">
+                  <p className="text-sm font-medium text-blue-600">Reset Link Generated</p>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 p-2 bg-background rounded border text-xs font-mono truncate">
+                      {resetLink}
+                    </code>
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      onClick={() => handleCopy(resetLink)}
+                    >
+                      {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Share this link with the user. It will expire in 1 hour.
+                  </p>
+                </div>
+              )}
+
+              {/* Method Selection - only show if no result yet */}
+              {!tempPassword && !resetLink && (
+                <>
+                  <div className="space-y-3">
+                    <Label>Choose reset method</Label>
+                    <RadioGroup 
+                      value={resetMethod} 
+                      onValueChange={(v) => setResetMethod(v as "email" | "temporary")}
+                    >
+                      <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-muted/50 cursor-pointer">
+                        <RadioGroupItem value="email" id="email-method" className="mt-1" />
+                        <div className="space-y-1">
+                          <Label htmlFor="email-method" className="cursor-pointer font-medium">
+                            Generate Reset Link
+                          </Label>
+                          <p className="text-sm text-muted-foreground">
+                            Creates a password reset link you can share with the user
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-muted/50 cursor-pointer">
+                        <RadioGroupItem value="temporary" id="temp-method" className="mt-1" />
+                        <div className="space-y-1">
+                          <Label htmlFor="temp-method" className="cursor-pointer font-medium">
+                            Generate Temporary Password
+                          </Label>
+                          <p className="text-sm text-muted-foreground">
+                            Sets a temporary password you'll need to share manually
+                          </p>
+                        </div>
+                      </div>
+                    </RadioGroup>
+                  </div>
+
+                  <div className="flex gap-2 pt-2">
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => setIsResetDialogOpen(false)}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      className="flex-1"
+                      onClick={handleResetPassword}
+                      disabled={isResetting}
+                    >
+                      {isResetting ? "Processing..." : "Reset Password"}
+                    </Button>
+                  </div>
+                </>
+              )}
+
+              {/* Close button when showing result */}
+              {(tempPassword || resetLink) && (
+                <Button
+                  className="w-full"
+                  onClick={() => setIsResetDialogOpen(false)}
+                >
+                  Done
+                </Button>
+              )}
             </div>
           )}
         </DialogContent>
