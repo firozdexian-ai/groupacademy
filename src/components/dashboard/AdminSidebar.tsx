@@ -79,6 +79,16 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
+    title: "Recruitment",
+    icon: Briefcase,
+    roles: ["admin", "talent_exec"],
+    items: [
+      { title: "Manage Jobs", icon: Building2, value: "jobs" },
+      { title: "Applications", icon: FileCheck, value: "applications" },
+      { title: "Companies", icon: Building2, value: "companies" },
+    ],
+  },
+  {
     title: "Content Management",
     icon: BookOpen,
     roles: ["admin"],
@@ -93,16 +103,6 @@ const navGroups: NavGroup[] = [
       { title: "Study Abroad", icon: GraduationCap, value: "study-abroad" },
       { title: "IELTS Resources", icon: BookOpen, value: "ielts" },
       { title: "Competitions", icon: Trophy, value: "competitions" },
-    ],
-  },
-  {
-    title: "Jobs & Companies",
-    icon: Building2,
-    roles: ["admin"],
-    items: [
-      { title: "Manage Jobs", icon: Building2, value: "jobs" },
-      { title: "Applications", icon: FileCheck, value: "applications" },
-      { title: "Companies", icon: Building2, value: "companies" },
     ],
   },
   {
