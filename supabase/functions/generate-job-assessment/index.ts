@@ -163,11 +163,11 @@ Respond ONLY with valid JSON in this exact format:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
+        model: 'openai/gpt-5-mini',
         messages: [
           {
             role: 'system',
-            content: 'You are an expert HR interviewer. Generate unique, personalized assessment questions. Always respond with valid JSON only.'
+            content: 'You are an expert HR interviewer. Generate unique, personalized assessment questions. CRITICAL: Return ONLY a valid JSON object. No markdown, no code fences, no explanatory text. Just the raw JSON object starting with { and ending with }.'
           },
           { role: 'user', content: prompt }
         ],
@@ -197,10 +197,12 @@ Respond ONLY with valid JSON in this exact format:
       );
     }
 
-    // Parse the JSON response
+    // Parse the JSON response with robust cleaning
     let parsedContent;
     try {
       let cleanContent = content.trim();
+      
+      // Remove code fences
       if (cleanContent.startsWith('```json')) {
         cleanContent = cleanContent.slice(7);
       } else if (cleanContent.startsWith('```')) {
@@ -210,11 +212,58 @@ Respond ONLY with valid JSON in this exact format:
         cleanContent = cleanContent.slice(0, -3);
       }
       cleanContent = cleanContent.trim();
-      parsedContent = JSON.parse(cleanContent);
+      
+      // Try to extract JSON object if there's extra text
+      const firstBrace = cleanContent.indexOf('{');
+      const lastBrace = cleanContent.lastIndexOf('}');
+      if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+        cleanContent = cleanContent.substring(firstBrace, lastBrace + 1);
+      }
+      
+      // Remove illegal control characters that break JSON parsing
+      cleanContent = cleanContent.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, ' ');
+      
+      // Fix common JSON issues: truncated strings in arrays
+      // This handles cases where expected_points array has incomplete entries
+      cleanContent = cleanContent.replace(/,\s*"[^"]*$/g, ''); // Remove trailing incomplete strings
+      cleanContent = cleanContent.replace(/\[\s*"[^"]*$/g, '[]'); // Fix incomplete arrays
+      
+      try {
+        parsedContent = JSON.parse(cleanContent);
+      } catch (firstError) {
+        // Second attempt: try to fix common structural issues
+        console.log('First parse attempt failed, trying to fix JSON structure...');
+        
+        // Fix incomplete arrays by finding unclosed brackets
+        let fixedContent = cleanContent;
+        const openBrackets = (fixedContent.match(/\[/g) || []).length;
+        const closeBrackets = (fixedContent.match(/\]/g) || []).length;
+        const missingBrackets = openBrackets - closeBrackets;
+        if (missingBrackets > 0) {
+          // Find the last valid position and close arrays
+          const lastValidComma = fixedContent.lastIndexOf('",');
+          if (lastValidComma > 0) {
+            fixedContent = fixedContent.substring(0, lastValidComma + 1);
+            fixedContent += '"placeholder"]'.repeat(missingBrackets);
+            // Also close any open objects
+            const openBraces = (fixedContent.match(/{/g) || []).length;
+            const closeBraces = (fixedContent.match(/}/g) || []).length;
+            fixedContent += '}'.repeat(openBraces - closeBraces);
+          }
+        }
+        
+        parsedContent = JSON.parse(fixedContent);
+      }
+      
+      console.log('Successfully parsed AI response with', 
+        parsedContent.mcq_questions?.length || 0, 'MCQ questions and',
+        parsedContent.voice_questions?.length || 0, 'voice questions');
+        
     } catch (parseError) {
-      console.error('Failed to parse AI response:', parseError, 'Content:', content);
+      console.error('Failed to parse AI response:', parseError);
+      console.error('Content length:', content.length, 'Preview:', content.substring(0, 500));
       return new Response(
-        JSON.stringify({ error: 'Failed to parse AI response' }),
+        JSON.stringify({ error: 'Failed to parse AI response - please try again' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
