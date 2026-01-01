@@ -6,7 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 
 export interface FeedItem {
   id: string;
-  type: 'job' | 'course' | 'video';
+  type: 'job' | 'course' | 'video' | 'blog';
   title: string;
   description: string;
   company?: string;
@@ -23,7 +23,7 @@ export interface FeedItem {
   youtubeUrl?: string;
 }
 
-export type FeedFilterType = 'all' | 'job' | 'course' | 'video';
+export type FeedFilterType = 'all' | 'job' | 'course' | 'video' | 'blog';
 export type FeedSortType = 'match' | 'newest';
 
 export interface FeedFilters {
@@ -112,7 +112,7 @@ export function useFeedRecommendations(): UseFeedRecommendationsResult {
   // Basic fallback fetch without AI
   const fetchBasicFeed = async () => {
     try {
-      const [jobsResult, coursesResult] = await Promise.all([
+      const [jobsResult, coursesResult, blogsResult] = await Promise.all([
         supabase
           .from('jobs')
           .select('id, title, description, company_name, company_logo_url, source_image_url, location, created_at')
@@ -124,7 +124,13 @@ export function useFeedRecommendations(): UseFeedRecommendationsResult {
           .select('id, title, description, thumbnail_url, cover_image_url, youtube_url, created_at, slug, content_type')
           .eq('is_published', true)
           .order('created_at', { ascending: false })
-          .limit(15)
+          .limit(15),
+        supabase
+          .from('blog_posts')
+          .select('id, title, excerpt, featured_image, created_at, slug, category')
+          .eq('status', 'published')
+          .order('created_at', { ascending: false })
+          .limit(10)
       ]);
 
       // Helper to extract YouTube thumbnail
@@ -132,6 +138,9 @@ export function useFeedRecommendations(): UseFeedRecommendationsResult {
         const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/);
         return match ? `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg` : null;
       };
+
+      // Helper to generate randomized fallback scores (60-85%)
+      const getRandomScore = () => Math.floor(Math.random() * 26) + 60;
 
       const items: FeedItem[] = [];
 
@@ -147,7 +156,7 @@ export function useFeedRecommendations(): UseFeedRecommendationsResult {
             companyLogo: job.company_logo_url || undefined,
             location: job.location || undefined,
             createdAt: job.created_at || '',
-            matchScore: 50,
+            matchScore: getRandomScore(),
             mediaUrl: mediaUrl,
             mediaType: mediaUrl ? 'image' : undefined
           });
@@ -177,10 +186,28 @@ export function useFeedRecommendations(): UseFeedRecommendationsResult {
             thumbnail: course.thumbnail_url || undefined,
             createdAt: course.created_at || '',
             slug: course.slug,
-            matchScore: 50,
+            matchScore: getRandomScore(),
             mediaUrl: mediaUrl,
             mediaType: mediaType,
             youtubeUrl: youtubeUrl
+          });
+        });
+      }
+
+      if (blogsResult.data) {
+        blogsResult.data.forEach(blog => {
+          items.push({
+            id: blog.id,
+            type: 'blog',
+            title: blog.title,
+            description: blog.excerpt || '',
+            thumbnail: blog.featured_image || undefined,
+            createdAt: blog.created_at || '',
+            slug: blog.slug,
+            matchScore: getRandomScore(),
+            mediaUrl: blog.featured_image || undefined,
+            mediaType: blog.featured_image ? 'image' : undefined,
+            skills: blog.category ? [blog.category] : undefined
           });
         });
       }

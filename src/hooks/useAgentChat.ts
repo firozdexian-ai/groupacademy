@@ -32,6 +32,7 @@ interface UseAgentChatReturn {
   loadRecentSessions: () => Promise<void>;
   isSessionExpired: boolean;
   timeRemaining: number | null;
+  isLoadingSessions: boolean;
 }
 
 export function useAgentChat(): UseAgentChatReturn {
@@ -42,6 +43,7 @@ export function useAgentChat(): UseAgentChatReturn {
   const [isStreaming, setIsStreaming] = useState(false);
   const [recentSessions, setRecentSessions] = useState<AgentSession[]>([]);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
+  const [isLoadingSessions, setIsLoadingSessions] = useState(true);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Calculate if session is expired
@@ -77,8 +79,12 @@ export function useAgentChat(): UseAgentChatReturn {
   }, [session]);
 
   const loadRecentSessions = useCallback(async () => {
-    if (!talent?.id) return;
+    if (!talent?.id) {
+      setIsLoadingSessions(false);
+      return;
+    }
 
+    setIsLoadingSessions(true);
     try {
       const { data, error } = await supabase
         .from('agent_chat_sessions')
@@ -98,6 +104,8 @@ export function useAgentChat(): UseAgentChatReturn {
       setRecentSessions(sessions);
     } catch (error) {
       console.error('Failed to load recent sessions:', error);
+    } finally {
+      setIsLoadingSessions(false);
     }
   }, [talent?.id]);
 
@@ -327,6 +335,7 @@ export function useAgentChat(): UseAgentChatReturn {
     recentSessions,
     loadRecentSessions,
     isSessionExpired,
-    timeRemaining
+    timeRemaining,
+    isLoadingSessions
   };
 }

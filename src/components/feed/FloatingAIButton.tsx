@@ -51,9 +51,15 @@ export function FloatingAIButton({ showPrompt = true }: FloatingAIButtonProps) {
         className={cn(
           'h-14 w-14 rounded-full shadow-lg transition-all duration-200',
           'bg-primary hover:bg-primary/90',
+          'touch-action-manipulation',
           isHovered && 'scale-110'
         )}
+        style={{ touchAction: 'manipulation' }}
         onClick={handleClick}
+        onTouchEnd={(e) => {
+          e.preventDefault();
+          handleClick();
+        }}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >

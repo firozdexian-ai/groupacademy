@@ -51,6 +51,8 @@ export default function Feed() {
     await markInterested(item);
     if (item.type === 'job') {
       navigate(`/app/jobs/${item.id}`);
+    } else if (item.type === 'blog' && item.slug) {
+      navigate(`/app/blog/${item.slug}`);
     } else if (item.slug) {
       navigate(`/app/learning/courses/${item.slug}`);
     }
@@ -60,7 +62,8 @@ export default function Feed() {
     all: items.length,
     job: items.filter(i => i.type === 'job').length,
     course: items.filter(i => i.type === 'course').length,
-    video: items.filter(i => i.type === 'video').length
+    video: items.filter(i => i.type === 'video').length,
+    blog: items.filter(i => i.type === 'blog').length
   };
 
   if (showOnboarding) {

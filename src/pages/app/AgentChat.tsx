@@ -59,7 +59,8 @@ export default function AgentChat() {
     endSession,
     recentSessions,
     isSessionExpired,
-    timeRemaining
+    timeRemaining,
+    isLoadingSessions
   } = useAgentChat();
 
   const { balance, deductCredits } = useCredits();
@@ -74,6 +75,11 @@ export default function AgentChat() {
       return;
     }
 
+    // Wait for sessions to actually load before making decisions
+    if (isLoadingSessions) {
+      return;
+    }
+
     const initializeSession = async () => {
       // Check if there's an active session for this agent
       const activeSession = recentSessions.find(
@@ -83,7 +89,7 @@ export default function AgentChat() {
       );
 
       if (activeSession) {
-        // Resume existing session
+        // Resume existing session - no credit charge
         await loadSession(activeSession.id);
         setIsInitializing(false);
       } else {
@@ -93,10 +99,8 @@ export default function AgentChat() {
       }
     };
 
-    if (recentSessions.length >= 0) {
-      initializeSession();
-    }
-  }, [agentKey, recentSessions, agent, navigate, loadSession]);
+    initializeSession();
+  }, [agentKey, recentSessions, agent, navigate, loadSession, isLoadingSessions]);
 
   const handleConfirmCredit = async () => {
     if (!agentKey) return;

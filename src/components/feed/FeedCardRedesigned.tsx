@@ -1,6 +1,7 @@
-import { X, Heart, Briefcase, Play, BookOpen, MapPin, Building2 } from 'lucide-react';
+import { Briefcase, Play, BookOpen, MapPin, Building2, Newspaper, ArrowRight } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { CircularMatchBadge } from './CircularMatchBadge';
 import { SkillTagBadge } from './SkillTagBadge';
 import { cn } from '@/lib/utils';
@@ -21,6 +22,8 @@ export function FeedCardRedesigned({ item, onInterested, onNotInterested }: Feed
         return <Play className="h-3 w-3" />;
       case 'course':
         return <BookOpen className="h-3 w-3" />;
+      case 'blog':
+        return <Newspaper className="h-3 w-3" />;
     }
   };
 
@@ -32,6 +35,8 @@ export function FeedCardRedesigned({ item, onInterested, onNotInterested }: Feed
         return 'bg-destructive/10 text-destructive border-destructive/20';
       case 'course':
         return 'bg-accent/20 text-accent-foreground border-accent/30';
+      case 'blog':
+        return 'bg-secondary/20 text-secondary-foreground border-secondary/30';
     }
   };
 
@@ -43,6 +48,21 @@ export function FeedCardRedesigned({ item, onInterested, onNotInterested }: Feed
         return 'from-destructive/20 via-destructive/10 to-background';
       case 'course':
         return 'from-accent/20 via-accent/10 to-background';
+      case 'blog':
+        return 'from-secondary/20 via-secondary/10 to-background';
+    }
+  };
+
+  const getActionLabel = () => {
+    switch (item.type) {
+      case 'job':
+        return 'View Job';
+      case 'video':
+        return 'Watch';
+      case 'course':
+        return 'Learn More';
+      case 'blog':
+        return 'Read';
     }
   };
 
@@ -157,37 +177,33 @@ export function FeedCardRedesigned({ item, onInterested, onNotInterested }: Feed
           </p>
         )}
 
-        {/* Compact Action Buttons */}
-        <div className="flex items-center justify-center gap-4 mt-2 pt-2 border-t border-border/50">
-          {/* Dismiss Button */}
-          <button
+        {/* Action Buttons - Clear Labels */}
+        <div className="flex items-center gap-2 mt-2.5 pt-2.5 border-t border-border/50">
+          {/* Skip Button */}
+          <Button
+            variant="outline"
+            size="sm"
             onClick={(e) => {
               e.stopPropagation();
               onNotInterested();
             }}
-            className="w-11 h-11 rounded-full bg-card border-2 border-destructive/30 
-                       flex items-center justify-center shadow-md 
-                       hover:scale-110 hover:border-destructive/60 hover:bg-destructive/5
-                       active:scale-95 transition-all duration-200 press-scale"
-            aria-label="Not interested"
+            className="flex-1 h-9 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50"
           >
-            <X className="h-5 w-5 text-destructive" />
-          </button>
+            Skip
+          </Button>
 
-          {/* Interested Button */}
-          <button
+          {/* Primary Action Button */}
+          <Button
+            size="sm"
             onClick={(e) => {
               e.stopPropagation();
               onInterested();
             }}
-            className="w-11 h-11 rounded-full bg-card border-2 border-success/30 
-                       flex items-center justify-center shadow-md 
-                       hover:scale-110 hover:border-success/60 hover:bg-success/5
-                       active:scale-95 transition-all duration-200 press-scale"
-            aria-label="Interested"
+            className="flex-1 h-9 text-xs gap-1"
           >
-            <Heart className="h-5 w-5 text-success" />
-          </button>
+            {getActionLabel()}
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Button>
         </div>
       </CardContent>
     </Card>
