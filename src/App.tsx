@@ -43,6 +43,7 @@ import SalaryAnalysisProcessing from "./pages/SalaryAnalysisProcessing";
 import SalaryAnalysisResults from "./pages/SalaryAnalysisResults";
 import Organization from "./pages/Organization";
 import NotFound from "./pages/NotFound";
+import PublicJobDetail from "./pages/PublicJobDetail";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
 // New App Shell Pages
@@ -137,8 +138,8 @@ export default function App() {
                   <Route path="/blog" element={<Blog />} />
                   <Route path="/blog/:slug" element={<BlogPost />} />
                   
-                  {/* Job detail with redirect */}
-                  <Route path="/jobs/:id" element={<Navigate to="/auth?returnTo=/app/jobs" replace />} />
+                  {/* Public job detail page */}
+                  <Route path="/jobs/:id" element={<PublicJobDetail />} />
                   <Route path="/jobs/:id/apply" element={<Navigate to="/auth?returnTo=/app/jobs" replace />} />
                   
                   <Route path="/my-profile" element={<Navigate to="/app/profile" replace />} />

@@ -91,16 +91,30 @@ export default function AppJobDetail() {
     return null;
   };
 
-  const handleShare = () => {
-    if (navigator.share) {
-      navigator.share({
-        title: job?.title,
-        text: `${job?.title} at ${job?.company_name}`,
-        url: window.location.href,
-      });
-    } else {
-      navigator.clipboard.writeText(window.location.href);
-      toast.success("Link copied!");
+  const handleShare = async () => {
+    const shareUrl = `${window.location.origin}/jobs/${id}`;
+    const shareData = {
+      title: job?.title,
+      text: `${job?.title} at ${job?.company_name}`,
+      url: shareUrl,
+    };
+
+    try {
+      if (navigator.share && navigator.canShare?.(shareData)) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(shareUrl);
+        toast.success("Link copied!");
+      }
+    } catch (error) {
+      if (error instanceof Error && error.name !== 'AbortError') {
+        try {
+          await navigator.clipboard.writeText(shareUrl);
+          toast.success("Link copied!");
+        } catch {
+          toast.error("Unable to share. Please copy the URL manually.");
+        }
+      }
     }
   };
 

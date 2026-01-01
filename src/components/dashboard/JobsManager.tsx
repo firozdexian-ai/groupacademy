@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   Plus, Search, Edit, Trash2, Sparkles, MapPin, Building2, 
-  Calendar, ExternalLink, Loader2, Copy, Eye, EyeOff, Star, Wand2, Image
+  Calendar, ExternalLink, Loader2, Copy, Eye, EyeOff, Star, Wand2, Image, Share2
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -534,6 +534,12 @@ export function JobsManager() {
     setIsDialogOpen(true);
   };
 
+  const handleShareJob = (job: Job) => {
+    const jobUrl = `${window.location.origin}/jobs/${job.id}`;
+    navigator.clipboard.writeText(jobUrl);
+    toast.success("Job link copied to clipboard!");
+  };
+
   const activeCount = jobs.filter((j) => j.is_active).length;
   const featuredCount = jobs.filter((j) => j.is_featured).length;
 
@@ -662,6 +668,14 @@ export function JobsManager() {
                           title="Edit"
                         >
                           <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleShareJob(job)}
+                          title="Copy Share Link"
+                        >
+                          <Share2 className="w-4 h-4" />
                         </Button>
                         <Button
                           variant="ghost"
