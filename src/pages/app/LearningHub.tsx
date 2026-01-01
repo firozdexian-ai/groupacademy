@@ -144,9 +144,9 @@ export default function LearningHub() {
         </div>
 
         {isLoading ? (
-          <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
-            {[1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-24 w-36 flex-shrink-0 rounded-lg" />
+          <div className="grid grid-cols-2 gap-3">
+            {[1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} className="h-28 rounded-lg" />
             ))}
           </div>
         ) : enrollments.length === 0 ? (
@@ -163,15 +163,15 @@ export default function LearningHub() {
             </CardContent>
           </Card>
         ) : (
-          <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory">
+          <div className="grid grid-cols-2 gap-3">
             {enrollments.map((enrollment) => (
               <Card 
                 key={enrollment.id}
-                className="flex-shrink-0 w-36 cursor-pointer hover:shadow-md transition-all snap-start"
+                className="cursor-pointer hover:shadow-md transition-all"
                 onClick={() => navigate(`/app/learning/courses/${enrollment.content.slug}`)}
               >
                 <CardContent className="p-0">
-                  <div className="h-16 bg-muted rounded-t-lg overflow-hidden">
+                  <div className="h-20 bg-muted rounded-t-lg overflow-hidden">
                     {enrollment.content.thumbnail_url ? (
                       <img 
                         src={enrollment.content.thumbnail_url} 
