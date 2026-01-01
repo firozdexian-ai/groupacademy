@@ -1394,7 +1394,7 @@ export type Database = {
           id: string
           is_paid: boolean | null
           job_id: string
-          professional_id: string
+          professional_id: string | null
           talent_id: string | null
         }
         Insert: {
@@ -1411,7 +1411,7 @@ export type Database = {
           id?: string
           is_paid?: boolean | null
           job_id: string
-          professional_id: string
+          professional_id?: string | null
           talent_id?: string | null
         }
         Update: {
@@ -1428,7 +1428,7 @@ export type Database = {
           id?: string
           is_paid?: boolean | null
           job_id?: string
-          professional_id?: string
+          professional_id?: string | null
           talent_id?: string | null
         }
         Relationships: [
