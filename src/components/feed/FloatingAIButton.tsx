@@ -14,7 +14,7 @@ export function FloatingAIButton({ showPrompt = true }: FloatingAIButtonProps) {
   const [isHovered, setIsHovered] = useState(false);
 
   const handleClick = () => {
-    navigate('/app/ai-agents');
+    navigate('/app/agents');
   };
 
   const dismissPrompt = (e: React.MouseEvent) => {
