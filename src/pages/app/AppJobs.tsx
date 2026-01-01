@@ -71,6 +71,7 @@ export default function AppJobs() {
         .from('jobs')
         .select('id, title, company_name, company_logo_url, location, job_type, experience_level, is_featured, created_at')
         .eq('is_active', true)
+        .or('deadline.is.null,deadline.gte.now()')
         .order('is_featured', { ascending: false })
         .order('created_at', { ascending: false });
 

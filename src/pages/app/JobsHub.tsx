@@ -61,6 +61,7 @@ export default function JobsHub() {
         .from('jobs')
         .select('id, title, company_name, company_logo_url, location, job_type, created_at')
         .eq('is_active', true)
+        .or('deadline.is.null,deadline.gte.now()')
         .order('created_at', { ascending: false })
         .limit(3);
 
@@ -114,7 +115,7 @@ export default function JobsHub() {
               key={collection.filter}
               className={`cursor-pointer border-0 bg-gradient-to-br ${collection.gradient} animate-bounce-in press-scale`}
               style={{ animationDelay: `${index * 50}ms` }}
-              onClick={() => navigate(`/app/jobs?type=${collection.filter}`)}
+              onClick={() => navigate(`/app/jobs/all?type=${collection.filter}`)}
             >
               <CardContent className="p-4 flex flex-col items-center text-center">
                 <div className="w-11 h-11 bg-background/80 rounded-xl flex items-center justify-center mb-2 shadow-sm">
@@ -139,7 +140,7 @@ export default function JobsHub() {
             variant="ghost" 
             size="sm" 
             className="text-primary font-medium"
-            onClick={() => navigate('/app/jobs?all=true')}
+            onClick={() => navigate('/app/jobs/all')}
           >
             See all <ChevronRight className="h-4 w-4 ml-1" />
           </Button>
@@ -232,18 +233,18 @@ export default function JobsHub() {
       {/* Quick Actions */}
       <section>
         <h2 className="text-lg font-bold mb-4">Quick Actions</h2>
-        <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
+        <div className="flex flex-col gap-2">
           <Button 
             variant="outline" 
-            className="rounded-full h-10 px-4 shrink-0 gap-2 press-scale"
-            onClick={() => navigate('/app/jobs?all=true')}
+            className="w-full justify-start h-11 px-4 gap-3 press-scale"
+            onClick={() => navigate('/app/jobs/all')}
           >
             <Search className="h-4 w-4" />
-            All Jobs
+            Browse All Jobs
           </Button>
           <Button 
             variant="outline" 
-            className="rounded-full h-10 px-4 shrink-0 gap-2 press-scale"
+            className="w-full justify-start h-11 px-4 gap-3 press-scale"
             onClick={() => navigate('/app/applications')}
           >
             <FileText className="h-4 w-4" />
