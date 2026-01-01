@@ -50,3 +50,9 @@ verify_jwt = false
 
 [functions.score-talent-match]
 verify_jwt = false
+
+[functions.generate-job-assessment]
+verify_jwt = false
+
+[functions.analyze-job-assessment]
+verify_jwt = false

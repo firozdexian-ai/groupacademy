@@ -28,6 +28,7 @@ import { StudyAbroadManager } from "@/components/dashboard/StudyAbroadManager";
 import { IELTSResourcesManager } from "@/components/dashboard/IELTSResourcesManager";
 import { CompetitionsManager } from "@/components/dashboard/CompetitionsManager";
 import { BlogManager } from "@/components/dashboard/BlogManager";
+import { LeadHunterManager } from "@/components/dashboard/LeadHunterManager";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -59,6 +60,7 @@ const tabAccessMap: Record<string, AppRole[]> = {
   outreach: ["admin", "talent_exec"],
   talent: ["admin", "talent_exec"],
   portfolios: ["admin", "talent_exec"],
+  "lead-hunter": ["admin", "talent_exec"],
   // Recruitment - accessible by both admin and talent_exec
   jobs: ["admin", "talent_exec"],
   applications: ["admin", "talent_exec"],
@@ -234,6 +236,8 @@ const Dashboard = () => {
         return <CVOutreachGenerator />;
       case "talent":
         return <TalentPoolManager />;
+      case "lead-hunter":
+        return <LeadHunterManager />;
       case "companies":
         return <CompaniesManager />;
       case "team":
@@ -275,6 +279,7 @@ const Dashboard = () => {
       interviews: "Mock Interviews",
       salary: "Salary Analysis",
       professions: "Professions Manager",
+      "lead-hunter": "Lead Hunter",
       jobs: "Jobs Board",
       applications: "Job Applications",
       outreach: "CV Outreach Generator",

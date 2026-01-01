@@ -71,6 +71,7 @@ const navGroups: NavGroup[] = [
     roles: ["admin", "talent_exec"],
     items: [
       { title: "Talent Pool", icon: DatabaseIcon, value: "talent" },
+      { title: "Lead Hunter", icon: TrendingUp, value: "lead-hunter" },
       { title: "Assessment Leads", icon: ClipboardList, value: "leads" },
       { title: "Mock Interviews", icon: MessageSquare, value: "interviews" },
       { title: "Salary Analysis", icon: TrendingUp, value: "salary" },

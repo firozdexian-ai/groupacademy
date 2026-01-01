@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   Plus, Search, Edit, Trash2, Sparkles, MapPin, Building2, 
-  Calendar, ExternalLink, Loader2, Copy, Eye, EyeOff, Star, Wand2, Image, Share2
+  Calendar, ExternalLink, Loader2, Copy, Eye, EyeOff, Star, Wand2, Image, Share2, Brain
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -43,6 +43,8 @@ interface Job {
   deadline: string | null;
   is_active: boolean;
   is_featured: boolean;
+  ai_assessment_enabled: boolean | null;
+  assessment_config: any;
   created_at: string;
 }
 
@@ -97,6 +99,8 @@ const emptyJob = {
   deadline: "",
   is_active: true,
   is_featured: false,
+  ai_assessment_enabled: false,
+  assessment_config: { question_count: 6, voice_enabled: true } as any,
 };
 
 export function JobsManager() {
@@ -207,6 +211,8 @@ export function JobsManager() {
         deadline: job.deadline ? job.deadline.split("T")[0] : "",
         is_active: job.is_active,
         is_featured: job.is_featured,
+        ai_assessment_enabled: job.ai_assessment_enabled || false,
+        assessment_config: job.assessment_config || { question_count: 6, voice_enabled: true },
       });
     } else {
       setEditingJob(null);
@@ -438,6 +444,8 @@ export function JobsManager() {
         deadline: formData.deadline ? new Date(formData.deadline).toISOString() : null,
         is_active: formData.is_active,
         is_featured: formData.is_featured,
+        ai_assessment_enabled: formData.ai_assessment_enabled,
+        assessment_config: formData.assessment_config,
       };
 
       if (editingJob) {
@@ -530,6 +538,8 @@ export function JobsManager() {
       source_platform: job.source_platform || "other",
       source_image_url: job.source_image_url || "",
       profession_category_id: job.profession_category_id,
+      ai_assessment_enabled: job.ai_assessment_enabled || false,
+      assessment_config: job.assessment_config || { question_count: 6, voice_enabled: true },
     });
     setIsDialogOpen(true);
   };
@@ -1100,7 +1110,7 @@ export function JobsManager() {
               </div>
 
               {/* Toggles */}
-              <div className="flex items-center gap-8">
+              <div className="flex items-center gap-8 flex-wrap">
                 <div className="flex items-center gap-2">
                   <Switch
                     id="is_active"
@@ -1117,7 +1127,65 @@ export function JobsManager() {
                   />
                   <Label htmlFor="is_featured">Featured</Label>
                 </div>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="ai_assessment"
+                    checked={formData.ai_assessment_enabled}
+                    onCheckedChange={(v) => setFormData({ ...formData, ai_assessment_enabled: v })}
+                  />
+                  <Label htmlFor="ai_assessment" className="flex items-center gap-1">
+                    <Brain className="w-4 h-4" />
+                    AI Assessment
+                  </Label>
+                </div>
               </div>
+
+              {/* AI Assessment Config */}
+              {formData.ai_assessment_enabled && (
+                <div className="p-4 border rounded-lg bg-muted/30 space-y-4">
+                  <Label className="flex items-center gap-2 text-sm font-medium">
+                    <Brain className="w-4 h-4" />
+                    AI Assessment Configuration
+                  </Label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Number of Questions</Label>
+                      <Select
+                        value={String(formData.assessment_config?.question_count || 6)}
+                        onValueChange={(v) => setFormData({ 
+                          ...formData, 
+                          assessment_config: { ...formData.assessment_config, question_count: parseInt(v) } 
+                        })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="4">4 Questions</SelectItem>
+                          <SelectItem value="5">5 Questions</SelectItem>
+                          <SelectItem value="6">6 Questions</SelectItem>
+                          <SelectItem value="8">8 Questions</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex items-center gap-2 pt-7">
+                      <Switch
+                        id="voice_enabled"
+                        checked={formData.assessment_config?.voice_enabled !== false}
+                        onCheckedChange={(v) => setFormData({ 
+                          ...formData, 
+                          assessment_config: { ...formData.assessment_config, voice_enabled: v } 
+                        })}
+                      />
+                      <Label htmlFor="voice_enabled">Voice Questions</Label>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Candidates will answer personalized questions generated from the JD and their CV. 
+                    Assessment results will appear in the Applications tab.
+                  </p>
+                </div>
+              )}
 
               {/* Actions */}
               <div className="flex justify-end gap-2">
