@@ -1558,6 +1558,7 @@ export type Database = {
           source_url: string | null
           title: string
           updated_at: string | null
+          vacancies: number | null
         }
         Insert: {
           ai_assessment_enabled?: boolean | null
@@ -1590,6 +1591,7 @@ export type Database = {
           source_url?: string | null
           title: string
           updated_at?: string | null
+          vacancies?: number | null
         }
         Update: {
           ai_assessment_enabled?: boolean | null
@@ -1622,6 +1624,7 @@ export type Database = {
           source_url?: string | null
           title?: string
           updated_at?: string | null
+          vacancies?: number | null
         }
         Relationships: [
           {
@@ -1639,6 +1642,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      kpi_targets: {
+        Row: {
+          created_at: string | null
+          id: string
+          metric_name: string
+          period_start: string | null
+          period_type: string | null
+          target_value: number
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          metric_name: string
+          period_start?: string | null
+          period_type?: string | null
+          target_value: number
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          metric_name?: string
+          period_start?: string | null
+          period_type?: string | null
+          target_value?: number
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       lead_hunt_matches: {
         Row: {

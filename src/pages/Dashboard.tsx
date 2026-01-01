@@ -14,6 +14,7 @@ import { MockInterviewLeadsManager } from "@/components/dashboard/MockInterviewL
 import { ProfessionsManager } from "@/components/dashboard/ProfessionsManager";
 import { SalaryAnalysisLeadsManager } from "@/components/dashboard/SalaryAnalysisLeadsManager";
 import { JobsManager } from "@/components/dashboard/JobsManager";
+import { JobsKPIDashboard } from "@/components/dashboard/JobsKPIDashboard";
 import { JobApplicationsManager } from "@/components/dashboard/JobApplicationsManager";
 import { CVOutreachGenerator } from "@/components/dashboard/CVOutreachGenerator";
 import { TalentPoolManager } from "@/components/dashboard/TalentPoolManager";
@@ -62,6 +63,7 @@ const tabAccessMap: Record<string, AppRole[]> = {
   portfolios: ["admin", "talent_exec"],
   "lead-hunter": ["admin", "talent_exec"],
   // Recruitment - accessible by both admin and talent_exec
+  "jobs-kpis": ["admin", "talent_exec"],
   jobs: ["admin", "talent_exec"],
   applications: ["admin", "talent_exec"],
   companies: ["admin", "talent_exec"],
@@ -228,6 +230,8 @@ const Dashboard = () => {
         return <EnrollmentsManager />;
       case "professions":
         return <ProfessionsManager />;
+      case "jobs-kpis":
+        return <JobsKPIDashboard />;
       case "jobs":
         return <JobsManager />;
       case "applications":
@@ -280,6 +284,7 @@ const Dashboard = () => {
       salary: "Salary Analysis",
       professions: "Professions Manager",
       "lead-hunter": "Lead Hunter",
+      "jobs-kpis": "Jobs KPIs",
       jobs: "Jobs Board",
       applications: "Job Applications",
       outreach: "CV Outreach Generator",
