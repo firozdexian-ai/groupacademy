@@ -45,6 +45,7 @@ interface Job {
   is_featured: boolean;
   ai_assessment_enabled: boolean | null;
   assessment_config: any;
+  vacancies: number | null;
   created_at: string;
 }
 
@@ -101,6 +102,7 @@ const emptyJob = {
   is_featured: false,
   ai_assessment_enabled: false,
   assessment_config: { question_count: 6, voice_enabled: true } as any,
+  vacancies: 1,
 };
 
 export function JobsManager() {
@@ -213,6 +215,7 @@ export function JobsManager() {
         is_featured: job.is_featured,
         ai_assessment_enabled: job.ai_assessment_enabled || false,
         assessment_config: job.assessment_config || { question_count: 6, voice_enabled: true },
+        vacancies: job.vacancies || 1,
       });
     } else {
       setEditingJob(null);
@@ -446,6 +449,7 @@ export function JobsManager() {
         is_featured: formData.is_featured,
         ai_assessment_enabled: formData.ai_assessment_enabled,
         assessment_config: formData.assessment_config,
+        vacancies: formData.vacancies || 1,
       };
 
       if (editingJob) {
@@ -892,8 +896,8 @@ export function JobsManager() {
                 </div>
               </div>
 
-              {/* Salary */}
-              <div className="grid grid-cols-2 gap-4">
+              {/* Salary & Vacancies */}
+              <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="salary_min">Salary Min (BDT)</Label>
                   <Input
@@ -922,6 +926,22 @@ export function JobsManager() {
                       })
                     }
                     placeholder="e.g., 50000"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="vacancies">No. of Vacancies</Label>
+                  <Input
+                    id="vacancies"
+                    type="number"
+                    min="1"
+                    value={formData.vacancies}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        vacancies: parseInt(e.target.value) || 1,
+                      })
+                    }
+                    placeholder="1"
                   />
                 </div>
               </div>

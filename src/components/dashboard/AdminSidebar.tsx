@@ -84,6 +84,7 @@ const navGroups: NavGroup[] = [
     icon: Briefcase,
     roles: ["admin", "talent_exec"],
     items: [
+      { title: "Jobs KPIs", icon: TrendingUp, value: "jobs-kpis" },
       { title: "Manage Jobs", icon: Building2, value: "jobs" },
       { title: "Applications", icon: FileCheck, value: "applications" },
       { title: "Companies", icon: Building2, value: "companies" },
