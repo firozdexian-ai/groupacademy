@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { Search, Users, MessageSquare, Download, ExternalLink, RefreshCw, Eye, Loader2, Briefcase } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { BatchTalentUpload } from "./BatchTalentUpload";
 
 interface Talent {
   id: string;
@@ -220,6 +221,8 @@ export function TalentPoolManager() {
 
   return (
     <div className="space-y-6">
+      <BatchTalentUpload onComplete={loadTalents} />
+      
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">

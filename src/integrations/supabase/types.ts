@@ -442,6 +442,45 @@ export type Database = {
           },
         ]
       }
+      batch_uploads: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          error_log: Json | null
+          failed_count: number | null
+          file_count: number
+          id: string
+          processed_count: number | null
+          skipped_count: number | null
+          status: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          error_log?: Json | null
+          failed_count?: number | null
+          file_count?: number
+          id?: string
+          processed_count?: number | null
+          skipped_count?: number | null
+          status?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          error_log?: Json | null
+          failed_count?: number | null
+          file_count?: number
+          id?: string
+          processed_count?: number | null
+          skipped_count?: number | null
+          status?: string
+          uploaded_by?: string | null
+        }
+        Relationships: []
+      }
       blog_posts: {
         Row: {
           author_id: string | null
@@ -1416,12 +1455,87 @@ export type Database = {
           },
         ]
       }
+      job_assessments: {
+        Row: {
+          ai_analysis: Json | null
+          ai_score: number | null
+          answers: Json | null
+          completed_at: string | null
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          job_application_id: string | null
+          job_id: string
+          questions: Json
+          started_at: string | null
+          status: string
+          talent_id: string
+          voice_recordings: Json | null
+        }
+        Insert: {
+          ai_analysis?: Json | null
+          ai_score?: number | null
+          answers?: Json | null
+          completed_at?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          job_application_id?: string | null
+          job_id: string
+          questions: Json
+          started_at?: string | null
+          status?: string
+          talent_id: string
+          voice_recordings?: Json | null
+        }
+        Update: {
+          ai_analysis?: Json | null
+          ai_score?: number | null
+          answers?: Json | null
+          completed_at?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          job_application_id?: string | null
+          job_id?: string
+          questions?: Json
+          started_at?: string | null
+          status?: string
+          talent_id?: string
+          voice_recordings?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_assessments_job_application_id_fkey"
+            columns: ["job_application_id"]
+            isOneToOne: false
+            referencedRelation: "job_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_assessments_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_assessments_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jobs: {
         Row: {
+          ai_assessment_enabled: boolean | null
           ai_enhanced_description: string | null
           application_email: string | null
           application_type: Database["public"]["Enums"]["application_type"]
           application_url: string | null
+          assessment_config: Json | null
           company_id: string | null
           company_logo_url: string | null
           company_name: string
@@ -1446,10 +1560,12 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          ai_assessment_enabled?: boolean | null
           ai_enhanced_description?: string | null
           application_email?: string | null
           application_type?: Database["public"]["Enums"]["application_type"]
           application_url?: string | null
+          assessment_config?: Json | null
           company_id?: string | null
           company_logo_url?: string | null
           company_name: string
@@ -1476,10 +1592,12 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          ai_assessment_enabled?: boolean | null
           ai_enhanced_description?: string | null
           application_email?: string | null
           application_type?: Database["public"]["Enums"]["application_type"]
           application_url?: string | null
+          assessment_config?: Json | null
           company_id?: string | null
           company_logo_url?: string | null
           company_name?: string
@@ -1521,6 +1639,96 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      lead_hunt_matches: {
+        Row: {
+          ai_analysis: Json | null
+          ai_match_score: number | null
+          created_at: string | null
+          id: string
+          initial_score: number | null
+          notes: string | null
+          scored_at: string | null
+          session_id: string
+          shortlisted: boolean | null
+          talent_id: string
+        }
+        Insert: {
+          ai_analysis?: Json | null
+          ai_match_score?: number | null
+          created_at?: string | null
+          id?: string
+          initial_score?: number | null
+          notes?: string | null
+          scored_at?: string | null
+          session_id: string
+          shortlisted?: boolean | null
+          talent_id: string
+        }
+        Update: {
+          ai_analysis?: Json | null
+          ai_match_score?: number | null
+          created_at?: string | null
+          id?: string
+          initial_score?: number | null
+          notes?: string | null
+          scored_at?: string | null
+          session_id?: string
+          shortlisted?: boolean | null
+          talent_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_hunt_matches_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "lead_hunt_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_hunt_matches_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_hunt_sessions: {
+        Row: {
+          company_name: string | null
+          created_at: string | null
+          created_by: string
+          id: string
+          job_description: string
+          job_title: string
+          leads_requested: number | null
+          parsed_requirements: Json | null
+          status: string
+        }
+        Insert: {
+          company_name?: string | null
+          created_at?: string | null
+          created_by: string
+          id?: string
+          job_description: string
+          job_title: string
+          leads_requested?: number | null
+          parsed_requirements?: Json | null
+          status?: string
+        }
+        Update: {
+          company_name?: string | null
+          created_at?: string | null
+          created_by?: string
+          id?: string
+          job_description?: string
+          job_title?: string
+          leads_requested?: number | null
+          parsed_requirements?: Json | null
+          status?: string
+        }
+        Relationships: []
       }
       mock_interview_access_codes: {
         Row: {
@@ -2573,6 +2781,7 @@ export type Database = {
       talents: {
         Row: {
           achievements: Json | null
+          batch_upload_id: string | null
           created_at: string | null
           current_status: string | null
           custom_profession: string | null
@@ -2604,6 +2813,7 @@ export type Database = {
         }
         Insert: {
           achievements?: Json | null
+          batch_upload_id?: string | null
           created_at?: string | null
           current_status?: string | null
           custom_profession?: string | null
@@ -2635,6 +2845,7 @@ export type Database = {
         }
         Update: {
           achievements?: Json | null
+          batch_upload_id?: string | null
           created_at?: string | null
           current_status?: string | null
           custom_profession?: string | null
@@ -2665,6 +2876,13 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "talents_batch_upload_id_fkey"
+            columns: ["batch_upload_id"]
+            isOneToOne: false
+            referencedRelation: "batch_uploads"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "talents_profession_category_id_fkey"
             columns: ["profession_category_id"]
