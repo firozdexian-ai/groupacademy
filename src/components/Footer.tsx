@@ -112,6 +112,12 @@ export const Footer = () => {
               >
                 For Organizations
               </button>
+              <button
+                onClick={() => navigate("/admin")}
+                className="text-muted-foreground hover:text-foreground transition-colors text-left"
+              >
+                Admin Login
+              </button>
             </nav>
           </div>
         </div>

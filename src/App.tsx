@@ -143,6 +143,10 @@ export default function App() {
                   <Route path="/jobs/:id/apply" element={<Navigate to="/auth?returnTo=/app/jobs" replace />} />
                   
                   <Route path="/my-profile" element={<Navigate to="/app/profile" replace />} />
+                  
+                  {/* Admin entry point - redirects to dashboard */}
+                  <Route path="/admin" element={<Navigate to="/dashboard" replace />} />
+                  
                   <Route
                     path="/dashboard"
                     element={

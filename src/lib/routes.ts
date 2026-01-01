@@ -74,6 +74,7 @@ export const ROUTES = {
 
   // Admin/Dashboard routes
   admin: {
+    root: '/admin',
     dashboard: '/dashboard',
     students: '/students',
     enrollments: '/enrollments',

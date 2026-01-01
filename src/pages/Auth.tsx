@@ -13,6 +13,7 @@ import { Eye, EyeOff, Loader2, Target, Mic, DollarSign, FolderOpen, Gift, CheckC
 import { loginSchema, signupSchema, resetPasswordSchema } from "@/lib/validations";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
+import { supabase } from "@/integrations/supabase/client";
 import logoLight from "@/assets/logo-horizontal-light.png";
 import logoDark from "@/assets/logo-horizontal-dark.png";
 
@@ -70,8 +71,29 @@ const Auth = () => {
         TIMEOUTS.AUTH,
         "Sign in timed out. Please try again."
       );
-      const returnTo = searchParams.get('returnTo') || '/app/feed';
-      navigate(returnTo);
+      
+      // Check if user has admin role to redirect appropriately
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (currentUser) {
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", currentUser.id)
+          .in("role", ["admin", "talent_exec"]);
+        
+        const returnTo = searchParams.get('returnTo');
+        if (returnTo) {
+          navigate(returnTo);
+        } else if (roleData && roleData.length > 0) {
+          // Admin users default to dashboard
+          navigate('/dashboard');
+        } else {
+          // Regular users default to feed
+          navigate('/app/feed');
+        }
+      } else {
+        navigate(searchParams.get('returnTo') || '/app/feed');
+      }
     } catch (error: any) {
       toast.error(error.message || "Failed to sign in");
     } finally {
