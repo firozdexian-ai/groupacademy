@@ -111,7 +111,8 @@ export default function AppJobApplication() {
           const { data: assessmentData, error: assessmentError } = await supabase.functions.invoke('generate-job-assessment', {
             body: {
               jobId: job.id,
-              talentId: talent.id
+              talentId: talent.id,
+              jobApplicationId: appData.id
             }
           });
 
