@@ -25,7 +25,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { format, endOfMonth } from "date-fns";
 
 interface Job {
   id: string;
@@ -85,6 +85,12 @@ const SOURCE_PLATFORMS = [
   { value: "other", label: "Other" },
 ];
 
+// Get last day of current month as default deadline
+const getDefaultDeadline = () => {
+  const lastDay = endOfMonth(new Date());
+  return format(lastDay, 'yyyy-MM-dd');
+};
+
 const emptyJob = {
   title: "",
   company_name: "",
@@ -97,14 +103,14 @@ const emptyJob = {
   description: "",
   ai_enhanced_description: null as string | null,
   requirements: [] as string[],
-  application_type: "link", // Default to link - works without email domain
+  application_type: "email", // Default to email - keeps users on platform
   application_email: "",
   application_url: "",
   source_url: "",
   source_platform: "other",
   source_image_url: "",
   profession_category_id: null as string | null,
-  deadline: "",
+  deadline: getDefaultDeadline(), // Auto-set to last day of current month
   is_active: true,
   is_featured: false,
   ai_assessment_enabled: false,
@@ -129,6 +135,7 @@ export function JobsManager() {
   const [rawJobPost, setRawJobPost] = useState("");
   const [showParseSection, setShowParseSection] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   useEffect(() => {
     loadJobs();
@@ -345,6 +352,33 @@ export function JobsManager() {
       toast.error("Failed to upload image");
     } finally {
       setUploadingImage(false);
+    }
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingLogo(true);
+    try {
+      const fileName = `company-logos/${Date.now()}-${file.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from('course-content')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('course-content')
+        .getPublicUrl(fileName);
+
+      setFormData(prev => ({ ...prev, company_logo_url: publicUrl }));
+      toast.success("Logo uploaded!");
+    } catch (error: any) {
+      console.error("Error uploading logo:", error);
+      toast.error("Failed to upload logo");
+    } finally {
+      setUploadingLogo(false);
     }
   };
 
@@ -894,13 +928,35 @@ ${jobUrl}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="logo">Company Logo URL</Label>
-                  <Input
-                    id="logo"
-                    value={formData.company_logo_url}
-                    onChange={(e) => setFormData({ ...formData, company_logo_url: e.target.value })}
-                    placeholder="https://..."
-                  />
+                  <Label htmlFor="logo">Company Logo</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="logo"
+                      value={formData.company_logo_url}
+                      onChange={(e) => setFormData({ ...formData, company_logo_url: e.target.value })}
+                      placeholder="Paste URL or upload..."
+                      className="flex-1"
+                    />
+                    <div className="relative">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleLogoUpload}
+                        className="absolute inset-0 opacity-0 cursor-pointer"
+                        disabled={uploadingLogo}
+                      />
+                      <Button variant="outline" disabled={uploadingLogo}>
+                        {uploadingLogo ? <Loader2 className="w-4 h-4 animate-spin" /> : "Upload"}
+                      </Button>
+                    </div>
+                  </div>
+                  {formData.company_logo_url && (
+                    <img 
+                      src={formData.company_logo_url} 
+                      alt="Company logo" 
+                      className="mt-2 h-12 rounded border object-contain"
+                    />
+                  )}
                 </div>
               </div>
 
@@ -1109,8 +1165,8 @@ ${jobUrl}
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="link">External Link (Recommended)</SelectItem>
-                        <SelectItem value="email">Email Application</SelectItem>
+                        <SelectItem value="email">Email Application (Recommended)</SelectItem>
+                        <SelectItem value="link">External Link</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
