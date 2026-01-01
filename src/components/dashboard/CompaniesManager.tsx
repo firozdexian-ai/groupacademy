@@ -12,11 +12,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { toast } from "sonner";
 import { 
   Building2, Plus, Edit, Trash2, Search, ExternalLink, 
-  Mail, Loader2, RefreshCw, CheckCircle, Globe, Linkedin
+  Mail, Loader2, RefreshCw, CheckCircle, Globe, Linkedin, Upload
 } from "lucide-react";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { DashboardTableSkeleton, DashboardErrorState } from "./DashboardSkeleton";
+import { BatchCompanyUpload } from "./BatchCompanyUpload";
 
 interface Company {
   id: string;
@@ -57,6 +58,7 @@ export function CompaniesManager() {
   const [formData, setFormData] = useState(emptyCompany);
   const [saving, setSaving] = useState(false);
   const [emailInput, setEmailInput] = useState("");
+  const [showBatchUpload, setShowBatchUpload] = useState(false);
 
   useEffect(() => {
     loadCompanies();
@@ -221,6 +223,10 @@ export function CompaniesManager() {
               <Button variant="outline" onClick={loadCompanies} disabled={isLoading}>
                 <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
                 Refresh
+              </Button>
+              <Button variant="outline" onClick={() => setShowBatchUpload(true)}>
+                <Upload className="w-4 h-4 mr-2" />
+                Batch Import
               </Button>
               <Button onClick={() => handleOpenDialog()}>
                 <Plus className="w-4 h-4 mr-2" />
@@ -498,6 +504,13 @@ export function CompaniesManager() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Batch Import Dialog */}
+      <BatchCompanyUpload
+        open={showBatchUpload}
+        onOpenChange={setShowBatchUpload}
+        onComplete={loadCompanies}
+      />
     </div>
   );
 }

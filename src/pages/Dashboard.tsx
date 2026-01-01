@@ -30,6 +30,7 @@ import { IELTSResourcesManager } from "@/components/dashboard/IELTSResourcesMana
 import { CompetitionsManager } from "@/components/dashboard/CompetitionsManager";
 import { BlogManager } from "@/components/dashboard/BlogManager";
 import { LeadHunterManager } from "@/components/dashboard/LeadHunterManager";
+import { ContactsManager } from "@/components/dashboard/ContactsManager";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -67,6 +68,7 @@ const tabAccessMap: Record<string, AppRole[]> = {
   jobs: ["admin", "talent_exec"],
   applications: ["admin", "talent_exec"],
   companies: ["admin", "talent_exec"],
+  contacts: ["admin", "talent_exec"],
   // AI & Credits tabs
   "ai-agents": ["admin"],
   "agent-sessions": ["admin"],
@@ -244,6 +246,8 @@ const Dashboard = () => {
         return <LeadHunterManager />;
       case "companies":
         return <CompaniesManager />;
+      case "contacts":
+        return <ContactsManager />;
       case "team":
         return <TeamManager />;
       case "ai-agents":
@@ -290,6 +294,7 @@ const Dashboard = () => {
       outreach: "CV Outreach Generator",
       talent: "Talent Pool",
       companies: "Companies",
+      contacts: "Contacts",
       team: "Team Members",
       "ai-agents": "AI Agents",
       "agent-sessions": "Agent Sessions",

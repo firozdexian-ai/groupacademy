@@ -623,6 +623,7 @@ export type Database = {
       }
       companies: {
         Row: {
+          address: string | null
           created_at: string | null
           facebook_url: string | null
           id: string
@@ -638,6 +639,7 @@ export type Database = {
           website: string | null
         }
         Insert: {
+          address?: string | null
           created_at?: string | null
           facebook_url?: string | null
           id?: string
@@ -653,6 +655,7 @@ export type Database = {
           website?: string | null
         }
         Update: {
+          address?: string | null
           created_at?: string | null
           facebook_url?: string | null
           id?: string
@@ -785,6 +788,109 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      contact_outreach: {
+        Row: {
+          channel: string
+          contact_id: string | null
+          id: string
+          message_content: string | null
+          message_type: string | null
+          sent_at: string | null
+          sent_by: string | null
+          status: string | null
+        }
+        Insert: {
+          channel: string
+          contact_id?: string | null
+          id?: string
+          message_content?: string | null
+          message_type?: string | null
+          sent_at?: string | null
+          sent_by?: string | null
+          status?: string | null
+        }
+        Update: {
+          channel?: string
+          contact_id?: string | null
+          id?: string
+          message_content?: string | null
+          message_type?: string | null
+          sent_at?: string | null
+          sent_by?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_outreach_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contacts: {
+        Row: {
+          company_id: string | null
+          created_at: string | null
+          department: string | null
+          designation: string | null
+          email: string | null
+          full_name: string
+          id: string
+          is_primary: boolean | null
+          last_contacted_at: string | null
+          linkedin_url: string | null
+          notes: string | null
+          phone: string | null
+          source: string | null
+          updated_at: string | null
+          whatsapp_number: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string | null
+          department?: string | null
+          designation?: string | null
+          email?: string | null
+          full_name: string
+          id?: string
+          is_primary?: boolean | null
+          last_contacted_at?: string | null
+          linkedin_url?: string | null
+          notes?: string | null
+          phone?: string | null
+          source?: string | null
+          updated_at?: string | null
+          whatsapp_number?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string | null
+          department?: string | null
+          designation?: string | null
+          email?: string | null
+          full_name?: string
+          id?: string
+          is_primary?: boolean | null
+          last_contacted_at?: string | null
+          linkedin_url?: string | null
+          notes?: string | null
+          phone?: string | null
+          source?: string | null
+          updated_at?: string | null
+          whatsapp_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contacts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       content: {
         Row: {
