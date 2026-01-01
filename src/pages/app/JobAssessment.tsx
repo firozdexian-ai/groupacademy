@@ -76,10 +76,49 @@ export default function JobAssessment() {
 
       if (error) throw error;
       
-      // Parse questions from JSON
-      const questionsData = Array.isArray(data.questions) 
-        ? data.questions as unknown as Question[]
-        : [];
+      // Parse questions from JSON - handle nested structure from edge function
+      let questionsData: Question[] = [];
+      
+      if (data.questions) {
+        const rawQuestions = data.questions as any;
+        
+        // Check if it's already a flat array
+        if (Array.isArray(rawQuestions)) {
+          questionsData = rawQuestions as Question[];
+        } else {
+          // Parse nested structure: { mcq_questions: [...], voice_questions: [...] }
+          if (rawQuestions.mcq_questions && Array.isArray(rawQuestions.mcq_questions)) {
+            const mcqQuestions = rawQuestions.mcq_questions.map((q: any) => ({
+              id: q.id,
+              type: 'mcq' as const,
+              question: q.question,
+              options: q.options,
+            }));
+            questionsData = [...questionsData, ...mcqQuestions];
+          }
+          
+          // Parse voice questions
+          if (rawQuestions.voice_questions && Array.isArray(rawQuestions.voice_questions)) {
+            const voiceQuestions = rawQuestions.voice_questions.map((q: any) => ({
+              id: q.id,
+              type: 'voice' as const,
+              question: q.question,
+              timeLimit: 120, // 2 minute default
+            }));
+            questionsData = [...questionsData, ...voiceQuestions];
+          }
+          
+          // Parse text questions if they exist
+          if (rawQuestions.text_questions && Array.isArray(rawQuestions.text_questions)) {
+            const textQuestions = rawQuestions.text_questions.map((q: any) => ({
+              id: q.id,
+              type: 'text' as const,
+              question: q.question,
+            }));
+            questionsData = [...questionsData, ...textQuestions];
+          }
+        }
+      }
       
       const parsedData = {
         ...data,
