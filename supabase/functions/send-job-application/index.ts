@@ -68,13 +68,13 @@ serve(async (req: Request): Promise<Response> => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Fetch application with job and professional details
+    // Fetch application with job and talent details
     const { data: application, error: fetchError } = await supabase
       .from("job_applications")
       .select(`
         *,
         jobs (*),
-        professionals (*)
+        talents (*)
       `)
       .eq("id", applicationId)
       .single();
@@ -85,7 +85,12 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     const job = application.jobs;
-    const professional = application.professionals;
+    const talent = application.talents;
+
+    if (!talent) {
+      console.error("No talent found for application");
+      throw new Error("Applicant information not found");
+    }
 
     // Check if job accepts email applications
     if (job.application_type !== "email" || !job.application_email) {
@@ -138,22 +143,22 @@ serve(async (req: Request): Promise<Response> => {
             <h2>Applicant Information</h2>
             <div class="info-row">
               <span class="label">Name:</span>
-              <span class="value">${professional.full_name}</span>
+              <span class="value">${talent.full_name}</span>
             </div>
             <div class="info-row">
               <span class="label">Email:</span>
-              <span class="value">${professional.email}</span>
+              <span class="value">${talent.email}</span>
             </div>
-            ${professional.phone ? `
+            ${talent.phone ? `
             <div class="info-row">
               <span class="label">Phone:</span>
-              <span class="value">${professional.phone}</span>
+              <span class="value">${talent.phone}</span>
             </div>
             ` : ''}
-            ${professional.linkedin_url ? `
+            ${talent.linkedin_url ? `
             <div class="info-row">
               <span class="label">LinkedIn:</span>
-              <span class="value"><a href="${professional.linkedin_url}">${professional.linkedin_url}</a></span>
+              <span class="value"><a href="${talent.linkedin_url}">${talent.linkedin_url}</a></span>
             </div>
             ` : ''}
           </div>
@@ -175,27 +180,27 @@ serve(async (req: Request): Promise<Response> => {
           </div>
           ` : ''}
 
-          ${professional.skills && Array.isArray(professional.skills) && professional.skills.length > 0 ? `
+          ${talent.skills && Array.isArray(talent.skills) && talent.skills.length > 0 ? `
           <div class="section">
             <h2>Skills</h2>
-            <p>${professional.skills.join(', ')}</p>
+            <p>${talent.skills.join(', ')}</p>
           </div>
           ` : ''}
         </div>
         <div class="footer">
           <p>This application was submitted via GroUp Academy Jobs Board</p>
-          <p>Reply directly to the applicant at: ${professional.email}</p>
+          <p>Reply directly to the applicant at: ${talent.email}</p>
         </div>
       </body>
       </html>
     `;
 
-    console.log("Sending email to:", job.application_email, "with CC:", professional.email);
+    console.log("Sending email to:", job.application_email, "with CC:", talent.email);
     const emailResponse = await sendEmail(
       job.application_email,
-      professional.email,
-      professional.email,
-      `New Application: ${professional.full_name} for ${job.title}`,
+      talent.email,
+      talent.email,
+      `New Application: ${talent.full_name} for ${job.title}`,
       emailHtml
     );
 

@@ -79,16 +79,17 @@ export default function AppJobApplication() {
 
     try {
       // Create application record
-      const { error: appError } = await supabase
+      const { data: appData, error: appError } = await supabase
         .from('job_applications')
         .insert({
           job_id: job.id,
           talent_id: talent.id,
-          professional_id: talent.id, // Using talent ID as professional ID
           cover_letter: coverLetter,
           cv_url: talent.cvUrl,
           delivery_status: 'pending'
-        });
+        })
+        .select('id')
+        .single();
 
       if (appError) throw appError;
 
@@ -96,13 +97,13 @@ export default function AppJobApplication() {
       await deductCredits('JOB_APPLICATION', job.id, `Application to ${job.title} at ${job.company_name}`);
 
       // Trigger email sending via edge function
-      await supabase.functions.invoke('send-job-application', {
-        body: {
-          jobId: job.id,
-          talentId: talent.id,
-          coverLetter: coverLetter
-        }
-      });
+      if (appData?.id) {
+        await supabase.functions.invoke('send-job-application', {
+          body: {
+            applicationId: appData.id
+          }
+        });
+      }
 
       // Check if AI assessment is enabled for this job
       if (job.ai_assessment_enabled) {
