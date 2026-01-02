@@ -45,13 +45,18 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.png", "apple-touch-icon.png"],
+      includeAssets: [
+        "favicon.png",
+        "apple-touch-icon.png",
+        "icons/*.png",
+        "screenshots/*.jpg"
+      ],
       manifest: false, // Use external manifest.json
       workbox: {
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MiB
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
-        // Don't precache index.html to avoid stale auth state
-        navigateFallback: null,
+        globPatterns: ["**/*.{js,css,html,ico,png,jpg,svg,woff2}"],
+        navigateFallback: "/index.html",
+        navigateFallbackDenylist: [/^\/api/, /^\/auth/, /^\/\.well-known/],
         runtimeCaching: [
           {
             // API calls should always go to network first
