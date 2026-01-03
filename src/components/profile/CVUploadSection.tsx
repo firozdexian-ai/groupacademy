@@ -104,27 +104,20 @@ export function CVUploadSection() {
       const filePath = `cvs/${fileName}`;
 
       const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('cv-uploads')
+        .from('portfolio-uploads')
         .upload(filePath, file, {
           cacheControl: '3600',
           upsert: true
         });
 
       if (uploadError) {
-        // If bucket doesn't exist, try public bucket
-        const { data: publicUpload, error: publicError } = await supabase.storage
-          .from('lovable-uploads')
-          .upload(filePath, file, {
-            cacheControl: '3600',
-            upsert: true
-          });
-        
-        if (publicError) throw new Error("Failed to upload CV");
+        console.error("CV upload error:", uploadError);
+        throw new Error(`Failed to upload CV: ${uploadError.message}`);
       }
 
       // Get public URL
       const { data: urlData } = supabase.storage
-        .from(uploadData ? 'cv-uploads' : 'lovable-uploads')
+        .from('portfolio-uploads')
         .getPublicUrl(filePath);
 
       const cvUrl = urlData?.publicUrl;
