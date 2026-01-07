@@ -93,10 +93,20 @@ export const useAuth = () => {
     if (!authData.user) throw new Error('Signup failed');
 
     // Wait for session to establish and trigger to create talent record
-    await new Promise(resolve => setTimeout(resolve, 800));
+    // Increased from 800ms to 1500ms for better reliability
+    await new Promise(resolve => setTimeout(resolve, 1500));
     
-    // Verify session exists
-    const { data: { session } } = await supabase.auth.getSession();
+    // Verify session exists with retry
+    let session = null;
+    for (let i = 0; i < 3; i++) {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        session = data.session;
+        break;
+      }
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+    
     if (!session) {
       toast.warning('Account created! Please sign in to continue.');
       return false;
