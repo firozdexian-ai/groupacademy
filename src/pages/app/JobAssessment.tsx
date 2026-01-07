@@ -201,6 +201,26 @@ export default function JobAssessment() {
     }
   };
 
+  // Save voice answer immediately when audioBlob is available
+  useEffect(() => {
+    if (audioBlob && assessment) {
+      const currentQuestion = assessment.questions[currentQuestionIndex];
+      if (currentQuestion?.type === 'voice') {
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = () => {
+          setAnswers(prev => ({
+            ...prev,
+            [currentQuestion.id]: {
+              type: 'voice',
+              data: reader.result
+            }
+          }));
+        };
+      }
+    }
+  }, [audioBlob, assessment, currentQuestionIndex]);
+
   const handleAnswerChange = (questionId: string, value: any) => {
     setAnswers(prev => ({
       ...prev,
@@ -506,7 +526,7 @@ export default function JobAssessment() {
         {isLastQuestion ? (
           <Button 
             onClick={handleSubmit}
-            disabled={submitting || !hasCurrentAnswer}
+            disabled={submitting || (!hasCurrentAnswer && !audioBlob)}
             className="flex-1"
           >
             {submitting ? (

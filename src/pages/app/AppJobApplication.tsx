@@ -78,6 +78,8 @@ export default function AppJobApplication() {
     setSubmitting(true);
 
     try {
+      console.log('[AppJobApplication] Starting application submission for job:', job.id);
+      
       // Create application record
       const { data: appData, error: appError } = await supabase
         .from('job_applications')
@@ -91,23 +93,37 @@ export default function AppJobApplication() {
         .select('id')
         .single();
 
-      if (appError) throw appError;
+      if (appError) {
+        console.error('[AppJobApplication] Failed to create application:', appError);
+        throw appError;
+      }
+      
+      console.log('[AppJobApplication] Application created:', appData.id);
 
       // Deduct credits
       await deductCredits('JOB_APPLICATION', job.id, `Application to ${job.title} at ${job.company_name}`);
 
       // Trigger email sending via edge function
       if (appData?.id) {
-        await supabase.functions.invoke('send-job-application', {
+        console.log('[AppJobApplication] Invoking send-job-application function');
+        const { data: sendResult, error: sendError } = await supabase.functions.invoke('send-job-application', {
           body: {
             applicationId: appData.id
           }
         });
+        
+        if (sendError) {
+          console.error('[AppJobApplication] Email send error:', sendError);
+          // Don't throw - application is saved, just email failed
+        } else {
+          console.log('[AppJobApplication] Email sent successfully:', sendResult);
+        }
       }
 
       // Check if AI assessment is enabled for this job
       if (job.ai_assessment_enabled) {
         try {
+          console.log('[AppJobApplication] Generating AI assessment');
           const { data: assessmentData, error: assessmentError } = await supabase.functions.invoke('generate-job-assessment', {
             body: {
               jobId: job.id,
@@ -123,7 +139,7 @@ export default function AppJobApplication() {
             return;
           }
         } catch (assessmentErr) {
-          console.error('Error generating assessment:', assessmentErr);
+          console.error('[AppJobApplication] Error generating assessment:', assessmentErr);
           // Continue with normal flow if assessment generation fails
         }
       }
@@ -132,8 +148,16 @@ export default function AppJobApplication() {
       toast.success('Application submitted successfully!');
       refreshBalance();
     } catch (error: any) {
-      console.error('Error submitting application:', error);
-      toast.error('Failed to submit application');
+      console.error('[AppJobApplication] Error submitting application:', error);
+      
+      // Provide more specific error messages
+      if (error?.message?.includes('row-level security')) {
+        toast.error('Authentication error. Please sign out and sign in again.');
+      } else if (error?.message?.includes('duplicate')) {
+        toast.error('You have already applied to this job.');
+      } else {
+        toast.error('Failed to submit application. Please try again.');
+      }
     } finally {
       setSubmitting(false);
     }
