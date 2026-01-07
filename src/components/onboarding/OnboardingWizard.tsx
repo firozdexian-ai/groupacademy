@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { WelcomeBonus } from './WelcomeBonus';
+import { CVUploadStep } from './CVUploadStep';
 import { ProfileQuickSetup } from './ProfileQuickSetup';
 import { ServicesTour } from './ServicesTour';
 import { useOnboarding } from '@/hooks/useOnboarding';
@@ -12,9 +13,10 @@ interface OnboardingWizardProps {
   onComplete: () => void;
 }
 
-// Simplified to 3 steps for better completion rate
+// 4 steps: Welcome → CV Upload → Profile → Explore
 const STEPS = [
   { id: 'welcome', label: 'Welcome' },
+  { id: 'cv', label: 'CV Upload' },
   { id: 'profile', label: 'Profile' },
   { id: 'explore', label: 'Explore' },
 ];
@@ -55,6 +57,8 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
     switch (STEPS[currentStep].id) {
       case 'welcome':
         return <WelcomeBonus onContinue={handleNext} />;
+      case 'cv':
+        return <CVUploadStep onContinue={handleNext} onSkip={handleNext} />;
       case 'profile':
         return <ProfileQuickSetup onContinue={handleNext} onSkip={handleNext} />;
       case 'explore':

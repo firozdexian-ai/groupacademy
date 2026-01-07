@@ -357,27 +357,61 @@ Return the structured JSON data.`
 
     console.log('Calling Lovable AI to parse CV, using vision:', !!pdfBase64, 'text length:', actualCvText.length);
     
-    // Add timeout controller for AI call (90 seconds)
+    // Add timeout controller for AI call (120 seconds for better reliability)
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 90000);
+    const timeoutId = setTimeout(() => controller.abort(), 120000);
     
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          userMessage
-        ],
-      }),
-      signal: controller.signal,
-    });
+    let aiResponse: Response | null = null;
+    let retryCount = 0;
+    const maxRetries = 2;
+    
+    while (retryCount <= maxRetries) {
+      try {
+        aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              userMessage
+            ],
+          }),
+          signal: controller.signal,
+        });
+        
+        if (aiResponse.ok || retryCount === maxRetries) {
+          break;
+        }
+        
+        // Retry on 5xx errors
+        if (aiResponse.status >= 500) {
+          console.log(`AI API returned ${aiResponse.status}, retrying... (${retryCount + 1}/${maxRetries})`);
+          retryCount++;
+          await new Promise(r => setTimeout(r, 1000 * (retryCount + 1)));
+        } else {
+          break;
+        }
+      } catch (fetchErr) {
+        if (retryCount === maxRetries) throw fetchErr;
+        console.log(`AI API fetch failed, retrying... (${retryCount + 1}/${maxRetries})`);
+        retryCount++;
+        await new Promise(r => setTimeout(r, 1000 * (retryCount + 1)));
+      }
+    }
 
     clearTimeout(timeoutId);
+
+    if (!aiResponse) {
+      console.error('AI API: No response received after retries');
+      return new Response(
+        JSON.stringify({ error: 'Failed to connect to AI service. Please try again.' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();

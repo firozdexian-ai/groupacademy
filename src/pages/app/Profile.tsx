@@ -13,7 +13,9 @@ import {
   Loader2,
   ChevronRight,
   BookOpen,
-  History
+  History,
+  Upload,
+  CheckCircle2
 } from 'lucide-react';
 import { useTalent } from '@/hooks/useTalent';
 import { useCredits } from '@/hooks/useCredits';
@@ -212,6 +214,46 @@ export default function Profile() {
           </CardContent>
         </Card>
       </div>
+
+      {/* CV Status Card - Show if no CV uploaded */}
+      {!talent.cvUrl && (
+        <Card className="mb-5 rounded-2xl shadow-sm border-primary/20 bg-primary/5">
+          <CardContent className="py-4">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-primary/10 rounded-xl">
+                <Upload className="h-6 w-6 text-primary" />
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-foreground">Upload your CV</p>
+                <p className="text-sm text-muted-foreground">Auto-fill your profile & get better job matches</p>
+              </div>
+              <Button size="sm" onClick={handleEditProfile} className="press-scale">
+                Upload
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* CV Uploaded Indicator */}
+      {talent.cvUrl && (
+        <Card className="mb-5 rounded-2xl shadow-sm border-success/20 bg-success/5">
+          <CardContent className="py-3">
+            <div className="flex items-center gap-3">
+              <CheckCircle2 className="h-5 w-5 text-success" />
+              <span className="text-sm font-medium text-foreground">CV uploaded</span>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="ml-auto text-xs"
+                onClick={() => window.open(talent.cvUrl!, '_blank')}
+              >
+                View
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Profile Sections */}
       <div className="space-y-4">

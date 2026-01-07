@@ -94,6 +94,8 @@ export default function ProfileEdit() {
     setProfilePhotoUrl(url || '');
   };
 
+const [parsingCV, setParsingCV] = useState(false);
+
   const handleCVUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !talent) return;
@@ -127,12 +129,66 @@ export default function ProfileEdit() {
         .getPublicUrl(fileName);
 
       setCvUrl(publicUrl);
-      toast.success('CV uploaded successfully');
+      setUploadingCV(false);
+      
+      // Parse CV with AI
+      setParsingCV(true);
+      toast.info('Analyzing your CV...');
+      
+      try {
+        const { data: parseResult, error: parseError } = await supabase.functions.invoke('parse-cv', {
+          body: { cvUrl: publicUrl }
+        });
+
+        if (parseError) throw parseError;
+
+        if (parseResult?.success && parseResult.parsed) {
+          const parsed = parseResult.parsed;
+          
+          // Update form data with parsed info
+          if (parsed.full_name && !formData.fullName) {
+            setFormData(prev => ({ ...prev, fullName: parsed.full_name }));
+          }
+          if (parsed.phone && !formData.phone) {
+            setFormData(prev => ({ ...prev, phone: parsed.phone }));
+          }
+          if (parsed.skills && parsed.skills.length > 0 && skills.length === 0) {
+            setSkills(parsed.skills);
+          }
+          if (parsed.experience && parsed.experience.length > 0 && experience.length === 0) {
+            setExperience(parsed.experience.map((exp: any) => ({
+              company: exp.company || '',
+              position: exp.title || '',
+              startDate: '',
+              endDate: '',
+              description: exp.description || ''
+            })));
+          }
+          if (parsed.education && parsed.education.length > 0 && education.length === 0) {
+            setEducation(parsed.education.map((edu: any) => ({
+              institution: edu.institution || '',
+              degree: edu.degree || '',
+              fieldOfStudy: edu.field || '',
+              startYear: edu.start_year || '',
+              endYear: edu.end_year || ''
+            })));
+          }
+
+          toast.success('CV parsed! Review and save your updated profile.');
+        } else {
+          toast.success('CV uploaded successfully');
+        }
+      } catch (parseErr) {
+        console.error('CV parse error:', parseErr);
+        toast.success('CV uploaded. Manual parsing can be done later.');
+      }
+      
+      setParsingCV(false);
     } catch (error) {
       console.error('CV upload error:', error);
       toast.error('Failed to upload CV');
-    } finally {
       setUploadingCV(false);
+      setParsingCV(false);
     }
   };
 
@@ -252,13 +308,13 @@ export default function ProfileEdit() {
                   type="file"
                   accept=".pdf,.doc,.docx"
                   onChange={handleCVUpload}
-                  disabled={uploadingCV}
+                  disabled={uploadingCV || parsingCV}
                   className="cursor-pointer"
                 />
-                {uploadingCV && (
+                {(uploadingCV || parsingCV) && (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Uploading...
+                    {parsingCV ? 'Analyzing CV...' : 'Uploading...'}
                   </div>
                 )}
               </div>
