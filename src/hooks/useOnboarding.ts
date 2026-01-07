@@ -71,7 +71,7 @@ export function useOnboarding() {
         .from('talents')
         .update({ 
           onboarding_completed_at: new Date().toISOString(),
-          onboarding_step: 3 // Final step for 3-step onboarding
+          onboarding_step: 2 // Final step for 3-step onboarding (0-indexed)
         })
         .eq('id', talent.id);
 

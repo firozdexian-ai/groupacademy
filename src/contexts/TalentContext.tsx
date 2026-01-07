@@ -144,15 +144,53 @@ export function TalentProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  // Clear corrupted session and local storage
+  const clearCorruptedSession = useCallback(async () => {
+    console.log('[TalentContext] Clearing corrupted session...');
+    try {
+      // Clear Supabase auth storage
+      localStorage.removeItem('supabase.auth.token');
+      // Clear any sb- prefixed items
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('sb-')) {
+          localStorage.removeItem(key);
+        }
+      });
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn('[TalentContext] Error clearing session:', e);
+    }
+    setSession(null);
+    setUser(null);
+    setTalent(null);
+  }, []);
+
   // Initialize auth state with timeout protection
   useEffect(() => {
     let authTimeoutId: NodeJS.Timeout | null = null;
     let isInitialized = false;
+    let refreshInterval: NodeJS.Timeout | null = null;
 
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         console.log('[TalentContext] Auth state changed:', event);
+        
+        // Handle token refresh failures
+        if (event === 'TOKEN_REFRESHED' && !session) {
+          console.warn('[TalentContext] Token refresh failed');
+          await clearCorruptedSession();
+          return;
+        }
+        
+        // Handle invalid refresh token errors
+        if (event === 'SIGNED_OUT') {
+          setSession(null);
+          setUser(null);
+          setTalent(null);
+          return;
+        }
+        
         setSession(session);
         setUser(session?.user ?? null);
         
@@ -179,7 +217,20 @@ export function TalentProvider({ children }: { children: React.ReactNode }) {
       }, 8000);
 
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        // Handle invalid refresh token
+        if (error) {
+          const errorMsg = error.message || '';
+          if (errorMsg.includes('refresh_token') || errorMsg.includes('Invalid') || errorMsg.includes('not found')) {
+            console.warn('[TalentContext] Invalid session detected, clearing...');
+            await clearCorruptedSession();
+            isInitialized = true;
+            if (authTimeoutId) clearTimeout(authTimeoutId);
+            setIsAuthLoading(false);
+            return;
+          }
+        }
         
         if (isInitialized) return; // Timeout already fired
         isInitialized = true;
@@ -191,6 +242,20 @@ export function TalentProvider({ children }: { children: React.ReactNode }) {
         
         if (session?.user) {
           fetchTalent(session.user.id, session.user.email);
+          
+          // Set up proactive token refresh (every 10 minutes)
+          refreshInterval = setInterval(async () => {
+            try {
+              const { error: refreshError } = await supabase.auth.refreshSession();
+              if (refreshError) {
+                console.warn('[TalentContext] Proactive refresh failed:', refreshError.message);
+              } else {
+                console.log('[TalentContext] Session proactively refreshed');
+              }
+            } catch (e) {
+              console.warn('[TalentContext] Proactive refresh error:', e);
+            }
+          }, 10 * 60 * 1000); // 10 minutes
         }
         
         setIsAuthLoading(false);
@@ -209,9 +274,10 @@ export function TalentProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       if (authTimeoutId) clearTimeout(authTimeoutId);
+      if (refreshInterval) clearInterval(refreshInterval);
       subscription.unsubscribe();
     };
-  }, [fetchTalent]);
+  }, [fetchTalent, clearCorruptedSession]);
 
   // Refresh talent profile
   const refreshTalent = useCallback(async () => {

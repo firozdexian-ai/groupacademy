@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { WelcomeBonus } from './WelcomeBonus';
 import { CVUploadStep } from './CVUploadStep';
-import { ProfileQuickSetup } from './ProfileQuickSetup';
 import { ServicesTour } from './ServicesTour';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { toast } from 'sonner';
@@ -14,9 +13,9 @@ interface OnboardingWizardProps {
 }
 
 // 4 steps: Welcome → CV Upload → Profile → Explore
+// Simplified 3 steps: Welcome → Profile → Explore (CV upload integrated into Profile)
 const STEPS = [
   { id: 'welcome', label: 'Welcome' },
-  { id: 'cv', label: 'CV Upload' },
   { id: 'profile', label: 'Profile' },
   { id: 'explore', label: 'Explore' },
 ];
@@ -57,10 +56,9 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
     switch (STEPS[currentStep].id) {
       case 'welcome':
         return <WelcomeBonus onContinue={handleNext} />;
-      case 'cv':
-        return <CVUploadStep onContinue={handleNext} onSkip={handleNext} />;
       case 'profile':
-        return <ProfileQuickSetup onContinue={handleNext} onSkip={handleNext} />;
+        // Show CV upload first, then profile setup on continue
+        return <CVUploadStep onContinue={handleNext} onSkip={handleNext} />;
       case 'explore':
         return <ServicesTour onComplete={handleComplete} />;
       default:
