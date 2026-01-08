@@ -48,6 +48,20 @@ const Auth = () => {
     }
   }, [searchParams]);
 
+
+  const clearLocalAuthAndReload = () => {
+    try {
+      localStorage.removeItem('supabase.auth.token');
+      Object.keys(localStorage).forEach((key) => {
+        if (key.startsWith('sb-')) localStorage.removeItem(key);
+      });
+    } catch {
+      // ignore
+    }
+
+    window.location.reload();
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setValidationErrors({});
@@ -95,7 +109,29 @@ const Auth = () => {
         navigate(searchParams.get('returnTo') || '/app/feed');
       }
     } catch (error: any) {
-      toast.error(error.message || "Failed to sign in");
+      const msg = String(error?.message || "");
+      const isNetwork = error?.name === 'TypeError' && msg.includes('Failed to fetch');
+
+      if (isNetwork) {
+        toast.error(
+          <div className="flex flex-col gap-2">
+            <p className="font-semibold">Connection problem</p>
+            <p className="text-sm text-muted-foreground">
+              We couldn’t reach the authentication server (often caused by network/firewall/DNS).
+            </p>
+            <button
+              type="button"
+              onClick={clearLocalAuthAndReload}
+              className="text-xs underline text-left text-primary"
+            >
+              Clear cached session and reload
+            </button>
+          </div>
+        );
+        return;
+      }
+
+      toast.error(msg || "Failed to sign in");
     } finally {
       setIsLoading(false);
     }
@@ -137,7 +173,29 @@ const Auth = () => {
         setActiveTab("login");
       }
     } catch (error: any) {
-      if (error.message.includes("already registered")) {
+      const msg = String(error?.message || "");
+      const isNetwork = error?.name === 'TypeError' && msg.includes('Failed to fetch');
+
+      if (isNetwork) {
+        toast.error(
+          <div className="flex flex-col gap-2">
+            <p className="font-semibold">Connection problem</p>
+            <p className="text-sm text-muted-foreground">
+              We couldn’t reach the authentication server (often caused by network/firewall/DNS).
+            </p>
+            <button
+              type="button"
+              onClick={clearLocalAuthAndReload}
+              className="text-xs underline text-left text-primary"
+            >
+              Clear cached session and reload
+            </button>
+          </div>
+        );
+        return;
+      }
+
+      if (msg.includes("already registered")) {
         toast.error(
           <div className="flex flex-col gap-1">
             <p className="font-semibold">Email already registered</p>
@@ -150,7 +208,7 @@ const Auth = () => {
           </div>
         );
       } else {
-        toast.error(error.message || "Failed to create account");
+        toast.error(msg || "Failed to create account");
       }
     } finally {
       setIsLoading(false);
@@ -177,7 +235,29 @@ const Auth = () => {
       setShowForgotPassword(false);
       setResetEmail("");
     } catch (error: any) {
-      toast.error(error.message || "Failed to send reset link");
+      const msg = String(error?.message || "");
+      const isNetwork = error?.name === 'TypeError' && msg.includes('Failed to fetch');
+
+      if (isNetwork) {
+        toast.error(
+          <div className="flex flex-col gap-2">
+            <p className="font-semibold">Connection problem</p>
+            <p className="text-sm text-muted-foreground">
+              We couldn’t reach the authentication server. Please check your network and try again.
+            </p>
+            <button
+              type="button"
+              onClick={clearLocalAuthAndReload}
+              className="text-xs underline text-left text-primary"
+            >
+              Clear cached session and reload
+            </button>
+          </div>
+        );
+        return;
+      }
+
+      toast.error(msg || "Failed to send reset link");
     } finally {
       setIsLoading(false);
     }

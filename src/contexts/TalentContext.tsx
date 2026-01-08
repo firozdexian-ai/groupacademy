@@ -150,16 +150,22 @@ export function TalentProvider({ children }: { children: React.ReactNode }) {
     try {
       // Clear Supabase auth storage
       localStorage.removeItem('supabase.auth.token');
+
       // Clear any sb- prefixed items
-      Object.keys(localStorage).forEach(key => {
+      Object.keys(localStorage).forEach((key) => {
         if (key.startsWith('sb-')) {
           localStorage.removeItem(key);
         }
       });
-      await supabase.auth.signOut();
+
+      // Best-effort server sign-out (may fail if network is down)
+      supabase.auth.signOut().catch((e) => {
+        console.warn('[TalentContext] Best-effort signOut failed:', e);
+      });
     } catch (e) {
       console.warn('[TalentContext] Error clearing session:', e);
     }
+
     setSession(null);
     setUser(null);
     setTalent(null);
@@ -171,39 +177,38 @@ export function TalentProvider({ children }: { children: React.ReactNode }) {
     let isInitialized = false;
     let refreshInterval: NodeJS.Timeout | null = null;
 
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('[TalentContext] Auth state changed:', event);
-        
-        // Handle token refresh failures
-        if (event === 'TOKEN_REFRESHED' && !session) {
-          console.warn('[TalentContext] Token refresh failed');
-          await clearCorruptedSession();
-          return;
-        }
-        
-        // Handle invalid refresh token errors
-        if (event === 'SIGNED_OUT') {
-          setSession(null);
-          setUser(null);
-          setTalent(null);
-          return;
-        }
-        
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        // Defer talent fetch to avoid deadlock
-        if (session?.user) {
-          setTimeout(() => {
-            fetchTalent(session.user.id, session.user.email);
-          }, 0);
-        } else {
-          setTalent(null);
-        }
-      }
-    );
+     // Set up auth state listener FIRST
+     const { data: { subscription } } = supabase.auth.onAuthStateChange(
+       (event, session) => {
+         console.log('[TalentContext] Auth state changed:', event);
+
+         // If refresh/session is broken, clear client state (no awaits inside this callback)
+         if (event === 'TOKEN_REFRESHED' && !session) {
+           console.warn('[TalentContext] Token refresh produced no session; clearing local auth state');
+           void clearCorruptedSession();
+           return;
+         }
+
+         if (event === 'SIGNED_OUT') {
+           setSession(null);
+           setUser(null);
+           setTalent(null);
+           return;
+         }
+
+         setSession(session);
+         setUser(session?.user ?? null);
+
+         // Defer talent fetch to avoid deadlock
+         if (session?.user) {
+           setTimeout(() => {
+             fetchTalent(session.user.id, session.user.email);
+           }, 0);
+         } else {
+           setTalent(null);
+         }
+       }
+     );
 
     // THEN check for existing session with timeout fallback
     const initializeSession = async () => {
@@ -240,34 +245,30 @@ export function TalentProvider({ children }: { children: React.ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
         
-        if (session?.user) {
-          fetchTalent(session.user.id, session.user.email);
-          
-          // Set up proactive token refresh (every 10 minutes)
-          refreshInterval = setInterval(async () => {
-            try {
-              const { error: refreshError } = await supabase.auth.refreshSession();
-              if (refreshError) {
-                console.warn('[TalentContext] Proactive refresh failed:', refreshError.message);
-              } else {
-                console.log('[TalentContext] Session proactively refreshed');
-              }
-            } catch (e) {
-              console.warn('[TalentContext] Proactive refresh error:', e);
-            }
-          }, 10 * 60 * 1000); // 10 minutes
-        }
-        
-        setIsAuthLoading(false);
-      } catch (error) {
-        if (isInitialized) return; // Timeout already fired
-        isInitialized = true;
-        
-        if (authTimeoutId) clearTimeout(authTimeoutId);
-        
-        console.error('[TalentContext] Error getting session:', error);
-        setIsAuthLoading(false);
-      }
+         if (session?.user) {
+           fetchTalent(session.user.id, session.user.email);
+
+           // Note: Supabase client already auto-refreshes tokens.
+           // Avoid adding a proactive refresh interval here (it can spam requests on flaky networks).
+         }
+         
+         setIsAuthLoading(false);
+       } catch (error: any) {
+         if (isInitialized) return; // Timeout already fired
+         isInitialized = true;
+
+         if (authTimeoutId) clearTimeout(authTimeoutId);
+
+         // "Failed to fetch" is a network-layer error (DNS/firewall/offline/CORS).
+         // Clear any cached auth so the app can still load and the user can try signing in again.
+         if (error?.name === 'TypeError' && String(error?.message || '').includes('Failed to fetch')) {
+           console.warn('[TalentContext] Network error during session init; clearing local auth state');
+           void clearCorruptedSession();
+         }
+
+         console.error('[TalentContext] Error getting session:', error);
+         setIsAuthLoading(false);
+       }
     };
 
     initializeSession();
