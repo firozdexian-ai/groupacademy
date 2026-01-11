@@ -10,9 +10,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Eye, EyeOff, Loader2, Target, Mic, DollarSign, FolderOpen, Gift, CheckCircle } from "lucide-react";
-import { loginSchema, signupSchema, resetPasswordSchema } from "@/lib/validations";
-import { withTimeout } from "@/hooks/useQueryWithTimeout";
-import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { supabase } from "@/integrations/supabase/client";
 import logoLight from "@/assets/logo-horizontal-light.png";
 import logoDark from "@/assets/logo-horizontal-dark.png";
@@ -20,27 +17,37 @@ import logoDark from "@/assets/logo-horizontal-dark.png";
 const Auth = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  // Using the interface from our previous step
   const { user, isLoading: authLoading, signIn, signUp, resetPassword } = useAuth();
   const { theme } = useTheme();
+  
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "login");
+  
+  // Form States
   const [loginData, setLoginData] = useState({ email: "", password: "" });
   const [signupData, setSignupData] = useState({ fullName: "", email: "", password: "", phone: "" });
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [resetEmail, setResetEmail] = useState("");
+  
+  // UI States
   const [showPassword, setShowPassword] = useState(false);
   const [showSignupPassword, setShowSignupPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [resetEmail, setResetEmail] = useState("");
 
-  // Redirect if already logged in
+  // 1. Safe Redirect Logic (Prevents Infinite Loops)
   useEffect(() => {
     if (!authLoading && user) {
-      const returnTo = searchParams.get('returnTo') || '/app/feed';
-      navigate(returnTo);
+      const returnTo = searchParams.get('returnTo');
+      // Prevent redirecting back to /auth or / which might cause loops
+      const safeReturn = (returnTo && returnTo !== '/auth' && returnTo !== '/') 
+        ? returnTo 
+        : '/app/feed';
+        
+      navigate(safeReturn, { replace: true });
     }
   }, [user, authLoading, navigate, searchParams]);
 
-  // Update tab based on URL param
+  // Update active tab if URL changes
   useEffect(() => {
     const tab = searchParams.get("tab");
     if (tab === "signup" || tab === "login") {
@@ -48,90 +55,40 @@ const Auth = () => {
     }
   }, [searchParams]);
 
-
-  const clearLocalAuthAndReload = () => {
-    try {
-      localStorage.removeItem('supabase.auth.token');
-      Object.keys(localStorage).forEach((key) => {
-        if (key.startsWith('sb-')) localStorage.removeItem(key);
-      });
-    } catch {
-      // ignore
-    }
-
-    window.location.reload();
-  };
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setValidationErrors({});
-    
-    const validation = loginSchema.safeParse(loginData);
-    if (!validation.success) {
-      const errors: Record<string, string> = {};
-      validation.error.errors.forEach((err) => {
-        if (err.path[0]) errors[err.path[0] as string] = err.message;
-      });
-      setValidationErrors(errors);
-      toast.error("Please fix the validation errors");
-      return;
-    }
-
     setIsLoading(true);
 
     try {
-      await withTimeout(
-        signIn(loginData.email, loginData.password),
-        TIMEOUTS.AUTH,
-        "Sign in timed out. Please try again."
-      );
+      // Direct call to useAuth signIn (which handles its own errors/toasts)
+      await signIn(loginData.email, loginData.password);
       
-      // Check if user has admin role to redirect appropriately
+      // Optional: Check roles for specific redirects
       const { data: { user: currentUser } } = await supabase.auth.getUser();
+      
       if (currentUser) {
+        // Try to fetch role, but don't block login if it fails
         const { data: roleData } = await supabase
           .from("user_roles")
           .select("role")
           .eq("user_id", currentUser.id)
-          .in("role", ["admin", "talent_exec"]);
+          .maybeSingle(); // Safe query
         
         const returnTo = searchParams.get('returnTo');
-        if (returnTo) {
-          navigate(returnTo);
-        } else if (roleData && roleData.length > 0) {
-          // Admin users default to dashboard
+        // Sanitize return path
+        const safeReturn = (returnTo && returnTo !== '/auth') ? returnTo : null;
+
+        if (safeReturn) {
+          navigate(safeReturn);
+        } else if (roleData && (roleData.role === 'admin' || roleData.role === 'talent_exec')) {
           navigate('/dashboard');
         } else {
-          // Regular users default to feed
           navigate('/app/feed');
         }
-      } else {
-        navigate(searchParams.get('returnTo') || '/app/feed');
       }
-    } catch (error: any) {
-      const msg = String(error?.message || "");
-      const isNetwork = error?.name === 'TypeError' && msg.includes('Failed to fetch');
-
-      if (isNetwork) {
-        toast.error(
-          <div className="flex flex-col gap-2">
-            <p className="font-semibold">Connection problem</p>
-            <p className="text-sm text-muted-foreground">
-              We couldn’t reach the authentication server (often caused by network/firewall/DNS).
-            </p>
-            <button
-              type="button"
-              onClick={clearLocalAuthAndReload}
-              className="text-xs underline text-left text-primary"
-            >
-              Clear cached session and reload
-            </button>
-          </div>
-        );
-        return;
-      }
-
-      toast.error(msg || "Failed to sign in");
+    } catch (error) {
+      // Errors are handled by useAuth, but we catch here to stop loading state
+      console.error("Login flow error:", error);
     } finally {
       setIsLoading(false);
     }
@@ -139,77 +96,31 @@ const Auth = () => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    setValidationErrors({});
     
-    const validation = signupSchema.safeParse(signupData);
-    if (!validation.success) {
-      const errors: Record<string, string> = {};
-      validation.error.errors.forEach((err) => {
-        if (err.path[0]) errors[err.path[0] as string] = err.message;
-      });
-      setValidationErrors(errors);
-      toast.error("Please fix the validation errors");
+    // Basic Client Validation
+    if (signupData.password.length < 8) {
+      toast.error("Password must be at least 8 characters");
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const success = await withTimeout(
-        signUp(
-          signupData.fullName,
-          signupData.email,
-          signupData.password,
-          signupData.phone
-        ),
-        TIMEOUTS.AUTH,
-        "Sign up timed out. Please try again."
+      const success = await signUp(
+        signupData.fullName,
+        signupData.email,
+        signupData.password,
+        signupData.phone
       );
 
       if (success) {
-        const returnTo = searchParams.get('returnTo') || '/app/feed';
-        navigate(returnTo);
+        // useAuth handles the redirect or toast
       } else {
+        // If signup was successful but requires email verification (unlikely in this flow but possible)
         setActiveTab("login");
       }
-    } catch (error: any) {
-      const msg = String(error?.message || "");
-      const isNetwork = error?.name === 'TypeError' && msg.includes('Failed to fetch');
-
-      if (isNetwork) {
-        toast.error(
-          <div className="flex flex-col gap-2">
-            <p className="font-semibold">Connection problem</p>
-            <p className="text-sm text-muted-foreground">
-              We couldn’t reach the authentication server (often caused by network/firewall/DNS).
-            </p>
-            <button
-              type="button"
-              onClick={clearLocalAuthAndReload}
-              className="text-xs underline text-left text-primary"
-            >
-              Clear cached session and reload
-            </button>
-          </div>
-        );
-        return;
-      }
-
-      if (msg.includes("already registered")) {
-        toast.error(
-          <div className="flex flex-col gap-1">
-            <p className="font-semibold">Email already registered</p>
-            <button
-              onClick={() => setActiveTab("login")}
-              className="text-xs underline text-left"
-            >
-              Click here to sign in instead
-            </button>
-          </div>
-        );
-      } else {
-        toast.error(msg || "Failed to create account");
-      }
+    } catch (error) {
+      console.error("Signup error:", error);
     } finally {
       setIsLoading(false);
     }
@@ -217,52 +128,20 @@ const Auth = () => {
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const validation = resetPasswordSchema.safeParse({ email: resetEmail });
-    if (!validation.success) {
-      toast.error("Please enter a valid email address");
-      return;
-    }
-
     setIsLoading(true);
 
     try {
-      await withTimeout(
-        resetPassword(resetEmail),
-        TIMEOUTS.AUTH,
-        "Password reset request timed out. Please try again."
-      );
+      await resetPassword(resetEmail);
       setShowForgotPassword(false);
       setResetEmail("");
-    } catch (error: any) {
-      const msg = String(error?.message || "");
-      const isNetwork = error?.name === 'TypeError' && msg.includes('Failed to fetch');
-
-      if (isNetwork) {
-        toast.error(
-          <div className="flex flex-col gap-2">
-            <p className="font-semibold">Connection problem</p>
-            <p className="text-sm text-muted-foreground">
-              We couldn’t reach the authentication server. Please check your network and try again.
-            </p>
-            <button
-              type="button"
-              onClick={clearLocalAuthAndReload}
-              className="text-xs underline text-left text-primary"
-            >
-              Clear cached session and reload
-            </button>
-          </div>
-        );
-        return;
-      }
-
-      toast.error(msg || "Failed to send reset link");
+    } catch (error) {
+      console.error("Reset password error:", error);
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Password Strength Visualizer
   const getPasswordStrength = (password: string) => {
     if (password.length === 0) return { strength: 0, label: "" };
     if (password.length < 8) return { strength: 1, label: "Weak", color: "bg-destructive" };
@@ -301,7 +180,7 @@ const Auth = () => {
       {/* Left Side - Value Props (Desktop Only) */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-primary p-12 flex-col justify-center">
         <div className="max-w-md mx-auto">
-          <button onClick={() => navigate("/")} className="mb-8">
+          <button onClick={() => navigate("/")} className="mb-8 hover:opacity-90 transition-opacity">
             <img src={logoLight} alt="GroUp Academy" className="h-12" />
           </button>
           
@@ -377,9 +256,6 @@ const Auth = () => {
                         onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
                         required
                       />
-                      {validationErrors.email && (
-                        <p className="text-sm text-destructive">{validationErrors.email}</p>
-                      )}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="login-password">Password</Label>
@@ -390,7 +266,6 @@ const Auth = () => {
                           value={loginData.password}
                           onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
                           required
-                          minLength={8}
                         />
                         <button
                           type="button"
@@ -400,11 +275,8 @@ const Auth = () => {
                           {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
                       </div>
-                      {validationErrors.password && (
-                        <p className="text-sm text-destructive">{validationErrors.password}</p>
-                      )}
                     </div>
-                    <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center justify-end text-sm">
                       <button
                         type="button"
                         onClick={() => setShowForgotPassword(true)}
@@ -416,16 +288,6 @@ const Auth = () => {
                     <Button type="submit" className="w-full" disabled={isLoading}>
                       {isLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Signing in...</> : "Sign In"}
                     </Button>
-                    <p className="text-sm text-center text-muted-foreground">
-                      Don't have an account?{" "}
-                      <button
-                        type="button"
-                        onClick={() => setActiveTab("signup")}
-                        className="text-primary hover:underline font-medium"
-                      >
-                        Sign up
-                      </button>
-                    </p>
                   </form>
                 </CardContent>
               </Card>
@@ -449,9 +311,6 @@ const Auth = () => {
                         onChange={(e) => setSignupData({ ...signupData, fullName: e.target.value })}
                         required
                       />
-                      {validationErrors.fullName && (
-                        <p className="text-sm text-destructive">{validationErrors.fullName}</p>
-                      )}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="signup-email">Email</Label>
@@ -463,9 +322,6 @@ const Auth = () => {
                         onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
                         required
                       />
-                      {validationErrors.email && (
-                        <p className="text-sm text-destructive">{validationErrors.email}</p>
-                      )}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="signup-phone">Phone (Optional)</Label>
@@ -496,11 +352,10 @@ const Auth = () => {
                           {showSignupPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
                       </div>
-                      {validationErrors.password && (
-                        <p className="text-sm text-destructive">{validationErrors.password}</p>
-                      )}
+                      
+                      {/* Password Strength Indicator */}
                       {signupData.password && (
-                        <div className="space-y-1">
+                        <div className="space-y-1 mt-2">
                           <div className="flex gap-1 h-1">
                             {[1, 2, 3, 4].map((level) => (
                               <div
@@ -513,68 +368,19 @@ const Auth = () => {
                               />
                             ))}
                           </div>
-                          <p className="text-xs text-muted-foreground">
-                            Password strength: {passwordStrength.label || "Enter password"}
+                          <p className="text-xs text-muted-foreground text-right">
+                            {passwordStrength.label}
                           </p>
                         </div>
                       )}
-                      <p className="text-xs text-muted-foreground">Minimum 8 characters</p>
                     </div>
+                    
                     <Button type="submit" className="w-full" disabled={isLoading}>
                       {isLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Creating account...</> : "Create Account"}
                     </Button>
-                    <p className="text-sm text-center text-muted-foreground">
-                      Already have an account?{" "}
-                      <button
-                        type="button"
-                        onClick={() => setActiveTab("login")}
-                        className="text-primary hover:underline font-medium"
-                      >
-                        Sign in
-                      </button>
-                    </p>
                   </form>
                 </CardContent>
               </Card>
             </TabsContent>
           </Tabs>
         </div>
-      </div>
-
-      {/* Forgot Password Dialog */}
-      <Dialog open={showForgotPassword} onOpenChange={setShowForgotPassword}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Reset Password</DialogTitle>
-            <DialogDescription>
-              Enter your email address and we'll send you a link to reset your password.
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleForgotPassword} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="reset-email">Email</Label>
-              <Input
-                id="reset-email"
-                type="email"
-                placeholder="you@example.com"
-                value={resetEmail}
-                onChange={(e) => setResetEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="flex gap-2">
-              <Button type="submit" disabled={isLoading} className="flex-1">
-                {isLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Sending...</> : "Send Reset Link"}
-              </Button>
-              <Button type="button" variant="outline" onClick={() => setShowForgotPassword(false)}>
-                Cancel
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-};
-
-export default Auth;
