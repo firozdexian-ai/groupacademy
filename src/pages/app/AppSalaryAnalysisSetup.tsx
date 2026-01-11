@@ -13,18 +13,20 @@ import { useToast } from "@/hooks/use-toast";
 import { Upload, FileText, Loader2, CheckCircle, FileCheck, ArrowLeft } from "lucide-react";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { useTalent } from "@/hooks/useTalent";
-import { useCredits } from "@/hooks/useCredits";
+import { useCredits } from "@/hooks/useCredits"; // <--- ADDED
 import { ExistingCVCard } from "@/components/cv/ExistingCVCard";
 import { ProfileCompletionPrompt } from "@/components/profile/ProfileCompletionPrompt";
 import { CreditGateModal } from "@/components/credits/CreditGateModal";
 import { CreditPurchaseSheet } from "@/components/credits/CreditPurchaseSheet";
 
+const SALARY_ANALYSIS_COST = 50;
+
 export default function AppSalaryAnalysisSetup() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { talent, user, addServiceUsed, updateTalent, refreshTalent } = useTalent();
-  const { canAfford, getServiceCost, balance } = useCredits();
-  
+  const { canAfford, deductCredits, balance } = useCredits(); // <--- ADDED
+
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
@@ -36,7 +38,7 @@ export default function AppSalaryAnalysisSetup() {
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [cvUrl, setCvUrl] = useState("");
-  
+
   const [professionCategories, setProfessionCategories] = useState<any[]>([]);
   const [selectedProfession, setSelectedProfession] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -47,11 +49,11 @@ export default function AppSalaryAnalysisSetup() {
 
   useEffect(() => {
     if (talent) {
-      setEmail(prev => prev || talent.email || "");
-      setFullName(prev => prev || talent.fullName || "");
-      setPhone(prev => prev || talent.phone?.replace(/^\+880/, "") || "");
+      setEmail((prev) => prev || talent.email || "");
+      setFullName((prev) => prev || talent.fullName || "");
+      setPhone((prev) => prev || talent.phone?.replace(/^\+880/, "") || "");
       if (talent.professionCategoryId) {
-        setSelectedProfession(prev => prev || talent.professionCategoryId || "");
+        setSelectedProfession((prev) => prev || talent.professionCategoryId || "");
       }
       if (hasExistingCv && cvInputMode === "text") {
         setCvInputMode("existing");
@@ -59,7 +61,7 @@ export default function AppSalaryAnalysisSetup() {
         if (talent.cvText) setCvText(talent.cvText);
       }
     } else if (user?.email) {
-      setEmail(prev => prev || user.email || "");
+      setEmail((prev) => prev || user.email || "");
     }
   }, [talent, user, hasExistingCv]);
 
@@ -67,7 +69,7 @@ export default function AppSalaryAnalysisSetup() {
     const loadCategories = async () => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), TIMEOUTS.CATEGORY_LOAD);
-      
+
       try {
         const { data, error } = await supabase
           .from("profession_categories")
@@ -103,24 +105,20 @@ export default function AppSalaryAnalysisSetup() {
 
     try {
       const fileName = `salary-cv/${Date.now()}-${file.name}`;
-      
-      const { data, error } = await supabase.storage
-        .from("portfolio-uploads")
-        .upload(fileName, file);
+
+      const { data, error } = await supabase.storage.from("portfolio-uploads").upload(fileName, file);
 
       if (error) throw error;
 
-      const { data: publicUrl } = supabase.storage
-        .from("portfolio-uploads")
-        .getPublicUrl(fileName);
+      const { data: publicUrl } = supabase.storage.from("portfolio-uploads").getPublicUrl(fileName);
 
       setCvUrl(publicUrl.publicUrl);
-      
+
       if (talent?.id) {
         await updateTalent({ cvUrl: publicUrl.publicUrl });
         await refreshTalent();
       }
-      
+
       toast({ title: "CV uploaded successfully!" });
     } catch (error: any) {
       console.error("Upload error:", error);
@@ -143,13 +141,20 @@ export default function AppSalaryAnalysisSetup() {
       return;
     }
 
-    if (talent && !canAfford('SALARY_ANALYSIS')) {
+    // Payment Logic
+    if (!canAfford("SALARY_ANALYSIS")) {
       setShowCreditGate(true);
       return;
     }
 
     setIsSubmitting(true);
     try {
+      // 1. Deduct Credits
+      const paid = await deductCredits("SALARY_ANALYSIS", undefined, "Salary Analysis Request");
+      if (!paid) {
+        throw new Error("Payment failed. Please try again.");
+      }
+
       const isValidUUID = (str: string | null | undefined): boolean => {
         if (!str) return false;
         const uuidV4Regex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -158,30 +163,36 @@ export default function AppSalaryAnalysisSetup() {
 
       const tempAnalysisId = crypto.randomUUID();
 
-      const { error } = await supabase
-        .from("salary_analyses")
-        .insert({
-          id: tempAnalysisId,
-          user_id: user?.id || null,
-          talent_id: talent?.id || null,
-          full_name: fullName.trim(),
-          email: email.trim().toLowerCase(),
-          phone: phone.trim() ? `+880${phone.trim()}` : null,
-          job_title: jobTitle.trim() || null,
-          company_name: companyName.trim() || null,
-          job_description: jobDescription.trim(),
-          cv_text: cvText.trim() || null,
-          cv_url: cvUrl || null,
-          profession_category_id: isValidUUID(selectedProfession) ? selectedProfession : null,
-          status: "pending"
-        });
+      const { error } = await supabase.from("salary_analyses").insert({
+        id: tempAnalysisId,
+        user_id: user?.id || null,
+        talent_id: talent?.id || null,
+        full_name: fullName.trim(),
+        email: email.trim().toLowerCase(),
+        phone: phone.trim() ? `+880${phone.trim()}` : null,
+        job_title: jobTitle.trim() || null,
+        company_name: companyName.trim() || null,
+        job_description: jobDescription.trim(),
+        cv_text: cvText.trim() || null,
+        cv_url: cvUrl || null,
+        profession_category_id: isValidUUID(selectedProfession) ? selectedProfession : null,
+        status: "pending",
+      });
 
       if (error) throw error;
+
+      if (talent?.id) {
+        await addServiceUsed("salary_analysis");
+      }
 
       navigate(`/salary-analysis/processing/${tempAnalysisId}`);
     } catch (error) {
       console.error("Submit error:", error);
-      toast({ title: "Failed to start analysis", variant: "destructive" });
+      toast({
+        title: "Failed to start analysis",
+        description: "Payment or submission failed.",
+        variant: "destructive",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -189,23 +200,19 @@ export default function AppSalaryAnalysisSetup() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6">
-      <Button 
-        variant="ghost" 
-        className="mb-4"
-        onClick={() => navigate('/app/services')}
-      >
+      <Button variant="ghost" className="mb-4" onClick={() => navigate("/app/services")}>
         <ArrowLeft className="mr-2 h-4 w-4" />
         Back to Services
       </Button>
 
       <ProfileCompletionPrompt variant="banner" className="mb-6" />
-      
+
       <div className="text-center mb-6">
-        <Badge variant="secondary" className="mb-4">AI Salary Analysis</Badge>
+        <Badge variant="secondary" className="mb-4">
+          AI Salary Analysis
+        </Badge>
         <h1 className="text-2xl font-bold">Get Your Salary Insights</h1>
-        <p className="text-muted-foreground mt-2">
-          Provide your CV and target job details for personalized insights
-        </p>
+        <p className="text-muted-foreground mt-2">Provide your CV and target job details for personalized insights</p>
       </div>
 
       <Card>
@@ -245,8 +252,8 @@ export default function AppSalaryAnalysisSetup() {
                 placeholder="01XXXXXXXXX"
                 value={phone}
                 onChange={(e) => {
-                  let value = e.target.value.replace(/\D/g, '');
-                  if (value.startsWith('880')) {
+                  let value = e.target.value.replace(/\D/g, "");
+                  if (value.startsWith("880")) {
                     value = value.slice(3);
                   }
                   value = value.slice(0, 10);
@@ -285,8 +292,10 @@ export default function AppSalaryAnalysisSetup() {
                   <SelectValue placeholder="Select category (optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  {professionCategories.map(cat => (
-                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                  {professionCategories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -323,10 +332,10 @@ export default function AppSalaryAnalysisSetup() {
                   Upload
                 </TabsTrigger>
               </TabsList>
-              
+
               {hasExistingCv && (
                 <TabsContent value="existing" className="mt-4">
-                  <ExistingCVCard 
+                  <ExistingCVCard
                     talent={talent}
                     onUseExisting={() => {
                       if (talent?.cvUrl) setCvUrl(talent.cvUrl);
@@ -336,7 +345,7 @@ export default function AppSalaryAnalysisSetup() {
                   />
                 </TabsContent>
               )}
-              
+
               <TabsContent value="text" className="mt-4">
                 <Textarea
                   placeholder="Paste your CV/resume content here..."
@@ -345,7 +354,7 @@ export default function AppSalaryAnalysisSetup() {
                   className="min-h-[200px]"
                 />
               </TabsContent>
-              
+
               <TabsContent value="file" className="mt-4">
                 <div className="border-2 border-dashed rounded-lg p-6 text-center">
                   {cvFile ? (
@@ -371,18 +380,14 @@ export default function AppSalaryAnalysisSetup() {
             </Tabs>
           </div>
 
-          <Button 
-            className="w-full" 
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-          >
+          <Button className="w-full" onClick={handleSubmit} disabled={isSubmitting}>
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Starting Analysis...
               </>
             ) : (
-              "Start Salary Analysis"
+              `Pay ${SALARY_ANALYSIS_COST} Credits & Start`
             )}
           </Button>
         </CardContent>
@@ -394,14 +399,14 @@ export default function AppSalaryAnalysisSetup() {
         onClose={() => setShowCreditGate(false)}
         onConfirm={() => {
           setShowCreditGate(false);
-          handleSubmit();
+          // Just close, user needs to click submit again to trigger fresh check
         }}
         onBuyCredits={() => {
           setShowCreditGate(false);
           setShowCreditSheet(true);
         }}
         serviceName="AI Salary Analysis"
-        cost={getServiceCost('SALARY_ANALYSIS')}
+        cost={SALARY_ANALYSIS_COST}
         currentBalance={balance}
       />
 
