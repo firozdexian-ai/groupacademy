@@ -40,20 +40,71 @@ serve(async (req) => {
   }
 
   try {
-    const { talentId, forceRefresh = false } = await req.json();
-
-    if (!talentId) {
-      return new Response(
-        JSON.stringify({ error: "talentId is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    // 1. SECURITY: Verify the User
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Missing authorization header" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+    // Client to verify user identity
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabaseAuth.auth.getUser();
+
+    if (authError || !user) {
+      console.error("Auth error:", authError);
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { talentId, forceRefresh = false } = await req.json();
+
+    if (!talentId) {
+      return new Response(JSON.stringify({ error: "talentId is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const lovableApiKey = Deno.env.get("LOVABLE_API_KEY")!;
 
+    // Initialize Admin Client for Data Operations
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Fetch talent profile
+    const { data: talent, error: talentError } = await supabase.from("talents").select("*").eq("id", talentId).single();
+
+    if (talentError || !talent) {
+      console.error("Error fetching talent:", talentError);
+      return new Response(JSON.stringify({ error: "Talent not found" }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // 2. SECURITY: Ownership Check
+    // Ensure the talent profile belongs to the requesting user
+    if (talent.user_id !== user.id) {
+      console.error(`Unauthorized access: User ${user.id} tried to access recommendations for talent ${talentId}`);
+      return new Response(JSON.stringify({ error: "Unauthorized access to this profile" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Check for cached recommendations if not forcing refresh
     if (!forceRefresh) {
@@ -70,26 +121,11 @@ serve(async (req) => {
           JSON.stringify({
             recommendations: cached.recommendations,
             careerInsights: cached.career_insights,
-            cached: true
+            cached: true,
           }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
-    }
-
-    // Fetch talent profile
-    const { data: talent, error: talentError } = await supabase
-      .from("talents")
-      .select("*")
-      .eq("id", talentId)
-      .single();
-
-    if (talentError || !talent) {
-      console.error("Error fetching talent:", talentError);
-      return new Response(
-        JSON.stringify({ error: "Talent not found" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
     }
 
     // Fetch profession name if available
@@ -112,13 +148,15 @@ serve(async (req) => {
       .eq("talent_id", talentId)
       .eq("interaction_type", "not_interested");
 
-    const dismissedIds = new Set(dismissedInteractions?.map(i => i.item_id) || []);
+    const dismissedIds = new Set(dismissedInteractions?.map((i) => i.item_id) || []);
 
     // Fetch jobs and courses in parallel - include company info for logo and media
     const [jobsResult, coursesResult, companiesResult] = await Promise.all([
       supabase
         .from("jobs")
-        .select("id, title, description, company_name, company_id, company_logo_url, source_image_url, location, job_type, experience_level, requirements, created_at, deadline")
+        .select(
+          "id, title, description, company_name, company_id, company_logo_url, source_image_url, location, job_type, experience_level, requirements, created_at, deadline",
+        )
         .eq("is_active", true)
         .or("deadline.is.null,deadline.gte." + new Date().toISOString())
         .order("created_at", { ascending: false })
@@ -129,17 +167,15 @@ serve(async (req) => {
         .eq("is_published", true)
         .order("created_at", { ascending: false })
         .limit(20),
-      supabase
-        .from("companies")
-        .select("id, logo_url")
+      supabase.from("companies").select("id, logo_url"),
     ]);
 
-    const jobs = (jobsResult.data || []).filter(j => !dismissedIds.has(j.id));
-    const courses = (coursesResult.data || []).filter(c => !dismissedIds.has(c.id));
-    
+    const jobs = (jobsResult.data || []).filter((j) => !dismissedIds.has(j.id));
+    const courses = (coursesResult.data || []).filter((c) => !dismissedIds.has(c.id));
+
     // Create company logo map
     const companyLogoMap = new Map<string, string>();
-    (companiesResult.data || []).forEach(c => {
+    (companiesResult.data || []).forEach((c) => {
       if (c.logo_url) {
         companyLogoMap.set(c.id, c.logo_url);
       }
@@ -150,13 +186,11 @@ serve(async (req) => {
       const skills: string[] = [];
       if (job.requirements) {
         try {
-          const reqs = typeof job.requirements === 'string' 
-            ? JSON.parse(job.requirements) 
-            : job.requirements;
+          const reqs = typeof job.requirements === "string" ? JSON.parse(job.requirements) : job.requirements;
           if (Array.isArray(reqs)) {
             // Take first 5 items that look like skills (short strings)
             reqs.slice(0, 5).forEach((req: any) => {
-              if (typeof req === 'string' && req.length < 30) {
+              if (typeof req === "string" && req.length < 30) {
                 skills.push(req);
               }
             });
@@ -179,22 +213,22 @@ serve(async (req) => {
     }
 
     const itemsToScore: ItemToScore[] = [
-      ...jobs.map(j => ({
+      ...jobs.map((j) => ({
         id: j.id,
         type: "job" as const,
         title: j.title,
         description: j.description?.substring(0, 300) || "",
         company: j.company_name,
-        metadata: `${j.job_type || ""} ${j.experience_level || ""} ${j.location || ""}`
+        metadata: `${j.job_type || ""} ${j.experience_level || ""} ${j.location || ""}`,
       })),
-      ...courses.map(c => ({
+      ...courses.map((c) => ({
         id: c.id,
         type: (c.content_type === "free_video" ? "video" : "course") as "video" | "course",
         title: c.title,
         description: c.description?.substring(0, 300) || "",
         company: undefined,
-        metadata: c.content_type
-      }))
+        metadata: c.content_type,
+      })),
     ];
 
     // Build profile summary for AI
@@ -203,12 +237,12 @@ serve(async (req) => {
       profession: professionName,
       skills: talent.skills || [],
       experienceYears: (talent.experience || []).length,
-      currentStatus: talent.current_status || "job_seeker"
+      currentStatus: talent.current_status || "job_seeker",
     };
 
     // Call Lovable AI for scoring
     console.log("Calling Lovable AI for recommendations...");
-    
+
     const aiPrompt = `You are a career advisor AI. Analyze the candidate profile and score each opportunity.
 
 CANDIDATE PROFILE:
@@ -219,9 +253,13 @@ CANDIDATE PROFILE:
 - Status: ${profileSummary.currentStatus}
 
 OPPORTUNITIES TO SCORE (score 0-100 based on match):
-${itemsToScore.slice(0, 15).map((item, i) => 
-  `${i + 1}. [${item.type.toUpperCase()}] ${item.title}${item.company ? ` at ${item.company}` : ""}\n   ${item.description.substring(0, 150)}...`
-).join("\n\n")}
+${itemsToScore
+  .slice(0, 15)
+  .map(
+    (item, i) =>
+      `${i + 1}. [${item.type.toUpperCase()}] ${item.title}${item.company ? ` at ${item.company}` : ""}\n   ${item.description.substring(0, 150)}...`,
+  )
+  .join("\n\n")}
 
 Respond with a JSON object containing:
 1. "scores": Array of objects with "id", "score" (0-100), and "reason" (brief 10-word explanation)
@@ -233,37 +271,44 @@ Example format:
   "insights": ["Consider upskilling in cloud technologies to increase opportunities", ...]
 }`;
 
+    // Add timeout controller for AI call
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 90000);
+
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${lovableApiKey}`,
+        Authorization: `Bearer ${lovableApiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: "You are a career advisor. Always respond with valid JSON only, no markdown." },
-          { role: "user", content: aiPrompt }
+          { role: "user", content: aiPrompt },
         ],
       }),
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
       console.error("AI API error:", aiResponse.status, errorText);
-      
+
       // Return items with varied fallback scoring (not all 50%)
       const fallbackItems: FeedItem[] = itemsToScore.map((item, index) => {
         // Generate varied scores between 40-75 based on item characteristics
         let baseScore = 45;
-        
+
         // Jobs get slightly higher base score
-        if (item.type === 'job') baseScore += 10;
-        
+        if (item.type === "job") baseScore += 10;
+
         // Add some variation based on position and metadata
         const variation = (index % 5) * 5 + Math.floor(Math.random() * 10);
         const finalScore = Math.min(75, baseScore + variation);
-        
+
         return {
           id: item.id,
           type: item.type,
@@ -273,10 +318,10 @@ Example format:
           createdAt: new Date().toISOString(),
           matchScore: finalScore,
           matchReason: "Complete your profile for personalized scoring",
-          aiScored: false
+          aiScored: false,
         };
       });
-      
+
       // Sort by score
       fallbackItems.sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0));
 
@@ -286,23 +331,26 @@ Example format:
           careerInsights: [
             "Complete your profile to get AI-powered personalized recommendations",
             "Upload your CV to unlock better job matches",
-            "Add your skills to see relevant courses"
+            "Add your skills to see relevant courses",
           ],
           cached: false,
-          aiScored: false
+          aiScored: false,
         }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
     const aiData = await aiResponse.json();
     const aiContent = aiData.choices?.[0]?.message?.content || "{}";
-    
+
     // Parse AI response
-    let parsed: { scores: Array<{id: string, score: number, reason: string}>, insights: string[] };
+    let parsed: { scores: Array<{ id: string; score: number; reason: string }>; insights: string[] };
     try {
       // Clean up potential markdown formatting
-      const cleanJson = aiContent.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+      const cleanJson = aiContent
+        .replace(/```json\n?/g, "")
+        .replace(/```\n?/g, "")
+        .trim();
       parsed = JSON.parse(cleanJson);
     } catch (parseError) {
       console.error("Error parsing AI response:", parseError, "Content:", aiContent);
@@ -310,7 +358,7 @@ Example format:
     }
 
     // Create score map
-    const scoreMap = new Map(parsed.scores.map(s => [s.id, { score: s.score, reason: s.reason }]));
+    const scoreMap = new Map(parsed.scores.map((s) => [s.id, { score: s.score, reason: s.reason }]));
 
     // Build final recommendations with scores
     const recommendations: FeedItem[] = [];
@@ -324,12 +372,12 @@ Example format:
     for (const job of jobs) {
       const scoreData = scoreMap.get(job.id);
       const jobSkills = extractSkillsFromJob(job);
-      const companyLogo = job.company_id ? companyLogoMap.get(job.company_id) : (job.company_logo_url || undefined);
-      
+      const companyLogo = job.company_id ? companyLogoMap.get(job.company_id) : job.company_logo_url || undefined;
+
       // Determine media for job - prefer source_image_url
       const mediaUrl = job.source_image_url || companyLogo || undefined;
-      const mediaType = mediaUrl ? "image" as const : undefined;
-      
+      const mediaType = mediaUrl ? ("image" as const) : undefined;
+
       recommendations.push({
         id: job.id,
         type: "job",
@@ -343,19 +391,19 @@ Example format:
         location: job.location || undefined,
         companyLogo: companyLogo,
         mediaUrl: mediaUrl,
-        mediaType: mediaType
+        mediaType: mediaType,
       });
     }
 
     for (const course of courses) {
       const scoreData = scoreMap.get(course.id);
       const isVideo = course.content_type === "free_video";
-      
+
       // Determine media for content - prioritize youtube for videos
       let mediaUrl = course.cover_image_url || course.thumbnail_url || undefined;
       let mediaType: "image" | "youtube" | undefined = mediaUrl ? "image" : undefined;
       let youtubeUrl: string | undefined = undefined;
-      
+
       if (course.youtube_url) {
         youtubeUrl = course.youtube_url;
         const ytThumb = getYoutubeThumbnail(course.youtube_url);
@@ -364,7 +412,7 @@ Example format:
           mediaType = "youtube";
         }
       }
-      
+
       recommendations.push({
         id: course.id,
         type: isVideo ? "video" : "course",
@@ -377,7 +425,7 @@ Example format:
         matchReason: scoreData?.reason || "Recommended for you",
         mediaUrl: mediaUrl,
         mediaType: mediaType,
-        youtubeUrl: youtubeUrl
+        youtubeUrl: youtubeUrl,
       });
     }
 
@@ -387,15 +435,16 @@ Example format:
     const careerInsights = parsed.insights || ["Complete your profile to get personalized career insights"];
 
     // Cache the results
-    await supabase
-      .from("ai_recommendations")
-      .upsert({
+    await supabase.from("ai_recommendations").upsert(
+      {
         talent_id: talentId,
         recommendations: recommendations,
         career_insights: careerInsights,
         generated_at: new Date().toISOString(),
-        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
-      }, { onConflict: "talent_id" });
+        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      },
+      { onConflict: "talent_id" },
+    );
 
     console.log("Generated and cached recommendations for talent:", talentId);
 
@@ -403,16 +452,15 @@ Example format:
       JSON.stringify({
         recommendations,
         careerInsights,
-        cached: false
+        cached: false,
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
-
   } catch (error) {
     console.error("Error in generate-feed-recommendations:", error);
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
