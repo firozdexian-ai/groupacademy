@@ -1,66 +1,127 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
 serve(async (req) => {
   // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { coverLetter, jobTitle, companyName, candidateName, skills } = await req.json();
+    // 1. SECURITY: Initialize Supabase Client & Verify User
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+    const authHeader = req.headers.get("Authorization");
 
-    console.log("Enhancing cover letter for:", { jobTitle, companyName, candidateName });
-
-    if (!coverLetter) {
-      return new Response(
-        JSON.stringify({ error: "Cover letter is required" }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Missing authorization header" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
+
+    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabaseClient.auth.getUser();
+
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // 2. LOGIC: Determine Request Type
+    const requestData = await req.json();
+    const type = requestData.type || "cover_letter"; // Default to cover letter for backward compatibility
+
+    console.log(`Processing AI request: ${type} for user ${user.id}`);
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
-      console.error("LOVABLE_API_KEY is not configured");
-      return new Response(
-        JSON.stringify({ error: "AI service not configured" }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: "AI service not configured" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    const skillsList = Array.isArray(skills) 
-      ? skills.slice(0, 10).map((s: any) => typeof s === 'string' ? s : s.name).join(', ')
-      : '';
+    let systemPrompt = "";
+    let userPrompt = "";
 
-    const systemPrompt = `You are an expert career coach and professional writer. Your task is to enhance cover letters to make them more compelling, professional, and tailored to the specific job.
+    // 3. MODE A: Enhance Experience (For Profile Page)
+    if (type === "experience") {
+      const { experience, profession } = requestData;
 
-Guidelines:
-- Keep the core message and intent of the original letter
-- Improve clarity, professionalism, and impact
-- Make it more concise if it's too long
-- Add relevant details about the candidate's fit for the role
-- Use a confident but not arrogant tone
-- Ensure proper formatting with paragraphs
-- Keep it between 150-300 words
-- Do NOT add placeholder text like [Your Name] - use the actual candidate name if provided
-- ALWAYS end the cover letter with "Sincerely," followed by the candidate's actual name on a new line
-- If candidate name is provided, use it exactly as given for the signature
-- Return ONLY the enhanced cover letter text, no explanations or commentary`;
+      if (!experience || !Array.isArray(experience)) {
+        return new Response(JSON.stringify({ error: "Valid experience array is required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
 
-    const userPrompt = `Please enhance this cover letter for a ${jobTitle || 'job'} position at ${companyName || 'the company'}.
+      systemPrompt = `You are an expert resume writer. Your task is to rewrite work experience descriptions to be impact-driven, professional, and results-oriented.
+      
+      Guidelines:
+      - Use strong action verbs (e.g., "Spearheaded", "Optimized", "Developed").
+      - Quantify results where possible (even if estimating).
+      - Keep it concise but professional.
+      - Maintain the original meaning but make it sound "senior" and competent.
+      - Return ONLY a JSON object where keys are the original indices and values are the new descriptions.`;
 
-Candidate Name: ${candidateName || 'Not provided'}
-Relevant Skills: ${skillsList || 'Not provided'}
+      userPrompt = `Please enhance these work experience descriptions for a ${profession || "professional"} role.
+      
+      Input Data:
+      ${JSON.stringify(experience.map((exp: any, i: number) => ({ index: i, role: exp.title, task: exp.description })))}
+      
+      Return strictly a JSON object: { "0": "New Description...", "1": "New Description..." }`;
+    }
 
-Original Cover Letter:
-${coverLetter}
+    // 4. MODE B: Enhance Cover Letter (For Job Application)
+    else {
+      const { coverLetter, jobTitle, companyName, candidateName, skills } = requestData;
 
-Return only the enhanced cover letter text.`;
+      if (!coverLetter) {
+        return new Response(JSON.stringify({ error: "Cover letter is required" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
 
+      const skillsList = Array.isArray(skills)
+        ? skills
+            .slice(0, 10)
+            .map((s: any) => (typeof s === "string" ? s : s.name))
+            .join(", ")
+        : "";
+
+      systemPrompt = `You are an expert career coach. Enhance this cover letter to be compelling and professional.
+      
+      Guidelines:
+      - Improve clarity and impact.
+      - Keep it between 150-300 words.
+      - Use a confident tone.
+      - End with "Sincerely," followed by the name "${candidateName || "Candidate"}".
+      - Return ONLY the enhanced text.`;
+
+      userPrompt = `Enhance this cover letter for a ${jobTitle || "job"} at ${companyName || "a company"}.
+      
+      Skills: ${skillsList}
+      
+      Original:
+      ${coverLetter}`;
+    }
+
+    // 5. Call AI Service
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -71,7 +132,7 @@ Return only the enhanced cover letter text.`;
         model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt }
+          { role: "user", content: userPrompt },
         ],
       }),
     });
@@ -79,50 +140,56 @@ Return only the enhanced cover letter text.`;
     if (!response.ok) {
       const errorText = await response.text();
       console.error("AI gateway error:", response.status, errorText);
-      
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
-          { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "AI credits exhausted. Please contact support." }),
-          { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      
-      return new Response(
-        JSON.stringify({ error: "Failed to enhance cover letter" }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      throw new Error(`AI Gateway Error: ${response.status}`);
     }
 
     const data = await response.json();
-    const enhancedCoverLetter = data.choices?.[0]?.message?.content?.trim();
+    const aiContent = data.choices?.[0]?.message?.content?.trim();
 
-    if (!enhancedCoverLetter) {
-      console.error("No content in AI response:", data);
-      return new Response(
-        JSON.stringify({ error: "Failed to generate enhanced cover letter" }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    if (!aiContent) {
+      throw new Error("Empty response from AI");
     }
 
-    console.log("Cover letter enhanced successfully");
+    // 6. Format Response based on Mode
+    if (type === "experience") {
+      // Parse the JSON response for experience
+      try {
+        // Sometimes AI wraps JSON in markdown blocks, strip them
+        const cleanJson = aiContent
+          .replace(/```json/g, "")
+          .replace(/```/g, "")
+          .trim();
+        const enhancedMap = JSON.parse(cleanJson);
 
-    return new Response(
-      JSON.stringify({ enhancedCoverLetter }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+        // Reconstruct the experience array
+        const enhancedExperience = requestData.experience.map((exp: any, i: number) => ({
+          ...exp,
+          description: enhancedMap[i] || exp.description, // Fallback to original if AI missed one
+        }));
 
+        return new Response(JSON.stringify({ enhancedExperience }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (e) {
+        console.error("Failed to parse AI JSON response", e);
+        // Fallback: Return original if parsing fails
+        return new Response(
+          JSON.stringify({ enhancedExperience: requestData.experience, warning: "AI response formatting failed" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+    } else {
+      // Return simple text for cover letter
+      return new Response(JSON.stringify({ enhancedCoverLetter: aiContent }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
   } catch (error: unknown) {
-    console.error("Error in enhance-cover-letter function:", error);
+    console.error("Error in function:", error);
     const errorMessage = error instanceof Error ? error.message : "Internal server error";
-    return new Response(
-      JSON.stringify({ error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ error: errorMessage }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
