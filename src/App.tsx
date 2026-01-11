@@ -54,7 +54,7 @@ import MyResults from "./pages/app/MyResults";
 import MyApplications from "./pages/app/MyApplications";
 
 // Feature Details
-import AppJobs from "./pages/app/AppJobs"; // <--- ADDED THIS MISSING IMPORT
+import AppJobs from "./pages/app/AppJobs";
 import AppJobDetail from "./pages/app/AppJobDetail";
 import AppJobApplication from "./pages/app/AppJobApplication";
 import AppCourses from "./pages/app/AppCourses";
@@ -114,12 +114,15 @@ export default function App() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <BootGate>
-          <TalentProvider>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        {/* 1. BrowserRouter MUST wrap everything that uses navigation hooks */}
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <BootGate>
+            {/* 2. TalentProvider is now INSIDE the Router */}
+            <TalentProvider>
+              <TooltipProvider>
+                <Toaster />
+                <Sonner />
+
                 <Routes>
                   {/* ================= PUBLIC ROUTES ================= */}
                   <Route path="/" element={<Index />} />
@@ -342,10 +345,10 @@ export default function App() {
                   {/* 404 Handler */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
-              </BrowserRouter>
-            </TooltipProvider>
-          </TalentProvider>
-        </BootGate>
+              </TooltipProvider>
+            </TalentProvider>
+          </BootGate>
+        </BrowserRouter>
       </QueryClientProvider>
     </ErrorBoundary>
   );
