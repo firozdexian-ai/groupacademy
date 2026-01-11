@@ -9,17 +9,19 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { 
-  ArrowRight, 
-  ArrowLeft, 
+import {
+  ArrowRight,
+  ArrowLeft,
   BriefcaseIcon,
   Settings,
-  Loader2
+  Loader2,
+  Coins, // <--- ADDED
 } from "lucide-react";
 import { toast } from "sonner";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { useProgressiveLoadingMessage } from "@/hooks/useProgressiveLoadingMessage";
 import { useTalent } from "@/hooks/useTalent";
+import { useCredits } from "@/hooks/useCredits"; // <--- ADDED
 import { ProfileCompletionPrompt } from "@/components/profile/ProfileCompletionPrompt";
 import { RetryErrorCard, getErrorType } from "@/components/ui/retry-error-card";
 
@@ -39,22 +41,26 @@ interface InterviewConfig {
   useProfileContext: boolean;
 }
 
+const MOCK_INTERVIEW_COST = 50; // Defined cost
+
 export default function AppMockInterviewSetup() {
   const navigate = useNavigate();
   const { talent, user, addServiceUsed } = useTalent();
+  const { deductCredits, canAfford, balance } = useCredits(); // <--- ADDED
+
   const [step, setStep] = useState<SetupStep>("job-description");
-  
+
   const [email, setEmail] = useState("");
   const [jobDescription, setJobDescription] = useState("");
-  
+
   const [config, setConfig] = useState<InterviewConfig>({
     questionCount: 5,
     difficulty: "medium",
     professionCategoryId: null,
     additionalNotes: "",
-    useProfileContext: true
+    useProfileContext: true,
   });
-  
+
   const [categories, setCategories] = useState<ProfessionCategory[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationError, setGenerationError] = useState<Error | null>(null);
@@ -69,7 +75,7 @@ export default function AppMockInterviewSetup() {
 
   useEffect(() => {
     if (talent?.professionCategoryId && !config.professionCategoryId) {
-      setConfig(prev => ({ ...prev, professionCategoryId: talent.professionCategoryId || null }));
+      setConfig((prev) => ({ ...prev, professionCategoryId: talent.professionCategoryId || null }));
     }
   }, [talent?.professionCategoryId]);
 
@@ -80,7 +86,7 @@ export default function AppMockInterviewSetup() {
   const loadCategories = async () => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), TIMEOUTS.CATEGORY_LOAD);
-    
+
     try {
       const { data, error } = await supabase
         .from("profession_categories")
@@ -109,6 +115,12 @@ export default function AppMockInterviewSetup() {
   };
 
   const handleStartInterview = async () => {
+    // --- PAYMENT CHECK ---
+    if (!canAfford("MOCK_INTERVIEW")) {
+      toast.error(`Insufficient credits. You need ${MOCK_INTERVIEW_COST} credits.`);
+      return;
+    }
+
     setIsGenerating(true);
     setStep("generating");
 
@@ -123,22 +135,32 @@ export default function AppMockInterviewSetup() {
     });
 
     try {
+      // 1. Deduct Credits First
+      const paid = await deductCredits("MOCK_INTERVIEW", undefined, "AI Mock Interview Generation");
+      if (!paid) {
+        throw new Error("Payment failed. Please try again.");
+      }
+
+      // 2. Prepare Context
       let candidateProfile = null;
       if (config.useProfileContext && talent) {
         candidateProfile = {
-          skills: Array.isArray(talent.skills) 
-            ? talent.skills.map((s: any) => typeof s === 'string' ? s : s.name || s.skill || String(s))
+          skills: Array.isArray(talent.skills)
+            ? talent.skills.map((s: any) => (typeof s === "string" ? s : s.name || s.skill || String(s)))
             : [],
-          experience: Array.isArray(talent.experience) 
-            ? talent.experience.map((e: any) => `${e.position || e.title || ''} at ${e.company || ''}`.trim()).filter(Boolean)
+          experience: Array.isArray(talent.experience)
+            ? talent.experience
+                .map((e: any) => `${e.position || e.title || ""} at ${e.company || ""}`.trim())
+                .filter(Boolean)
             : [],
           education: Array.isArray(talent.education)
-            ? talent.education.map((e: any) => `${e.degree || ''} from ${e.institution || ''}`.trim()).filter(Boolean)
+            ? talent.education.map((e: any) => `${e.degree || ""} from ${e.institution || ""}`.trim()).filter(Boolean)
             : [],
-          cvSummary: talent.cvText?.substring(0, 1000) || null
+          cvSummary: talent.cvText?.substring(0, 1000) || null,
         };
       }
 
+      // 3. Call AI
       const functionPromise = supabase.functions.invoke("generate-interview-questions", {
         body: {
           jobDescription,
@@ -146,14 +168,11 @@ export default function AppMockInterviewSetup() {
           difficulty: config.difficulty,
           professionCategoryId: isValidUUID(config.professionCategoryId) ? config.professionCategoryId : null,
           additionalNotes: config.additionalNotes,
-          candidateProfile
-        }
+          candidateProfile,
+        },
       });
 
-      const { data, error } = await Promise.race([
-        functionPromise,
-        timeoutPromise
-      ]) as any;
+      const { data, error } = (await Promise.race([functionPromise, timeoutPromise])) as any;
 
       if (error) {
         console.error("Edge function error:", error);
@@ -165,26 +184,24 @@ export default function AppMockInterviewSetup() {
       }
 
       const tempInterviewId = crypto.randomUUID();
-      
-      const { error: insertError } = await supabase
-        .from("mock_interviews")
-        .insert({
-          id: tempInterviewId,
-          email: email.toLowerCase().trim(),
-          full_name: talent?.fullName || "",
-          phone: talent?.phone || null,
-          job_description: jobDescription,
-          job_title: data.jobTitle,
-          company_name: data.companyName,
-          question_count: config.questionCount,
-          difficulty: config.difficulty,
-          profession_category_id: isValidUUID(config.professionCategoryId) ? config.professionCategoryId : null,
-          additional_notes: config.additionalNotes,
-          questions: data.questions,
-          status: "in_progress",
-          user_id: user?.id || null,
-          talent_id: talent?.id || null
-        });
+
+      const { error: insertError } = await supabase.from("mock_interviews").insert({
+        id: tempInterviewId,
+        email: email.toLowerCase().trim(),
+        full_name: talent?.fullName || "",
+        phone: talent?.phone || null,
+        job_description: jobDescription,
+        job_title: data.jobTitle,
+        company_name: data.companyName,
+        question_count: config.questionCount,
+        difficulty: config.difficulty,
+        profession_category_id: isValidUUID(config.professionCategoryId) ? config.professionCategoryId : null,
+        additional_notes: config.additionalNotes,
+        questions: data.questions,
+        status: "in_progress",
+        user_id: user?.id || null,
+        talent_id: talent?.id || null,
+      });
 
       if (insertError) {
         console.error("Database insert error:", insertError);
@@ -202,17 +219,15 @@ export default function AppMockInterviewSetup() {
       setGenerationError(error);
       setStep("configuration");
       setIsGenerating(false);
+      // NOTE: In a real app, you might want to refund credits here if AI fails
+      // But for simplicity, we assume robust AI or manual refund support
     }
   };
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6">
       {/* Back Button */}
-      <Button 
-        variant="ghost" 
-        className="mb-4"
-        onClick={() => navigate('/app/services')}
-      >
+      <Button variant="ghost" className="mb-4" onClick={() => navigate("/app/services")}>
         <ArrowLeft className="mr-2 h-4 w-4" />
         Back to Services
       </Button>
@@ -227,9 +242,7 @@ export default function AppMockInterviewSetup() {
               <BriefcaseIcon className="w-8 h-8 text-primary" />
             </div>
             <CardTitle>Describe the Job Position</CardTitle>
-            <CardDescription>
-              Paste the job description for the position you're preparing for
-            </CardDescription>
+            <CardDescription>Paste the job description for the position you're preparing for</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -245,11 +258,7 @@ export default function AppMockInterviewSetup() {
                 {jobDescription.length} / 50 minimum characters
               </p>
             </div>
-            <Button 
-              className="w-full" 
-              onClick={handleJobDescriptionSubmit}
-              disabled={jobDescription.length < 50}
-            >
+            <Button className="w-full" onClick={handleJobDescriptionSubmit} disabled={jobDescription.length < 50}>
               Continue to Configuration
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
@@ -265,9 +274,7 @@ export default function AppMockInterviewSetup() {
               <Settings className="w-8 h-8 text-primary" />
             </div>
             <CardTitle>Configure Your Interview</CardTitle>
-            <CardDescription>
-              Customize the interview to match your preparation needs
-            </CardDescription>
+            <CardDescription>Customize the interview to match your preparation needs</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {generationError && (
@@ -277,19 +284,21 @@ export default function AppMockInterviewSetup() {
                 description={generationError.message}
               />
             )}
-            
+
             {/* Number of Questions */}
             <div className="space-y-3">
               <Label>Number of Questions</Label>
               <RadioGroup
                 value={String(config.questionCount)}
-                onValueChange={(v) => setConfig(prev => ({ ...prev, questionCount: Number(v) }))}
+                onValueChange={(v) => setConfig((prev) => ({ ...prev, questionCount: Number(v) }))}
                 className="flex gap-4"
               >
-                {[3, 5, 7, 10].map(num => (
+                {[3, 5, 7, 10].map((num) => (
                   <div key={num} className="flex items-center space-x-2">
                     <RadioGroupItem value={String(num)} id={`q-${num}`} />
-                    <Label htmlFor={`q-${num}`} className="cursor-pointer">{num}</Label>
+                    <Label htmlFor={`q-${num}`} className="cursor-pointer">
+                      {num}
+                    </Label>
                   </div>
                 ))}
               </RadioGroup>
@@ -300,20 +309,26 @@ export default function AppMockInterviewSetup() {
               <Label>Difficulty Level</Label>
               <RadioGroup
                 value={config.difficulty}
-                onValueChange={(v: "easy" | "medium" | "hard") => setConfig(prev => ({ ...prev, difficulty: v }))}
+                onValueChange={(v: "easy" | "medium" | "hard") => setConfig((prev) => ({ ...prev, difficulty: v }))}
                 className="flex gap-4"
               >
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="easy" id="d-easy" />
-                  <Label htmlFor="d-easy" className="cursor-pointer">Easy</Label>
+                  <Label htmlFor="d-easy" className="cursor-pointer">
+                    Easy
+                  </Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="medium" id="d-medium" />
-                  <Label htmlFor="d-medium" className="cursor-pointer">Medium</Label>
+                  <Label htmlFor="d-medium" className="cursor-pointer">
+                    Medium
+                  </Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="hard" id="d-hard" />
-                  <Label htmlFor="d-hard" className="cursor-pointer">Hard</Label>
+                  <Label htmlFor="d-hard" className="cursor-pointer">
+                    Hard
+                  </Label>
                 </div>
               </RadioGroup>
             </div>
@@ -323,14 +338,16 @@ export default function AppMockInterviewSetup() {
               <Label>Profession Category (Optional)</Label>
               <Select
                 value={config.professionCategoryId || ""}
-                onValueChange={(v) => setConfig(prev => ({ ...prev, professionCategoryId: v || null }))}
+                onValueChange={(v) => setConfig((prev) => ({ ...prev, professionCategoryId: v || null }))}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select category for targeted questions" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.map(cat => (
-                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -343,7 +360,7 @@ export default function AppMockInterviewSetup() {
                 id="notes"
                 placeholder="Any specific topics or skills you want to focus on..."
                 value={config.additionalNotes}
-                onChange={(e) => setConfig(prev => ({ ...prev, additionalNotes: e.target.value }))}
+                onChange={(e) => setConfig((prev) => ({ ...prev, additionalNotes: e.target.value }))}
                 className="min-h-[80px]"
               />
             </div>
@@ -355,7 +372,7 @@ export default function AppMockInterviewSetup() {
                   type="checkbox"
                   id="useProfile"
                   checked={config.useProfileContext}
-                  onChange={(e) => setConfig(prev => ({ ...prev, useProfileContext: e.target.checked }))}
+                  onChange={(e) => setConfig((prev) => ({ ...prev, useProfileContext: e.target.checked }))}
                   className="mt-1"
                 />
                 <div>
@@ -369,19 +386,21 @@ export default function AppMockInterviewSetup() {
               </div>
             )}
 
-            <div className="flex gap-3">
-              <Button 
-                variant="outline"
-                onClick={() => setStep("job-description")}
-              >
+            {/* Cost Info */}
+            <div className="flex items-center justify-between py-2 border-t border-b border-border/50">
+              <div className="flex items-center gap-2">
+                <Coins className="h-4 w-4 text-amber-500" />
+                <span className="text-sm font-medium">Service Cost</span>
+              </div>
+              <div className="text-sm font-bold">{MOCK_INTERVIEW_COST} Credits</div>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <Button variant="outline" onClick={() => setStep("job-description")} disabled={isGenerating}>
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back
               </Button>
-              <Button 
-                className="flex-1"
-                onClick={handleStartInterview}
-                disabled={isGenerating}
-              >
+              <Button className="flex-1" onClick={handleStartInterview} disabled={isGenerating}>
                 {isGenerating ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
