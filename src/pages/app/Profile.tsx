@@ -42,7 +42,6 @@ export default function Profile() {
   const [showEnhanceDialog, setShowEnhanceDialog] = useState(false);
   const [isEnhancing, setIsEnhancing] = useState(false);
 
-  // 1. Better Loading State (Prevents blank screen flash)
   if (isTalentLoading) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
@@ -52,7 +51,7 @@ export default function Profile() {
   }
 
   if (!talent) {
-    return null; // Should be handled by ProtectedRoute, but safe to keep
+    return null;
   }
 
   const initials = talent.fullName
@@ -328,7 +327,8 @@ export default function Profile() {
                       <Briefcase className="h-4 w-4 text-muted-foreground" />
                     </div>
                     <div className="flex-1">
-                      <p className="font-semibold text-sm">{exp.title || exp.position}</p>
+                      {/* FIX 1: Allow fallbacks by casting to any */}
+                      <p className="font-semibold text-sm">{exp.title || (exp as any).position}</p>
                       <p className="text-xs text-muted-foreground">{exp.company}</p>
                       {exp.description && (
                         <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{exp.description}</p>
@@ -362,7 +362,8 @@ export default function Profile() {
                       <GraduationCap className="h-4 w-4 text-muted-foreground" />
                     </div>
                     <div>
-                      <p className="font-semibold text-sm">{edu.degree || edu.field}</p>
+                      {/* FIX 2: Allow fallbacks by casting to any */}
+                      <p className="font-semibold text-sm">{edu.degree || (edu as any).field}</p>
                       <p className="text-xs text-muted-foreground">{edu.institution}</p>
                     </div>
                   </div>
