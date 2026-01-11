@@ -17,37 +17,32 @@ import logoDark from "@/assets/logo-horizontal-dark.png";
 const Auth = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  // Using the interface from our previous step
   const { user, isLoading: authLoading, signIn, signUp, resetPassword } = useAuth();
   const { theme } = useTheme();
-  
+
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "login");
-  
+
   // Form States
   const [loginData, setLoginData] = useState({ email: "", password: "" });
   const [signupData, setSignupData] = useState({ fullName: "", email: "", password: "", phone: "" });
   const [resetEmail, setResetEmail] = useState("");
-  
+
   // UI States
   const [showPassword, setShowPassword] = useState(false);
   const [showSignupPassword, setShowSignupPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
 
-  // 1. Safe Redirect Logic (Prevents Infinite Loops)
+  // Safe Redirect Logic
   useEffect(() => {
     if (!authLoading && user) {
-      const returnTo = searchParams.get('returnTo');
-      // Prevent redirecting back to /auth or / which might cause loops
-      const safeReturn = (returnTo && returnTo !== '/auth' && returnTo !== '/') 
-        ? returnTo 
-        : '/app/feed';
-        
+      const returnTo = searchParams.get("returnTo");
+      const safeReturn = returnTo && returnTo !== "/auth" && returnTo !== "/" ? returnTo : "/app/feed";
+
       navigate(safeReturn, { replace: true });
     }
   }, [user, authLoading, navigate, searchParams]);
 
-  // Update active tab if URL changes
   useEffect(() => {
     const tab = searchParams.get("tab");
     if (tab === "signup" || tab === "login") {
@@ -60,34 +55,31 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
-      // Direct call to useAuth signIn (which handles its own errors/toasts)
       await signIn(loginData.email, loginData.password);
-      
-      // Optional: Check roles for specific redirects
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      
+
+      const {
+        data: { user: currentUser },
+      } = await supabase.auth.getUser();
+
       if (currentUser) {
-        // Try to fetch role, but don't block login if it fails
         const { data: roleData } = await supabase
           .from("user_roles")
           .select("role")
           .eq("user_id", currentUser.id)
-          .maybeSingle(); // Safe query
-        
-        const returnTo = searchParams.get('returnTo');
-        // Sanitize return path
-        const safeReturn = (returnTo && returnTo !== '/auth') ? returnTo : null;
+          .maybeSingle();
+
+        const returnTo = searchParams.get("returnTo");
+        const safeReturn = returnTo && returnTo !== "/auth" ? returnTo : null;
 
         if (safeReturn) {
           navigate(safeReturn);
-        } else if (roleData && (roleData.role === 'admin' || roleData.role === 'talent_exec')) {
-          navigate('/dashboard');
+        } else if (roleData && (roleData.role === "admin" || roleData.role === "talent_exec")) {
+          navigate("/dashboard");
         } else {
-          navigate('/app/feed');
+          navigate("/app/feed");
         }
       }
     } catch (error) {
-      // Errors are handled by useAuth, but we catch here to stop loading state
       console.error("Login flow error:", error);
     } finally {
       setIsLoading(false);
@@ -96,8 +88,7 @@ const Auth = () => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Basic Client Validation
+
     if (signupData.password.length < 8) {
       toast.error("Password must be at least 8 characters");
       return;
@@ -106,17 +97,11 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
-      const success = await signUp(
-        signupData.fullName,
-        signupData.email,
-        signupData.password,
-        signupData.phone
-      );
+      const success = await signUp(signupData.fullName, signupData.email, signupData.password, signupData.phone);
 
       if (success) {
-        // useAuth handles the redirect or toast
+        // Success logic handled by hook/redirect
       } else {
-        // If signup was successful but requires email verification (unlikely in this flow but possible)
         setActiveTab("login");
       }
     } catch (error) {
@@ -141,11 +126,10 @@ const Auth = () => {
     }
   };
 
-  // Password Strength Visualizer
   const getPasswordStrength = (password: string) => {
     if (password.length === 0) return { strength: 0, label: "" };
     if (password.length < 8) return { strength: 1, label: "Weak", color: "bg-destructive" };
-    
+
     let strength = 1;
     if (password.length >= 12) strength++;
     if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
@@ -183,10 +167,8 @@ const Auth = () => {
           <button onClick={() => navigate("/")} className="mb-8 hover:opacity-90 transition-opacity">
             <img src={logoLight} alt="GroUp Academy" className="h-12" />
           </button>
-          
-          <h2 className="text-3xl font-heading font-bold text-white mb-4">
-            Accelerate Your Career Journey
-          </h2>
+
+          <h2 className="text-3xl font-heading font-bold text-white mb-4">Accelerate Your Career Journey</h2>
           <p className="text-white/80 mb-8">
             Join thousands of professionals who have transformed their careers with our AI-powered tools.
           </p>
@@ -223,11 +205,7 @@ const Auth = () => {
           {/* Mobile Logo */}
           <div className="text-center mb-8 lg:hidden">
             <button onClick={() => navigate("/")} className="inline-block">
-              <img 
-                src={theme === "dark" ? logoLight : logoDark} 
-                alt="GroUp Academy" 
-                className="h-10 mx-auto mb-4"
-              />
+              <img src={theme === "dark" ? logoLight : logoDark} alt="GroUp Academy" className="h-10 mx-auto mb-4" />
             </button>
             <p className="text-muted-foreground">Access your career portal</p>
           </div>
@@ -286,7 +264,14 @@ const Auth = () => {
                       </button>
                     </div>
                     <Button type="submit" className="w-full" disabled={isLoading}>
-                      {isLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Signing in...</> : "Sign In"}
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Signing in...
+                        </>
+                      ) : (
+                        "Sign In"
+                      )}
                     </Button>
                   </form>
                 </CardContent>
@@ -352,7 +337,7 @@ const Auth = () => {
                           {showSignupPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
                       </div>
-                      
+
                       {/* Password Strength Indicator */}
                       {signupData.password && (
                         <div className="space-y-1 mt-2">
@@ -361,22 +346,25 @@ const Auth = () => {
                               <div
                                 key={level}
                                 className={`flex-1 rounded-full transition-colors ${
-                                  level <= passwordStrength.strength
-                                    ? passwordStrength.color
-                                    : "bg-muted"
+                                  level <= passwordStrength.strength ? passwordStrength.color : "bg-muted"
                                 }`}
                               />
                             ))}
                           </div>
-                          <p className="text-xs text-muted-foreground text-right">
-                            {passwordStrength.label}
-                          </p>
+                          <p className="text-xs text-muted-foreground text-right">{passwordStrength.label}</p>
                         </div>
                       )}
                     </div>
-                    
+
                     <Button type="submit" className="w-full" disabled={isLoading}>
-                      {isLoading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Creating account...</> : "Create Account"}
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Creating account...
+                        </>
+                      ) : (
+                        "Create Account"
+                      )}
                     </Button>
                   </form>
                 </CardContent>
@@ -384,3 +372,49 @@ const Auth = () => {
             </TabsContent>
           </Tabs>
         </div>
+      </div>
+
+      {/* Forgot Password Dialog */}
+      <Dialog open={showForgotPassword} onOpenChange={setShowForgotPassword}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reset Password</DialogTitle>
+            <DialogDescription>
+              Enter your email address and we'll send you a link to reset your password.
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleForgotPassword} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="reset-email">Email</Label>
+              <Input
+                id="reset-email"
+                type="email"
+                placeholder="you@example.com"
+                value={resetEmail}
+                onChange={(e) => setResetEmail(e.target.value)}
+                required
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button type="submit" disabled={isLoading} className="flex-1">
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  "Send Reset Link"
+                )}
+              </Button>
+              <Button type="button" variant="outline" onClick={() => setShowForgotPassword(false)}>
+                Cancel
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default Auth;
