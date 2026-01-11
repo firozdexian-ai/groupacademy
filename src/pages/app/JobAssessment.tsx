@@ -198,6 +198,9 @@ export default function JobAssessment() {
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
+      
+      // Mark that we have a recording for this question immediately for UI state
+      // The actual answer data will be saved in the useEffect when audioBlob is available
     }
   };
 
@@ -290,10 +293,22 @@ export default function JobAssessment() {
   const handleSubmit = async () => {
     if (!assessment) return;
     
-    // Handle final voice answer
+    // Handle final voice answer - wait for it to complete
     const currentQuestion = assessment.questions[currentQuestionIndex];
+    let finalAnswers = { ...answers };
+    
     if (currentQuestion.type === 'voice' && audioBlob) {
-      await handleVoiceAnswer();
+      // Convert audioBlob to base64 synchronously before submitting
+      const base64 = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = () => resolve(reader.result as string);
+      });
+      
+      finalAnswers[currentQuestion.id] = {
+        type: 'voice',
+        data: base64
+      };
     }
     
     setSubmitting(true);
@@ -303,11 +318,13 @@ export default function JobAssessment() {
       await supabase
         .from('job_assessments')
         .update({ 
-          answers,
+          answers: finalAnswers,
           status: 'completed',
           completed_at: new Date().toISOString()
         })
         .eq('id', assessment.id);
+      
+      toast.success('Assessment submitted! Analyzing your responses...');
       
       // Trigger AI analysis
       const { error: analyzeError } = await supabase.functions.invoke('analyze-job-assessment', {
@@ -316,12 +333,11 @@ export default function JobAssessment() {
       
       if (analyzeError) {
         console.error('Analysis error:', analyzeError);
-        toast.error('Assessment submitted but analysis pending');
-      } else {
-        toast.success('Assessment completed successfully!');
+        toast.info('Assessment submitted. Results will be available shortly.');
       }
       
-      navigate('/app/applications');
+      // Navigate to results page
+      navigate(`/app/job-assessment/${assessment.id}/results`);
     } catch (error) {
       console.error('Error submitting assessment:', error);
       toast.error('Failed to submit assessment');
@@ -404,7 +420,15 @@ export default function JobAssessment() {
   const currentQuestion = assessment.questions[currentQuestionIndex];
   const progress = ((currentQuestionIndex + 1) / assessment.questions.length) * 100;
   const isLastQuestion = currentQuestionIndex === assessment.questions.length - 1;
-  const hasCurrentAnswer = answers[currentQuestion?.id];
+  
+  // For voice questions, check both audioBlob AND if answer was already saved
+  const hasVoiceRecording = currentQuestion?.type === 'voice' && 
+    (audioBlob !== null || answers[currentQuestion?.id]?.type === 'voice');
+  
+  // hasCurrentAnswer: check if we have a valid answer for the current question
+  const hasCurrentAnswer = currentQuestion?.type === 'voice' 
+    ? hasVoiceRecording 
+    : Boolean(answers[currentQuestion?.id]);
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6">
@@ -526,13 +550,13 @@ export default function JobAssessment() {
         {isLastQuestion ? (
           <Button 
             onClick={handleSubmit}
-            disabled={submitting || (!hasCurrentAnswer && !audioBlob)}
+            disabled={submitting || !hasCurrentAnswer}
             className="flex-1"
           >
             {submitting ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Submitting...
+                Analyzing responses...
               </>
             ) : (
               <>

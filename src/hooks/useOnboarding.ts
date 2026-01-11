@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useTalent } from '@/hooks/useTalent';
 import { useCredits } from '@/hooks/useCredits';
+import { useQueryClient } from '@tanstack/react-query';
 
 export interface OnboardingState {
   currentStep: number;
@@ -13,6 +14,7 @@ export function useOnboarding() {
   const { talent, refreshTalent } = useTalent();
   const { addCredits } = useCredits();
   const [isUpdating, setIsUpdating] = useState(false);
+  const queryClient = useQueryClient();
 
   const isOnboardingComplete = !!talent?.onboardingCompletedAt;
   const currentStep = talent?.onboardingStep || 0;
@@ -80,6 +82,18 @@ export function useOnboarding() {
         return false;
       }
 
+      // Invalidate cached AI recommendations to force fresh scoring
+      if (talent.id) {
+        await supabase
+          .from('ai_recommendations')
+          .delete()
+          .eq('talent_id', talent.id);
+        console.log('[useOnboarding] Cleared cached AI recommendations');
+      }
+
+      // Also invalidate any React Query caches
+      queryClient.invalidateQueries({ queryKey: ['feed-recommendations'] });
+
       await refreshTalent();
       return true;
     } catch (error) {
@@ -88,7 +102,7 @@ export function useOnboarding() {
     } finally {
       setIsUpdating(false);
     }
-  }, [talent?.id, refreshTalent, addCredits]);
+  }, [talent?.id, refreshTalent, addCredits, queryClient]);
 
   const skipOnboarding = useCallback(async () => {
     return completeOnboarding();

@@ -72,6 +72,7 @@ import ProfileEdit from "./pages/app/ProfileEdit";
 import AppJobs from "./pages/app/AppJobs";
 import AppJobApplication from "./pages/app/AppJobApplication";
 import JobAssessment from "./pages/app/JobAssessment";
+import JobAssessmentResults from "./pages/app/JobAssessmentResults";
 import Notifications from "./pages/app/Notifications";
 import StudyAbroad from "./pages/app/StudyAbroad";
 import StudyAbroadDetail from "./pages/app/StudyAbroadDetail";
@@ -321,6 +322,7 @@ export default function App() {
                     <Route path="jobs/:id" element={<AppJobDetail />} />
                     <Route path="jobs/:id/apply" element={<AppJobApplication />} />
                     <Route path="job-assessment/:assessmentId" element={<JobAssessment />} />
+                    <Route path="job-assessment/:assessmentId/results" element={<JobAssessmentResults />} />
                     <Route path="applications" element={<MyApplications />} />
                     <Route path="abroad" element={<CareerAbroad />} />
                     <Route path="abroad/study" element={<StudyAbroad />} />

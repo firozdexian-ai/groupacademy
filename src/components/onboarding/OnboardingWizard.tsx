@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -21,8 +21,19 @@ const STEPS = [
 ];
 
 export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
+  const { completeOnboarding, skipOnboarding, updateStep, currentStep: savedStep } = useOnboarding();
   const [currentStep, setCurrentStep] = useState(0);
-  const { completeOnboarding, skipOnboarding, updateStep } = useOnboarding();
+  const [hasInitialized, setHasInitialized] = useState(false);
+
+  // Sync currentStep with the saved onboarding step from database on mount
+  useEffect(() => {
+    if (!hasInitialized && savedStep !== undefined) {
+      // Make sure saved step is within valid range
+      const validStep = Math.min(Math.max(0, savedStep), STEPS.length - 1);
+      setCurrentStep(validStep);
+      setHasInitialized(true);
+    }
+  }, [savedStep, hasInitialized]);
 
   const progress = ((currentStep + 1) / STEPS.length) * 100;
 

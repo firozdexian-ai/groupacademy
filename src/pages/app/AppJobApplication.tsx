@@ -7,9 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Progress } from '@/components/ui/progress';
 import { 
   ArrowLeft, Send, Building2, AlertCircle, CheckCircle, 
-  FileText, Loader2, Coins
+  FileText, Loader2, Coins, Sparkles, Brain
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { CreditPurchaseSheet } from '@/components/credits/CreditPurchaseSheet';
@@ -23,6 +24,14 @@ interface Job {
   ai_assessment_enabled: boolean | null;
 }
 
+const SUBMISSION_STAGES = [
+  { progress: 20, message: 'Creating your application...' },
+  { progress: 40, message: 'Sending to employer...' },
+  { progress: 60, message: 'Generating AI assessment...' },
+  { progress: 80, message: 'Preparing interview questions...' },
+  { progress: 95, message: 'Almost ready...' },
+];
+
 export default function AppJobApplication() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -35,6 +44,9 @@ export default function AppJobApplication() {
   const [submitted, setSubmitted] = useState(false);
   const [coverLetter, setCoverLetter] = useState('');
   const [showPurchaseSheet, setShowPurchaseSheet] = useState(false);
+  const [isGeneratingCoverLetter, setIsGeneratingCoverLetter] = useState(false);
+  const [submissionProgress, setSubmissionProgress] = useState(0);
+  const [submissionMessage, setSubmissionMessage] = useState('');
 
   const applicationCost = getServiceCost('JOB_APPLICATION');
   const hasEnoughCredits = canAfford('JOB_APPLICATION');
@@ -61,6 +73,41 @@ export default function AppJobApplication() {
     }
   };
 
+  const handleGenerateCoverLetter = async () => {
+    if (!talent || !job) return;
+    
+    setIsGeneratingCoverLetter(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('enhance-cover-letter', {
+        body: {
+          coverLetter: coverLetter || `I am writing to express my interest in the ${job.title} position at ${job.company_name}.`,
+          jobTitle: job.title,
+          companyName: job.company_name,
+          candidateName: talent.fullName,
+          skills: talent.skills
+        }
+      });
+
+      if (error) throw error;
+      
+      if (data?.enhancedCoverLetter) {
+        setCoverLetter(data.enhancedCoverLetter);
+        toast.success('Cover letter generated!');
+      }
+    } catch (error: any) {
+      console.error('Error generating cover letter:', error);
+      if (error.message?.includes('429')) {
+        toast.error('Rate limit exceeded. Please try again in a moment.');
+      } else if (error.message?.includes('402')) {
+        toast.error('AI credits exhausted. Please contact support.');
+      } else {
+        toast.error('Failed to generate cover letter');
+      }
+    } finally {
+      setIsGeneratingCoverLetter(false);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!talent || !job) return;
 
@@ -76,9 +123,22 @@ export default function AppJobApplication() {
     }
 
     setSubmitting(true);
+    setSubmissionProgress(0);
+    setSubmissionMessage(SUBMISSION_STAGES[0].message);
+
+    // Progress simulation for better UX
+    let stageIndex = 0;
+    const progressInterval = setInterval(() => {
+      if (stageIndex < SUBMISSION_STAGES.length - 1) {
+        stageIndex++;
+        setSubmissionProgress(SUBMISSION_STAGES[stageIndex].progress);
+        setSubmissionMessage(SUBMISSION_STAGES[stageIndex].message);
+      }
+    }, 2000);
 
     try {
       console.log('[AppJobApplication] Starting application submission for job:', job.id);
+      setSubmissionProgress(20);
       
       // Create application record
       const { data: appData, error: appError } = await supabase
@@ -120,10 +180,16 @@ export default function AppJobApplication() {
         }
       }
 
+      setSubmissionProgress(40);
+      setSubmissionMessage('Sending to employer...');
+
       // Check if AI assessment is enabled for this job
       if (job.ai_assessment_enabled) {
         try {
+          setSubmissionProgress(60);
+          setSubmissionMessage('Generating AI assessment questions...');
           console.log('[AppJobApplication] Generating AI assessment');
+          
           const { data: assessmentData, error: assessmentError } = await supabase.functions.invoke('generate-job-assessment', {
             body: {
               jobId: job.id,
@@ -131,6 +197,8 @@ export default function AppJobApplication() {
               jobApplicationId: appData.id
             }
           });
+
+          clearInterval(progressInterval);
 
           if (!assessmentError && assessmentData?.assessmentId) {
             toast.success('Application submitted! Complete the AI assessment to improve your chances.');
@@ -144,6 +212,8 @@ export default function AppJobApplication() {
         }
       }
 
+      clearInterval(progressInterval);
+      setSubmissionProgress(100);
       setSubmitted(true);
       toast.success('Application submitted successfully!');
       refreshBalance();
@@ -277,8 +347,31 @@ export default function AppJobApplication() {
       {/* Cover Letter */}
       <Card className="mb-6">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm">Cover Letter (Optional)</CardTitle>
-          <CardDescription>Write a brief introduction to the employer</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-sm">Cover Letter (Optional)</CardTitle>
+              <CardDescription>Write a brief introduction to the employer</CardDescription>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleGenerateCoverLetter}
+              disabled={isGeneratingCoverLetter || !talent?.cvUrl}
+              className="gap-1.5"
+            >
+              {isGeneratingCoverLetter ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-3.5 w-3.5" />
+                  Generate with AI
+                </>
+              )}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <Textarea
@@ -287,6 +380,11 @@ export default function AppJobApplication() {
             onChange={(e) => setCoverLetter(e.target.value)}
             rows={6}
           />
+          {!talent?.cvUrl && (
+            <p className="text-xs text-muted-foreground mt-2">
+              Upload your CV to enable AI cover letter generation
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -310,29 +408,49 @@ export default function AppJobApplication() {
       </Card>
 
       {/* Submit Button */}
-      <Button 
-        className="w-full" 
-        size="lg"
-        onClick={handleSubmit}
-        disabled={submitting || !talent?.cvUrl}
-      >
-        {submitting ? (
-          <>
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            Submitting...
-          </>
-        ) : !hasEnoughCredits ? (
-          <>
-            <Coins className="h-4 w-4 mr-2" />
-            Get Credits to Apply
-          </>
-        ) : (
-          <>
-            <Send className="h-4 w-4 mr-2" />
-            Submit Application
-          </>
-        )}
-      </Button>
+      {submitting ? (
+        <Card className="mb-6">
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                {job?.ai_assessment_enabled ? (
+                  <Brain className="h-5 w-5 text-primary animate-pulse" />
+                ) : (
+                  <Loader2 className="h-5 w-5 text-primary animate-spin" />
+                )}
+              </div>
+              <div>
+                <p className="font-medium text-sm">{submissionMessage}</p>
+                {job?.ai_assessment_enabled && (
+                  <p className="text-xs text-muted-foreground">
+                    This may take up to 30 seconds
+                  </p>
+                )}
+              </div>
+            </div>
+            <Progress value={submissionProgress} className="h-2" />
+          </CardContent>
+        </Card>
+      ) : (
+        <Button 
+          className="w-full" 
+          size="lg"
+          onClick={handleSubmit}
+          disabled={!talent?.cvUrl}
+        >
+          {!hasEnoughCredits ? (
+            <>
+              <Coins className="h-4 w-4 mr-2" />
+              Get Credits to Apply
+            </>
+          ) : (
+            <>
+              <Send className="h-4 w-4 mr-2" />
+              Submit Application
+            </>
+          )}
+        </Button>
+      )}
 
       <CreditPurchaseSheet 
         isOpen={showPurchaseSheet} 
