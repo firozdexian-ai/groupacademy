@@ -1,51 +1,72 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { GraduationCap, MapPin, Calendar, DollarSign, ArrowLeft, Search, Filter, Award } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Skeleton } from '@/components/ui/skeleton';
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { GraduationCap, MapPin, Calendar, DollarSign, ArrowLeft, Search, Filter, Award, X } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const COUNTRIES = [
-  { name: 'All Countries', code: 'all', flag: '🌍' },
-  { name: 'United Kingdom', code: 'UK', flag: '🇬🇧' },
-  { name: 'United States', code: 'US', flag: '🇺🇸' },
-  { name: 'Canada', code: 'CA', flag: '🇨🇦' },
-  { name: 'Australia', code: 'AU', flag: '🇦🇺' },
-  { name: 'Germany', code: 'DE', flag: '🇩🇪' },
-  { name: 'Singapore', code: 'SG', flag: '🇸🇬' },
+  { name: "All Countries", code: "all", flag: "🌍" },
+  { name: "United Kingdom", code: "UK", flag: "🇬🇧" },
+  { name: "United States", code: "US", flag: "🇺🇸" },
+  { name: "Canada", code: "CA", flag: "🇨🇦" },
+  { name: "Australia", code: "AU", flag: "🇦🇺" },
+  { name: "Germany", code: "DE", flag: "🇩🇪" },
+  { name: "Singapore", code: "SG", flag: "🇸🇬" },
+  { name: "Japan", code: "JP", flag: "🇯🇵" },
+  { name: "Sweden", code: "SE", flag: "🇸🇪" },
 ];
 
-const DEGREE_TYPES = ['All Degrees', 'Bachelor', 'Master', 'PhD', 'Diploma'];
+const DEGREE_TYPES = ["All Degrees", "Bachelor", "Master", "PhD", "Diploma"];
 
 export default function StudyAbroad() {
   const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCountry, setSelectedCountry] = useState('all');
-  const [selectedDegree, setSelectedDegree] = useState('All Degrees');
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // 1. Initialize state from URL params
+  const initialCountry = searchParams.get("country") || "all";
+  const initialDegree = searchParams.get("degree") || "All Degrees";
+  const initialSearch = searchParams.get("search") || "";
+
+  const [searchTerm, setSearchTerm] = useState(initialSearch);
+  const [selectedCountry, setSelectedCountry] = useState(initialCountry);
+  const [selectedDegree, setSelectedDegree] = useState(initialDegree);
+
+  // 2. Sync state changes back to URL
+  useEffect(() => {
+    const params: any = {};
+    if (selectedCountry !== "all") params.country = selectedCountry;
+    if (selectedDegree !== "All Degrees") params.degree = selectedDegree;
+    if (searchTerm) params.search = searchTerm;
+    setSearchParams(params, { replace: true });
+  }, [selectedCountry, selectedDegree, searchTerm, setSearchParams]);
 
   const { data: programs, isLoading } = useQuery({
-    queryKey: ['study-abroad-programs', selectedCountry, selectedDegree, searchTerm],
+    queryKey: ["study-abroad-programs", selectedCountry, selectedDegree, searchTerm],
     queryFn: async () => {
       let query = supabase
-        .from('study_abroad_programs')
-        .select('*')
-        .eq('is_active', true)
-        .order('featured', { ascending: false })
-        .order('university_name');
+        .from("study_abroad_programs")
+        .select("*")
+        .eq("is_active", true)
+        .order("featured", { ascending: false })
+        .order("university_name");
 
-      if (selectedCountry !== 'all') {
-        query = query.eq('country_code', selectedCountry);
+      if (selectedCountry !== "all") {
+        query = query.eq("country_code", selectedCountry);
       }
-      if (selectedDegree !== 'All Degrees') {
-        query = query.eq('degree_type', selectedDegree);
+      if (selectedDegree !== "All Degrees") {
+        query = query.eq("degree_type", selectedDegree);
       }
       if (searchTerm) {
-        query = query.or(`university_name.ilike.%${searchTerm}%,program_name.ilike.%${searchTerm}%,field_of_study.ilike.%${searchTerm}%`);
+        // Safe search across multiple columns
+        query = query.or(
+          `university_name.ilike.%${searchTerm}%,program_name.ilike.%${searchTerm}%,field_of_study.ilike.%${searchTerm}%`,
+        );
       }
 
       const { data, error } = await query;
@@ -54,66 +75,91 @@ export default function StudyAbroad() {
     },
   });
 
-  const countryData = COUNTRIES.find(c => c.code === selectedCountry);
+  const clearFilters = () => {
+    setSearchTerm("");
+    setSelectedCountry("all");
+    setSelectedDegree("All Degrees");
+  };
+
+  const activeFilterCount =
+    (selectedCountry !== "all" ? 1 : 0) + (selectedDegree !== "All Degrees" ? 1 : 0) + (searchTerm ? 1 : 0);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6">
+    <div className="max-w-5xl mx-auto px-4 py-6">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/app/abroad')}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold">Study Abroad</h1>
-          <p className="text-muted-foreground">Explore universities and programs worldwide</p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/app/abroad")} className="rounded-full">
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold">Study Abroad</h1>
+            <p className="text-muted-foreground text-sm">Explore top universities and programs</p>
+          </div>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col md:flex-row gap-3 mb-6">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search universities, programs..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
+      {/* Filters Bar */}
+      <div className="bg-card border rounded-xl p-3 mb-6 shadow-sm">
+        <div className="flex flex-col md:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search universities, programs..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9 bg-background border-muted-foreground/20"
+            />
+          </div>
+          <Select value={selectedCountry} onValueChange={setSelectedCountry}>
+            <SelectTrigger className="w-full md:w-[180px] bg-background border-muted-foreground/20">
+              <SelectValue placeholder="Select country" />
+            </SelectTrigger>
+            <SelectContent>
+              {COUNTRIES.map((country) => (
+                <SelectItem key={country.code} value={country.code}>
+                  <span className="flex items-center gap-2">
+                    <span>{country.flag}</span>
+                    <span>{country.name}</span>
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={selectedDegree} onValueChange={setSelectedDegree}>
+            <SelectTrigger className="w-full md:w-[150px] bg-background border-muted-foreground/20">
+              <SelectValue placeholder="Degree type" />
+            </SelectTrigger>
+            <SelectContent>
+              {DEGREE_TYPES.map((degree) => (
+                <SelectItem key={degree} value={degree}>
+                  {degree}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {activeFilterCount > 0 && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={clearFilters}
+              className="shrink-0 text-muted-foreground hover:text-foreground"
+              title="Clear filters"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
         </div>
-        <Select value={selectedCountry} onValueChange={setSelectedCountry}>
-          <SelectTrigger className="w-full md:w-[180px]">
-            <SelectValue placeholder="Select country" />
-          </SelectTrigger>
-          <SelectContent>
-            {COUNTRIES.map(country => (
-              <SelectItem key={country.code} value={country.code}>
-                <span className="flex items-center gap-2">
-                  <span>{country.flag}</span>
-                  <span>{country.name}</span>
-                </span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={selectedDegree} onValueChange={setSelectedDegree}>
-          <SelectTrigger className="w-full md:w-[150px]">
-            <SelectValue placeholder="Degree type" />
-          </SelectTrigger>
-          <SelectContent>
-            {DEGREE_TYPES.map(degree => (
-              <SelectItem key={degree} value={degree}>{degree}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
       </div>
 
       {/* Results */}
       {isLoading ? (
         <div className="grid gap-4 md:grid-cols-2">
-          {[1, 2, 3, 4].map(i => (
+          {[1, 2, 3, 4].map((i) => (
             <Card key={i}>
               <CardHeader>
-                <Skeleton className="h-6 w-3/4" />
+                <Skeleton className="h-6 w-3/4 mb-2" />
                 <Skeleton className="h-4 w-1/2" />
               </CardHeader>
               <CardContent>
@@ -126,86 +172,81 @@ export default function StudyAbroad() {
       ) : programs && programs.length > 0 ? (
         <div className="grid gap-4 md:grid-cols-2">
           {programs.map((program) => (
-            <Card 
-              key={program.id} 
-              className="hover:shadow-md transition-shadow cursor-pointer"
+            <Card
+              key={program.id}
+              className="hover:shadow-md transition-all cursor-pointer group border-muted-foreground/20 hover:border-primary/50"
               onClick={() => navigate(`/app/abroad/study/${program.id}`)}
             >
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-2xl">
-                      {COUNTRIES.find(c => c.code === program.country_code)?.flag || '🌍'}
-                    </span>
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-primary/5 flex items-center justify-center text-xl border">
+                      {COUNTRIES.find((c) => c.code === program.country_code)?.flag || "🌍"}
+                    </div>
                     <div>
-                      <CardTitle className="text-base">{program.university_name}</CardTitle>
-                      <CardDescription>{program.country_name}</CardDescription>
+                      <CardTitle className="text-base group-hover:text-primary transition-colors">
+                        {program.university_name}
+                      </CardTitle>
+                      <CardDescription className="flex items-center gap-1 mt-0.5">
+                        <MapPin className="h-3 w-3" />
+                        {program.country_name}
+                      </CardDescription>
                     </div>
                   </div>
-                  <div className="flex gap-1">
-                    {program.featured && (
-                      <Badge className="bg-primary/10 text-primary">Featured</Badge>
-                    )}
-                    {program.scholarship_available && (
-                      <Badge variant="secondary" className="gap-1">
-                        <Award className="h-3 w-3" />
-                        Scholarship
-                      </Badge>
-                    )}
-                  </div>
+                  {program.featured && (
+                    <Badge className="bg-yellow-500/10 text-yellow-600 hover:bg-yellow-500/20 border-yellow-500/20">
+                      Featured
+                    </Badge>
+                  )}
                 </div>
               </CardHeader>
               <CardContent>
-                <h3 className="font-medium mb-2">{program.program_name}</h3>
-                <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+                <h3 className="font-semibold text-sm mb-3">{program.program_name}</h3>
+
+                <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                   {program.degree_type && (
-                    <span className="flex items-center gap-1">
-                      <GraduationCap className="h-4 w-4" />
+                    <div className="flex items-center gap-1.5 bg-muted px-2 py-1 rounded-md">
+                      <GraduationCap className="h-3.5 w-3.5" />
                       {program.degree_type}
-                    </span>
+                    </div>
                   )}
                   {program.duration && (
-                    <span className="flex items-center gap-1">
-                      <Calendar className="h-4 w-4" />
+                    <div className="flex items-center gap-1.5 bg-muted px-2 py-1 rounded-md">
+                      <Calendar className="h-3.5 w-3.5" />
                       {program.duration}
-                    </span>
+                    </div>
                   )}
                   {program.tuition_range && (
-                    <span className="flex items-center gap-1">
-                      <DollarSign className="h-4 w-4" />
+                    <div className="flex items-center gap-1.5 bg-muted px-2 py-1 rounded-md">
+                      <DollarSign className="h-3.5 w-3.5" />
                       {program.tuition_range}
-                    </span>
+                    </div>
                   )}
                 </div>
-                {program.field_of_study && (
-                  <Badge variant="outline" className="mt-3">{program.field_of_study}</Badge>
+
+                {program.scholarship_available && (
+                  <div className="mt-3 flex items-center gap-1.5 text-xs text-green-600 font-medium">
+                    <Award className="h-3.5 w-3.5" />
+                    Scholarship Available
+                  </div>
                 )}
               </CardContent>
             </Card>
           ))}
         </div>
       ) : (
-        <Card className="py-12">
+        <Card className="py-12 border-dashed">
           <CardContent className="text-center">
-            <GraduationCap className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No Programs Found</h3>
-            <p className="text-muted-foreground mb-4">
-              {searchTerm || selectedCountry !== 'all' || selectedDegree !== 'All Degrees'
-                ? 'Try adjusting your filters to find more programs.'
-                : 'Programs will be added soon. Check back later!'}
+            <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+              <Search className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2">No programs found</h3>
+            <p className="text-muted-foreground mb-4 max-w-xs mx-auto">
+              We couldn't find any programs matching your filters. Try adjusting your search criteria.
             </p>
-            {(searchTerm || selectedCountry !== 'all' || selectedDegree !== 'All Degrees') && (
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  setSearchTerm('');
-                  setSelectedCountry('all');
-                  setSelectedDegree('All Degrees');
-                }}
-              >
-                Clear Filters
-              </Button>
-            )}
+            <Button variant="outline" onClick={clearFilters}>
+              Clear All Filters
+            </Button>
           </CardContent>
         </Card>
       )}
