@@ -10,12 +10,12 @@ import { supabase } from "@/integrations/supabase/client";
 import logoIcon from "@/assets/logo-icon.png";
 import logoLight from "@/assets/logo-horizontal-light.png";
 import logoDark from "@/assets/logo-horizontal-dark.png";
-import { 
-  ArrowRight, 
-  Target, 
-  Mic, 
-  DollarSign, 
-  Briefcase, 
+import {
+  ArrowRight,
+  Target,
+  Mic,
+  DollarSign,
+  Briefcase,
   FolderOpen,
   Bot,
   Building2,
@@ -24,85 +24,100 @@ import {
   Search,
   Moon,
   Sun,
-  Sparkles
+  Sparkles,
 } from "lucide-react";
+
+// Define interface for Type Safety
+interface BlogPost {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  featured_image: string | null;
+  published_at: string;
+}
 
 const Index = () => {
   const navigate = useNavigate();
-  const { user, isLoading } = useAuth();
+  const { user, isLoading: isAuthLoading } = useAuth();
   const { isPWA, isLoading: isPWALoading } = usePWADetect();
   const { theme, setTheme } = useTheme();
-  const [pwaChecked, setPwaChecked] = useState(false);
-  const [blogPosts, setBlogPosts] = useState<any[]>([]);
 
-  // Fetch recent blog posts for SEO section
+  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
+  // We can combine loading states for cleaner logic
+  const isGlobalLoading = isAuthLoading || isPWALoading;
+
+  // 1. Fetch Blog Posts (with basic error handling)
   useEffect(() => {
     const fetchBlogPosts = async () => {
-      const { data } = await supabase
-        .from('blog_posts')
-        .select('id, title, slug, excerpt, featured_image, published_at')
-        .eq('status', 'published')
-        .order('published_at', { ascending: false })
-        .limit(3);
-      
-      if (data) setBlogPosts(data);
+      try {
+        const { data, error } = await supabase
+          .from("blog_posts")
+          .select("id, title, slug, excerpt, featured_image, published_at")
+          .eq("status", "published")
+          .order("published_at", { ascending: false })
+          .limit(3);
+
+        if (error) {
+          console.error("Error fetching posts:", error);
+          return;
+        }
+
+        if (data) setBlogPosts(data as BlogPost[]);
+      } catch (err) {
+        console.error("Unexpected error:", err);
+      }
     };
     fetchBlogPosts();
   }, []);
 
-  // Handle PWA users - redirect them directly without showing marketing page
+  // 2. Unified Routing Logic
+  // This replaces the two separate effects and the 'pwaChecked' state
   useEffect(() => {
-    if (isPWALoading) return;
-    
+    // Do nothing until all checks are complete
+    if (isGlobalLoading) return;
+
+    // Logic for PWA Users: Must be in App or Auth, never on Landing
     if (isPWA) {
-      setPwaChecked(true);
-      if (!isLoading) {
-        if (user) {
-          navigate('/app/feed', { replace: true });
-        } else {
-          navigate('/auth', { replace: true });
-        }
+      if (user) {
+        navigate("/app/feed", { replace: true });
+      } else {
+        navigate("/auth", { replace: true });
       }
-    } else {
-      setPwaChecked(true);
+      return;
     }
-  }, [isPWA, isPWALoading, user, isLoading, navigate]);
 
-  // Redirect authenticated web users to feed
-  useEffect(() => {
-    if (!isLoading && user && !isPWA && pwaChecked) {
-      navigate('/app/feed', { replace: true });
+    // Logic for Web Users: If logged in, go to app
+    if (user) {
+      navigate("/app/feed", { replace: true });
     }
-  }, [user, isLoading, navigate, isPWA, pwaChecked]);
 
-  // Show branded loading screen for PWA users
-  if (isPWALoading || (isPWA && (isLoading || !pwaChecked))) {
+    // If not PWA and not User, stay here (do nothing)
+  }, [isGlobalLoading, isPWA, user, navigate]);
+
+  // 3. Unified Loading Screen
+  // Prevents "Flash of Unauthenticated Content"
+  if (isGlobalLoading) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center">
-        <img 
-          src={logoIcon} 
-          alt="GroUp Academy" 
-          className="w-20 h-20 mb-6 animate-pulse"
-        />
+        <img src={logoIcon} alt="GroUp Academy" className="w-20 h-20 mb-6 animate-pulse" />
         <div className="flex items-center gap-2">
-          <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-          <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-          <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+          <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+          <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+          <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
         </div>
-        <p className="text-muted-foreground text-sm mt-4">Loading your career journey...</p>
+        <p className="text-muted-foreground text-sm mt-4">{isPWA ? "Loading your career journey..." : "Loading..."}</p>
       </div>
     );
   }
 
-  // If authenticated, show loading while redirecting
-  if (user && !isPWA) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
-    );
+  // If we are redirecting (User exists), return null or loader to prevent
+  // the landing page from flashing before the navigate() kicks in.
+  if (user || (isPWA && !user)) {
+    return null; // Or keep the loading spinner above
   }
 
+  // --- Feature Data ---
   const seekerFeatures = [
     { icon: Target, label: "Career Readiness Scorecard" },
     { icon: Mic, label: "AI Mock Interview" },
@@ -125,17 +140,9 @@ const Index = () => {
       <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <img 
-              src={theme === "dark" ? logoLight : logoDark} 
-              alt="GroUp Academy" 
-              className="h-10 w-auto"
-            />
+            <img src={theme === "dark" ? logoLight : logoDark} alt="GroUp Academy" className="h-10 w-auto" />
             <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              >
+              <Button variant="ghost" size="icon" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
                 <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
                 <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
               </Button>
@@ -154,14 +161,14 @@ const Index = () => {
             <Sparkles className="w-3 h-3" />
             AI-Powered Career Acceleration
           </Badge>
-          
+
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-bold leading-tight mb-6">
             <span className="text-gradient">Decode</span> Your Career Potential
           </h1>
-          
+
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
-            From self-assessment to landing your dream job — GroUp Academy's AI-powered 
-            tools guide you at every step of your career journey.
+            From self-assessment to landing your dream job — GroUp Academy's AI-powered tools guide you at every step of
+            your career journey.
           </p>
 
           {/* Quick Stats */}
@@ -212,8 +219,8 @@ const Index = () => {
                 ))}
               </div>
 
-              <Button 
-                size="lg" 
+              <Button
+                size="lg"
                 className="w-full group-hover:scale-[1.02] transition-transform"
                 onClick={() => navigate("/auth?tab=signup")}
               >
@@ -221,9 +228,7 @@ const Index = () => {
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
 
-              <p className="text-xs text-center text-muted-foreground mt-3">
-                250 bonus credits on signup
-              </p>
+              <p className="text-xs text-center text-muted-foreground mt-3">250 bonus credits on signup</p>
             </CardContent>
           </Card>
 
@@ -241,9 +246,7 @@ const Index = () => {
                 </div>
               </div>
 
-              <p className="text-muted-foreground mb-6">
-                Connect with pre-assessed, job-ready candidates:
-              </p>
+              <p className="text-muted-foreground mb-6">Connect with pre-assessed, job-ready candidates:</p>
 
               <div className="space-y-3 mb-8">
                 {orgFeatures.map((feature, index) => (
@@ -258,8 +261,8 @@ const Index = () => {
                 Coming Soon
               </Badge>
 
-              <Button 
-                size="lg" 
+              <Button
+                size="lg"
                 variant="secondary"
                 className="w-full group-hover:scale-[1.02] transition-transform"
                 onClick={() => navigate("/org")}
@@ -268,9 +271,7 @@ const Index = () => {
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
 
-              <p className="text-xs text-center text-muted-foreground mt-3">
-                Early access for founding partners
-              </p>
+              <p className="text-xs text-center text-muted-foreground mt-3">Early access for founding partners</p>
             </CardContent>
           </Card>
         </div>
@@ -286,25 +287,19 @@ const Index = () => {
         {blogPosts.length > 0 ? (
           <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
             {blogPosts.map((post) => (
-              <Card 
-                key={post.id} 
+              <Card
+                key={post.id}
                 className="cursor-pointer hover:shadow-md transition-shadow"
                 onClick={() => navigate(`/blog/${post.slug}`)}
               >
                 {post.featured_image && (
                   <div className="aspect-video overflow-hidden rounded-t-lg">
-                    <img 
-                      src={post.featured_image} 
-                      alt={post.title}
-                      className="w-full h-full object-cover"
-                    />
+                    <img src={post.featured_image} alt={post.title} className="w-full h-full object-cover" />
                   </div>
                 )}
                 <CardContent className="p-4">
                   <h3 className="font-semibold line-clamp-2 mb-2">{post.title}</h3>
-                  {post.excerpt && (
-                    <p className="text-sm text-muted-foreground line-clamp-2">{post.excerpt}</p>
-                  )}
+                  {post.excerpt && <p className="text-sm text-muted-foreground line-clamp-2">{post.excerpt}</p>}
                 </CardContent>
               </Card>
             ))}
