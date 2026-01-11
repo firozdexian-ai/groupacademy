@@ -54,6 +54,7 @@ import MyResults from "./pages/app/MyResults";
 import MyApplications from "./pages/app/MyApplications";
 
 // Feature Details
+import AppJobs from "./pages/app/AppJobs"; // <--- ADDED THIS MISSING IMPORT
 import AppJobDetail from "./pages/app/AppJobDetail";
 import AppJobApplication from "./pages/app/AppJobApplication";
 import AppCourses from "./pages/app/AppCourses";
