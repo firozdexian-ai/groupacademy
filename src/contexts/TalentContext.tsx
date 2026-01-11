@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { User, Session } from '@supabase/supabase-js';
-import { Education, Experience, Skill } from '@/types/common';
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { User, Session } from "@supabase/supabase-js";
+import { useAuth } from "@/hooks/useAuth"; // <--- INTEGRATING THE FOUNDATION
+import { Education, Experience, Skill } from "@/types/common";
 
 export interface TalentProfile {
   id: string;
@@ -31,31 +32,29 @@ export interface TalentProfile {
   studentId: string | null;
   createdAt: string;
   updatedAt: string;
-  // Onboarding fields
   onboardingCompletedAt: string | null;
   onboardingStep: number;
 }
 
 interface TalentContextValue {
-  // Auth state
+  // Auth state (inherited from useAuth)
   user: User | null;
   session: Session | null;
   isAuthenticated: boolean;
-  
+
   // Talent profile
   talent: TalentProfile | null;
-  
+
   // Loading states
   isLoading: boolean;
-  isAuthLoading: boolean;
   isTalentLoading: boolean;
-  
+
   // Actions
   refreshTalent: () => Promise<void>;
   updateTalent: (data: Partial<TalentProfile>) => Promise<boolean>;
   addServiceUsed: (service: string) => Promise<void>;
-  
-  // Auth actions
+
+  // Auth actions (delegated to useAuth)
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (fullName: string, email: string, password: string, phone?: string) => Promise<boolean>;
   signOut: () => Promise<void>;
@@ -89,341 +88,134 @@ function mapRowToTalent(row: any): TalentProfile {
     profilePhotoUrl: row.profile_photo_url,
     servicesUsed: Array.isArray(row.services_used) ? row.services_used : [],
     isFeatured: row.is_featured || false,
-    learnerStatus: row.learner_status || 'free_learner',
+    learnerStatus: row.learner_status || "free_learner",
     studentId: row.student_id,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-    // Onboarding fields
     onboardingCompletedAt: row.onboarding_completed_at || null,
     onboardingStep: row.onboarding_step || 0,
   };
 }
 
 export function TalentProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  // 1. Consume the Auth Context (The Single Source of Truth)
+  const { user, session, isLoading: isAuthLoading, signIn, signUp, signOut } = useAuth();
+
   const [talent, setTalent] = useState<TalentProfile | null>(null);
-  const [isAuthLoading, setIsAuthLoading] = useState(true);
-  const [isTalentLoading, setIsTalentLoading] = useState(false);
+  const [isTalentLoading, setIsTalentLoading] = useState(true);
 
-  // Fetch talent profile by user ID or email
-  const fetchTalent = useCallback(async (userId?: string, email?: string) => {
-    if (!userId && !email) {
-      setTalent(null);
-      return;
-    }
-
+  // 2. Fetch Talent Profile when User changes
+  const fetchTalent = useCallback(async (userId: string) => {
     setIsTalentLoading(true);
     try {
-      let query = supabase.from('talents').select('*');
-      
-      if (userId) {
-        query = query.eq('user_id', userId);
-      } else if (email) {
-        query = query.ilike('email', email);
-      }
-
-      const { data, error } = await query.maybeSingle();
+      const { data, error } = await supabase.from("talents").select("*").eq("user_id", userId).maybeSingle();
 
       if (error) {
-        console.error('[TalentContext] Error fetching talent:', error);
+        console.error("[TalentContext] Error fetching talent:", error);
         setTalent(null);
-        return;
-      }
-
-      if (data) {
+      } else if (data) {
         setTalent(mapRowToTalent(data));
       } else {
+        // User exists but no talent profile?
+        // This is rare but possible if the trigger failed.
         setTalent(null);
       }
     } catch (error) {
-      console.error('[TalentContext] Error fetching talent:', error);
+      console.error("[TalentContext] Unexpected error:", error);
       setTalent(null);
     } finally {
       setIsTalentLoading(false);
     }
   }, []);
 
-  // Clear corrupted session and local storage
-  const clearCorruptedSession = useCallback(async () => {
-    console.log('[TalentContext] Clearing corrupted session...');
-    try {
-      // Clear Supabase auth storage
-      localStorage.removeItem('supabase.auth.token');
-
-      // Clear any sb- prefixed items
-      Object.keys(localStorage).forEach((key) => {
-        if (key.startsWith('sb-')) {
-          localStorage.removeItem(key);
-        }
-      });
-
-      // Best-effort server sign-out (may fail if network is down)
-      supabase.auth.signOut().catch((e) => {
-        console.warn('[TalentContext] Best-effort signOut failed:', e);
-      });
-    } catch (e) {
-      console.warn('[TalentContext] Error clearing session:', e);
-    }
-
-    setSession(null);
-    setUser(null);
-    setTalent(null);
-  }, []);
-
-  // Initialize auth state with timeout protection
+  // 3. React to Auth Changes
   useEffect(() => {
-    let authTimeoutId: NodeJS.Timeout | null = null;
-    let isInitialized = false;
-    let refreshInterval: NodeJS.Timeout | null = null;
+    if (isAuthLoading) return; // Wait for auth to settle
 
-     // Set up auth state listener FIRST
-     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-       (event, session) => {
-         console.log('[TalentContext] Auth state changed:', event);
+    if (user) {
+      fetchTalent(user.id);
+    } else {
+      setTalent(null);
+      setIsTalentLoading(false);
+    }
+  }, [user, isAuthLoading, fetchTalent]);
 
-         // If refresh/session is broken, clear client state (no awaits inside this callback)
-         if (event === 'TOKEN_REFRESHED' && !session) {
-           console.warn('[TalentContext] Token refresh produced no session; clearing local auth state');
-           void clearCorruptedSession();
-           return;
-         }
-
-         if (event === 'SIGNED_OUT') {
-           setSession(null);
-           setUser(null);
-           setTalent(null);
-           return;
-         }
-
-         setSession(session);
-         setUser(session?.user ?? null);
-
-         // Defer talent fetch to avoid deadlock
-         if (session?.user) {
-           setTimeout(() => {
-             fetchTalent(session.user.id, session.user.email);
-           }, 0);
-         } else {
-           setTalent(null);
-         }
-       }
-     );
-
-    // THEN check for existing session with timeout fallback
-    const initializeSession = async () => {
-      // Set a hard timeout - if session check hangs, proceed without auth
-      authTimeoutId = setTimeout(() => {
-        if (!isInitialized) {
-          console.warn('[TalentContext] Session check timed out after 8s, proceeding without auth');
-          isInitialized = true;
-          setIsAuthLoading(false);
-        }
-      }, 8000);
-
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        // Handle invalid refresh token
-        if (error) {
-          const errorMsg = error.message || '';
-          if (errorMsg.includes('refresh_token') || errorMsg.includes('Invalid') || errorMsg.includes('not found')) {
-            console.warn('[TalentContext] Invalid session detected, clearing...');
-            await clearCorruptedSession();
-            isInitialized = true;
-            if (authTimeoutId) clearTimeout(authTimeoutId);
-            setIsAuthLoading(false);
-            return;
-          }
-        }
-        
-        if (isInitialized) return; // Timeout already fired
-        isInitialized = true;
-        
-        if (authTimeoutId) clearTimeout(authTimeoutId);
-        
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-         if (session?.user) {
-           fetchTalent(session.user.id, session.user.email);
-
-           // Note: Supabase client already auto-refreshes tokens.
-           // Avoid adding a proactive refresh interval here (it can spam requests on flaky networks).
-         }
-         
-         setIsAuthLoading(false);
-       } catch (error: any) {
-         if (isInitialized) return; // Timeout already fired
-         isInitialized = true;
-
-         if (authTimeoutId) clearTimeout(authTimeoutId);
-
-         // "Failed to fetch" is a network-layer error (DNS/firewall/offline/CORS).
-         // Clear any cached auth so the app can still load and the user can try signing in again.
-         if (error?.name === 'TypeError' && String(error?.message || '').includes('Failed to fetch')) {
-           console.warn('[TalentContext] Network error during session init; clearing local auth state');
-           void clearCorruptedSession();
-         }
-
-         console.error('[TalentContext] Error getting session:', error);
-         setIsAuthLoading(false);
-       }
-    };
-
-    initializeSession();
-
-    return () => {
-      if (authTimeoutId) clearTimeout(authTimeoutId);
-      if (refreshInterval) clearInterval(refreshInterval);
-      subscription.unsubscribe();
-    };
-  }, [fetchTalent, clearCorruptedSession]);
-
-  // Refresh talent profile
+  // 4. Actions
   const refreshTalent = useCallback(async () => {
     if (user) {
-      await fetchTalent(user.id, user.email ?? undefined);
+      await fetchTalent(user.id);
     }
   }, [user, fetchTalent]);
 
-  // Update talent profile
-  const updateTalent = useCallback(async (data: Partial<TalentProfile>): Promise<boolean> => {
-    if (!talent?.id) return false;
+  const updateTalent = useCallback(
+    async (data: Partial<TalentProfile>): Promise<boolean> => {
+      if (!talent?.id) return false;
 
-    try {
-      // Map camelCase to snake_case
-      const updateData: any = {};
-      if (data.fullName !== undefined) updateData.full_name = data.fullName;
-      if (data.phone !== undefined) updateData.phone = data.phone;
-      if (data.cvUrl !== undefined) updateData.cv_url = data.cvUrl;
-      if (data.cvText !== undefined) updateData.cv_text = data.cvText;
-      if (data.cvParsedAt !== undefined) updateData.cv_parsed_at = data.cvParsedAt;
-      if (data.professionCategoryId !== undefined) updateData.profession_category_id = data.professionCategoryId;
-      if (data.customProfession !== undefined) updateData.custom_profession = data.customProfession;
-      if (data.currentStatus !== undefined) updateData.current_status = data.currentStatus;
-      if (data.fieldOfStudy !== undefined) updateData.field_of_study = data.fieldOfStudy;
-      if (data.institution !== undefined) updateData.institution = data.institution;
-      if (data.education !== undefined) updateData.education = data.education;
-      if (data.experience !== undefined) updateData.experience = data.experience;
-      if (data.skills !== undefined) updateData.skills = data.skills;
-      if (data.projects !== undefined) updateData.projects = data.projects;
-      if (data.achievements !== undefined) updateData.achievements = data.achievements;
-      if (data.linkedinUrl !== undefined) updateData.linkedin_url = data.linkedinUrl;
-      if (data.portfolioUrl !== undefined) updateData.portfolio_url = data.portfolioUrl;
-      if (data.profilePhotoUrl !== undefined) updateData.profile_photo_url = data.profilePhotoUrl;
+      try {
+        const updateData: any = {};
+        // Map helper fields
+        if (data.fullName !== undefined) updateData.full_name = data.fullName;
+        if (data.phone !== undefined) updateData.phone = data.phone;
+        if (data.cvUrl !== undefined) updateData.cv_url = data.cvUrl;
+        if (data.cvText !== undefined) updateData.cv_text = data.cvText;
+        if (data.cvParsedAt !== undefined) updateData.cv_parsed_at = data.cvParsedAt;
+        if (data.professionCategoryId !== undefined) updateData.profession_category_id = data.professionCategoryId;
+        if (data.customProfession !== undefined) updateData.custom_profession = data.customProfession;
+        if (data.currentStatus !== undefined) updateData.current_status = data.currentStatus;
+        if (data.fieldOfStudy !== undefined) updateData.field_of_study = data.fieldOfStudy;
+        if (data.institution !== undefined) updateData.institution = data.institution;
+        if (data.education !== undefined) updateData.education = data.education;
+        if (data.experience !== undefined) updateData.experience = data.experience;
+        if (data.skills !== undefined) updateData.skills = data.skills;
+        if (data.projects !== undefined) updateData.projects = data.projects;
+        if (data.achievements !== undefined) updateData.achievements = data.achievements;
+        if (data.linkedinUrl !== undefined) updateData.linkedin_url = data.linkedinUrl;
+        if (data.portfolioUrl !== undefined) updateData.portfolio_url = data.portfolioUrl;
+        if (data.profilePhotoUrl !== undefined) updateData.profile_photo_url = data.profilePhotoUrl;
+        if (data.onboardingCompletedAt !== undefined) updateData.onboarding_completed_at = data.onboardingCompletedAt;
 
-      const { error } = await supabase
-        .from('talents')
-        .update(updateData)
-        .eq('id', talent.id);
+        const { error } = await supabase.from("talents").update(updateData).eq("id", talent.id);
 
-      if (error) {
-        console.error('[TalentContext] Error updating talent:', error);
+        if (error) throw error;
+
+        await refreshTalent();
+        return true;
+      } catch (error) {
+        console.error("[TalentContext] Error updating talent:", error);
         return false;
       }
+    },
+    [talent?.id, refreshTalent],
+  );
 
-      // Refresh the profile
-      await refreshTalent();
-      return true;
-    } catch (error) {
-      console.error('[TalentContext] Error updating talent:', error);
-      return false;
-    }
-  }, [talent?.id, refreshTalent]);
+  const addServiceUsed = useCallback(
+    async (service: string) => {
+      if (!talent?.id) return;
+      try {
+        const currentServices = (talent.servicesUsed || []).map((s: any) =>
+          typeof s === "string" ? s : s?.service || s?.name || String(s),
+        );
 
-  // Add a service to services_used (normalized to simple string array)
-  const addServiceUsed = useCallback(async (service: string) => {
-    if (!talent?.id) return;
+        if (currentServices.includes(service)) return;
 
-    try {
-      // Normalize to simple string array format
-      const currentServices = (talent.servicesUsed || []).map((s: any) => 
-        typeof s === 'string' ? s : (s?.service || s?.name || String(s))
-      );
-      
-      // Avoid duplicates
-      if (currentServices.includes(service)) return;
+        const newServices = [...currentServices, service];
 
-      const newServices = [...currentServices, service];
-      
-      await supabase
-        .from('talents')
-        .update({ services_used: newServices })
-        .eq('id', talent.id);
+        await supabase.from("talents").update({ services_used: newServices }).eq("id", talent.id);
 
-      // Update local state
-      setTalent(prev => prev ? { ...prev, servicesUsed: newServices } : null);
-    } catch (error) {
-      console.error('[TalentContext] Error adding service:', error);
-    }
-  }, [talent?.id, talent?.servicesUsed]);
-
-  // Sign in
-  const signIn = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    });
-
-    if (error) {
-      if (error.message.includes('Invalid login credentials')) {
-        throw new Error('Email or password is incorrect.');
+        setTalent((prev) => (prev ? { ...prev, servicesUsed: newServices } : null));
+      } catch (error) {
+        console.error("[TalentContext] Error adding service:", error);
       }
-      throw error;
-    }
-  }, []);
-
-  // Sign up
-  const signUp = useCallback(async (
-    fullName: string,
-    email: string,
-    password: string,
-    phone?: string
-  ): Promise<boolean> => {
-    const { data: authData, error: signUpError } = await supabase.auth.signUp({
-      email: email.trim(),
-      password,
-      options: {
-        data: {
-          full_name: fullName,
-          phone: phone || '',
-        },
-        emailRedirectTo: `${window.location.origin}/app/feed`,
-      },
-    });
-
-    if (signUpError) {
-      if (signUpError.message.includes('already registered') || signUpError.code === '23505') {
-        throw new Error('This email is already registered.');
-      }
-      throw signUpError;
-    }
-
-    if (!authData.user) {
-      throw new Error('Signup failed');
-    }
-
-    // The database trigger will create the talent record
-    // Wait a moment for the trigger to execute
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    return true;
-  }, []);
-
-  // Sign out
-  const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
-    setTalent(null);
-  }, []);
+    },
+    [talent?.id, talent?.servicesUsed],
+  );
 
   const value: TalentContextValue = {
     user,
     session,
-    isAuthenticated: !!session,
+    isAuthenticated: !!user,
     talent,
     isLoading: isAuthLoading || isTalentLoading,
-    isAuthLoading,
     isTalentLoading,
     refreshTalent,
     updateTalent,
@@ -433,25 +225,20 @@ export function TalentProvider({ children }: { children: React.ReactNode }) {
     signOut,
   };
 
-  return (
-    <TalentContext.Provider value={value}>
-      {children}
-    </TalentContext.Provider>
-  );
+  return <TalentContext.Provider value={value}>{children}</TalentContext.Provider>;
 }
 
 export function useTalent() {
   const context = useContext(TalentContext);
   if (context === undefined) {
-    throw new Error('useTalent must be used within a TalentProvider');
+    throw new Error("useTalent must be used within a TalentProvider");
   }
   return context;
 }
 
-// Helper hook to ensure talent is available (for protected routes)
 export function useRequiredTalent() {
   const { talent, isLoading, isAuthenticated } = useTalent();
-  
+
   return {
     talent,
     isLoading,
