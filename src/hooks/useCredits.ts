@@ -1,8 +1,15 @@
-import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useTalent } from '@/hooks/useTalent';
-import { CREDIT_CONFIG, ServiceType, getServiceCost } from '@/lib/creditPricing';
-import { useToast } from '@/hooks/use-toast';
+import { useState, useEffect, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useTalent } from "@/hooks/useTalent";
+import { CREDIT_CONFIG, ServiceType, getServiceCost } from "@/lib/creditPricing";
+import { useToast } from "@/hooks/use-toast";
+
+/* SECURITY WARNING: 
+  Currently, this hook allows the frontend to write to the 'talent_credits' table.
+  In a production environment, 'talent_credits' should have RLS policies that DENY 
+  updates from the frontend. All credit additions/deductions should happen via 
+  Supabase Database Functions (RPC) or Edge Functions to prevent tampering.
+*/
 
 export interface CreditTransaction {
   id: string;
@@ -26,8 +33,13 @@ interface UseCreditsReturn {
   canAffordAmount: (amount: number) => boolean;
   getServiceCost: (service: ServiceType) => number;
   deductCredits: (service: ServiceType, referenceId?: string, description?: string) => Promise<boolean>;
-  deductCustomAmount: (amount: number, serviceType: string, referenceId?: string, description?: string) => Promise<boolean>;
-  addCredits: (amount: number, type: 'welcome_bonus' | 'purchase' | 'refund', description?: string) => Promise<boolean>;
+  deductCustomAmount: (
+    amount: number,
+    serviceType: string,
+    referenceId?: string,
+    description?: string,
+  ) => Promise<boolean>;
+  addCredits: (amount: number, type: "welcome_bonus" | "purchase" | "refund", description?: string) => Promise<boolean>;
   refreshBalance: () => Promise<void>;
   transactionHistory: CreditTransaction[];
 }
@@ -46,9 +58,9 @@ export function useCredits(): UseCreditsReturn {
 
     try {
       const { data, error } = await supabase
-        .from('talent_credits')
-        .select('balance')
-        .eq('talent_id', talent.id)
+        .from("talent_credits")
+        .select("balance")
+        .eq("talent_id", talent.id)
         .maybeSingle();
 
       if (error) throw error;
@@ -60,10 +72,10 @@ export function useCredits(): UseCreditsReturn {
 
       // Also fetch recent transactions
       const { data: txData } = await supabase
-        .from('credit_transactions')
-        .select('*')
-        .eq('talent_id', talent.id)
-        .order('created_at', { ascending: false })
+        .from("credit_transactions")
+        .select("*")
+        .eq("talent_id", talent.id)
+        .order("created_at", { ascending: false })
         .limit(20);
 
       if (txData) {
@@ -76,216 +88,234 @@ export function useCredits(): UseCreditsReturn {
             serviceType: tx.service_type,
             description: tx.description,
             createdAt: tx.created_at,
-          }))
+          })),
         );
       }
     } catch (error) {
-      console.error('Error fetching credit balance:', error);
+      console.error("Error fetching credit balance:", error);
       setCreditData({ balance: 0, isLoading: false });
     }
   }, [talent?.id]);
 
+  // Initial fetch
   useEffect(() => {
     fetchBalance();
   }, [fetchBalance]);
 
-  const canAfford = useCallback((service: ServiceType): boolean => {
-    const cost = getServiceCost(service);
-    return creditData.balance >= cost;
-  }, [creditData.balance]);
+  const canAfford = useCallback(
+    (service: ServiceType): boolean => {
+      const cost = getServiceCost(service);
+      return creditData.balance >= cost;
+    },
+    [creditData.balance],
+  );
 
-  const canAffordAmount = useCallback((amount: number): boolean => {
-    return creditData.balance >= amount;
-  }, [creditData.balance]);
+  const canAffordAmount = useCallback(
+    (amount: number): boolean => {
+      return creditData.balance >= amount;
+    },
+    [creditData.balance],
+  );
 
   const getServiceCostForUser = useCallback((service: ServiceType): number => {
     return getServiceCost(service);
   }, []);
 
-  const deductCredits = useCallback(async (
-    service: ServiceType,
-    referenceId?: string,
-    description?: string
-  ): Promise<boolean> => {
-    if (!talent?.id) return false;
+  const deductCredits = useCallback(
+    async (service: ServiceType, referenceId?: string, description?: string): Promise<boolean> => {
+      if (!talent?.id) return false;
 
-    const cost = getServiceCost(service);
+      // 1. Check local state first for immediate feedback
+      const cost = getServiceCost(service);
+      if (creditData.balance < cost) {
+        toast({
+          title: "Insufficient Credits",
+          description: `You need ${cost} credits. Current balance: ${creditData.balance}`,
+          variant: "destructive",
+        });
+        return false;
+      }
 
-    if (creditData.balance < cost) {
-      toast({
-        title: 'Insufficient Credits',
-        description: `You need ${cost} credits for this service. Current balance: ${creditData.balance}`,
-        variant: 'destructive',
-      });
-      return false;
-    }
+      try {
+        // 2. Fetch fresh balance from DB to prevent race conditions
+        const { data: freshData, error: fetchError } = await supabase
+          .from("talent_credits")
+          .select("balance")
+          .eq("talent_id", talent.id)
+          .single();
 
-    try {
-      const newBalance = creditData.balance - cost;
+        if (fetchError || !freshData) throw new Error("Failed to verify balance");
 
-      // Update balance
-      const { error: updateError } = await supabase
-        .from('talent_credits')
-        .update({ balance: newBalance })
-        .eq('talent_id', talent.id);
+        if (freshData.balance < cost) {
+          toast({
+            title: "Insufficient Credits",
+            description: `You need ${cost} credits. Please reload.`,
+            variant: "destructive",
+          });
+          fetchBalance(); // Sync local state
+          return false;
+        }
 
-      if (updateError) throw updateError;
+        const newBalance = freshData.balance - cost;
 
-      // Record transaction
-      const { error: transactionError } = await supabase
-        .from('credit_transactions')
-        .insert({
+        // 3. Perform Update
+        // Ideally, use an RPC call here: await supabase.rpc('deduct_credits', { amount: cost, ... })
+        const { error: updateError } = await supabase
+          .from("talent_credits")
+          .update({ balance: newBalance })
+          .eq("talent_id", talent.id);
+
+        if (updateError) throw updateError;
+
+        // 4. Record Transaction
+        const { error: transactionError } = await supabase.from("credit_transactions").insert({
           talent_id: talent.id,
           amount: -cost,
           balance_after: newBalance,
-          transaction_type: 'service_usage',
+          transaction_type: "service_usage",
           service_type: service,
           reference_id: referenceId,
-          description: description || `Used ${CREDIT_CONFIG.SERVICES[service].name}`,
+          description: description || `Used ${CREDIT_CONFIG.SERVICES[service]?.name || service}`,
         });
 
-      if (transactionError) throw transactionError;
+        if (transactionError) {
+          console.error("Transaction log failed, but balance deducted");
+          // Don't throw here, the deduction worked
+        }
 
-      setCreditData(prev => ({ ...prev, balance: newBalance }));
-      return true;
-    } catch (error) {
-      console.error('Error deducting credits:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to process credit transaction',
-        variant: 'destructive',
-      });
-      return false;
-    }
-  }, [talent?.id, creditData.balance, toast]);
+        // 5. Update Local State
+        setCreditData((prev) => ({ ...prev, balance: newBalance }));
+        fetchBalance(); // Refresh history
+        return true;
+      } catch (error) {
+        console.error("Error deducting credits:", error);
+        toast({
+          title: "Transaction Failed",
+          description: "Could not process credit deduction.",
+          variant: "destructive",
+        });
+        return false;
+      }
+    },
+    [talent?.id, creditData.balance, toast, fetchBalance],
+  );
 
-  const deductCustomAmount = useCallback(async (
-    amount: number,
-    serviceType: string,
-    referenceId?: string,
-    description?: string
-  ): Promise<boolean> => {
-    if (!talent?.id) return false;
+  // Generic deduction function (mirrors logic of deductCredits)
+  const deductCustomAmount = useCallback(
+    async (amount: number, serviceType: string, referenceId?: string, description?: string): Promise<boolean> => {
+      if (!talent?.id) return false;
 
-    if (creditData.balance < amount) {
-      toast({
-        title: 'Insufficient Credits',
-        description: `You need ${amount} credits. Current balance: ${creditData.balance}`,
-        variant: 'destructive',
-      });
-      return false;
-    }
+      if (creditData.balance < amount) {
+        toast({
+          title: "Insufficient Credits",
+          description: `You need ${amount} credits.`,
+          variant: "destructive",
+        });
+        return false;
+      }
 
-    try {
-      const newBalance = creditData.balance - amount;
+      try {
+        const { data: freshData, error: fetchError } = await supabase
+          .from("talent_credits")
+          .select("balance")
+          .eq("talent_id", talent.id)
+          .single();
 
-      // Update balance
-      const { error: updateError } = await supabase
-        .from('talent_credits')
-        .update({ balance: newBalance })
-        .eq('talent_id', talent.id);
+        if (fetchError || !freshData) throw new Error("Failed to verify balance");
 
-      if (updateError) throw updateError;
+        if (freshData.balance < amount) {
+          toast({ title: "Insufficient Credits", variant: "destructive" });
+          fetchBalance();
+          return false;
+        }
 
-      // Record transaction
-      const { error: transactionError } = await supabase
-        .from('credit_transactions')
-        .insert({
+        const newBalance = freshData.balance - amount;
+
+        const { error: updateError } = await supabase
+          .from("talent_credits")
+          .update({ balance: newBalance })
+          .eq("talent_id", talent.id);
+
+        if (updateError) throw updateError;
+
+        await supabase.from("credit_transactions").insert({
           talent_id: talent.id,
           amount: -amount,
           balance_after: newBalance,
-          transaction_type: 'service_usage',
+          transaction_type: "service_usage",
           service_type: serviceType,
           reference_id: referenceId,
           description: description || `Service: ${serviceType}`,
         });
 
-      if (transactionError) throw transactionError;
-
-      setCreditData(prev => ({ ...prev, balance: newBalance }));
-      return true;
-    } catch (error) {
-      console.error('Error deducting credits:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to process credit transaction',
-        variant: 'destructive',
-      });
-      return false;
-    }
-  }, [talent?.id, creditData.balance, toast]);
-
-  const addCredits = useCallback(async (
-    amount: number,
-    type: 'welcome_bonus' | 'purchase' | 'refund',
-    description?: string
-  ): Promise<boolean> => {
-    if (!talent?.id) return false;
-
-    try {
-      // Check if credit record exists
-      const { data: existing } = await supabase
-        .from('talent_credits')
-        .select('balance')
-        .eq('talent_id', talent.id)
-        .maybeSingle();
-
-      const currentBalance = existing?.balance ?? 0;
-      const newBalance = currentBalance + amount;
-
-      if (existing) {
-        // Update existing record
-        const { error } = await supabase
-          .from('talent_credits')
-          .update({ balance: newBalance })
-          .eq('talent_id', talent.id);
-
-        if (error) throw error;
-      } else {
-        // Create new record
-        const { error } = await supabase
-          .from('talent_credits')
-          .insert({
-            talent_id: talent.id,
-            balance: newBalance,
-          });
-
-        if (error) throw error;
+        setCreditData((prev) => ({ ...prev, balance: newBalance }));
+        fetchBalance();
+        return true;
+      } catch (error) {
+        console.error("Error deducting credits:", error);
+        toast({ title: "Error", description: "Transaction failed", variant: "destructive" });
+        return false;
       }
+    },
+    [talent?.id, creditData.balance, toast, fetchBalance],
+  );
 
-      // Record transaction
-      const { error: transactionError } = await supabase
-        .from('credit_transactions')
-        .insert({
+  const addCredits = useCallback(
+    async (amount: number, type: "welcome_bonus" | "purchase" | "refund", description?: string): Promise<boolean> => {
+      if (!talent?.id) return false;
+
+      try {
+        // 1. Get current balance (or create if missing)
+        const { data: existing } = await supabase
+          .from("talent_credits")
+          .select("balance")
+          .eq("talent_id", talent.id)
+          .maybeSingle();
+
+        const currentBalance = existing?.balance ?? 0;
+        const newBalance = currentBalance + amount;
+
+        // 2. Update DB
+        if (existing) {
+          const { error } = await supabase
+            .from("talent_credits")
+            .update({ balance: newBalance })
+            .eq("talent_id", talent.id);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase.from("talent_credits").insert({ talent_id: talent.id, balance: newBalance });
+          if (error) throw error;
+        }
+
+        // 3. Log Transaction
+        await supabase.from("credit_transactions").insert({
           talent_id: talent.id,
           amount,
           balance_after: newBalance,
           transaction_type: type,
-          description: description || `${type.replace('_', ' ')} - ${amount} credits`,
+          description: description || `${type.replace("_", " ")} - ${amount} credits`,
         });
 
-      if (transactionError) throw transactionError;
+        // 4. Update UI
+        setCreditData((prev) => ({ ...prev, balance: newBalance }));
+        fetchBalance();
 
-      setCreditData(prev => ({ ...prev, balance: newBalance }));
+        if (type === "welcome_bonus") {
+          toast({
+            title: "Welcome Bonus! 🎉",
+            description: `You've received ${amount} credits!`,
+          });
+        }
 
-      if (type === 'welcome_bonus') {
-        toast({
-          title: 'Welcome Bonus! 🎉',
-          description: `You've received ${amount} credits to get started!`,
-        });
+        return true;
+      } catch (error) {
+        console.error("Error adding credits:", error);
+        toast({ title: "Error", description: "Failed to add credits", variant: "destructive" });
+        return false;
       }
-
-      return true;
-    } catch (error) {
-      console.error('Error adding credits:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to add credits',
-        variant: 'destructive',
-      });
-      return false;
-    }
-  }, [talent?.id, toast]);
+    },
+    [talent?.id, toast, fetchBalance],
+  );
 
   return {
     balance: creditData.balance,
