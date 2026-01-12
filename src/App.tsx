@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom"; // Added useParams
+import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { BootGate } from "@/components/BootGate";
 import { TalentProvider } from "@/contexts/TalentContext";
@@ -114,7 +114,6 @@ const queryClient = new QueryClient({
 // Helper component to handle dynamic redirect with ID
 const JobApplyRedirect = () => {
   const { id } = useParams();
-  // Redirects to the specific application page, preserving the ID
   return <Navigate to={`/auth?returnTo=/app/jobs/${id}/apply`} replace />;
 };
 
@@ -137,8 +136,7 @@ export default function App() {
 
                   {/* Public Job View */}
                   <Route path="/jobs/:id" element={<PublicJobDetail />} />
-
-                  {/* 👇 FIXED: Uses helper component to keep the Job ID */}
+                  {/* FIXED: Dynamic Redirect Logic */}
                   <Route path="/jobs/:id/apply" element={<JobApplyRedirect />} />
 
                   {/* Public Content */}
