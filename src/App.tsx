@@ -1,11 +1,14 @@
+import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useParams } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useParams, useLocation } from "react-router-dom";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { BootGate } from "@/components/BootGate";
 import { TalentProvider } from "@/contexts/TalentContext";
+import { useTalent } from "@/hooks/useTalent";
+import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 
 // Components
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -117,6 +120,38 @@ const JobApplyRedirect = () => {
   return <Navigate to={`/auth?returnTo=/app/jobs/${id}/apply`} replace />;
 };
 
+// Inline Guard Component to Force Onboarding
+const OnboardingGuard = ({ children }: { children: React.ReactNode }) => {
+  const { talent, refreshTalent } = useTalent();
+  const [showWizard, setShowWizard] = useState(false);
+  const location = useLocation();
+
+  useEffect(() => {
+    // If talent is loaded BUT onboarding is incomplete, show the wizard
+    if (talent && !talent.onboardingCompletedAt) {
+      setShowWizard(true);
+    }
+  }, [talent, location.pathname]);
+
+  const handleComplete = async () => {
+    await refreshTalent();
+    setShowWizard(false);
+  };
+
+  if (showWizard) {
+    return (
+      <>
+        {/* Hide the underlying page content so they can't interact with it */}
+        <div className="opacity-0 pointer-events-none h-0 overflow-hidden">{children}</div>
+        {/* Show the Wizard overlay */}
+        <OnboardingWizard onComplete={handleComplete} />
+      </>
+    );
+  }
+
+  return <>{children}</>;
+};
+
 export default function App() {
   return (
     <ErrorBoundary>
@@ -136,7 +171,8 @@ export default function App() {
 
                   {/* Public Job View */}
                   <Route path="/jobs/:id" element={<PublicJobDetail />} />
-                  {/* FIXED: Dynamic Redirect Logic */}
+
+                  {/* 👇 FIXED: Dynamic Redirect Logic */}
                   <Route path="/jobs/:id/apply" element={<JobApplyRedirect />} />
 
                   {/* Public Content */}
@@ -178,6 +214,7 @@ export default function App() {
                       </ProtectedRoute>
                     }
                   />
+                  {/* ... (Keep all Admin Routes as they were) ... */}
                   <Route
                     path="/students"
                     element={
@@ -292,7 +329,10 @@ export default function App() {
                     path="/app/*"
                     element={
                       <ProtectedRoute>
-                        <TalentAppShell />
+                        {/* 👇 WRAP SHELL IN ONBOARDING GUARD */}
+                        <OnboardingGuard>
+                          <TalentAppShell />
+                        </OnboardingGuard>
                       </ProtectedRoute>
                     }
                   >
