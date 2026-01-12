@@ -2098,6 +2098,33 @@ export type Database = {
           },
         ]
       }
+      organization_waitlist: {
+        Row: {
+          company_name: string | null
+          email: string
+          id: string
+          notes: string | null
+          notified_at: string | null
+          submitted_at: string
+        }
+        Insert: {
+          company_name?: string | null
+          email: string
+          id?: string
+          notes?: string | null
+          notified_at?: string | null
+          submitted_at?: string
+        }
+        Update: {
+          company_name?: string | null
+          email?: string
+          id?: string
+          notes?: string | null
+          notified_at?: string | null
+          submitted_at?: string
+        }
+        Relationships: []
+      }
       portfolio_requests: {
         Row: {
           achievements: string | null
@@ -2636,6 +2663,38 @@ export type Database = {
           is_used?: boolean | null
         }
         Relationships: []
+      }
+      saved_items: {
+        Row: {
+          id: string
+          item_id: string
+          item_type: string
+          saved_at: string
+          talent_id: string
+        }
+        Insert: {
+          id?: string
+          item_id: string
+          item_type: string
+          saved_at?: string
+          talent_id: string
+        }
+        Update: {
+          id?: string
+          item_id?: string
+          item_type?: string
+          saved_at?: string
+          talent_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_items_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       schools: {
         Row: {

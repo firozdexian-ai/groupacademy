@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Building2, Briefcase, Users, BarChart3, ArrowRight } from 'lucide-react';
+import { Building2, Briefcase, Users, BarChart3, ArrowRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
+import { supabase } from '@/integrations/supabase/client';
 
 const FEATURES = [
   {
@@ -29,15 +30,41 @@ const FEATURES = [
 export default function Organization() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
+  const [companyName, setCompanyName] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
     
-    // TODO: Save to waitlist
-    setSubmitted(true);
-    toast.success('Thanks! We\'ll notify you when organization accounts launch.');
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from('organization_waitlist')
+        .insert({
+          email: email.toLowerCase().trim(),
+          company_name: companyName.trim() || null
+        });
+
+      if (error) {
+        if (error.code === '23505') {
+          // Unique constraint violation - email already exists
+          toast.info('You\'re already on the waitlist! We\'ll be in touch soon.');
+          setSubmitted(true);
+        } else {
+          throw error;
+        }
+      } else {
+        setSubmitted(true);
+        toast.success('Thanks! We\'ll notify you when organization accounts launch.');
+      }
+    } catch (error) {
+      console.error('Error joining waitlist:', error);
+      toast.error('Failed to join waitlist. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -102,9 +129,24 @@ export default function Organization() {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                   />
-                  <Button type="submit" className="w-full">
-                    Notify Me
-                    <ArrowRight className="h-4 w-4 ml-2" />
+                  <Input
+                    type="text"
+                    placeholder="Company name (optional)"
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                  />
+                  <Button type="submit" className="w-full" disabled={isSubmitting}>
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Joining...
+                      </>
+                    ) : (
+                      <>
+                        Notify Me
+                        <ArrowRight className="h-4 w-4 ml-2" />
+                      </>
+                    )}
                   </Button>
                 </form>
               )}

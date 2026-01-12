@@ -52,6 +52,7 @@ import ProfileEdit from "./pages/app/ProfileEdit";
 import Notifications from "./pages/app/Notifications";
 import MyResults from "./pages/app/MyResults";
 import MyApplications from "./pages/app/MyApplications";
+import SavedItems from "./pages/app/SavedItems";
 
 // Feature Details
 import AppJobs from "./pages/app/AppJobs";
@@ -306,6 +307,7 @@ export default function App() {
                     <Route path="job-assessment/:assessmentId" element={<JobAssessment />} />
                     <Route path="job-assessment/:assessmentId/results" element={<JobAssessmentResults />} />
                     <Route path="applications" element={<MyApplications />} />
+                    <Route path="saved" element={<SavedItems />} />
 
                     {/* Learning Routes */}
                     <Route path="learning/tracks" element={<AppProfessions />} />

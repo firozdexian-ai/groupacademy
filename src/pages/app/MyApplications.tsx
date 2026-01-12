@@ -306,13 +306,57 @@ export default function MyApplications() {
                 ))}
               </div>
             ) : filterByStatus(tab).length === 0 ? (
-              <Card>
-                <CardContent className="p-6 text-center">
-                  <Briefcase className="h-10 w-10 mx-auto text-muted-foreground/30 mb-2" />
-                  <p className="text-sm text-muted-foreground">No applications yet</p>
-                  <p className="text-xs text-muted-foreground/70 mt-1">
-                    Apply to jobs to track them here
+              <Card className="border-dashed">
+                <CardContent className="py-12 text-center">
+                  <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Briefcase className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                  <h3 className="font-bold text-base mb-1">
+                    {tab === 'all' ? 'No applications yet' : `No ${tab} applications`}
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-4 max-w-xs mx-auto">
+                    {tab === 'all' 
+                      ? "Start your job search by applying to positions that match your skills."
+                      : `Applications will appear here once they're ${tab}.`}
                   </p>
+                  
+                  {tab === 'all' && (
+                    <>
+                      <div className="bg-muted/50 rounded-lg p-3 mb-4 text-left max-w-xs mx-auto">
+                        <p className="text-xs font-medium text-muted-foreground mb-2">Quick tips:</p>
+                        <ul className="text-xs text-muted-foreground space-y-1">
+                          <li className="flex items-start gap-2">
+                            <span className="text-primary">•</span>
+                            Upload your CV to apply faster
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-primary">•</span>
+                            Complete your profile for better matches
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <span className="text-primary">•</span>
+                            Check your Feed for AI recommendations
+                          </li>
+                        </ul>
+                      </div>
+                      
+                      <div className="flex flex-wrap justify-center gap-2">
+                        <Button 
+                          variant="outline"
+                          className="rounded-full h-10 px-5 press-scale"
+                          onClick={() => navigate('/app/jobs/browse')}
+                        >
+                          Browse Jobs
+                        </Button>
+                        <Button 
+                          className="rounded-full h-10 px-5 press-scale"
+                          onClick={() => navigate('/app/feed')}
+                        >
+                          View Recommendations
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             ) : (

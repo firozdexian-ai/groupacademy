@@ -1,10 +1,11 @@
-import { Briefcase, Play, BookOpen, MapPin, Building2, Newspaper, ArrowRight } from 'lucide-react';
+import { Briefcase, Play, BookOpen, MapPin, Building2, Newspaper, ArrowRight, Bookmark } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CircularMatchBadge } from './CircularMatchBadge';
 import { SkillTagBadge } from './SkillTagBadge';
 import { cn } from '@/lib/utils';
+import { useSavedItems, SavedItemType } from '@/hooks/useSavedItems';
 import type { FeedItem } from '@/hooks/useFeedRecommendations';
 
 interface FeedCardRedesignedProps {
@@ -14,6 +15,16 @@ interface FeedCardRedesignedProps {
 }
 
 export function FeedCardRedesigned({ item, onInterested, onNotInterested }: FeedCardRedesignedProps) {
+  const { isSaved, toggleSave } = useSavedItems();
+  
+  const itemType = item.type as SavedItemType;
+  const isBookmarked = isSaved(item.id, itemType);
+
+  const handleToggleSave = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    await toggleSave(item.id, itemType);
+  };
+
   const getTypeIcon = () => {
     switch (item.type) {
       case 'job':
@@ -93,12 +104,25 @@ export function FeedCardRedesigned({ item, onInterested, onNotInterested }: Feed
             </div>
           )}
 
-          {/* Match Score Badge - Top Right */}
-          {item.matchScore !== undefined && (
-            <div className="absolute top-2 right-2 z-10">
+          {/* Match Score Badge & Bookmark - Top Right */}
+          <div className="absolute top-2 right-2 z-10 flex items-center gap-1.5">
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn(
+                "h-7 w-7 rounded-full backdrop-blur-sm",
+                isBookmarked 
+                  ? "bg-primary text-primary-foreground hover:bg-primary/90" 
+                  : "bg-background/80 hover:bg-background"
+              )}
+              onClick={handleToggleSave}
+            >
+              <Bookmark className={cn("h-3.5 w-3.5", isBookmarked && "fill-current")} />
+            </Button>
+            {item.matchScore !== undefined && (
               <CircularMatchBadge score={item.matchScore} size="sm" />
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Type Badge - Top Left */}
           <div className="absolute top-2 left-2 z-10">
@@ -125,9 +149,24 @@ export function FeedCardRedesigned({ item, onInterested, onNotInterested }: Feed
             <span className="capitalize font-medium">{item.type}</span>
           </Badge>
           
-          {item.matchScore !== undefined && (
-            <CircularMatchBadge score={item.matchScore} size="sm" />
-          )}
+          <div className="flex items-center gap-1.5">
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn(
+                "h-6 w-6 rounded-full",
+                isBookmarked 
+                  ? "bg-primary text-primary-foreground hover:bg-primary/90" 
+                  : "hover:bg-background"
+              )}
+              onClick={handleToggleSave}
+            >
+              <Bookmark className={cn("h-3 w-3", isBookmarked && "fill-current")} />
+            </Button>
+            {item.matchScore !== undefined && (
+              <CircularMatchBadge score={item.matchScore} size="sm" />
+            )}
+          </div>
         </div>
       )}
 

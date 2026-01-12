@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Mail,
-  Phone,
   Briefcase,
   GraduationCap,
   FileText,
@@ -17,10 +16,12 @@ import {
   Upload,
   CheckCircle2,
   Download,
+  Bookmark,
 } from "lucide-react";
 import { downloadFile } from "@/lib/downloadFile";
 import { useTalent } from "@/hooks/useTalent";
 import { useCredits } from "@/hooks/useCredits";
+import { useSavedItems } from "@/hooks/useSavedItems";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +30,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CreditPurchaseSheet } from "@/components/credits/CreditPurchaseSheet";
 import { ApplicationHistoryCard } from "@/components/profile/ApplicationHistoryCard";
 import { ServiceHistoryCard } from "@/components/profile/ServiceHistoryCard";
+import { ProfileCompletionMeter } from "@/components/profile/ProfileCompletionMeter";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,9 +40,12 @@ export default function Profile() {
   const navigate = useNavigate();
   const { talent, signOut, updateTalent, refreshTalent, isLoading: isTalentLoading } = useTalent();
   const { balance, isLoading: creditsLoading } = useCredits();
+  const { getSavedCount } = useSavedItems();
   const [showCreditSheet, setShowCreditSheet] = useState(false);
   const [showEnhanceDialog, setShowEnhanceDialog] = useState(false);
   const [isEnhancing, setIsEnhancing] = useState(false);
+  
+  const savedJobsCount = getSavedCount('job');
 
   if (isTalentLoading) {
     return (
@@ -197,13 +202,18 @@ export default function Profile() {
 
         <Card
           className="cursor-pointer shadow-sm border-0 flex-shrink-0 w-[110px] press-scale rounded-xl"
-          onClick={handleEditProfile}
+          onClick={() => navigate("/app/saved")}
         >
           <CardContent className="p-3 flex flex-col items-center text-center gap-1.5">
-            <div className="p-2 bg-accent/10 rounded-lg">
-              <FileText className="h-4 w-4 text-accent" />
+            <div className="p-2 bg-warning/10 rounded-lg relative">
+              <Bookmark className="h-4 w-4 text-warning" />
+              {savedJobsCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-warning text-warning-foreground text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                  {savedJobsCount > 9 ? '9+' : savedJobsCount}
+                </span>
+              )}
             </div>
-            <p className="font-semibold text-xs">Edit Profile</p>
+            <p className="font-semibold text-xs">Saved Jobs</p>
           </CardContent>
         </Card>
 
@@ -218,6 +228,23 @@ export default function Profile() {
             <p className="font-semibold text-xs">Applications</p>
           </CardContent>
         </Card>
+
+        <Card
+          className="cursor-pointer shadow-sm border-0 flex-shrink-0 w-[110px] press-scale rounded-xl"
+          onClick={handleEditProfile}
+        >
+          <CardContent className="p-3 flex flex-col items-center text-center gap-1.5">
+            <div className="p-2 bg-accent/10 rounded-lg">
+              <FileText className="h-4 w-4 text-accent" />
+            </div>
+            <p className="font-semibold text-xs">Edit Profile</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Profile Completion Meter - Show if not 100% */}
+      <div className="mb-5">
+        <ProfileCompletionMeter talent={talent} variant="compact" />
       </div>
 
       {/* CV Status Card - Show if no CV uploaded */}

@@ -179,21 +179,53 @@ export default function AppJobs() {
       ) : filteredJobs.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="py-12 text-center">
-            <div className="w-14 h-14 bg-muted rounded-full flex items-center justify-center mx-auto mb-3">
-              <Briefcase className="h-6 w-6 text-muted-foreground" />
+            <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+              <Briefcase className="h-8 w-8 text-muted-foreground" />
             </div>
             <h3 className="font-bold text-base mb-1">No jobs found</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              No jobs match your current filters
+            <p className="text-sm text-muted-foreground mb-4 max-w-xs mx-auto">
+              {searchQuery || activeFilter !== 'all' 
+                ? "Try adjusting your search or filters"
+                : "New opportunities are added daily. Check back soon!"}
             </p>
-            <Button 
-              variant="outline" 
-              className="rounded-full h-10 px-5 press-scale"
-              onClick={clearFilters}
-            >
-              <X className="h-4 w-4 mr-2" />
-              Clear Filters
-            </Button>
+            
+            {/* Suggestions */}
+            <div className="bg-muted/50 rounded-lg p-3 mb-4 text-left max-w-xs mx-auto">
+              <p className="text-xs font-medium text-muted-foreground mb-2">Try these:</p>
+              <ul className="text-xs text-muted-foreground space-y-1">
+                <li className="flex items-start gap-2">
+                  <span className="text-primary">•</span>
+                  Clear your filters to see all jobs
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-primary">•</span>
+                  Complete your profile for personalized recommendations
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-primary">•</span>
+                  Check the Feed for AI-matched opportunities
+                </li>
+              </ul>
+            </div>
+            
+            <div className="flex flex-wrap justify-center gap-2">
+              {(searchQuery || activeFilter !== 'all') && (
+                <Button 
+                  variant="outline" 
+                  className="rounded-full h-10 px-5 press-scale"
+                  onClick={clearFilters}
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Clear Filters
+                </Button>
+              )}
+              <Button 
+                className="rounded-full h-10 px-5 press-scale"
+                onClick={() => navigate('/app/feed')}
+              >
+                View AI Recommendations
+              </Button>
+            </div>
           </CardContent>
         </Card>
       ) : (
