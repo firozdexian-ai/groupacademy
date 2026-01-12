@@ -1,55 +1,56 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, Loader2, FileText, Trash2, ExternalLink } from 'lucide-react';
-import { useTalent } from '@/hooks/useTalent';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { toast } from 'sonner';
-import { ProfilePhotoUpload } from '@/components/profile/ProfilePhotoUpload';
-import { SkillsEditor } from '@/components/profile/SkillsEditor';
-import { ExperienceEditor, ExperienceEntry } from '@/components/profile/ExperienceEditor';
-import { EducationEditor, EducationEntry } from '@/components/profile/EducationEditor';
-import { supabase } from '@/integrations/supabase/client';
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft, Save, Loader2, FileText, Trash2, ExternalLink } from "lucide-react";
+import { useTalent } from "@/hooks/useTalent";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "sonner";
+import { ProfilePhotoUpload } from "@/components/profile/ProfilePhotoUpload";
+import { SkillsEditor } from "@/components/profile/SkillsEditor";
+import { ExperienceEditor, ExperienceEntry } from "@/components/profile/ExperienceEditor";
+import { EducationEditor, EducationEntry } from "@/components/profile/EducationEditor";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function ProfileEdit() {
   const navigate = useNavigate();
   const { talent, updateTalent } = useTalent();
   const [saving, setSaving] = useState(false);
   const [uploadingCV, setUploadingCV] = useState(false);
-  const [profilePhotoUrl, setProfilePhotoUrl] = useState(talent?.profilePhotoUrl || '');
-  const [cvUrl, setCvUrl] = useState(talent?.cvUrl || '');
-  
+  // NEW: State for parsing progress
+  const [parsingCV, setParsingCV] = useState(false);
+
+  const [profilePhotoUrl, setProfilePhotoUrl] = useState(talent?.profilePhotoUrl || "");
+  const [cvUrl, setCvUrl] = useState(talent?.cvUrl || "");
+
   const [formData, setFormData] = useState({
-    fullName: talent?.fullName || '',
-    phone: talent?.phone || '',
-    customProfession: talent?.customProfession || '',
-    currentStatus: talent?.currentStatus || '',
-    institution: talent?.institution || '',
-    fieldOfStudy: talent?.fieldOfStudy || '',
-    linkedinUrl: talent?.linkedinUrl || '',
-    portfolioUrl: talent?.portfolioUrl || ''
+    fullName: talent?.fullName || "",
+    phone: talent?.phone || "",
+    customProfession: talent?.customProfession || "",
+    currentStatus: talent?.currentStatus || "",
+    institution: talent?.institution || "",
+    fieldOfStudy: talent?.fieldOfStudy || "",
+    linkedinUrl: talent?.linkedinUrl || "",
+    portfolioUrl: talent?.portfolioUrl || "",
   });
 
   // Parse skills from talent data
   const parseSkills = (): string[] => {
     if (!talent?.skills) return [];
-    return talent.skills.map((s: any) => 
-      typeof s === 'string' ? s : (s?.name || s?.skill || String(s))
-    );
+    return talent.skills.map((s: any) => (typeof s === "string" ? s : s?.name || s?.skill || String(s)));
   };
 
   // Parse experience from talent data
   const parseExperience = (): ExperienceEntry[] => {
     if (!talent?.experience) return [];
     return talent.experience.map((exp: any) => ({
-      company: exp.company || '',
-      position: exp.position || exp.title || '',
-      startDate: exp.startDate || exp.start_date || '',
-      endDate: exp.endDate || exp.end_date || '',
-      description: exp.description || ''
+      company: exp.company || "",
+      position: exp.position || exp.title || "",
+      startDate: exp.startDate || exp.start_date || "",
+      endDate: exp.endDate || exp.end_date || "",
+      description: exp.description || "",
     }));
   };
 
@@ -57,11 +58,11 @@ export default function ProfileEdit() {
   const parseEducation = (): EducationEntry[] => {
     if (!talent?.education) return [];
     return talent.education.map((edu: any) => ({
-      institution: edu.institution || '',
-      degree: edu.degree || '',
-      fieldOfStudy: edu.fieldOfStudy || edu.field_of_study || edu.field || '',
-      startYear: edu.startYear || edu.start_year || '',
-      endYear: edu.endYear || edu.end_year || edu.year || ''
+      institution: edu.institution || "",
+      degree: edu.degree || "",
+      fieldOfStudy: edu.fieldOfStudy || edu.field_of_study || edu.field || "",
+      startYear: edu.startYear || edu.start_year || "",
+      endYear: edu.endYear || edu.end_year || edu.year || "",
     }));
   };
 
@@ -73,17 +74,17 @@ export default function ProfileEdit() {
   useEffect(() => {
     if (talent) {
       setFormData({
-        fullName: talent.fullName || '',
-        phone: talent.phone || '',
-        customProfession: talent.customProfession || '',
-        currentStatus: talent.currentStatus || '',
-        institution: talent.institution || '',
-        fieldOfStudy: talent.fieldOfStudy || '',
-        linkedinUrl: talent.linkedinUrl || '',
-        portfolioUrl: talent.portfolioUrl || ''
+        fullName: talent.fullName || "",
+        phone: talent.phone || "",
+        customProfession: talent.customProfession || "",
+        currentStatus: talent.currentStatus || "",
+        institution: talent.institution || "",
+        fieldOfStudy: talent.fieldOfStudy || "",
+        linkedinUrl: talent.linkedinUrl || "",
+        portfolioUrl: talent.portfolioUrl || "",
       });
-      setProfilePhotoUrl(talent.profilePhotoUrl || '');
-      setCvUrl(talent.cvUrl || '');
+      setProfilePhotoUrl(talent.profilePhotoUrl || "");
+      setCvUrl(talent.cvUrl || "");
       setSkills(parseSkills());
       setExperience(parseExperience());
       setEducation(parseEducation());
@@ -91,118 +92,124 @@ export default function ProfileEdit() {
   }, [talent?.id]);
 
   const handlePhotoChange = (url: string | null) => {
-    setProfilePhotoUrl(url || '');
+    setProfilePhotoUrl(url || "");
   };
-
-const [parsingCV, setParsingCV] = useState(false);
 
   const handleCVUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !talent) return;
 
     // Validate file type
-    const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    const allowedTypes = [
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ];
     if (!allowedTypes.includes(file.type)) {
-      toast.error('Please upload a PDF or Word document');
+      toast.error("Please upload a PDF or Word document");
       return;
     }
 
     // Validate file size (5MB max)
     if (file.size > 5 * 1024 * 1024) {
-      toast.error('File size must be less than 5MB');
+      toast.error("File size must be less than 5MB");
       return;
     }
 
     setUploadingCV(true);
     try {
-      const fileExt = file.name.split('.').pop();
+      const fileExt = file.name.split(".").pop();
       const fileName = `${talent.id}/cv-${Date.now()}.${fileExt}`;
-      
+
       const { error: uploadError } = await supabase.storage
-        .from('portfolio-uploads')
+        .from("portfolio-uploads")
         .upload(fileName, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('portfolio-uploads')
-        .getPublicUrl(fileName);
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("portfolio-uploads").getPublicUrl(fileName);
 
       setCvUrl(publicUrl);
       setUploadingCV(false);
-      
+
       // Parse CV with AI
       setParsingCV(true);
-      toast.info('Analyzing your CV...');
-      
+      toast.info("Analyzing your CV...");
+
       try {
-        const { data: parseResult, error: parseError } = await supabase.functions.invoke('parse-cv', {
-          body: { cvUrl: publicUrl }
+        const { data: parseResult, error: parseError } = await supabase.functions.invoke("parse-cv", {
+          body: { cvUrl: publicUrl },
         });
 
         if (parseError) throw parseError;
 
         if (parseResult?.success && parseResult.parsed) {
           const parsed = parseResult.parsed;
-          
+
           // Update form data with parsed info
           if (parsed.full_name && !formData.fullName) {
-            setFormData(prev => ({ ...prev, fullName: parsed.full_name }));
+            setFormData((prev) => ({ ...prev, fullName: parsed.full_name }));
           }
           if (parsed.phone && !formData.phone) {
-            setFormData(prev => ({ ...prev, phone: parsed.phone }));
+            setFormData((prev) => ({ ...prev, phone: parsed.phone }));
           }
           if (parsed.skills && parsed.skills.length > 0 && skills.length === 0) {
             setSkills(parsed.skills);
           }
           if (parsed.experience && parsed.experience.length > 0 && experience.length === 0) {
-            setExperience(parsed.experience.map((exp: any) => ({
-              company: exp.company || '',
-              position: exp.title || '',
-              startDate: '',
-              endDate: '',
-              description: exp.description || ''
-            })));
+            setExperience(
+              parsed.experience.map((exp: any) => ({
+                company: exp.company || "",
+                position: exp.title || "",
+                startDate: "",
+                endDate: "",
+                description: exp.description || "",
+              })),
+            );
           }
           if (parsed.education && parsed.education.length > 0 && education.length === 0) {
-            setEducation(parsed.education.map((edu: any) => ({
-              institution: edu.institution || '',
-              degree: edu.degree || '',
-              fieldOfStudy: edu.field || '',
-              startYear: edu.start_year || '',
-              endYear: edu.end_year || ''
-            })));
+            setEducation(
+              parsed.education.map((edu: any) => ({
+                institution: edu.institution || "",
+                degree: edu.degree || "",
+                fieldOfStudy: edu.field || "",
+                startYear: edu.start_year || "",
+                endYear: edu.end_year || "",
+              })),
+            );
           }
 
-          toast.success('CV parsed! Review and save your updated profile.');
+          toast.success("CV parsed! Review and save your updated profile.");
         } else {
-          toast.success('CV uploaded successfully');
+          toast.success("CV uploaded successfully");
         }
       } catch (parseErr) {
-        console.error('CV parse error:', parseErr);
-        toast.success('CV uploaded. Manual parsing can be done later.');
+        console.error("CV parse error:", parseErr);
+        toast.success("CV uploaded. Manual parsing can be done later.");
       }
-      
+
       setParsingCV(false);
     } catch (error) {
-      console.error('CV upload error:', error);
-      toast.error('Failed to upload CV');
+      console.error("CV upload error:", error);
+      toast.error("Failed to upload CV");
       setUploadingCV(false);
       setParsingCV(false);
     }
   };
 
   const handleRemoveCV = () => {
-    setCvUrl('');
+    setCvUrl("");
   };
 
   if (!talent) {
-    navigate('/app/profile');
+    navigate("/app/profile");
     return null;
   }
 
   const handleChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -223,14 +230,14 @@ const [parsingCV, setParsingCV] = useState(false);
         cvUrl: cvUrl || undefined,
         skills: skills as any,
         experience: experience as any,
-        education: education as any
+        education: education as any,
       });
-      
-      toast.success('Profile updated successfully');
-      navigate('/app/profile');
+
+      toast.success("Profile updated successfully");
+      navigate("/app/profile");
     } catch (error) {
-      console.error('Error updating profile:', error);
-      toast.error('Failed to update profile');
+      console.error("Error updating profile:", error);
+      toast.error("Failed to update profile");
     } finally {
       setSaving(false);
     }
@@ -240,11 +247,7 @@ const [parsingCV, setParsingCV] = useState(false);
     <div className="max-w-2xl mx-auto px-4 py-6">
       {/* Header */}
       <div className="flex items-center gap-4 mb-6">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => navigate('/app/profile')}
-        >
+        <Button variant="ghost" size="icon" onClick={() => navigate("/app/profile")}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
@@ -268,7 +271,7 @@ const [parsingCV, setParsingCV] = useState(false);
           </CardContent>
         </Card>
 
-        {/* CV Upload */}
+        {/* CV Upload - UPDATED WITH LOADING STATE */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base">CV / Resume</CardTitle>
@@ -281,12 +284,7 @@ const [parsingCV, setParsingCV] = useState(false);
                   <span className="text-sm font-medium">CV uploaded</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => window.open(cvUrl, '_blank')}
-                  >
+                  <Button type="button" variant="ghost" size="sm" onClick={() => window.open(cvUrl, "_blank")}>
                     <ExternalLink className="h-4 w-4" />
                   </Button>
                   <Button
@@ -303,25 +301,29 @@ const [parsingCV, setParsingCV] = useState(false);
             ) : (
               <div className="space-y-2">
                 <Label htmlFor="cv-upload">Upload your CV (PDF or Word, max 5MB)</Label>
-                <Input
-                  id="cv-upload"
-                  type="file"
-                  accept=".pdf,.doc,.docx"
-                  onChange={handleCVUpload}
-                  disabled={uploadingCV || parsingCV}
-                  className="cursor-pointer"
-                />
-              {(uploadingCV || parsingCV) && (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      {parsingCV ? 'Analyzing your CV with AI...' : 'Uploading...'}
+                <div className="relative">
+                  <Input
+                    id="cv-upload"
+                    type="file"
+                    accept=".pdf,.doc,.docx"
+                    onChange={handleCVUpload}
+                    disabled={uploadingCV || parsingCV}
+                    className="cursor-pointer pr-10"
+                  />
+                  {(uploadingCV || parsingCV) && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
                     </div>
-                    {parsingCV && (
-                      <p className="text-xs text-muted-foreground">
-                        This may take a moment. We're extracting your skills, experience, and education.
-                      </p>
-                    )}
+                  )}
+                </div>
+
+                {/* NEW: Explicit Loading Message */}
+                {(uploadingCV || parsingCV) && (
+                  <div className="flex items-center gap-2 text-sm text-primary animate-pulse bg-primary/5 p-2 rounded">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    <span>
+                      {uploadingCV ? "Uploading file..." : "Analyzing your CV with AI... This takes about 10 seconds."}
+                    </span>
                   </div>
                 )}
               </div>
@@ -340,17 +342,17 @@ const [parsingCV, setParsingCV] = useState(false);
               <Input
                 id="fullName"
                 value={formData.fullName}
-                onChange={(e) => handleChange('fullName', e.target.value)}
+                onChange={(e) => handleChange("fullName", e.target.value)}
                 placeholder="Your full name"
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="phone">Phone Number</Label>
               <Input
                 id="phone"
                 value={formData.phone}
-                onChange={(e) => handleChange('phone', e.target.value)}
+                onChange={(e) => handleChange("phone", e.target.value)}
                 placeholder="+880 1XXX XXXXXX"
               />
             </div>
@@ -360,7 +362,7 @@ const [parsingCV, setParsingCV] = useState(false);
               <Input
                 id="customProfession"
                 value={formData.customProfession}
-                onChange={(e) => handleChange('customProfession', e.target.value)}
+                onChange={(e) => handleChange("customProfession", e.target.value)}
                 placeholder="e.g., Software Engineer, Marketing Manager"
               />
             </div>
@@ -370,7 +372,7 @@ const [parsingCV, setParsingCV] = useState(false);
               <Textarea
                 id="currentStatus"
                 value={formData.currentStatus}
-                onChange={(e) => handleChange('currentStatus', e.target.value)}
+                onChange={(e) => handleChange("currentStatus", e.target.value)}
                 placeholder="Tell us about yourself..."
                 rows={3}
               />
@@ -381,30 +383,21 @@ const [parsingCV, setParsingCV] = useState(false);
         {/* Skills */}
         <Card>
           <CardContent className="pt-6">
-            <SkillsEditor 
-              skills={skills} 
-              onChange={setSkills} 
-            />
+            <SkillsEditor skills={skills} onChange={setSkills} />
           </CardContent>
         </Card>
 
         {/* Experience */}
         <Card>
           <CardContent className="pt-6">
-            <ExperienceEditor
-              experience={experience}
-              onChange={setExperience}
-            />
+            <ExperienceEditor experience={experience} onChange={setExperience} />
           </CardContent>
         </Card>
 
         {/* Education */}
         <Card>
           <CardContent className="pt-6">
-            <EducationEditor
-              education={education}
-              onChange={setEducation}
-            />
+            <EducationEditor education={education} onChange={setEducation} />
           </CardContent>
         </Card>
 
@@ -420,18 +413,18 @@ const [parsingCV, setParsingCV] = useState(false);
                 id="linkedinUrl"
                 type="url"
                 value={formData.linkedinUrl}
-                onChange={(e) => handleChange('linkedinUrl', e.target.value)}
+                onChange={(e) => handleChange("linkedinUrl", e.target.value)}
                 placeholder="https://linkedin.com/in/yourprofile"
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="portfolioUrl">Portfolio URL</Label>
               <Input
                 id="portfolioUrl"
                 type="url"
                 value={formData.portfolioUrl}
-                onChange={(e) => handleChange('portfolioUrl', e.target.value)}
+                onChange={(e) => handleChange("portfolioUrl", e.target.value)}
                 placeholder="https://yourportfolio.com"
               />
             </div>
@@ -440,19 +433,10 @@ const [parsingCV, setParsingCV] = useState(false);
 
         {/* Submit */}
         <div className="flex gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            className="flex-1"
-            onClick={() => navigate('/app/profile')}
-          >
+          <Button type="button" variant="outline" className="flex-1" onClick={() => navigate("/app/profile")}>
             Cancel
           </Button>
-          <Button
-            type="submit"
-            className="flex-1"
-            disabled={saving}
-          >
+          <Button type="submit" className="flex-1" disabled={saving}>
             {saving ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
