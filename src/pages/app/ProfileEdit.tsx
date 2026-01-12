@@ -19,7 +19,6 @@ export default function ProfileEdit() {
   const { talent, updateTalent } = useTalent();
   const [saving, setSaving] = useState(false);
   const [uploadingCV, setUploadingCV] = useState(false);
-  // NEW: State for parsing progress
   const [parsingCV, setParsingCV] = useState(false);
 
   const [profilePhotoUrl, setProfilePhotoUrl] = useState(talent?.profilePhotoUrl || "");
@@ -36,13 +35,11 @@ export default function ProfileEdit() {
     portfolioUrl: talent?.portfolioUrl || "",
   });
 
-  // Parse skills from talent data
   const parseSkills = (): string[] => {
     if (!talent?.skills) return [];
     return talent.skills.map((s: any) => (typeof s === "string" ? s : s?.name || s?.skill || String(s)));
   };
 
-  // Parse experience from talent data
   const parseExperience = (): ExperienceEntry[] => {
     if (!talent?.experience) return [];
     return talent.experience.map((exp: any) => ({
@@ -54,7 +51,6 @@ export default function ProfileEdit() {
     }));
   };
 
-  // Parse education from talent data
   const parseEducation = (): EducationEntry[] => {
     if (!talent?.education) return [];
     return talent.education.map((edu: any) => ({
@@ -70,7 +66,6 @@ export default function ProfileEdit() {
   const [experience, setExperience] = useState<ExperienceEntry[]>(parseExperience());
   const [education, setEducation] = useState<EducationEntry[]>(parseEducation());
 
-  // Update states when talent loads
   useEffect(() => {
     if (talent) {
       setFormData({
@@ -99,7 +94,6 @@ export default function ProfileEdit() {
     const file = e.target.files?.[0];
     if (!file || !talent) return;
 
-    // Validate file type
     const allowedTypes = [
       "application/pdf",
       "application/msword",
@@ -110,7 +104,6 @@ export default function ProfileEdit() {
       return;
     }
 
-    // Validate file size (5MB max)
     if (file.size > 5 * 1024 * 1024) {
       toast.error("File size must be less than 5MB");
       return;
@@ -134,7 +127,6 @@ export default function ProfileEdit() {
       setCvUrl(publicUrl);
       setUploadingCV(false);
 
-      // Parse CV with AI
       setParsingCV(true);
       toast.info("Analyzing your CV...");
 
@@ -148,28 +140,38 @@ export default function ProfileEdit() {
         if (parseResult?.success && parseResult.parsed) {
           const parsed = parseResult.parsed;
 
-          // Update form data with parsed info
-          if (parsed.full_name && !formData.fullName) {
-            setFormData((prev) => ({ ...prev, fullName: parsed.full_name }));
-          }
-          if (parsed.phone && !formData.phone) {
-            setFormData((prev) => ({ ...prev, phone: parsed.phone }));
-          }
-          if (parsed.skills && parsed.skills.length > 0 && skills.length === 0) {
+          // ---------------------------------------------------------
+          // 👇 FIX: Use "|| prev.value" instead of "if (!prev.value)"
+          // This ensures we prefer the parsed value, but keep existing if parse is empty.
+          // ---------------------------------------------------------
+          setFormData((prev) => ({
+            ...prev,
+            fullName: parsed.full_name || prev.fullName,
+            phone: parsed.phone || prev.phone,
+            // Assuming the parser might return these, map them if available
+            // otherwise keep existing.
+          }));
+
+          // Force update Skills
+          if (parsed.skills && parsed.skills.length > 0) {
             setSkills(parsed.skills);
           }
-          if (parsed.experience && parsed.experience.length > 0 && experience.length === 0) {
+
+          // Force update Experience
+          if (parsed.experience && parsed.experience.length > 0) {
             setExperience(
               parsed.experience.map((exp: any) => ({
                 company: exp.company || "",
                 position: exp.title || "",
-                startDate: "",
+                startDate: "", // Parsers rarely get exact dates right, safer to leave blank
                 endDate: "",
                 description: exp.description || "",
               })),
             );
           }
-          if (parsed.education && parsed.education.length > 0 && education.length === 0) {
+
+          // Force update Education
+          if (parsed.education && parsed.education.length > 0) {
             setEducation(
               parsed.education.map((edu: any) => ({
                 institution: edu.institution || "",
@@ -181,9 +183,11 @@ export default function ProfileEdit() {
             );
           }
 
-          toast.success("CV parsed! Review and save your updated profile.");
+          toast.success("CV parsed! Your profile has been updated from the document.", {
+            description: "Please review the changes and click Save.",
+          });
         } else {
-          toast.success("CV uploaded successfully");
+          toast.success("CV uploaded successfully (Text extraction unavailable)");
         }
       } catch (parseErr) {
         console.error("CV parse error:", parseErr);
@@ -271,7 +275,7 @@ export default function ProfileEdit() {
           </CardContent>
         </Card>
 
-        {/* CV Upload - UPDATED WITH LOADING STATE */}
+        {/* CV Upload */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base">CV / Resume</CardTitle>
@@ -317,7 +321,7 @@ export default function ProfileEdit() {
                   )}
                 </div>
 
-                {/* NEW: Explicit Loading Message */}
+                {/* Loading Message */}
                 {(uploadingCV || parsingCV) && (
                   <div className="flex items-center gap-2 text-sm text-primary animate-pulse bg-primary/5 p-2 rounded">
                     <Loader2 className="h-3 w-3 animate-spin" />
