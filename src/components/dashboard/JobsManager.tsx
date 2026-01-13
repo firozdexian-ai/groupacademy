@@ -599,7 +599,7 @@ export function JobsManager() {
     const jobUrl = `${window.location.origin}/jobs/${job.id}`;
     const jobType = JOB_TYPES.find(t => t.value === job.job_type)?.label || job.job_type;
     
-    const caption = `We're hiring! 🚀
+    const caption = `🔔 Hiring Alert!
 
 Position: ${job.title}
 Company: ${job.company_name}
