@@ -13,28 +13,10 @@ import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import {
-  Plus,
-  Search,
-  Edit,
-  Trash2,
-  Sparkles,
-  MapPin,
-  Building2,
-  Calendar,
-  Loader2,
-  Copy,
-  Eye,
-  EyeOff,
-  Star,
-  Wand2,
-  Image,
-  Share2,
-  Brain,
-  Link,
-  Linkedin,
-  Facebook,
-  MessageCircle,
+import { 
+  Plus, Search, Edit, Trash2, Sparkles, MapPin, Building2, 
+  Calendar, Loader2, Copy, Eye, EyeOff, Star, Wand2, Image, Share2, Brain,
+  Link, Linkedin, Facebook, MessageCircle
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -51,24 +33,30 @@ interface AssessmentConfig {
   voice_enabled: boolean;
 }
 
+// Define specific Union Types for Enums
+type JobType = "full_time" | "part_time" | "contract" | "internship" | "freelance" | "remote";
+type ExperienceLevel = "entry" | "mid" | "senior" | "executive";
+type SourcePlatform = "facebook" | "linkedin" | "bdjobs" | "website" | "other";
+type ApplicationType = "email" | "link";
+
 interface Job {
   id: string;
   title: string;
   company_name: string;
   company_logo_url: string | null;
   location: string | null;
-  job_type: string;
-  experience_level: string;
+  job_type: JobType; // Updated
+  experience_level: ExperienceLevel; // Updated
   salary_range_min: number | null;
   salary_range_max: number | null;
   description: string;
   ai_enhanced_description: string | null;
-  requirements: string[];
-  application_type: "email" | "link"; // Fixed: specific union type
+  requirements: string[]; 
+  application_type: ApplicationType;
   application_email: string | null;
   application_url: string | null;
   source_url: string | null;
-  source_platform: string | null;
+  source_platform: SourcePlatform | null; // Updated
   source_image_url: string | null;
   profession_category_id: string | null;
   deadline: string | null;
@@ -85,7 +73,7 @@ interface ProfessionCategory {
   name: string;
 }
 
-const JOB_TYPES = [
+const JOB_TYPES: { value: JobType; label: string }[] = [
   { value: "full_time", label: "Full Time" },
   { value: "part_time", label: "Part Time" },
   { value: "contract", label: "Contract" },
@@ -94,14 +82,14 @@ const JOB_TYPES = [
   { value: "remote", label: "Remote" },
 ];
 
-const EXPERIENCE_LEVELS = [
+const EXPERIENCE_LEVELS: { value: ExperienceLevel; label: string }[] = [
   { value: "entry", label: "Entry Level" },
   { value: "mid", label: "Mid Level" },
   { value: "senior", label: "Senior Level" },
   { value: "executive", label: "Executive" },
 ];
 
-const SOURCE_PLATFORMS = [
+const SOURCE_PLATFORMS: { value: SourcePlatform; label: string }[] = [
   { value: "facebook", label: "Facebook" },
   { value: "linkedin", label: "LinkedIn" },
   { value: "bdjobs", label: "BdJobs" },
@@ -111,7 +99,7 @@ const SOURCE_PLATFORMS = [
 
 const getDefaultDeadline = () => {
   const lastDay = endOfMonth(new Date());
-  return format(lastDay, "yyyy-MM-dd");
+  return format(lastDay, 'yyyy-MM-dd');
 };
 
 const emptyJob = {
@@ -119,18 +107,18 @@ const emptyJob = {
   company_name: "",
   company_logo_url: "",
   location: "",
-  job_type: "full_time",
-  experience_level: "entry",
+  job_type: "full_time" as JobType,
+  experience_level: "entry" as ExperienceLevel,
   salary_range_min: null as number | null,
   salary_range_max: null as number | null,
   description: "",
   ai_enhanced_description: null as string | null,
   requirements: [] as string[],
-  application_type: "email",
+  application_type: "email" as ApplicationType,
   application_email: "",
   application_url: "",
   source_url: "",
-  source_platform: "other",
+  source_platform: "other" as SourcePlatform,
   source_image_url: "",
   profession_category_id: null as string | null,
   deadline: getDefaultDeadline(),
@@ -170,14 +158,19 @@ export function JobsManager() {
     setError(null);
     try {
       const { data, error: queryError } = await withTimeout(
-        Promise.resolve(supabase.from("jobs").select("*").order("created_at", { ascending: false })).then((q) => q),
+        Promise.resolve(
+          supabase
+            .from("jobs")
+            .select("*")
+            .order("created_at", { ascending: false })
+        ).then(q => q),
         TIMEOUTS.DEFAULT,
-        "Loading jobs timed out",
+        "Loading jobs timed out"
       );
 
       if (queryError) throw queryError;
-
-      // FIX 1: Type assertion for Supabase JSON data
+      
+      // FIX: Type assertion for Supabase JSON data
       setJobs((data as unknown as Job[]) || []);
     } catch (err: any) {
       console.error("Error loading jobs:", err);
@@ -195,7 +188,7 @@ export function JobsManager() {
         .select("id, name")
         .eq("is_active", true)
         .order("name");
-
+      
       setCategories(data || []);
     } catch (err) {
       console.error("Error loading categories:", err);
@@ -261,29 +254,29 @@ export function JobsManager() {
 
     setParsing(true);
     try {
-      const { data, error } = await supabase.functions.invoke("parse-job-post", {
-        body: { jobPostText: rawJobPost },
+      const { data, error } = await supabase.functions.invoke('parse-job-post', {
+        body: { jobPostText: rawJobPost }
       });
 
       if (error) throw error;
-      if (!data?.success) throw new Error(data?.error || "Failed to parse job post");
+      if (!data?.success) throw new Error(data?.error || 'Failed to parse job post');
 
       const parsed = data.parsed;
-
-      setFormData((prev) => ({
+      
+      setFormData(prev => ({
         ...prev,
         title: parsed.title || prev.title,
         company_name: parsed.company_name || prev.company_name,
         location: parsed.location || prev.location,
-        job_type: parsed.job_type || prev.job_type,
-        experience_level: parsed.experience_level || prev.experience_level,
+        job_type: (parsed.job_type as JobType) || prev.job_type,
+        experience_level: (parsed.experience_level as ExperienceLevel) || prev.experience_level,
         salary_range_min: parsed.salary_range_min || prev.salary_range_min,
         salary_range_max: parsed.salary_range_max || prev.salary_range_max,
         description: parsed.description || prev.description,
         requirements: parsed.requirements || prev.requirements,
         application_email: parsed.application_email || prev.application_email,
         application_url: parsed.application_url || prev.application_url,
-        source_platform: parsed.source_platform || prev.source_platform,
+        source_platform: (parsed.source_platform as SourcePlatform) || prev.source_platform,
         deadline: parsed.deadline || prev.deadline,
         profession_category_id: data.professionCategoryId || prev.profession_category_id,
       }));
@@ -306,12 +299,12 @@ export function JobsManager() {
 
     setEnhancing(true);
     try {
-      const { data, error } = await supabase.functions.invoke("enhance-job-description", {
+      const { data, error } = await supabase.functions.invoke('enhance-job-description', {
         body: {
           description: formData.description,
           title: formData.title,
           company: formData.company_name,
-        },
+        }
       });
 
       if (error) throw error;
@@ -330,15 +323,17 @@ export function JobsManager() {
   };
 
   const uploadToStorage = async (file: File, path: string) => {
-    const fileName = `${path}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "")}`;
-    const { error: uploadError } = await supabase.storage.from("public-uploads").upload(fileName, file);
+    const fileName = `${path}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '')}`;
+    const { error: uploadError } = await supabase.storage
+      .from('public-uploads') 
+      .upload(fileName, file);
 
     if (uploadError) throw uploadError;
 
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from("public-uploads").getPublicUrl(fileName);
-
+    const { data: { publicUrl } } = supabase.storage
+      .from('public-uploads')
+      .getPublicUrl(fileName);
+      
     return publicUrl;
   };
 
@@ -348,8 +343,8 @@ export function JobsManager() {
 
     setUploadingImage(true);
     try {
-      const publicUrl = await uploadToStorage(file, "job-images");
-      setFormData((prev) => ({ ...prev, source_image_url: publicUrl }));
+      const publicUrl = await uploadToStorage(file, 'job-images');
+      setFormData(prev => ({ ...prev, source_image_url: publicUrl }));
       toast.success("Image uploaded!");
     } catch (error: any) {
       console.error("Error uploading image:", error);
@@ -365,8 +360,8 @@ export function JobsManager() {
 
     setUploadingLogo(true);
     try {
-      const publicUrl = await uploadToStorage(file, "company-logos");
-      setFormData((prev) => ({ ...prev, company_logo_url: publicUrl }));
+      const publicUrl = await uploadToStorage(file, 'company-logos');
+      setFormData(prev => ({ ...prev, company_logo_url: publicUrl }));
       toast.success("Logo uploaded!");
     } catch (error: any) {
       console.error("Error uploading logo:", error);
@@ -413,17 +408,17 @@ export function JobsManager() {
     try {
       let companyId: string | null = null;
       const companyName = formData.company_name.trim();
-
+      
       if (companyName) {
         const { data: existingCompany } = await supabase
           .from("companies")
           .select("id, logo_url")
           .ilike("name", companyName)
-          .maybeSingle();
-
+          .maybeSingle(); 
+        
         if (existingCompany) {
           companyId = existingCompany.id;
-
+          
           if (formData.company_logo_url?.trim() && !existingCompany.logo_url) {
             await supabase
               .from("companies")
@@ -431,8 +426,10 @@ export function JobsManager() {
               .eq("id", existingCompany.id);
           }
         } else {
-          const emailDomain = formData.application_email?.trim() ? formData.application_email.split("@")[1] : null;
-
+          const emailDomain = formData.application_email?.trim()
+            ? formData.application_email.split('@')[1]
+            : null;
+          
           const { data: newCompany, error: companyError } = await supabase
             .from("companies")
             .insert({
@@ -444,54 +441,63 @@ export function JobsManager() {
             })
             .select("id")
             .single();
-
+          
           if (companyError) {
             throw new Error(`Failed to create company: ${companyError.message}`);
           }
-
+          
           if (newCompany) {
             companyId = newCompany.id;
           }
         }
       }
 
-      // FIX 2 & 3: Ensure types match Supabase schema (cast enums and JSON fields)
+      // FIX: Explicitly cast Enums to the specific Union Types required by the DB
       const jobData = {
         title: formData.title.trim(),
         company_name: companyName,
         company_id: companyId,
         company_logo_url: formData.company_logo_url?.trim() || null,
         location: formData.location?.trim() || null,
-        job_type: formData.job_type,
-        experience_level: formData.experience_level,
+        
+        // --- Explicit Casting for Enums ---
+        job_type: formData.job_type as JobType,
+        experience_level: formData.experience_level as ExperienceLevel,
+        application_type: formData.application_type as ApplicationType,
+        source_platform: formData.source_platform as SourcePlatform,
+        // ----------------------------------
+
         salary_range_min: formData.salary_range_min,
         salary_range_max: formData.salary_range_max,
         description: formData.description.trim(),
         ai_enhanced_description: formData.ai_enhanced_description?.trim() || null,
-        requirements: formData.requirements as any, // Cast array to any for JSONB compatibility
-        application_type: formData.application_type as "email" | "link", // Explicit cast
+        requirements: formData.requirements as any, // Cast for JSONB
         application_email: formData.application_type === "email" ? formData.application_email?.trim() : null,
         application_url: formData.application_type === "link" ? formData.application_url?.trim() : null,
         source_url: formData.source_url?.trim() || null,
-        source_platform: formData.source_platform,
         source_image_url: formData.source_image_url?.trim() || null,
         profession_category_id: formData.profession_category_id || null,
         deadline: formData.deadline ? new Date(formData.deadline).toISOString() : null,
         is_active: formData.is_active,
         is_featured: formData.is_featured,
         ai_assessment_enabled: formData.ai_assessment_enabled,
-        assessment_config: formData.assessment_config as any, // Cast object to any for JSONB compatibility
+        assessment_config: formData.assessment_config as any, // Cast for JSONB
         vacancies: formData.vacancies || 1,
       };
 
       if (editingJob) {
-        const { error } = await supabase.from("jobs").update(jobData).eq("id", editingJob.id);
-
+        const { error } = await supabase
+          .from("jobs")
+          .update(jobData)
+          .eq("id", editingJob.id);
+        
         if (error) throw error;
         toast.success("Job updated successfully");
       } else {
-        const { error } = await supabase.from("jobs").insert(jobData);
-
+        const { error } = await supabase
+          .from("jobs")
+          .insert(jobData);
+        
         if (error) throw error;
         toast.success("Job created successfully");
       }
@@ -513,8 +519,8 @@ export function JobsManager() {
       const { error } = await supabase.from("jobs").delete().eq("id", id);
       if (error) throw error;
       toast.success("Job deleted successfully");
-      loadJobs();
-      setJobs((prev) => prev.filter((j) => j.id !== id));
+      loadJobs(); 
+      setJobs(prev => prev.filter(j => j.id !== id));
     } catch (error: any) {
       console.error("Error deleting job:", error);
       toast.error(error.message || "Failed to delete job");
@@ -523,11 +529,14 @@ export function JobsManager() {
 
   const handleToggleActive = async (job: Job) => {
     try {
-      const { error } = await supabase.from("jobs").update({ is_active: !job.is_active }).eq("id", job.id);
-
+      const { error } = await supabase
+        .from("jobs")
+        .update({ is_active: !job.is_active })
+        .eq("id", job.id);
+      
       if (error) throw error;
-
-      setJobs((prev) => prev.map((j) => (j.id === job.id ? { ...j, is_active: !j.is_active } : j)));
+      
+      setJobs(prev => prev.map(j => j.id === job.id ? { ...j, is_active: !j.is_active } : j));
       toast.success(job.is_active ? "Job deactivated" : "Job activated");
     } catch (error: any) {
       console.error("Error toggling job:", error);
@@ -551,7 +560,7 @@ export function JobsManager() {
       description: job.description,
       ai_enhanced_description: job.ai_enhanced_description,
       requirements: Array.isArray(job.requirements) ? [...job.requirements] : [],
-      application_type: job.application_type as "email" | "link",
+      application_type: job.application_type,
       application_email: job.application_email || "",
       application_url: job.application_url || "",
       source_url: job.source_url || "",
@@ -572,15 +581,15 @@ export function JobsManager() {
 
   const handleShareLinkedIn = (job: Job) => {
     const jobUrl = `${window.location.origin}/jobs/${job.id}`;
-    const jobType = JOB_TYPES.find((t) => t.value === job.job_type)?.label || job.job_type;
-
+    const jobType = JOB_TYPES.find(t => t.value === job.job_type)?.label || job.job_type;
+    
     const caption = `🔔 Hiring Alert!
 
 Position: ${job.title}
 Company: ${job.company_name}
-Location: ${job.location || "Remote/Flexible"}
+Location: ${job.location || 'Remote/Flexible'}
 Type: ${jobType}
-${job.vacancies && job.vacancies > 1 ? `Vacancies: ${job.vacancies}` : ""}
+${job.vacancies && job.vacancies > 1 ? `Vacancies: ${job.vacancies}` : ''}
 
 Apply now: ${jobUrl}
 
@@ -589,8 +598,8 @@ Apply now: ${jobUrl}
     navigator.clipboard.writeText(caption);
     window.open(
       `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(jobUrl)}`,
-      "_blank",
-      "width=600,height=600",
+      '_blank',
+      'width=600,height=600'
     );
     toast.success("Caption copied! Paste it in the LinkedIn post.");
   };
@@ -601,8 +610,8 @@ Apply now: ${jobUrl}
 
 পদ: ${job.title}
 প্রতিষ্ঠান: ${job.company_name}
-লোকেশন: ${job.location || "রিমোট/ফ্লেক্সিবল"}
-${job.vacancies && job.vacancies > 1 ? `পদসংখ্যা: ${job.vacancies}` : ""}
+লোকেশন: ${job.location || 'রিমোট/ফ্লেক্সিবল'}
+${job.vacancies && job.vacancies > 1 ? `পদসংখ্যা: ${job.vacancies}` : ''}
 
 আবেদন করুন 👇
 ${jobUrl}
@@ -612,16 +621,16 @@ ${jobUrl}
     navigator.clipboard.writeText(banglaCaption);
     window.open(
       `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(jobUrl)}`,
-      "_blank",
-      "width=600,height=600",
+      '_blank',
+      'width=600,height=600'
     );
     toast.success("বাংলা ক্যাপশন কপি হয়েছে! পেস্ট করুন।");
   };
 
   const handleShareWhatsApp = (job: Job) => {
     const jobUrl = `${window.location.origin}/jobs/${job.id}`;
-    const message = `*${job.title}* at ${job.company_name}${job.vacancies && job.vacancies > 1 ? ` (${job.vacancies} positions)` : ""}\n\nApply here: ${jobUrl}`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank");
+    const message = `*${job.title}* at ${job.company_name}${job.vacancies && job.vacancies > 1 ? ` (${job.vacancies} positions)` : ''}\n\nApply here: ${jobUrl}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
   };
 
   const activeCount = jobs.filter((j) => j.is_active).length;
@@ -691,7 +700,7 @@ ${jobUrl}
                   <TableHead>Status</TableHead>
                   <TableHead>Deadline</TableHead>
                   <TableHead>Actions</TableHead>
-                </TableRow>
+                TableRow>
               </TableHeader>
               <TableBody>
                 {filteredJobs.map((job) => (
@@ -745,7 +754,12 @@ ${jobUrl}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(job)} title="Edit">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleOpenDialog(job)}
+                          title="Edit"
+                        >
                           <Edit className="w-4 h-4" />
                         </Button>
                         <DropdownMenu>
@@ -773,7 +787,12 @@ ${jobUrl}
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
-                        <Button variant="ghost" size="icon" onClick={() => handleDuplicate(job)} title="Duplicate">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDuplicate(job)}
+                          title="Duplicate"
+                        >
                           <Copy className="w-4 h-4" />
                         </Button>
                         <Button
@@ -817,7 +836,11 @@ ${jobUrl}
                       <Wand2 className="w-4 h-4" />
                       Parse Job Post with AI
                     </Label>
-                    <Button variant="ghost" size="sm" onClick={() => setShowParseSection(!showParseSection)}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowParseSection(!showParseSection)}
+                    >
                       {showParseSection ? "Hide" : "Show"}
                     </Button>
                   </div>
@@ -907,9 +930,9 @@ ${jobUrl}
                     </div>
                   </div>
                   {formData.company_logo_url && (
-                    <img
-                      src={formData.company_logo_url}
-                      alt="Company logo"
+                    <img 
+                      src={formData.company_logo_url} 
+                      alt="Company logo" 
                       className="mt-2 h-12 rounded border object-contain"
                     />
                   )}
@@ -942,9 +965,9 @@ ${jobUrl}
                   </div>
                 </div>
                 {formData.source_image_url && (
-                  <img
-                    src={formData.source_image_url}
-                    alt="Job post"
+                  <img 
+                    src={formData.source_image_url} 
+                    alt="Job post" 
                     className="mt-2 max-h-40 rounded-lg border object-contain"
                   />
                 )}
@@ -953,7 +976,10 @@ ${jobUrl}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Job Type</Label>
-                  <Select value={formData.job_type} onValueChange={(v) => setFormData({ ...formData, job_type: v })}>
+                  <Select
+                    value={formData.job_type}
+                    onValueChange={(v) => setFormData({ ...formData, job_type: v as JobType })}
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -970,7 +996,7 @@ ${jobUrl}
                   <Label>Experience Level</Label>
                   <Select
                     value={formData.experience_level}
-                    onValueChange={(v) => setFormData({ ...formData, experience_level: v })}
+                    onValueChange={(v) => setFormData({ ...formData, experience_level: v as ExperienceLevel })}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -1088,7 +1114,10 @@ ${jobUrl}
                     {formData.requirements.map((req: string, i: number) => (
                       <Badge key={i} variant="secondary" className="gap-1">
                         {req}
-                        <button onClick={() => handleRemoveRequirement(i)} className="ml-1 hover:text-destructive">
+                        <button
+                          onClick={() => handleRemoveRequirement(i)}
+                          className="ml-1 hover:text-destructive"
+                        >
                           ×
                         </button>
                       </Badge>
@@ -1103,7 +1132,7 @@ ${jobUrl}
                     <Label>Application Type</Label>
                     <Select
                       value={formData.application_type}
-                      onValueChange={(v) => setFormData({ ...formData, application_type: v as "email" | "link" })}
+                      onValueChange={(v) => setFormData({ ...formData, application_type: v as ApplicationType })}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -1137,12 +1166,12 @@ ${jobUrl}
                     </div>
                   )}
                 </div>
-
+                
                 {formData.application_type === "email" && (
                   <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
                     <p className="text-sm text-amber-800 dark:text-amber-200">
-                      <strong>Note:</strong> Email applications require manual forwarding by admin until email domain is
-                      verified. Use "External Link" for automatic applicant redirect.
+                      <strong>Note:</strong> Email applications require manual forwarding by admin until email domain is verified. 
+                      Use "External Link" for automatic applicant redirect.
                     </p>
                   </div>
                 )}
@@ -1153,7 +1182,7 @@ ${jobUrl}
                   <Label>Source Platform</Label>
                   <Select
                     value={formData.source_platform}
-                    onValueChange={(v) => setFormData({ ...formData, source_platform: v })}
+                    onValueChange={(v) => setFormData({ ...formData, source_platform: v as SourcePlatform })}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -1171,7 +1200,9 @@ ${jobUrl}
                   <Label>Profession Category</Label>
                   <Select
                     value={formData.profession_category_id || "none"}
-                    onValueChange={(v) => setFormData({ ...formData, profession_category_id: v === "none" ? null : v })}
+                    onValueChange={(v) =>
+                      setFormData({ ...formData, profession_category_id: v === "none" ? null : v })
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select category" />
@@ -1250,12 +1281,10 @@ ${jobUrl}
                       <Label>Number of Questions</Label>
                       <Select
                         value={String(formData.assessment_config?.question_count || 6)}
-                        onValueChange={(v) =>
-                          setFormData({
-                            ...formData,
-                            assessment_config: { ...formData.assessment_config, question_count: parseInt(v) },
-                          })
-                        }
+                        onValueChange={(v) => setFormData({ 
+                          ...formData, 
+                          assessment_config: { ...formData.assessment_config, question_count: parseInt(v) } 
+                        })}
                       >
                         <SelectTrigger>
                           <SelectValue />
@@ -1272,19 +1301,17 @@ ${jobUrl}
                       <Switch
                         id="voice_enabled"
                         checked={formData.assessment_config?.voice_enabled !== false}
-                        onCheckedChange={(v) =>
-                          setFormData({
-                            ...formData,
-                            assessment_config: { ...formData.assessment_config, voice_enabled: v },
-                          })
-                        }
+                        onCheckedChange={(v) => setFormData({ 
+                          ...formData, 
+                          assessment_config: { ...formData.assessment_config, voice_enabled: v } 
+                        })}
                       />
                       <Label htmlFor="voice_enabled">Voice Questions</Label>
                     </div>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Candidates will answer personalized questions generated from the JD and their CV. Assessment results
-                    will appear in the Applications tab.
+                    Candidates will answer personalized questions generated from the JD and their CV. 
+                    Assessment results will appear in the Applications tab.
                   </p>
                 </div>
               )}
