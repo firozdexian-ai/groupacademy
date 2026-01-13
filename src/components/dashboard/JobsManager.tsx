@@ -22,7 +22,6 @@ import {
   MapPin,
   Building2,
   Calendar,
-  ExternalLink,
   Loader2,
   Copy,
   Eye,
@@ -46,7 +45,7 @@ import {
 import { toast } from "sonner";
 import { format, endOfMonth } from "date-fns";
 
-// --- Types Fixed ---
+// --- Types ---
 interface AssessmentConfig {
   question_count: number;
   voice_enabled: boolean;
@@ -64,8 +63,8 @@ interface Job {
   salary_range_max: number | null;
   description: string;
   ai_enhanced_description: string | null;
-  requirements: string[]; // Fixed type
-  application_type: string;
+  requirements: string[];
+  application_type: "email" | "link"; // Fixed: specific union type
   application_email: string | null;
   application_url: string | null;
   source_url: string | null;
@@ -76,7 +75,7 @@ interface Job {
   is_active: boolean;
   is_featured: boolean;
   ai_assessment_enabled: boolean | null;
-  assessment_config: AssessmentConfig; // Fixed type
+  assessment_config: AssessmentConfig;
   vacancies: number | null;
   created_at: string;
 }
@@ -177,7 +176,9 @@ export function JobsManager() {
       );
 
       if (queryError) throw queryError;
-      setJobs(data || []);
+
+      // FIX 1: Type assertion for Supabase JSON data
+      setJobs((data as unknown as Job[]) || []);
     } catch (err: any) {
       console.error("Error loading jobs:", err);
       setError(err.message || "Failed to load jobs");
@@ -201,7 +202,6 @@ export function JobsManager() {
     }
   };
 
-  // --- Filtering Logic ---
   const filteredJobs = jobs.filter((job) => {
     const matchesSearch =
       job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -252,8 +252,6 @@ export function JobsManager() {
     setShowParseSection(false);
     setIsDialogOpen(true);
   };
-
-  // --- Handlers ---
 
   const handleParseJobPost = async () => {
     if (!rawJobPost.trim() || rawJobPost.length < 50) {
@@ -331,11 +329,8 @@ export function JobsManager() {
     }
   };
 
-  // Helper for uploads
   const uploadToStorage = async (file: File, path: string) => {
     const fileName = `${path}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "")}`;
-    // NOTE: Ensure your bucket 'public-uploads' exists and has public read access.
-    // Using 'course-content' for public job posts might cause permission errors.
     const { error: uploadError } = await supabase.storage.from("public-uploads").upload(fileName, file);
 
     if (uploadError) throw uploadError;
@@ -398,9 +393,7 @@ export function JobsManager() {
     }));
   };
 
-  // --- CRITICAL FIX: handleSave Logic ---
   const handleSave = async () => {
-    // 1. Validation
     if (!formData.title.trim() || !formData.company_name.trim() || !formData.description.trim()) {
       toast.error("Please fill in all required fields (Title, Company, Description)");
       return;
@@ -418,22 +411,19 @@ export function JobsManager() {
 
     setSaving(true);
     try {
-      // 2. Find or create company
       let companyId: string | null = null;
       const companyName = formData.company_name.trim();
 
       if (companyName) {
-        // Check if company exists
         const { data: existingCompany } = await supabase
           .from("companies")
           .select("id, logo_url")
           .ilike("name", companyName)
-          .maybeSingle(); // Better than .single() for potential duplicates or empty results
+          .maybeSingle();
 
         if (existingCompany) {
           companyId = existingCompany.id;
 
-          // Update logo if needed
           if (formData.company_logo_url?.trim() && !existingCompany.logo_url) {
             await supabase
               .from("companies")
@@ -441,7 +431,6 @@ export function JobsManager() {
               .eq("id", existingCompany.id);
           }
         } else {
-          // Create new company
           const emailDomain = formData.application_email?.trim() ? formData.application_email.split("@")[1] : null;
 
           const { data: newCompany, error: companyError } = await supabase
@@ -466,11 +455,7 @@ export function JobsManager() {
         }
       }
 
-      // 3. CRITICAL: Ensure we have a company ID if your schema requires it
-      // If companyId is nullable in DB, remove this check. If required, keep it.
-      // if (!companyId) throw new Error("Could not link a valid company.");
-
-      // 4. Prepare Job Data
+      // FIX 2 & 3: Ensure types match Supabase schema (cast enums and JSON fields)
       const jobData = {
         title: formData.title.trim(),
         company_name: companyName,
@@ -483,8 +468,8 @@ export function JobsManager() {
         salary_range_max: formData.salary_range_max,
         description: formData.description.trim(),
         ai_enhanced_description: formData.ai_enhanced_description?.trim() || null,
-        requirements: formData.requirements,
-        application_type: formData.application_type,
+        requirements: formData.requirements as any, // Cast array to any for JSONB compatibility
+        application_type: formData.application_type as "email" | "link", // Explicit cast
         application_email: formData.application_type === "email" ? formData.application_email?.trim() : null,
         application_url: formData.application_type === "link" ? formData.application_url?.trim() : null,
         source_url: formData.source_url?.trim() || null,
@@ -495,7 +480,7 @@ export function JobsManager() {
         is_active: formData.is_active,
         is_featured: formData.is_featured,
         ai_assessment_enabled: formData.ai_assessment_enabled,
-        assessment_config: formData.assessment_config,
+        assessment_config: formData.assessment_config as any, // Cast object to any for JSONB compatibility
         vacancies: formData.vacancies || 1,
       };
 
@@ -521,7 +506,6 @@ export function JobsManager() {
     }
   };
 
-  // ... (Rest of delete, toggle, duplicate, copy logic remains the same as provided)
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this job?")) return;
 
@@ -529,8 +513,7 @@ export function JobsManager() {
       const { error } = await supabase.from("jobs").delete().eq("id", id);
       if (error) throw error;
       toast.success("Job deleted successfully");
-      loadJobs(); // Refresh list
-      // Manually filter out deleted job to update UI faster if desired
+      loadJobs();
       setJobs((prev) => prev.filter((j) => j.id !== id));
     } catch (error: any) {
       console.error("Error deleting job:", error);
@@ -544,13 +527,12 @@ export function JobsManager() {
 
       if (error) throw error;
 
-      // Optimistic update
       setJobs((prev) => prev.map((j) => (j.id === job.id ? { ...j, is_active: !j.is_active } : j)));
       toast.success(job.is_active ? "Job deactivated" : "Job activated");
     } catch (error: any) {
       console.error("Error toggling job:", error);
       toast.error("Failed to update job status");
-      loadJobs(); // Revert on error
+      loadJobs();
     }
   };
 
@@ -569,7 +551,7 @@ export function JobsManager() {
       description: job.description,
       ai_enhanced_description: job.ai_enhanced_description,
       requirements: Array.isArray(job.requirements) ? [...job.requirements] : [],
-      application_type: job.application_type,
+      application_type: job.application_type as "email" | "link",
       application_email: job.application_email || "",
       application_url: job.application_url || "",
       source_url: job.source_url || "",
@@ -891,9 +873,6 @@ ${jobUrl}
                 </div>
               </div>
 
-              {/* ... Rest of your UI components (Inputs, Textareas, Selects) remain identical to your original code ... */}
-              {/* I have kept the logic logic above, the render part below is identical to yours unless specifically changed for types */}
-
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="location">Location</Label>
@@ -1124,7 +1103,7 @@ ${jobUrl}
                     <Label>Application Type</Label>
                     <Select
                       value={formData.application_type}
-                      onValueChange={(v) => setFormData({ ...formData, application_type: v })}
+                      onValueChange={(v) => setFormData({ ...formData, application_type: v as "email" | "link" })}
                     >
                       <SelectTrigger>
                         <SelectValue />
