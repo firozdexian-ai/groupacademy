@@ -20,6 +20,8 @@ import {
   Loader2,
   RefreshCw,
   Sparkles,
+  FileText,
+  Mic,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -55,6 +57,10 @@ export default function JobAssessmentResults() {
   const [polling, setPolling] = useState(false);
   const [timedOut, setTimedOut] = useState(false);
 
+  // NEW: Progress state
+  const [progress, setProgress] = useState(0);
+  const [analysisStage, setAnalysisStage] = useState("Initializing analysis...");
+
   const fetchResults = useCallback(
     async (isPoll = false) => {
       if (!assessmentId) return;
@@ -77,7 +83,6 @@ export default function JobAssessmentResults() {
         const assessmentData = data as AssessmentResult;
         setResult(assessmentData);
 
-        // Return true if analysis is complete so we can stop polling
         return assessmentData.status === "completed" && assessmentData.ai_score !== null;
       } catch (error) {
         console.error("Error fetching results:", error);
@@ -94,34 +99,54 @@ export default function JobAssessmentResults() {
     fetchResults();
   }, [fetchResults]);
 
-  // Polling logic for pending analysis
+  // Progress Bar Simulation
+  useEffect(() => {
+    if (polling) {
+      const interval = setInterval(() => {
+        setProgress((prev) => {
+          // Slow down as we get closer to 90%
+          if (prev >= 90) return prev;
+          const increment = prev < 50 ? 2 : prev < 80 ? 1 : 0.5;
+          return Math.min(prev + increment, 90);
+        });
+      }, 200);
+
+      return () => clearInterval(interval);
+    }
+  }, [polling]);
+
+  // Update text based on progress
+  useEffect(() => {
+    if (progress < 30) setAnalysisStage("Analyzing technical answers...");
+    else if (progress < 60) setAnalysisStage("Evaluating voice responses...");
+    else if (progress < 85) setAnalysisStage("Generating skills profile...");
+    else setAnalysisStage("Finalizing report...");
+  }, [progress]);
+
+  // Polling logic
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
     let timeoutId: NodeJS.Timeout;
 
-    // Only poll if we have a result, it's marked completed (by the client),
-    // but the AI score hasn't populated yet (Edge Function still running)
     if (result && result.status === "completed" && result.ai_score === null && !timedOut) {
       setPolling(true);
 
-      // Poll every 5 seconds
       intervalId = setInterval(async () => {
         const isComplete = await fetchResults(true);
         if (isComplete) {
           setPolling(false);
+          setProgress(100); // Jump to 100 on success
           clearInterval(intervalId);
           clearTimeout(timeoutId);
           toast.success("Analysis complete!");
         }
-      }, 5000);
+      }, 3000);
 
-      // Stop polling after 2 minutes (120000 ms)
       timeoutId = setTimeout(() => {
         clearInterval(intervalId);
         setPolling(false);
         setTimedOut(true);
-        toast.warning("Analysis is taking longer than expected. Please check back later.");
-      }, 120000);
+      }, 60000); // 1 minute timeout
     }
 
     return () => {
@@ -169,44 +194,50 @@ export default function JobAssessmentResults() {
     );
   }
 
-  // Show analyzing state if polling or if just incomplete
+  // Show analyzing state (Progress Bar)
   if ((result.status === "completed" && result.ai_score === null) || polling) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-6">
         <Card className="border-primary/20 shadow-lg">
-          <CardContent className="py-16 text-center space-y-6">
+          <CardContent className="py-16 text-center space-y-8">
             <div className="relative">
-              <Brain className="h-16 w-16 text-primary mx-auto animate-pulse" />
               <div className="absolute inset-0 flex items-center justify-center">
-                <Sparkles className="h-8 w-8 text-primary/50 animate-ping" />
+                <Brain className="h-16 w-16 text-primary/20 animate-pulse" />
               </div>
+              <Sparkles className="h-8 w-8 text-primary mx-auto animate-bounce" />
             </div>
 
-            <div className="space-y-2">
-              <h2 className="text-2xl font-bold">Analyzing Your Assessment</h2>
-              <p className="text-muted-foreground max-w-md mx-auto">
-                Our AI is reviewing your answers, voice responses, and technical skills. This usually takes about 10-20
-                seconds.
-              </p>
-            </div>
-
-            {timedOut ? (
-              <div className="bg-amber-50 dark:bg-amber-950/30 p-4 rounded-lg border border-amber-200 dark:border-amber-800 max-w-md mx-auto">
-                <p className="text-sm text-amber-800 dark:text-amber-200 mb-3">
-                  The analysis is taking longer than usual. You can wait here or check your "My Applications" page
-                  later.
+            <div className="space-y-4 max-w-md mx-auto">
+              <div className="space-y-2">
+                <h2 className="text-2xl font-bold">{analysisStage}</h2>
+                <p className="text-muted-foreground text-sm">
+                  Our AI is reviewing your submission. This typically takes about 20-30 seconds.
                 </p>
-                <Button onClick={() => window.location.reload()} variant="outline" size="sm" className="gap-2">
-                  <RefreshCw className="w-3 h-3" /> Retry Fetching
-                </Button>
               </div>
-            ) : (
-              <div className="flex flex-col items-center gap-2">
-                <div className="flex items-center gap-2 text-primary font-medium">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Generating Insights...
+
+              <div className="space-y-1">
+                <Progress value={progress} className="h-3" />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>upload</span>
+                  <span>analysis</span>
+                  <span>report</span>
                 </div>
-                <p className="text-xs text-muted-foreground">Please do not close this tab</p>
+              </div>
+            </div>
+
+            {timedOut && (
+              <div className="bg-amber-50 dark:bg-amber-950/30 p-4 rounded-lg border border-amber-200 dark:border-amber-800 max-w-md mx-auto animate-in fade-in">
+                <p className="text-sm text-amber-800 dark:text-amber-200 mb-3">
+                  The analysis is taking longer than usual. It will continue in the background.
+                </p>
+                <div className="flex gap-2 justify-center">
+                  <Button onClick={() => window.location.reload()} variant="outline" size="sm" className="gap-2">
+                    <RefreshCw className="w-3 h-3" /> Refresh
+                  </Button>
+                  <Button onClick={() => navigate("/app/applications")} variant="ghost" size="sm">
+                    Check Later
+                  </Button>
+                </div>
               </div>
             )}
           </CardContent>
