@@ -71,7 +71,6 @@ serve(async (req) => {
     }
 
     // 5. DETERMINE ANSWERS SOURCE (Fallback Logic)
-    // If request body is missing answers, try to pull from DB (saved in step 1 of frontend)
     let mcqData = answers?.mcq || {};
     let voiceData = voiceResponses || {};
 
@@ -84,7 +83,6 @@ serve(async (req) => {
         mcqData = dbAnswers.mcq;
         voiceData = dbAnswers.voice || {};
       } else {
-        // Assume flat structure if no 'mcq' key
         mcqData = dbAnswers;
       }
     }
@@ -99,8 +97,19 @@ serve(async (req) => {
     let mcqCorrect = 0;
     const mcqResults: any[] = [];
 
-    for (const mcq of mcqQuestions) {
-      const userAnswer = mcqData[mcq.id];
+    // Updated Loop to Handle Legacy Keys
+    for (let i = 0; i < mcqQuestions.length; i++) {
+      const mcq = mcqQuestions[i];
+
+      // Try finding answer by UUID first
+      let userAnswer = mcqData[mcq.id];
+
+      // FALLBACK: If undefined, try finding by Index (0, 1, 2)
+      // This fixes the "0 Score" issue for old assessments
+      if (userAnswer === undefined) {
+        userAnswer = mcqData[String(i)] || mcqData[i];
+      }
+
       const isCorrect = userAnswer === mcq.correct_index;
       if (isCorrect) mcqCorrect++;
 
