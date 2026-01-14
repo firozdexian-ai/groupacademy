@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react"; // Added useRef
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -20,8 +20,6 @@ import {
   Loader2,
   RefreshCw,
   Sparkles,
-  FileText,
-  Mic,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -56,8 +54,9 @@ export default function JobAssessmentResults() {
   const [loading, setLoading] = useState(true);
   const [polling, setPolling] = useState(false);
   const [timedOut, setTimedOut] = useState(false);
+  const triggerAttempted = useRef(false); // Prevent double firing
 
-  // NEW: Progress state
+  // Progress state
   const [progress, setProgress] = useState(0);
   const [analysisStage, setAnalysisStage] = useState("Initializing analysis...");
 
@@ -104,7 +103,6 @@ export default function JobAssessmentResults() {
     if (polling) {
       const interval = setInterval(() => {
         setProgress((prev) => {
-          // Slow down as we get closer to 90%
           if (prev >= 90) return prev;
           const increment = prev < 50 ? 2 : prev < 80 ? 1 : 0.5;
           return Math.min(prev + increment, 90);
@@ -123,7 +121,34 @@ export default function JobAssessmentResults() {
     else setAnalysisStage("Finalizing report...");
   }, [progress]);
 
-  // Polling logic
+  // 1. AUTO-TRIGGER LOGIC (The Fix)
+  useEffect(() => {
+    const triggerAnalysis = async () => {
+      if (!assessmentId || triggerAttempted.current) return;
+
+      // If completed but no score, it means it's stuck or old. Kickstart it.
+      if (result?.status === "completed" && result?.ai_score === null) {
+        triggerAttempted.current = true;
+        console.log("Triggering missing analysis for:", assessmentId);
+
+        try {
+          // Call edge function without answers (it will fallback to DB)
+          await supabase.functions.invoke("analyze-job-assessment", {
+            body: { assessmentId },
+          });
+          // We don't await the result here, we just rely on polling to pick it up
+        } catch (err) {
+          console.error("Failed to trigger analysis:", err);
+        }
+      }
+    };
+
+    if (result && !loading) {
+      triggerAnalysis();
+    }
+  }, [result, loading, assessmentId]);
+
+  // 2. Polling logic
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
     let timeoutId: NodeJS.Timeout;
@@ -135,7 +160,7 @@ export default function JobAssessmentResults() {
         const isComplete = await fetchResults(true);
         if (isComplete) {
           setPolling(false);
-          setProgress(100); // Jump to 100 on success
+          setProgress(100);
           clearInterval(intervalId);
           clearTimeout(timeoutId);
           toast.success("Analysis complete!");
@@ -146,7 +171,7 @@ export default function JobAssessmentResults() {
         clearInterval(intervalId);
         setPolling(false);
         setTimedOut(true);
-      }, 60000); // 1 minute timeout
+      }, 60000);
     }
 
     return () => {
@@ -154,6 +179,10 @@ export default function JobAssessmentResults() {
       if (timeoutId) clearTimeout(timeoutId);
     };
   }, [result?.status, result?.ai_score, fetchResults, timedOut]);
+
+  // ... (Rest of your component: getScoreColor, getScoreLabel, Render Logic) ...
+  // Paste the rest of the component from the previous correct version here
+  // (The render logic below remains exactly the same as provided previously)
 
   const getScoreColor = (score: number) => {
     if (score >= 80) return "text-green-600";
