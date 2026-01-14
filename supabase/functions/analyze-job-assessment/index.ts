@@ -8,13 +8,11 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // 1. INPUT PARSING
     const { assessmentId, answers, voiceResponses } = await req.json();
 
     if (!assessmentId) {
@@ -24,11 +22,8 @@ serve(async (req) => {
       });
     }
 
-    // 2. AUTHENTICATION
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      throw new Error("Missing authorization header");
-    }
+    if (!authHeader) throw new Error("Missing authorization header");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -42,11 +37,9 @@ serve(async (req) => {
     } = await supabaseAuth.auth.getUser();
     if (authError || !user) throw new Error("Unauthorized");
 
-    // 3. INIT ADMIN CLIENT
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    // 4. FETCH CONTEXT
     const { data: assessment, error: assessmentError } = await supabaseAdmin
       .from("job_assessments")
       .select(
@@ -61,7 +54,6 @@ serve(async (req) => {
 
     if (assessmentError || !assessment) throw new Error("Assessment not found");
 
-    // Verify Ownership
     // @ts-ignore
     if (assessment.talents?.user_id !== user.id) {
       return new Response(JSON.stringify({ error: "Unauthorized access to this assessment" }), {
@@ -70,15 +62,13 @@ serve(async (req) => {
       });
     }
 
-    // 5. DETERMINE ANSWERS SOURCE (Fallback Logic)
+    // --- FALLBACK LOGIC FOR LEGACY DATA ---
     let mcqData = answers?.mcq || {};
     let voiceData = voiceResponses || {};
 
     if ((!mcqData || Object.keys(mcqData).length === 0) && assessment.answers) {
       console.log("Using fallback answers from Database");
       const dbAnswers = assessment.answers;
-
-      // Handle structure variations (flat vs nested)
       if (dbAnswers.mcq) {
         mcqData = dbAnswers.mcq;
         voiceData = dbAnswers.voice || {};
@@ -87,30 +77,27 @@ serve(async (req) => {
       }
     }
 
-    // 6. SCORING LOGIC
+    // --- SCORING LOGIC WITH LOOSE EQUALITY ---
     // @ts-ignore
     const questions = assessment.questions || {};
     const mcqQuestions = questions.mcq_questions || [];
     const voiceQuestions = questions.voice_questions || [];
 
-    // Score MCQs
     let mcqCorrect = 0;
     const mcqResults: any[] = [];
 
-    // Updated Loop to Handle Legacy Keys
     for (let i = 0; i < mcqQuestions.length; i++) {
       const mcq = mcqQuestions[i];
-
-      // Try finding answer by UUID first
       let userAnswer = mcqData[mcq.id];
 
-      // FALLBACK: If undefined, try finding by Index (0, 1, 2)
-      // This fixes the "0 Score" issue for old assessments
+      // Fallback for index-based keys (Legacy)
       if (userAnswer === undefined) {
         userAnswer = mcqData[String(i)] || mcqData[i];
       }
 
-      const isCorrect = userAnswer === mcq.correct_index;
+      // FIX: Loose comparison to handle "1" vs 1
+      const isCorrect = String(userAnswer) === String(mcq.correct_index);
+
       if (isCorrect) mcqCorrect++;
 
       mcqResults.push({
@@ -125,23 +112,18 @@ serve(async (req) => {
 
     const mcqScore = mcqQuestions.length > 0 ? Math.round((mcqCorrect / mcqQuestions.length) * 100) : 0;
 
-    // 7. AI ANALYSIS (Voice/Text)
+    // --- AI ANALYSIS ---
     let voiceScore = 0;
     const voiceAnalysis: any[] = [];
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (voiceQuestions.length > 0 && LOVABLE_API_KEY) {
-      console.log("Starting AI Analysis for voice questions...");
+      console.log("Starting AI Analysis...");
 
-      // Build context only if we have responses
       const voiceContext = voiceQuestions
         .map((vq: any) => {
           const response = voiceData[vq.id];
-          return `
-Q: ${vq.question}
-Expected: ${vq.expected_points?.join(", ") || "General competence"}
-Candidate Answer: ${typeof response === "object" ? "Audio File Provided" : response || "No answer"}
-        `;
+          return `Q: ${vq.question}\nExpected: ${vq.expected_points?.join(", ")}\nAnswer: ${typeof response === "object" ? "Audio File" : response || "None"}`;
         })
         .join("\n---\n");
 
@@ -152,14 +134,9 @@ Candidate Answer: ${typeof response === "object" ? "Audio File Provided" : respo
       const analysisPrompt = `
       Role: ${jobTitle}
       Requirements: ${requirements}
+      Candidate Responses: ${voiceContext}
       
-      Candidate Responses:
-      ${voiceContext}
-      
-      Evaluate the candidate. For audio files, assume they were relevant if technical context matches.
-      Provide a JSON output ONLY. No markdown. No intro text.
-      
-      JSON Schema:
+      Evaluate responses. Return JSON ONLY:
       {
         "overallVoiceScore": number (0-100),
         "responses": [
@@ -178,7 +155,7 @@ Candidate Answer: ${typeof response === "object" ? "Audio File Provided" : respo
           body: JSON.stringify({
             model: "google/gemini-2.5-flash",
             messages: [
-              { role: "system", content: "You are an expert HR interviewer. Output valid JSON only." },
+              { role: "system", content: "You are an HR expert. Output valid JSON only." },
               { role: "user", content: analysisPrompt },
             ],
           }),
@@ -187,54 +164,37 @@ Candidate Answer: ${typeof response === "object" ? "Audio File Provided" : respo
         if (aiResponse.ok) {
           const aiData = await aiResponse.json();
           let content = aiData.choices?.[0]?.message?.content || "{}";
-
-          // Robust JSON cleaning
           content = content
             .replace(/```json/g, "")
             .replace(/```/g, "")
             .trim();
-
           const parsed = JSON.parse(content);
-          voiceScore = parsed.overallVoiceScore || 70; // Default safe score
+          voiceScore = parsed.overallVoiceScore || 70;
           voiceAnalysis.push(...(parsed.responses || []));
         } else {
-          console.error("AI API Error:", await aiResponse.text());
-          voiceScore = 50; // Fallback score
+          console.error("AI Error:", await aiResponse.text());
+          voiceScore = 50;
         }
       } catch (err) {
-        console.error("AI Processing Failed:", err);
-        // Fallback: Don't fail the whole assessment, just give neutral voice score
+        console.error("AI Failed:", err);
         voiceScore = 50;
       }
     } else if (voiceQuestions.length > 0) {
-      console.warn("Skipping AI analysis: No API Key or No Questions");
+      console.warn("Skipping AI: No Key");
     }
 
-    // 8. FINAL SCORING
     const mcqWeight = voiceQuestions.length > 0 ? 0.5 : 1.0;
     const voiceWeight = voiceQuestions.length > 0 ? 0.5 : 0;
     const overallScore = Math.round(mcqScore * mcqWeight + voiceScore * voiceWeight);
 
     const finalAnalysis = {
       overallScore,
-      mcq: {
-        score: mcqScore,
-        correct: mcqCorrect,
-        total: mcqQuestions.length,
-        results: mcqResults,
-      },
-      voice:
-        voiceQuestions.length > 0
-          ? {
-              score: voiceScore,
-              analysis: voiceAnalysis,
-            }
-          : null,
+      mcq: { score: mcqScore, correct: mcqCorrect, total: mcqQuestions.length, results: mcqResults },
+      voice: voiceQuestions.length > 0 ? { score: voiceScore, analysis: voiceAnalysis } : null,
       recommendation: overallScore >= 70 ? "Strong Hire" : overallScore >= 50 ? "Consider" : "Pass",
       completedAt: new Date().toISOString(),
     };
 
-    // 9. DATABASE UPDATE
     const { error: updateError } = await supabaseAdmin
       .from("job_assessments")
       .update({
@@ -242,7 +202,6 @@ Candidate Answer: ${typeof response === "object" ? "Audio File Provided" : respo
         ai_analysis: finalAnalysis,
         status: "completed",
         completed_at: new Date().toISOString(),
-        // Ensure we save the structured answers if we have them
         answers: { mcq: mcqData, voice: voiceData },
       })
       .eq("id", assessmentId);
@@ -253,7 +212,7 @@ Candidate Answer: ${typeof response === "object" ? "Audio File Provided" : respo
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: any) {
-    console.error("Edge Function Error:", error);
+    console.error("Function Error:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
