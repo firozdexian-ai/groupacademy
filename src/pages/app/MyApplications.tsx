@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { 
-  Briefcase, 
-  ChevronRight, 
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  Briefcase,
+  ChevronRight,
   Calendar,
   Building2,
   Send,
@@ -11,17 +11,19 @@ import {
   Clock,
   ClipboardList,
   Loader2,
-  PlayCircle
-} from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { useTalent } from '@/hooks/useTalent';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { format } from 'date-fns';
-import { toast } from 'sonner';
+  PlayCircle,
+  Brain,
+  Trophy,
+} from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useTalent } from "@/hooks/useTalent";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { format } from "date-fns";
+import { toast } from "sonner";
 
 interface Application {
   id: string;
@@ -34,6 +36,7 @@ interface Application {
   ai_assessment_enabled: boolean;
   assessment_id: string | null;
   assessment_status: string | null;
+  assessment_score: number | null; // Added score field
 }
 
 export default function MyApplications() {
@@ -51,13 +54,14 @@ export default function MyApplications() {
 
   async function fetchApplications() {
     if (!talent?.id) return;
-    
+
     setLoading(true);
     try {
       // First fetch applications with job info
       const { data: appData, error: appError } = await supabase
-        .from('job_applications')
-        .select(`
+        .from("job_applications")
+        .select(
+          `
           id,
           job_id,
           created_at,
@@ -68,44 +72,47 @@ export default function MyApplications() {
             company_name,
             ai_assessment_enabled
           )
-        `)
-        .eq('talent_id', talent.id)
-        .order('created_at', { ascending: false });
+        `,
+        )
+        .eq("talent_id", talent.id)
+        .order("created_at", { ascending: false });
 
       if (appError) throw appError;
 
       // Then fetch assessments for this talent
       const { data: assessmentData, error: assessmentError } = await supabase
-        .from('job_assessments')
-        .select('id, job_id, status')
-        .eq('talent_id', talent.id);
+        .from("job_assessments")
+        .select("id, job_id, status, ai_score") // Added ai_score
+        .eq("talent_id", talent.id);
 
       if (assessmentError) throw assessmentError;
 
       // Create a map of job_id to assessment
       const assessmentMap = new Map(
-        assessmentData?.map(a => [a.job_id, { id: a.id, status: a.status }]) || []
+        assessmentData?.map((a) => [a.job_id, { id: a.id, status: a.status, score: a.ai_score }]) || [],
       );
 
-      const formatted = appData?.map(app => {
-        const assessment = assessmentMap.get(app.job_id);
-        return {
-          id: app.id,
-          job_id: app.job_id,
-          job_title: (app.jobs as any)?.title || 'Unknown Job',
-          company_name: (app.jobs as any)?.company_name || 'Unknown Company',
-          created_at: app.created_at,
-          application_status: app.application_status || 'submitted',
-          delivery_status: app.delivery_status || 'pending',
-          ai_assessment_enabled: (app.jobs as any)?.ai_assessment_enabled || false,
-          assessment_id: assessment?.id || null,
-          assessment_status: assessment?.status || null
-        };
-      }) || [];
+      const formatted =
+        appData?.map((app) => {
+          const assessment = assessmentMap.get(app.job_id);
+          return {
+            id: app.id,
+            job_id: app.job_id,
+            job_title: (app.jobs as any)?.title || "Unknown Job",
+            company_name: (app.jobs as any)?.company_name || "Unknown Company",
+            created_at: app.created_at,
+            application_status: app.application_status || "submitted",
+            delivery_status: app.delivery_status || "pending",
+            ai_assessment_enabled: (app.jobs as any)?.ai_assessment_enabled || false,
+            assessment_id: assessment?.id || null,
+            assessment_status: assessment?.status || null,
+            assessment_score: assessment?.score || null, // Map score
+          };
+        }) || [];
 
       setApplications(formatted);
     } catch (error) {
-      console.error('Error fetching applications:', error);
+      console.error("Error fetching applications:", error);
     } finally {
       setLoading(false);
     }
@@ -117,25 +124,25 @@ export default function MyApplications() {
 
     setGeneratingAssessment(app.id);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-job-assessment', {
+      const { data, error } = await supabase.functions.invoke("generate-job-assessment", {
         body: {
           jobId: app.job_id,
           talentId: talent.id,
-          jobApplicationId: app.id
-        }
+          jobApplicationId: app.id,
+        },
       });
 
       if (error) throw error;
 
       if (data?.assessmentId) {
-        toast.success('Assessment generated! Redirecting...');
+        toast.success("Assessment generated! Redirecting...");
         navigate(`/app/job-assessment/${data.assessmentId}`);
       } else {
-        throw new Error('No assessment ID returned');
+        throw new Error("No assessment ID returned");
       }
     } catch (error) {
-      console.error('Error generating assessment:', error);
-      toast.error('Failed to generate assessment. Please try again.');
+      console.error("Error generating assessment:", error);
+      toast.error("Failed to generate assessment. Please try again.");
     } finally {
       setGeneratingAssessment(null);
     }
@@ -146,32 +153,67 @@ export default function MyApplications() {
     navigate(`/app/job-assessment/${assessmentId}`);
   };
 
+  const handleViewResults = (assessmentId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate(`/app/job-assessment/${assessmentId}/results`);
+  };
+
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'submitted': return Send;
-      case 'reviewed': return CheckCircle2;
-      case 'rejected': return XCircle;
-      case 'shortlisted': return CheckCircle2;
-      default: return Clock;
+      case "submitted":
+        return Send;
+      case "reviewed":
+        return CheckCircle2;
+      case "rejected":
+        return XCircle;
+      case "shortlisted":
+        return CheckCircle2;
+      default:
+        return Clock;
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'submitted': return 'text-muted-foreground';
-      case 'reviewed': return 'text-primary';
-      case 'rejected': return 'text-destructive';
-      case 'shortlisted': return 'text-accent';
-      default: return 'text-muted-foreground';
+      case "submitted":
+        return "text-muted-foreground";
+      case "reviewed":
+        return "text-primary";
+      case "rejected":
+        return "text-destructive";
+      case "shortlisted":
+        return "text-accent";
+      default:
+        return "text-muted-foreground";
     }
   };
 
   const getDeliveryBadge = (status: string) => {
     switch (status) {
-      case 'sent': return <Badge variant="secondary" className="text-xs">Delivered</Badge>;
-      case 'failed': return <Badge variant="destructive" className="text-xs">Failed</Badge>;
-      case 'pending': return <Badge variant="outline" className="text-xs">Pending</Badge>;
-      default: return <Badge variant="outline" className="text-xs">{status}</Badge>;
+      case "sent":
+        return (
+          <Badge variant="secondary" className="text-xs">
+            Delivered
+          </Badge>
+        );
+      case "failed":
+        return (
+          <Badge variant="destructive" className="text-xs">
+            Failed
+          </Badge>
+        );
+      case "pending":
+        return (
+          <Badge variant="outline" className="text-xs">
+            Pending
+          </Badge>
+        );
+      default:
+        return (
+          <Badge variant="outline" className="text-xs">
+            {status}
+          </Badge>
+        );
     }
   };
 
@@ -182,12 +224,34 @@ export default function MyApplications() {
 
     if (app.assessment_id) {
       // Assessment exists
-      if (app.assessment_status === 'completed') {
+      if (app.assessment_status === "completed") {
         return (
-          <Badge variant="secondary" className="text-xs">
-            <CheckCircle2 className="h-3 w-3 mr-1" />
-            Assessment Done
-          </Badge>
+          <div className="flex items-center gap-2">
+            {app.assessment_score !== null && (
+              <Badge
+                variant="outline"
+                className={`text-xs gap-1 ${
+                  app.assessment_score >= 70
+                    ? "text-green-600 border-green-200 bg-green-50"
+                    : app.assessment_score >= 50
+                      ? "text-amber-600 border-amber-200 bg-amber-50"
+                      : "text-red-600 border-red-200 bg-red-50"
+                }`}
+              >
+                <Trophy className="h-3 w-3" />
+                {app.assessment_score}%
+              </Badge>
+            )}
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs"
+              onClick={(e) => handleViewResults(app.assessment_id!, e)}
+            >
+              <Brain className="h-3 w-3 mr-1" />
+              View Results
+            </Button>
+          </div>
         );
       }
       return (
@@ -228,8 +292,8 @@ export default function MyApplications() {
   };
 
   const filterByStatus = (status: string) => {
-    if (status === 'all') return applications;
-    return applications.filter(a => a.application_status === status);
+    if (status === "all") return applications;
+    return applications.filter((a) => a.application_status === status);
   };
 
   const ApplicationCard = ({ application }: { application: Application }) => {
@@ -237,7 +301,7 @@ export default function MyApplications() {
     const statusColor = getStatusColor(application.application_status);
 
     return (
-      <Card 
+      <Card
         className="cursor-pointer hover:shadow-md transition-shadow"
         onClick={() => navigate(`/app/jobs/${application.job_id}`)}
       >
@@ -256,7 +320,7 @@ export default function MyApplications() {
                 <div className="flex items-center gap-2 mt-1">
                   <Calendar className="h-3 w-3 text-muted-foreground shrink-0" />
                   <span className="text-xs text-muted-foreground">
-                    {format(new Date(application.created_at), 'MMM d, yyyy')}
+                    {format(new Date(application.created_at), "MMM d, yyyy")}
                   </span>
                 </div>
               </div>
@@ -290,18 +354,26 @@ export default function MyApplications() {
       <Tabs defaultValue="all">
         <div className="overflow-x-auto -mx-4 px-4 mb-4">
           <TabsList className="w-max">
-            <TabsTrigger value="all" className="text-xs h-8">All ({applications.length})</TabsTrigger>
-            <TabsTrigger value="submitted" className="text-xs h-8">Submitted</TabsTrigger>
-            <TabsTrigger value="reviewed" className="text-xs h-8">Reviewed</TabsTrigger>
-            <TabsTrigger value="shortlisted" className="text-xs h-8">Shortlisted</TabsTrigger>
+            <TabsTrigger value="all" className="text-xs h-8">
+              All ({applications.length})
+            </TabsTrigger>
+            <TabsTrigger value="submitted" className="text-xs h-8">
+              Submitted
+            </TabsTrigger>
+            <TabsTrigger value="reviewed" className="text-xs h-8">
+              Reviewed
+            </TabsTrigger>
+            <TabsTrigger value="shortlisted" className="text-xs h-8">
+              Shortlisted
+            </TabsTrigger>
           </TabsList>
         </div>
 
-        {['all', 'submitted', 'reviewed', 'shortlisted'].map(tab => (
+        {["all", "submitted", "reviewed", "shortlisted"].map((tab) => (
           <TabsContent key={tab} value={tab}>
             {loading ? (
               <div className="space-y-3">
-                {[1, 2, 3].map(i => (
+                {[1, 2, 3].map((i) => (
                   <Skeleton key={i} className="h-24 w-full" />
                 ))}
               </div>
@@ -312,15 +384,15 @@ export default function MyApplications() {
                     <Briefcase className="h-8 w-8 text-muted-foreground" />
                   </div>
                   <h3 className="font-bold text-base mb-1">
-                    {tab === 'all' ? 'No applications yet' : `No ${tab} applications`}
+                    {tab === "all" ? "No applications yet" : `No ${tab} applications`}
                   </h3>
                   <p className="text-sm text-muted-foreground mb-4 max-w-xs mx-auto">
-                    {tab === 'all' 
+                    {tab === "all"
                       ? "Start your job search by applying to positions that match your skills."
                       : `Applications will appear here once they're ${tab}.`}
                   </p>
-                  
-                  {tab === 'all' && (
+
+                  {tab === "all" && (
                     <>
                       <div className="bg-muted/50 rounded-lg p-3 mb-4 text-left max-w-xs mx-auto">
                         <p className="text-xs font-medium text-muted-foreground mb-2">Quick tips:</p>
@@ -339,19 +411,16 @@ export default function MyApplications() {
                           </li>
                         </ul>
                       </div>
-                      
+
                       <div className="flex flex-wrap justify-center gap-2">
-                        <Button 
+                        <Button
                           variant="outline"
                           className="rounded-full h-10 px-5 press-scale"
-                          onClick={() => navigate('/app/jobs/browse')}
+                          onClick={() => navigate("/app/jobs/browse")}
                         >
                           Browse Jobs
                         </Button>
-                        <Button 
-                          className="rounded-full h-10 px-5 press-scale"
-                          onClick={() => navigate('/app/feed')}
-                        >
+                        <Button className="rounded-full h-10 px-5 press-scale" onClick={() => navigate("/app/feed")}>
                           View Recommendations
                         </Button>
                       </div>
@@ -361,7 +430,7 @@ export default function MyApplications() {
               </Card>
             ) : (
               <div className="space-y-3">
-                {filterByStatus(tab).map(app => (
+                {filterByStatus(tab).map((app) => (
                   <ApplicationCard key={app.id} application={app} />
                 ))}
               </div>
