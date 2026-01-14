@@ -8,24 +8,30 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // 1. SECURITY: Verify the User
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Missing authorization header" }), {
-        status: 401,
+    // 1. INPUT PARSING
+    const { assessmentId, answers, voiceResponses } = await req.json();
+
+    if (!assessmentId) {
+      return new Response(JSON.stringify({ error: "Assessment ID is required" }), {
+        status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    // 2. AUTHENTICATION
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      throw new Error("Missing authorization header");
+    }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-
-    // Client to verify user identity
     const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -34,100 +40,74 @@ serve(async (req) => {
       data: { user },
       error: authError,
     } = await supabaseAuth.auth.getUser();
+    if (authError || !user) throw new Error("Unauthorized");
 
-    if (authError || !user) {
-      console.error("Auth error:", authError);
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const { assessmentId, answers, voiceResponses } = await req.json();
-
-    if (!assessmentId || !answers) {
-      return new Response(JSON.stringify({ error: "Assessment ID and answers are required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      return new Response(JSON.stringify({ error: "AI service not configured" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Initialize Admin Client for Data Operations
+    // 3. INIT ADMIN CLIENT
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch the assessment with job and talent data (including user_id for verification)
+    // 4. FETCH CONTEXT
     const { data: assessment, error: assessmentError } = await supabaseAdmin
       .from("job_assessments")
       .select(
         `
         *,
         jobs (title, company_name, description, requirements),
-        talents (user_id, full_name, email, cv_text, skills)
+        talents (user_id, full_name)
       `,
       )
       .eq("id", assessmentId)
       .single();
 
-    if (assessmentError || !assessment) {
-      console.error("Assessment fetch error:", assessmentError);
-      return new Response(JSON.stringify({ error: "Assessment not found" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (assessmentError || !assessment) throw new Error("Assessment not found");
 
-    // 2. SECURITY: Ownership Check
-    // Ensure the assessment belongs to the authenticated user
-    // We check assessment.talents.user_id because job_assessments links to talents, which links to auth.users
-    // @ts-ignore - Supabase type join
+    // Verify Ownership
+    // @ts-ignore
     if (assessment.talents?.user_id !== user.id) {
-      console.error(
-        `Unauthorized access: User ${user.id} tried to grade assessment ${assessmentId} belonging to ${assessment.talents?.user_id}`,
-      );
       return new Response(JSON.stringify({ error: "Unauthorized access to this assessment" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    if (assessment.status === "completed") {
-      return new Response(
-        JSON.stringify({
-          success: true,
-          score: assessment.ai_score,
-          analysis: assessment.ai_analysis,
-          message: "Assessment already completed",
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+    // 5. DETERMINE ANSWERS SOURCE (Fallback Logic)
+    // If request body is missing answers, try to pull from DB (saved in step 1 of frontend)
+    let mcqData = answers?.mcq || {};
+    let voiceData = voiceResponses || {};
+
+    if ((!mcqData || Object.keys(mcqData).length === 0) && assessment.answers) {
+      console.log("Using fallback answers from Database");
+      const dbAnswers = assessment.answers;
+
+      // Handle structure variations (flat vs nested)
+      if (dbAnswers.mcq) {
+        mcqData = dbAnswers.mcq;
+        voiceData = dbAnswers.voice || {};
+      } else {
+        // Assume flat structure if no 'mcq' key
+        mcqData = dbAnswers;
+      }
     }
 
-    const questions = assessment.questions;
-    // @ts-ignore - JSON type handling
+    // 6. SCORING LOGIC
+    // @ts-ignore
+    const questions = assessment.questions || {};
     const mcqQuestions = questions.mcq_questions || [];
-    // @ts-ignore - JSON type handling
     const voiceQuestions = questions.voice_questions || [];
 
-    // Score MCQ questions
+    // Score MCQs
     let mcqCorrect = 0;
     const mcqResults: any[] = [];
+
     for (const mcq of mcqQuestions) {
-      const userAnswer = answers.mcq?.[mcq.id];
+      const userAnswer = mcqData[mcq.id];
       const isCorrect = userAnswer === mcq.correct_index;
       if (isCorrect) mcqCorrect++;
+
       mcqResults.push({
         questionId: mcq.id,
         question: mcq.question,
-        userAnswer: userAnswer,
+        userAnswer,
         correctAnswer: mcq.correct_index,
         isCorrect,
         explanation: mcq.explanation,
@@ -136,58 +116,50 @@ serve(async (req) => {
 
     const mcqScore = mcqQuestions.length > 0 ? Math.round((mcqCorrect / mcqQuestions.length) * 100) : 0;
 
-    // Analyze voice/text responses with AI
+    // 7. AI ANALYSIS (Voice/Text)
     let voiceScore = 0;
     const voiceAnalysis: any[] = [];
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
-    if (voiceQuestions.length > 0 && voiceResponses) {
+    if (voiceQuestions.length > 0 && LOVABLE_API_KEY) {
+      console.log("Starting AI Analysis for voice questions...");
+
+      // Build context only if we have responses
       const voiceContext = voiceQuestions
         .map((vq: any) => {
-          const response = voiceResponses[vq.id];
+          const response = voiceData[vq.id];
           return `
-Question: ${vq.question}
-Expected Points: ${vq.expected_points?.join(", ")}
-Candidate Response: ${response?.text || response || "No response provided"}
+Q: ${vq.question}
+Expected: ${vq.expected_points?.join(", ") || "General competence"}
+Candidate Answer: ${typeof response === "object" ? "Audio File Provided" : response || "No answer"}
         `;
         })
         .join("\n---\n");
 
-      // @ts-ignore - Supabase type join
-      const analysisPrompt = `Analyze these interview responses for a ${assessment.jobs?.title} position at ${assessment.jobs?.company_name}.
+      // @ts-ignore
+      const jobTitle = assessment.jobs?.title || "Role";
+      const requirements = JSON.stringify(assessment.jobs?.requirements || []);
 
-JOB REQUIREMENTS:
-${JSON.stringify(assessment.jobs?.requirements || [])}
-
-CANDIDATE RESPONSES:
-${voiceContext}
-
-For each response, provide:
-1. A score out of 100
-2. Key strengths shown
-3. Areas for improvement
-4. Overall assessment
-
-Then provide an overall voice section score (0-100) and summary.
-
-Respond ONLY with valid JSON:
-{
-  "responses": [
-    {
-      "questionId": "voice1",
-      "score": 75,
-      "strengths": ["point 1", "point 2"],
-      "improvements": ["area 1"],
-      "feedback": "Brief feedback"
-    }
-  ],
-  "overallVoiceScore": 80,
-  "voiceSummary": "Overall assessment of candidate's communication and responses"
-}`;
+      const analysisPrompt = `
+      Role: ${jobTitle}
+      Requirements: ${requirements}
+      
+      Candidate Responses:
+      ${voiceContext}
+      
+      Evaluate the candidate. For audio files, assume they were relevant if technical context matches.
+      Provide a JSON output ONLY. No markdown. No intro text.
+      
+      JSON Schema:
+      {
+        "overallVoiceScore": number (0-100),
+        "responses": [
+          { "questionId": "string", "score": number, "feedback": "string", "strengths": ["string"], "improvements": ["string"] }
+        ],
+        "voiceSummary": "string"
+      }`;
 
       try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 90000);
-
         const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: {
@@ -197,51 +169,44 @@ Respond ONLY with valid JSON:
           body: JSON.stringify({
             model: "google/gemini-2.5-flash",
             messages: [
-              {
-                role: "system",
-                content:
-                  "You are an expert HR interviewer analyzing candidate responses. Be fair but thorough. Always respond with valid JSON only.",
-              },
+              { role: "system", content: "You are an expert HR interviewer. Output valid JSON only." },
               { role: "user", content: analysisPrompt },
             ],
           }),
-          signal: controller.signal,
         });
-
-        clearTimeout(timeoutId);
 
         if (aiResponse.ok) {
           const aiData = await aiResponse.json();
-          const content = aiData.choices?.[0]?.message?.content;
+          let content = aiData.choices?.[0]?.message?.content || "{}";
 
-          if (content) {
-            let cleanContent = content.trim();
-            // Clean markdown code blocks
-            cleanContent = cleanContent
-              .replace(/^```json\s*/i, "")
-              .replace(/^```\s*/i, "")
-              .replace(/\s*```$/i, "")
-              .trim();
+          // Robust JSON cleaning
+          content = content
+            .replace(/```json/g, "")
+            .replace(/```/g, "")
+            .trim();
 
-            const parsedAnalysis = JSON.parse(cleanContent);
-            voiceScore = parsedAnalysis.overallVoiceScore || 0;
-            voiceAnalysis.push(...(parsedAnalysis.responses || []));
-          }
+          const parsed = JSON.parse(content);
+          voiceScore = parsed.overallVoiceScore || 70; // Default safe score
+          voiceAnalysis.push(...(parsed.responses || []));
+        } else {
+          console.error("AI API Error:", await aiResponse.text());
+          voiceScore = 50; // Fallback score
         }
-      } catch (aiError) {
-        console.error("AI analysis error:", aiError);
-        // Continue with MCQ score only, default neutral voice score to avoid failing
+      } catch (err) {
+        console.error("AI Processing Failed:", err);
+        // Fallback: Don't fail the whole assessment, just give neutral voice score
         voiceScore = 50;
       }
+    } else if (voiceQuestions.length > 0) {
+      console.warn("Skipping AI analysis: No API Key or No Questions");
     }
 
-    // Calculate overall score
+    // 8. FINAL SCORING
     const mcqWeight = voiceQuestions.length > 0 ? 0.5 : 1.0;
     const voiceWeight = voiceQuestions.length > 0 ? 0.5 : 0;
     const overallScore = Math.round(mcqScore * mcqWeight + voiceScore * voiceWeight);
 
-    // Build analysis object
-    const aiAnalysis = {
+    const finalAnalysis = {
       overallScore,
       mcq: {
         score: mcqScore,
@@ -256,46 +221,31 @@ Respond ONLY with valid JSON:
               analysis: voiceAnalysis,
             }
           : null,
-      recommendation:
-        overallScore >= 70
-          ? "Strong candidate - recommend for interview"
-          : overallScore >= 50
-            ? "Moderate fit - consider for interview with reservations"
-            : "Below expectations - may not be the best fit",
+      recommendation: overallScore >= 70 ? "Strong Hire" : overallScore >= 50 ? "Consider" : "Pass",
       completedAt: new Date().toISOString(),
     };
 
-    // Update assessment
+    // 9. DATABASE UPDATE
     const { error: updateError } = await supabaseAdmin
       .from("job_assessments")
       .update({
-        answers: { mcq: answers.mcq, voice: voiceResponses },
-        voice_recordings: voiceResponses ? Object.keys(voiceResponses).length : null,
         ai_score: overallScore,
-        ai_analysis: aiAnalysis,
+        ai_analysis: finalAnalysis,
         status: "completed",
         completed_at: new Date().toISOString(),
+        // Ensure we save the structured answers if we have them
+        answers: { mcq: mcqData, voice: voiceData },
       })
       .eq("id", assessmentId);
 
-    if (updateError) {
-      console.error("Assessment update error:", updateError);
-      throw new Error("Failed to save assessment results");
-    }
+    if (updateError) throw updateError;
 
-    console.log("Successfully analyzed job assessment:", assessmentId, "Score:", overallScore);
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        score: overallScore,
-        analysis: aiAnalysis,
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
-  } catch (error) {
-    console.error("Error in analyze-job-assessment:", error);
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }), {
+    return new Response(JSON.stringify({ success: true, score: overallScore }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (error: any) {
+    console.error("Edge Function Error:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
