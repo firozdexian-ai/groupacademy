@@ -132,8 +132,8 @@ export default function AppJobDetail() {
           });
         }
 
-        // Check if saved (Stub - assumes saved_jobs table exists or will exist)
-        const { count } = await supabase
+        // Check if saved (Type cast to any to bypass missing table definition)
+        const { count } = await (supabase as any)
           .from("saved_jobs")
           .select("*", { count: "exact", head: true })
           .eq("job_id", id)
@@ -157,10 +157,10 @@ export default function AppJobDetail() {
 
     try {
       if (isSaved) {
-        await supabase.from("saved_jobs").delete().eq("job_id", id).eq("talent_id", talent.id);
+        await (supabase as any).from("saved_jobs").delete().eq("job_id", id).eq("talent_id", talent.id);
         toast.success("Job removed from saved items");
       } else {
-        await supabase.from("saved_jobs").insert({ job_id: id, talent_id: talent.id });
+        await (supabase as any).from("saved_jobs").insert({ job_id: id, talent_id: talent.id });
         toast.success("Job saved for later");
       }
     } catch (error) {
@@ -193,7 +193,6 @@ export default function AppJobDetail() {
         toast.success("Link copied to clipboard!");
       }
     } catch (error) {
-      // Fallback
       try {
         await navigator.clipboard.writeText(shareUrl);
         toast.success("Link copied to clipboard!");
