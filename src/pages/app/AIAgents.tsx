@@ -1,98 +1,26 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Briefcase,
-  FileText,
-  Mic,
-  DollarSign,
-  BookOpen,
-  Lightbulb,
   Coins,
   Sparkles,
   ArrowRight,
-  Clock,
   MessageCircle,
-  Zap,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { CREDIT_CONFIG } from "@/lib/creditPricing";
 import { RecentConversations } from "@/components/ai-agents/RecentConversations";
 import { useAgentChat } from "@/hooks/useAgentChat";
 import { useCredits } from "@/hooks/useCredits";
 import { CreditGateModal } from "@/components/credits/CreditGateModal";
 import { toast } from "sonner";
-
-const AI_AGENTS = [
-  {
-    id: "career-consultant",
-    name: "Career Consultant",
-    shortName: "Career",
-    description: "Plan your professional journey",
-    icon: Briefcase,
-    bgColor: "bg-blue-500/10",
-    iconColor: "text-blue-600",
-    expertise: ["Career Planning", "Job Search", "Career Change"],
-  },
-  {
-    id: "cv-coach",
-    name: "CV Coach",
-    shortName: "CV Coach",
-    description: "Optimize your resume",
-    icon: FileText,
-    bgColor: "bg-emerald-500/10",
-    iconColor: "text-emerald-600",
-    expertise: ["CV Review", "ATS Optimization", "Cover Letters"],
-  },
-  {
-    id: "interview-coach",
-    name: "Interview Coach",
-    shortName: "Interview",
-    description: "Ace your interviews",
-    icon: Mic,
-    bgColor: "bg-purple-500/10",
-    iconColor: "text-purple-600",
-    expertise: ["Mock Practice", "STAR Method", "Confidence"],
-  },
-  {
-    id: "salary-negotiator",
-    name: "Salary Negotiator",
-    shortName: "Salary",
-    description: "Negotiate better offers",
-    icon: DollarSign,
-    bgColor: "bg-amber-500/10",
-    iconColor: "text-amber-600",
-    expertise: ["Negotiation", "Market Rates", "Benefits"],
-  },
-  {
-    id: "ielts-tutor",
-    name: "IELTS Tutor",
-    shortName: "IELTS",
-    description: "Master English tests",
-    icon: BookOpen,
-    bgColor: "bg-rose-500/10",
-    iconColor: "text-rose-600",
-    expertise: ["Speaking", "Writing", "Test Strategies"],
-  },
-  {
-    id: "skill-advisor",
-    name: "Skill Advisor",
-    shortName: "Skills",
-    description: "Learn in-demand skills",
-    icon: Lightbulb,
-    bgColor: "bg-cyan-500/10",
-    iconColor: "text-cyan-600",
-    expertise: ["Skill Gaps", "Learning Paths", "Industry Trends"],
-  },
-];
+import { AI_AGENTS, getAgentById } from "@/lib/constants/agents";
 
 export default function AIAgents() {
   const navigate = useNavigate();
   const [showCreditGate, setShowCreditGate] = useState(false);
-  const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
+  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
 
-  const { recentSessions, loadSession, startNewSession } = useAgentChat();
+  const { recentSessions, startNewSession } = useAgentChat();
   const { balance, deductCredits } = useCredits();
 
   const costPerSession = CREDIT_CONFIG.SERVICES.AI_AGENT_CHAT.cost;
@@ -100,7 +28,7 @@ export default function AIAgents() {
   // Check if agent has active session
   const getActiveSession = (agentKey: string) => {
     return recentSessions.find(
-      (s) => s.agent_key === agentKey && s.is_active && new Date(s.session_expires_at) > new Date(),
+      (s) => s.agent_key === agentKey && s.is_active && new Date(s.session_expires_at) > new Date()
     );
   };
 
@@ -112,26 +40,36 @@ export default function AIAgents() {
       navigate(`/app/agents/${agentId}`);
     } else {
       // Show credit gate for new session
-      setSelectedAgent(agentId);
+      setSelectedAgentId(agentId);
       setShowCreditGate(true);
     }
   };
 
   const handleConfirmCredit = async () => {
-    if (!selectedAgent) return;
+    if (!selectedAgentId) return;
 
-    const success = await deductCredits("AI_AGENT_CHAT", undefined, `AI Agent: ${selectedAgent} session`);
+    const agent = getAgentById(selectedAgentId);
+
+    // Deduct credits
+    const success = await deductCredits(
+      "AI_AGENT_CHAT",
+      undefined,
+      `AI Agent: ${agent?.name || "Chat"} session`
+    );
+
     if (success) {
-      const session = await startNewSession(selectedAgent);
+      // Start session
+      const session = await startNewSession(selectedAgentId);
       if (session) {
         setShowCreditGate(false);
-        navigate(`/app/agents/${selectedAgent}`);
+        navigate(`/app/agents/${selectedAgentId}`);
         toast.success("Session started! You have 30 minutes.");
       } else {
-        toast.error("Failed to start session");
+        toast.error("Failed to start session. Please try again.");
       }
+    } else {
+      setShowCreditGate(false); // Close on failure so they can try to buy credits
     }
-    setShowCreditGate(false);
   };
 
   const handleSelectSession = async (sessionId: string) => {
@@ -142,12 +80,12 @@ export default function AIAgents() {
   };
 
   const getAgentName = (agentKey: string) => {
-    const agent = AI_AGENTS.find((a) => a.id === agentKey);
+    const agent = getAgentById(agentKey);
     return agent?.name || agentKey;
   };
 
   const getAgentIcon = (agentKey: string) => {
-    const agent = AI_AGENTS.find((a) => a.id === agentKey);
+    const agent = getAgentById(agentKey);
     if (!agent) return null;
     const Icon = agent.icon;
     return (
@@ -157,7 +95,7 @@ export default function AIAgents() {
     );
   };
 
-  const selectedAgentData = selectedAgent ? AI_AGENTS.find((a) => a.id === selectedAgent) : null;
+  const selectedAgent = selectedAgentId ? getAgentById(selectedAgentId) : null;
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6 space-y-8">
@@ -167,7 +105,7 @@ export default function AIAgents() {
         onClose={() => setShowCreditGate(false)}
         onConfirm={handleConfirmCredit}
         onBuyCredits={() => setShowCreditGate(false)}
-        serviceName={selectedAgentData ? `${selectedAgentData.name} Chat` : "AI Agent Chat"}
+        serviceName={selectedAgent ? `${selectedAgent.name} Chat` : "AI Agent Chat"}
         cost={costPerSession}
         currentBalance={balance}
         isLoading={false}
@@ -182,7 +120,8 @@ export default function AIAgents() {
           <h1 className="text-xl font-bold">AI Career Experts</h1>
         </div>
         <p className="text-sm text-muted-foreground max-w-lg mb-4">
-          Chat with specialized AI agents to refine your resume, practice interviews, and negotiate your salary.
+          Chat with specialized AI agents to refine your resume, practice
+          interviews, and negotiate your salary.
         </p>
 
         <div className="inline-flex items-center gap-2 text-xs font-medium bg-background/50 border border-primary/20 px-3 py-1.5 rounded-full text-primary">
@@ -202,9 +141,9 @@ export default function AIAgents() {
               key={agent.id}
               onClick={() => handleAgentClick(agent.id)}
               className={`
-                cursor-pointer transition-all duration-200 border-0 shadow-sm
-                hover:shadow-md hover:-translate-y-1 group relative overflow-hidden
-                ${activeSession ? "ring-2 ring-green-500/20 bg-green-50/30" : ""}
+                cursor-pointer transition-all duration-300 border-0 shadow-sm
+                hover:shadow-lg hover:-translate-y-1 group relative overflow-hidden
+                ${activeSession ? "ring-2 ring-green-500/20 bg-green-50/10" : "hover:bg-accent/5"}
               `}
               style={{ animationDelay: `${index * 50}ms` }}
             >
@@ -226,7 +165,9 @@ export default function AIAgents() {
                 </div>
 
                 <h3 className="font-bold text-sm mb-1">{agent.name}</h3>
-                <p className="text-xs text-muted-foreground mb-4 line-clamp-2">{agent.description}</p>
+                <p className="text-xs text-muted-foreground mb-4 line-clamp-2">
+                  {agent.description}
+                </p>
 
                 <div className="mt-auto w-full pt-3 border-t border-border/50 flex justify-center">
                   <span className="text-[10px] font-medium text-primary flex items-center gap-1 group-hover:underline">
