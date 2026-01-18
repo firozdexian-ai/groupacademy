@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,14 +11,35 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { 
-  Users, Plus, Edit, Trash2, Search, 
-  Mail, Loader2, RefreshCw, Building2, Phone,
-  MessageCircle, Linkedin, ExternalLink
+import {
+  Users,
+  Plus,
+  Edit,
+  Trash2,
+  Search,
+  Mail,
+  Loader2,
+  RefreshCw,
+  Building2,
+  Phone,
+  MessageCircle,
+  Linkedin,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { DashboardTableSkeleton, DashboardErrorState } from "./DashboardSkeleton";
+
+// --- Internal Hook for Debounce ---
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+  return debouncedValue;
+}
 
 interface Contact {
   id: string;
@@ -62,49 +83,66 @@ const emptyContact = {
   notes: "",
 };
 
+const ITEMS_PER_PAGE = 10;
+
 export function ContactsManager() {
+  // Data State
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+
+  // Pagination & Search
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearch = useDebounce(searchQuery, 500);
   const [companyFilter, setCompanyFilter] = useState<string>("all");
+
+  // UI State
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [formData, setFormData] = useState(emptyContact);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  // Fetch Data (Paginated)
+  const loadData = useCallback(async () => {
     setIsLoading(true);
     setLoadError(null);
     try {
-      const [contactsResult, companiesResult] = await Promise.all([
-        withTimeout(
-          Promise.resolve(
-            supabase
-              .from("contacts")
-              .select("*, company:companies(id, name, industry)")
-              .order("full_name")
-          ),
-          TIMEOUTS.DEFAULT,
-          "Loading contacts timed out"
-        ),
-        withTimeout(
-          Promise.resolve(supabase.from("companies").select("id, name, industry").order("name")),
-          TIMEOUTS.DEFAULT,
-          "Loading companies timed out"
-        ),
-      ]);
+      // 1. Fetch Companies (Lookup - lightweight)
+      // Only fetch once
+      if (companies.length === 0) {
+        const { data: companyData } = await supabase.from("companies").select("id, name, industry").order("name");
+        setCompanies(companyData || []);
+      }
 
-      if (contactsResult.error) throw contactsResult.error;
-      if (companiesResult.error) throw companiesResult.error;
-      
-      setContacts(contactsResult.data || []);
-      setCompanies(companiesResult.data || []);
+      // 2. Fetch Contacts (Paginated)
+      let query = supabase
+        .from("contacts")
+        .select("*, company:companies(id, name, industry)", { count: "exact" })
+        .order("full_name");
+
+      if (debouncedSearch) {
+        query = query.or(
+          `full_name.ilike.%${debouncedSearch}%,email.ilike.%${debouncedSearch}%,phone.ilike.%${debouncedSearch}%`,
+        );
+      }
+
+      if (companyFilter !== "all") {
+        query = query.eq("company_id", companyFilter);
+      }
+
+      const from = (page - 1) * ITEMS_PER_PAGE;
+      const to = from + ITEMS_PER_PAGE - 1;
+      query = query.range(from, to);
+
+      const result = await withTimeout(Promise.resolve(query), TIMEOUTS.DEFAULT, "Loading contacts timed out");
+
+      if (result.error) throw result.error;
+
+      setContacts((result.data as unknown as Contact[]) || []);
+      setTotalCount(result.count || 0);
     } catch (error: any) {
       console.error("Error loading data:", error);
       setLoadError(error.message || "Failed to load contacts");
@@ -112,21 +150,16 @@ export function ContactsManager() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [page, debouncedSearch, companyFilter]);
 
-  const filteredContacts = contacts.filter((c) => {
-    const query = searchQuery.toLowerCase();
-    const matchesSearch =
-      c.full_name.toLowerCase().includes(query) ||
-      c.email?.toLowerCase().includes(query) ||
-      c.phone?.toLowerCase().includes(query) ||
-      c.designation?.toLowerCase().includes(query) ||
-      c.company?.name?.toLowerCase().includes(query);
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
-    const matchesCompany = companyFilter === "all" || c.company_id === companyFilter;
-
-    return matchesSearch && matchesCompany;
-  });
+  // Reset page on search
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, companyFilter]);
 
   const handleOpenDialog = (contact?: Contact) => {
     if (contact) {
@@ -174,21 +207,11 @@ export function ContactsManager() {
       };
 
       if (editingContact) {
-        const { error } = await withTimeout(
-          Promise.resolve(
-            supabase.from("contacts").update(contactData).eq("id", editingContact.id)
-          ),
-          TIMEOUTS.DEFAULT,
-          "Update timed out"
-        );
+        const { error } = await supabase.from("contacts").update(contactData).eq("id", editingContact.id);
         if (error) throw error;
         toast.success("Contact updated");
       } else {
-        const { error } = await withTimeout(
-          Promise.resolve(supabase.from("contacts").insert(contactData)),
-          TIMEOUTS.DEFAULT,
-          "Insert timed out"
-        );
+        const { error } = await supabase.from("contacts").insert(contactData);
         if (error) throw error;
         toast.success("Contact created");
       }
@@ -205,19 +228,13 @@ export function ContactsManager() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this contact?")) return;
-
     try {
-      const { error } = await withTimeout(
-        Promise.resolve(supabase.from("contacts").delete().eq("id", id)),
-        TIMEOUTS.DEFAULT,
-        "Delete timed out"
-      );
+      const { error } = await supabase.from("contacts").delete().eq("id", id);
       if (error) throw error;
       toast.success("Contact deleted");
       loadData();
     } catch (error: any) {
-      console.error("Error deleting contact:", error);
-      toast.error(error.message || "Failed to delete contact");
+      toast.error("Failed to delete contact");
     }
   };
 
@@ -230,31 +247,40 @@ export function ContactsManager() {
 
     // Clean phone number
     const cleanPhone = phone.replace(/\D/g, "");
-    const message = `Hi ${contact.full_name}, hope you're doing well!`;
-    
+
+    // Improved default message logic
+    const greeting = new Date().getHours() < 12 ? "Good morning" : "Good afternoon";
+    const message = `Hi ${contact.full_name}, ${greeting}! Reaching out regarding GroUp Academy partnerships.`;
+
     // Open WhatsApp
     window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`, "_blank");
 
-    // Log outreach
+    // Log outreach (fire and forget)
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      await supabase.from("contact_outreach").insert({
-        contact_id: contact.id,
-        channel: "whatsapp",
-        message_type: "intro",
-        message_content: message,
-        sent_by: user?.id,
-      });
-
-      // Update last contacted
-      await supabase
-        .from("contacts")
-        .update({ last_contacted_at: new Date().toISOString() })
-        .eq("id", contact.id);
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) {
+        supabase
+          .from("contact_outreach")
+          .insert({
+            contact_id: contact.id,
+            channel: "whatsapp",
+            message_type: "intro",
+            message_content: message,
+            sent_by: user.id,
+          })
+          .then(() => {
+            // Silent update
+          });
+      }
+      // Optimistic update of local UI for last contacted could go here
     } catch (error) {
       console.error("Failed to log outreach:", error);
     }
   };
+
+  const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
   return (
     <div className="space-y-6">
@@ -264,11 +290,9 @@ export function ContactsManager() {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Users className="w-5 h-5" />
-                Contacts ({contacts.length})
+                Contacts
               </CardTitle>
-              <CardDescription>
-                Manage hiring managers and company contacts
-              </CardDescription>
+              <CardDescription>{totalCount} contacts found</CardDescription>
             </div>
             <div className="flex gap-2">
               <Button variant="outline" onClick={loadData} disabled={isLoading}>
@@ -283,18 +307,18 @@ export function ContactsManager() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-4 mb-4">
+          <div className="flex gap-4 mb-4 flex-col sm:flex-row">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Search by name, email, phone, or company..."
+                placeholder="Search by name, email, phone..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9"
               />
             </div>
             <Select value={companyFilter} onValueChange={setCompanyFilter}>
-              <SelectTrigger className="w-[200px]">
+              <SelectTrigger className="w-full sm:w-[200px]">
                 <SelectValue placeholder="Filter by company" />
               </SelectTrigger>
               <SelectContent>
@@ -311,123 +335,147 @@ export function ContactsManager() {
           {isLoading ? (
             <DashboardTableSkeleton rows={5} columns={6} />
           ) : loadError ? (
-            <DashboardErrorState
-              title="Failed to load contacts"
-              message={loadError}
-              onRetry={loadData}
-            />
-          ) : filteredContacts.length === 0 ? (
+            <DashboardErrorState title="Error" message={loadError} onRetry={loadData} />
+          ) : contacts.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <Users className="w-12 h-12 mx-auto mb-4 opacity-20" />
               <p>No contacts found. Add your first contact!</p>
             </div>
           ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Contact</TableHead>
-                    <TableHead>Company</TableHead>
-                    <TableHead>Contact Info</TableHead>
-                    <TableHead>Source</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredContacts.map((contact) => (
-                    <TableRow key={contact.id}>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium flex items-center gap-2">
-                            {contact.full_name}
-                            {contact.is_primary && (
-                              <Badge variant="secondary" className="text-xs">Primary</Badge>
-                            )}
-                          </p>
-                          {contact.designation && (
-                            <p className="text-sm text-muted-foreground">{contact.designation}</p>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {contact.company ? (
-                          <div className="flex items-center gap-2">
-                            <Building2 className="w-4 h-4 text-muted-foreground" />
-                            <div>
-                              <p className="text-sm">{contact.company.name}</p>
-                              {contact.company.industry && (
-                                <Badge variant="outline" className="text-xs">{contact.company.industry}</Badge>
+            <>
+              <div className="rounded-md border overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Contact</TableHead>
+                      <TableHead>Company</TableHead>
+                      <TableHead>Contact Info</TableHead>
+                      <TableHead>Source</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {contacts.map((contact) => (
+                      <TableRow key={contact.id}>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium flex items-center gap-2">
+                              {contact.full_name}
+                              {contact.is_primary && (
+                                <Badge variant="secondary" className="text-xs">
+                                  Primary
+                                </Badge>
                               )}
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="space-y-1">
-                          {contact.email && (
-                            <a
-                              href={`mailto:${contact.email}`}
-                              className="text-sm text-primary hover:underline flex items-center gap-1"
-                            >
-                              <Mail className="w-3 h-3" />
-                              {contact.email}
-                            </a>
-                          )}
-                          {contact.phone && (
-                            <p className="text-sm flex items-center gap-1 text-muted-foreground">
-                              <Phone className="w-3 h-3" />
-                              {contact.phone}
                             </p>
+                            {contact.designation && (
+                              <p className="text-sm text-muted-foreground">{contact.designation}</p>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {contact.company ? (
+                            <div className="flex items-center gap-2">
+                              <Building2 className="w-4 h-4 text-muted-foreground" />
+                              <div>
+                                <p className="text-sm">{contact.company.name}</p>
+                                {contact.company.industry && (
+                                  <Badge variant="outline" className="text-xs">
+                                    {contact.company.industry}
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
                           )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{contact.source || "manual"}</Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleWhatsApp(contact)}
-                            disabled={!contact.phone && !contact.whatsapp_number}
-                            className="text-green-600 hover:text-green-700"
-                          >
-                            <MessageCircle className="w-4 h-4" />
-                          </Button>
-                          {contact.linkedin_url && (
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-1">
+                            {contact.email && (
+                              <a
+                                href={`mailto:${contact.email}`}
+                                className="text-sm text-primary hover:underline flex items-center gap-1"
+                              >
+                                <Mail className="w-3 h-3" />
+                                {contact.email}
+                              </a>
+                            )}
+                            {contact.phone && (
+                              <p className="text-sm flex items-center gap-1 text-muted-foreground">
+                                <Phone className="w-3 h-3" />
+                                {contact.phone}
+                              </p>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{contact.source || "manual"}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => window.open(contact.linkedin_url!, "_blank")}
+                              onClick={() => handleWhatsApp(contact)}
+                              disabled={!contact.phone && !contact.whatsapp_number}
+                              className="text-green-600 hover:text-green-700"
+                              title="Message on WhatsApp"
                             >
-                              <Linkedin className="w-4 h-4" />
+                              <MessageCircle className="w-4 h-4" />
                             </Button>
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleOpenDialog(contact)}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(contact.id)}
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                            {contact.linkedin_url && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => window.open(contact.linkedin_url!, "_blank")}
+                              >
+                                <Linkedin className="w-4 h-4" />
+                              </Button>
+                            )}
+                            <Button variant="ghost" size="sm" onClick={() => handleOpenDialog(contact)}>
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDelete(contact.id)}
+                              className="text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-end space-x-2 py-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-2" /> Previous
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    Page {page} of {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                  >
+                    Next <ChevronRight className="h-4 w-4 ml-2" />
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
@@ -436,9 +484,7 @@ export function ContactsManager() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
-              {editingContact ? "Edit Contact" : "Add Contact"}
-            </DialogTitle>
+            <DialogTitle>{editingContact ? "Edit Contact" : "Add Contact"}</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
