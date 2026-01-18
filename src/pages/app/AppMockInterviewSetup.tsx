@@ -40,7 +40,7 @@ const DRAFT_STORAGE_KEY = "mock_interview_draft";
 export default function AppMockInterviewSetup() {
   const navigate = useNavigate();
   const { talent, user, addServiceUsed } = useTalent();
-  const { deductCredits, canAfford, refreshBalance } = useCredits();
+  const { deductCredits, canAfford, refreshBalance, addCredits } = useCredits();
 
   const [step, setStep] = useState<SetupStep>("job-description");
   const [email, setEmail] = useState("");
@@ -142,18 +142,9 @@ export default function AppMockInterviewSetup() {
   const handleRefund = async () => {
     if (!talent?.id) return;
     try {
-      // Record a 'refund' type transaction
-      // Assumes your DB has a trigger to update balance, or you use an RPC
-      const { error } = await supabase.from("credit_transactions").insert({
-        talent_id: talent.id,
-        amount: MOCK_INTERVIEW_COST,
-        transaction_type: "refund",
-        description: "Refund: Mock Interview Generation Failed",
-      });
-
-      if (!error) {
+      const success = await addCredits(MOCK_INTERVIEW_COST, "refund", "Refund: Mock Interview Generation Failed");
+      if (success) {
         toast.info("Credits have been refunded to your account.");
-        refreshBalance();
       }
     } catch (err) {
       console.error("Refund failed:", err);
