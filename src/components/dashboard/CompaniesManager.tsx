@@ -115,7 +115,14 @@ export function CompaniesManager() {
 
       if (result.error) throw result.error;
 
-      setCompanies(result.data || []);
+      // Map data to ensure secondary_emails is always a string array
+      const mappedCompanies: Company[] = (result.data || []).map((company) => ({
+        ...company,
+        secondary_emails: Array.isArray(company.secondary_emails) 
+          ? (company.secondary_emails as string[]) 
+          : [],
+      }));
+      setCompanies(mappedCompanies);
       setTotalCount(result.count || 0);
     } catch (error: any) {
       console.error("Error loading companies:", error);
