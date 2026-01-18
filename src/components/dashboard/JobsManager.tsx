@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
@@ -31,10 +31,12 @@ import {
   Image,
   Share2,
   Brain,
-  Link,
+  Link as LinkIcon,
   Linkedin,
   Facebook,
   MessageCircle,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -45,13 +47,22 @@ import {
 import { toast } from "sonner";
 import { format, endOfMonth } from "date-fns";
 
+// --- Internal Hook for Debounce ---
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+  return debouncedValue;
+}
+
 // --- Types ---
 interface AssessmentConfig {
   question_count: number;
   voice_enabled: boolean;
 }
 
-// Define specific Union Types for Enums
 type JobType = "full_time" | "part_time" | "contract" | "internship" | "freelance" | "remote";
 type ExperienceLevel = "entry" | "mid" | "senior" | "executive";
 type SourcePlatform = "facebook" | "linkedin" | "bdjobs" | "website" | "other";
@@ -147,135 +158,47 @@ const emptyJob = {
   vacancies: 1,
 };
 
-export function JobsManager() {
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [categories, setCategories] = useState<ProfessionCategory[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingJob, setEditingJob] = useState<Job | null>(null);
-  const [formData, setFormData] = useState(emptyJob);
-  const [saving, setSaving] = useState(false);
+const ITEMS_PER_PAGE = 10;
+
+// --- Sub-Component: Job Form (Inline to keep single file) ---
+// Extracted to reduce main component complexity
+const JobForm = ({
+  initialData,
+  categories,
+  onSave,
+  onCancel,
+  saving,
+}: {
+  initialData: any;
+  categories: ProfessionCategory[];
+  onSave: (data: any) => void;
+  onCancel: () => void;
+  saving: boolean;
+}) => {
+  const [formData, setFormData] = useState(initialData);
   const [enhancing, setEnhancing] = useState(false);
   const [parsing, setParsing] = useState(false);
-  const [requirementInput, setRequirementInput] = useState("");
   const [rawJobPost, setRawJobPost] = useState("");
   const [showParseSection, setShowParseSection] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
-
-  useEffect(() => {
-    loadJobs();
-    loadCategories();
-  }, []);
-
-  const loadJobs = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const { data, error: queryError } = await withTimeout(
-        Promise.resolve(supabase.from("jobs").select("*").order("created_at", { ascending: false })).then((q) => q),
-        TIMEOUTS.DEFAULT,
-        "Loading jobs timed out",
-      );
-
-      if (queryError) throw queryError;
-
-      setJobs((data as unknown as Job[]) || []);
-    } catch (err: any) {
-      console.error("Error loading jobs:", err);
-      setError(err.message || "Failed to load jobs");
-      toast.error("Failed to load jobs");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadCategories = async () => {
-    try {
-      const { data } = await supabase
-        .from("profession_categories")
-        .select("id, name")
-        .eq("is_active", true)
-        .order("name");
-
-      setCategories(data || []);
-    } catch (err) {
-      console.error("Error loading categories:", err);
-    }
-  };
-
-  const filteredJobs = jobs.filter((job) => {
-    const matchesSearch =
-      job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      job.company_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (job.location && job.location.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchesStatus =
-      statusFilter === "all" ||
-      (statusFilter === "active" && job.is_active) ||
-      (statusFilter === "inactive" && !job.is_active) ||
-      (statusFilter === "featured" && job.is_featured);
-    return matchesSearch && matchesStatus;
-  });
-
-  const handleOpenDialog = (job?: Job) => {
-    if (job) {
-      setEditingJob(job);
-      setFormData({
-        title: job.title,
-        company_name: job.company_name,
-        company_logo_url: job.company_logo_url || "",
-        location: job.location || "",
-        job_type: job.job_type,
-        experience_level: job.experience_level,
-        salary_range_min: job.salary_range_min,
-        salary_range_max: job.salary_range_max,
-        description: job.description,
-        ai_enhanced_description: job.ai_enhanced_description,
-        requirements: Array.isArray(job.requirements) ? job.requirements : [],
-        application_type: job.application_type,
-        application_email: job.application_email || "",
-        application_url: job.application_url || "",
-        source_url: job.source_url || "",
-        source_platform: job.source_platform || "other",
-        source_image_url: job.source_image_url || "",
-        profession_category_id: job.profession_category_id,
-        deadline: job.deadline ? job.deadline.split("T")[0] : "",
-        is_active: job.is_active,
-        is_featured: job.is_featured,
-        ai_assessment_enabled: job.ai_assessment_enabled || false,
-        assessment_config: job.assessment_config || { question_count: 6, voice_enabled: true },
-        vacancies: job.vacancies || 1,
-      });
-    } else {
-      setEditingJob(null);
-      setFormData(emptyJob);
-    }
-    setRawJobPost("");
-    setShowParseSection(false);
-    setIsDialogOpen(true);
-  };
+  const [requirementInput, setRequirementInput] = useState("");
 
   const handleParseJobPost = async () => {
     if (!rawJobPost.trim() || rawJobPost.length < 50) {
       toast.error("Please paste a complete job post (minimum 50 characters)");
       return;
     }
-
     setParsing(true);
     try {
       const { data, error } = await supabase.functions.invoke("parse-job-post", {
         body: { jobPostText: rawJobPost },
       });
-
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || "Failed to parse job post");
 
       const parsed = data.parsed;
-
-      setFormData((prev) => ({
+      setFormData((prev: any) => ({
         ...prev,
         title: parsed.title || prev.title,
         company_name: parsed.company_name || prev.company_name,
@@ -292,11 +215,9 @@ export function JobsManager() {
         deadline: parsed.deadline || prev.deadline,
         profession_category_id: data.professionCategoryId || prev.profession_category_id,
       }));
-
       toast.success("Job post parsed! Review and edit as needed.");
       setShowParseSection(false);
     } catch (error: any) {
-      console.error("Error parsing job post:", error);
       toast.error(error.message || "Failed to parse job post");
     } finally {
       setParsing(false);
@@ -308,7 +229,6 @@ export function JobsManager() {
       toast.error("Please enter a job description first");
       return;
     }
-
     setEnhancing(true);
     try {
       const { data, error } = await supabase.functions.invoke("enhance-job-description", {
@@ -318,16 +238,10 @@ export function JobsManager() {
           company: formData.company_name,
         },
       });
-
       if (error) throw error;
-
-      setFormData((prev) => ({
-        ...prev,
-        ai_enhanced_description: data.enhanced_description,
-      }));
+      setFormData((prev: any) => ({ ...prev, ai_enhanced_description: data.enhanced_description }));
       toast.success("Description enhanced with AI!");
     } catch (error: any) {
-      console.error("Error enhancing description:", error);
       toast.error("Failed to enhance description");
     } finally {
       setEnhancing(false);
@@ -336,28 +250,23 @@ export function JobsManager() {
 
   const uploadToStorage = async (file: File, path: string) => {
     const fileName = `${path}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "")}`;
-    const { error: uploadError } = await supabase.storage.from("public-uploads").upload(fileName, file);
-
+    const { error: uploadError } = await supabase.storage.from("public-uploads").upload(fileName, file); // Ensure bucket exists
     if (uploadError) throw uploadError;
-
     const {
       data: { publicUrl },
     } = supabase.storage.from("public-uploads").getPublicUrl(fileName);
-
     return publicUrl;
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     setUploadingImage(true);
     try {
       const publicUrl = await uploadToStorage(file, "job-images");
-      setFormData((prev) => ({ ...prev, source_image_url: publicUrl }));
+      setFormData((prev: any) => ({ ...prev, source_image_url: publicUrl }));
       toast.success("Image uploaded!");
     } catch (error: any) {
-      console.error("Error uploading image:", error);
       toast.error("Failed to upload image");
     } finally {
       setUploadingImage(false);
@@ -367,14 +276,12 @@ export function JobsManager() {
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     setUploadingLogo(true);
     try {
       const publicUrl = await uploadToStorage(file, "company-logos");
-      setFormData((prev) => ({ ...prev, company_logo_url: publicUrl }));
+      setFormData((prev: any) => ({ ...prev, company_logo_url: publicUrl }));
       toast.success("Logo uploaded!");
     } catch (error: any) {
-      console.error("Error uploading logo:", error);
       toast.error("Failed to upload logo");
     } finally {
       setUploadingLogo(false);
@@ -383,7 +290,7 @@ export function JobsManager() {
 
   const handleAddRequirement = () => {
     if (requirementInput.trim()) {
-      setFormData((prev) => ({
+      setFormData((prev: any) => ({
         ...prev,
         requirements: [...prev.requirements, requirementInput.trim()],
       }));
@@ -392,269 +299,375 @@ export function JobsManager() {
   };
 
   const handleRemoveRequirement = (index: number) => {
-    setFormData((prev) => ({
+    setFormData((prev: any) => ({
       ...prev,
-      requirements: prev.requirements.filter((_, i) => i !== index),
+      requirements: prev.requirements.filter((_: any, i: number) => i !== index),
     }));
   };
 
-  const handleSave = async () => {
-    if (!formData.title.trim() || !formData.company_name.trim() || !formData.description.trim()) {
-      toast.error("Please fill in all required fields (Title, Company, Description)");
-      return;
-    }
+  return (
+    <div className="grid gap-6 py-4">
+      {/* AI Parse Section */}
+      {!formData.id && (
+        <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
+          <div className="flex items-center justify-between">
+            <Label className="flex items-center gap-2">
+              <Wand2 className="w-4 h-4" /> Parse Job Post with AI
+            </Label>
+            <Button variant="ghost" size="sm" onClick={() => setShowParseSection(!showParseSection)}>
+              {showParseSection ? "Hide" : "Show"}
+            </Button>
+          </div>
+          {showParseSection && (
+            <>
+              <Textarea
+                placeholder="Paste the full job post..."
+                value={rawJobPost}
+                onChange={(e) => setRawJobPost(e.target.value)}
+                rows={6}
+              />
+              <Button onClick={handleParseJobPost} disabled={parsing || rawJobPost.length < 50} className="w-full">
+                {parsing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Parsing...
+                  </>
+                ) : (
+                  <>
+                    <Wand2 className="w-4 h-4 mr-2" /> Parse & Auto-Fill
+                  </>
+                )}
+              </Button>
+            </>
+          )}
+        </div>
+      )}
 
-    if (formData.application_type === "email" && !formData.application_email?.trim()) {
-      toast.error("Please enter an application email");
-      return;
-    }
+      {/* Main Form Fields */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="title">Job Title *</Label>
+          <Input
+            id="title"
+            value={formData.title}
+            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+            placeholder="e.g., Software Engineer"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="company">Company Name *</Label>
+          <Input
+            id="company"
+            value={formData.company_name}
+            onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
+            placeholder="e.g., Tech Corp"
+          />
+        </div>
+      </div>
 
-    if (formData.application_type === "link" && !formData.application_url?.trim()) {
-      toast.error("Please enter an application URL");
-      return;
-    }
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="location">Location</Label>
+          <Input
+            id="location"
+            value={formData.location}
+            onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+            placeholder="e.g., Dhaka, Bangladesh"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Company Logo</Label>
+          <div className="flex gap-2">
+            <Input
+              value={formData.company_logo_url}
+              onChange={(e) => setFormData({ ...formData, company_logo_url: e.target.value })}
+              placeholder="URL or upload..."
+              className="flex-1"
+            />
+            <div className="relative">
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={handleLogoUpload}
+                className="absolute inset-0 opacity-0 cursor-pointer"
+                disabled={uploadingLogo}
+              />
+              <Button variant="outline" disabled={uploadingLogo}>
+                {uploadingLogo ? <Loader2 className="w-4 h-4 animate-spin" /> : "Upload"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
 
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Job Type</Label>
+          <Select value={formData.job_type} onValueChange={(v) => setFormData({ ...formData, job_type: v as JobType })}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {JOB_TYPES.map((type) => (
+                <SelectItem key={type.value} value={type.value}>
+                  {type.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>Experience Level</Label>
+          <Select
+            value={formData.experience_level}
+            onValueChange={(v) => setFormData({ ...formData, experience_level: v as ExperienceLevel })}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {EXPERIENCE_LEVELS.map((level) => (
+                <SelectItem key={level.value} value={level.value}>
+                  {level.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-4">
+        <div className="space-y-2">
+          <Label>Salary Min</Label>
+          <Input
+            type="number"
+            value={formData.salary_range_min || ""}
+            onChange={(e) =>
+              setFormData({ ...formData, salary_range_min: e.target.value ? parseInt(e.target.value) : null })
+            }
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Salary Max</Label>
+          <Input
+            type="number"
+            value={formData.salary_range_max || ""}
+            onChange={(e) =>
+              setFormData({ ...formData, salary_range_max: e.target.value ? parseInt(e.target.value) : null })
+            }
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Vacancies</Label>
+          <Input
+            type="number"
+            min="1"
+            value={formData.vacancies}
+            onChange={(e) => setFormData({ ...formData, vacancies: parseInt(e.target.value) || 1 })}
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <Label>Job Description *</Label>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleEnhanceDescription}
+            disabled={enhancing || !formData.description.trim()}
+          >
+            {enhancing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}{" "}
+            Enhance with AI
+          </Button>
+        </div>
+        <Textarea
+          value={formData.description}
+          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+          rows={6}
+          placeholder="Paste raw description..."
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label>Requirements</Label>
+        <div className="flex gap-2">
+          <Input
+            value={requirementInput}
+            onChange={(e) => setRequirementInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddRequirement())}
+            placeholder="Add requirement..."
+          />
+          <Button type="button" onClick={handleAddRequirement} variant="outline">
+            Add
+          </Button>
+        </div>
+        <div className="flex flex-wrap gap-2 mt-2">
+          {formData.requirements.map((req: string, i: number) => (
+            <Badge key={i} variant="secondary" className="gap-1">
+              {req}{" "}
+              <button onClick={() => handleRemoveRequirement(i)} className="ml-1 hover:text-destructive">
+                ×
+              </button>
+            </Badge>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex justify-end gap-2 pt-4">
+        <Button variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button onClick={() => onSave(formData)} disabled={saving}>
+          {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} Save Job
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+// --- Main Component ---
+export function JobsManager() {
+  // Data State
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [categories, setCategories] = useState<ProfessionCategory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Pagination & Search
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearch = useDebounce(searchQuery, 500);
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  // UI State
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingJob, setEditingJob] = useState<Job | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  // Fetch Data (Paginated)
+  const loadJobs = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      let query = supabase.from("jobs").select("*", { count: "exact" }).order("created_at", { ascending: false });
+
+      // Search Logic
+      if (debouncedSearch) {
+        query = query.or(
+          `title.ilike.%${debouncedSearch}%,company_name.ilike.%${debouncedSearch}%,location.ilike.%${debouncedSearch}%`,
+        );
+      }
+
+      // Filter Logic
+      if (statusFilter === "active") query = query.eq("is_active", true);
+      if (statusFilter === "inactive") query = query.eq("is_active", false);
+      if (statusFilter === "featured") query = query.eq("is_featured", true);
+
+      // Pagination
+      const from = (page - 1) * ITEMS_PER_PAGE;
+      const to = from + ITEMS_PER_PAGE - 1;
+      query = query.range(from, to);
+
+      const result = await withTimeout(Promise.resolve(query), TIMEOUTS.DEFAULT, "Loading jobs timed out");
+
+      if (result.error) throw result.error;
+
+      setJobs((result.data as unknown as Job[]) || []);
+      setTotalCount(result.count || 0);
+    } catch (err: any) {
+      console.error("Error loading jobs:", err);
+      setError(err.message || "Failed to load jobs");
+      toast.error("Failed to load jobs");
+    } finally {
+      setLoading(false);
+    }
+  }, [page, debouncedSearch, statusFilter]);
+
+  useEffect(() => {
+    loadJobs();
+    loadCategories();
+  }, [loadJobs]);
+
+  const loadCategories = async () => {
+    const { data } = await supabase.from("profession_categories").select("id, name").eq("is_active", true);
+    setCategories(data || []);
+  };
+
+  const handleSaveJob = async (formData: any) => {
     setSaving(true);
     try {
+      // Company Logic (Create or Update)
       let companyId: string | null = null;
       const companyName = formData.company_name.trim();
 
       if (companyName) {
         const { data: existingCompany } = await supabase
           .from("companies")
-          .select("id, logo_url")
+          .select("id")
           .ilike("name", companyName)
           .maybeSingle();
-
         if (existingCompany) {
           companyId = existingCompany.id;
-
-          if (formData.company_logo_url?.trim() && !existingCompany.logo_url) {
-            await supabase
-              .from("companies")
-              .update({ logo_url: formData.company_logo_url.trim() })
-              .eq("id", existingCompany.id);
-          }
         } else {
-          const emailDomain = formData.application_email?.trim() ? formData.application_email.split("@")[1] : null;
-
-          const { data: newCompany, error: companyError } = await supabase
+          const { data: newCompany } = await supabase
             .from("companies")
-            .insert({
-              name: companyName,
-              logo_url: formData.company_logo_url?.trim() || null,
-              primary_email: formData.application_email?.trim() || null,
-              website: emailDomain ? `https://${emailDomain}` : null,
-              is_verified: false,
-            })
+            .insert({ name: companyName })
             .select("id")
             .single();
-
-          if (companyError) {
-            throw new Error(`Failed to create company: ${companyError.message}`);
-          }
-
-          if (newCompany) {
-            companyId = newCompany.id;
-          }
+          if (newCompany) companyId = newCompany.id;
         }
       }
 
       const jobData = {
-        title: formData.title.trim(),
-        company_name: companyName,
+        ...formData,
         company_id: companyId,
-        company_logo_url: formData.company_logo_url?.trim() || null,
-        location: formData.location?.trim() || null,
-
-        // Explicit Casting for Enums
-        job_type: formData.job_type as JobType,
-        experience_level: formData.experience_level as ExperienceLevel,
-        application_type: formData.application_type as ApplicationType,
-        source_platform: formData.source_platform as SourcePlatform,
-
-        salary_range_min: formData.salary_range_min,
-        salary_range_max: formData.salary_range_max,
-        description: formData.description.trim(),
-        ai_enhanced_description: formData.ai_enhanced_description?.trim() || null,
-        requirements: formData.requirements as any,
-        application_email: formData.application_type === "email" ? formData.application_email?.trim() : null,
-        application_url: formData.application_type === "link" ? formData.application_url?.trim() : null,
-        source_url: formData.source_url?.trim() || null,
-        source_image_url: formData.source_image_url?.trim() || null,
-        profession_category_id: formData.profession_category_id || null,
-        deadline: formData.deadline ? new Date(formData.deadline).toISOString() : null,
-        is_active: formData.is_active,
-        is_featured: formData.is_featured,
-        ai_assessment_enabled: formData.ai_assessment_enabled,
-        assessment_config: formData.assessment_config as any,
-        vacancies: formData.vacancies || 1,
+        requirements: formData.requirements, // Ensure array type
       };
 
+      // Remove ID from insert data to prevent duplicate key error
+      delete jobData.id;
+
       if (editingJob) {
-        const { error } = await supabase.from("jobs").update(jobData).eq("id", editingJob.id);
-
-        if (error) throw error;
-        toast.success("Job updated successfully");
+        await supabase.from("jobs").update(jobData).eq("id", editingJob.id);
+        toast.success("Job updated");
       } else {
-        const { error } = await supabase.from("jobs").insert(jobData);
-
-        if (error) throw error;
-        toast.success("Job created successfully");
+        await supabase.from("jobs").insert(jobData);
+        toast.success("Job created");
       }
-
       setIsDialogOpen(false);
       loadJobs();
     } catch (error: any) {
-      console.error("Error saving job:", error);
-      toast.error(error.message || "Failed to save job");
+      toast.error("Failed to save job");
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this job?")) return;
-
-    try {
-      const { error } = await supabase.from("jobs").delete().eq("id", id);
-      if (error) throw error;
-      toast.success("Job deleted successfully");
-      loadJobs();
-      setJobs((prev) => prev.filter((j) => j.id !== id));
-    } catch (error: any) {
-      console.error("Error deleting job:", error);
-      toast.error(error.message || "Failed to delete job");
-    }
+    if (!confirm("Delete job?")) return;
+    await supabase.from("jobs").delete().eq("id", id);
+    toast.success("Job deleted");
+    loadJobs();
   };
 
-  const handleToggleActive = async (job: Job) => {
-    try {
-      const { error } = await supabase.from("jobs").update({ is_active: !job.is_active }).eq("id", job.id);
-
-      if (error) throw error;
-
-      setJobs((prev) => prev.map((j) => (j.id === job.id ? { ...j, is_active: !j.is_active } : j)));
-      toast.success(job.is_active ? "Job deactivated" : "Job activated");
-    } catch (error: any) {
-      console.error("Error toggling job:", error);
-      toast.error("Failed to update job status");
-      loadJobs();
-    }
-  };
-
-  const handleDuplicate = (job: Job) => {
-    setEditingJob(null);
-    setFormData({
-      ...emptyJob,
-      title: `${job.title} (Copy)`,
-      company_name: job.company_name,
-      company_logo_url: job.company_logo_url || "",
-      location: job.location || "",
-      job_type: job.job_type,
-      experience_level: job.experience_level,
-      salary_range_min: job.salary_range_min,
-      salary_range_max: job.salary_range_max,
-      description: job.description,
-      ai_enhanced_description: job.ai_enhanced_description,
-      requirements: Array.isArray(job.requirements) ? [...job.requirements] : [],
-      application_type: job.application_type,
-      application_email: job.application_email || "",
-      application_url: job.application_url || "",
-      source_url: job.source_url || "",
-      source_platform: job.source_platform || "other",
-      source_image_url: job.source_image_url || "",
-      profession_category_id: job.profession_category_id,
-      ai_assessment_enabled: job.ai_assessment_enabled || false,
-      assessment_config: job.assessment_config || { question_count: 6, voice_enabled: true },
-    });
-    setIsDialogOpen(true);
-  };
-
-  const handleCopyJobLink = (job: Job) => {
-    const jobUrl = `${window.location.origin}/jobs/${job.id}`;
-    navigator.clipboard.writeText(jobUrl);
-    toast.success("Job link copied!");
-  };
-
-  const handleShareLinkedIn = (job: Job) => {
-    const jobUrl = `${window.location.origin}/jobs/${job.id}`;
-    const jobType = JOB_TYPES.find((t) => t.value === job.job_type)?.label || job.job_type;
-
-    const caption = `🔔 Hiring Alert!
-
-Position: ${job.title}
-Company: ${job.company_name}
-Location: ${job.location || "Remote/Flexible"}
-Type: ${jobType}
-${job.vacancies && job.vacancies > 1 ? `Vacancies: ${job.vacancies}` : ""}
-
-Apply now: ${jobUrl}
-
-#hiring #jobs #careers`;
-
-    navigator.clipboard.writeText(caption);
-    window.open(
-      `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(jobUrl)}`,
-      "_blank",
-      "width=600,height=600",
-    );
-    toast.success("Caption copied! Paste it in the LinkedIn post.");
-  };
-
-  const handleShareFacebook = (job: Job) => {
-    const jobUrl = `${window.location.origin}/jobs/${job.id}`;
-    const banglaCaption = `নতুন চাকরির সুযোগ! 🎯
-
-পদ: ${job.title}
-প্রতিষ্ঠান: ${job.company_name}
-লোকেশন: ${job.location || "রিমোট/ফ্লেক্সিবল"}
-${job.vacancies && job.vacancies > 1 ? `পদসংখ্যা: ${job.vacancies}` : ""}
-
-আবেদন করুন 👇
-${jobUrl}
-
-#চাকরি #নিয়োগ #ক্যারিয়ার`;
-
-    navigator.clipboard.writeText(banglaCaption);
-    window.open(
-      `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(jobUrl)}`,
-      "_blank",
-      "width=600,height=600",
-    );
-    toast.success("বাংলা ক্যাপশন কপি হয়েছে! পেস্ট করুন।");
-  };
-
-  const handleShareWhatsApp = (job: Job) => {
-    const jobUrl = `${window.location.origin}/jobs/${job.id}`;
-    const message = `*${job.title}* at ${job.company_name}${job.vacancies && job.vacancies > 1 ? ` (${job.vacancies} positions)` : ""}\n\nApply here: ${jobUrl}`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank");
-  };
-
-  const activeCount = jobs.filter((j) => j.is_active).length;
-  const featuredCount = jobs.filter((j) => j.is_featured).length;
-
-  if (loading) {
-    return <DashboardTableSkeleton rows={5} columns={8} />;
-  }
-
-  if (error) {
-    return <DashboardErrorState title="Failed to load jobs" message={error} onRetry={loadJobs} />;
-  }
+  const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <CardTitle className="text-lg">Jobs Manager ({jobs.length})</CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">
-              {activeCount} active • {featuredCount} featured
-            </p>
+            <CardTitle className="text-lg">Jobs Manager</CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">Total {totalCount} jobs found</p>
           </div>
-          <Button onClick={() => handleOpenDialog()}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Job
+          <Button
+            onClick={() => {
+              setEditingJob(null);
+              setIsDialogOpen(true);
+            }}
+          >
+            <Plus className="w-4 h-4 mr-2" /> Add Job
           </Button>
         </div>
         <div className="flex gap-4 mt-4 flex-wrap">
@@ -667,7 +680,13 @@ ${jobUrl}
               className="pl-9"
             />
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <Select
+            value={statusFilter}
+            onValueChange={(v) => {
+              setStatusFilter(v);
+              setPage(1);
+            }}
+          >
             <SelectTrigger className="w-[150px]">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
@@ -681,634 +700,110 @@ ${jobUrl}
         </div>
       </CardHeader>
       <CardContent>
-        {filteredJobs.length === 0 ? (
-          <div className="text-center py-12">
-            <Building2 className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">No jobs found. Add your first job listing!</p>
-          </div>
+        {loading ? (
+          <DashboardTableSkeleton rows={5} columns={8} />
+        ) : error ? (
+          <DashboardErrorState title="Error" message={error} onRetry={loadJobs} />
         ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Job</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Source</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Deadline</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredJobs.map((job) => (
-                  <TableRow key={job.id}>
-                    <TableCell>
-                      <div className="flex items-start gap-3">
-                        {job.is_featured && (
-                          <Star className="w-4 h-4 text-yellow-500 fill-yellow-500 flex-shrink-0 mt-1" />
-                        )}
+          <>
+            <div className="overflow-x-auto rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Job</TableHead>
+                    <TableHead>Location</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Deadline</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {jobs.map((job) => (
+                    <TableRow key={job.id}>
+                      <TableCell>
                         <div>
                           <p className="font-medium">{job.title}</p>
-                          <p className="text-sm text-muted-foreground flex items-center gap-1">
-                            <Building2 className="w-3 h-3" /> {job.company_name}
-                          </p>
+                          <p className="text-xs text-muted-foreground">{job.company_name}</p>
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {job.location ? (
-                        <span className="flex items-center gap-1 text-sm">
-                          <MapPin className="w-3 h-3" /> {job.location}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        {JOB_TYPES.find((t) => t.value === job.job_type)?.label || job.job_type}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">
-                        {SOURCE_PLATFORMS.find((p) => p.value === job.source_platform)?.label || job.source_platform}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={job.is_active ? "default" : "secondary"}>
-                        {job.is_active ? "Active" : "Inactive"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {job.deadline ? (
-                        <span className="flex items-center gap-1 text-sm">
-                          <Calendar className="w-3 h-3" />
-                          {format(new Date(job.deadline), "MMM d, yyyy")}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">No deadline</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(job)} title="Edit">
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" title="Share">
-                              <Share2 className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleCopyJobLink(job)}>
-                              <Link className="w-4 h-4 mr-2" />
-                              Copy Link
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleShareLinkedIn(job)}>
-                              <Linkedin className="w-4 h-4 mr-2" />
-                              LinkedIn (English)
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleShareFacebook(job)}>
-                              <Facebook className="w-4 h-4 mr-2" />
-                              Facebook (বাংলা)
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleShareWhatsApp(job)}>
-                              <MessageCircle className="w-4 h-4 mr-2" />
-                              WhatsApp
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                        <Button variant="ghost" size="icon" onClick={() => handleDuplicate(job)} title="Duplicate">
-                          <Copy className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleToggleActive(job)}
-                          title={job.is_active ? "Deactivate" : "Activate"}
-                        >
-                          {job.is_active ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(job.id)}
-                          title="Delete"
-                          className="text-destructive hover:text-destructive"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                      </TableCell>
+                      <TableCell>{job.location || "-"}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{job.job_type}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={job.is_active ? "default" : "secondary"}>
+                          {job.is_active ? "Active" : "Inactive"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{job.deadline ? format(new Date(job.deadline), "MMM d") : "-"}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setEditingJob(job);
+                              setIsDialogOpen(true);
+                            }}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive"
+                            onClick={() => handleDelete(job.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-end space-x-2 py-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-2" /> Previous
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  Page {page} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                >
+                  Next <ChevronRight className="h-4 w-4 ml-2" />
+                </Button>
+              </div>
+            )}
+          </>
         )}
 
-        {/* Dialog Content */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingJob ? "Edit Job" : "Add New Job"}</DialogTitle>
             </DialogHeader>
-            <div className="grid gap-6 py-4">
-              {/* AI Parse Section */}
-              {!editingJob && (
-                <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
-                  <div className="flex items-center justify-between">
-                    <Label className="flex items-center gap-2">
-                      <Wand2 className="w-4 h-4" />
-                      Parse Job Post with AI
-                    </Label>
-                    <Button variant="ghost" size="sm" onClick={() => setShowParseSection(!showParseSection)}>
-                      {showParseSection ? "Hide" : "Show"}
-                    </Button>
-                  </div>
-                  {showParseSection && (
-                    <>
-                      <Textarea
-                        placeholder="Paste the full job post from Facebook, LinkedIn, etc. The AI will extract all fields automatically..."
-                        value={rawJobPost}
-                        onChange={(e) => setRawJobPost(e.target.value)}
-                        rows={6}
-                      />
-                      <Button
-                        onClick={handleParseJobPost}
-                        disabled={parsing || rawJobPost.length < 50}
-                        className="w-full"
-                      >
-                        {parsing ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Parsing...
-                          </>
-                        ) : (
-                          <>
-                            <Wand2 className="w-4 h-4 mr-2" />
-                            Parse & Auto-Fill
-                          </>
-                        )}
-                      </Button>
-                    </>
-                  )}
-                </div>
-              )}
-
-              {/* Basic Info */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="title">Job Title *</Label>
-                  <Input
-                    id="title"
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    placeholder="e.g., Software Engineer"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="company">Company Name *</Label>
-                  <Input
-                    id="company"
-                    value={formData.company_name}
-                    onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
-                    placeholder="e.g., Tech Corp"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="location">Location</Label>
-                  <Input
-                    id="location"
-                    value={formData.location}
-                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                    placeholder="e.g., Dhaka, Bangladesh"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="logo">Company Logo</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="logo"
-                      value={formData.company_logo_url}
-                      onChange={(e) => setFormData({ ...formData, company_logo_url: e.target.value })}
-                      placeholder="Paste URL or upload..."
-                      className="flex-1"
-                    />
-                    <div className="relative">
-                      <Input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleLogoUpload}
-                        className="absolute inset-0 opacity-0 cursor-pointer"
-                        disabled={uploadingLogo}
-                      />
-                      <Button variant="outline" disabled={uploadingLogo}>
-                        {uploadingLogo ? <Loader2 className="w-4 h-4 animate-spin" /> : "Upload"}
-                      </Button>
-                    </div>
-                  </div>
-                  {formData.company_logo_url && (
-                    <img
-                      src={formData.company_logo_url}
-                      alt="Company logo"
-                      className="mt-2 h-12 rounded border object-contain"
-                    />
-                  )}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <Image className="w-4 h-4" />
-                  Job Post Image (from social media)
-                </Label>
-                <div className="flex gap-2">
-                  <Input
-                    value={formData.source_image_url}
-                    onChange={(e) => setFormData({ ...formData, source_image_url: e.target.value })}
-                    placeholder="Paste image URL or upload..."
-                    className="flex-1"
-                  />
-                  <div className="relative">
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      className="absolute inset-0 opacity-0 cursor-pointer"
-                      disabled={uploadingImage}
-                    />
-                    <Button variant="outline" disabled={uploadingImage}>
-                      {uploadingImage ? <Loader2 className="w-4 h-4 animate-spin" /> : "Upload"}
-                    </Button>
-                  </div>
-                </div>
-                {formData.source_image_url && (
-                  <img
-                    src={formData.source_image_url}
-                    alt="Job post"
-                    className="mt-2 max-h-40 rounded-lg border object-contain"
-                  />
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Job Type</Label>
-                  <Select
-                    value={formData.job_type}
-                    onValueChange={(v) => setFormData({ ...formData, job_type: v as JobType })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {JOB_TYPES.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>
-                          {type.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Experience Level</Label>
-                  <Select
-                    value={formData.experience_level}
-                    onValueChange={(v) => setFormData({ ...formData, experience_level: v as ExperienceLevel })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {EXPERIENCE_LEVELS.map((level) => (
-                        <SelectItem key={level.value} value={level.value}>
-                          {level.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="salary_min">Salary Min (BDT)</Label>
-                  <Input
-                    id="salary_min"
-                    type="number"
-                    value={formData.salary_range_min || ""}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        salary_range_min: e.target.value ? parseInt(e.target.value) : null,
-                      })
-                    }
-                    placeholder="e.g., 30000"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="salary_max">Salary Max (BDT)</Label>
-                  <Input
-                    id="salary_max"
-                    type="number"
-                    value={formData.salary_range_max || ""}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        salary_range_max: e.target.value ? parseInt(e.target.value) : null,
-                      })
-                    }
-                    placeholder="e.g., 50000"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="vacancies">No. of Vacancies</Label>
-                  <Input
-                    id="vacancies"
-                    type="number"
-                    min="1"
-                    value={formData.vacancies}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        vacancies: parseInt(e.target.value) || 1,
-                      })
-                    }
-                    placeholder="1"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="description">Job Description *</Label>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleEnhanceDescription}
-                    disabled={enhancing || !formData.description.trim()}
-                  >
-                    {enhancing ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                      <Sparkles className="w-4 h-4 mr-2" />
-                    )}
-                    Enhance with AI
-                  </Button>
-                </div>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Paste the raw job description here..."
-                  rows={6}
-                />
-              </div>
-
-              {formData.ai_enhanced_description && (
-                <div className="space-y-2">
-                  <Label>AI-Enhanced Description</Label>
-                  <div className="p-4 bg-muted/50 rounded-lg border text-sm whitespace-pre-wrap">
-                    {formData.ai_enhanced_description}
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <Label>Requirements/Skills</Label>
-                <div className="flex gap-2">
-                  <Input
-                    value={requirementInput}
-                    onChange={(e) => setRequirementInput(e.target.value)}
-                    placeholder="Add a requirement..."
-                    onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddRequirement())}
-                  />
-                  <Button type="button" onClick={handleAddRequirement} variant="outline">
-                    Add
-                  </Button>
-                </div>
-                {formData.requirements.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {formData.requirements.map((req: string, i: number) => (
-                      <Badge key={i} variant="secondary" className="gap-1">
-                        {req}
-                        <button onClick={() => handleRemoveRequirement(i)} className="ml-1 hover:text-destructive">
-                          ×
-                        </button>
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Application Type</Label>
-                    <Select
-                      value={formData.application_type}
-                      onValueChange={(v) => setFormData({ ...formData, application_type: v as ApplicationType })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="email">Email Application (Recommended)</SelectItem>
-                        <SelectItem value="link">External Link</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {formData.application_type === "email" ? (
-                    <div className="space-y-2">
-                      <Label htmlFor="app_email">Application Email *</Label>
-                      <Input
-                        id="app_email"
-                        type="email"
-                        value={formData.application_email}
-                        onChange={(e) => setFormData({ ...formData, application_email: e.target.value })}
-                        placeholder="hr@company.com"
-                      />
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <Label htmlFor="app_url">Application URL *</Label>
-                      <Input
-                        id="app_url"
-                        value={formData.application_url}
-                        onChange={(e) => setFormData({ ...formData, application_url: e.target.value })}
-                        placeholder="https://..."
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {formData.application_type === "email" && (
-                  <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
-                    <p className="text-sm text-amber-800 dark:text-amber-200">
-                      <strong>Note:</strong> Email applications require manual forwarding by admin until email domain is
-                      verified. Use "External Link" for automatic applicant redirect.
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Source Platform</Label>
-                  <Select
-                    value={formData.source_platform}
-                    onValueChange={(v) => setFormData({ ...formData, source_platform: v as SourcePlatform })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {SOURCE_PLATFORMS.map((platform) => (
-                        <SelectItem key={platform.value} value={platform.value}>
-                          {platform.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Profession Category</Label>
-                  <Select
-                    value={formData.profession_category_id || "none"}
-                    onValueChange={(v) => setFormData({ ...formData, profession_category_id: v === "none" ? null : v })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">No Category</SelectItem>
-                      {categories.map((cat) => (
-                        <SelectItem key={cat.id} value={cat.id}>
-                          {cat.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="source_url">Source URL (Reference)</Label>
-                  <Input
-                    id="source_url"
-                    value={formData.source_url}
-                    onChange={(e) => setFormData({ ...formData, source_url: e.target.value })}
-                    placeholder="https://..."
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="deadline">Application Deadline</Label>
-                  <Input
-                    id="deadline"
-                    type="date"
-                    value={formData.deadline}
-                    onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center gap-8 flex-wrap">
-                <div className="flex items-center gap-2">
-                  <Switch
-                    id="is_active"
-                    checked={formData.is_active}
-                    onCheckedChange={(v) => setFormData({ ...formData, is_active: v })}
-                  />
-                  <Label htmlFor="is_active">Active</Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Switch
-                    id="is_featured"
-                    checked={formData.is_featured}
-                    onCheckedChange={(v) => setFormData({ ...formData, is_featured: v })}
-                  />
-                  <Label htmlFor="is_featured">Featured</Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Switch
-                    id="ai_assessment"
-                    checked={formData.ai_assessment_enabled}
-                    onCheckedChange={(v) => setFormData({ ...formData, ai_assessment_enabled: v })}
-                  />
-                  <Label htmlFor="ai_assessment" className="flex items-center gap-1">
-                    <Brain className="w-4 h-4" />
-                    AI Assessment
-                  </Label>
-                </div>
-              </div>
-
-              {formData.ai_assessment_enabled && (
-                <div className="p-4 border rounded-lg bg-muted/30 space-y-4">
-                  <Label className="flex items-center gap-2 text-sm font-medium">
-                    <Brain className="w-4 h-4" />
-                    AI Assessment Configuration
-                  </Label>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Number of Questions</Label>
-                      <Select
-                        value={String(formData.assessment_config?.question_count || 6)}
-                        onValueChange={(v) =>
-                          setFormData({
-                            ...formData,
-                            assessment_config: { ...formData.assessment_config, question_count: parseInt(v) },
-                          })
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="4">4 Questions</SelectItem>
-                          <SelectItem value="5">5 Questions</SelectItem>
-                          <SelectItem value="6">6 Questions</SelectItem>
-                          <SelectItem value="8">8 Questions</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="flex items-center gap-2 pt-7">
-                      <Switch
-                        id="voice_enabled"
-                        checked={formData.assessment_config?.voice_enabled !== false}
-                        onCheckedChange={(v) =>
-                          setFormData({
-                            ...formData,
-                            assessment_config: { ...formData.assessment_config, voice_enabled: v },
-                          })
-                        }
-                      />
-                      <Label htmlFor="voice_enabled">Voice Questions</Label>
-                    </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Candidates will answer personalized questions generated from the JD and their CV. Assessment results
-                    will appear in the Applications tab.
-                  </p>
-                </div>
-              )}
-
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleSave} disabled={saving}>
-                  {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                  {editingJob ? "Update Job" : "Create Job"}
-                </Button>
-              </div>
-            </div>
+            <JobForm
+              initialData={editingJob || emptyJob}
+              categories={categories}
+              onSave={handleSaveJob}
+              onCancel={() => setIsDialogOpen(false)}
+              saving={saving}
+            />
           </DialogContent>
         </Dialog>
       </CardContent>
