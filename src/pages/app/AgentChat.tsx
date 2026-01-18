@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Briefcase, FileText, Mic, DollarSign, BookOpen, Lightbulb, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { CREDIT_CONFIG } from "@/lib/creditPricing";
 import { AgentChatDialog } from "@/components/ai-agents/AgentChatDialog";
 import { useAgentChat } from "@/hooks/useAgentChat";
@@ -8,40 +8,7 @@ import { useCredits } from "@/hooks/useCredits";
 import { CreditGateModal } from "@/components/credits/CreditGateModal";
 import { CreditPurchaseSheet } from "@/components/credits/CreditPurchaseSheet";
 import { toast } from "sonner";
-
-// Consistent with AIAgents.tsx
-const AGENTS: Record<string, { name: string; icon: React.ElementType; color: string }> = {
-  "career-consultant": {
-    name: "Career Consultant",
-    icon: Briefcase,
-    color: "text-blue-600 bg-blue-500/10",
-  },
-  "cv-coach": {
-    name: "CV Coach",
-    icon: FileText,
-    color: "text-emerald-600 bg-emerald-500/10",
-  },
-  "interview-coach": {
-    name: "Interview Coach",
-    icon: Mic,
-    color: "text-purple-600 bg-purple-500/10",
-  },
-  "salary-negotiator": {
-    name: "Salary Negotiator",
-    icon: DollarSign,
-    color: "text-amber-600 bg-amber-500/10",
-  },
-  "ielts-tutor": {
-    name: "IELTS Tutor",
-    icon: BookOpen,
-    color: "text-rose-600 bg-rose-500/10",
-  },
-  "skill-advisor": {
-    name: "Skill Advisor",
-    icon: Lightbulb,
-    color: "text-cyan-600 bg-cyan-500/10",
-  },
-};
+import { getAgentById } from "@/lib/constants/agents"; // <--- IMPORT ADDED
 
 export default function AgentChat() {
   const { agentKey } = useParams<{ agentKey: string }>();
@@ -69,7 +36,8 @@ export default function AgentChat() {
 
   const { balance, deductCredits } = useCredits();
 
-  const agent = agentKey ? AGENTS[agentKey] : null;
+  // Retrieve Agent Data
+  const agent = agentKey ? getAgentById(agentKey) : null;
   const serviceCost = CREDIT_CONFIG.SERVICES.AI_AGENT_CHAT.cost;
 
   // 1. Session Initialization Logic
@@ -107,7 +75,7 @@ export default function AgentChat() {
     if (!agentKey) return;
 
     // Use our global credit hook
-    const success = await deductCredits("AI_AGENT_CHAT", undefined, `AI Agent: ${agent?.name} session`);
+    const success = await deductCredits("AI_AGENT_CHAT", undefined, `AI Agent: ${agent?.name || "Chat"} session`);
 
     if (success) {
       const newSession = await startNewSession(agentKey);
@@ -116,8 +84,10 @@ export default function AgentChat() {
         toast.success("Session started! You have 30 minutes.");
       } else {
         toast.error("Failed to start session. Please try again.");
-        // Consider refunding here if session creation fails, usually handled by backend
       }
+    } else {
+      // Allow user to buy more credits
+      setShowCreditGate(false);
     }
   };
 
@@ -180,8 +150,8 @@ export default function AgentChat() {
           agent={{
             ...agent,
             icon: (
-              <div className={`p-1.5 rounded-md ${agent.color}`}>
-                <AgentIcon className="h-4 w-4" />
+              <div className={`p-1.5 rounded-md ${agent.bgColor}`}>
+                <AgentIcon className={`h-4 w-4 ${agent.iconColor}`} />
               </div>
             ),
           }}
