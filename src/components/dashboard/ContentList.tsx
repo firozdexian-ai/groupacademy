@@ -58,8 +58,10 @@ interface Content {
   current_enrollment: number;
 }
 
+type ContentType = "batch_class" | "free_video" | "live_webinar" | "offline_seminar" | "recorded_course";
+
 interface ContentListProps {
-  filter?: string;
+  filter?: ContentType;
 }
 
 const contentTypeConfig: Record<string, { icon: LucideIcon; label: string; color: string }> = {
