@@ -104,7 +104,7 @@ export default function PortfolioRequestsManager() {
   const [totalCount, setTotalCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearch = useDebounce(searchQuery, 500);
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "contacted" | "in_progress" | "completed" | "cancelled">("all");
 
   // UI State
   const [selectedRequest, setSelectedRequest] = useState<PortfolioRequest | null>(null);
@@ -237,7 +237,7 @@ export default function PortfolioRequestsManager() {
             className="pl-9"
           />
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as "all" | "pending" | "contacted" | "in_progress" | "completed" | "cancelled")}>
           <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>

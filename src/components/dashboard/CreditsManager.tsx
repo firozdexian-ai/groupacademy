@@ -86,7 +86,7 @@ export function CreditsManager() {
     try {
       // 1. Load Summary Stats (Once)
       if (page === 1 && selectedTab === "balances") {
-        const { data: sumData } = await supabase.rpc("get_total_credits_circulation"); // Optional: replace with simple select if RPC missing
+        const { data: sumData } = await (supabase.rpc as any)("get_total_credits_circulation"); // Optional: replace with simple select if RPC missing
         // Fallback calculation if RPC missing or error
         if (sumData === null || sumData === undefined) {
           const { data } = await supabase.from("talent_credits").select("balance");
