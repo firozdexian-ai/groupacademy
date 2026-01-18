@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
@@ -13,9 +13,30 @@ import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Search, Edit, Trash2, Trophy, Calendar, Users, ExternalLink } from "lucide-react";
+import {
+  Plus,
+  Search,
+  Edit,
+  Trash2,
+  Trophy,
+  Calendar,
+  Users,
+  ExternalLink,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+
+// --- Internal Hook for Debounce ---
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+  return debouncedValue;
+}
 
 interface Competition {
   id: string;
@@ -28,7 +49,7 @@ interface Competition {
   end_date: string | null;
   submission_deadline: string | null;
   max_participants: number | null;
-  prizes: any;
+  prizes: { place: string; prize: string }[]; // Fixed type
   rules: string | null;
   status: string;
   is_featured: boolean;
@@ -43,15 +64,7 @@ const STATUSES = [
   { value: "completed", label: "Completed" },
 ];
 
-const CATEGORIES = [
-  "Design",
-  "Development",
-  "Data Science",
-  "Marketing",
-  "Business",
-  "Writing",
-  "Other",
-];
+const CATEGORIES = ["Design", "Development", "Data Science", "Marketing", "Business", "Writing", "Other"];
 
 const emptyCompetition = {
   title: "",
@@ -69,39 +82,58 @@ const emptyCompetition = {
   is_featured: false,
 };
 
+const ITEMS_PER_PAGE = 10;
+
 export function CompetitionsManager() {
+  // Data State
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Pagination & Search
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearch = useDebounce(searchQuery, 500);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  // UI State
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCompetition, setEditingCompetition] = useState<Competition | null>(null);
   const [formData, setFormData] = useState(emptyCompetition);
   const [saving, setSaving] = useState(false);
   const [prizeInput, setPrizeInput] = useState({ place: "", prize: "" });
 
-  useEffect(() => {
-    loadCompetitions();
-  }, []);
-
-  const loadCompetitions = async () => {
+  // Fetch Data (Paginated)
+  const loadCompetitions = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const { data, error: queryError } = await withTimeout(
-        Promise.resolve(
-          supabase
-            .from("competitions")
-            .select("*")
-            .order("created_at", { ascending: false })
-        ).then(q => q),
-        TIMEOUTS.DEFAULT,
-        "Loading competitions timed out"
-      );
+      let query = supabase
+        .from("competitions")
+        .select("*", { count: "exact" })
+        .order("created_at", { ascending: false });
 
-      if (queryError) throw queryError;
-      setCompetitions(data || []);
+      // Search Logic
+      if (debouncedSearch) {
+        query = query.ilike("title", `%${debouncedSearch}%`);
+      }
+
+      // Filter Logic
+      if (statusFilter !== "all") {
+        query = query.eq("status", statusFilter);
+      }
+
+      // Pagination
+      const from = (page - 1) * ITEMS_PER_PAGE;
+      const to = from + ITEMS_PER_PAGE - 1;
+      query = query.range(from, to);
+
+      const result = await withTimeout(Promise.resolve(query), TIMEOUTS.DEFAULT, "Loading competitions timed out");
+
+      if (result.error) throw result.error;
+      setCompetitions((result.data as unknown as Competition[]) || []);
+      setTotalCount(result.count || 0);
     } catch (err: any) {
       console.error("Error loading competitions:", err);
       setError(err.message || "Failed to load competitions");
@@ -109,15 +141,16 @@ export function CompetitionsManager() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, debouncedSearch, statusFilter]);
 
-  const filteredCompetitions = competitions.filter((comp) => {
-    const matchesSearch =
-      comp.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (comp.category && comp.category.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchesStatus = statusFilter === "all" || comp.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  useEffect(() => {
+    loadCompetitions();
+  }, [loadCompetitions]);
+
+  // Reset page on filter change
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, statusFilter]);
 
   const generateSlug = (title: string) => {
     return title
@@ -152,27 +185,27 @@ export function CompetitionsManager() {
   };
 
   const handleTitleChange = (title: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       title,
-      slug: editingCompetition ? prev.slug : generateSlug(title)
+      slug: editingCompetition ? prev.slug : generateSlug(title),
     }));
   };
 
   const handleAddPrize = () => {
     if (prizeInput.place.trim() && prizeInput.prize.trim()) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        prizes: [...prev.prizes, { place: prizeInput.place.trim(), prize: prizeInput.prize.trim() }]
+        prizes: [...prev.prizes, { place: prizeInput.place.trim(), prize: prizeInput.prize.trim() }],
       }));
       setPrizeInput({ place: "", prize: "" });
     }
   };
 
   const handleRemovePrize = (index: number) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      prizes: prev.prizes.filter((_, i) => i !== index)
+      prizes: prev.prizes.filter((_, i) => i !== index),
     }));
   };
 
@@ -201,22 +234,11 @@ export function CompetitionsManager() {
       };
 
       if (editingCompetition) {
-        const { error } = await withTimeout(
-          Promise.resolve(supabase
-            .from("competitions")
-            .update(competitionData)
-            .eq("id", editingCompetition.id)),
-          TIMEOUTS.DEFAULT,
-          "Update timed out"
-        );
+        const { error } = await supabase.from("competitions").update(competitionData).eq("id", editingCompetition.id);
         if (error) throw error;
         toast.success("Competition updated successfully");
       } else {
-        const { error } = await withTimeout(
-          Promise.resolve(supabase.from("competitions").insert(competitionData)),
-          TIMEOUTS.DEFAULT,
-          "Insert timed out"
-        );
+        const { error } = await supabase.from("competitions").insert(competitionData);
         if (error) throw error;
         toast.success("Competition created successfully");
       }
@@ -233,61 +255,43 @@ export function CompetitionsManager() {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this competition?")) return;
-
     try {
-      const { error } = await withTimeout(
-        Promise.resolve(supabase.from("competitions").delete().eq("id", id)),
-        TIMEOUTS.DEFAULT,
-        "Delete timed out"
-      );
+      const { error } = await supabase.from("competitions").delete().eq("id", id);
       if (error) throw error;
       toast.success("Competition deleted successfully");
       loadCompetitions();
-    } catch (error: any) {
-      console.error("Error deleting competition:", error);
+    } catch (error) {
       toast.error("Failed to delete competition");
     }
   };
 
   const handleStatusChange = async (competition: Competition, newStatus: string) => {
     try {
-      const { error } = await withTimeout(
-        Promise.resolve(supabase
-          .from("competitions")
-          .update({ status: newStatus })
-          .eq("id", competition.id)),
-        TIMEOUTS.DEFAULT,
-        "Update timed out"
-      );
+      const { error } = await supabase.from("competitions").update({ status: newStatus }).eq("id", competition.id);
       if (error) throw error;
       toast.success(`Status changed to ${newStatus}`);
-      loadCompetitions();
-    } catch (error: any) {
-      console.error("Error updating status:", error);
+      loadCompetitions(); // Ideally optimistic update
+    } catch (error) {
       toast.error("Failed to update status");
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "active": return "default";
-      case "upcoming": return "secondary";
-      case "judging": return "outline";
-      case "completed": return "secondary";
-      default: return "secondary";
+      case "active":
+        return "default";
+      case "upcoming":
+        return "secondary";
+      case "judging":
+        return "outline";
+      case "completed":
+        return "secondary";
+      default:
+        return "secondary";
     }
   };
 
-  const activeCount = competitions.filter(c => c.status === "active").length;
-  const upcomingCount = competitions.filter(c => c.status === "upcoming").length;
-
-  if (loading) {
-    return <DashboardTableSkeleton rows={5} columns={6} />;
-  }
-
-  if (error) {
-    return <DashboardErrorState title="Failed to load competitions" message={error} onRetry={loadCompetitions} />;
-  }
+  const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
   return (
     <Card>
@@ -298,13 +302,10 @@ export function CompetitionsManager() {
               <Trophy className="h-5 w-5" />
               Competitions
             </CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">
-              {competitions.length} total • {activeCount} active • {upcomingCount} upcoming
-            </p>
+            <p className="text-sm text-muted-foreground mt-1">Total {totalCount} competitions found</p>
           </div>
           <Button onClick={() => handleOpenDialog()}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Competition
+            <Plus className="h-4 w-4 mr-2" /> Add Competition
           </Button>
         </div>
       </CardHeader>
@@ -326,110 +327,140 @@ export function CompetitionsManager() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Statuses</SelectItem>
-              {STATUSES.map(status => (
-                <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
+              {STATUSES.map((status) => (
+                <SelectItem key={status.value} value={status.value}>
+                  {status.label}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
 
         {/* Table */}
-        <div className="rounded-md border overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Competition</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Dates</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredCompetitions.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                    No competitions found
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredCompetitions.map((comp) => (
-                  <TableRow key={comp.id}>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{comp.title}</p>
-                        <p className="text-sm text-muted-foreground">{comp.slug}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {comp.category ? (
-                        <Badge variant="outline">{comp.category}</Badge>
-                      ) : "-"}
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        {comp.start_date && (
-                          <p className="flex items-center gap-1">
-                            <Calendar className="h-3 w-3" />
-                            {format(new Date(comp.start_date), "MMM d, yyyy")}
-                          </p>
-                        )}
-                        {comp.submission_deadline && (
-                          <p className="text-muted-foreground">
-                            Deadline: {format(new Date(comp.submission_deadline), "MMM d")}
-                          </p>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col gap-1">
-                        <Select
-                          value={comp.status}
-                          onValueChange={(v) => handleStatusChange(comp, v)}
-                        >
-                          <SelectTrigger className="w-[120px] h-8">
-                            <Badge variant={getStatusColor(comp.status)} className="capitalize">
-                              {comp.status}
-                            </Badge>
-                          </SelectTrigger>
-                          <SelectContent>
-                            {STATUSES.map(status => (
-                              <SelectItem key={status.value} value={status.value}>
-                                {status.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        {comp.is_featured && (
-                          <Badge variant="outline" className="text-xs w-fit">Featured</Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(comp)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(comp.id)}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
+        {loading ? (
+          <DashboardTableSkeleton rows={5} columns={6} />
+        ) : error ? (
+          <DashboardErrorState title="Error" message={error} onRetry={loadCompetitions} />
+        ) : (
+          <>
+            <div className="rounded-md border overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Competition</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Dates</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
+                </TableHeader>
+                <TableBody>
+                  {competitions.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                        No competitions found
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    competitions.map((comp) => (
+                      <TableRow key={comp.id}>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{comp.title}</p>
+                            <p className="text-sm text-muted-foreground">{comp.slug}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>{comp.category ? <Badge variant="outline">{comp.category}</Badge> : "-"}</TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            {comp.start_date && (
+                              <p className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                {format(new Date(comp.start_date), "MMM d, yyyy")}
+                              </p>
+                            )}
+                            {comp.submission_deadline && (
+                              <p className="text-muted-foreground text-xs mt-1">
+                                Deadline: {format(new Date(comp.submission_deadline), "MMM d")}
+                              </p>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col gap-1 items-start">
+                            <Select value={comp.status} onValueChange={(v) => handleStatusChange(comp, v)}>
+                              <SelectTrigger className="w-[120px] h-8 text-xs">
+                                <Badge
+                                  variant={getStatusColor(comp.status)}
+                                  className="capitalize w-full justify-center"
+                                >
+                                  {comp.status}
+                                </Badge>
+                              </SelectTrigger>
+                              <SelectContent>
+                                {STATUSES.map((status) => (
+                                  <SelectItem key={status.value} value={status.value}>
+                                    {status.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            {comp.is_featured && (
+                              <Badge variant="outline" className="text-[10px]">
+                                Featured
+                              </Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(comp)}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => handleDelete(comp.id)}>
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-end space-x-2 py-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-2" /> Previous
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  Page {page} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                >
+                  Next <ChevronRight className="h-4 w-4 ml-2" />
+                </Button>
+              </div>
+            )}
+          </>
+        )}
       </CardContent>
 
-      {/* Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
-              {editingCompetition ? "Edit Competition" : "Add New Competition"}
-            </DialogTitle>
+            <DialogTitle>{editingCompetition ? "Edit Competition" : "Add New Competition"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
@@ -446,19 +477,24 @@ export function CompetitionsManager() {
                 <Label>Slug *</Label>
                 <Input
                   value={formData.slug}
-                  onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value }))}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, slug: e.target.value }))}
                   placeholder="ui-ux-design-challenge-2025"
                 />
               </div>
               <div className="space-y-2">
                 <Label>Category</Label>
-                <Select value={formData.category} onValueChange={(v) => setFormData(prev => ({ ...prev, category: v }))}>
+                <Select
+                  value={formData.category}
+                  onValueChange={(v) => setFormData((prev) => ({ ...prev, category: v }))}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
-                    {CATEGORIES.map(cat => (
-                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    {CATEGORIES.map((cat) => (
+                      <SelectItem key={cat} value={cat}>
+                        {cat}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -469,7 +505,7 @@ export function CompetitionsManager() {
               <Label>Description</Label>
               <Textarea
                 value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
                 placeholder="Competition description"
                 rows={3}
               />
@@ -479,7 +515,7 @@ export function CompetitionsManager() {
               <Label>Featured Image URL</Label>
               <Input
                 value={formData.featured_image}
-                onChange={(e) => setFormData(prev => ({ ...prev, featured_image: e.target.value }))}
+                onChange={(e) => setFormData((prev) => ({ ...prev, featured_image: e.target.value }))}
                 placeholder="https://..."
               />
             </div>
@@ -490,7 +526,7 @@ export function CompetitionsManager() {
                 <Input
                   type="date"
                   value={formData.start_date}
-                  onChange={(e) => setFormData(prev => ({ ...prev, start_date: e.target.value }))}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, start_date: e.target.value }))}
                 />
               </div>
               <div className="space-y-2">
@@ -498,7 +534,7 @@ export function CompetitionsManager() {
                 <Input
                   type="date"
                   value={formData.end_date}
-                  onChange={(e) => setFormData(prev => ({ ...prev, end_date: e.target.value }))}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, end_date: e.target.value }))}
                 />
               </div>
               <div className="space-y-2">
@@ -506,7 +542,7 @@ export function CompetitionsManager() {
                 <Input
                   type="date"
                   value={formData.submission_deadline}
-                  onChange={(e) => setFormData(prev => ({ ...prev, submission_deadline: e.target.value }))}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, submission_deadline: e.target.value }))}
                 />
               </div>
             </div>
@@ -517,19 +553,26 @@ export function CompetitionsManager() {
                 <Input
                   type="number"
                   value={formData.max_participants || ""}
-                  onChange={(e) => setFormData(prev => ({ ...prev, max_participants: e.target.value ? parseInt(e.target.value) : null }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      max_participants: e.target.value ? parseInt(e.target.value) : null,
+                    }))
+                  }
                   placeholder="Leave empty for unlimited"
                 />
               </div>
               <div className="space-y-2">
                 <Label>Status</Label>
-                <Select value={formData.status} onValueChange={(v) => setFormData(prev => ({ ...prev, status: v }))}>
+                <Select value={formData.status} onValueChange={(v) => setFormData((prev) => ({ ...prev, status: v }))}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
                   <SelectContent>
-                    {STATUSES.map(status => (
-                      <SelectItem key={status.value} value={status.value}>{status.label}</SelectItem>
+                    {STATUSES.map((status) => (
+                      <SelectItem key={status.value} value={status.value}>
+                        {status.label}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -541,34 +584,34 @@ export function CompetitionsManager() {
               <div className="flex gap-2">
                 <Input
                   value={prizeInput.place}
-                  onChange={(e) => setPrizeInput(prev => ({ ...prev, place: e.target.value }))}
+                  onChange={(e) => setPrizeInput((prev) => ({ ...prev, place: e.target.value }))}
                   placeholder="e.g., 1st Place"
                   className="flex-1"
                 />
                 <Input
                   value={prizeInput.prize}
-                  onChange={(e) => setPrizeInput(prev => ({ ...prev, prize: e.target.value }))}
+                  onChange={(e) => setPrizeInput((prev) => ({ ...prev, prize: e.target.value }))}
                   placeholder="e.g., $500"
                   className="flex-1"
                 />
-                <Button type="button" variant="outline" onClick={handleAddPrize}>Add</Button>
+                <Button type="button" variant="outline" onClick={handleAddPrize}>
+                  Add
+                </Button>
               </div>
-              {formData.prizes.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-2">
-                  {formData.prizes.map((prize, i) => (
-                    <Badge key={i} variant="secondary" className="cursor-pointer" onClick={() => handleRemovePrize(i)}>
-                      {prize.place}: {prize.prize} ✕
-                    </Badge>
-                  ))}
-                </div>
-              )}
+              <div className="flex flex-wrap gap-2 mt-2">
+                {formData.prizes.map((prize, i) => (
+                  <Badge key={i} variant="secondary" className="cursor-pointer" onClick={() => handleRemovePrize(i)}>
+                    {prize.place}: {prize.prize} ✕
+                  </Badge>
+                ))}
+              </div>
             </div>
 
             <div className="space-y-2">
               <Label>Rules</Label>
               <Textarea
                 value={formData.rules}
-                onChange={(e) => setFormData(prev => ({ ...prev, rules: e.target.value }))}
+                onChange={(e) => setFormData((prev) => ({ ...prev, rules: e.target.value }))}
                 placeholder="Competition rules and guidelines"
                 rows={4}
               />
@@ -577,15 +620,17 @@ export function CompetitionsManager() {
             <div className="flex items-center space-x-2">
               <Switch
                 checked={formData.is_featured}
-                onCheckedChange={(v) => setFormData(prev => ({ ...prev, is_featured: v }))}
+                onCheckedChange={(v) => setFormData((prev) => ({ ...prev, is_featured: v }))}
               />
               <Label>Featured Competition</Label>
             </div>
 
             <div className="flex justify-end gap-2 pt-4">
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                Cancel
+              </Button>
               <Button onClick={handleSave} disabled={saving}>
-                {saving ? "Saving..." : editingCompetition ? "Update Competition" : "Create Competition"}
+                {saving ? "Saving..." : editingCompetition ? "Update" : "Create"}
               </Button>
             </div>
           </div>
