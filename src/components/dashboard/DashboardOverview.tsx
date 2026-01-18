@@ -1,13 +1,28 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { toast } from "sonner";
-import { Users, BookOpen, DollarSign, Video, Plus, Target, Briefcase, RefreshCw, AlertCircle, Bot, Coins, Bell } from "lucide-react";
+import {
+  Users,
+  BookOpen,
+  DollarSign,
+  Video,
+  Plus,
+  Target,
+  Briefcase,
+  RefreshCw,
+  AlertCircle,
+  Bot,
+  Coins,
+  Bell,
+  UserCheck,
+  PlayCircle,
+} from "lucide-react";
 import StatsCard from "@/components/dashboard/StatsCard";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
 
 interface DashboardStats {
   totalTalents: number;
@@ -15,475 +30,353 @@ interface DashboardStats {
   activeEnrollments: number;
   revenue: number;
   freeVideoViews: number;
-  assessments: {
-    total: number;
-    thisWeek: number;
-  };
-  mockInterviews: {
-    total: number;
-    completed: number;
-    avgScore: number;
-  };
-  salaryAnalyses: {
-    total: number;
-    completed: number;
-  };
-  portfolios: {
-    total: number;
-    pending: number;
-    inProgress: number;
-    completed: number;
-    freeRemaining: number;
-  };
-  aiAgents: {
-    totalSessions: number;
-    activeSessions: number;
-  };
-  credits: {
-    totalBalance: number;
-    transactionsToday: number;
-  };
-  notifications: {
-    sentToday: number;
-    unread: number;
-  };
+  assessments: { total: number; thisWeek: number };
+  mockInterviews: { total: number; completed: number; avgScore: number };
+  salaryAnalyses: { total: number; completed: number };
+  portfolios: { total: number; pending: number; inProgress: number; completed: number; freeRemaining: number };
+  aiAgents: { totalSessions: number; activeSessions: number };
+  credits: { totalBalance: number; transactionsToday: number };
+  notifications: { sentToday: number; unread: number };
 }
+
+const initialStats: DashboardStats = {
+  totalTalents: 0,
+  totalLearners: 0,
+  activeEnrollments: 0,
+  revenue: 0,
+  freeVideoViews: 0,
+  assessments: { total: 0, thisWeek: 0 },
+  mockInterviews: { total: 0, completed: 0, avgScore: 0 },
+  salaryAnalyses: { total: 0, completed: 0 },
+  portfolios: { total: 0, pending: 0, inProgress: 0, completed: 0, freeRemaining: 0 },
+  aiAgents: { totalSessions: 0, activeSessions: 0 },
+  credits: { totalBalance: 0, transactionsToday: 0 },
+  notifications: { sentToday: 0, unread: 0 },
+};
 
 export function DashboardOverview() {
   const navigate = useNavigate();
-const [stats, setStats] = useState<DashboardStats>({
-    totalTalents: 0,
-    totalLearners: 0,
-    activeEnrollments: 0,
-    revenue: 0,
-    freeVideoViews: 0,
-    assessments: {
-      total: 0,
-      thisWeek: 0,
-    },
-    mockInterviews: {
-      total: 0,
-      completed: 0,
-      avgScore: 0,
-    },
-    salaryAnalyses: {
-      total: 0,
-      completed: 0,
-    },
-    portfolios: {
-      total: 0,
-      pending: 0,
-      inProgress: 0,
-      completed: 0,
-      freeRemaining: 0,
-    },
-    aiAgents: {
-      totalSessions: 0,
-      activeSessions: 0,
-    },
-    credits: {
-      totalBalance: 0,
-      transactionsToday: 0,
-    },
-    notifications: {
-      sentToday: 0,
-      unread: 0,
-    },
-  });
+  const [stats, setStats] = useState<DashboardStats>(initialStats);
   const [statsError, setStatsError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    loadStats();
-  }, []);
+  // Helper to fetch count safely
+  const fetchCount = async (table: string, query?: any) => {
+    try {
+      let q = supabase.from(table).select("*", { count: "exact", head: true });
+      if (query) q = query(q);
+      const { count, error } = await withTimeout(Promise.resolve(q), TIMEOUTS.DEFAULT, `Count ${table} timed out`);
+      if (error) throw error;
+      return count || 0;
+    } catch (e) {
+      console.warn(`Failed to fetch count for ${table}`, e);
+      return 0;
+    }
+  };
 
-  const loadStats = async () => {
+  const loadStats = useCallback(async () => {
     setStatsError(null);
     setIsLoading(true);
+
     try {
-      // Load talents count with timeout
-      const { count: talentsCount, error: talentsError } = await withTimeout(
-        Promise.resolve(supabase.from("talents").select("*", { count: "exact", head: true })),
-        30000,
-        "Loading timed out"
-      );
-      if (talentsError) throw talentsError;
-
-      // Load students with enrollments (learners)
-      const { count: learnersCount, error: learnersError } = await withTimeout(
-        Promise.resolve(supabase.from("enrollments").select("student_id", { count: "exact", head: true })),
-        15000,
-        "Loading learners timed out"
-      );
-      if (learnersError) throw learnersError;
-
-      // Load active enrollments with timeout
-      const { count: enrollmentsCount, error: enrollmentsError } = await withTimeout(
-        Promise.resolve(supabase
-          .from("enrollments")
-          .select("*", { count: "exact", head: true })
-          .eq("status", "active")),
-        15000,
-        "Loading enrollments timed out"
-      );
-      if (enrollmentsError) throw enrollmentsError;
-
-      // Calculate revenue (sum of payment_amount) with timeout
-      const { data: enrollments, error: revenueError } = await withTimeout(
-        Promise.resolve(supabase
-          .from("enrollments")
-          .select("payment_amount")
-          .not("payment_amount", "is", null)),
-        15000,
-        "Loading revenue timed out"
-      );
-      if (revenueError) throw revenueError;
-
-      const totalRevenue = enrollments?.reduce((sum, e) => sum + (Number(e.payment_amount) || 0), 0) || 0;
-
-      // Count free videos with timeout
-      const { count: videoCount, error: videoError } = await withTimeout(
-        Promise.resolve(supabase
-          .from("content")
-          .select("*", { count: "exact", head: true })
-          .eq("content_type", "free_video")),
-        15000,
-        "Loading videos timed out"
-      );
-      if (videoError) throw videoError;
-
-      // Career assessment stats
-      const oneWeekAgo = new Date();
-      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-      const { data: assessmentsData, error: assessmentsError } = await withTimeout(
-        Promise.resolve(supabase
-          .from("career_assessments")
-          .select("created_at")),
-        15000,
-        "Loading assessments timed out"
-      );
-      if (assessmentsError) throw assessmentsError;
-
-      const totalAssessments = assessmentsData?.length || 0;
-      const thisWeekAssessments = assessmentsData?.filter(a => new Date(a.created_at) >= oneWeekAgo).length || 0;
-
-      // Mock interview stats with timeout
-      const { data: interviews, error: interviewsError } = await withTimeout(
-        Promise.resolve(supabase
-          .from("mock_interviews")
-          .select("status, selection_percentage")),
-        15000,
-        "Loading interviews timed out"
-      );
-      if (interviewsError) throw interviewsError;
-
-      const totalInterviews = interviews?.length || 0;
-      const completedInterviews = interviews?.filter(i => i.status === "completed").length || 0;
-      const completedWithScores = interviews?.filter(i => i.status === "completed" && i.selection_percentage != null) || [];
-      const avgScore = completedWithScores.length > 0 
-        ? Math.round(completedWithScores.reduce((sum, i) => sum + (i.selection_percentage || 0), 0) / completedWithScores.length)
-        : 0;
-
-      // Salary analysis stats
-      const { data: salaryData, error: salaryError } = await withTimeout(
-        Promise.resolve(supabase
-          .from("salary_analyses")
-          .select("status")),
-        15000,
-        "Loading salary analyses timed out"
-      );
-      if (salaryError) throw salaryError;
-
-      const totalSalaryAnalyses = salaryData?.length || 0;
-      const completedSalaryAnalyses = salaryData?.filter(s => s.status === "completed").length || 0;
-
-      // Portfolio stats with timeout
-      const { data: portfolioData, error: portfolioError } = await withTimeout(
-        Promise.resolve(supabase
-          .from("portfolio_requests")
-          .select("status")),
-        15000,
-        "Loading portfolios timed out"
-      );
-      if (portfolioError) throw portfolioError;
-
-      const totalPortfolios = portfolioData?.length || 0;
-      const pendingPortfolios = portfolioData?.filter(p => p.status === "pending").length || 0;
-      const inProgressPortfolios = portfolioData?.filter(p => p.status === "in_progress" || p.status === "contacted").length || 0;
-      const completedPortfolios = portfolioData?.filter(p => p.status === "completed").length || 0;
-      const FREE_LIMIT = 1000;
-
-      // AI Agent sessions stats
-      const { count: totalAgentSessions, error: agentSessionsError } = await withTimeout(
-        Promise.resolve(supabase.from("agent_chat_sessions").select("*", { count: "exact", head: true })),
-        15000,
-        "Loading agent sessions timed out"
-      );
-      if (agentSessionsError) throw agentSessionsError;
-
-      const { count: activeAgentSessions, error: activeAgentError } = await withTimeout(
-        Promise.resolve(supabase.from("agent_chat_sessions").select("*", { count: "exact", head: true }).eq("is_active", true)),
-        15000,
-        "Loading active sessions timed out"
-      );
-      if (activeAgentError) throw activeAgentError;
-
-      // Credits stats
-      const { data: creditsData, error: creditsError } = await withTimeout(
-        Promise.resolve(supabase.from("talent_credits").select("balance")),
-        15000,
-        "Loading credits timed out"
-      );
-      if (creditsError) throw creditsError;
-
-      const totalCreditsBalance = creditsData?.reduce((sum, c) => sum + (c.balance || 0), 0) || 0;
-
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
-      const { count: transactionsToday, error: transactionsError } = await withTimeout(
-        Promise.resolve(supabase
-          .from("credit_transactions")
-          .select("*", { count: "exact", head: true })
-          .gte("created_at", todayStart.toISOString())),
-        15000,
-        "Loading transactions timed out"
-      );
-      if (transactionsError) throw transactionsError;
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
-      // Notifications stats
-      const { count: notificationsSentToday, error: notifTodayError } = await withTimeout(
-        Promise.resolve(supabase
-          .from("notifications")
-          .select("*", { count: "exact", head: true })
-          .gte("created_at", todayStart.toISOString())),
-        15000,
-        "Loading notifications timed out"
-      );
-      if (notifTodayError) throw notifTodayError;
+      // PARALLEL EXECUTION: Run all independent queries at once
+      const [
+        talentsCount,
+        learnersCount,
+        activeEnrollmentsCount,
+        revenueResult,
+        videoCount,
+        assessmentsData,
+        interviewsData,
+        salaryData,
+        portfolioData,
+        agentSessionsCount,
+        activeAgentSessionsCount,
+        creditsData,
+        transactionsTodayCount,
+        notificationsTodayCount,
+        unreadNotificationsCount,
+      ] = await Promise.all([
+        // 1. Talents
+        fetchCount("talents"),
+        // 2. Learners (Unique students in enrollments - approx via enrollments for now or distinct RPC)
+        fetchCount("enrollments"),
+        // 3. Active Enrollments
+        fetchCount("enrollments", (q: any) => q.eq("status", "active")),
+        // 4. Revenue (Sum)
+        supabase.from("enrollments").select("payment_amount").not("payment_amount", "is", null),
+        // 5. Free Videos
+        fetchCount("content", (q: any) => q.eq("content_type", "free_video")),
+        // 6. Assessments
+        supabase.from("career_assessments").select("created_at"),
+        // 7. Mock Interviews
+        supabase.from("mock_interviews").select("status, selection_percentage"),
+        // 8. Salary Analyses
+        supabase.from("salary_analyses").select("status"),
+        // 9. Portfolios
+        supabase.from("portfolio_requests").select("status"),
+        // 10. AI Agent Sessions
+        fetchCount("agent_chat_sessions"),
+        // 11. Active AI Sessions
+        fetchCount("agent_chat_sessions", (q: any) => q.eq("is_active", true)),
+        // 12. Credits
+        supabase.from("talent_credits").select("balance"),
+        // 13. Credit Tx Today
+        fetchCount("credit_transactions", (q: any) => q.gte("created_at", todayStart.toISOString())),
+        // 14. Notifications Today
+        fetchCount("notifications", (q: any) => q.gte("created_at", todayStart.toISOString())),
+        // 15. Unread Notifications
+        fetchCount("notifications", (q: any) => q.eq("is_read", false)),
+      ]);
 
-      const { count: unreadNotifications, error: unreadError } = await withTimeout(
-        Promise.resolve(supabase
-          .from("notifications")
-          .select("*", { count: "exact", head: true })
-          .eq("is_read", false)),
-        15000,
-        "Loading unread notifications timed out"
+      // --- Process Results ---
+
+      // Revenue
+      const totalRevenue = revenueResult.data?.reduce((sum, e) => sum + (Number(e.payment_amount) || 0), 0) || 0;
+
+      // Assessments
+      const totalAssessments = assessmentsData.data?.length || 0;
+      const thisWeekAssessments =
+        assessmentsData.data?.filter((a: any) => new Date(a.created_at) >= oneWeekAgo).length || 0;
+
+      // Interviews
+      const interviews = interviewsData.data || [];
+      const completedInterviews = interviews.filter((i: any) => i.status === "completed").length;
+      const completedWithScores = interviews.filter(
+        (i: any) => i.status === "completed" && i.selection_percentage != null,
       );
-      if (unreadError) throw unreadError;
+      const avgScore =
+        completedWithScores.length > 0
+          ? Math.round(
+              completedWithScores.reduce((sum: number, i: any) => sum + (i.selection_percentage || 0), 0) /
+                completedWithScores.length,
+            )
+          : 0;
+
+      // Salary
+      const salaryAnalyses = salaryData.data || [];
+      const completedSalary = salaryAnalyses.filter((s: any) => s.status === "completed").length;
+
+      // Portfolios
+      const portfolios = portfolioData.data || [];
+      const pendingPortfolios = portfolios.filter((p: any) => p.status === "pending").length;
+      const inProgressPortfolios = portfolios.filter((p: any) =>
+        ["in_progress", "contacted"].includes(p.status),
+      ).length;
+      const completedPortfolios = portfolios.filter((p: any) => p.status === "completed").length;
+      const FREE_LIMIT = 1000;
+
+      // Credits
+      const totalCreditsBalance = creditsData.data?.reduce((sum, c) => sum + (c.balance || 0), 0) || 0;
 
       setStats({
-        totalTalents: talentsCount || 0,
-        totalLearners: learnersCount || 0,
-        activeEnrollments: enrollmentsCount || 0,
+        totalTalents: talentsCount,
+        totalLearners: learnersCount, // Approximation based on total enrollments for now
+        activeEnrollments: activeEnrollmentsCount,
         revenue: totalRevenue,
-        freeVideoViews: videoCount || 0,
-        assessments: {
-          total: totalAssessments,
-          thisWeek: thisWeekAssessments,
-        },
-        mockInterviews: {
-          total: totalInterviews,
-          completed: completedInterviews,
-          avgScore: avgScore,
-        },
-        salaryAnalyses: {
-          total: totalSalaryAnalyses,
-          completed: completedSalaryAnalyses,
-        },
+        freeVideoViews: videoCount,
+        assessments: { total: totalAssessments, thisWeek: thisWeekAssessments },
+        mockInterviews: { total: interviews.length, completed: completedInterviews, avgScore },
+        salaryAnalyses: { total: salaryAnalyses.length, completed: completedSalary },
         portfolios: {
-          total: totalPortfolios,
+          total: portfolios.length,
           pending: pendingPortfolios,
           inProgress: inProgressPortfolios,
           completed: completedPortfolios,
-          freeRemaining: Math.max(0, FREE_LIMIT - totalPortfolios),
+          freeRemaining: Math.max(0, FREE_LIMIT - portfolios.length),
         },
-        aiAgents: {
-          totalSessions: totalAgentSessions || 0,
-          activeSessions: activeAgentSessions || 0,
-        },
-        credits: {
-          totalBalance: totalCreditsBalance,
-          transactionsToday: transactionsToday || 0,
-        },
-        notifications: {
-          sentToday: notificationsSentToday || 0,
-          unread: unreadNotifications || 0,
-        },
+        aiAgents: { totalSessions: agentSessionsCount, activeSessions: activeAgentSessionsCount },
+        credits: { totalBalance: totalCreditsBalance, transactionsToday: transactionsTodayCount },
+        notifications: { sentToday: notificationsTodayCount, unread: unreadNotificationsCount },
       });
     } catch (error: any) {
       console.error("Error loading stats:", error);
-      const errorMessage = error.message?.includes("timed out") 
-        ? "Loading took too long. Please try again."
-        : "Failed to load dashboard statistics";
-      setStatsError(errorMessage);
+      setStatsError("Failed to load some dashboard statistics. Retrying might help.");
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadStats();
+  }, [loadStats]);
 
   if (isLoading) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <div>
-            <Skeleton className="h-8 w-48 mb-2" />
-            <Skeleton className="h-4 w-72" />
-          </div>
+          <Skeleton className="h-8 w-48" />
           <Skeleton className="h-10 w-32" />
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[...Array(8)].map((_, i) => (
             <Card key={i}>
               <CardContent className="p-6">
-                <div className="flex items-center justify-between">
+                <div className="flex justify-between mb-4">
                   <Skeleton className="h-4 w-24" />
                   <Skeleton className="h-8 w-8 rounded" />
                 </div>
-                <Skeleton className="h-8 w-16 mt-2" />
+                <Skeleton className="h-8 w-16" />
                 <Skeleton className="h-3 w-32 mt-2" />
               </CardContent>
             </Card>
           ))}
         </div>
-        <Card>
-          <CardContent className="p-6">
-            <Skeleton className="h-5 w-28 mb-4" />
-            <div className="flex flex-wrap gap-3">
-              {[1, 2, 3, 4].map((i) => (
-                <Skeleton key={i} className="h-10 w-36" />
-              ))}
-            </div>
-          </CardContent>
-        </Card>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold">Dashboard Overview</h2>
-          <p className="text-muted-foreground">Welcome to the GroUp Academy Operations Portal</p>
+          <h2 className="text-3xl font-bold tracking-tight">Dashboard Overview</h2>
+          <p className="text-muted-foreground mt-1">Operational metrics and key performance indicators.</p>
         </div>
-        <Button onClick={() => navigate("/content/new")}>
-          <Plus className="w-4 h-4 mr-2" />
-          Add Content
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={loadStats} variant="outline" size="sm">
+            <RefreshCw className="mr-2 h-4 w-4" /> Refresh
+          </Button>
+          <Button onClick={() => navigate("/admin/content")}>
+            <Plus className="mr-2 h-4 w-4" /> Add Content
+          </Button>
+        </div>
       </div>
 
-      {statsError ? (
-        <Card>
-          <CardContent className="py-6 text-center">
-            <AlertCircle className="w-8 h-8 text-destructive mx-auto mb-2" />
-            <p className="text-muted-foreground mb-3">{statsError}</p>
-            <Button onClick={loadStats} variant="outline" size="sm">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Retry
-            </Button>
+      {statsError && (
+        <Card className="border-destructive/50 bg-destructive/10">
+          <CardContent className="py-4 flex items-center gap-3 text-destructive">
+            <AlertCircle className="h-5 w-5" />
+            <p className="text-sm font-medium">{statsError}</p>
           </CardContent>
         </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          <StatsCard
-            title="Total Talents"
-            value={stats.totalTalents}
-            icon={Users}
-          />
-          <StatsCard
-            title="Active Enrollments"
-            value={stats.activeEnrollments}
-            icon={BookOpen}
-            variant="secondary"
-          />
-          <StatsCard
-            title="Revenue (Month)"
-            value={`BDT ${stats.revenue.toLocaleString()}`}
-            icon={DollarSign}
-            variant="success"
-          />
-          <StatsCard
-            title="Career Assessments"
-            value={stats.assessments.total}
-            icon={Target}
-            variant="accent"
-            trend={stats.assessments.thisWeek > 0 ? `${stats.assessments.thisWeek} this week` : undefined}
-          />
-          <StatsCard
-            title="Mock Interviews"
-            value={stats.mockInterviews.total}
-            icon={Target}
-            variant="default"
-            trend={stats.mockInterviews.total > 0 ? `${Math.round((stats.mockInterviews.completed / stats.mockInterviews.total) * 100)}% completed` : undefined}
-            trendLabel={stats.mockInterviews.avgScore > 0 ? `• Avg: ${stats.mockInterviews.avgScore}%` : undefined}
-          />
-          <StatsCard
-            title="Salary Analyses"
-            value={stats.salaryAnalyses.total}
-            icon={DollarSign}
-            variant="secondary"
-            trend={stats.salaryAnalyses.total > 0 ? `${stats.salaryAnalyses.completed} completed` : undefined}
-          />
-          <StatsCard
-            title="Portfolio Requests"
-            value={stats.portfolios.total}
-            icon={Briefcase}
-            variant="accent"
-            trend={`${stats.portfolios.freeRemaining} free slots left`}
-            trendLabel={stats.portfolios.pending > 0 ? `• ${stats.portfolios.pending} pending` : undefined}
-          />
-          <StatsCard
-            title="Free Videos"
-            value={stats.freeVideoViews}
-            icon={Video}
-            variant="default"
-          />
-          <StatsCard
-            title="AI Agent Sessions"
-            value={stats.aiAgents.totalSessions}
-            icon={Bot}
-            variant="accent"
-            trend={stats.aiAgents.activeSessions > 0 ? `${stats.aiAgents.activeSessions} active` : undefined}
-          />
-          <StatsCard
-            title="Credits Balance"
-            value={stats.credits.totalBalance.toLocaleString()}
-            icon={Coins}
-            variant="success"
-            trend={stats.credits.transactionsToday > 0 ? `${stats.credits.transactionsToday} today` : undefined}
-          />
-          <StatsCard
-            title="Notifications"
-            value={stats.notifications.sentToday}
-            icon={Bell}
-            variant="secondary"
-            trend={stats.notifications.unread > 0 ? `${stats.notifications.unread} unread` : 'Sent today'}
-          />
-        </div>
       )}
 
-      {/* Quick Actions */}
+      {/* Primary Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatsCard title="Total Talents" value={stats.totalTalents} icon={Users} trendLabel="Registered users" />
+        <StatsCard
+          title="Total Revenue"
+          value={`BDT ${stats.revenue.toLocaleString()}`}
+          icon={DollarSign}
+          variant="success"
+          trendLabel="Lifetime revenue"
+        />
+        <StatsCard
+          title="Active Enrollments"
+          value={stats.activeEnrollments}
+          icon={BookOpen}
+          variant="secondary"
+          trendLabel="Current learners"
+        />
+        <StatsCard
+          title="Credits Balance"
+          value={stats.credits.totalBalance.toLocaleString()}
+          icon={Coins}
+          variant="accent"
+          trend={`${stats.credits.transactionsToday} tx today`}
+        />
+      </div>
+
+      {/* Detailed Metrics Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <StatsCard
+          title="Career Assessments"
+          value={stats.assessments.total}
+          icon={Target}
+          trend={`${stats.assessments.thisWeek} this week`}
+        />
+        <StatsCard
+          title="Mock Interviews"
+          value={stats.mockInterviews.total}
+          icon={Bot}
+          trend={`${stats.mockInterviews.completed} completed`}
+          trendLabel={`Avg Score: ${stats.mockInterviews.avgScore}%`}
+        />
+        <StatsCard
+          title="Portfolio Requests"
+          value={stats.portfolios.total}
+          icon={Briefcase}
+          variant="secondary"
+          trend={`${stats.portfolios.pending} pending`}
+          trendLabel={`${stats.portfolios.freeRemaining} free slots`}
+        />
+        <StatsCard
+          title="Salary Analyses"
+          value={stats.salaryAnalyses.total}
+          icon={DollarSign}
+          trend={`${stats.salaryAnalyses.completed} completed`}
+        />
+        <StatsCard
+          title="AI Agent Sessions"
+          value={stats.aiAgents.totalSessions}
+          icon={Bot}
+          trend={`${stats.aiAgents.activeSessions} active now`}
+        />
+        <StatsCard
+          title="Notifications"
+          value={stats.notifications.sentToday}
+          icon={Bell}
+          trend={`${stats.notifications.unread} unread`}
+          trendLabel="Sent today"
+        />
+      </div>
+
+      {/* Quick Actions Panel */}
       <Card>
-        <CardContent className="p-6">
-          <h3 className="font-semibold mb-4">Quick Actions</h3>
-          <div className="flex flex-wrap gap-3">
-            <Button variant="outline" onClick={() => navigate("/students")}>
-              <Users className="w-4 h-4 mr-2" />
-              Manage Students
-            </Button>
-            <Button variant="outline" onClick={() => navigate("/enrollments")}>
-              <BookOpen className="w-4 h-4 mr-2" />
-              View Enrollments
-            </Button>
-            <Button variant="outline" onClick={() => navigate("/instructors")}>
-              <Users className="w-4 h-4 mr-2" />
-              Instructors
-            </Button>
-            <Button variant="outline" onClick={() => navigate("/sessions")}>
-              <Video className="w-4 h-4 mr-2" />
-              Sessions
-            </Button>
-          </div>
+        <CardHeader>
+          <CardTitle className="text-lg">Quick Actions</CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          <Button
+            variant="outline"
+            className="h-auto py-4 flex flex-col gap-2"
+            onClick={() => navigate("/admin/talent-pool")}
+          >
+            <Users className="h-5 w-5" />
+            <span>Manage Talent</span>
+          </Button>
+          <Button
+            variant="outline"
+            className="h-auto py-4 flex flex-col gap-2"
+            onClick={() => navigate("/admin/enrollments")}
+          >
+            <BookOpen className="h-5 w-5" />
+            <span>Enrollments</span>
+          </Button>
+          <Button variant="outline" className="h-auto py-4 flex flex-col gap-2" onClick={() => navigate("/admin/jobs")}>
+            <Briefcase className="h-5 w-5" />
+            <span>Post Job</span>
+          </Button>
+          <Button
+            variant="outline"
+            className="h-auto py-4 flex flex-col gap-2"
+            onClick={() => navigate("/admin/verify-companies")}
+          >
+            <UserCheck className="h-5 w-5" />
+            <span>Verify Company</span>
+          </Button>
+          <Button
+            variant="outline"
+            className="h-auto py-4 flex flex-col gap-2"
+            onClick={() => navigate("/admin/content")}
+          >
+            <Video className="h-5 w-5" />
+            <span>Upload Video</span>
+          </Button>
+          <Button
+            variant="outline"
+            className="h-auto py-4 flex flex-col gap-2"
+            onClick={() => navigate("/admin/sessions")}
+          >
+            <PlayCircle className="h-5 w-5" />
+            <span>Live Sessions</span>
+          </Button>
         </CardContent>
       </Card>
     </div>
