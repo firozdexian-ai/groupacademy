@@ -314,8 +314,8 @@ export const JobApplicationsManager = () => {
   const [totalCount, setTotalCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearch = useDebounce(searchQuery, 500);
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [deliveryFilter, setDeliveryFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<ApplicationStatus | "all">("all");
+  const [deliveryFilter, setDeliveryFilter] = useState<DeliveryStatus | "all">("all");
 
   const [resendingId, setResendingId] = useState<string | null>(null);
 
@@ -612,7 +612,7 @@ This application was submitted via GroUp Academy Jobs Board.
           <Select
             value={statusFilter}
             onValueChange={(v) => {
-              setStatusFilter(v);
+              setStatusFilter(v as ApplicationStatus | "all");
               setPage(1);
             }}
           >
@@ -631,7 +631,7 @@ This application was submitted via GroUp Academy Jobs Board.
           <Select
             value={deliveryFilter}
             onValueChange={(v) => {
-              setDeliveryFilter(v);
+              setDeliveryFilter(v as DeliveryStatus | "all");
               setPage(1);
             }}
           >
