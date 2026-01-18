@@ -2,16 +2,16 @@ import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { GraduationCap, MapPin, Calendar, DollarSign, ArrowLeft, Search, Filter, Award, X } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { GraduationCap, MapPin, Calendar, DollarSign, ArrowLeft, Search, Award, X } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 
+// --- INLINE CONSTANTS ---
 const COUNTRIES = [
-  { name: "All Countries", code: "all", flag: "🌍" },
   { name: "United Kingdom", code: "UK", flag: "🇬🇧" },
   { name: "United States", code: "US", flag: "🇺🇸" },
   { name: "Canada", code: "CA", flag: "🇨🇦" },
@@ -20,9 +20,28 @@ const COUNTRIES = [
   { name: "Singapore", code: "SG", flag: "🇸🇬" },
   { name: "Japan", code: "JP", flag: "🇯🇵" },
   { name: "Sweden", code: "SE", flag: "🇸🇪" },
+  { name: "Netherlands", code: "NL", flag: "🇳🇱" },
+  { name: "Malaysia", code: "MY", flag: "🇲🇾" },
 ];
 
 const DEGREE_TYPES = ["All Degrees", "Bachelor", "Master", "PhD", "Diploma"];
+
+// --- INLINE HOOK: useDebounce ---
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
 
 export default function StudyAbroad() {
   const navigate = useNavigate();
@@ -37,17 +56,20 @@ export default function StudyAbroad() {
   const [selectedCountry, setSelectedCountry] = useState(initialCountry);
   const [selectedDegree, setSelectedDegree] = useState(initialDegree);
 
-  // 2. Sync state changes back to URL
+  // 2. Debounce Search Term (500ms delay)
+  const debouncedSearch = useDebounce(searchTerm, 500);
+
+  // 3. Sync state changes back to URL (using debounced value)
   useEffect(() => {
     const params: any = {};
     if (selectedCountry !== "all") params.country = selectedCountry;
     if (selectedDegree !== "All Degrees") params.degree = selectedDegree;
-    if (searchTerm) params.search = searchTerm;
+    if (debouncedSearch) params.search = debouncedSearch;
     setSearchParams(params, { replace: true });
-  }, [selectedCountry, selectedDegree, searchTerm, setSearchParams]);
+  }, [selectedCountry, selectedDegree, debouncedSearch, setSearchParams]);
 
   const { data: programs, isLoading } = useQuery({
-    queryKey: ["study-abroad-programs", selectedCountry, selectedDegree, searchTerm],
+    queryKey: ["study-abroad-programs", selectedCountry, selectedDegree, debouncedSearch],
     queryFn: async () => {
       let query = supabase
         .from("study_abroad_programs")
@@ -62,10 +84,10 @@ export default function StudyAbroad() {
       if (selectedDegree !== "All Degrees") {
         query = query.eq("degree_type", selectedDegree);
       }
-      if (searchTerm) {
+      if (debouncedSearch) {
         // Safe search across multiple columns
         query = query.or(
-          `university_name.ilike.%${searchTerm}%,program_name.ilike.%${searchTerm}%,field_of_study.ilike.%${searchTerm}%`,
+          `university_name.ilike.%${debouncedSearch}%,program_name.ilike.%${debouncedSearch}%,field_of_study.ilike.%${debouncedSearch}%`,
         );
       }
 
@@ -100,7 +122,7 @@ export default function StudyAbroad() {
       </div>
 
       {/* Filters Bar */}
-      <div className="bg-card border rounded-xl p-3 mb-6 shadow-sm">
+      <div className="bg-card border rounded-xl p-3 mb-6 shadow-sm sticky top-0 z-10">
         <div className="flex flex-col md:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -116,6 +138,12 @@ export default function StudyAbroad() {
               <SelectValue placeholder="Select country" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="all">
+                <span className="flex items-center gap-2">
+                  <span>🌍</span>
+                  <span>All Countries</span>
+                </span>
+              </SelectItem>
               {COUNTRIES.map((country) => (
                 <SelectItem key={country.code} value={country.code}>
                   <span className="flex items-center gap-2">
@@ -184,7 +212,7 @@ export default function StudyAbroad() {
                       {COUNTRIES.find((c) => c.code === program.country_code)?.flag || "🌍"}
                     </div>
                     <div>
-                      <CardTitle className="text-base group-hover:text-primary transition-colors">
+                      <CardTitle className="text-base group-hover:text-primary transition-colors line-clamp-1">
                         {program.university_name}
                       </CardTitle>
                       <CardDescription className="flex items-center gap-1 mt-0.5">
@@ -194,31 +222,31 @@ export default function StudyAbroad() {
                     </div>
                   </div>
                   {program.featured && (
-                    <Badge className="bg-yellow-500/10 text-yellow-600 hover:bg-yellow-500/20 border-yellow-500/20">
+                    <Badge className="bg-yellow-500/10 text-yellow-600 hover:bg-yellow-500/20 border-yellow-500/20 shrink-0">
                       Featured
                     </Badge>
                   )}
                 </div>
               </CardHeader>
               <CardContent>
-                <h3 className="font-semibold text-sm mb-3">{program.program_name}</h3>
+                <h3 className="font-semibold text-sm mb-3 line-clamp-1">{program.program_name}</h3>
 
-                <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
                   {program.degree_type && (
-                    <div className="flex items-center gap-1.5 bg-muted px-2 py-1 rounded-md">
-                      <GraduationCap className="h-3.5 w-3.5" />
+                    <div className="flex items-center gap-1 bg-muted px-2 py-1 rounded-md">
+                      <GraduationCap className="h-3 w-3" />
                       {program.degree_type}
                     </div>
                   )}
                   {program.duration && (
-                    <div className="flex items-center gap-1.5 bg-muted px-2 py-1 rounded-md">
-                      <Calendar className="h-3.5 w-3.5" />
+                    <div className="flex items-center gap-1 bg-muted px-2 py-1 rounded-md">
+                      <Calendar className="h-3 w-3" />
                       {program.duration}
                     </div>
                   )}
                   {program.tuition_range && (
-                    <div className="flex items-center gap-1.5 bg-muted px-2 py-1 rounded-md">
-                      <DollarSign className="h-3.5 w-3.5" />
+                    <div className="flex items-center gap-1 bg-muted px-2 py-1 rounded-md">
+                      <DollarSign className="h-3 w-3" />
                       {program.tuition_range}
                     </div>
                   )}
