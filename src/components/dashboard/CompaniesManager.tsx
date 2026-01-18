@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,16 +8,38 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { 
-  Building2, Plus, Edit, Trash2, Search, ExternalLink, 
-  Mail, Loader2, RefreshCw, CheckCircle, Globe, Linkedin, Upload
+import {
+  Building2,
+  Plus,
+  Edit,
+  Trash2,
+  Search,
+  Mail,
+  Loader2,
+  RefreshCw,
+  CheckCircle,
+  Globe,
+  Linkedin,
+  Upload,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { DashboardTableSkeleton, DashboardErrorState } from "./DashboardSkeleton";
 import { BatchCompanyUpload } from "./BatchCompanyUpload";
+
+// --- Internal Hook for Debounce (No new file needed) ---
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+  return debouncedValue;
+}
 
 interface Company {
   id: string;
@@ -26,7 +48,7 @@ interface Company {
   industry: string | null;
   website: string | null;
   primary_email: string | null;
-  secondary_emails: any;
+  secondary_emails: string[]; // Fixed type from any
   linkedin_url: string | null;
   facebook_url: string | null;
   notes: string | null;
@@ -48,11 +70,21 @@ const emptyCompany = {
   is_verified: false,
 };
 
+const ITEMS_PER_PAGE = 10;
+
 export function CompaniesManager() {
+  // Data State
   const [companies, setCompanies] = useState<Company[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+
+  // Pagination & Search State
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearch = useDebounce(searchQuery, 500);
+
+  // Modal & Form State
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
   const [formData, setFormData] = useState(emptyCompany);
@@ -60,22 +92,31 @@ export function CompaniesManager() {
   const [emailInput, setEmailInput] = useState("");
   const [showBatchUpload, setShowBatchUpload] = useState(false);
 
-  useEffect(() => {
-    loadCompanies();
-  }, []);
-
-  const loadCompanies = async () => {
+  // Fetch Data (Refactored for Server-Side Pagination)
+  const loadCompanies = useCallback(async () => {
     setIsLoading(true);
     setLoadError(null);
     try {
-      const result = await withTimeout(
-        Promise.resolve(supabase.from("companies").select("*").order("name")),
-        TIMEOUTS.DEFAULT,
-        "Loading companies timed out"
-      );
+      let query = supabase.from("companies").select("*", { count: "exact" }).order("name");
+
+      // Apply Search
+      if (debouncedSearch) {
+        query = query.or(
+          `name.ilike.%${debouncedSearch}%,industry.ilike.%${debouncedSearch}%,primary_email.ilike.%${debouncedSearch}%`,
+        );
+      }
+
+      // Apply Pagination
+      const from = (page - 1) * ITEMS_PER_PAGE;
+      const to = from + ITEMS_PER_PAGE - 1;
+      query = query.range(from, to);
+
+      const result = await withTimeout(Promise.resolve(query), TIMEOUTS.DEFAULT, "Loading companies timed out");
 
       if (result.error) throw result.error;
+
       setCompanies(result.data || []);
+      setTotalCount(result.count || 0);
     } catch (error: any) {
       console.error("Error loading companies:", error);
       setLoadError(error.message || "Failed to load companies");
@@ -83,16 +124,19 @@ export function CompaniesManager() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [page, debouncedSearch]);
 
-  const filteredCompanies = companies.filter((c) => {
-    const query = searchQuery.toLowerCase();
-    return (
-      c.name.toLowerCase().includes(query) ||
-      c.industry?.toLowerCase().includes(query) ||
-      c.primary_email?.toLowerCase().includes(query)
-    );
-  });
+  // Trigger load on change
+  useEffect(() => {
+    loadCompanies();
+  }, [loadCompanies]);
+
+  // Reset page when searching
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch]);
+
+  const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
   const handleOpenDialog = (company?: Company) => {
     if (company) {
@@ -156,12 +200,9 @@ export function CompaniesManager() {
 
       if (editingCompany) {
         const { error } = await withTimeout(
-          Promise.resolve(supabase
-            .from("companies")
-            .update(companyData)
-            .eq("id", editingCompany.id)),
+          Promise.resolve(supabase.from("companies").update(companyData).eq("id", editingCompany.id)),
           TIMEOUTS.DEFAULT,
-          "Update timed out"
+          "Update timed out",
         );
         if (error) throw error;
         toast.success("Company updated");
@@ -169,7 +210,7 @@ export function CompaniesManager() {
         const { error } = await withTimeout(
           Promise.resolve(supabase.from("companies").insert(companyData)),
           TIMEOUTS.DEFAULT,
-          "Insert timed out"
+          "Insert timed out",
         );
         if (error) throw error;
         toast.success("Company created");
@@ -192,18 +233,22 @@ export function CompaniesManager() {
       const { error } = await withTimeout(
         Promise.resolve(supabase.from("companies").delete().eq("id", id)),
         TIMEOUTS.DEFAULT,
-        "Delete timed out"
+        "Delete timed out",
       );
       if (error) throw error;
       toast.success("Company deleted");
-      loadCompanies();
+
+      // Handle pagination logic after delete
+      if (companies.length === 1 && page > 1) {
+        setPage((prev) => prev - 1);
+      } else {
+        loadCompanies();
+      }
     } catch (error: any) {
       console.error("Error deleting company:", error);
       toast.error(error.message || "Failed to delete company");
     }
   };
-
-  const verifiedCount = companies.filter((c) => c.is_verified).length;
 
   return (
     <div className="space-y-6">
@@ -213,11 +258,9 @@ export function CompaniesManager() {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Building2 className="w-5 h-5" />
-                Companies ({companies.length})
+                Companies
               </CardTitle>
-              <CardDescription>
-                {verifiedCount} verified employers
-              </CardDescription>
+              <CardDescription>{totalCount} total companies found</CardDescription>
             </div>
             <div className="flex gap-2">
               <Button variant="outline" onClick={loadCompanies} disabled={isLoading}>
@@ -237,7 +280,7 @@ export function CompaniesManager() {
         </CardHeader>
         <CardContent>
           <div className="mb-4">
-            <div className="relative">
+            <div className="relative max-w-sm">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="Search by name, industry, or email..."
@@ -251,111 +294,128 @@ export function CompaniesManager() {
           {isLoading ? (
             <DashboardTableSkeleton rows={5} columns={6} />
           ) : loadError ? (
-            <DashboardErrorState
-              title="Failed to load companies"
-              message={loadError}
-              onRetry={loadCompanies}
-            />
-          ) : filteredCompanies.length === 0 ? (
+            <DashboardErrorState title="Failed to load companies" message={loadError} onRetry={loadCompanies} />
+          ) : companies.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <Building2 className="w-12 h-12 mx-auto mb-4 opacity-20" />
               <p>No companies found. Add your first employer!</p>
             </div>
           ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Company</TableHead>
-                    <TableHead>Industry</TableHead>
-                    <TableHead>Contact</TableHead>
-                    <TableHead>Links</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredCompanies.map((company) => (
-                    <TableRow key={company.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          {company.logo_url ? (
-                            <img
-                              src={company.logo_url}
-                              alt={company.name}
-                              className="w-8 h-8 rounded object-cover"
-                            />
-                          ) : (
-                            <div className="w-8 h-8 rounded bg-muted flex items-center justify-center">
-                              <Building2 className="w-4 h-4 text-muted-foreground" />
-                            </div>
-                          )}
-                          <p className="font-medium">{company.name}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{company.industry || "N/A"}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        {company.primary_email ? (
-                          <a
-                            href={`mailto:${company.primary_email}`}
-                            className="text-sm text-primary hover:underline flex items-center gap-1"
-                          >
-                            <Mail className="w-3 h-3" />
-                            {company.primary_email}
-                          </a>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          {company.website && (
-                            <a href={company.website} target="_blank" rel="noopener noreferrer">
-                              <Globe className="w-4 h-4 text-muted-foreground hover:text-foreground" />
-                            </a>
-                          )}
-                          {company.linkedin_url && (
-                            <a href={company.linkedin_url} target="_blank" rel="noopener noreferrer">
-                              <Linkedin className="w-4 h-4 text-muted-foreground hover:text-foreground" />
-                            </a>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {company.is_verified ? (
-                          <Badge className="bg-green-100 text-green-700">
-                            <CheckCircle className="w-3 h-3 mr-1" /> Verified
-                          </Badge>
-                        ) : (
-                          <Badge variant="secondary">Unverified</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleOpenDialog(company)}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(company.id)}
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
+            <>
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Company</TableHead>
+                      <TableHead>Industry</TableHead>
+                      <TableHead>Contact</TableHead>
+                      <TableHead>Links</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {companies.map((company) => (
+                      <TableRow key={company.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            {company.logo_url ? (
+                              <img src={company.logo_url} alt={company.name} className="w-8 h-8 rounded object-cover" />
+                            ) : (
+                              <div className="w-8 h-8 rounded bg-muted flex items-center justify-center">
+                                <Building2 className="w-4 h-4 text-muted-foreground" />
+                              </div>
+                            )}
+                            <p className="font-medium">{company.name}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{company.industry || "N/A"}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          {company.primary_email ? (
+                            <a
+                              href={`mailto:${company.primary_email}`}
+                              className="text-sm text-primary hover:underline flex items-center gap-1"
+                            >
+                              <Mail className="w-3 h-3" />
+                              {company.primary_email}
+                            </a>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            {company.website && (
+                              <a href={company.website} target="_blank" rel="noopener noreferrer">
+                                <Globe className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+                              </a>
+                            )}
+                            {company.linkedin_url && (
+                              <a href={company.linkedin_url} target="_blank" rel="noopener noreferrer">
+                                <Linkedin className="w-4 h-4 text-muted-foreground hover:text-foreground" />
+                              </a>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {company.is_verified ? (
+                            <Badge className="bg-green-100 text-green-700 hover:bg-green-100">
+                              <CheckCircle className="w-3 h-3 mr-1" /> Verified
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary">Unverified</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button variant="ghost" size="sm" onClick={() => handleOpenDialog(company)}>
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDelete(company.id)}
+                              className="text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-end space-x-2 py-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page === 1 || isLoading}
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-2" />
+                    Previous
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    Page {page} of {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages || isLoading}
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4 ml-2" />
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
@@ -364,9 +424,7 @@ export function CompaniesManager() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
-              {editingCompany ? "Edit Company" : "Add Company"}
-            </DialogTitle>
+            <DialogTitle>{editingCompany ? "Edit Company" : "Add Company"}</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
@@ -464,7 +522,12 @@ export function CompaniesManager() {
               {formData.secondary_emails.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-2">
                   {formData.secondary_emails.map((email) => (
-                    <Badge key={email} variant="secondary" className="cursor-pointer" onClick={() => handleRemoveEmail(email)}>
+                    <Badge
+                      key={email}
+                      variant="secondary"
+                      className="cursor-pointer"
+                      onClick={() => handleRemoveEmail(email)}
+                    >
                       {email} ×
                     </Badge>
                   ))}
@@ -506,11 +569,7 @@ export function CompaniesManager() {
       </Dialog>
 
       {/* Batch Import Dialog */}
-      <BatchCompanyUpload
-        open={showBatchUpload}
-        onOpenChange={setShowBatchUpload}
-        onComplete={loadCompanies}
-      />
+      <BatchCompanyUpload open={showBatchUpload} onOpenChange={setShowBatchUpload} onComplete={loadCompanies} />
     </div>
   );
 }
