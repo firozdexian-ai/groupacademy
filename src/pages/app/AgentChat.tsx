@@ -148,12 +148,9 @@ export default function AgentChat() {
       {session && (
         <AgentChatDialog
           agent={{
-            ...agent,
-            icon: (
-              <div className={`p-1.5 rounded-md ${agent.bgColor}`}>
-                <AgentIcon className={`h-4 w-4 ${agent.iconColor}`} />
-              </div>
-            ),
+            name: agent.name,
+            color: agent.bgColor,
+            icon: <AgentIcon className={`h-4 w-4 ${agent.iconColor}`} />,
           }}
           messages={messages}
           isStreaming={isStreaming}
