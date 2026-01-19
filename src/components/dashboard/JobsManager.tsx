@@ -749,6 +749,41 @@ export function JobsManager() {
                           >
                             <Edit className="w-4 h-4" />
                           </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <Share2 className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => {
+                                const jobUrl = `${window.location.origin}/app/jobs/${job.id}`;
+                                window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(jobUrl)}`, '_blank');
+                              }}>
+                                <Linkedin className="w-4 h-4 mr-2" /> Share to LinkedIn
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => {
+                                const jobUrl = `${window.location.origin}/app/jobs/${job.id}`;
+                                window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(jobUrl)}`, '_blank');
+                              }}>
+                                <Facebook className="w-4 h-4 mr-2" /> Share to Facebook
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => {
+                                const jobUrl = `${window.location.origin}/app/jobs/${job.id}`;
+                                const message = `🔔 Hiring Alert! ${job.title} at ${job.company_name}${job.location ? ` in ${job.location}` : ''}. Apply now!`;
+                                window.open(`https://wa.me/?text=${encodeURIComponent(message + ' ' + jobUrl)}`, '_blank');
+                              }}>
+                                <MessageCircle className="w-4 h-4 mr-2" /> Share to WhatsApp
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => {
+                                const jobUrl = `${window.location.origin}/app/jobs/${job.id}`;
+                                navigator.clipboard.writeText(jobUrl);
+                                toast.success('Job link copied to clipboard!');
+                              }}>
+                                <Copy className="w-4 h-4 mr-2" /> Copy Link
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                           <Button
                             variant="ghost"
                             size="icon"
