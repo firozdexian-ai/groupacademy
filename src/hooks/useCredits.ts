@@ -125,8 +125,9 @@ export function useCredits(): UseCreditsReturn {
     async (service: ServiceType, referenceId?: string, description?: string): Promise<boolean> => {
       if (!talent?.id) return false;
 
-      // 1. Check local state first for immediate feedback
       const cost = getServiceCost(service);
+      
+      // Quick client-side check for immediate feedback
       if (creditData.balance < cost) {
         toast({
           title: "Insufficient Credits",
@@ -137,54 +138,31 @@ export function useCredits(): UseCreditsReturn {
       }
 
       try {
-        // 2. Fetch fresh balance from DB to prevent race conditions
-        const { data: freshData, error: fetchError } = await supabase
-          .from("talent_credits")
-          .select("balance")
-          .eq("talent_id", talent.id)
-          .single();
+        // Use secure RPC function for atomic deduction
+        const { data, error } = await (supabase.rpc as any)("deduct_credits", {
+          p_amount: cost,
+          p_service_type: service,
+          p_reference_id: referenceId || null,
+          p_description: description || `Used ${CREDIT_CONFIG.SERVICES[service]?.name || service}`,
+        });
 
-        if (fetchError || !freshData) throw new Error("Failed to verify balance");
+        if (error) {
+          console.error("RPC error:", error);
+          throw error;
+        }
 
-        if (freshData.balance < cost) {
+        if (!data?.success) {
           toast({
-            title: "Insufficient Credits",
-            description: `You need ${cost} credits. Please reload.`,
+            title: "Transaction Failed",
+            description: data?.error || "Could not deduct credits",
             variant: "destructive",
           });
-          fetchBalance(); // Sync local state
+          fetchBalance(); // Sync state
           return false;
         }
 
-        const newBalance = freshData.balance - cost;
-
-        // 3. Perform Update
-        // Ideally, use an RPC call here: await supabase.rpc('deduct_credits', { amount: cost, ... })
-        const { error: updateError } = await supabase
-          .from("talent_credits")
-          .update({ balance: newBalance })
-          .eq("talent_id", talent.id);
-
-        if (updateError) throw updateError;
-
-        // 4. Record Transaction
-        const { error: transactionError } = await supabase.from("credit_transactions").insert({
-          talent_id: talent.id,
-          amount: -cost,
-          balance_after: newBalance,
-          transaction_type: "service_usage",
-          service_type: service,
-          reference_id: referenceId,
-          description: description || `Used ${CREDIT_CONFIG.SERVICES[service]?.name || service}`,
-        });
-
-        if (transactionError) {
-          console.error("Transaction log failed, but balance deducted");
-          // Don't throw here, the deduction worked
-        }
-
-        // 5. Update Local State
-        setCreditData((prev) => ({ ...prev, balance: newBalance }));
+        // Update local state with returned balance
+        setCreditData((prev) => ({ ...prev, balance: data.new_balance }));
         fetchBalance(); // Refresh history
         return true;
       } catch (error) {
@@ -200,7 +178,7 @@ export function useCredits(): UseCreditsReturn {
     [talent?.id, creditData.balance, toast, fetchBalance],
   );
 
-  // Generic deduction function (mirrors logic of deductCredits)
+  // Generic deduction function using secure RPC
   const deductCustomAmount = useCallback(
     async (amount: number, serviceType: string, referenceId?: string, description?: string): Promise<boolean> => {
       if (!talent?.id) return false;
@@ -215,40 +193,23 @@ export function useCredits(): UseCreditsReturn {
       }
 
       try {
-        const { data: freshData, error: fetchError } = await supabase
-          .from("talent_credits")
-          .select("balance")
-          .eq("talent_id", talent.id)
-          .single();
+        // Use secure RPC function for atomic deduction
+        const { data, error } = await (supabase.rpc as any)("deduct_credits", {
+          p_amount: amount,
+          p_service_type: serviceType,
+          p_reference_id: referenceId || null,
+          p_description: description || `Service: ${serviceType}`,
+        });
 
-        if (fetchError || !freshData) throw new Error("Failed to verify balance");
+        if (error) throw error;
 
-        if (freshData.balance < amount) {
+        if (!data?.success) {
           toast({ title: "Insufficient Credits", variant: "destructive" });
           fetchBalance();
           return false;
         }
 
-        const newBalance = freshData.balance - amount;
-
-        const { error: updateError } = await supabase
-          .from("talent_credits")
-          .update({ balance: newBalance })
-          .eq("talent_id", talent.id);
-
-        if (updateError) throw updateError;
-
-        await supabase.from("credit_transactions").insert({
-          talent_id: talent.id,
-          amount: -amount,
-          balance_after: newBalance,
-          transaction_type: "service_usage",
-          service_type: serviceType,
-          reference_id: referenceId,
-          description: description || `Service: ${serviceType}`,
-        });
-
-        setCreditData((prev) => ({ ...prev, balance: newBalance }));
+        setCreditData((prev) => ({ ...prev, balance: data.new_balance }));
         fetchBalance();
         return true;
       } catch (error) {

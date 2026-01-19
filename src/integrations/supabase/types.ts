@@ -1208,15 +1208,63 @@ export type Database = {
           },
         ]
       }
+      enrollment_stage_progress: {
+        Row: {
+          completed_stages: number[] | null
+          created_at: string | null
+          current_stage: number | null
+          enrollment_id: string
+          id: string
+          module_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          completed_stages?: number[] | null
+          created_at?: string | null
+          current_stage?: number | null
+          enrollment_id: string
+          id?: string
+          module_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          completed_stages?: number[] | null
+          created_at?: string | null
+          current_stage?: number | null
+          enrollment_id?: string
+          id?: string
+          module_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enrollment_stage_progress_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "enrollments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enrollment_stage_progress_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "course_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       enrollments: {
         Row: {
           completed_at: string | null
           content_id: string
           created_at: string | null
+          current_module_id: string | null
           enrolled_at: string | null
           id: string
+          last_accessed_at: string | null
           notes: string | null
           payment_amount: number | null
+          progress: number | null
           status: Database["public"]["Enums"]["enrollment_status"] | null
           student_id: string
           talent_id: string | null
@@ -1226,10 +1274,13 @@ export type Database = {
           completed_at?: string | null
           content_id: string
           created_at?: string | null
+          current_module_id?: string | null
           enrolled_at?: string | null
           id?: string
+          last_accessed_at?: string | null
           notes?: string | null
           payment_amount?: number | null
+          progress?: number | null
           status?: Database["public"]["Enums"]["enrollment_status"] | null
           student_id: string
           talent_id?: string | null
@@ -1239,10 +1290,13 @@ export type Database = {
           completed_at?: string | null
           content_id?: string
           created_at?: string | null
+          current_module_id?: string | null
           enrolled_at?: string | null
           id?: string
+          last_accessed_at?: string | null
           notes?: string | null
           payment_amount?: number | null
+          progress?: number | null
           status?: Database["public"]["Enums"]["enrollment_status"] | null
           student_id?: string
           talent_id?: string | null
@@ -1254,6 +1308,13 @@ export type Database = {
             columns: ["content_id"]
             isOneToOne: false
             referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enrollments_current_module_id_fkey"
+            columns: ["current_module_id"]
+            isOneToOne: false
+            referencedRelation: "course_modules"
             referencedColumns: ["id"]
           },
           {
@@ -3116,6 +3177,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_credits: {
+        Args: {
+          p_amount: number
+          p_description?: string
+          p_talent_id: string
+          p_transaction_type: string
+        }
+        Returns: Json
+      }
       add_talent_service: {
         Args: { p_service: string; p_talent_id: string }
         Returns: undefined
@@ -3130,6 +3200,15 @@ export type Database = {
         Returns: boolean
       }
       cleanup_rate_limits: { Args: never; Returns: undefined }
+      deduct_credits: {
+        Args: {
+          p_amount: number
+          p_description?: string
+          p_reference_id?: string
+          p_service_type: string
+        }
+        Returns: Json
+      }
       get_or_create_talent: {
         Args: {
           p_email: string

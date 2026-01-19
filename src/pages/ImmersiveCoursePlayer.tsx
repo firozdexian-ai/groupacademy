@@ -140,11 +140,18 @@ export default function ImmersiveCoursePlayer() {
   const { data: stageResources = [] } = useModuleResourcesByStage(currentModuleId);
 
   // Use persistent stage progress hook
-  const { completedStages, setCompletedStages, currentStage, setCurrentStage, markStageComplete, goToStage } =
-    useStageProgress({
-      studentId: student?.id,
-      // Add enrollmentId if your hook supports saving to a specific enrollment record
-      // enrollmentId: enrollment?.id
+  const { 
+    completedStages, 
+    setCompletedStages, 
+    currentStage, 
+    setCurrentStage, 
+    markStageComplete, 
+    goToStage,
+    isLoading: progressLoading,
+    resetForModule 
+  } = useStageProgress({
+      enrollmentId: enrollment?.id,
+      moduleId: currentModuleId,
     });
 
   const currentModule = modules.find((m) => m.id === currentModuleId);
@@ -188,10 +195,9 @@ export default function ImmersiveCoursePlayer() {
   };
 
   const handleModuleSelect = (moduleId: string) => {
+    // Reset for new module - progress will be loaded automatically by the hook
+    resetForModule(moduleId);
     setCurrentModuleId(moduleId);
-    setCurrentStage(1);
-    // Ideally fetch stored progress for this module if available
-    setCompletedStages(moduleProgress[moduleId]?.completedStages || []);
   };
 
   const handleQuizComplete = (passed: boolean, score: number) => {

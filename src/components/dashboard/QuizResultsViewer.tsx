@@ -13,6 +13,15 @@ import { Progress } from "@/components/ui/progress";
 import { CheckCircle2, XCircle, Eye, FileText, Trophy, Target, Clock, User } from "lucide-react";
 import { format } from "date-fns";
 
+interface QuizAnswer {
+  questionId: string;
+  questionText: string;
+  selectedAnswer: string;
+  correctAnswer: string;
+  isCorrect: boolean;
+  explanation?: string;
+}
+
 interface QuizAttempt {
   id: string;
   studentId: string;
@@ -24,14 +33,7 @@ interface QuizAttempt {
   totalQuestions: number;
   passed: boolean;
   attemptedAt: string;
-  answers: {
-    questionId: string;
-    questionText: string;
-    selectedAnswer: string;
-    correctAnswer: string;
-    isCorrect: boolean;
-    explanation?: string;
-  }[];
+  answers: QuizAnswer[];
 }
 
 export function QuizResultsViewer() {
@@ -55,19 +57,12 @@ export function QuizResultsViewer() {
     },
   });
 
-  // Fetch quiz attempts - Note: This requires a student_quiz_attempts table to be created
-  // For now, we'll return empty data until the table exists
+  // Fetch quiz attempts from quiz_attempts table
   const { data: quizAttempts, isLoading: attemptsLoading } = useQuery({
     queryKey: ["admin-quiz-attempts", selectedCourse],
     queryFn: async (): Promise<QuizAttempt[]> => {
-      // Check if table exists by querying with a limit of 0
-      // This is a placeholder - the actual table needs to be created via migration
-      // For now, return empty array as the table doesn't exist yet
-      
-      // When the student_quiz_attempts table is created, uncomment and use this query:
-      /*
       let query = supabase
-        .from("student_quiz_attempts")
+        .from("quiz_attempts")
         .select(`
           id,
           student_id,
@@ -77,7 +72,7 @@ export function QuizResultsViewer() {
           passed,
           answers,
           created_at,
-          content:content_id (id, title, pass_threshold),
+          content:content_id (id, title),
           students:student_id (id, full_name, email)
         `)
         .order("created_at", { ascending: false })
@@ -89,7 +84,10 @@ export function QuizResultsViewer() {
 
       const { data, error } = await query;
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching quiz attempts:", error);
+        return [];
+      }
 
       return (data || []).map((attempt: any): QuizAttempt => ({
         id: attempt.id,
@@ -104,9 +102,6 @@ export function QuizResultsViewer() {
         attemptedAt: attempt.created_at,
         answers: Array.isArray(attempt.answers) ? attempt.answers : [],
       }));
-      */
-      
-      return [];
     },
   });
 
