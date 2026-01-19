@@ -49,6 +49,31 @@ function useDebounce<T>(value: T, delay: number): T {
   return debouncedValue;
 }
 
+// --- Utility: Robust Copy to Clipboard ---
+const copyToClipboard = async (text: string) => {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      // Fallback for older browsers or non-HTTPS environments
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.position = "fixed";
+      textArea.style.left = "-9999px";
+      textArea.style.top = "0";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      document.execCommand("copy");
+      textArea.remove();
+    }
+    return true;
+  } catch (err) {
+    console.error("Copy failed", err);
+    return false;
+  }
+};
+
 // --- Types ---
 interface AssessmentConfig {
   question_count: number;
@@ -626,6 +651,7 @@ export function JobsManager() {
     loadJobs();
   };
 
+  // --- REVISED SHARE LOGIC ---
   const handleShare = async (platform: "linkedin" | "facebook" | "whatsapp", job: Job) => {
     const jobUrl = `${window.location.origin}/app/jobs/${job.id}`;
 
@@ -638,34 +664,40 @@ export function JobsManager() {
       `Apply here: ${jobUrl}\n\n` +
       `#hiring #jobsearch #${job.company_name.replace(/\s+/g, "")} #career`;
 
-    // 1. Copy to clipboard
-    try {
-      await navigator.clipboard.writeText(caption);
-      toast.success("Caption copied! Paste it in your post.");
-    } catch (err) {
-      console.error("Clipboard failed", err);
-      toast.error("Failed to copy caption to clipboard");
+    // 1. Copy to clipboard (with robust fallback)
+    const copied = await copyToClipboard(caption);
+
+    if (copied) {
+      toast.success("Caption copied to clipboard!", {
+        description: "Paste it (Ctrl+V) in the popup window.",
+        duration: 4000,
+      });
+    } else {
+      toast.error("Could not copy caption automatically");
     }
 
     // 2. Open Share URL
     let url = "";
     switch (platform) {
       case "linkedin":
-        // LinkedIn doesn't accept pre-filled text in share URL easily, relying on copy-paste
+        // LinkedIn blocks pre-filling via URL. User MUST paste.
         url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(jobUrl)}`;
         break;
       case "facebook":
-        // Facebook also strictly limits pre-filling
+        // Facebook blocks pre-filling via URL. User MUST paste.
         url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(jobUrl)}`;
         break;
       case "whatsapp":
-        // WhatsApp supports pre-filling text
+        // WhatsApp ALLOWS pre-filling.
         url = `https://wa.me/?text=${encodeURIComponent(caption)}`;
         break;
     }
 
     if (url) {
-      window.open(url, "_blank");
+      // Small delay to ensure toast is visible first
+      setTimeout(() => {
+        window.open(url, "_blank", "width=600,height=600");
+      }, 300);
     }
   };
 
@@ -786,7 +818,7 @@ export function JobsManager() {
                               <DropdownMenuItem
                                 onClick={() => {
                                   const jobUrl = `${window.location.origin}/app/jobs/${job.id}`;
-                                  navigator.clipboard.writeText(jobUrl);
+                                  copyToClipboard(jobUrl);
                                   toast.success("Job link copied to clipboard!");
                                 }}
                               >
