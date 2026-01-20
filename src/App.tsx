@@ -366,6 +366,10 @@ export default function App() {
                     <Route path="learning/blog" element={<Blog />} />
                     <Route path="learning/blog/:slug" element={<BlogPost />} />
 
+                    {/* 👇 ADD THESE TWO LINES TO FIX THE BLANK SCREEN 👇 */}
+                    <Route path="blog" element={<Blog />} />
+                    <Route path="blog/:slug" element={<BlogPost />} />
+
                     {/* Services Routes */}
                     <Route path="services/assessment" element={<AppCareerAssessment />} />
                     <Route path="services/mock-interview" element={<AppMockInterviewSetup />} />
