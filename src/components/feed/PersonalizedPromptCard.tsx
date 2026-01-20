@@ -54,7 +54,7 @@ export function PersonalizedPromptCard() {
         description: "AI analysis of your job readiness and skills gaps",
         icon: <ClipboardCheck className="h-5 w-5" />,
         action: "Start Assessment",
-        path: "/app/services/assessment", // Direct path to assessment
+        path: "/app/services/assessment",
         priority: 2,
         cost: 50, // Assessment cost
       });
@@ -101,9 +101,10 @@ export function PersonalizedPromptCard() {
 
       setLoading(prompt.type);
       try {
-        // FIXED: Do NOT pass 'career_assessment' as the second argument (referenceId).
-        // Passing undefined ensures the DB receives NULL instead of an invalid text string.
-        const success = await deductCredits("CAREER_ASSESSMENT", undefined, "Started AI Career Assessment");
+        // --- CRITICAL FIX ---
+        // We pass 'undefined' as the second argument (referenceId).
+        // This ensures the database receives a NULL instead of an invalid text string.
+        const success = await deductCredits("career_assessment", undefined, "Started AI Career Assessment");
 
         if (success) {
           toast.success("Assessment started!");
