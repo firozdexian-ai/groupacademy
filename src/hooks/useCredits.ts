@@ -37,9 +37,10 @@ interface UseCreditsReturn {
   transactionHistory: CreditTransaction[];
 }
 
-// --- Helper: Validate UUID ---
-const isValidUUID = (id: string | null | undefined) => {
-  if (!id) return false;
+// --- Helper: STRICT UUID Validation ---
+// Returns true ONLY if the string is a valid UUID (e.g., "123e4567-e89b-12d3-a456-426614174000")
+const isValidUUID = (id: any) => {
+  if (!id || typeof id !== "string") return false;
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   return uuidRegex.test(id);
 };
@@ -70,7 +71,6 @@ export function useCredits(): UseCreditsReturn {
         isLoading: false,
       });
 
-      // Also fetch recent transactions
       const { data: txData } = await supabase
         .from("credit_transactions")
         .select("*")
@@ -97,31 +97,18 @@ export function useCredits(): UseCreditsReturn {
     }
   }, [talent?.id]);
 
-  // Initial fetch
   useEffect(() => {
     fetchBalance();
   }, [fetchBalance]);
 
   const canAfford = useCallback(
-    (service: ServiceType): boolean => {
-      const cost = getServiceCost(service);
-      return creditData.balance >= cost;
-    },
+    (service: ServiceType) => creditData.balance >= getServiceCost(service),
     [creditData.balance],
   );
+  const canAffordAmount = useCallback((amount: number) => creditData.balance >= amount, [creditData.balance]);
+  const getServiceCostForUser = useCallback((service: ServiceType) => getServiceCost(service), []);
 
-  const canAffordAmount = useCallback(
-    (amount: number): boolean => {
-      return creditData.balance >= amount;
-    },
-    [creditData.balance],
-  );
-
-  const getServiceCostForUser = useCallback((service: ServiceType): number => {
-    return getServiceCost(service);
-  }, []);
-
-  // --- Helper: Direct DB Fallback for Deductions ---
+  // --- Fallback: Direct DB Update (Runs if RPC is missing) ---
   const performDirectDeduction = async (
     amount: number,
     serviceType: string,
@@ -130,16 +117,14 @@ export function useCredits(): UseCreditsReturn {
   ) => {
     if (!talent?.id) return { success: false, error: "No talent ID" };
 
-    // 1. Get latest balance to ensure we have enough
-    const { data: currentData, error: fetchError } = await supabase
+    // 1. Check Balance
+    const { data: currentData } = await supabase
       .from("talent_credits")
       .select("balance")
       .eq("talent_id", talent.id)
       .single();
 
-    if (fetchError || !currentData) return { success: false, error: "Could not fetch balance" };
-
-    if (currentData.balance < amount) {
+    if (!currentData || currentData.balance < amount) {
       return { success: false, error: "Insufficient balance" };
     }
 
@@ -153,18 +138,18 @@ export function useCredits(): UseCreditsReturn {
 
     if (updateError) return { success: false, error: updateError.message };
 
-    // 3. Log Transaction
-    // Sanitize reference ID: If it's not a valid UUID, force it to null
-    const safeReferenceId = isValidUUID(referenceId) ? referenceId : null;
+    // 3. Log Transaction - SANITIZE ID HERE
+    // If referenceId is "career_assessment" (text), it becomes NULL to prevent DB error
+    const safeRefId = isValidUUID(referenceId) ? referenceId : null;
 
     await supabase.from("credit_transactions").insert({
       talent_id: talent.id,
-      amount: -amount, // Negative for deduction
+      amount: -amount,
       balance_after: newBalance,
       transaction_type: "usage",
       service_type: serviceType,
       description: description,
-      reference_id: safeReferenceId, // Use sanitized ID
+      reference_id: safeRefId,
     });
 
     return { success: true, new_balance: newBalance };
@@ -173,79 +158,47 @@ export function useCredits(): UseCreditsReturn {
   const deductCredits = useCallback(
     async (service: ServiceType, referenceId?: string, description?: string): Promise<boolean> => {
       if (!talent?.id) return false;
-
       const cost = getServiceCost(service);
 
-      // Client-side pre-check
       if (creditData.balance < cost) {
-        toast({
-          title: "Insufficient Credits",
-          description: `You need ${cost} credits. Current balance: ${creditData.balance}`,
-          variant: "destructive",
-        });
+        toast({ title: "Insufficient Credits", variant: "destructive" });
         return false;
       }
 
-      // Sanitize reference ID early
-      const safeReferenceId = isValidUUID(referenceId) ? referenceId : null;
+      // PRE-SANITIZE: Ensure we never pass text to UUID fields
+      const safeRefId = isValidUUID(referenceId) ? referenceId : null;
 
       try {
-        // Attempt 1: Try Secure RPC
+        // Attempt 1: RPC
         const { data, error } = await (supabase.rpc as any)("deduct_credits", {
           p_amount: cost,
           p_service_type: service,
-          p_reference_id: safeReferenceId, // Pass sanitized ID
-          p_description: description || `Used ${CREDIT_CONFIG.SERVICES[service]?.name || service}`,
+          p_reference_id: safeRefId, // Pass sanitized ID
+          p_description: description || `Used ${service}`,
         });
 
-        // If RPC works, great!
         if (!error && data?.success) {
           setCreditData((prev) => ({ ...prev, balance: data.new_balance }));
           fetchBalance();
           return true;
         }
 
-        // If RPC failed specifically because it doesn't exist, try fallback
-        if (
-          error &&
-          (error.code === "PGRST202" || error.message.includes("function") || error.message.includes("not found"))
-        ) {
-          console.warn("RPC deduct_credits not found, using direct fallback...");
-          const fallbackResult = await performDirectDeduction(
-            cost,
-            service,
-            referenceId, // Helper will sanitize this again internally
-            description || `Used ${CREDIT_CONFIG.SERVICES[service]?.name || service}`,
-          );
+        // Attempt 2: Fallback (This handles the missing RPC case)
+        console.warn("RPC failed or missing, using direct fallback...");
 
-          if (fallbackResult.success) {
-            setCreditData((prev) => ({ ...prev, balance: fallbackResult.new_balance as number }));
-            fetchBalance();
-            return true;
-          } else {
-            throw new Error(fallbackResult.error);
-          }
+        // Pass original args, helper will sanitize again
+        const fallback = await performDirectDeduction(cost, service, referenceId, description);
+
+        if (fallback.success) {
+          setCreditData((prev) => ({ ...prev, balance: fallback.new_balance as number }));
+          fetchBalance();
+          return true;
         }
 
-        // If RPC failed for other reasons (logic error in SQL)
-        if (error || !data?.success) {
-          throw new Error(data?.error || error?.message || "Unknown error");
-        }
-
-        return true;
+        throw new Error(fallback.error || "Transaction failed");
       } catch (error: any) {
-        console.error("Error deducting credits:", error);
-
-        // Show specific error if it's the UUID mismatch, otherwise generic
-        const errorMsg = error.message?.includes("uuid")
-          ? "System Error: Invalid Reference ID format"
-          : "Could not process credit deduction.";
-
-        toast({
-          title: "Transaction Failed",
-          description: errorMsg,
-          variant: "destructive",
-        });
+        console.error("Deduct error:", error);
+        toast({ title: "Transaction Failed", description: "Could not process deduction", variant: "destructive" });
         return false;
       }
     },
@@ -257,23 +210,17 @@ export function useCredits(): UseCreditsReturn {
       if (!talent?.id) return false;
 
       if (creditData.balance < amount) {
-        toast({
-          title: "Insufficient Credits",
-          description: `You need ${amount} credits.`,
-          variant: "destructive",
-        });
+        toast({ title: "Insufficient Credits", variant: "destructive" });
         return false;
       }
 
-      // Sanitize reference ID early
-      const safeReferenceId = isValidUUID(referenceId) ? referenceId : null;
+      const safeRefId = isValidUUID(referenceId) ? referenceId : null;
 
       try {
-        // Attempt 1: RPC
         const { data, error } = await (supabase.rpc as any)("deduct_credits", {
           p_amount: amount,
           p_service_type: serviceType,
-          p_reference_id: safeReferenceId, // Pass sanitized ID
+          p_reference_id: safeRefId,
           p_description: description || `Service: ${serviceType}`,
         });
 
@@ -283,23 +230,18 @@ export function useCredits(): UseCreditsReturn {
           return true;
         }
 
-        // Attempt 2: Fallback
-        if (error && (error.code === "PGRST202" || error.message.includes("function"))) {
-          const fallbackResult = await performDirectDeduction(amount, serviceType, referenceId, description);
-          if (fallbackResult.success) {
-            setCreditData((prev) => ({ ...prev, balance: fallbackResult.new_balance as number }));
-            fetchBalance();
-            return true;
-          } else {
-            throw new Error(fallbackResult.error);
-          }
+        console.warn("RPC failed or missing, using direct fallback...");
+        const fallback = await performDirectDeduction(amount, serviceType, referenceId, description);
+
+        if (fallback.success) {
+          setCreditData((prev) => ({ ...prev, balance: fallback.new_balance as number }));
+          fetchBalance();
+          return true;
         }
 
-        if (error || !data?.success) throw new Error(data?.error || error?.message);
-
-        return true;
+        throw new Error(fallback.error || "Transaction failed");
       } catch (error: any) {
-        console.error("Error deducting credits:", error);
+        console.error("Deduct error:", error);
         toast({ title: "Error", description: "Transaction failed", variant: "destructive" });
         return false;
       }
