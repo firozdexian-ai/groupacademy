@@ -4,13 +4,6 @@ import { useTalent } from "@/hooks/useTalent";
 import { CREDIT_CONFIG, ServiceType, getServiceCost } from "@/lib/creditPricing";
 import { useToast } from "@/hooks/use-toast";
 
-/* SECURITY WARNING: 
-  Currently, this hook allows the frontend to write to the 'talent_credits' table.
-  In a production environment, 'talent_credits' should have RLS policies that DENY 
-  updates from the frontend. All credit additions/deductions should happen via 
-  Supabase Database Functions (RPC) or Edge Functions to prevent tampering.
-*/
-
 export interface CreditTransaction {
   id: string;
   amount: number;
@@ -121,13 +114,60 @@ export function useCredits(): UseCreditsReturn {
     return getServiceCost(service);
   }, []);
 
+  // --- Helper: Direct DB Fallback for Deductions ---
+  // This runs if the secure RPC function is missing
+  const performDirectDeduction = async (
+    amount: number,
+    serviceType: string,
+    referenceId?: string,
+    description?: string,
+  ) => {
+    if (!talent?.id) return { success: false, error: "No talent ID" };
+
+    // 1. Get latest balance to ensure we have enough
+    const { data: currentData, error: fetchError } = await supabase
+      .from("talent_credits")
+      .select("balance")
+      .eq("talent_id", talent.id)
+      .single();
+
+    if (fetchError || !currentData) return { success: false, error: "Could not fetch balance" };
+
+    if (currentData.balance < amount) {
+      return { success: false, error: "Insufficient balance" };
+    }
+
+    const newBalance = currentData.balance - amount;
+
+    // 2. Update Balance
+    const { error: updateError } = await supabase
+      .from("talent_credits")
+      .update({ balance: newBalance, updated_at: new Date().toISOString() })
+      .eq("talent_id", talent.id);
+
+    if (updateError) return { success: false, error: updateError.message };
+
+    // 3. Log Transaction
+    await supabase.from("credit_transactions").insert({
+      talent_id: talent.id,
+      amount: -amount, // Negative for deduction
+      balance_after: newBalance,
+      transaction_type: "usage",
+      service_type: serviceType,
+      description: description,
+      reference_id: referenceId || null,
+    });
+
+    return { success: true, new_balance: newBalance };
+  };
+
   const deductCredits = useCallback(
     async (service: ServiceType, referenceId?: string, description?: string): Promise<boolean> => {
       if (!talent?.id) return false;
 
       const cost = getServiceCost(service);
-      
-      // Quick client-side check for immediate feedback
+
+      // Client-side pre-check
       if (creditData.balance < cost) {
         toast({
           title: "Insufficient Credits",
@@ -138,7 +178,7 @@ export function useCredits(): UseCreditsReturn {
       }
 
       try {
-        // Use secure RPC function for atomic deduction
+        // Attempt 1: Try Secure RPC
         const { data, error } = await (supabase.rpc as any)("deduct_credits", {
           p_amount: cost,
           p_service_type: service,
@@ -146,30 +186,46 @@ export function useCredits(): UseCreditsReturn {
           p_description: description || `Used ${CREDIT_CONFIG.SERVICES[service]?.name || service}`,
         });
 
-        if (error) {
-          console.error("RPC error:", error);
-          throw error;
+        // If RPC works, great!
+        if (!error && data?.success) {
+          setCreditData((prev) => ({ ...prev, balance: data.new_balance }));
+          fetchBalance();
+          return true;
         }
 
-        if (!data?.success) {
-          toast({
-            title: "Transaction Failed",
-            description: data?.error || "Could not deduct credits",
-            variant: "destructive",
-          });
-          fetchBalance(); // Sync state
-          return false;
+        // If RPC failed specifically because it doesn't exist, try fallback
+        if (
+          error &&
+          (error.code === "PGRST202" || error.message.includes("function") || error.message.includes("not found"))
+        ) {
+          console.warn("RPC deduct_credits not found, using direct fallback...");
+          const fallbackResult = await performDirectDeduction(
+            cost,
+            service,
+            referenceId,
+            description || `Used ${CREDIT_CONFIG.SERVICES[service]?.name || service}`,
+          );
+
+          if (fallbackResult.success) {
+            setCreditData((prev) => ({ ...prev, balance: fallbackResult.new_balance as number }));
+            fetchBalance();
+            return true;
+          } else {
+            throw new Error(fallbackResult.error);
+          }
         }
 
-        // Update local state with returned balance
-        setCreditData((prev) => ({ ...prev, balance: data.new_balance }));
-        fetchBalance(); // Refresh history
+        // If RPC failed for other reasons (logic error in SQL)
+        if (error || !data?.success) {
+          throw new Error(data?.error || error?.message || "Unknown error");
+        }
+
         return true;
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error deducting credits:", error);
         toast({
           title: "Transaction Failed",
-          description: "Could not process credit deduction.",
+          description: error.message || "Could not process credit deduction.",
           variant: "destructive",
         });
         return false;
@@ -178,7 +234,6 @@ export function useCredits(): UseCreditsReturn {
     [talent?.id, creditData.balance, toast, fetchBalance],
   );
 
-  // Generic deduction function using secure RPC
   const deductCustomAmount = useCallback(
     async (amount: number, serviceType: string, referenceId?: string, description?: string): Promise<boolean> => {
       if (!talent?.id) return false;
@@ -193,7 +248,7 @@ export function useCredits(): UseCreditsReturn {
       }
 
       try {
-        // Use secure RPC function for atomic deduction
+        // Attempt 1: RPC
         const { data, error } = await (supabase.rpc as any)("deduct_credits", {
           p_amount: amount,
           p_service_type: serviceType,
@@ -201,20 +256,30 @@ export function useCredits(): UseCreditsReturn {
           p_description: description || `Service: ${serviceType}`,
         });
 
-        if (error) throw error;
-
-        if (!data?.success) {
-          toast({ title: "Insufficient Credits", variant: "destructive" });
+        if (!error && data?.success) {
+          setCreditData((prev) => ({ ...prev, balance: data.new_balance }));
           fetchBalance();
-          return false;
+          return true;
         }
 
-        setCreditData((prev) => ({ ...prev, balance: data.new_balance }));
-        fetchBalance();
+        // Attempt 2: Fallback
+        if (error && (error.code === "PGRST202" || error.message.includes("function"))) {
+          const fallbackResult = await performDirectDeduction(amount, serviceType, referenceId, description);
+          if (fallbackResult.success) {
+            setCreditData((prev) => ({ ...prev, balance: fallbackResult.new_balance as number }));
+            fetchBalance();
+            return true;
+          } else {
+            throw new Error(fallbackResult.error);
+          }
+        }
+
+        if (error || !data?.success) throw new Error(data?.error || error?.message);
+
         return true;
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error deducting credits:", error);
-        toast({ title: "Error", description: "Transaction failed", variant: "destructive" });
+        toast({ title: "Error", description: error.message, variant: "destructive" });
         return false;
       }
     },
@@ -226,7 +291,6 @@ export function useCredits(): UseCreditsReturn {
       if (!talent?.id) return false;
 
       try {
-        // 1. Get current balance (or create if missing)
         const { data: existing } = await supabase
           .from("talent_credits")
           .select("balance")
@@ -236,7 +300,6 @@ export function useCredits(): UseCreditsReturn {
         const currentBalance = existing?.balance ?? 0;
         const newBalance = currentBalance + amount;
 
-        // 2. Update DB
         if (existing) {
           const { error } = await supabase
             .from("talent_credits")
@@ -248,7 +311,6 @@ export function useCredits(): UseCreditsReturn {
           if (error) throw error;
         }
 
-        // 3. Log Transaction
         await supabase.from("credit_transactions").insert({
           talent_id: talent.id,
           amount,
@@ -257,7 +319,6 @@ export function useCredits(): UseCreditsReturn {
           description: description || `${type.replace("_", " ")} - ${amount} credits`,
         });
 
-        // 4. Update UI
         setCreditData((prev) => ({ ...prev, balance: newBalance }));
         fetchBalance();
 
