@@ -1,34 +1,34 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { FileText, Clock, ArrowLeft, Search, User, Calendar, ArrowRight, Tag } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Skeleton } from '@/components/ui/skeleton';
-import { format } from 'date-fns';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { FileText, Clock, ArrowLeft, Search, User, Calendar, ArrowRight, Tag } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { format } from "date-fns";
 
-const CATEGORIES = ['All', 'Career Tips', 'Industry Insights', 'Skills Development', 'Job Search', 'Interview Prep'];
+const CATEGORIES = ["All", "Career Tips", "Industry Insights", "Skills Development", "Job Search", "Interview Prep"];
 
 export default function Blog() {
   const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("All");
 
   const { data: posts, isLoading } = useQuery({
-    queryKey: ['blog-posts', selectedCategory, searchTerm],
+    queryKey: ["blog-posts", selectedCategory, searchTerm],
     queryFn: async () => {
       let query = supabase
-        .from('blog_posts')
-        .select('*')
-        .eq('status', 'published')
-        .order('is_featured', { ascending: false })
-        .order('published_at', { ascending: false });
+        .from("blog_posts")
+        .select("*")
+        .eq("status", "published")
+        .order("is_featured", { ascending: false })
+        .order("published_at", { ascending: false });
 
-      if (selectedCategory !== 'All') {
-        query = query.eq('category', selectedCategory);
+      if (selectedCategory !== "All") {
+        query = query.eq("category", selectedCategory);
       }
       if (searchTerm) {
         query = query.or(`title.ilike.%${searchTerm}%,excerpt.ilike.%${searchTerm}%`);
@@ -40,14 +40,14 @@ export default function Blog() {
     },
   });
 
-  const featuredPost = posts?.find(p => p.is_featured);
-  const regularPosts = posts?.filter(p => !p.is_featured) || [];
+  const featuredPost = posts?.find((p) => p.is_featured);
+  const regularPosts = posts?.filter((p) => !p.is_featured) || [];
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/app/learning')}>
+        <Button variant="ghost" size="icon" onClick={() => navigate("/app/learning")}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
@@ -68,10 +68,10 @@ export default function Blog() {
           />
         </div>
         <div className="flex flex-wrap gap-2">
-          {CATEGORIES.map(category => (
+          {CATEGORIES.map((category) => (
             <Button
               key={category}
-              variant={selectedCategory === category ? 'default' : 'outline'}
+              variant={selectedCategory === category ? "default" : "outline"}
               size="sm"
               onClick={() => setSelectedCategory(category)}
             >
@@ -85,7 +85,7 @@ export default function Blog() {
         <div className="space-y-6">
           <Skeleton className="h-64 w-full" />
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {[1, 2, 3].map(i => (
+            {[1, 2, 3].map((i) => (
               <Skeleton key={i} className="h-48" />
             ))}
           </div>
@@ -94,26 +94,24 @@ export default function Blog() {
         <div className="space-y-8">
           {/* Featured Post */}
           {featuredPost && (
-            <Card 
+            <Card
               className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
               onClick={() => navigate(`/app/learning/blog/${featuredPost.slug}`)}
             >
               <div className="md:flex">
                 {featuredPost.featured_image && (
                   <div className="md:w-2/5 h-48 md:h-auto">
-                    <img 
-                      src={featuredPost.featured_image} 
+                    <img
+                      src={featuredPost.featured_image}
                       alt={featuredPost.title}
                       className="w-full h-full object-cover"
                     />
                   </div>
                 )}
-                <div className={`p-6 ${featuredPost.featured_image ? 'md:w-3/5' : 'w-full'}`}>
+                <div className={`p-6 ${featuredPost.featured_image ? "md:w-3/5" : "w-full"}`}>
                   <div className="flex items-center gap-2 mb-3">
                     <Badge className="bg-primary/10 text-primary">Featured</Badge>
-                    {featuredPost.category && (
-                      <Badge variant="outline">{featuredPost.category}</Badge>
-                    )}
+                    {featuredPost.category && <Badge variant="outline">{featuredPost.category}</Badge>}
                   </div>
                   <h2 className="text-xl font-bold mb-2">{featuredPost.title}</h2>
                   {featuredPost.excerpt && (
@@ -129,7 +127,7 @@ export default function Blog() {
                     {featuredPost.published_at && (
                       <span className="flex items-center gap-1">
                         <Calendar className="h-4 w-4" />
-                        {format(new Date(featuredPost.published_at), 'MMM d, yyyy')}
+                        {format(new Date(featuredPost.published_at), "MMM d, yyyy")}
                       </span>
                     )}
                     {featuredPost.reading_time_mins && (
@@ -148,36 +146,28 @@ export default function Blog() {
           {regularPosts.length > 0 && (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {regularPosts.map((post) => (
-                <Card 
+                <Card
                   key={post.id}
                   className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
                   onClick={() => navigate(`/app/learning/blog/${post.slug}`)}
                 >
                   {post.featured_image && (
                     <div className="h-40 overflow-hidden">
-                      <img 
-                        src={post.featured_image} 
-                        alt={post.title}
-                        className="w-full h-full object-cover"
-                      />
+                      <img src={post.featured_image} alt={post.title} className="w-full h-full object-cover" />
                     </div>
                   )}
-                  <CardContent className={post.featured_image ? 'pt-4' : 'pt-6'}>
+                  <CardContent className={post.featured_image ? "pt-4" : "pt-6"}>
                     {post.category && (
-                      <Badge variant="outline" className="mb-2">{post.category}</Badge>
+                      <Badge variant="outline" className="mb-2">
+                        {post.category}
+                      </Badge>
                     )}
                     <h3 className="font-semibold mb-2 line-clamp-2">{post.title}</h3>
-                    {post.excerpt && (
-                      <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{post.excerpt}</p>
-                    )}
+                    {post.excerpt && <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{post.excerpt}</p>}
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
                       <div className="flex items-center gap-2">
-                        {post.published_at && (
-                          <span>{format(new Date(post.published_at), 'MMM d')}</span>
-                        )}
-                        {post.reading_time_mins && (
-                          <span>• {post.reading_time_mins} min</span>
-                        )}
+                        {post.published_at && <span>{format(new Date(post.published_at), "MMM d")}</span>}
+                        {post.reading_time_mins && <span>• {post.reading_time_mins} min</span>}
                       </div>
                       <ArrowRight className="h-4 w-4" />
                     </div>
@@ -193,16 +183,16 @@ export default function Blog() {
             <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">No Articles Found</h3>
             <p className="text-muted-foreground mb-4">
-              {searchTerm || selectedCategory !== 'All'
-                ? 'Try adjusting your filters to find more articles.'
-                : 'Blog posts will be published soon. Check back later!'}
+              {searchTerm || selectedCategory !== "All"
+                ? "Try adjusting your filters to find more articles."
+                : "Blog posts will be published soon. Check back later!"}
             </p>
-            {(searchTerm || selectedCategory !== 'All') && (
-              <Button 
-                variant="outline" 
+            {(searchTerm || selectedCategory !== "All") && (
+              <Button
+                variant="outline"
                 onClick={() => {
-                  setSearchTerm('');
-                  setSelectedCategory('All');
+                  setSearchTerm("");
+                  setSelectedCategory("All");
                 }}
               >
                 Clear Filters

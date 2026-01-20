@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
-import { Card, CardContent } from "@/components/ui/card"; // Added Card import
+import { Card, CardContent } from "@/components/ui/card";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useEffect } from "react";
@@ -48,9 +48,7 @@ export default function BlogPost() {
   }, [post?.id]);
 
   const handleShare = async () => {
-    // If external, share the external URL, otherwise share the current page
     const shareUrl = post?.external_url || window.location.href;
-
     try {
       await navigator.share({
         title: post?.title,
