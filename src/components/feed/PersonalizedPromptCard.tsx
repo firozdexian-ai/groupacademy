@@ -103,7 +103,7 @@ export function PersonalizedPromptCard() {
       try {
         // FIXED: Do NOT pass 'career_assessment' as the second argument (referenceId).
         // Passing undefined ensures the DB receives NULL instead of an invalid text string.
-        const success = await deductCredits("career_assessment", undefined, "Started AI Career Assessment");
+        const success = await deductCredits("CAREER_ASSESSMENT", undefined, "Started AI Career Assessment");
 
         if (success) {
           toast.success("Assessment started!");
