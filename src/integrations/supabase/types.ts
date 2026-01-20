@@ -489,6 +489,7 @@ export type Database = {
           content: string | null
           created_at: string | null
           excerpt: string | null
+          external_url: string | null
           featured_image: string | null
           id: string
           is_featured: boolean | null
@@ -508,6 +509,7 @@ export type Database = {
           content?: string | null
           created_at?: string | null
           excerpt?: string | null
+          external_url?: string | null
           featured_image?: string | null
           id?: string
           is_featured?: boolean | null
@@ -527,6 +529,7 @@ export type Database = {
           content?: string | null
           created_at?: string | null
           excerpt?: string | null
+          external_url?: string | null
           featured_image?: string | null
           id?: string
           is_featured?: boolean | null

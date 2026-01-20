@@ -21,6 +21,8 @@ export interface FeedItem {
   mediaUrl?: string;
   mediaType?: "image" | "youtube";
   youtubeUrl?: string;
+  category?: string;
+  externalUrl?: string;
 }
 
 export type FeedFilterType = "all" | "job" | "course" | "video" | "blog";
@@ -111,7 +113,7 @@ export function useFeedRecommendations(): UseFeedRecommendationsResult {
           .limit(15),
         supabase
           .from("blog_posts")
-          .select("id, title, excerpt, featured_image, created_at, slug, category")
+          .select("id, title, excerpt, featured_image, created_at, slug, category, external_url")
           .eq("status", "published")
           .order("created_at", { ascending: false })
           .limit(10),
@@ -185,7 +187,8 @@ export function useFeedRecommendations(): UseFeedRecommendationsResult {
             matchScore: getRandomScore(),
             mediaUrl: blog.featured_image || undefined,
             mediaType: blog.featured_image ? "image" : undefined,
-            skills: blog.category ? [blog.category] : undefined,
+            category: blog.category || undefined,
+            externalUrl: blog.external_url || undefined,
           });
         });
       }

@@ -17,7 +17,7 @@ interface TalentProfile {
 
 interface FeedItem {
   id: string;
-  type: "job" | "course" | "video";
+  type: "job" | "course" | "video" | "blog";
   title: string;
   description: string;
   company?: string;
@@ -32,6 +32,8 @@ interface FeedItem {
   mediaUrl?: string;
   mediaType?: "image" | "youtube";
   youtubeUrl?: string;
+  category?: string;
+  externalUrl?: string;
 }
 
 serve(async (req) => {
@@ -150,8 +152,8 @@ serve(async (req) => {
 
     const dismissedIds = new Set(dismissedInteractions?.map((i) => i.item_id) || []);
 
-    // Fetch jobs and courses in parallel - include company info for logo and media
-    const [jobsResult, coursesResult, companiesResult] = await Promise.all([
+    // Fetch jobs, courses, and blog posts in parallel - include company info for logo and media
+    const [jobsResult, coursesResult, companiesResult, blogResult] = await Promise.all([
       supabase
         .from("jobs")
         .select(
@@ -168,10 +170,17 @@ serve(async (req) => {
         .order("created_at", { ascending: false })
         .limit(20),
       supabase.from("companies").select("id, logo_url"),
+      supabase
+        .from("blog_posts")
+        .select("id, title, excerpt, featured_image, category, slug, created_at, external_url")
+        .eq("status", "published")
+        .order("published_at", { ascending: false })
+        .limit(15),
     ]);
 
     const jobs = (jobsResult.data || []).filter((j) => !dismissedIds.has(j.id));
     const courses = (coursesResult.data || []).filter((c) => !dismissedIds.has(c.id));
+    const blogs = (blogResult.data || []).filter((b) => !dismissedIds.has(b.id));
 
     // Create company logo map
     const companyLogoMap = new Map<string, string>();
@@ -205,7 +214,7 @@ serve(async (req) => {
     // Prepare items for AI scoring
     interface ItemToScore {
       id: string;
-      type: "job" | "course" | "video";
+      type: "job" | "course" | "video" | "blog";
       title: string;
       description: string;
       company?: string;
@@ -228,6 +237,14 @@ serve(async (req) => {
         description: c.description?.substring(0, 300) || "",
         company: undefined,
         metadata: c.content_type,
+      })),
+      ...blogs.map((b) => ({
+        id: b.id,
+        type: "blog" as const,
+        title: b.title,
+        description: b.excerpt?.substring(0, 300) || "",
+        company: undefined,
+        metadata: `blog article ${b.category || ""}`,
       })),
     ];
 
@@ -426,6 +443,27 @@ Example format:
         mediaUrl: mediaUrl,
         mediaType: mediaType,
         youtubeUrl: youtubeUrl,
+      });
+    }
+
+    // Add blog posts to recommendations
+    for (const blog of blogs) {
+      const scoreData = scoreMap.get(blog.id);
+
+      recommendations.push({
+        id: blog.id,
+        type: "blog",
+        title: blog.title,
+        description: blog.excerpt?.substring(0, 150) + "..." || "",
+        thumbnail: blog.featured_image || undefined,
+        createdAt: blog.created_at || new Date().toISOString(),
+        slug: blog.slug,
+        matchScore: scoreData?.score || 50,
+        matchReason: scoreData?.reason || "Recommended reading",
+        mediaUrl: blog.featured_image || undefined,
+        mediaType: blog.featured_image ? "image" : undefined,
+        category: blog.category || undefined,
+        externalUrl: blog.external_url || undefined,
       });
     }
 

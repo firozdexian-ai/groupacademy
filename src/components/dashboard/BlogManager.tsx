@@ -60,6 +60,7 @@ interface BlogPost {
   reading_time_mins: number | null;
   published_at: string | null;
   created_at: string;
+  external_url: string | null;
 }
 
 const STATUSES = [
@@ -91,6 +92,7 @@ const emptyPost = {
   status: "draft",
   is_featured: false,
   reading_time_mins: null as number | null,
+  external_url: "",
 };
 
 const ITEMS_PER_PAGE = 10;
@@ -127,12 +129,12 @@ const BlogPostForm = ({
   };
 
   const uploadToStorage = async (file: File) => {
-    const fileName = `blog-images/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "")}`;
-    const { error: uploadError } = await supabase.storage.from("public-uploads").upload(fileName, file);
+    const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "")}`;
+    const { error: uploadError } = await supabase.storage.from("blog-images").upload(fileName, file);
     if (uploadError) throw uploadError;
     const {
       data: { publicUrl },
-    } = supabase.storage.from("public-uploads").getPublicUrl(fileName);
+    } = supabase.storage.from("blog-images").getPublicUrl(fileName);
     return publicUrl;
   };
 
@@ -161,6 +163,7 @@ const BlogPostForm = ({
 
   return (
     <div className="space-y-4 py-4">
+      {/* Title - Required */}
       <div className="space-y-2">
         <Label>Title *</Label>
         <Input
@@ -170,17 +173,21 @@ const BlogPostForm = ({
         />
       </div>
 
+      {/* Description/Excerpt - Prominent */}
+      <div className="space-y-2">
+        <Label>Description *</Label>
+        <Textarea
+          value={formData.excerpt}
+          onChange={(e) => setFormData({ ...formData, excerpt: e.target.value })}
+          placeholder="Brief description of the article (shown in previews and feed)"
+          className="min-h-[80px]"
+        />
+      </div>
+
+      {/* Category and Status */}
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Slug *</Label>
-          <Input
-            value={formData.slug}
-            onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-            placeholder="10-tips-job-interview"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label>Category</Label>
+          <Label>Category *</Label>
           <Select value={formData.category} onValueChange={(v) => setFormData({ ...formData, category: v })}>
             <SelectTrigger>
               <SelectValue placeholder="Select category" />
@@ -193,17 +200,6 @@ const BlogPostForm = ({
               ))}
             </SelectContent>
           </Select>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label>Author Name</Label>
-          <Input
-            value={formData.author_name}
-            onChange={(e) => setFormData({ ...formData, author_name: e.target.value })}
-            placeholder="John Doe"
-          />
         </div>
         <div className="space-y-2">
           <Label>Status</Label>
@@ -222,13 +218,14 @@ const BlogPostForm = ({
         </div>
       </div>
 
+      {/* Featured Image - Upload */}
       <div className="space-y-2">
         <Label>Featured Image</Label>
         <div className="flex gap-2 items-center">
           <Input
             value={formData.featured_image}
             onChange={(e) => setFormData({ ...formData, featured_image: e.target.value })}
-            placeholder="Image URL..."
+            placeholder="Image URL or upload..."
             className="flex-1"
           />
           <div className="relative">
@@ -249,8 +246,38 @@ const BlogPostForm = ({
         )}
       </div>
 
+      {/* External Link - For linking to external articles */}
       <div className="space-y-2">
-        <Label>Content (Markdown)</Label>
+        <Label className="flex items-center gap-2">
+          <ExternalLink className="w-4 h-4" /> External Link (optional)
+        </Label>
+        <Input
+          value={formData.external_url}
+          onChange={(e) => setFormData({ ...formData, external_url: e.target.value })}
+          placeholder="https://swift-summit-insight.lovable.app/article-name"
+        />
+        <p className="text-xs text-muted-foreground">
+          If provided, clicking the post will open this link instead of the content below.
+        </p>
+      </div>
+
+      {/* Slug - Auto-generated but editable */}
+      <div className="space-y-2">
+        <Label>URL Slug</Label>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">/blog/</span>
+          <Input
+            value={formData.slug}
+            onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+            placeholder="auto-generated-from-title"
+            className="flex-1"
+          />
+        </div>
+      </div>
+
+      {/* Content - Optional if external_url is provided */}
+      <div className="space-y-2">
+        <Label>Content (Markdown) {formData.external_url ? "(optional)" : ""}</Label>
         <Tabs defaultValue="edit" className="w-full">
           <TabsList>
             <TabsTrigger value="edit">Editor</TabsTrigger>
@@ -260,12 +287,12 @@ const BlogPostForm = ({
             <Textarea
               value={formData.content}
               onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-              placeholder="Write your post in Markdown..."
-              className="min-h-[300px] font-mono text-sm"
+              placeholder={formData.external_url ? "Optional when linking to external article..." : "Write your post in Markdown..."}
+              className="min-h-[200px] font-mono text-sm"
             />
           </TabsContent>
           <TabsContent value="preview">
-            <div className="min-h-[300px] border rounded-md p-4 prose dark:prose-invert max-w-none overflow-y-auto bg-muted/20">
+            <div className="min-h-[200px] border rounded-md p-4 prose dark:prose-invert max-w-none overflow-y-auto bg-muted/20">
               {formData.content ? (
                 <ReactMarkdown>{formData.content}</ReactMarkdown>
               ) : (
@@ -276,6 +303,7 @@ const BlogPostForm = ({
         </Tabs>
       </div>
 
+      {/* Tags */}
       <div className="space-y-2">
         <Label>Tags</Label>
         <div className="flex gap-2">
@@ -305,9 +333,20 @@ const BlogPostForm = ({
         </div>
       </div>
 
-      <div className="flex items-center space-x-2">
-        <Switch checked={formData.is_featured} onCheckedChange={(v) => setFormData({ ...formData, is_featured: v })} />
-        <Label>Featured Post</Label>
+      {/* Author and Featured toggle */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Author Name</Label>
+          <Input
+            value={formData.author_name}
+            onChange={(e) => setFormData({ ...formData, author_name: e.target.value })}
+            placeholder="John Doe"
+          />
+        </div>
+        <div className="flex items-center space-x-2 pt-6">
+          <Switch checked={formData.is_featured} onCheckedChange={(v) => setFormData({ ...formData, is_featured: v })} />
+          <Label>Featured Post</Label>
+        </div>
       </div>
 
       <div className="flex justify-end gap-2 pt-4">
@@ -409,6 +448,7 @@ export function BlogManager() {
         status: formData.status,
         is_featured: formData.is_featured,
         reading_time_mins: readingTime,
+        external_url: formData.external_url?.trim() || null,
         published_at:
           formData.status === "published" && !editingPost?.published_at
             ? new Date().toISOString()
