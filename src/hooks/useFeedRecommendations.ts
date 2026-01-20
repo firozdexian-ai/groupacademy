@@ -72,7 +72,6 @@ export function useFeedRecommendations(): UseFeedRecommendationsResult {
     }
   });
 
-  // Refs to handle strict mode double-invocation and mounting status
   const isMounted = useRef(true);
   const hasInitialFetch = useRef(false);
 
@@ -88,7 +87,6 @@ export function useFeedRecommendations(): UseFeedRecommendationsResult {
     localStorage.setItem(STORAGE_KEY_FILTERS, JSON.stringify(newFilters));
   }, []);
 
-  // Helper to extract YouTube thumbnail
   const getYoutubeThumbnail = useCallback((url: string): string | null => {
     const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/);
     return match ? `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg` : null;
@@ -119,9 +117,7 @@ export function useFeedRecommendations(): UseFeedRecommendationsResult {
           .limit(10),
       ]);
 
-      // Helper to generate randomized fallback scores (60-85%)
       const getRandomScore = () => Math.floor(Math.random() * 26) + 60;
-
       const items: FeedItem[] = [];
 
       if (jobsResult.data) {
@@ -216,22 +212,54 @@ export function useFeedRecommendations(): UseFeedRecommendationsResult {
         }
         setError(null);
 
+        // 1. Invoke AI Edge Function
         const { data, error: fnError } = await supabase.functions.invoke("generate-feed-recommendations", {
           body: { talentId: talent.id, forceRefresh },
         });
 
+        // 2. SAFETY NET: Concurrently fetch latest blogs manually
+        // (This ensures blogs appear even if the AI function hasn't indexed them yet)
+        const { data: recentBlogs } = await supabase
+          .from("blog_posts")
+          .select("id, title, excerpt, featured_image, created_at, slug, category, external_url")
+          .eq("status", "published")
+          .order("created_at", { ascending: false })
+          .limit(5);
+
         if (!isMounted.current) return;
 
-        if (fnError) {
-          console.error("Error fetching recommendations:", fnError);
-          throw new Error(fnError.message);
+        if (fnError) throw new Error(fnError.message);
+        if (data.error) throw new Error(data.error);
+
+        let aiItems: FeedItem[] = data.recommendations || [];
+
+        // 3. Merge AI results with latest blogs
+        if (recentBlogs && recentBlogs.length > 0) {
+          const blogItems: FeedItem[] = recentBlogs.map((blog) => ({
+            id: blog.id,
+            type: "blog",
+            title: blog.title,
+            description: blog.excerpt || "",
+            thumbnail: blog.featured_image || undefined,
+            createdAt: blog.created_at || "",
+            slug: blog.slug,
+            matchScore: 80, // Give new blogs a high default score
+            mediaUrl: blog.featured_image || undefined,
+            mediaType: blog.featured_image ? "image" : undefined,
+            category: blog.category || undefined,
+            externalUrl: blog.external_url || undefined,
+            matchReason: "New article you might like",
+          }));
+
+          // Deduplicate (don't add if AI already found it)
+          const existingIds = new Set(aiItems.map((i) => i.id));
+          const newBlogs = blogItems.filter((b) => !existingIds.has(b.id));
+
+          // Add new blogs to the top
+          aiItems = [...newBlogs, ...aiItems];
         }
 
-        if (data.error) {
-          throw new Error(data.error);
-        }
-
-        setAllItems(data.recommendations || []);
+        setAllItems(aiItems);
         setInsights(data.careerInsights || []);
         setHasGeneratedOnce(true);
 
@@ -245,7 +273,6 @@ export function useFeedRecommendations(): UseFeedRecommendationsResult {
         console.error("Error in fetchRecommendations:", err);
         if (isMounted.current) {
           setError(err instanceof Error ? err.message : "Failed to load recommendations");
-          // Fall back to basic fetch if AI fails
           await fetchBasicFeed();
         }
       } finally {
@@ -262,7 +289,6 @@ export function useFeedRecommendations(): UseFeedRecommendationsResult {
   const refresh = useCallback(
     async (forceAI = false) => {
       if (forceAI && hasGeneratedOnce) {
-        // Check if user can afford refresh (20 credits)
         if (!canAfford("SUGGESTED_JOBS")) {
           toast({
             title: "Insufficient credits",
@@ -281,12 +307,9 @@ export function useFeedRecommendations(): UseFeedRecommendationsResult {
     [fetchRecommendations, hasGeneratedOnce, canAfford, deductCredits, toast],
   );
 
-  // Mark item as interested and navigate
   const markInterested = useCallback(
     async (item: FeedItem) => {
       if (!talent?.id) return;
-
-      // Record interaction
       await supabase.from("feed_interactions").upsert(
         {
           talent_id: talent.id,
@@ -300,15 +323,10 @@ export function useFeedRecommendations(): UseFeedRecommendationsResult {
     [talent?.id],
   );
 
-  // Mark item as not interested (dismiss)
   const markNotInterested = useCallback(
     (itemId: string) => {
       if (!talent?.id) return;
-
-      // Optimistic update
       setDismissedIds((prev) => new Set([...prev, itemId]));
-
-      // Record interaction
       const item = allItems.find((i) => i.id === itemId);
       if (item) {
         supabase
@@ -333,10 +351,8 @@ export function useFeedRecommendations(): UseFeedRecommendationsResult {
     [talent?.id, allItems, toast],
   );
 
-  // Load dismissed items on mount
   useEffect(() => {
     if (!talent?.id) return;
-
     supabase
       .from("feed_interactions")
       .select("item_id")
@@ -349,7 +365,6 @@ export function useFeedRecommendations(): UseFeedRecommendationsResult {
       });
   }, [talent?.id]);
 
-  // Initial load - with double-fetch protection
   useEffect(() => {
     if (talent?.id && !hasInitialFetch.current) {
       hasInitialFetch.current = true;
@@ -357,7 +372,6 @@ export function useFeedRecommendations(): UseFeedRecommendationsResult {
     }
   }, [talent?.id, fetchRecommendations]);
 
-  // Filter and sort items (Memoized to prevent recalculation on every render)
   const filteredItems = useMemo(() => {
     return allItems
       .filter((item) => !dismissedIds.has(item.id))
