@@ -117,10 +117,12 @@ serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
 
+    // Extract token from header and pass to getUser() for stateless edge function auth
+    const token = authHeader.replace('Bearer ', '');
     const {
       data: { user },
       error: authError,
-    } = await supabaseAuth.auth.getUser();
+    } = await supabaseAuth.auth.getUser(token);
 
     if (authError || !user) {
       console.error("Auth error:", authError);
