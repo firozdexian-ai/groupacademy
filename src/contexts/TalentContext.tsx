@@ -1,7 +1,7 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
-import { useAuth } from "@/hooks/useAuth"; // <--- INTEGRATING THE FOUNDATION
+import { useAuth } from "@/hooks/useAuth";
 import { Education, Experience, Skill } from "@/types/common";
 
 export interface TalentProfile {
@@ -46,8 +46,8 @@ interface TalentContextValue {
   talent: TalentProfile | null;
 
   // Loading states
-  isLoading: boolean;
-  isTalentLoading: boolean;
+  isLoading: boolean; // Global loading (Auth + Talent)
+  isTalentLoading: boolean; // Specific talent fetch loading
 
   // Actions
   refreshTalent: () => Promise<void>;
@@ -62,13 +62,13 @@ interface TalentContextValue {
 
 const TalentContext = createContext<TalentContextValue | undefined>(undefined);
 
-// Map database row to TalentProfile
+// Helper: Map database row to TalentProfile with strict null checks
 function mapRowToTalent(row: any): TalentProfile {
   return {
     id: row.id,
     userId: row.user_id,
-    email: row.email,
-    fullName: row.full_name,
+    email: row.email || "",
+    fullName: row.full_name || "",
     phone: row.phone,
     cvUrl: row.cv_url,
     cvText: row.cv_text,
@@ -78,6 +78,7 @@ function mapRowToTalent(row: any): TalentProfile {
     currentStatus: row.current_status,
     fieldOfStudy: row.field_of_study,
     institution: row.institution,
+    // Ensure JSON fields are always arrays
     education: Array.isArray(row.education) ? row.education : [],
     experience: Array.isArray(row.experience) ? row.experience : [],
     skills: Array.isArray(row.skills) ? row.skills : [],
@@ -104,10 +105,10 @@ export function TalentProvider({ children }: { children: React.ReactNode }) {
   const [talent, setTalent] = useState<TalentProfile | null>(null);
   const [isTalentLoading, setIsTalentLoading] = useState(true);
 
-  // 2. Fetch Talent Profile when User changes
+  // 2. Fetch Talent Profile logic
   const fetchTalent = useCallback(async (userId: string) => {
-    setIsTalentLoading(true);
     try {
+      setIsTalentLoading(true);
       const { data, error } = await supabase.from("talents").select("*").eq("user_id", userId).maybeSingle();
 
       if (error) {
@@ -116,8 +117,8 @@ export function TalentProvider({ children }: { children: React.ReactNode }) {
       } else if (data) {
         setTalent(mapRowToTalent(data));
       } else {
-        // User exists but no talent profile?
-        // This is rare but possible if the trigger failed.
+        // User authenticated but no talent profile found
+        console.warn("[TalentContext] No talent profile found for user:", userId);
         setTalent(null);
       }
     } catch (error) {
@@ -130,15 +131,33 @@ export function TalentProvider({ children }: { children: React.ReactNode }) {
 
   // 3. React to Auth Changes
   useEffect(() => {
-    if (isAuthLoading) return; // Wait for auth to settle
+    let mounted = true;
 
-    if (user) {
-      fetchTalent(user.id);
-    } else {
-      setTalent(null);
-      setIsTalentLoading(false);
-    }
-  }, [user, isAuthLoading, fetchTalent]);
+    const initTalent = async () => {
+      if (isAuthLoading) return;
+
+      if (user) {
+        // Only fetch if we don't have talent or if the user changed
+        if (!talent || talent.userId !== user.id) {
+          if (mounted) await fetchTalent(user.id);
+        } else {
+          // We already have the correct talent loaded
+          if (mounted) setIsTalentLoading(false);
+        }
+      } else {
+        if (mounted) {
+          setTalent(null);
+          setIsTalentLoading(false);
+        }
+      }
+    };
+
+    initTalent();
+
+    return () => {
+      mounted = false;
+    };
+  }, [user, isAuthLoading, fetchTalent, talent]); // Added talent to deps to check current state
 
   // 4. Actions
   const refreshTalent = useCallback(async () => {
@@ -153,31 +172,46 @@ export function TalentProvider({ children }: { children: React.ReactNode }) {
 
       try {
         const updateData: any = {};
-        // Map helper fields
-        if (data.fullName !== undefined) updateData.full_name = data.fullName;
-        if (data.phone !== undefined) updateData.phone = data.phone;
-        if (data.cvUrl !== undefined) updateData.cv_url = data.cvUrl;
-        if (data.cvText !== undefined) updateData.cv_text = data.cvText;
-        if (data.cvParsedAt !== undefined) updateData.cv_parsed_at = data.cvParsedAt;
-        if (data.professionCategoryId !== undefined) updateData.profession_category_id = data.professionCategoryId;
-        if (data.customProfession !== undefined) updateData.custom_profession = data.customProfession;
-        if (data.currentStatus !== undefined) updateData.current_status = data.currentStatus;
-        if (data.fieldOfStudy !== undefined) updateData.field_of_study = data.fieldOfStudy;
-        if (data.institution !== undefined) updateData.institution = data.institution;
-        if (data.education !== undefined) updateData.education = data.education;
-        if (data.experience !== undefined) updateData.experience = data.experience;
-        if (data.skills !== undefined) updateData.skills = data.skills;
-        if (data.projects !== undefined) updateData.projects = data.projects;
-        if (data.achievements !== undefined) updateData.achievements = data.achievements;
-        if (data.linkedinUrl !== undefined) updateData.linkedin_url = data.linkedinUrl;
-        if (data.portfolioUrl !== undefined) updateData.portfolio_url = data.portfolioUrl;
-        if (data.profilePhotoUrl !== undefined) updateData.profile_photo_url = data.profilePhotoUrl;
-        if (data.onboardingCompletedAt !== undefined) updateData.onboarding_completed_at = data.onboardingCompletedAt;
+
+        // Helper to map camelCase to snake_case for DB
+        const mapField = (jsKey: keyof TalentProfile, dbKey: string) => {
+          if (data[jsKey] !== undefined) updateData[dbKey] = data[jsKey];
+        };
+
+        mapField("fullName", "full_name");
+        mapField("phone", "phone");
+        mapField("cvUrl", "cv_url");
+        mapField("cvText", "cv_text");
+        mapField("cvParsedAt", "cv_parsed_at");
+        mapField("professionCategoryId", "profession_category_id");
+        mapField("customProfession", "custom_profession");
+        mapField("currentStatus", "current_status");
+        mapField("fieldOfStudy", "field_of_study");
+        mapField("institution", "institution");
+        mapField("education", "education");
+        mapField("experience", "experience");
+        mapField("skills", "skills");
+        mapField("projects", "projects");
+        mapField("achievements", "achievements");
+        mapField("linkedinUrl", "linkedin_url");
+        mapField("portfolioUrl", "portfolio_url");
+        mapField("profilePhotoUrl", "profile_photo_url");
+        mapField("onboardingCompletedAt", "onboarding_completed_at");
+        mapField("onboardingStep", "onboarding_step");
+
+        // Optimistic update locally
+        setTalent((prev) => (prev ? { ...prev, ...data } : null));
 
         const { error } = await supabase.from("talents").update(updateData).eq("id", talent.id);
 
-        if (error) throw error;
+        if (error) {
+          // Revert on failure (or just fetch fresh)
+          console.error("[TalentContext] Update failed, reverting:", error);
+          await refreshTalent();
+          throw error;
+        }
 
+        // Fetch fresh to ensure server-generated fields (like updated_at) are sync
         await refreshTalent();
         return true;
       } catch (error) {
@@ -200,9 +234,15 @@ export function TalentProvider({ children }: { children: React.ReactNode }) {
 
         const newServices = [...currentServices, service];
 
-        await supabase.from("talents").update({ services_used: newServices }).eq("id", talent.id);
-
+        // Optimistic update
         setTalent((prev) => (prev ? { ...prev, servicesUsed: newServices } : null));
+
+        const { error } = await supabase.from("talents").update({ services_used: newServices }).eq("id", talent.id);
+
+        if (error) {
+          console.error("Failed to sync service usage", error);
+          // Ideally revert here, but for services used, slight desync is acceptable
+        }
       } catch (error) {
         console.error("[TalentContext] Error adding service:", error);
       }
@@ -210,20 +250,36 @@ export function TalentProvider({ children }: { children: React.ReactNode }) {
     [talent?.id, talent?.servicesUsed],
   );
 
-  const value: TalentContextValue = {
-    user,
-    session,
-    isAuthenticated: !!user,
-    talent,
-    isLoading: isAuthLoading || isTalentLoading,
-    isTalentLoading,
-    refreshTalent,
-    updateTalent,
-    addServiceUsed,
-    signIn,
-    signUp,
-    signOut,
-  };
+  // 5. Memoize the value to prevent unnecessary re-renders in consumers
+  const value = useMemo<TalentContextValue>(
+    () => ({
+      user,
+      session,
+      isAuthenticated: !!user,
+      talent,
+      isLoading: isAuthLoading || isTalentLoading,
+      isTalentLoading,
+      refreshTalent,
+      updateTalent,
+      addServiceUsed,
+      signIn,
+      signUp,
+      signOut,
+    }),
+    [
+      user,
+      session,
+      talent,
+      isAuthLoading,
+      isTalentLoading,
+      refreshTalent,
+      updateTalent,
+      addServiceUsed,
+      signIn,
+      signUp,
+      signOut,
+    ],
+  );
 
   return <TalentContext.Provider value={value}>{children}</TalentContext.Provider>;
 }
