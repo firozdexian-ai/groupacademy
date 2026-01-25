@@ -6,7 +6,34 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Search, Building2, MapPin, Clock, Briefcase, Star, ArrowRight, X, Filter } from "lucide-react";
+import {
+  ArrowLeft,
+  Search,
+  Building2,
+  MapPin,
+  Clock,
+  Briefcase,
+  Star,
+  ArrowRight,
+  X,
+  Filter,
+  Banknote,
+  SlidersHorizontal,
+} from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  SheetFooter,
+  SheetClose,
+} from "@/components/ui/sheet";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Slider } from "@/components/ui/slider";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Job {
   id: string;
@@ -40,19 +67,16 @@ const JOB_TYPE_COLORS: Record<string, string> = {
   remote: "bg-orange-500/10 text-orange-600 dark:text-orange-400",
 };
 
-const FILTER_OPTIONS = [
-  { value: "all", label: "All Jobs" },
-  { value: "full_time", label: "Full Time" },
-  { value: "part_time", label: "Part Time" },
-  { value: "internship", label: "Internship" },
-  { value: "remote", label: "Remote" },
-  { value: "contract", label: "Contract" },
+const EXPERIENCE_LEVELS = [
+  { id: "entry_level", label: "Entry Level" },
+  { id: "mid_level", label: "Mid Level" },
+  { id: "senior_level", label: "Senior Level" },
+  { id: "executive", label: "Executive" },
 ];
 
-// Extracted JobCard Component for cleaner rendering
 const JobCard = ({ job, onClick, style }: { job: Job; onClick: () => void; style?: React.CSSProperties }) => (
   <Card
-    className="cursor-pointer overflow-hidden hover:shadow-md transition-all press-scale group"
+    className="cursor-pointer overflow-hidden hover:shadow-md transition-all press-scale group border-border/50"
     style={style}
     onClick={onClick}
   >
@@ -99,13 +123,25 @@ const JobCard = ({ job, onClick, style }: { job: Job; onClick: () => void; style
               {JOB_TYPES[job.job_type] || job.job_type.replace("_", " ")}
             </Badge>
 
-            {job.location && (
-              <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                <MapPin className="h-3 w-3" />
-                {job.location}
+            {job.salary_range_min && (
+              <Badge variant="outline" className="text-[10px] h-5 px-2 text-muted-foreground bg-muted/30">
+                <Banknote className="w-2.5 h-2.5 mr-1" />
+                {job.salary_range_min / 1000}k - {job.salary_range_max ? `${job.salary_range_max / 1000}k` : ""}
+              </Badge>
+            )}
+
+            {job.experience_level && (
+              <span className="text-[10px] text-muted-foreground capitalize border px-1.5 py-0.5 rounded-sm bg-background">
+                {job.experience_level.replace("_", " ")}
               </span>
             )}
           </div>
+
+          {job.location && (
+            <div className="mt-2 flex items-center gap-1 text-[11px] text-muted-foreground">
+              <MapPin className="h-3 w-3" /> {job.location}
+            </div>
+          )}
         </div>
 
         {/* Arrow */}
@@ -125,36 +161,29 @@ export default function AppJobs() {
 
   // URL state sync
   const initialSearch = searchParams.get("search") || "";
-  const initialType = searchParams.get("type") || "all";
 
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [debouncedSearch, setDebouncedSearch] = useState(initialSearch);
-  const [activeFilter, setActiveFilter] = useState(initialType);
+
+  // Filter States
+  const [selectedJobTypes, setSelectedJobTypes] = useState<string[]>([]);
+  const [selectedExpLevels, setSelectedExpLevels] = useState<string[]>([]);
+  const [salaryRange, setSalaryRange] = useState([0]); // Min salary filter
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   // Debounce search input
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchQuery);
-
-      // Update URL without reloading
       const newParams = new URLSearchParams(searchParams);
       if (searchQuery) newParams.set("search", searchQuery);
       else newParams.delete("search");
       setSearchParams(newParams, { replace: true });
-    }, 300); // 300ms delay
-
+    }, 300);
     return () => clearTimeout(timer);
   }, [searchQuery, setSearchParams, searchParams]);
-
-  // Update filter in URL
-  useEffect(() => {
-    const newParams = new URLSearchParams(searchParams);
-    if (activeFilter !== "all") newParams.set("type", activeFilter);
-    else newParams.delete("type");
-    setSearchParams(newParams, { replace: true });
-  }, [activeFilter, setSearchParams, searchParams]);
 
   useEffect(() => {
     fetchJobs();
@@ -182,24 +211,38 @@ export default function AppJobs() {
     }
   };
 
-  // Memoized filtering for performance
+  // Advanced Filtering Logic
   const filteredJobs = useMemo(() => {
     return jobs.filter((job) => {
+      // 1. Search Text
       const matchesSearch =
         !debouncedSearch ||
         job.title.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
         job.company_name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
         (job.location && job.location.toLowerCase().includes(debouncedSearch.toLowerCase()));
 
-      const matchesFilter = activeFilter === "all" || job.job_type === activeFilter;
+      // 2. Job Type
+      const matchesType = selectedJobTypes.length === 0 || selectedJobTypes.includes(job.job_type);
 
-      return matchesSearch && matchesFilter;
+      // 3. Experience Level
+      const matchesExp = selectedExpLevels.length === 0 || selectedExpLevels.includes(job.experience_level);
+
+      // 4. Salary (Min Check)
+      // If user sets slider to 20k, show jobs where max salary >= 20k
+      const matchesSalary =
+        salaryRange[0] === 0 || (job.salary_range_max ? job.salary_range_max >= salaryRange[0] * 1000 : true);
+
+      return matchesSearch && matchesType && matchesExp && matchesSalary;
     });
-  }, [jobs, debouncedSearch, activeFilter]);
+  }, [jobs, debouncedSearch, selectedJobTypes, selectedExpLevels, salaryRange]);
+
+  const activeFiltersCount = selectedJobTypes.length + selectedExpLevels.length + (salaryRange[0] > 0 ? 1 : 0);
 
   const clearFilters = () => {
     setSearchQuery("");
-    setActiveFilter("all");
+    setSelectedJobTypes([]);
+    setSelectedExpLevels([]);
+    setSalaryRange([0]);
   };
 
   return (
@@ -222,48 +265,166 @@ export default function AppJobs() {
         </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="relative group">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
-        <Input
-          placeholder="Search by role, company, or location..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10 h-11 text-sm rounded-xl border-muted-foreground/20 focus:border-primary shadow-sm"
-        />
-        {searchQuery && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full hover:bg-muted"
-            onClick={() => setSearchQuery("")}
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        )}
+      {/* Search & Filter Bar */}
+      <div className="flex gap-2">
+        <div className="relative group flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+          <Input
+            placeholder="Search role, company..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 h-11 text-sm rounded-xl border-muted-foreground/20 focus:border-primary shadow-sm"
+          />
+          {searchQuery && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full hover:bg-muted"
+              onClick={() => setSearchQuery("")}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+
+        <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+          <SheetTrigger asChild>
+            <Button variant="outline" className="h-11 w-11 rounded-xl shrink-0 p-0 relative border-muted-foreground/20">
+              <SlidersHorizontal className="h-5 w-5" />
+              {activeFiltersCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-background">
+                  {activeFiltersCount}
+                </span>
+              )}
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="bottom" className="h-[85vh] rounded-t-3xl sm:max-w-md sm:mx-auto">
+            <SheetHeader className="mb-4">
+              <SheetTitle>Filters</SheetTitle>
+              <SheetDescription>Refine your job search</SheetDescription>
+            </SheetHeader>
+            <ScrollArea className="h-[calc(85vh-180px)] pr-4">
+              <div className="space-y-6 pb-6">
+                {/* Job Type */}
+                <div className="space-y-3">
+                  <Label>Job Type</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {Object.entries(JOB_TYPES).map(([key, label]) => (
+                      <div key={key} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={key}
+                          checked={selectedJobTypes.includes(key)}
+                          onCheckedChange={(checked) => {
+                            if (checked) setSelectedJobTypes([...selectedJobTypes, key]);
+                            else setSelectedJobTypes(selectedJobTypes.filter((t) => t !== key));
+                          }}
+                        />
+                        <label
+                          htmlFor={key}
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                          {label}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Experience Level */}
+                <div className="space-y-3">
+                  <Label>Experience Level</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {EXPERIENCE_LEVELS.map((level) => (
+                      <div key={level.id} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={level.id}
+                          checked={selectedExpLevels.includes(level.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) setSelectedExpLevels([...selectedExpLevels, level.id]);
+                            else setSelectedExpLevels(selectedExpLevels.filter((l) => l !== level.id));
+                          }}
+                        />
+                        <label
+                          htmlFor={level.id}
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                          {level.label}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Salary Range */}
+                <div className="space-y-4">
+                  <div className="flex justify-between">
+                    <Label>Minimum Salary</Label>
+                    <span className="text-sm text-muted-foreground font-medium">
+                      {salaryRange[0] > 0 ? `৳${salaryRange[0]}k+` : "Any"}
+                    </span>
+                  </div>
+                  <Slider value={salaryRange} onValueChange={setSalaryRange} max={150} step={5} className="py-4" />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>0</span>
+                    <span>50k</span>
+                    <span>100k</span>
+                    <span>150k+</span>
+                  </div>
+                </div>
+              </div>
+            </ScrollArea>
+
+            <SheetFooter className="mt-4 flex-row gap-3 sm:justify-between">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => {
+                  clearFilters();
+                  setIsFilterOpen(false);
+                }}
+              >
+                Clear All
+              </Button>
+              <Button className="flex-1" onClick={() => setIsFilterOpen(false)}>
+                Show {filteredJobs.length} Jobs
+              </Button>
+            </SheetFooter>
+          </SheetContent>
+        </Sheet>
       </div>
 
-      {/* Filter Pills */}
-      <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide snap-x">
-        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-muted/50 shrink-0 snap-start">
-          <Filter className="h-3.5 w-3.5 text-muted-foreground" />
-        </div>
-        {FILTER_OPTIONS.map((option) => (
-          <Button
-            key={option.value}
-            variant={activeFilter === option.value ? "default" : "outline"}
-            size="sm"
-            className={`rounded-full h-8 px-4 text-xs font-medium shrink-0 transition-all snap-start ${
-              activeFilter === option.value
-                ? "shadow-md scale-105"
-                : "bg-background border-muted-foreground/20 hover:border-primary/50"
-            }`}
-            onClick={() => setActiveFilter(option.value)}
-          >
-            {option.label}
+      {/* Active Filter Pills (Horizontal Scroll) */}
+      {activeFiltersCount > 0 && (
+        <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide snap-x">
+          {selectedJobTypes.map((type) => (
+            <Badge key={type} variant="secondary" className="flex gap-1 shrink-0 h-7">
+              {JOB_TYPES[type]}
+              <X
+                className="w-3 h-3 cursor-pointer"
+                onClick={() => setSelectedJobTypes((prev) => prev.filter((t) => t !== type))}
+              />
+            </Badge>
+          ))}
+          {selectedExpLevels.map((level) => (
+            <Badge key={level} variant="secondary" className="flex gap-1 shrink-0 h-7">
+              {EXPERIENCE_LEVELS.find((l) => l.id === level)?.label}
+              <X
+                className="w-3 h-3 cursor-pointer"
+                onClick={() => setSelectedExpLevels((prev) => prev.filter((l) => l !== level))}
+              />
+            </Badge>
+          ))}
+          {salaryRange[0] > 0 && (
+            <Badge variant="secondary" className="flex gap-1 shrink-0 h-7">
+              Min ৳{salaryRange[0]}k
+              <X className="w-3 h-3 cursor-pointer" onClick={() => setSalaryRange([0])} />
+            </Badge>
+          )}
+          <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground" onClick={clearFilters}>
+            Clear All
           </Button>
-        ))}
-      </div>
+        </div>
+      )}
 
       {/* Job List */}
       {loading ? (
@@ -292,18 +453,13 @@ export default function AppJobs() {
             <div className="w-16 h-16 bg-background rounded-full flex items-center justify-center mb-4 shadow-sm">
               <Briefcase className="h-8 w-8 text-muted-foreground/50" />
             </div>
-            <h3 className="font-bold text-lg mb-2">No jobs match your search</h3>
+            <h3 className="font-bold text-lg mb-2">No jobs found</h3>
             <p className="text-sm text-muted-foreground mb-6 max-w-xs mx-auto">
-              {searchQuery || activeFilter !== "all"
-                ? "Try adjusting your filters or search terms to find more results."
-                : "Check back later for new opportunities."}
+              Try adjusting your filters or search terms to find more results.
             </p>
-
-            {(searchQuery || activeFilter !== "all") && (
-              <Button variant="outline" onClick={clearFilters} className="rounded-full">
-                Clear all filters
-              </Button>
-            )}
+            <Button variant="outline" onClick={clearFilters} className="rounded-full">
+              Clear all filters
+            </Button>
           </CardContent>
         </Card>
       ) : (
