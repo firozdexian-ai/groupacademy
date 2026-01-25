@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import {
   Users,
@@ -30,6 +31,7 @@ import {
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { DashboardTableSkeleton, DashboardErrorState } from "./DashboardSkeleton";
+import { getDexianWhatsAppLink } from "@/lib/companyOutreachTemplates";
 
 // --- Internal Hook for Debounce ---
 function useDebounce<T>(value: T, delay: number): T {
@@ -245,15 +247,19 @@ export function ContactsManager() {
       return;
     }
 
-    // Clean phone number
-    const cleanPhone = phone.replace(/\D/g, "");
+    // Get company name for template
+    const companyName = contact.company?.name || "your organization";
+    
+    // Use Dexian branded WhatsApp template
+    const whatsappLink = getDexianWhatsAppLink(
+      phone,
+      'intro',
+      contact.full_name,
+      companyName
+    );
 
-    // Improved default message logic
-    const greeting = new Date().getHours() < 12 ? "Good morning" : "Good afternoon";
-    const message = `Hi ${contact.full_name}, ${greeting}! Reaching out regarding GroUp Academy partnerships.`;
-
-    // Open WhatsApp
-    window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`, "_blank");
+    // Open WhatsApp with Dexian template
+    window.open(whatsappLink, "_blank");
 
     // Log outreach (fire and forget)
     try {
@@ -267,14 +273,13 @@ export function ContactsManager() {
             contact_id: contact.id,
             channel: "whatsapp",
             message_type: "intro",
-            message_content: message,
+            message_content: `Dexian intro message to ${contact.full_name} at ${companyName}`,
             sent_by: user.id,
           })
           .then(() => {
-            // Silent update
+            toast.success("WhatsApp outreach logged");
           });
       }
-      // Optimistic update of local UI for last contacted could go here
     } catch (error) {
       console.error("Failed to log outreach:", error);
     }
@@ -413,16 +418,24 @@ export function ContactsManager() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleWhatsApp(contact)}
-                              disabled={!contact.phone && !contact.whatsapp_number}
-                              className="text-green-600 hover:text-green-700"
-                              title="Message on WhatsApp"
-                            >
-                              <MessageCircle className="w-4 h-4" />
-                            </Button>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleWhatsApp(contact)}
+                                    disabled={!contact.phone && !contact.whatsapp_number}
+                                    className="text-green-600 hover:text-green-700"
+                                  >
+                                    <MessageCircle className="w-4 h-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>WhatsApp (Dexian Intro)</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                             {contact.linkedin_url && (
                               <Button
                                 variant="ghost"

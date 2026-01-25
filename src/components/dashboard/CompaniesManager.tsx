@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import {
   Building2,
@@ -25,11 +27,13 @@ import {
   Upload,
   ChevronLeft,
   ChevronRight,
+  Send,
 } from "lucide-react";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { DashboardTableSkeleton, DashboardErrorState } from "./DashboardSkeleton";
 import { BatchCompanyUpload } from "./BatchCompanyUpload";
+import { getDexianEmailLink, EMAIL_TEMPLATE_OPTIONS, DexianEmailTemplate } from "@/lib/companyOutreachTemplates";
 
 // --- Internal Hook for Debounce (No new file needed) ---
 function useDebounce<T>(value: T, delay: number): T {
@@ -376,7 +380,35 @@ export function CompaniesManager() {
                           )}
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
+                          <div className="flex justify-end gap-1">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    disabled={!company.primary_email}
+                                    onClick={() => {
+                                      if (company.primary_email) {
+                                        const mailtoLink = getDexianEmailLink(
+                                          company.primary_email,
+                                          'discovery',
+                                          company.name
+                                        );
+                                        window.open(mailtoLink, '_blank');
+                                        toast.success("Email client opened with Dexian template");
+                                      }
+                                    }}
+                                    className="text-blue-600 hover:text-blue-700"
+                                  >
+                                    <Send className="w-4 h-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Email via Dexian (Discovery)</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                             <Button variant="ghost" size="sm" onClick={() => handleOpenDialog(company)}>
                               <Edit className="w-4 h-4" />
                             </Button>
