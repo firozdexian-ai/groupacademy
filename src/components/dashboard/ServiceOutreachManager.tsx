@@ -105,7 +105,8 @@ export function ServiceOutreachManager() {
   }, [loadShareLogs]);
 
   const getShareLink = (service: ServiceConfig, source: string) => {
-    return `${window.location.origin}/app/services?service=${service.slug}&source=${source}`;
+    // Use public route for external sharing to enable anonymous tracking
+    return `${window.location.origin}/services?service=${service.slug}&source=${source}`;
   };
 
   const recordShare = async (channel: string) => {

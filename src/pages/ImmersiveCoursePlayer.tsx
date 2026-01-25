@@ -181,15 +181,29 @@ export default function ImmersiveCoursePlayer() {
     toast.success(`Stage ${stageNumber} completed!`);
   };
 
-  const handleNextModule = () => {
+  const handleNextModule = async () => {
     if (hasNextModule) {
       const nextModule = modules[currentModuleIndex + 1];
       setCurrentModuleId(nextModule.id);
       setCurrentStage(1);
       setCompletedStages([]); // Reset stage progress for new module
     } else {
-      // Course Completion Logic could go here
-      toast.success("Course Completed!");
+      // Mark enrollment as completed
+      if (enrollment?.id) {
+        try {
+          await supabase
+            .from("enrollments")
+            .update({
+              status: "completed",
+              completed_at: new Date().toISOString(),
+              progress: 100,
+            })
+            .eq("id", enrollment.id);
+        } catch (err) {
+          console.error("Error marking course complete:", err);
+        }
+      }
+      toast.success("Congratulations! You've completed the course!");
       navigate("/app/learning/my-courses");
     }
   };

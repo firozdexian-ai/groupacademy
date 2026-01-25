@@ -4,9 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 interface UseStageProgressOptions {
   enrollmentId: string | undefined;
   moduleId: string | undefined;
+  totalStages?: number;
 }
 
-export function useStageProgress({ enrollmentId, moduleId }: UseStageProgressOptions) {
+export function useStageProgress({ enrollmentId, moduleId, totalStages = 6 }: UseStageProgressOptions) {
   const [completedStages, setCompletedStages] = useState<number[]>([]);
   const [currentStage, setCurrentStage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
@@ -48,6 +49,27 @@ export function useStageProgress({ enrollmentId, moduleId }: UseStageProgressOpt
     loadProgress();
   }, [enrollmentId, moduleId]);
 
+  // Update enrollment progress and last_accessed_at
+  const updateEnrollmentProgress = useCallback(
+    async (completedStagesCount: number) => {
+      if (!enrollmentId) return;
+
+      const progress = Math.round((completedStagesCount / totalStages) * 100);
+      try {
+        await supabase
+          .from("enrollments")
+          .update({
+            progress: Math.min(progress, 100),
+            last_accessed_at: new Date().toISOString(),
+          })
+          .eq("id", enrollmentId);
+      } catch (err) {
+        console.error("Error updating enrollment progress:", err);
+      }
+    },
+    [enrollmentId, totalStages]
+  );
+
   // Persist progress to database
   const persistProgress = useCallback(
     async (newCompletedStages: number[], newCurrentStage: number) => {
@@ -73,13 +95,16 @@ export function useStageProgress({ enrollmentId, moduleId }: UseStageProgressOpt
         if (error) {
           console.error("Error saving stage progress:", error);
         }
+
+        // Also update the parent enrollment progress
+        await updateEnrollmentProgress(newCompletedStages.length);
       } catch (err) {
         console.error("Error persisting stage progress:", err);
       } finally {
         setIsSaving(false);
       }
     },
-    [enrollmentId, moduleId]
+    [enrollmentId, moduleId, updateEnrollmentProgress]
   );
 
   const markStageComplete = useCallback(
