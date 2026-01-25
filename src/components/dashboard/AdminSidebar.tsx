@@ -25,13 +25,12 @@ import {
   Trophy,
   FileText,
   ChevronDown,
+  BarChart, // Added for Learner Progress
 } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -93,6 +92,8 @@ const navGroups: NavGroup[] = [
     roles: ["admin"],
     items: [
       { title: "All Content", icon: BookOpen, value: "all" },
+      { title: "Enrollments", icon: Users, value: "enrollments" }, // 👈 Added
+      { title: "Learner Progress", icon: BarChart, value: "learner-progress" }, // 👈 Added
       { title: "Content Outreach", icon: Send, value: "content-outreach" },
       { title: "Free Videos", icon: Video, value: "videos" },
       { title: "Recorded Courses", icon: Tv, value: "courses" },
