@@ -104,6 +104,16 @@ const DELIVERY_STATUSES: { value: DeliveryStatus; label: string }[] = [
 
 const ITEMS_PER_PAGE = 10;
 
+// Helper to extract actual first name, skipping common prefixes
+const getFirstName = (fullName: string): string => {
+  const prefixes = ['md.', 'md', 'mst.', 'mst', 'dr.', 'dr', 'engr.', 'engr', 'prof.', 'prof', 'mr.', 'mr', 'mrs.', 'mrs', 'ms.', 'ms'];
+  const parts = fullName.trim().split(/\s+/);
+  if (parts.length > 1 && prefixes.includes(parts[0].toLowerCase())) {
+    return parts[1];
+  }
+  return parts[0];
+};
+
 // --- Inline Component: Assessment Detail Dialog ---
 const AssessmentDetailDialog = ({
   isOpen,
@@ -812,7 +822,7 @@ This application was submitted via GroUp Academy Jobs Board.
                                 onClick={() => {
                                   const link = formatApplicationForwardedLink(
                                     app.talents?.phone || null,
-                                    app.talents?.full_name?.split(' ')[0] || 'there',
+                                    getFirstName(app.talents?.full_name || '') || 'there',
                                     app.jobs?.title || 'this position',
                                     app.jobs?.company_name || 'the company'
                                   );
