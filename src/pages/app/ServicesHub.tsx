@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { ClipboardCheck, Mic, DollarSign, Palette, Coins, Sparkles, History } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -62,11 +63,35 @@ const CAREER_SERVICES: ServiceCardData[] = [
 
 export default function ServicesHub() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { balance, getServiceCost, canAfford } = useCredits();
 
   const [selectedService, setSelectedService] = useState<ServiceCardData | null>(null);
   const [showCreditGate, setShowCreditGate] = useState(false);
   const [showPurchaseSheet, setShowPurchaseSheet] = useState(false);
+
+  // Track service clicks from external sources
+  useEffect(() => {
+    const source = searchParams.get("source");
+    const serviceSlug = searchParams.get("service");
+    
+    if (source && serviceSlug) {
+      const trackClick = async () => {
+        try {
+          await supabase.rpc("track_service_click", {
+            p_slug: serviceSlug,
+            p_source: source,
+          });
+        } catch (err) {
+          console.error("Failed to track service click", err);
+        }
+      };
+      trackClick();
+      
+      // Clean URL without reloading
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, [searchParams]);
 
   const handleServiceClick = (service: ServiceCardData) => {
     setSelectedService(service);

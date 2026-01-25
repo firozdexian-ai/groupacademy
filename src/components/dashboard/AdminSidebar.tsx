@@ -27,6 +27,7 @@ import {
   ChevronDown,
   BarChart,
   PieChart,
+  Sparkles,
 } from "lucide-react";
 import {
   Sidebar,
@@ -97,6 +98,7 @@ const navGroups: NavGroup[] = [
       { title: "Enrollments", icon: Users, value: "enrollments" }, // 👈 Added
       { title: "Learner Progress", icon: BarChart, value: "learner-progress" }, // 👈 Added
       { title: "Content Outreach", icon: Send, value: "content-outreach" },
+      { title: "Service Outreach", icon: Sparkles, value: "service-outreach" },
       { title: "Free Videos", icon: Video, value: "videos" },
       { title: "Recorded Courses", icon: Tv, value: "courses" },
       { title: "Webinars", icon: Tv, value: "webinars" },
