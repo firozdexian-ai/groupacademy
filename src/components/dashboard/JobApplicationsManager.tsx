@@ -29,6 +29,7 @@ import {
   List,
   ChevronLeft,
   ChevronRight,
+  MessageSquare,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
@@ -447,6 +448,33 @@ Applied: ${app.created_at ? format(new Date(app.created_at), "MMMM d, yyyy HH:mm
     toast.success("Application details copied to clipboard");
   };
 
+  const formatApplicationForwardedLink = (
+    phone: string | null, 
+    name: string, 
+    jobTitle: string, 
+    companyName: string
+  ) => {
+    if (!phone) return null;
+    let cleaned = phone.replace(/[\s\-\(\)\+]/g, "");
+    if (cleaned.startsWith("880")) {
+      // already formatted
+    } else if (cleaned.startsWith("0")) {
+      cleaned = `880${cleaned.slice(1)}`;
+    } else if (cleaned.length === 10) {
+      cleaned = `880${cleaned}`;
+    }
+    
+    const message = encodeURIComponent(
+      `Hi ${name}! 🎉\n\n` +
+      `Great news — we just forwarded your application for ${jobTitle} at ${companyName} to the hiring team!\n\n` +
+      `💡 Pro tip: You can practice a Mock Interview on our platform for this exact position to boost your chances.\n\n` +
+      `Best of luck!\n` +
+      `GroUp Academy Team`
+    );
+    
+    return `https://wa.me/${cleaned}?text=${message}`;
+  };
+
   const handleForwardManually = (app: JobApplication) => {
     const employerEmail = app.jobs?.application_email;
     if (!employerEmail) {
@@ -771,8 +799,28 @@ This application was submitted via GroUp Academy Jobs Board.
                                 size="icon"
                                 className="h-8 w-8 text-amber-600"
                                 onClick={() => handleForwardManually(app)}
+                                title="Forward Manually"
                               >
                                 <Forward className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {app.talents?.phone && app.delivery_status === 'sent' && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-green-600"
+                                onClick={() => {
+                                  const link = formatApplicationForwardedLink(
+                                    app.talents?.phone || null,
+                                    app.talents?.full_name?.split(' ')[0] || 'there',
+                                    app.jobs?.title || 'this position',
+                                    app.jobs?.company_name || 'the company'
+                                  );
+                                  if (link) window.open(link, "_blank");
+                                }}
+                                title="Notify Applicant via WhatsApp"
+                              >
+                                <MessageSquare className="h-4 w-4" />
                               </Button>
                             )}
                           </div>
