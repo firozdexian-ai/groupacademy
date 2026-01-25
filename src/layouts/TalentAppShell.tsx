@@ -16,7 +16,7 @@ import {
   Settings,
   ChevronRight,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTalent } from "@/hooks/useTalent";
 import { usePWADetect } from "@/hooks/usePWADetect";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,7 @@ import { useTheme } from "next-themes";
 import { CreditBalance } from "@/components/credits/CreditBalance";
 import { NotificationDropdown } from "@/components/notifications/NotificationDropdown";
 import { Separator } from "@/components/ui/separator";
+import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 
 // Desktop Sidebar Items (Full List)
 const DESKTOP_NAV_ITEMS = [
@@ -50,12 +51,23 @@ const MOBILE_NAV_ITEMS = [
 ];
 
 export function TalentAppShell() {
-  const { talent, signOut, isLoading } = useTalent();
+  const { talent, signOut, isLoading, refreshTalent } = useTalent();
   const { isPWA } = usePWADetect();
   const navigate = useNavigate();
   const location = useLocation();
   const { theme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  useEffect(() => {
+    // Global Onboarding Check
+    // If talent exists but hasn't completed onboarding, FORCE the wizard.
+    if (talent && !talent.onboardingCompletedAt) {
+      setShowOnboarding(true);
+    } else {
+      setShowOnboarding(false);
+    }
+  }, [talent]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -65,6 +77,14 @@ export function TalentAppShell() {
   const handleMobileNavClick = (path: string) => {
     navigate(path);
     setMobileMenuOpen(false);
+  };
+
+  const handleOnboardingComplete = async () => {
+    // When wizard finishes, refresh talent data to update 'onboardingCompletedAt'
+    // This will cause the useEffect to run again and hide the wizard.
+    await refreshTalent();
+    setShowOnboarding(false);
+    // User remains on the current URL (e.g. /app/jobs/123), preserving the "hook"
   };
 
   // 1. Loading State (PWA Branded)
@@ -94,6 +114,17 @@ export function TalentAppShell() {
     const returnUrl = encodeURIComponent(location.pathname + location.search);
     navigate(`/auth?returnTo=${returnUrl}`, { replace: true });
     return null;
+  }
+
+  // 3. Onboarding Guard (The Fix)
+  // If onboarding is required, render Wizard INSTAEAD of the App Shell.
+  // This effectively traps the user until they complete it.
+  if (showOnboarding) {
+    return (
+      <div className="min-h-screen bg-background">
+        <OnboardingWizard onComplete={handleOnboardingComplete} />
+      </div>
+    );
   }
 
   const logoSrc = theme === "dark" ? logoDark : logoLight;
