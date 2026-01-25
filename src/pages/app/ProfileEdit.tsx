@@ -28,6 +28,8 @@ export default function ProfileEdit() {
   const [formData, setFormData] = useState({
     fullName: "",
     phone: "",
+    countryCode: "+880",
+    country: "BD",
     customProfession: "",
     currentStatus: "",
     institution: "",
@@ -46,6 +48,8 @@ export default function ProfileEdit() {
       setFormData({
         fullName: talent.fullName || "",
         phone: talent.phone || "",
+        countryCode: (talent as any).country_code || "+880",
+        country: (talent as any).country || "BD",
         customProfession: talent.customProfession || "",
         currentStatus: talent.currentStatus || "",
         institution: talent.institution || "",
@@ -361,9 +365,13 @@ export default function ProfileEdit() {
                 <Label htmlFor="phone">Phone Number</Label>
                 <PhoneInput
                   value={formData.phone}
-                  onChange={(value) => handleChange("phone", value)}
+                  countryCode={formData.countryCode}
+                  onValueChange={(value) => handleChange("phone", value)}
+                  onCountryCodeChange={(code, country) => {
+                    handleChange("countryCode", code);
+                    handleChange("country", country);
+                  }}
                   placeholder="Enter phone number"
-                  defaultCountry="BD"
                 />
               </div>
             </div>
