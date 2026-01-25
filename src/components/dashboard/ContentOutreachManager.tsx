@@ -67,7 +67,7 @@ export function ContentOutreachManager() {
 
   // UI State
   const [isLoading, setIsLoading] = useState(true);
-  const [isSending, setIsSending] = useState<string | null>(null); // Track individual sending
+  const [isSending, setIsSending] = useState<string | null>(null);
   const [filterType, setFilterType] = useState<"not_enrolled" | "not_pitched" | "all">("not_pitched");
 
   // Share Dialog State
@@ -96,12 +96,11 @@ export function ContentOutreachManager() {
     loadContents();
   }, [loadContents]);
 
-  // 2. Load Talents & Records (Restored Logic)
+  // 2. Load Talents & Records
   const loadTalents = useCallback(async () => {
     if (!selectedContent) return;
     setIsLoading(true);
 
-    // Get talents with phones
     const { data: talentData, error: talentError } = await supabase
       .from("talents")
       .select("id, full_name, email, phone, profession_category_id, country")
@@ -115,7 +114,6 @@ export function ContentOutreachManager() {
       return;
     }
 
-    // Get individual outreach history
     const { data: outreachData } = await supabase
       .from("outreach_messages")
       .select("talent_id, course_id")
@@ -124,7 +122,6 @@ export function ContentOutreachManager() {
 
     setOutreachRecords(outreachData || []);
 
-    // Filter Logic
     let filteredTalents = talentData || [];
     if (filterType === "not_pitched") {
       const pitchedTalentIds = new Set((outreachData || []).map((r) => r.talent_id));
@@ -135,7 +132,7 @@ export function ContentOutreachManager() {
     setIsLoading(false);
   }, [selectedContent, filterType]);
 
-  // 3. Load Share Logs
+  // 3. Load Share Logs (Ticks)
   const loadShareLogs = async () => {
     if (!selectedContent) return;
     const { data } = await supabase
@@ -152,13 +149,12 @@ export function ContentOutreachManager() {
     }
   }, [selectedContent, loadTalents, isShareOpen]);
 
-  // --- Individual Outreach Handler (Restored) ---
+  // --- Handlers ---
   const handleSendOutreach = async (talent: Talent) => {
     if (!talent.phone || !selectedContent) return;
     setIsSending(talent.id);
 
     try {
-      // Log to database
       const { error } = await supabase.from("outreach_messages").insert({
         talent_id: talent.id,
         product: "course",
@@ -168,16 +164,13 @@ export function ContentOutreachManager() {
 
       if (error) throw error;
 
-      // Open WhatsApp
       const firstName = getFirstName(talent.full_name);
       const whatsappUrl = getOutreachWhatsAppLink(talent.phone, "course", firstName, selectedContent.title);
       window.open(whatsappUrl, "_blank");
 
-      // Update UI state
       setOutreachRecords((prev) => [...prev, { talent_id: talent.id, course_id: selectedContent.id }]);
       toast.success(`Outreach sent to ${talent.full_name}`);
     } catch (err) {
-      console.error("Outreach failed", err);
       toast.error("Failed to record outreach");
     } finally {
       setIsSending(null);
@@ -190,13 +183,21 @@ export function ContentOutreachManager() {
   // --- Bulk Share Handlers ---
   const recordShare = async (channel: string) => {
     if (!selectedContent) return;
+
+    // Optimistic Update
+    setShareLogs((prev) => [...prev, { channel, shared_at: new Date().toISOString() }]);
+
     const { error } = await supabase.from("content_share_logs").insert({
       content_id: selectedContent.id,
       channel: channel,
       shared_at: new Date().toISOString(),
     });
-    if (!error) {
-      setShareLogs((prev) => [...prev, { channel, shared_at: new Date().toISOString() }]);
+
+    if (error) {
+      // Revert if failed
+      setShareLogs((prev) => prev.filter((l) => l.channel !== channel));
+      toast.error("Failed to save progress. Check connection.");
+    } else {
       toast.success(`Marked as shared on ${channel}`);
     }
   };
@@ -215,13 +216,11 @@ export function ContentOutreachManager() {
       await navigator.clipboard.writeText(link);
       toast.success("Link copied!");
     } catch {}
-    if (!["linkedin", "facebook", "whatsapp", "telegram"].includes(source)) recordShare(source);
   };
 
   const contentTypeLabel = (type: string) =>
     ({ recorded_course: "Course", batch_class: "Batch", live_webinar: "Webinar" })[type] || type;
 
-  // --- Templates ---
   const templates = selectedContent
     ? {
         english: `🚀 Learning Opportunity: ${selectedContent.title}\n📚 Type: ${contentTypeLabel(selectedContent.content_type)}\n🔥 Join now: ${getShareLink(activeTab)}\n\n#learning #career`,
@@ -249,7 +248,7 @@ export function ContentOutreachManager() {
         url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}`;
         break;
       case "whatsapp":
-        url = `https://wa.me/?text=${encodeURIComponent(`Check this course: ${selectedContent.title}\n${link}`)}`;
+        url = `https://wa.me/?text=${encodeURIComponent(`Check this out: ${selectedContent.title}\n${link}`)}`;
         break;
       case "telegram":
         url = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(selectedContent.title)}`;
@@ -273,10 +272,10 @@ export function ContentOutreachManager() {
           <CardTitle className="flex items-center gap-2">
             <BookOpen className="h-5 w-5" /> Content Outreach
           </CardTitle>
-          <CardDescription>Promote content generally OR nudge specific talents individually.</CardDescription>
+          <CardDescription>Select content to promote broadly or pitch individually.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* 1. Content Selector */}
+          {/* Selectors */}
           <div className="grid gap-6 md:grid-cols-2">
             <div className="space-y-2">
               <label className="text-sm font-medium">Select Content</label>
@@ -306,7 +305,7 @@ export function ContentOutreachManager() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Filter Audience</label>
+              <label className="text-sm font-medium">Filter Individual Audience</label>
               <Select value={filterType} onValueChange={(v: any) => setFilterType(v)}>
                 <SelectTrigger>
                   <SelectValue />
@@ -327,94 +326,20 @@ export function ContentOutreachManager() {
             </div>
           </div>
 
-          {/* 2. Action Bar (Promote Button) */}
+          {/* Action Bar */}
           {selectedContent && (
             <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
               <div>
                 <h3 className="font-medium">{selectedContent.title}</h3>
                 <p className="text-sm text-muted-foreground">{talents.length} individual targets found</p>
               </div>
-              <Button onClick={() => setIsShareOpen(true)} className="gap-2 bg-blue-600 hover:bg-blue-700">
+              <Button onClick={() => setIsShareOpen(true)} className="gap-2 bg-blue-600 hover:bg-blue-700 shadow-sm">
                 <Share2 className="w-4 h-4" /> Promote to Socials
               </Button>
             </div>
           )}
         </CardContent>
       </Card>
-
-      {/* 3. Talent List Table (Restored) */}
-      {selectedContent && (
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" /> Individual Outreach
-              </CardTitle>
-              <CardDescription>Send personal WhatsApp messages to talents</CardDescription>
-            </div>
-            <Button variant="outline" size="sm" onClick={loadTalents}>
-              <RefreshCw className="h-4 w-4 mr-2" /> Refresh
-            </Button>
-          </CardHeader>
-          <CardContent>
-            {talents.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">No talents found matching criteria.</div>
-            ) : (
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Phone</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Action</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {talents.map((talent) => (
-                      <TableRow key={talent.id}>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium">{talent.full_name}</p>
-                            <p className="text-xs text-muted-foreground">{talent.email}</p>
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-mono text-sm">{talent.phone}</TableCell>
-                        <TableCell>
-                          {isPitched(talent.id) ? (
-                            <Badge variant="secondary" className="bg-green-100 text-green-700">
-                              <Check className="h-3 w-3 mr-1" /> Pitched
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline">Pending</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {talent.phone && !isPitched(talent.id) && (
-                            <Button
-                              size="sm"
-                              onClick={() => handleSendOutreach(talent)}
-                              disabled={isSending === talent.id}
-                            >
-                              {isSending === talent.id ? (
-                                <RefreshCw className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <>
-                                  <Send className="h-4 w-4 mr-1" /> WhatsApp
-                                </>
-                              )}
-                            </Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
 
       {/* Share Dialog */}
       <Dialog open={isShareOpen} onOpenChange={setIsShareOpen}>
@@ -495,23 +420,30 @@ export function ContentOutreachManager() {
                   <div className="bg-green-50 p-3 rounded-md text-sm border border-green-100">
                     <p className="font-semibold mb-1">Direct Share</p>Share in channels/groups.
                   </div>
+
+                  {/* DIRECT BUTTON */}
                   <Button
                     className="w-full bg-green-600 hover:bg-green-700"
                     onClick={() => handleSocialShare(activeTab as any)}
                   >
                     Open App
                   </Button>
+
                   <div className="relative flex py-2 items-center">
                     <div className="flex-grow border-t border-gray-200"></div>
                     <span className="flex-shrink-0 mx-4 text-gray-400 text-xs">OR COPY LINK</span>
                     <div className="flex-grow border-t border-gray-200"></div>
                   </div>
+
+                  {/* COPY BUTTON */}
                   <div className="flex gap-2">
                     <Input readOnly value={getShareLink(activeTab)} className="bg-muted text-xs" />
                     <Button variant="outline" onClick={() => copyLink(activeTab)}>
                       <Copy className="w-4 h-4" />
                     </Button>
                   </div>
+
+                  {/* MANUAL MARK BUTTON */}
                   <Button
                     variant="secondary"
                     className="w-full"
@@ -567,6 +499,80 @@ export function ContentOutreachManager() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Talent List (Individual Outreach) */}
+      {selectedContent && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" /> Individual Outreach
+              </CardTitle>
+              <CardDescription>Send personal WhatsApp messages to talents</CardDescription>
+            </div>
+            <Button variant="outline" size="sm" onClick={loadTalents}>
+              <RefreshCw className="h-4 w-4 mr-2" /> Refresh
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {talents.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">No talents found matching criteria.</div>
+            ) : (
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Phone</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {talents.map((talent) => (
+                      <TableRow key={talent.id}>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{talent.full_name}</p>
+                            <p className="text-xs text-muted-foreground">{talent.email}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-mono text-sm">{talent.phone}</TableCell>
+                        <TableCell>
+                          {isPitched(talent.id) ? (
+                            <Badge variant="secondary" className="bg-green-100 text-green-700">
+                              <Check className="h-3 w-3 mr-1" /> Pitched
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline">Pending</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {talent.phone && !isPitched(talent.id) && (
+                            <Button
+                              size="sm"
+                              onClick={() => handleSendOutreach(talent)}
+                              disabled={isSending === talent.id}
+                            >
+                              {isSending === talent.id ? (
+                                <RefreshCw className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <>
+                                  <Send className="h-4 w-4 mr-1" /> WhatsApp
+                                </>
+                              )}
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
