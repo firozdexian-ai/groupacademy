@@ -23,6 +23,11 @@ export interface FeedItem {
   youtubeUrl?: string;
   category?: string;
   externalUrl?: string;
+  // Job-specific fields
+  salaryMin?: number;
+  salaryMax?: number;
+  experienceLevel?: string;
+  jobType?: string;
 }
 
 export type FeedFilterType = "all" | "job" | "course" | "video" | "blog";
@@ -98,7 +103,7 @@ export function useFeedRecommendations(): UseFeedRecommendationsResult {
       const [jobsResult, coursesResult, blogsResult] = await Promise.all([
         supabase
           .from("jobs")
-          .select("id, title, description, company_name, company_logo_url, source_image_url, location, created_at")
+          .select("id, title, description, company_name, company_logo_url, source_image_url, location, created_at, salary_range_min, salary_range_max, experience_level, job_type")
           .eq("is_active", true)
           .or("deadline.is.null,deadline.gte.now()")
           .order("created_at", { ascending: false })
@@ -135,6 +140,10 @@ export function useFeedRecommendations(): UseFeedRecommendationsResult {
             matchScore: getRandomScore(),
             mediaUrl: mediaUrl,
             mediaType: mediaUrl ? "image" : undefined,
+            salaryMin: job.salary_range_min || undefined,
+            salaryMax: job.salary_range_max || undefined,
+            experienceLevel: job.experience_level || undefined,
+            jobType: job.job_type || undefined,
           });
         });
       }

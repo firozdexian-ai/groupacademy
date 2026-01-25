@@ -12,15 +12,13 @@ interface FeedCardProps {
 }
 
 export function FeedCard({ item, onInterested, onNotInterested }: FeedCardProps) {
-  // Extract metadata safely
-  const meta = item.metadata || {};
   const isJob = item.type === "job";
 
   // Job Specific Helpers
   const salaryDisplay = () => {
-    if (!meta.salary_min && !meta.salary_max) return null;
-    const min = meta.salary_min ? `${Math.round(meta.salary_min / 1000)}k` : "";
-    const max = meta.salary_max ? `${Math.round(meta.salary_max / 1000)}k` : "";
+    if (!item.salaryMin && !item.salaryMax) return null;
+    const min = item.salaryMin ? `${Math.round(item.salaryMin / 1000)}k` : "";
+    const max = item.salaryMax ? `${Math.round(item.salaryMax / 1000)}k` : "";
     const currency = "৳";
 
     if (min && max) return `${currency}${min} - ${max}`;
@@ -114,9 +112,9 @@ export function FeedCard({ item, onInterested, onNotInterested }: FeedCardProps)
               )}
 
               {/* Job Specific Location Badge */}
-              {isJob && meta.location && (
+              {isJob && item.location && (
                 <span className="text-[10px] text-muted-foreground truncate flex items-center gap-0.5 ml-auto">
-                  <MapPin className="w-3 h-3" /> {meta.location}
+                  <MapPin className="w-3 h-3" /> {item.location}
                 </span>
               )}
             </div>
@@ -138,21 +136,21 @@ export function FeedCard({ item, onInterested, onNotInterested }: FeedCardProps)
                     {salaryDisplay()}
                   </Badge>
                 )}
-                {meta.experience_level && (
+                {item.experienceLevel && (
                   <Badge
                     variant="outline"
                     className={cn(
                       "text-[10px] px-1.5 h-5 border whitespace-nowrap font-medium",
-                      experienceColor(meta.experience_level),
+                      experienceColor(item.experienceLevel),
                     )}
                   >
                     <Clock className="w-3 h-3 mr-1 opacity-70" />
-                    {meta.experience_level}
+                    {item.experienceLevel}
                   </Badge>
                 )}
-                {meta.job_type && (
+                {item.jobType && (
                   <Badge variant="outline" className="text-[10px] px-1.5 h-5 text-muted-foreground whitespace-nowrap">
-                    {meta.job_type.replace("_", " ")}
+                    {item.jobType.replace("_", " ")}
                   </Badge>
                 )}
               </div>
