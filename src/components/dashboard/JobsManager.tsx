@@ -142,6 +142,33 @@ const EXPERIENCE_LEVELS: { value: ExperienceLevel; label: string }[] = [
 
 const ITEMS_PER_PAGE = 10;
 
+const emptyJob: Omit<Job, "id" | "created_at"> = {
+  title: "",
+  company_name: "",
+  company_logo_url: null,
+  location: null,
+  job_type: "full_time",
+  experience_level: "entry",
+  salary_range_min: null,
+  salary_range_max: null,
+  description: "",
+  ai_enhanced_description: null,
+  requirements: [],
+  application_type: "email",
+  application_email: null,
+  application_url: null,
+  source_url: null,
+  source_platform: null,
+  source_image_url: null,
+  profession_category_id: null,
+  deadline: null,
+  is_active: true,
+  is_featured: false,
+  ai_assessment_enabled: false,
+  assessment_config: { question_count: 5, voice_enabled: false },
+  vacancies: null,
+};
+
 // --- Sub-Component: Share Dialog ---
 const ShareJobDialog = ({ job, isOpen, onClose }: { job: Job | null; isOpen: boolean; onClose: () => void }) => {
   const [activeTab, setActiveTab] = useState("linkedin");
