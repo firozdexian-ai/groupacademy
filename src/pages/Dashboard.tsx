@@ -33,6 +33,7 @@ import { BlogManager } from "@/components/dashboard/BlogManager";
 import { LeadHunterManager } from "@/components/dashboard/LeadHunterManager";
 import { ContactsManager } from "@/components/dashboard/ContactsManager";
 import { ContentOutreachManager } from "@/components/dashboard/ContentOutreachManager";
+import { MarketingAnalytics } from "@/components/dashboard/MarketingAnalytics";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -82,6 +83,7 @@ const tabAccessMap: Record<string, AppRole[]> = {
   ielts: ["admin"],
   competitions: ["admin"],
   blog: ["admin"],
+  analytics: ["admin", "talent_exec"],
 };
 
 const Dashboard = () => {
@@ -267,6 +269,8 @@ const Dashboard = () => {
         return <BlogManager />;
       case "content-outreach":
         return <ContentOutreachManager />;
+      case "analytics":
+        return <MarketingAnalytics />;
       default:
         return userRole === "talent_exec" ? <CVOutreachGenerator /> : <DashboardOverview />;
     }
@@ -306,7 +310,8 @@ const Dashboard = () => {
       competitions: "Competitions",
       blog: "Blog Posts",
       "content-outreach": "Content Outreach",
-      "learner-progress": "Learner Progress", // 👈 Added Title
+      "learner-progress": "Learner Progress",
+      analytics: "Marketing Analytics",
     };
     return titles[activeTab] || "Dashboard";
   };

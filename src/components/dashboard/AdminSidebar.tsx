@@ -25,7 +25,8 @@ import {
   Trophy,
   FileText,
   ChevronDown,
-  BarChart, // Added for Learner Progress
+  BarChart,
+  PieChart,
 } from "lucide-react";
 import {
   Sidebar,
@@ -84,6 +85,7 @@ const navGroups: NavGroup[] = [
       { title: "Applications", icon: FileCheck, value: "applications" },
       { title: "Companies", icon: Building2, value: "companies" },
       { title: "Contacts", icon: Users, value: "contacts" },
+      { title: "Marketing Analytics", icon: PieChart, value: "analytics" },
     ],
   },
   {
