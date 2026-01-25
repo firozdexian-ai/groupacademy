@@ -206,8 +206,8 @@ export function ContentOutreachManager() {
 
   const getShareLink = (source: string) => {
     if (!selectedContent) return "";
-    const typeSlug = selectedContent.content_type === "live_webinar" ? "events" : "courses";
-    return `${window.location.origin}/app/learning/${typeSlug}/${selectedContent.id}?source=${source}`;
+    // Use public route for external sharing so anonymous visitors get tracked
+    return `${window.location.origin}/courses/${selectedContent.id}?source=${source}`;
   };
 
   const copyLink = async (source: string) => {

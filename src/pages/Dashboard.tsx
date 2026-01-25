@@ -33,6 +33,7 @@ import { BlogManager } from "@/components/dashboard/BlogManager";
 import { LeadHunterManager } from "@/components/dashboard/LeadHunterManager";
 import { ContactsManager } from "@/components/dashboard/ContactsManager";
 import { ContentOutreachManager } from "@/components/dashboard/ContentOutreachManager";
+import { ServiceOutreachManager } from "@/components/dashboard/ServiceOutreachManager";
 import { MarketingAnalytics } from "@/components/dashboard/MarketingAnalytics";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -60,6 +61,7 @@ const tabAccessMap: Record<string, AppRole[]> = {
   professions: ["admin"],
   team: ["admin"],
   "content-outreach": ["admin"],
+  "service-outreach": ["admin"],
   // Talent exec accessible tabs
   leads: ["admin", "talent_exec"],
   interviews: ["admin", "talent_exec"],
@@ -269,6 +271,8 @@ const Dashboard = () => {
         return <BlogManager />;
       case "content-outreach":
         return <ContentOutreachManager />;
+      case "service-outreach":
+        return <ServiceOutreachManager />;
       case "analytics":
         return <MarketingAnalytics />;
       default:
@@ -310,6 +314,7 @@ const Dashboard = () => {
       competitions: "Competitions",
       blog: "Blog Posts",
       "content-outreach": "Content Outreach",
+      "service-outreach": "Service Outreach",
       "learner-progress": "Learner Progress",
       analytics: "Marketing Analytics",
     };
