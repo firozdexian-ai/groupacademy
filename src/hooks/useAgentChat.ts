@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTalent } from "@/hooks/useTalent";
 import { toast } from "sonner";
+import { handleAIError, getAIUnavailableToast } from "@/lib/aiErrorHandler";
 
 export interface AgentMessage {
   role: "user" | "assistant";
@@ -249,12 +250,13 @@ export function useAgentChat(): UseAgentChatReturn {
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          if (response.status === 429) {
-            toast.error("Rate limit exceeded. Please wait a moment.");
-          } else if (response.status === 402) {
-            toast.error("AI service quota exceeded. Please try again later.");
+          const { message, suggestion, isAIUnavailable } = handleAIError(errorData, response.status);
+          
+          if (isAIUnavailable) {
+            const { description } = getAIUnavailableToast();
+            toast.error(description);
           } else {
-            toast.error(errorData.error || "Failed to get AI response");
+            toast.error(message, { description: suggestion });
           }
           return;
         }

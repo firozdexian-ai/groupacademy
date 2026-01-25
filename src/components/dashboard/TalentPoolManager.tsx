@@ -24,6 +24,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Hand,
+  Check,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -53,6 +54,7 @@ interface Talent {
   services_used: string[]; // Fixed type
   created_at: string;
   updated_at: string;
+  welcome_sent_at: string | null; // Track when welcome message was sent
 }
 
 interface ProfessionCategory {
@@ -388,18 +390,43 @@ export function TalentPoolManager() {
                                 >
                                   <MessageSquare className="w-4 h-4" />
                                 </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => {
-                                    const link = formatWelcomeWhatsAppLink(talent.phone, getFirstName(talent.full_name));
-                                    if (link) window.open(link, "_blank");
-                                  }}
-                                  className="text-blue-600 hover:text-blue-700"
-                                  title="Send Welcome Message"
-                                >
-                                  <Hand className="w-4 h-4" />
-                                </Button>
+                                {talent.welcome_sent_at ? (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    disabled
+                                    className="text-green-600"
+                                    title={`Welcome sent on ${new Date(talent.welcome_sent_at).toLocaleDateString()}`}
+                                  >
+                                    <Check className="w-4 h-4" />
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={async () => {
+                                      // Update database first
+                                      const { error } = await supabase
+                                        .from('talents')
+                                        .update({ welcome_sent_at: new Date().toISOString() })
+                                        .eq('id', talent.id);
+                                      
+                                      if (error) {
+                                        toast.error("Failed to track message");
+                                      } else {
+                                        // Open WhatsApp
+                                        const link = formatWelcomeWhatsAppLink(talent.phone, getFirstName(talent.full_name));
+                                        if (link) window.open(link, "_blank");
+                                        // Refresh list
+                                        loadTalents();
+                                      }
+                                    }}
+                                    className="text-blue-600 hover:text-blue-700"
+                                    title="Send Welcome Message"
+                                  >
+                                    <Hand className="w-4 h-4" />
+                                  </Button>
+                                )}
                               </>
                             )}
                             <Dialog>

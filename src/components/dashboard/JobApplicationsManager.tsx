@@ -72,6 +72,7 @@ interface JobApplication {
   is_paid: boolean | null;
   created_at: string | null;
   delivery_error: string | null;
+  applicant_notified_at: string | null; // Track when applicant was notified
   jobs: {
     title: string;
     company_name: string;
@@ -815,23 +816,48 @@ This application was submitted via GroUp Academy Jobs Board.
                               </Button>
                             )}
                             {app.talents?.phone && app.delivery_status === 'sent' && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-green-600"
-                                onClick={() => {
-                                  const link = formatApplicationForwardedLink(
-                                    app.talents?.phone || null,
-                                    getFirstName(app.talents?.full_name || '') || 'there',
-                                    app.jobs?.title || 'this position',
-                                    app.jobs?.company_name || 'the company'
-                                  );
-                                  if (link) window.open(link, "_blank");
-                                }}
-                                title="Notify Applicant via WhatsApp"
-                              >
-                                <MessageSquare className="h-4 w-4" />
-                              </Button>
+                              app.applicant_notified_at ? (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-green-600"
+                                  disabled
+                                  title={`Notified on ${new Date(app.applicant_notified_at).toLocaleDateString()}`}
+                                >
+                                  <CheckCircle className="h-4 w-4" />
+                                </Button>
+                              ) : (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-green-600"
+                                  onClick={async () => {
+                                    // Update database first
+                                    const { error } = await supabase
+                                      .from('job_applications')
+                                      .update({ applicant_notified_at: new Date().toISOString() })
+                                      .eq('id', app.id);
+                                    
+                                    if (error) {
+                                      toast.error("Failed to track notification");
+                                    } else {
+                                      // Open WhatsApp
+                                      const link = formatApplicationForwardedLink(
+                                        app.talents?.phone || null,
+                                        getFirstName(app.talents?.full_name || '') || 'there',
+                                        app.jobs?.title || 'this position',
+                                        app.jobs?.company_name || 'the company'
+                                      );
+                                      if (link) window.open(link, "_blank");
+                                      // Refresh list
+                                      loadApplications();
+                                    }
+                                  }}
+                                  title="Notify Applicant via WhatsApp"
+                                >
+                                  <MessageSquare className="h-4 w-4" />
+                                </Button>
+                              )
                             )}
                           </div>
                         </TableCell>

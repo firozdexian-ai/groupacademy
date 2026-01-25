@@ -1553,6 +1553,7 @@ export type Database = {
       }
       job_applications: {
         Row: {
+          applicant_notified_at: string | null
           application_status:
             | Database["public"]["Enums"]["application_status"]
             | null
@@ -1568,6 +1569,7 @@ export type Database = {
           talent_id: string | null
         }
         Insert: {
+          applicant_notified_at?: string | null
           application_status?:
             | Database["public"]["Enums"]["application_status"]
             | null
@@ -1585,6 +1587,7 @@ export type Database = {
           talent_id?: string | null
         }
         Update: {
+          applicant_notified_at?: string | null
           application_status?:
             | Database["public"]["Enums"]["application_status"]
             | null
@@ -3072,6 +3075,7 @@ export type Database = {
           student_id: string | null
           updated_at: string | null
           user_id: string | null
+          welcome_sent_at: string | null
         }
         Insert: {
           achievements?: Json | null
@@ -3104,6 +3108,7 @@ export type Database = {
           student_id?: string | null
           updated_at?: string | null
           user_id?: string | null
+          welcome_sent_at?: string | null
         }
         Update: {
           achievements?: Json | null
@@ -3136,6 +3141,7 @@ export type Database = {
           student_id?: string | null
           updated_at?: string | null
           user_id?: string | null
+          welcome_sent_at?: string | null
         }
         Relationships: [
           {
