@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Inbox, RefreshCw, ArrowDown, Briefcase, BookOpen, Video, FileText } from "lucide-react";
+import { Inbox, RefreshCw, ArrowDown, Briefcase, BookOpen, Video, FileText, Coins, WifiOff, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useTalent } from "@/hooks/useTalent";
@@ -15,11 +15,14 @@ import { FloatingAIButton } from "@/components/feed/FloatingAIButton";
 import { PersonalizedPromptCard } from "@/components/feed/PersonalizedPromptCard";
 import { BannerCarousel } from "@/components/BannerCarousel";
 import { cn } from "@/lib/utils";
+import { formatDistanceToNow } from "date-fns";
+import { Badge } from "@/components/ui/badge";
 
 export default function Feed() {
   const navigate = useNavigate();
   const { talent, refreshTalent } = useTalent();
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
 
   // Pull-to-refresh state
   const [startY, setStartY] = useState(0);
@@ -40,6 +43,13 @@ export default function Feed() {
     markNotInterested,
     hasGeneratedOnce,
   } = useFeedRecommendations();
+
+  // Update timestamp when refresh finishes successfully
+  useEffect(() => {
+    if (!isRefreshing && !error) {
+      setLastUpdated(new Date());
+    }
+  }, [isRefreshing, error]);
 
   // Check if onboarding is needed
   useEffect(() => {
@@ -70,7 +80,6 @@ export default function Feed() {
         if (item.slug) {
           navigate(`/app/learning/courses/${item.slug}`);
         } else if (item.youtubeUrl) {
-          // Fallback if no slug but has direct link (e.g. external video)
           window.open(item.youtubeUrl, "_blank");
         }
         break;
@@ -169,7 +178,7 @@ export default function Feed() {
           opacity: pullDistance > 0 || isRefreshing ? 1 : 0,
         }}
       >
-        <div className="bg-background/80 backdrop-blur-md shadow-lg rounded-full p-2 border">
+        <div className="bg-background/80 backdrop-blur-md shadow-lg rounded-full p-2 border flex items-center gap-2">
           {isRefreshing ? (
             <RefreshCw className="h-5 w-5 animate-spin text-primary" />
           ) : (
@@ -177,6 +186,7 @@ export default function Feed() {
               className={cn("h-5 w-5 text-primary transition-transform", pullDistance > 60 ? "rotate-180" : "")}
             />
           )}
+          {pullDistance > 60 && <span className="text-xs font-medium pr-1">Release to refresh</span>}
         </div>
       </div>
 
@@ -187,6 +197,15 @@ export default function Feed() {
         onRefresh={() => refresh(true)}
         isRefreshing={isRefreshing}
       />
+
+      {/* Last Updated Indicator */}
+      {!isLoading && !error && items.length > 0 && (
+        <div className="flex justify-end -mt-2 mb-2">
+          <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+            <Clock className="w-3 h-3" /> Updated {formatDistanceToNow(lastUpdated, { addSuffix: true })}
+          </p>
+        </div>
+      )}
 
       {/* Banner Carousel */}
       <BannerCarousel compact />
@@ -203,23 +222,31 @@ export default function Feed() {
       {/* Error State */}
       {error && (
         <Card className="border-destructive/50 bg-destructive/5 rounded-xl animate-in fade-in zoom-in-95">
-          <CardContent className="p-4 text-center">
-            <p className="text-sm text-destructive font-medium mb-2">{error}</p>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => refresh(true)}
-              className="text-xs h-8 border-destructive/20 hover:bg-destructive/10"
-            >
-              <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-              Try again
-            </Button>
+          <CardContent className="p-6 text-center">
+            <div className="h-12 w-12 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-3">
+              <WifiOff className="h-6 w-6 text-destructive" />
+            </div>
+            <h3 className="font-semibold text-destructive mb-1">Couldn't load feed</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              {error === "402"
+                ? "We're currently experiencing high traffic. Please try again later."
+                : "Something went wrong while curating your feed."}
+            </p>
+            <div className="flex gap-2 justify-center">
+              <Button variant="outline" size="sm" onClick={() => refresh(true)} className="gap-2">
+                <RefreshCw className="h-4 w-4" />
+                Retry
+              </Button>
+              <Button size="sm" variant="default" onClick={() => navigate("/app/jobs")}>
+                Explore Jobs Directly
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
 
       {/* Feed Items */}
-      {items.length === 0 ? (
+      {!error && items.length === 0 ? (
         <Card className="rounded-xl border-dashed">
           <CardContent className="p-8 text-center flex flex-col items-center">
             <div className="h-16 w-16 bg-muted/50 rounded-full flex items-center justify-center mb-4">
@@ -234,10 +261,10 @@ export default function Feed() {
                 : `Try adjusting your filters or check back later.`}
             </p>
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap justify-center">
               <Button size="sm" variant="outline" onClick={() => refresh(true)}>
                 <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-                Refresh
+                Refresh (20 <Coins className="h-3 w-3 ml-1 text-yellow-500" />)
               </Button>
               <Button size="sm" onClick={emptyAction.action}>
                 <emptyAction.icon className="h-3.5 w-3.5 mr-1.5" />
@@ -263,13 +290,15 @@ export default function Feed() {
           ))}
 
           {/* End of Feed Indicator */}
-          <div className="text-center py-8">
-            <p className="text-xs text-muted-foreground mb-3">You've reached the end</p>
-            <Button variant="ghost" size="sm" onClick={() => refresh(true)} className="text-xs">
-              <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-              Load More
-            </Button>
-          </div>
+          {!error && items.length > 0 && (
+            <div className="text-center py-8">
+              <p className="text-xs text-muted-foreground mb-3">You've reached the end</p>
+              <Button variant="ghost" size="sm" onClick={() => refresh(true)} className="text-xs gap-1">
+                <RefreshCw className="h-3.5 w-3.5" />
+                Load More (20 <Coins className="h-3 w-3 text-yellow-500" />)
+              </Button>
+            </div>
+          )}
         </div>
       )}
 
