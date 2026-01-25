@@ -25,6 +25,7 @@ import { CreditsManager } from "@/components/dashboard/CreditsManager";
 import { NotificationsManager } from "@/components/dashboard/NotificationsManager";
 import { AgentSessionsManager } from "@/components/dashboard/AgentSessionsManager";
 import { EnrollmentsManager } from "@/components/dashboard/EnrollmentsManager";
+import { LearnerProgressManager } from "@/components/dashboard/LearnerProgressManager"; // 👈 Added Import
 import { StudyAbroadManager } from "@/components/dashboard/StudyAbroadManager";
 import { IELTSResourcesManager } from "@/components/dashboard/IELTSResourcesManager";
 import { CompetitionsManager } from "@/components/dashboard/CompetitionsManager";
@@ -54,6 +55,7 @@ const tabAccessMap: Record<string, AppRole[]> = {
   codes: ["admin"],
   banners: ["admin"],
   enrollments: ["admin"],
+  "learner-progress": ["admin"], // 👈 Added Access
   professions: ["admin"],
   team: ["admin"],
   "content-outreach": ["admin"],
@@ -89,10 +91,10 @@ const Dashboard = () => {
   const [userRole, setUserRole] = useState<AppRole | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
-  
+
   // Read tab from URL or default based on role
   const activeTab = searchParams.get("tab") || (userRole === "talent_exec" ? "outreach" : "overview");
-  
+
   const setActiveTab = (tab: string) => {
     setSearchParams({ tab });
   };
@@ -104,7 +106,7 @@ const Dashboard = () => {
   // Validate tab access when role changes
   useEffect(() => {
     if (!userRole || isLoading) return;
-    
+
     const currentTab = searchParams.get("tab");
     if (currentTab) {
       const allowedRoles = tabAccessMap[currentTab];
@@ -120,11 +122,9 @@ const Dashboard = () => {
   const checkAuth = async () => {
     setAuthError(null);
     try {
-      const { data: { user } } = await withTimeout(
-        supabase.auth.getUser(),
-        TIMEOUTS.AUTH,
-        "Authentication check timed out"
-      );
+      const {
+        data: { user },
+      } = await withTimeout(supabase.auth.getUser(), TIMEOUTS.AUTH, "Authentication check timed out");
       if (!user) {
         navigate("/auth");
         return;
@@ -142,7 +142,7 @@ const Dashboard = () => {
           return { data, error };
         })(),
         TIMEOUTS.DEFAULT,
-        "Failed to load user permissions"
+        "Failed to load user permissions",
       );
 
       const { data: roleData } = result;
@@ -154,9 +154,9 @@ const Dashboard = () => {
       }
 
       // Set the highest role (admin takes precedence)
-      const hasAdmin = roleData.some(r => r.role === "admin");
+      const hasAdmin = roleData.some((r) => r.role === "admin");
       setUserRole(hasAdmin ? "admin" : "talent_exec");
-      
+
       setIsLoading(false);
     } catch (error: any) {
       console.error("Auth check error:", error);
@@ -182,12 +182,7 @@ const Dashboard = () => {
   if (authError) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
-        <ErrorState
-          type="server"
-          title="Failed to Load Dashboard"
-          description={authError}
-          onRetry={checkAuth}
-        />
+        <ErrorState type="server" title="Failed to Load Dashboard" description={authError} onRetry={checkAuth} />
       </div>
     );
   }
@@ -232,6 +227,8 @@ const Dashboard = () => {
         return <SalaryAnalysisLeadsManager />;
       case "enrollments":
         return <EnrollmentsManager />;
+      case "learner-progress": // 👈 Added Case
+        return <LearnerProgressManager />;
       case "professions":
         return <ProfessionsManager />;
       case "jobs-kpis":
@@ -309,6 +306,7 @@ const Dashboard = () => {
       competitions: "Competitions",
       blog: "Blog Posts",
       "content-outreach": "Content Outreach",
+      "learner-progress": "Learner Progress", // 👈 Added Title
     };
     return titles[activeTab] || "Dashboard";
   };
@@ -331,9 +329,7 @@ const Dashboard = () => {
           </header>
 
           {/* Main Content */}
-          <main className="p-6">
-            {renderContent()}
-          </main>
+          <main className="p-6">{renderContent()}</main>
         </SidebarInset>
       </div>
     </SidebarProvider>
