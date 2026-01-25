@@ -208,6 +208,16 @@ export function TalentPoolManager() {
     return `https://wa.me/${cleaned}`;
   };
 
+  // Helper to extract actual first name, skipping common prefixes
+  const getFirstName = (fullName: string): string => {
+    const prefixes = ['md.', 'md', 'mst.', 'mst', 'dr.', 'dr', 'engr.', 'engr', 'prof.', 'prof', 'mr.', 'mr', 'mrs.', 'mrs', 'ms.', 'ms'];
+    const parts = fullName.trim().split(/\s+/);
+    if (parts.length > 1 && prefixes.includes(parts[0].toLowerCase())) {
+      return parts[1];
+    }
+    return parts[0];
+  };
+
   const formatWelcomeWhatsAppLink = (phone: string | null, name: string) => {
     if (!phone) return null;
     let cleaned = phone.replace(/[\s\-\(\)\+]/g, "");
@@ -382,7 +392,7 @@ export function TalentPoolManager() {
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => {
-                                    const link = formatWelcomeWhatsAppLink(talent.phone, talent.full_name.split(' ')[0]);
+                                    const link = formatWelcomeWhatsAppLink(talent.phone, getFirstName(talent.full_name));
                                     if (link) window.open(link, "_blank");
                                   }}
                                   className="text-blue-600 hover:text-blue-700"
