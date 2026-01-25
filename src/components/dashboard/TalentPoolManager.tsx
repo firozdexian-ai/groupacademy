@@ -23,6 +23,7 @@ import {
   Briefcase,
   ChevronLeft,
   ChevronRight,
+  Hand,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -207,6 +208,29 @@ export function TalentPoolManager() {
     return `https://wa.me/${cleaned}`;
   };
 
+  const formatWelcomeWhatsAppLink = (phone: string | null, name: string) => {
+    if (!phone) return null;
+    let cleaned = phone.replace(/[\s\-\(\)\+]/g, "");
+    if (cleaned.startsWith("880")) {
+      // already formatted
+    } else if (cleaned.startsWith("0")) {
+      cleaned = `880${cleaned.slice(1)}`;
+    } else if (cleaned.length === 10) {
+      cleaned = `880${cleaned}`;
+    }
+    
+    const message = encodeURIComponent(
+      `Hi ${name}! 👋\n\n` +
+      `We're so glad to see you sign up with GroUp Academy!\n\n` +
+      `We're building an AI-powered career platform designed specifically for Bangladesh's job market — and you're now part of it.\n\n` +
+      `Feel free to knock us if you face any difficulties or have questions.\n\n` +
+      `Best regards,\n` +
+      `GroUp Academy Team`
+    );
+    
+    return `https://wa.me/${cleaned}?text=${message}`;
+  };
+
   const exportToCSV = () => {
     // Note: This currently exports only the visible page.
     // Ideally, this should trigger a backend function to generate a full CSV URL.
@@ -344,14 +368,29 @@ export function TalentPoolManager() {
                               <Briefcase className="w-4 h-4" />
                             </Button>
                             {talent.phone && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => window.open(formatWhatsAppLink(talent.phone), "_blank")}
-                                className="text-green-600 hover:text-green-700"
-                              >
-                                <MessageSquare className="w-4 h-4" />
-                              </Button>
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => window.open(formatWhatsAppLink(talent.phone), "_blank")}
+                                  className="text-green-600 hover:text-green-700"
+                                  title="Open WhatsApp"
+                                >
+                                  <MessageSquare className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    const link = formatWelcomeWhatsAppLink(talent.phone, talent.full_name.split(' ')[0]);
+                                    if (link) window.open(link, "_blank");
+                                  }}
+                                  className="text-blue-600 hover:text-blue-700"
+                                  title="Send Welcome Message"
+                                >
+                                  <Hand className="w-4 h-4" />
+                                </Button>
+                              </>
                             )}
                             <Dialog>
                               <DialogTrigger asChild>
