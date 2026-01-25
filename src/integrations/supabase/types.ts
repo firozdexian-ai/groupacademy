@@ -2192,6 +2192,57 @@ export type Database = {
         }
         Relationships: []
       }
+      outreach_messages: {
+        Row: {
+          course_id: string | null
+          created_at: string | null
+          id: string
+          message_content: string | null
+          notes: string | null
+          product: string
+          sent_at: string | null
+          sent_by: string | null
+          talent_id: string
+        }
+        Insert: {
+          course_id?: string | null
+          created_at?: string | null
+          id?: string
+          message_content?: string | null
+          notes?: string | null
+          product: string
+          sent_at?: string | null
+          sent_by?: string | null
+          talent_id: string
+        }
+        Update: {
+          course_id?: string | null
+          created_at?: string | null
+          id?: string
+          message_content?: string | null
+          notes?: string | null
+          product?: string
+          sent_at?: string | null
+          sent_by?: string | null
+          talent_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "outreach_messages_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outreach_messages_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       portfolio_requests: {
         Row: {
           achievements: string | null

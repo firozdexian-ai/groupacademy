@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import {
   Search,
@@ -25,10 +27,15 @@ import {
   ChevronRight,
   Hand,
   Check,
+  Mic,
+  Banknote,
+  ClipboardCheck,
+  GraduationCap,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { BatchTalentUpload } from "./BatchTalentUpload";
+import { OUTREACH_TEMPLATES, getOutreachWhatsAppLink, getFirstName as getOutreachFirstName, OutreachProduct } from "@/lib/outreachTemplates";
 
 // --- Internal Hook for Debounce ---
 function useDebounce<T>(value: T, delay: number): T {
@@ -51,10 +58,17 @@ interface Talent {
   cv_text: string | null;
   linkedin_url: string | null;
   portfolio_url: string | null;
-  services_used: string[]; // Fixed type
+  services_used: string[];
   created_at: string;
   updated_at: string;
-  welcome_sent_at: string | null; // Track when welcome message was sent
+  welcome_sent_at: string | null;
+}
+
+interface OutreachRecord {
+  id: string;
+  talent_id: string;
+  product: string;
+  sent_at: string;
 }
 
 interface ProfessionCategory {
@@ -68,6 +82,7 @@ export function TalentPoolManager() {
   // Data State
   const [talents, setTalents] = useState<Talent[]>([]);
   const [professionCategories, setProfessionCategories] = useState<ProfessionCategory[]>([]);
+  const [outreachRecords, setOutreachRecords] = useState<OutreachRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -75,6 +90,7 @@ export function TalentPoolManager() {
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
+  const [outreachFilter, setOutreachFilter] = useState<string>("all");
   const debouncedSearch = useDebounce(searchQuery, 500);
 
   // UI State
@@ -83,6 +99,7 @@ export function TalentPoolManager() {
   const [portfolioNotes, setPortfolioNotes] = useState("");
   const [creatingPortfolio, setCreatingPortfolio] = useState(false);
   const [portfolioTalent, setPortfolioTalent] = useState<Talent | null>(null);
+  const [sendingOutreach, setSendingOutreach] = useState<string | null>(null);
 
   // Fetch Data (Paginated)
   const loadTalents = useCallback(async () => {
@@ -130,10 +147,80 @@ export function TalentPoolManager() {
     }
   }, []);
 
+  // Load outreach records for current talent IDs
+  const loadOutreachRecords = useCallback(async (talentIds: string[]) => {
+    if (talentIds.length === 0) return;
+    try {
+      const { data } = await supabase
+        .from('outreach_messages')
+        .select('id, talent_id, product, sent_at')
+        .in('talent_id', talentIds);
+      setOutreachRecords(data || []);
+    } catch (err) {
+      console.error('Error loading outreach records:', err);
+    }
+  }, []);
+
+  // Helper to check if product outreach was sent
+  const getOutreachSentAt = (talentId: string, product: OutreachProduct): string | null => {
+    const record = outreachRecords.find(r => r.talent_id === talentId && r.product === product);
+    return record?.sent_at || null;
+  };
+
+  // Send product outreach
+  const sendProductOutreach = async (talent: Talent, product: OutreachProduct) => {
+    if (!talent.phone) {
+      toast.error("No phone number available");
+      return;
+    }
+
+    const outreachKey = `${talent.id}-${product}`;
+    setSendingOutreach(outreachKey);
+
+    try {
+      const firstName = getFirstName(talent.full_name);
+      const link = getOutreachWhatsAppLink(talent.phone, product, firstName);
+
+      // Record in database
+      const { error } = await supabase.from('outreach_messages').insert({
+        talent_id: talent.id,
+        product,
+        message_content: OUTREACH_TEMPLATES[product].template(firstName),
+      });
+
+      if (error) {
+        // Check if it's a duplicate error
+        if (error.code === '23505') {
+          toast.info("Already sent this message");
+        } else {
+          throw error;
+        }
+      } else {
+        // Open WhatsApp
+        window.open(link, "_blank");
+        // Refresh outreach records
+        await loadOutreachRecords(talents.map(t => t.id));
+        toast.success(`${OUTREACH_TEMPLATES[product].name} message sent!`);
+      }
+    } catch (error: any) {
+      console.error('Error sending outreach:', error);
+      toast.error("Failed to track outreach");
+    } finally {
+      setSendingOutreach(null);
+    }
+  };
+
   useEffect(() => {
     loadTalents();
     loadProfessionCategories();
   }, [loadTalents, loadProfessionCategories]);
+
+  // Load outreach records when talents change
+  useEffect(() => {
+    if (talents.length > 0) {
+      loadOutreachRecords(talents.map(t => t.id));
+    }
+  }, [talents, loadOutreachRecords]);
 
   // Reset page on search
   useEffect(() => {
@@ -370,155 +457,198 @@ export function TalentPoolManager() {
                           {new Date(talent.updated_at).toLocaleDateString()}
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => openPortfolioDialog(talent)}
-                              title="Create Portfolio Request"
-                            >
-                              <Briefcase className="w-4 h-4" />
-                            </Button>
-                            {talent.phone && (
-                              <>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => window.open(formatWhatsAppLink(talent.phone), "_blank")}
-                                  className="text-green-600 hover:text-green-700"
-                                  title="Open WhatsApp"
-                                >
-                                  <MessageSquare className="w-4 h-4" />
-                                </Button>
-                                {talent.welcome_sent_at ? (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    disabled
-                                    className="text-green-600"
-                                    title={`Welcome sent on ${new Date(talent.welcome_sent_at).toLocaleDateString()}`}
-                                  >
-                                    <Check className="w-4 h-4" />
-                                  </Button>
-                                ) : (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={async () => {
-                                      // Update database first
-                                      const { error } = await supabase
-                                        .from('talents')
-                                        .update({ welcome_sent_at: new Date().toISOString() })
-                                        .eq('id', talent.id);
-                                      
-                                      if (error) {
-                                        toast.error("Failed to track message");
-                                      } else {
-                                        // Open WhatsApp
-                                        const link = formatWelcomeWhatsAppLink(talent.phone, getFirstName(talent.full_name));
-                                        if (link) window.open(link, "_blank");
-                                        // Refresh list
-                                        loadTalents();
-                                      }
-                                    }}
-                                    className="text-blue-600 hover:text-blue-700"
-                                    title="Send Welcome Message"
-                                  >
-                                    <Hand className="w-4 h-4" />
-                                  </Button>
-                                )}
-                              </>
-                            )}
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <Button variant="ghost" size="sm" onClick={() => setSelectedTalent(talent)}>
-                                  <Eye className="w-4 h-4" />
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent className="max-w-2xl">
-                                <DialogHeader>
-                                  <DialogTitle>{talent.full_name}</DialogTitle>
-                                </DialogHeader>
-                                <ScrollArea className="max-h-[60vh]">
-                                  <div className="space-y-4 p-4">
-                                    <div className="grid grid-cols-2 gap-4">
-                                      <div>
-                                        <p className="text-sm text-muted-foreground">Email</p>
-                                        <p>{talent.email}</p>
-                                      </div>
-                                      <div>
-                                        <p className="text-sm text-muted-foreground">Phone</p>
-                                        <p>{talent.phone || "N/A"}</p>
-                                      </div>
-                                      <div>
-                                        <p className="text-sm text-muted-foreground">Profession</p>
-                                        <p>
-                                          {getProfessionName(talent.profession_category_id, talent.custom_profession)}
-                                        </p>
-                                      </div>
-                                      <div>
-                                        <p className="text-sm text-muted-foreground">CV</p>
-                                        {talent.cv_url ? (
-                                          <a
-                                            href={talent.cv_url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-primary hover:underline"
-                                          >
-                                            View CV
-                                          </a>
-                                        ) : talent.cv_text ? (
-                                          <p className="text-sm truncate max-w-xs">Has CV text</p>
-                                        ) : (
-                                          <p className="text-muted-foreground">N/A</p>
-                                        )}
-                                      </div>
-                                    </div>
+                          <TooltipProvider>
+                            <div className="flex justify-end gap-1">
+                              {/* WhatsApp Direct */}
+                              {talent.phone && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-8 w-8 text-green-600 hover:text-green-700"
+                                      onClick={() => window.open(formatWhatsAppLink(talent.phone), "_blank")}
+                                    >
+                                      <MessageSquare className="w-4 h-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Open WhatsApp</TooltipContent>
+                                </Tooltip>
+                              )}
 
-                                    {talent.services_used?.length > 0 && (
-                                      <div>
-                                        <p className="text-sm font-medium mb-2">Services Used</p>
-                                        <div className="flex flex-wrap gap-1">
-                                          {talent.services_used.map((service: string, idx: number) => (
-                                            <Badge key={idx} variant="outline">
-                                              {service?.replace("_", " ")}
-                                            </Badge>
-                                          ))}
-                                        </div>
-                                      </div>
+                              {/* Welcome Message */}
+                              {talent.phone && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    {talent.welcome_sent_at ? (
+                                      <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
+                                        <Check className="w-4 h-4 text-green-600" />
+                                      </Button>
+                                    ) : (
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-blue-600 hover:text-blue-700"
+                                        onClick={async () => {
+                                          const { error } = await supabase
+                                            .from('talents')
+                                            .update({ welcome_sent_at: new Date().toISOString() })
+                                            .eq('id', talent.id);
+                                          if (!error) {
+                                            const link = formatWelcomeWhatsAppLink(talent.phone, getFirstName(talent.full_name));
+                                            if (link) window.open(link, "_blank");
+                                            loadTalents();
+                                          }
+                                        }}
+                                      >
+                                        <Hand className="w-4 h-4" />
+                                      </Button>
                                     )}
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    {talent.welcome_sent_at 
+                                      ? `Welcome sent ${new Date(talent.welcome_sent_at).toLocaleDateString()}`
+                                      : 'Send Welcome'}
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
 
-                                    <div className="flex gap-2 pt-4 border-t">
-                                      {talent.linkedin_url && (
-                                        <Button variant="outline" size="sm" asChild>
-                                          <a href={talent.linkedin_url} target="_blank" rel="noopener noreferrer">
-                                            <ExternalLink className="w-4 h-4 mr-2" />
-                                            LinkedIn
-                                          </a>
-                                        </Button>
-                                      )}
-                                      {talent.portfolio_url && (
-                                        <Button variant="outline" size="sm" asChild>
-                                          <a href={talent.portfolio_url} target="_blank" rel="noopener noreferrer">
-                                            <ExternalLink className="w-4 h-4 mr-2" />
-                                            Portfolio
-                                          </a>
-                                        </Button>
-                                      )}
-                                      {talent.cv_url && (
-                                        <Button variant="outline" size="sm" asChild>
-                                          <a href={talent.cv_url} target="_blank" rel="noopener noreferrer">
-                                            <ExternalLink className="w-4 h-4 mr-2" />
-                                            CV
-                                          </a>
-                                        </Button>
-                                      )}
-                                    </div>
-                                  </div>
-                                </ScrollArea>
-                              </DialogContent>
-                            </Dialog>
-                          </div>
+                              {/* Portfolio Pitch */}
+                              {talent.phone && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    {getOutreachSentAt(talent.id, 'portfolio') ? (
+                                      <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
+                                        <Check className="w-4 h-4 text-purple-600" />
+                                      </Button>
+                                    ) : (
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-purple-600 hover:text-purple-700"
+                                        disabled={sendingOutreach === `${talent.id}-portfolio`}
+                                        onClick={() => sendProductOutreach(talent, 'portfolio')}
+                                      >
+                                        {sendingOutreach === `${talent.id}-portfolio` 
+                                          ? <Loader2 className="w-4 h-4 animate-spin" />
+                                          : <Briefcase className="w-4 h-4" />}
+                                      </Button>
+                                    )}
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    {getOutreachSentAt(talent.id, 'portfolio')
+                                      ? `Portfolio sent ${new Date(getOutreachSentAt(talent.id, 'portfolio')!).toLocaleDateString()}`
+                                      : 'Pitch Portfolio'}
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
+
+                              {/* Mock Interview Pitch */}
+                              {talent.phone && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    {getOutreachSentAt(talent.id, 'mock_interview') ? (
+                                      <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
+                                        <Check className="w-4 h-4 text-green-600" />
+                                      </Button>
+                                    ) : (
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-green-600 hover:text-green-700"
+                                        disabled={sendingOutreach === `${talent.id}-mock_interview`}
+                                        onClick={() => sendProductOutreach(talent, 'mock_interview')}
+                                      >
+                                        {sendingOutreach === `${talent.id}-mock_interview`
+                                          ? <Loader2 className="w-4 h-4 animate-spin" />
+                                          : <Mic className="w-4 h-4" />}
+                                      </Button>
+                                    )}
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    {getOutreachSentAt(talent.id, 'mock_interview')
+                                      ? `Mock Interview sent ${new Date(getOutreachSentAt(talent.id, 'mock_interview')!).toLocaleDateString()}`
+                                      : 'Pitch Mock Interview'}
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
+
+                              {/* Salary Analysis Pitch */}
+                              {talent.phone && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    {getOutreachSentAt(talent.id, 'salary_analysis') ? (
+                                      <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
+                                        <Check className="w-4 h-4 text-amber-600" />
+                                      </Button>
+                                    ) : (
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-amber-600 hover:text-amber-700"
+                                        disabled={sendingOutreach === `${talent.id}-salary_analysis`}
+                                        onClick={() => sendProductOutreach(talent, 'salary_analysis')}
+                                      >
+                                        {sendingOutreach === `${talent.id}-salary_analysis`
+                                          ? <Loader2 className="w-4 h-4 animate-spin" />
+                                          : <Banknote className="w-4 h-4" />}
+                                      </Button>
+                                    )}
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    {getOutreachSentAt(talent.id, 'salary_analysis')
+                                      ? `Salary Analysis sent ${new Date(getOutreachSentAt(talent.id, 'salary_analysis')!).toLocaleDateString()}`
+                                      : 'Pitch Salary Analysis'}
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
+
+                              {/* Career Scorecard Pitch */}
+                              {talent.phone && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    {getOutreachSentAt(talent.id, 'career_scorecard') ? (
+                                      <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
+                                        <Check className="w-4 h-4 text-teal-600" />
+                                      </Button>
+                                    ) : (
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-teal-600 hover:text-teal-700"
+                                        disabled={sendingOutreach === `${talent.id}-career_scorecard`}
+                                        onClick={() => sendProductOutreach(talent, 'career_scorecard')}
+                                      >
+                                        {sendingOutreach === `${talent.id}-career_scorecard`
+                                          ? <Loader2 className="w-4 h-4 animate-spin" />
+                                          : <ClipboardCheck className="w-4 h-4" />}
+                                      </Button>
+                                    )}
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    {getOutreachSentAt(talent.id, 'career_scorecard')
+                                      ? `Scorecard sent ${new Date(getOutreachSentAt(talent.id, 'career_scorecard')!).toLocaleDateString()}`
+                                      : 'Pitch Career Scorecard'}
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
+
+                              {/* View Details */}
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => setSelectedTalent(talent)}
+                                  >
+                                    <Eye className="w-4 h-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>View Details</TooltipContent>
+                              </Tooltip>
+                            </div>
+                          </TooltipProvider>
                         </TableCell>
                       </TableRow>
                     ))}
