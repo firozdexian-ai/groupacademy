@@ -280,7 +280,7 @@ export default function MyApplications() {
         .from("job_applications")
         .select(
           `
-          id, job_id, created_at, updated_at, application_status, delivery_status,
+          id, job_id, created_at, application_status, delivery_status,
           jobs (title, company_name, ai_assessment_enabled)
         `,
         )
@@ -307,7 +307,7 @@ export default function MyApplications() {
             job_title: (app.jobs as any)?.title || "Unknown Job",
             company_name: (app.jobs as any)?.company_name || "Unknown Company",
             created_at: app.created_at,
-            updated_at: app.updated_at,
+            updated_at: app.created_at, // Use created_at as fallback since updated_at doesn't exist
             application_status: app.application_status || "submitted",
             delivery_status: app.delivery_status || "pending",
             ai_assessment_enabled: (app.jobs as any)?.ai_assessment_enabled || false,

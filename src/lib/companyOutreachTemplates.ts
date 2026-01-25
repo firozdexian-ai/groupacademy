@@ -22,6 +22,13 @@ function getFirstName(fullName: string): string {
   return parts[0] || 'there';
 }
 
+// Executive signature block
+const EXECUTIVE_SIGNATURE = `Best regards,
+Towsif Ahmed Chowdhury
+Business Development, Sr. Executive
+Dexian Bangladesh Limited
+📧 info@dexian.com.bd`;
+
 // ============= Email Templates =============
 
 export const DEXIAN_EMAIL_TEMPLATES = {
@@ -39,13 +46,10 @@ Access 500+ career-ready professionals across Business Development, Sales, Marke
 𝟐. 𝐀𝐈 𝐄𝐟𝐟𝐢𝐜𝐢𝐞𝐧𝐜𝐲 𝐀𝐜𝐜𝐞𝐥𝐞𝐫𝐚𝐭𝐨𝐫 (Corporate Training)
 6-session practical training designed to deliver 20%+ productivity gains through AI tools. Topics include AI-assisted communication, data analysis, research, and workflow automation.
 
-Would you be open to a quick discovery call this week to discuss ${companyName}'s hiring or training needs?
+Would you be open to a 15-minute discovery call this week?
+I'm available Tuesday-Thursday between 10 AM - 4 PM.
 
-Best regards,
-[Your Name]
-Business Development Executive
-Dexian Bangladesh Limited
-📧 info@dexian.com.bd`
+${EXECUTIVE_SIGNATURE}`
   },
 
   talent_matching: {
@@ -65,12 +69,10 @@ We currently have 500+ verified professionals in our talent pool across:
 
 If you share your current open positions, I can send you matched candidate profiles within 24 hours - completely free as a trial.
 
-Let me know your current priorities!
+Would a quick 15-minute call work for you this week?
+I'm available Tuesday-Thursday, 10 AM - 4 PM.
 
-Best regards,
-[Your Name]
-Business Development Executive
-Dexian Bangladesh Limited`
+${EXECUTIVE_SIGNATURE}`
   },
 
   ai_training: {
@@ -95,10 +97,9 @@ We'd like to introduce the 𝐀𝐈 𝐄𝐟𝐟𝐢𝐜𝐢𝐞𝐧𝐜𝐲 �
 
 Shall I send over our corporate training brochure and pricing?
 
-Best regards,
-[Your Name]
-Business Development Executive
-Dexian Bangladesh Limited`
+I'm available for a quick 15-minute intro call Tuesday-Thursday, 10 AM - 4 PM.
+
+${EXECUTIVE_SIGNATURE}`
   }
 };
 
@@ -107,7 +108,7 @@ Dexian Bangladesh Limited`
 export const DEXIAN_WHATSAPP_TEMPLATES = {
   intro: (contactName: string, companyName: string) => {
     const firstName = getFirstName(contactName);
-    return `Hi ${firstName}! This is reaching out from Dexian Bangladesh.
+    return `Hi ${firstName}! This is Towsif from Dexian Bangladesh.
 
 We help companies like ${companyName} with:
 • Pre-screened talent matching for open roles
