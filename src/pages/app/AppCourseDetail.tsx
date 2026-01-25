@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useTalent } from "@/hooks/useTalent";
 import { useCredits } from "@/hooks/useCredits";
@@ -22,7 +22,6 @@ import {
   RefreshCw,
   AlertCircle,
   Coins,
-  CheckCircle,
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -55,6 +54,7 @@ const CONTENT_TYPE_CONFIG: Record<ContentType, { icon: any; label: string; color
 export default function AppCourseDetail() {
   const { slug } = useParams();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { talent } = useTalent();
   const { balance, deductCustomAmount, refreshBalance } = useCredits();
 
@@ -70,8 +70,29 @@ export default function AppCourseDetail() {
   const isProcessing = useRef(false);
 
   useEffect(() => {
-    if (slug) fetchCourse();
-  }, [slug, talent?.id]); // Re-fetch if talent loads later
+    if (slug) {
+      fetchCourse();
+    }
+  }, [slug, talent?.id]);
+
+  const trackSource = async (contentId: string) => {
+    const source = searchParams.get("source");
+    if (source && contentId) {
+      try {
+        await supabase.rpc("track_content_click", {
+          p_content_id: contentId,
+          p_source: source,
+        });
+
+        // Clean URL
+        const newParams = new URLSearchParams(searchParams);
+        newParams.delete("source");
+        window.history.replaceState({}, "", `${window.location.pathname}?${newParams.toString()}`);
+      } catch (err) {
+        console.error("Failed to track content click", err);
+      }
+    }
+  };
 
   const fetchCourse = async () => {
     setLoadingError(null);
@@ -90,6 +111,9 @@ export default function AppCourseDetail() {
       }
 
       setCourse(data);
+
+      // Track click if source param exists
+      trackSource(data.id);
 
       // Check enrollment
       if (talent?.id) {
