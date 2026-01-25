@@ -9,7 +9,9 @@ export const loginSchema = z.object({
 export const signupSchema = z.object({
   fullName: z.string().trim().min(2, "Name must be at least 2 characters").max(100, "Name must be less than 100 characters"),
   email: z.string().trim().email("Invalid email address"),
-  phone: z.string().trim().optional(),
+  countryCode: z.string().min(2, "Select a country code"),
+  phone: z.string().trim().min(7, "Phone number is required (min 7 digits)"),
+  country: z.string().min(2, "Country is required"),
   password: z.string().min(8, "Password must be at least 8 characters"),
 });
 

@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { toast } from "sonner";
 import { Eye, EyeOff, Loader2, Target, Mic, DollarSign, FolderOpen, Gift, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { PhoneInput } from "@/components/ui/phone-input";
 import logoLight from "@/assets/logo-horizontal-light.png";
 import logoDark from "@/assets/logo-horizontal-dark.png";
 
@@ -25,7 +26,14 @@ const Auth = () => {
 
   // Form States
   const [loginData, setLoginData] = useState({ email: "", password: "" });
-  const [signupData, setSignupData] = useState({ fullName: "", email: "", password: "", phone: "" });
+  const [signupData, setSignupData] = useState({ 
+    fullName: "", 
+    email: "", 
+    password: "", 
+    phone: "",
+    countryCode: "+880",
+    country: "BD"
+  });
   const [resetEmail, setResetEmail] = useState("");
 
   // UI States
@@ -94,10 +102,25 @@ const Auth = () => {
       return;
     }
 
+    if (!signupData.phone || signupData.phone.length < 7) {
+      toast.error("Phone number is required for WhatsApp communication");
+      return;
+    }
+
     setIsLoading(true);
 
+    // Combine country code and phone number
+    const fullPhone = `${signupData.countryCode}${signupData.phone}`;
+
     try {
-      const success = await signUp(signupData.fullName, signupData.email, signupData.password, signupData.phone);
+      const success = await signUp(
+        signupData.fullName, 
+        signupData.email, 
+        signupData.password, 
+        fullPhone,
+        signupData.country,
+        signupData.countryCode
+      );
 
       if (success) {
         // Success logic handled by hook/redirect
@@ -309,14 +332,22 @@ const Auth = () => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="signup-phone">Phone (Optional)</Label>
-                      <Input
-                        id="signup-phone"
-                        type="tel"
-                        placeholder="+8801XXXXXXXXX"
+                      <Label htmlFor="signup-phone">
+                        Phone Number <span className="text-destructive">*</span>
+                      </Label>
+                      <PhoneInput
                         value={signupData.phone}
-                        onChange={(e) => setSignupData({ ...signupData, phone: e.target.value })}
+                        countryCode={signupData.countryCode}
+                        onValueChange={(phone) => setSignupData({ ...signupData, phone })}
+                        onCountryCodeChange={(countryCode, country) => 
+                          setSignupData({ ...signupData, countryCode, country })
+                        }
+                        placeholder="1712345678"
+                        required
                       />
+                      <p className="text-xs text-muted-foreground">
+                        Required for career updates via WhatsApp
+                      </p>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="signup-password">Password</Label>

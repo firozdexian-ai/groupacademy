@@ -10,7 +10,7 @@ export interface AuthState {
   session: Session | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (fullName: string, email: string, password: string, phone?: string) => Promise<boolean>;
+  signUp: (fullName: string, email: string, password: string, phone?: string, country?: string, countryCode?: string) => Promise<boolean>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   updatePassword: (newPassword: string) => Promise<void>;
@@ -95,7 +95,7 @@ export const useAuth = (): AuthState => {
     }
   };
 
-  const signUp = async (fullName: string, email: string, password: string, phone?: string) => {
+  const signUp = async (fullName: string, email: string, password: string, phone?: string, country?: string, countryCode?: string) => {
     try {
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email: email.trim(),
@@ -104,6 +104,8 @@ export const useAuth = (): AuthState => {
           data: {
             full_name: fullName,
             phone: phone || "",
+            country: country || "BD",
+            country_code: countryCode || "+880",
           },
           // Ensure this points to where you actually want them to go
           emailRedirectTo: `${window.location.origin}/app/feed`,

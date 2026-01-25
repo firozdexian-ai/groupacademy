@@ -93,6 +93,7 @@ const navGroups: NavGroup[] = [
     roles: ["admin"],
     items: [
       { title: "All Content", icon: BookOpen, value: "all" },
+      { title: "Content Outreach", icon: Send, value: "content-outreach" },
       { title: "Free Videos", icon: Video, value: "videos" },
       { title: "Recorded Courses", icon: Tv, value: "courses" },
       { title: "Webinars", icon: Tv, value: "webinars" },

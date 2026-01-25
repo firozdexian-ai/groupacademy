@@ -3098,6 +3098,8 @@ export type Database = {
         Row: {
           achievements: Json | null
           batch_upload_id: string | null
+          country: string | null
+          country_code: string | null
           created_at: string | null
           current_status: string | null
           custom_profession: string | null
@@ -3131,6 +3133,8 @@ export type Database = {
         Insert: {
           achievements?: Json | null
           batch_upload_id?: string | null
+          country?: string | null
+          country_code?: string | null
           created_at?: string | null
           current_status?: string | null
           custom_profession?: string | null
@@ -3164,6 +3168,8 @@ export type Database = {
         Update: {
           achievements?: Json | null
           batch_upload_id?: string | null
+          country?: string | null
+          country_code?: string | null
           created_at?: string | null
           current_status?: string | null
           custom_profession?: string | null

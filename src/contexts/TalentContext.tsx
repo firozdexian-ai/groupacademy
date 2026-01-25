@@ -34,6 +34,8 @@ export interface TalentProfile {
   updatedAt: string;
   onboardingCompletedAt: string | null;
   onboardingStep: number;
+  country: string | null;
+  countryCode: string | null;
 }
 
 interface TalentContextValue {
@@ -56,7 +58,7 @@ interface TalentContextValue {
 
   // Auth actions (delegated to useAuth)
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (fullName: string, email: string, password: string, phone?: string) => Promise<boolean>;
+  signUp: (fullName: string, email: string, password: string, phone?: string, country?: string, countryCode?: string) => Promise<boolean>;
   signOut: () => Promise<void>;
 }
 
@@ -95,6 +97,8 @@ function mapRowToTalent(row: any): TalentProfile {
     updatedAt: row.updated_at,
     onboardingCompletedAt: row.onboarding_completed_at || null,
     onboardingStep: row.onboarding_step || 0,
+    country: row.country || null,
+    countryCode: row.country_code || null,
   };
 }
 

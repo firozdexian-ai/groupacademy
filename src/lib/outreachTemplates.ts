@@ -21,7 +21,7 @@ export const OUTREACH_TEMPLATES: Record<OutreachProduct, OutreachTemplate> = {
     icon: 'hand',
     color: 'blue',
     template: (name: string) => 
-      `Hi ${name}! 👋\n\nWelcome to GroUp Academy! I'm your Talent Success Executive, here to help you accelerate your career.\n\nI noticed you just signed up - that's a great first step! 🎉\n\nWe have some amazing AI-powered career tools that can help you:\n✅ Digital Portfolio Creation\n✅ AI Mock Interviews\n✅ Salary Analysis\n✅ Career Readiness Scorecard\n\nWould you like me to help you get started with any of these?\n\n- GroUp Academy`
+      `Hi ${name}! 👋\n\nWelcome to GroUp Academy - your global career acceleration partner!\n\nI'm your Talent Success Executive. Whether you're in Bangladesh, the Middle East, or anywhere in the world - we're here to help you grow professionally. 🌍\n\nGet started with our AI-powered tools:\n✅ Digital Portfolio Creation\n✅ AI Mock Interviews\n✅ Salary Analysis\n✅ Career Readiness Scorecard\n\nReady to accelerate your career? Just reply here!\n\n- GroUp Academy 🚀`
   },
   portfolio: {
     name: 'Portfolio',
