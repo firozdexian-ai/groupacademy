@@ -1022,6 +1022,35 @@ export type Database = {
           },
         ]
       }
+      content_analytics: {
+        Row: {
+          clicked_at: string | null
+          content_id: string | null
+          id: string
+          source: string
+        }
+        Insert: {
+          clicked_at?: string | null
+          content_id?: string | null
+          id?: string
+          source: string
+        }
+        Update: {
+          clicked_at?: string | null
+          content_id?: string | null
+          id?: string
+          source?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_analytics_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       content_instructors: {
         Row: {
           content_id: string
@@ -1057,6 +1086,38 @@ export type Database = {
             columns: ["instructor_id"]
             isOneToOne: false
             referencedRelation: "instructors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_share_logs: {
+        Row: {
+          channel: string
+          content_id: string | null
+          id: string
+          shared_at: string | null
+          shared_by: string | null
+        }
+        Insert: {
+          channel: string
+          content_id?: string | null
+          id?: string
+          shared_at?: string | null
+          shared_by?: string | null
+        }
+        Update: {
+          channel?: string
+          content_id?: string | null
+          id?: string
+          shared_at?: string | null
+          shared_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_share_logs_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content"
             referencedColumns: ["id"]
           },
         ]
@@ -3362,6 +3423,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      track_content_click: {
+        Args: { p_content_id: string; p_source: string }
+        Returns: undefined
       }
       track_job_click: {
         Args: { p_job_id: string; p_source: string }
