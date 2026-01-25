@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 import {
   Plus,
   Search,
@@ -29,6 +30,11 @@ import {
   Link as LinkIcon,
   Check,
   Building2,
+  ImageIcon,
+  Calendar,
+  Mail,
+  ExternalLink,
+  Star,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format, endOfMonth } from "date-fns";
@@ -75,6 +81,8 @@ type JobType = "full_time" | "part_time" | "contract" | "internship" | "freelanc
 type ExperienceLevel = "entry" | "mid" | "senior" | "executive";
 type SourcePlatform = "facebook" | "linkedin" | "bdjobs" | "website" | "other";
 
+type ApplicationType = "email" | "link" | "internal";
+
 interface Job {
   id: string;
   title: string;
@@ -88,6 +96,7 @@ interface Job {
   description: string;
   ai_enhanced_description: string | null;
   requirements: string[];
+  application_type: ApplicationType;
   application_email: string | null;
   application_url: string | null;
   source_platform: SourcePlatform | null;
@@ -96,6 +105,8 @@ interface Job {
   deadline: string | null;
   is_active: boolean;
   is_featured: boolean;
+  ai_assessment_enabled: boolean | null;
+  assessment_config: any | null;
   vacancies: number | null;
   created_at: string;
 }
@@ -138,6 +149,7 @@ const emptyJob = {
   description: "",
   ai_enhanced_description: null as string | null,
   requirements: [] as string[],
+  application_type: "link" as ApplicationType,
   application_email: "",
   application_url: "",
   source_platform: "other" as SourcePlatform,
@@ -146,6 +158,8 @@ const emptyJob = {
   deadline: format(endOfMonth(new Date()), "yyyy-MM-dd"),
   is_active: true,
   is_featured: false,
+  ai_assessment_enabled: false,
+  assessment_config: { questions: 5, voice: false },
   vacancies: 1,
 };
 
@@ -411,11 +425,12 @@ const JobForm = ({
 
   const uploadToStorage = async (file: File, path: string) => {
     const fileName = `${path}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "")}`;
-    const { error: uploadError } = await supabase.storage.from("public-uploads").upload(fileName, file);
+    // Use job-assets bucket for job-related uploads
+    const { error: uploadError } = await supabase.storage.from("job-assets").upload(fileName, file);
     if (uploadError) throw uploadError;
     const {
       data: { publicUrl },
-    } = supabase.storage.from("public-uploads").getPublicUrl(fileName);
+    } = supabase.storage.from("job-assets").getPublicUrl(fileName);
     return publicUrl;
   };
 
@@ -434,11 +449,46 @@ const JobForm = ({
     }
   };
 
+  const handleSourceImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingImage(true);
+    try {
+      const url = await uploadToStorage(file, "source-images");
+      setFormData((prev: any) => ({ ...prev, source_image_url: url }));
+      toast.success("Source image uploaded");
+    } catch {
+      toast.error("Upload failed");
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   const handleAddRequirement = () => {
     if (requirementInput.trim()) {
       setFormData((prev: any) => ({ ...prev, requirements: [...prev.requirements, requirementInput.trim()] }));
       setRequirementInput("");
     }
+  };
+
+  const validateForm = () => {
+    if (!formData.title?.trim()) {
+      toast.error("Job title is required");
+      return false;
+    }
+    if (!formData.company_name?.trim()) {
+      toast.error("Company name is required");
+      return false;
+    }
+    if (formData.application_type === "email" && !formData.application_email?.trim()) {
+      toast.error("Employer email is required for email applications");
+      return false;
+    }
+    if (formData.application_type === "link" && !formData.application_url?.trim()) {
+      toast.error("Application URL is required for link applications");
+      return false;
+    }
+    return true;
   };
 
   return (
@@ -584,6 +634,7 @@ const JobForm = ({
             value={requirementInput}
             onChange={(e) => setRequirementInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleAddRequirement()}
+            placeholder="Add a requirement..."
           />
           <Button onClick={handleAddRequirement} variant="outline">
             Add
@@ -607,11 +658,164 @@ const JobForm = ({
           ))}
         </div>
       </div>
-      <div className="flex justify-end gap-2 pt-4">
+
+      {/* Source Image Upload */}
+      <div className="space-y-2">
+        <Label className="flex items-center gap-2">
+          <ImageIcon className="w-4 h-4" /> Source Image (Social Media Screenshot)
+        </Label>
+        <div className="flex gap-2">
+          <Input
+            value={formData.source_image_url || ""}
+            onChange={(e) => setFormData({ ...formData, source_image_url: e.target.value })}
+            placeholder="Paste URL or upload..."
+            className="flex-1"
+          />
+          <div className="relative">
+            <Input 
+              type="file" 
+              accept="image/*"
+              onChange={handleSourceImageUpload} 
+              className="absolute inset-0 opacity-0 cursor-pointer" 
+            />
+            <Button variant="outline" disabled={uploadingImage}>
+              {uploadingImage ? <Loader2 className="animate-spin h-4 w-4" /> : "Upload"}
+            </Button>
+          </div>
+        </div>
+        {formData.source_image_url && (
+          <img src={formData.source_image_url} alt="Source" className="h-24 rounded border mt-2 object-cover" />
+        )}
+      </div>
+
+      {/* Application Settings */}
+      <div className="space-y-4 p-4 border rounded-lg bg-blue-50/50">
+        <Label className="text-base font-semibold flex items-center gap-2">
+          <Building2 className="h-4 w-4" /> Application Settings
+        </Label>
+        
+        <div className="space-y-2">
+          <Label>Application Method *</Label>
+          <Select 
+            value={formData.application_type || "link"} 
+            onValueChange={(v) => setFormData({ ...formData, application_type: v })}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="link">
+                <span className="flex items-center gap-2">
+                  <ExternalLink className="w-4 h-4" /> External Link (Redirect to URL)
+                </span>
+              </SelectItem>
+              <SelectItem value="email">
+                <span className="flex items-center gap-2">
+                  <Mail className="w-4 h-4" /> Email to Employer
+                </span>
+              </SelectItem>
+              <SelectItem value="internal">
+                <span className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4" /> Internal Application
+                </span>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {formData.application_type === "email" && (
+          <div className="space-y-2">
+            <Label>Employer Email *</Label>
+            <Input 
+              type="email"
+              placeholder="hr@company.com"
+              value={formData.application_email || ""}
+              onChange={(e) => setFormData({ ...formData, application_email: e.target.value })}
+            />
+            <p className="text-xs text-muted-foreground">
+              ⚠️ Applications will need to be manually forwarded to this email.
+            </p>
+          </div>
+        )}
+
+        {formData.application_type === "link" && (
+          <div className="space-y-2">
+            <Label>Application URL *</Label>
+            <Input 
+              type="url"
+              placeholder="https://careers.company.com/apply"
+              value={formData.application_url || ""}
+              onChange={(e) => setFormData({ ...formData, application_url: e.target.value })}
+            />
+            <p className="text-xs text-muted-foreground">
+              Applicants will be redirected here after applying.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Deadline & Category */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label className="flex items-center gap-2">
+            <Calendar className="w-4 h-4" /> Deadline
+          </Label>
+          <Input 
+            type="date"
+            value={formData.deadline?.split('T')[0] || ""}
+            onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Profession Category</Label>
+          <Select 
+            value={formData.profession_category_id || "none"} 
+            onValueChange={(v) => setFormData({ ...formData, profession_category_id: v === "none" ? null : v })}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select category" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">None</SelectItem>
+              {categories.map(cat => (
+                <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Status Toggles */}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="flex items-center gap-3 p-3 border rounded-lg">
+          <Switch 
+            checked={formData.is_active ?? true}
+            onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
+          />
+          <div>
+            <Label>Active</Label>
+            <p className="text-xs text-muted-foreground">Show in job listings</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 p-3 border rounded-lg">
+          <Switch 
+            checked={formData.is_featured ?? false}
+            onCheckedChange={(checked) => setFormData({ ...formData, is_featured: checked })}
+          />
+          <div>
+            <Label className="flex items-center gap-1">
+              <Star className="w-3 h-3" /> Featured
+            </Label>
+            <p className="text-xs text-muted-foreground">Highlight in feed</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex justify-end gap-2 pt-4 border-t">
         <Button variant="outline" onClick={onCancel}>
           Cancel
         </Button>
-        <Button onClick={() => onSave(formData)} disabled={saving}>
+        <Button onClick={() => validateForm() && onSave(formData)} disabled={saving}>
           {saving ? <Loader2 className="animate-spin mr-2" /> : null} Save Job
         </Button>
       </div>
@@ -634,6 +838,19 @@ export function JobsManager() {
   const [saving, setSaving] = useState(false);
   const [shareJob, setShareJob] = useState<Job | null>(null);
   const [isShareOpen, setIsShareOpen] = useState(false);
+  const [categories, setCategories] = useState<ProfessionCategory[]>([]);
+
+  // Load profession categories
+  useEffect(() => {
+    const loadCategories = async () => {
+      const { data } = await supabase
+        .from("profession_categories")
+        .select("id, name")
+        .order("name");
+      setCategories(data || []);
+    };
+    loadCategories();
+  }, []);
 
   const loadJobs = useCallback(async () => {
     setLoading(true);
@@ -857,7 +1074,7 @@ export function JobsManager() {
           </DialogHeader>
           <JobForm
             initialData={editingJob || emptyJob}
-            categories={[]}
+            categories={categories}
             onSave={handleSaveJob}
             onCancel={() => setIsDialogOpen(false)}
             saving={saving}
