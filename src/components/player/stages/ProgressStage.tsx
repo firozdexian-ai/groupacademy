@@ -212,7 +212,7 @@ export function ProgressStage({
             <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
         ) : (
-          <Button className="flex-1" variant="default">
+          <Button onClick={onNextModule} className="flex-1" variant="default">
             <Trophy className="h-4 w-4 mr-2" />
             Complete Course
           </Button>
