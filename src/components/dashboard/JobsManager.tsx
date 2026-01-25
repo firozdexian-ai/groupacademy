@@ -28,14 +28,8 @@ import {
   Send,
   Link as LinkIcon,
   Check,
-  RefreshCw,
+  Building2,
 } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { format, endOfMonth } from "date-fns";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
@@ -52,7 +46,7 @@ function useDebounce<T>(value: T, delay: number): T {
   return debouncedValue;
 }
 
-// --- Utility: Robust Copy to Clipboard ---
+// --- Utility: Copy to Clipboard ---
 const copyToClipboard = async (text: string) => {
   try {
     if (navigator.clipboard && window.isSecureContext) {
@@ -77,14 +71,9 @@ const copyToClipboard = async (text: string) => {
 };
 
 // --- Types ---
-interface AssessmentConfig {
-  question_count: number;
-  voice_enabled: boolean;
-}
 type JobType = "full_time" | "part_time" | "contract" | "internship" | "freelance" | "remote";
 type ExperienceLevel = "entry" | "mid" | "senior" | "executive";
 type SourcePlatform = "facebook" | "linkedin" | "bdjobs" | "website" | "other";
-type ApplicationType = "email" | "link";
 
 interface Job {
   id: string;
@@ -99,18 +88,14 @@ interface Job {
   description: string;
   ai_enhanced_description: string | null;
   requirements: string[];
-  application_type: ApplicationType;
   application_email: string | null;
   application_url: string | null;
-  source_url: string | null;
   source_platform: SourcePlatform | null;
   source_image_url: string | null;
   profession_category_id: string | null;
   deadline: string | null;
   is_active: boolean;
   is_featured: boolean;
-  ai_assessment_enabled: boolean | null;
-  assessment_config: AssessmentConfig;
   vacancies: number | null;
   created_at: string;
 }
@@ -141,35 +126,30 @@ const EXPERIENCE_LEVELS: { value: ExperienceLevel; label: string }[] = [
 ];
 
 const ITEMS_PER_PAGE = 10;
-
-const emptyJob: Omit<Job, "id" | "created_at"> = {
+const emptyJob = {
   title: "",
   company_name: "",
-  company_logo_url: null,
-  location: null,
-  job_type: "full_time",
-  experience_level: "entry",
-  salary_range_min: null,
-  salary_range_max: null,
+  company_logo_url: "",
+  location: "",
+  job_type: "full_time" as JobType,
+  experience_level: "entry" as ExperienceLevel,
+  salary_range_min: null as number | null,
+  salary_range_max: null as number | null,
   description: "",
-  ai_enhanced_description: null,
-  requirements: [],
-  application_type: "email",
-  application_email: null,
-  application_url: null,
-  source_url: null,
-  source_platform: null,
-  source_image_url: null,
-  profession_category_id: null,
-  deadline: null,
+  ai_enhanced_description: null as string | null,
+  requirements: [] as string[],
+  application_email: "",
+  application_url: "",
+  source_platform: "other" as SourcePlatform,
+  source_image_url: "",
+  profession_category_id: null as string | null,
+  deadline: format(endOfMonth(new Date()), "yyyy-MM-dd"),
   is_active: true,
   is_featured: false,
-  ai_assessment_enabled: false,
-  assessment_config: { question_count: 5, voice_enabled: false },
-  vacancies: null,
+  vacancies: 1,
 };
 
-// --- Sub-Component: Share Dialog ---
+// --- 1. NEW SHARE DIALOG COMPONENT ---
 const ShareJobDialog = ({ job, isOpen, onClose }: { job: Job | null; isOpen: boolean; onClose: () => void }) => {
   const [activeTab, setActiveTab] = useState("linkedin");
   const [shareLogs, setShareLogs] = useState<ShareLog[]>([]);
@@ -189,51 +169,36 @@ const ShareJobDialog = ({ job, isOpen, onClose }: { job: Job | null; isOpen: boo
 
   const recordShare = async (channel: string) => {
     if (!job) return;
+    setShareLogs((prev) => [...prev, { channel, shared_at: new Date().toISOString() }]);
 
-    // 1. Optimistic Update (Show tick immediately)
-    const newLog = { channel, shared_at: new Date().toISOString() };
-    setShareLogs((prev) => [...prev, newLog]);
+    const { error } = await supabase.from("job_share_logs").insert({
+      job_id: job.id,
+      channel: channel,
+      shared_at: new Date().toISOString(),
+    });
 
-    try {
-      // 2. Database Update
-      const { error } = await supabase.from("job_share_logs").insert({
-        job_id: job.id,
-        channel: channel,
-        shared_at: new Date().toISOString(),
-      });
-
-      if (error) {
-        console.error("DB Insert Failed:", error);
-        // Revert on failure
-        setShareLogs((prev) => prev.filter((l) => l.channel !== channel));
-        toast.error("Failed to save progress. Check connection.");
-      } else {
-        toast.success(`Marked as shared on ${channel}`);
-      }
-    } catch (err) {
-      console.error("Failed to log share", err);
+    if (error) {
+      setShareLogs((prev) => prev.filter((l) => l.channel !== channel)); // Revert if failed
+      toast.error("Failed to save progress");
+    } else {
+      toast.success(`Marked as shared on ${channel}`);
     }
   };
 
   if (!job) return null;
-
   const jobUrl = `${window.location.origin}/app/jobs/${job.id}`;
   const getShareLink = (source: string) => `${jobUrl}?source=${source}`;
 
   const copyLink = async (source: string) => {
-    const link = getShareLink(source);
-    await copyToClipboard(link);
+    await copyToClipboard(getShareLink(source));
     toast.success(`Link for ${source} copied!`);
   };
 
   const handleSocialShare = (platform: "linkedin" | "facebook" | "whatsapp" | "telegram") => {
-    const source = platform;
-    const link = getShareLink(source);
+    const link = getShareLink(platform);
     recordShare(platform);
-
     let url = "";
     const caption = `Check out this job: ${job.title} at ${job.company_name}\n${link}`;
-
     switch (platform) {
       case "linkedin":
         url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(link)}`;
@@ -245,166 +210,103 @@ const ShareJobDialog = ({ job, isOpen, onClose }: { job: Job | null; isOpen: boo
         url = `https://wa.me/?text=${encodeURIComponent(caption)}`;
         break;
       case "telegram":
-        url = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(`Job Alert: ${job.title}`)}`;
+        url = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(`Job: ${job.title}`)}`;
         break;
     }
     window.open(url, "_blank", "width=600,height=600");
   };
 
   const templates = {
-    english:
-      `🚀 Hiring Alert: ${job.title}\n` +
-      `🏢 Company: ${job.company_name}\n` +
-      `📍 Location: ${job.location || "Remote"}\n` +
-      `📝 Type: ${job.job_type.replace("_", " ")}\n\n` +
-      `Apply here: ${getShareLink(activeTab)}\n\n` +
-      `#hiring #jobsearch #${job.company_name.replace(/\s+/g, "")}`,
-    bangla:
-      `📢 চাকরির সুযোগ: ${job.title}\n` +
-      `🏢 কোম্পানি: ${job.company_name}\n` +
-      `📍 লোকেশন: ${job.location || "রিমোট"}\n` +
-      `📝 ধরণ: ${job.job_type.replace("_", " ")}\n\n` +
-      `আবেদন লিংক: ${getShareLink(activeTab)}\n\n` +
-      `#jobalert #bdjobs`,
-  };
-
-  const copyTemplate = async (text: string) => {
-    await copyToClipboard(text);
-    toast.success("Caption copied!");
+    english: `🚀 Hiring: ${job.title}\n🏢 ${job.company_name}\n📍 ${job.location}\n\nApply: ${getShareLink(activeTab)}\n\n#hiring #jobsearch`,
+    bangla: `📢 চাকরির সুযোগ: ${job.title}\n🏢 ${job.company_name}\n📍 ${job.location}\n\nআবেদন: ${getShareLink(activeTab)}\n\n#bdjobs`,
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Promote Job: {job.title}</DialogTitle>
-          <DialogDescription>Share this job across multiple channels. Track progress below.</DialogDescription>
+          <DialogTitle>Promote: {job.title}</DialogTitle>
+          <DialogDescription>Share across channels.</DialogDescription>
         </DialogHeader>
-
         <div className="flex gap-6 mt-4">
-          {/* Left Sidebar */}
           <div className="w-1/3 border-r pr-6 space-y-4">
-            <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Checklist</h4>
-            <div className="space-y-2">
-              {[
-                { id: "linkedin", label: "LinkedIn", icon: Linkedin, color: "text-blue-600" },
-                { id: "facebook", label: "Facebook", icon: Facebook, color: "text-blue-500" },
-                { id: "whatsapp", label: "WhatsApp", icon: MessageCircle, color: "text-green-500" },
-                { id: "telegram", label: "Telegram", icon: Send, color: "text-sky-500" },
-              ].map((channel) => (
-                <button
-                  key={channel.id}
-                  onClick={() => setActiveTab(channel.id)}
-                  className={`w-full flex items-center justify-between p-3 rounded-lg text-sm transition-all ${activeTab === channel.id ? "bg-primary/10 ring-1 ring-primary" : "hover:bg-muted"}`}
-                >
-                  <div className="flex items-center gap-3">
-                    <channel.icon className={`w-4 h-4 ${channel.color}`} /> <span>{channel.label}</span>
-                  </div>
-                  {isShared(channel.id) && <CheckCircle2 className="w-4 h-4 text-green-600" />}
-                </button>
-              ))}
-              <div className="pt-2 mt-2 border-t">
-                <button
-                  onClick={() => setActiveTab("custom")}
-                  className={`w-full flex items-center justify-between p-3 rounded-lg text-sm transition-all ${activeTab === "custom" ? "bg-primary/10 ring-1 ring-primary" : "hover:bg-muted"}`}
-                >
-                  <div className="flex items-center gap-3">
-                    <LinkIcon className="w-4 h-4 text-gray-500" />
-                    <span>Custom Link</span>
-                  </div>
-                </button>
-              </div>
+            {[
+              { id: "linkedin", label: "LinkedIn", icon: Linkedin },
+              { id: "facebook", label: "Facebook", icon: Facebook },
+              { id: "whatsapp", label: "WhatsApp", icon: MessageCircle },
+              { id: "telegram", label: "Telegram", icon: Send },
+            ].map((ch) => (
+              <button
+                key={ch.id}
+                onClick={() => setActiveTab(ch.id)}
+                className={`w-full flex items-center justify-between p-3 rounded-lg text-sm transition-all ${activeTab === ch.id ? "bg-primary/10 ring-1 ring-primary" : "hover:bg-muted"}`}
+              >
+                <div className="flex items-center gap-3">
+                  <ch.icon className="w-4 h-4" /> <span>{ch.label}</span>
+                </div>
+                {isShared(ch.id) && <CheckCircle2 className="w-4 h-4 text-green-600" />}
+              </button>
+            ))}
+            <div className="pt-2 mt-2 border-t">
+              <button
+                onClick={() => setActiveTab("custom")}
+                className={`w-full flex items-center justify-between p-3 rounded-lg text-sm ${activeTab === "custom" ? "bg-primary/10 ring-1 ring-primary" : "hover:bg-muted"}`}
+              >
+                <div className="flex items-center gap-3">
+                  <LinkIcon className="w-4 h-4" />
+                  <span>Custom Link</span>
+                </div>
+              </button>
             </div>
           </div>
-
-          {/* Right Side */}
           <div className="flex-1 space-y-6">
-            {/* LINKEDIN & FACEBOOK (Template + Share) */}
             {(activeTab === "linkedin" || activeTab === "facebook") && (
-              <div className="space-y-4 animate-in fade-in slide-in-from-right-4">
-                <div
-                  className={`p-3 rounded-md text-sm border ${activeTab === "linkedin" ? "bg-blue-50 text-blue-800 border-blue-100" : "bg-blue-50 text-blue-800 border-blue-100"}`}
-                >
-                  <p className="font-semibold mb-1">
-                    {activeTab === "linkedin" ? "Professional Network" : "Social Reach"}
-                  </p>
-                  Use the template below for maximum engagement.
+              <div className="space-y-4">
+                <div className="bg-blue-50 p-3 rounded-md text-sm text-blue-800">
+                  Use this template for best results.
                 </div>
-                <div>
-                  <Label className="mb-2 block">
-                    Post Template ({activeTab === "linkedin" ? "English" : "Bangla"})
-                  </Label>
-                  <Textarea
-                    value={activeTab === "linkedin" ? templates.english : templates.bangla}
-                    readOnly
-                    rows={6}
-                    className="text-xs bg-muted/30"
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => copyTemplate(activeTab === "linkedin" ? templates.english : templates.bangla)}
-                    className="mt-2 w-full"
-                  >
-                    <Copy className="w-3 h-3 mr-2" /> Copy Caption
-                  </Button>
-                </div>
+                <Textarea
+                  value={activeTab === "linkedin" ? templates.english : templates.bangla}
+                  readOnly
+                  rows={5}
+                  className="text-xs bg-muted/30"
+                />
                 <Button
-                  className={`w-full ${activeTab === "linkedin" ? "bg-[#0077b5]" : "bg-[#1877F2]"}`}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => copyToClipboard(activeTab === "linkedin" ? templates.english : templates.bangla)}
+                  className="w-full"
+                >
+                  <Copy className="w-3 h-3 mr-2" /> Copy Caption
+                </Button>
+                <Button
+                  className="w-full bg-blue-600 hover:bg-blue-700"
                   onClick={() => handleSocialShare(activeTab as any)}
                 >
-                  {activeTab === "linkedin" ? (
-                    <Linkedin className="w-4 h-4 mr-2" />
-                  ) : (
-                    <Facebook className="w-4 h-4 mr-2" />
-                  )}{" "}
-                  Share Direct
+                  <Share2 className="w-4 h-4 mr-2" /> Share Direct
                 </Button>
               </div>
             )}
-
-            {/* WHATSAPP & TELEGRAM (Updated with Copy & Manual Mark) */}
             {(activeTab === "whatsapp" || activeTab === "telegram") && (
-              <div className="space-y-4 animate-in fade-in slide-in-from-right-4">
-                <div className="bg-green-50 p-3 rounded-md text-sm text-green-800 border border-green-100">
-                  <p className="font-semibold mb-1">Direct Messaging</p>
-                  Share in community channels. You can share directly or copy the link.
-                </div>
-
-                {/* 1. Direct Share Button */}
+              <div className="space-y-4">
                 <Button
-                  className={`w-full ${activeTab === "whatsapp" ? "bg-[#25D366] hover:bg-[#20bd5a]" : "bg-[#0088cc] hover:bg-[#0077b5]"}`}
+                  className="w-full bg-green-600 hover:bg-green-700"
                   onClick={() => handleSocialShare(activeTab as any)}
                 >
-                  {activeTab === "whatsapp" ? (
-                    <MessageCircle className="w-4 h-4 mr-2" />
-                  ) : (
-                    <Send className="w-4 h-4 mr-2" />
-                  )}
-                  Open {activeTab === "whatsapp" ? "WhatsApp" : "Telegram"}
+                  Open App
                 </Button>
-
-                <div className="relative flex py-2 items-center">
-                  <div className="flex-grow border-t border-gray-200"></div>
-                  <span className="flex-shrink-0 mx-4 text-gray-400 text-xs">OR COPY LINK</span>
-                  <div className="flex-grow border-t border-gray-200"></div>
-                </div>
-
-                {/* 2. Link Copy Section */}
                 <div className="flex gap-2">
                   <Input readOnly value={getShareLink(activeTab)} className="bg-muted text-xs" />
-                  <Button variant="outline" size="icon" onClick={() => copyLink(activeTab)}>
+                  <Button variant="outline" onClick={() => copyLink(activeTab)}>
                     <Copy className="w-4 h-4" />
                   </Button>
                 </div>
-
-                {/* 3. Manual Mark as Done */}
                 <Button
                   variant="secondary"
                   className="w-full"
                   onClick={() => {
                     recordShare(activeTab);
-                    toast.success("Marked as done!");
+                    toast.success("Marked!");
                   }}
                   disabled={isShared(activeTab)}
                 >
@@ -418,36 +320,28 @@ const ShareJobDialog = ({ job, isOpen, onClose }: { job: Job | null; isOpen: boo
                 </Button>
               </div>
             )}
-
-            {/* CUSTOM CHANNEL */}
             {activeTab === "custom" && (
-              <div className="space-y-4 animate-in fade-in slide-in-from-right-4">
-                <div className="space-y-2">
-                  <Label>Channel Name</Label>
-                  <Input
-                    placeholder="e.g., newsletter"
-                    value={customChannel}
-                    onChange={(e) => setCustomChannel(e.target.value)}
-                  />
-                </div>
-                <div className="pt-2">
-                  <Label className="mb-2 block">Tracking Link</Label>
-                  <div className="flex gap-2">
-                    <Input readOnly value={getShareLink(customChannel || "custom")} className="bg-muted" />
-                    <Button onClick={() => copyLink(customChannel || "custom")}>
-                      <Copy className="w-4 h-4" />
-                    </Button>
-                  </div>
+              <div className="space-y-4">
+                <Input
+                  placeholder="Channel Name (e.g. newsletter)"
+                  value={customChannel}
+                  onChange={(e) => setCustomChannel(e.target.value)}
+                />
+                <div className="flex gap-2">
+                  <Input readOnly value={getShareLink(customChannel || "custom")} className="bg-muted" />
+                  <Button onClick={() => copyLink(customChannel || "custom")}>
+                    <Copy className="w-4 h-4" />
+                  </Button>
                 </div>
                 <Button
                   variant="secondary"
-                  className="w-full mt-4"
+                  className="w-full"
                   onClick={() => {
                     recordShare(customChannel || "custom");
-                    toast.success("Marked as shared!");
+                    toast.success("Marked!");
                   }}
                 >
-                  <Check className="w-4 h-4 mr-2" /> Mark as Done Manually
+                  <Check className="w-4 h-4 mr-2" /> Mark as Done
                 </Button>
               </div>
             )}
@@ -458,7 +352,7 @@ const ShareJobDialog = ({ job, isOpen, onClose }: { job: Job | null; isOpen: boo
   );
 };
 
-// --- Job Form Placeholder (Keep existing logic intact) ---
+// --- 2. RESTORED JOB FORM COMPONENT ---
 const JobForm = ({
   initialData,
   categories,
@@ -472,17 +366,261 @@ const JobForm = ({
   onCancel: () => void;
   saving: boolean;
 }) => {
-  // NOTE: This component needs the full implementation from previous steps.
-  // I am rendering a placeholder here to keep the file valid, but you should PASTE YOUR EXISTING JOB FORM CODE HERE.
-  // If you need the full JobForm code again, let me know.
-  // For now, I assume you will only replace the "ShareJobDialog" and "JobsManager" parts or merge this carefully.
-  return <div className="p-4 text-center">Job Form Content (Please preserve previous implementation)</div>;
+  const [formData, setFormData] = useState(initialData);
+  const [enhancing, setEnhancing] = useState(false);
+  const [parsing, setParsing] = useState(false);
+  const [rawJobPost, setRawJobPost] = useState("");
+  const [showParseSection, setShowParseSection] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [requirementInput, setRequirementInput] = useState("");
+
+  const handleParseJobPost = async () => {
+    if (!rawJobPost.trim() || rawJobPost.length < 50) return toast.error("Please paste a complete job post");
+    setParsing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("parse-job-post", { body: { jobPostText: rawJobPost } });
+      if (error || !data?.success) throw new Error(data?.error || "Failed to parse");
+      setFormData((prev: any) => ({ ...prev, ...data.parsed }));
+      toast.success("Job parsed! Review details.");
+      setShowParseSection(false);
+    } catch (error: any) {
+      toast.error("Parse failed");
+    } finally {
+      setParsing(false);
+    }
+  };
+
+  const handleEnhanceDescription = async () => {
+    if (!formData.description) return toast.error("Enter description first");
+    setEnhancing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("enhance-job-description", {
+        body: { description: formData.description, title: formData.title, company: formData.company_name },
+      });
+      if (error) throw error;
+      setFormData((prev: any) => ({ ...prev, ai_enhanced_description: data.enhanced_description }));
+      toast.success("Enhanced with AI!");
+    } catch (error) {
+      toast.error("Enhance failed");
+    } finally {
+      setEnhancing(false);
+    }
+  };
+
+  const uploadToStorage = async (file: File, path: string) => {
+    const fileName = `${path}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "")}`;
+    const { error: uploadError } = await supabase.storage.from("public-uploads").upload(fileName, file);
+    if (uploadError) throw uploadError;
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from("public-uploads").getPublicUrl(fileName);
+    return publicUrl;
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingLogo(true);
+    try {
+      const url = await uploadToStorage(file, "company-logos");
+      setFormData((prev: any) => ({ ...prev, company_logo_url: url }));
+      toast.success("Logo uploaded");
+    } catch {
+      toast.error("Upload failed");
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
+  const handleAddRequirement = () => {
+    if (requirementInput.trim()) {
+      setFormData((prev: any) => ({ ...prev, requirements: [...prev.requirements, requirementInput.trim()] }));
+      setRequirementInput("");
+    }
+  };
+
+  return (
+    <div className="grid gap-6 py-4">
+      {!formData.id && (
+        <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
+          <div className="flex items-center justify-between">
+            <Label className="flex items-center gap-2">
+              <Wand2 className="w-4 h-4" /> AI Parse
+            </Label>
+            <Button variant="ghost" size="sm" onClick={() => setShowParseSection(!showParseSection)}>
+              {showParseSection ? "Hide" : "Show"}
+            </Button>
+          </div>
+          {showParseSection && (
+            <>
+              <Textarea
+                placeholder="Paste job post..."
+                value={rawJobPost}
+                onChange={(e) => setRawJobPost(e.target.value)}
+                rows={6}
+              />
+              <Button onClick={handleParseJobPost} disabled={parsing} className="w-full">
+                {parsing ? <Loader2 className="animate-spin" /> : "Auto-Fill"}
+              </Button>
+            </>
+          )}
+        </div>
+      )}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Title</Label>
+          <Input value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} />
+        </div>
+        <div className="space-y-2">
+          <Label>Company</Label>
+          <Input
+            value={formData.company_name}
+            onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
+          />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Location</Label>
+          <Input value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} />
+        </div>
+        <div className="space-y-2">
+          <Label>Logo</Label>
+          <div className="flex gap-2">
+            <Input
+              value={formData.company_logo_url || ""}
+              onChange={(e) => setFormData({ ...formData, company_logo_url: e.target.value })}
+              className="flex-1"
+            />
+            <div className="relative">
+              <Input type="file" onChange={handleLogoUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
+              <Button variant="outline" disabled={uploadingLogo}>
+                {uploadingLogo ? <Loader2 className="animate-spin" /> : "Up"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>Type</Label>
+          <Select value={formData.job_type} onValueChange={(v) => setFormData({ ...formData, job_type: v })}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {JOB_TYPES.map((t) => (
+                <SelectItem key={t.value} value={t.value}>
+                  {t.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>Level</Label>
+          <Select
+            value={formData.experience_level}
+            onValueChange={(v) => setFormData({ ...formData, experience_level: v })}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {EXPERIENCE_LEVELS.map((l) => (
+                <SelectItem key={l.value} value={l.value}>
+                  {l.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      <div className="grid grid-cols-3 gap-4">
+        <div className="space-y-2">
+          <Label>Min Salary</Label>
+          <Input
+            type="number"
+            value={formData.salary_range_min || ""}
+            onChange={(e) => setFormData({ ...formData, salary_range_min: parseInt(e.target.value) || null })}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Max Salary</Label>
+          <Input
+            type="number"
+            value={formData.salary_range_max || ""}
+            onChange={(e) => setFormData({ ...formData, salary_range_max: parseInt(e.target.value) || null })}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Vacancies</Label>
+          <Input
+            type="number"
+            value={formData.vacancies}
+            onChange={(e) => setFormData({ ...formData, vacancies: parseInt(e.target.value) || 1 })}
+          />
+        </div>
+      </div>
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <Label>Description</Label>
+          <Button variant="outline" size="sm" onClick={handleEnhanceDescription} disabled={enhancing}>
+            <Sparkles className="w-4 h-4 mr-2" /> AI Enhance
+          </Button>
+        </div>
+        <Textarea
+          value={formData.description}
+          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+          rows={6}
+        />
+      </div>
+      <div className="space-y-2">
+        <Label>Requirements</Label>
+        <div className="flex gap-2">
+          <Input
+            value={requirementInput}
+            onChange={(e) => setRequirementInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleAddRequirement()}
+          />
+          <Button onClick={handleAddRequirement} variant="outline">
+            Add
+          </Button>
+        </div>
+        <div className="flex flex-wrap gap-2 mt-2">
+          {formData.requirements.map((req: string, i: number) => (
+            <Badge key={i} variant="secondary" className="gap-1">
+              {req}{" "}
+              <button
+                onClick={() =>
+                  setFormData((prev: any) => ({
+                    ...prev,
+                    requirements: prev.requirements.filter((_: any, idx: number) => idx !== i),
+                  }))
+                }
+              >
+                ×
+              </button>
+            </Badge>
+          ))}
+        </div>
+      </div>
+      <div className="flex justify-end gap-2 pt-4">
+        <Button variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button onClick={() => onSave(formData)} disabled={saving}>
+          {saving ? <Loader2 className="animate-spin mr-2" /> : null} Save Job
+        </Button>
+      </div>
+    </div>
+  );
 };
 
-// --- Main Component ---
+// --- 3. MAIN MANAGER COMPONENT ---
 export function JobsManager() {
   const [jobs, setJobs] = useState<Job[]>([]);
-  const [categories, setCategories] = useState<ProfessionCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
@@ -501,24 +639,20 @@ export function JobsManager() {
     setError(null);
     try {
       let query = supabase.from("jobs").select("*", { count: "exact" }).order("created_at", { ascending: false });
-      if (debouncedSearch)
-        query = query.or(
-          `title.ilike.%${debouncedSearch}%,company_name.ilike.%${debouncedSearch}%,location.ilike.%${debouncedSearch}%`,
-        );
-      if (statusFilter === "active") query = query.eq("is_active", true);
-      if (statusFilter === "inactive") query = query.eq("is_active", false);
-      if (statusFilter === "featured") query = query.eq("is_featured", true);
+      if (debouncedSearch) query = query.or(`title.ilike.%${debouncedSearch}%,company_name.ilike.%${debouncedSearch}%`);
+      if (statusFilter !== "all")
+        query =
+          statusFilter === "featured"
+            ? query.eq("is_featured", true)
+            : query.eq("is_active", statusFilter === "active");
       const from = (page - 1) * ITEMS_PER_PAGE;
-      const to = from + ITEMS_PER_PAGE - 1;
-      query = query.range(from, to);
-      const result = await withTimeout(Promise.resolve(query), TIMEOUTS.DEFAULT, "Loading jobs timed out");
+      query = query.range(from, from + ITEMS_PER_PAGE - 1);
+      const result = await withTimeout(Promise.resolve(query), TIMEOUTS.DEFAULT, "Timeout");
       if (result.error) throw result.error;
       setJobs((result.data as unknown as Job[]) || []);
       setTotalCount(result.count || 0);
     } catch (err: any) {
-      console.error("Error loading jobs:", err);
-      setError(err.message || "Failed to load jobs");
-      toast.error("Failed to load jobs");
+      setError(err.message);
     } finally {
       setLoading(false);
     }
@@ -526,39 +660,58 @@ export function JobsManager() {
 
   useEffect(() => {
     loadJobs();
-    loadCategories();
   }, [loadJobs]);
 
-  const loadCategories = async () => {
-    const { data } = await supabase.from("profession_categories").select("id, name").eq("is_active", true);
-    setCategories(data || []);
-  };
-
   const handleSaveJob = async (formData: any) => {
-    // ... (Your existing save logic logic here)
-    // Placeholder to make it compile:
-    toast.success("Job saved (Function needs full implementation)");
-    setIsDialogOpen(false);
-    loadJobs();
+    setSaving(true);
+    try {
+      // Basic company linking logic
+      let companyId = null;
+      if (formData.company_name) {
+        const { data: co } = await supabase
+          .from("companies")
+          .select("id")
+          .ilike("name", formData.company_name)
+          .maybeSingle();
+        if (co) companyId = co.id;
+        else {
+          const { data: newCo } = await supabase
+            .from("companies")
+            .insert({ name: formData.company_name })
+            .select()
+            .single();
+          if (newCo) companyId = newCo.id;
+        }
+      }
+      const payload = { ...formData, company_id: companyId };
+      delete payload.id;
+      if (editingJob) await supabase.from("jobs").update(payload).eq("id", editingJob.id);
+      else await supabase.from("jobs").insert(payload);
+      toast.success("Job saved");
+      setIsDialogOpen(false);
+      loadJobs();
+    } catch {
+      toast.error("Save failed");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete job?")) return;
+    if (!confirm("Delete?")) return;
     await supabase.from("jobs").delete().eq("id", id);
-    toast.success("Job deleted");
+    toast.success("Deleted");
     loadJobs();
   };
-
-  const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
   return (
     <>
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="flex justify-between items-center">
             <div>
-              <CardTitle className="text-lg">Jobs Manager</CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">Total {totalCount} jobs found</p>
+              <CardTitle>Jobs Manager</CardTitle>
+              <p className="text-sm text-muted-foreground">{totalCount} jobs</p>
             </div>
             <Button
               onClick={() => {
@@ -569,14 +722,14 @@ export function JobsManager() {
               <Plus className="w-4 h-4 mr-2" /> Add Job
             </Button>
           </div>
-          <div className="flex gap-4 mt-4 flex-wrap">
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <div className="flex gap-4 mt-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted" />
               <Input
+                className="pl-9"
                 placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
               />
             </div>
             <Select
@@ -587,117 +740,111 @@ export function JobsManager() {
               }}
             >
               <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="Status" />
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Jobs</SelectItem>
+                <SelectItem value="all">All</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
                 <SelectItem value="inactive">Inactive</SelectItem>
-                <SelectItem value="featured">Featured</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <DashboardTableSkeleton rows={5} columns={8} />
+            <DashboardTableSkeleton rows={5} columns={6} />
           ) : error ? (
             <DashboardErrorState title="Error" message={error} onRetry={loadJobs} />
           ) : (
-            <>
-              <div className="overflow-x-auto rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Job</TableHead>
-                      <TableHead>Location</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Deadline</TableHead>
-                      <TableHead>Actions</TableHead>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Job</TableHead>
+                    <TableHead>Location</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Deadline</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {jobs.map((job) => (
+                    <TableRow key={job.id}>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{job.title}</div>
+                          <div className="text-xs text-muted-foreground">{job.company_name}</div>
+                        </div>
+                      </TableCell>
+                      <TableCell>{job.location || "-"}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{job.job_type}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={job.is_active ? "default" : "secondary"}>
+                          {job.is_active ? "Active" : "Inactive"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{job.deadline ? format(new Date(job.deadline), "MMM d") : "-"}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setEditingJob(job);
+                              setIsDialogOpen(true);
+                            }}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-blue-600 hover:bg-blue-50"
+                            onClick={() => {
+                              setShareJob(job);
+                              setIsShareOpen(true);
+                            }}
+                          >
+                            <Share2 className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:bg-red-50"
+                            onClick={() => handleDelete(job.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {jobs.map((job) => (
-                      <TableRow key={job.id}>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium">{job.title}</p>
-                            <p className="text-xs text-muted-foreground">{job.company_name}</p>
-                          </div>
-                        </TableCell>
-                        <TableCell>{job.location || "-"}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{job.job_type}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={job.is_active ? "default" : "secondary"}>
-                            {job.is_active ? "Active" : "Inactive"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{job.deadline ? format(new Date(job.deadline), "MMM d") : "-"}</TableCell>
-                        <TableCell>
-                          <div className="flex gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => {
-                                setEditingJob(job);
-                                setIsDialogOpen(true);
-                              }}
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                              onClick={() => {
-                                setShareJob(job);
-                                setIsShareOpen(true);
-                              }}
-                            >
-                              <Share2 className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="text-destructive"
-                              onClick={() => handleDelete(job.id)}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-              {totalPages > 1 && (
-                <div className="flex items-center justify-end space-x-2 py-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    disabled={page === 1}
-                  >
-                    <ChevronLeft className="h-4 w-4 mr-2" /> Previous
-                  </Button>
-                  <span className="text-sm text-muted-foreground">
-                    Page {page} of {totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={page === totalPages}
-                  >
-                    Next <ChevronRight className="h-4 w-4 ml-2" />
-                  </Button>
-                </div>
-              )}
-            </>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+          {Math.ceil(totalCount / ITEMS_PER_PAGE) > 1 && (
+            <div className="flex justify-end gap-2 mt-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => p + 1)}
+                disabled={page >= Math.ceil(totalCount / ITEMS_PER_PAGE)}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -705,11 +852,11 @@ export function JobsManager() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingJob ? "Edit Job" : "Add New Job"}</DialogTitle>
+            <DialogTitle>{editingJob ? "Edit Job" : "Add Job"}</DialogTitle>
           </DialogHeader>
           <JobForm
             initialData={editingJob || emptyJob}
-            categories={categories}
+            categories={[]}
             onSave={handleSaveJob}
             onCancel={() => setIsDialogOpen(false)}
             saving={saving}
