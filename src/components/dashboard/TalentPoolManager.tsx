@@ -18,7 +18,6 @@ import {
   Users,
   MessageSquare,
   Download,
-  ExternalLink,
   RefreshCw,
   Eye,
   Loader2,
@@ -30,14 +29,12 @@ import {
   Mic,
   Banknote,
   ClipboardCheck,
-  GraduationCap,
   Globe,
   Filter,
 } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { BatchTalentUpload } from "./BatchTalentUpload";
-import { OUTREACH_TEMPLATES, getOutreachWhatsAppLink, getFirstName as getOutreachFirstName, OutreachProduct } from "@/lib/outreachTemplates";
+import { OUTREACH_TEMPLATES, getOutreachWhatsAppLink, OutreachProduct } from "@/lib/outreachTemplates";
 import { COUNTRIES_WITH_PHONE, getCountryFlag } from "@/lib/constants/countries";
 
 // --- Internal Hook for Debounce ---
@@ -114,16 +111,22 @@ export function TalentPoolManager() {
     try {
       let query = supabase.from("talents").select("*", { count: "exact" }).order("updated_at", { ascending: false });
 
-      // Search Logic
+      // 1. Search Logic
       if (debouncedSearch) {
         query = query.or(
           `full_name.ilike.%${debouncedSearch}%,email.ilike.%${debouncedSearch}%,phone.ilike.%${debouncedSearch}%,custom_profession.ilike.%${debouncedSearch}%`,
         );
       }
 
-      // Country Filter
+      // 2. Country Filter
       if (countryFilter && countryFilter !== "all") {
         query = query.eq("country", countryFilter);
+      }
+
+      // 3. Outreach Filter (Server-Side)
+      // We apply the most common filter (Welcome Not Sent) at the DB level to fix pagination issues.
+      if (outreachFilter === "no_welcome") {
+        query = query.is("welcome_sent_at", null);
       }
 
       // Pagination
@@ -144,7 +147,7 @@ export function TalentPoolManager() {
     } finally {
       setIsLoading(false);
     }
-  }, [page, debouncedSearch, countryFilter]);
+  }, [page, debouncedSearch, countryFilter, outreachFilter]); // Added outreachFilter dependency
 
   const loadProfessionCategories = useCallback(async () => {
     try {
@@ -154,7 +157,6 @@ export function TalentPoolManager() {
       setProfessionCategories(data || []);
     } catch (err: any) {
       console.error("Error loading profession categories:", err);
-      // Don't show toast here to avoid spamming user if background load fails
     }
   }, []);
 
@@ -163,19 +165,46 @@ export function TalentPoolManager() {
     if (talentIds.length === 0) return;
     try {
       const { data } = await supabase
-        .from('outreach_messages')
-        .select('id, talent_id, product, sent_at')
-        .in('talent_id', talentIds);
+        .from("outreach_messages")
+        .select("id, talent_id, product, sent_at")
+        .in("talent_id", talentIds);
       setOutreachRecords(data || []);
     } catch (err) {
-      console.error('Error loading outreach records:', err);
+      console.error("Error loading outreach records:", err);
     }
   }, []);
 
   // Helper to check if product outreach was sent
   const getOutreachSentAt = (talentId: string, product: OutreachProduct): string | null => {
-    const record = outreachRecords.find(r => r.talent_id === talentId && r.product === product);
+    const record = outreachRecords.find((r) => r.talent_id === talentId && r.product === product);
     return record?.sent_at || null;
+  };
+
+  // Helper to extract actual first name
+  const getFirstName = (fullName: string): string => {
+    const prefixes = [
+      "md.",
+      "md",
+      "mst.",
+      "mst",
+      "dr.",
+      "dr",
+      "engr.",
+      "engr",
+      "prof.",
+      "prof",
+      "mr.",
+      "mr",
+      "mrs.",
+      "mrs",
+      "ms.",
+      "ms",
+    ];
+    const parts = fullName.trim().split(/\s+/);
+    if (parts.length > 1 && prefixes.includes(parts[0].toLowerCase())) {
+      return parts[1];
+    }
+    return parts[0];
   };
 
   // Send product outreach
@@ -193,28 +222,25 @@ export function TalentPoolManager() {
       const link = getOutreachWhatsAppLink(talent.phone, product, firstName);
 
       // Record in database
-      const { error } = await supabase.from('outreach_messages').insert({
+      const { error } = await supabase.from("outreach_messages").insert({
         talent_id: talent.id,
         product,
         message_content: OUTREACH_TEMPLATES[product].template(firstName),
       });
 
       if (error) {
-        // Check if it's a duplicate error
-        if (error.code === '23505') {
+        if (error.code === "23505") {
           toast.info("Already sent this message");
         } else {
           throw error;
         }
       } else {
-        // Open WhatsApp
         window.open(link, "_blank");
-        // Refresh outreach records
-        await loadOutreachRecords(talents.map(t => t.id));
+        await loadOutreachRecords(talents.map((t) => t.id));
         toast.success(`${OUTREACH_TEMPLATES[product].name} message sent!`);
       }
     } catch (error: any) {
-      console.error('Error sending outreach:', error);
+      console.error("Error sending outreach:", error);
       toast.error("Failed to track outreach");
     } finally {
       setSendingOutreach(null);
@@ -229,7 +255,7 @@ export function TalentPoolManager() {
   // Load outreach records when talents change
   useEffect(() => {
     if (talents.length > 0) {
-      loadOutreachRecords(talents.map(t => t.id));
+      loadOutreachRecords(talents.map((t) => t.id));
     }
   }, [talents, loadOutreachRecords]);
 
@@ -289,12 +315,6 @@ export function TalentPoolManager() {
     }
   };
 
-  const openPortfolioDialog = (talent: Talent) => {
-    setPortfolioTalent(talent);
-    setPortfolioNotes("");
-    setPortfolioDialogOpen(true);
-  };
-
   const formatWhatsAppLink = (phone: string | null) => {
     if (!phone) return null;
     let cleaned = phone.replace(/[\s\-\(\)\+]/g, "");
@@ -308,16 +328,6 @@ export function TalentPoolManager() {
     return `https://wa.me/${cleaned}`;
   };
 
-  // Helper to extract actual first name, skipping common prefixes
-  const getFirstName = (fullName: string): string => {
-    const prefixes = ['md.', 'md', 'mst.', 'mst', 'dr.', 'dr', 'engr.', 'engr', 'prof.', 'prof', 'mr.', 'mr', 'mrs.', 'mrs', 'ms.', 'ms'];
-    const parts = fullName.trim().split(/\s+/);
-    if (parts.length > 1 && prefixes.includes(parts[0].toLowerCase())) {
-      return parts[1];
-    }
-    return parts[0];
-  };
-
   const formatWelcomeWhatsAppLink = (phone: string | null, name: string) => {
     if (!phone) return null;
     let cleaned = phone.replace(/[\s\-\(\)\+]/g, "");
@@ -328,22 +338,20 @@ export function TalentPoolManager() {
     } else if (cleaned.length === 10) {
       cleaned = `880${cleaned}`;
     }
-    
+
     const message = encodeURIComponent(
       `Hi ${name}! 👋\n\n` +
-      `We're so glad to see you sign up with GroUp Academy!\n\n` +
-      `We're building an AI-powered career platform designed specifically for Bangladesh's job market — and you're now part of it.\n\n` +
-      `Feel free to knock us if you face any difficulties or have questions.\n\n` +
-      `Best regards,\n` +
-      `GroUp Academy Team`
+        `We're so glad to see you sign up with GroUp Academy!\n\n` +
+        `We're building an AI-powered career platform designed specifically for Bangladesh's job market — and you're now part of it.\n\n` +
+        `Feel free to knock us if you face any difficulties or have questions.\n\n` +
+        `Best regards,\n` +
+        `GroUp Academy Team`,
     );
-    
+
     return `https://wa.me/${cleaned}?text=${message}`;
   };
 
   const exportToCSV = () => {
-    // Note: This currently exports only the visible page.
-    // Ideally, this should trigger a backend function to generate a full CSV URL.
     const headers = ["Name", "Email", "Phone", "Category", "Services Used", "Created At"];
     const rows = talents.map((t) => [
       t.full_name,
@@ -365,25 +373,18 @@ export function TalentPoolManager() {
     toast.success("CSV exported successfully (Current Page)");
   };
 
-  const getServiceBadges = (servicesUsed: string[]) => {
-    if (!servicesUsed || servicesUsed.length === 0) return null;
-    return servicesUsed.map((service: string, idx: number) => (
-      <Badge key={idx} variant="outline" className="text-xs">
-        {service?.replace("_", " ") || "Unknown"}
-      </Badge>
-    ));
-  };
-
-  // Filter talents based on outreach status (client-side filtering of loaded data)
+  // Client-side filtering for complex relations (legacy support for other filters)
+  // Note: "no_welcome" is now handled server-side, but we keep the logic here as a fallback
+  // for the other filters (no_portfolio, etc) which still suffer from pagination limits
+  // until we add backend support for them.
   const filteredTalents = talents.filter((talent) => {
     if (outreachFilter === "all") return true;
-    
-    const talentOutreach = outreachRecords.filter(r => r.talent_id === talent.id);
-    const hasOutreachFor = (product: string) => talentOutreach.some(r => r.product === product);
-    
+    if (outreachFilter === "no_welcome") return true; // Handled by Server Query now
+
+    const talentOutreach = outreachRecords.filter((r) => r.talent_id === talent.id);
+    const hasOutreachFor = (product: string) => talentOutreach.some((r) => r.product === product);
+
     switch (outreachFilter) {
-      case "no_welcome":
-        return !talent.welcome_sent_at && !hasOutreachFor("welcome");
       case "no_portfolio":
         return !hasOutreachFor("portfolio");
       case "no_mock":
@@ -413,7 +414,7 @@ export function TalentPoolManager() {
               </CardTitle>
               <CardDescription>
                 {outreachFilter !== "all" ? (
-                  <span>{filteredTalents.length} matching / {totalCount} total</span>
+                  <span>{totalCount} talents match criteria</span>
                 ) : (
                   <span>{totalCount} talents in the database</span>
                 )}
@@ -644,11 +645,14 @@ export function TalentPoolManager() {
                                         className="h-8 w-8 text-blue-600 hover:text-blue-700"
                                         onClick={async () => {
                                           const { error } = await supabase
-                                            .from('talents')
+                                            .from("talents")
                                             .update({ welcome_sent_at: new Date().toISOString() })
-                                            .eq('id', talent.id);
+                                            .eq("id", talent.id);
                                           if (!error) {
-                                            const link = formatWelcomeWhatsAppLink(talent.phone, getFirstName(talent.full_name));
+                                            const link = formatWelcomeWhatsAppLink(
+                                              talent.phone,
+                                              getFirstName(talent.full_name),
+                                            );
                                             if (link) window.open(link, "_blank");
                                             loadTalents();
                                           }
@@ -659,9 +663,9 @@ export function TalentPoolManager() {
                                     )}
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    {talent.welcome_sent_at 
+                                    {talent.welcome_sent_at
                                       ? `Welcome sent ${new Date(talent.welcome_sent_at).toLocaleDateString()}`
-                                      : 'Send Welcome'}
+                                      : "Send Welcome"}
                                   </TooltipContent>
                                 </Tooltip>
                               )}
@@ -670,7 +674,7 @@ export function TalentPoolManager() {
                               {talent.phone && (
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    {getOutreachSentAt(talent.id, 'portfolio') ? (
+                                    {getOutreachSentAt(talent.id, "portfolio") ? (
                                       <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
                                         <Check className="w-4 h-4 text-purple-600" />
                                       </Button>
@@ -680,18 +684,20 @@ export function TalentPoolManager() {
                                         size="icon"
                                         className="h-8 w-8 text-purple-600 hover:text-purple-700"
                                         disabled={sendingOutreach === `${talent.id}-portfolio`}
-                                        onClick={() => sendProductOutreach(talent, 'portfolio')}
+                                        onClick={() => sendProductOutreach(talent, "portfolio")}
                                       >
-                                        {sendingOutreach === `${talent.id}-portfolio` 
-                                          ? <Loader2 className="w-4 h-4 animate-spin" />
-                                          : <Briefcase className="w-4 h-4" />}
+                                        {sendingOutreach === `${talent.id}-portfolio` ? (
+                                          <Loader2 className="w-4 h-4 animate-spin" />
+                                        ) : (
+                                          <Briefcase className="w-4 h-4" />
+                                        )}
                                       </Button>
                                     )}
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    {getOutreachSentAt(talent.id, 'portfolio')
-                                      ? `Portfolio sent ${new Date(getOutreachSentAt(talent.id, 'portfolio')!).toLocaleDateString()}`
-                                      : 'Pitch Portfolio'}
+                                    {getOutreachSentAt(talent.id, "portfolio")
+                                      ? `Portfolio sent ${new Date(getOutreachSentAt(talent.id, "portfolio")!).toLocaleDateString()}`
+                                      : "Pitch Portfolio"}
                                   </TooltipContent>
                                 </Tooltip>
                               )}
@@ -700,7 +706,7 @@ export function TalentPoolManager() {
                               {talent.phone && (
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    {getOutreachSentAt(talent.id, 'mock_interview') ? (
+                                    {getOutreachSentAt(talent.id, "mock_interview") ? (
                                       <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
                                         <Check className="w-4 h-4 text-green-600" />
                                       </Button>
@@ -710,18 +716,20 @@ export function TalentPoolManager() {
                                         size="icon"
                                         className="h-8 w-8 text-green-600 hover:text-green-700"
                                         disabled={sendingOutreach === `${talent.id}-mock_interview`}
-                                        onClick={() => sendProductOutreach(talent, 'mock_interview')}
+                                        onClick={() => sendProductOutreach(talent, "mock_interview")}
                                       >
-                                        {sendingOutreach === `${talent.id}-mock_interview`
-                                          ? <Loader2 className="w-4 h-4 animate-spin" />
-                                          : <Mic className="w-4 h-4" />}
+                                        {sendingOutreach === `${talent.id}-mock_interview` ? (
+                                          <Loader2 className="w-4 h-4 animate-spin" />
+                                        ) : (
+                                          <Mic className="w-4 h-4" />
+                                        )}
                                       </Button>
                                     )}
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    {getOutreachSentAt(talent.id, 'mock_interview')
-                                      ? `Mock Interview sent ${new Date(getOutreachSentAt(talent.id, 'mock_interview')!).toLocaleDateString()}`
-                                      : 'Pitch Mock Interview'}
+                                    {getOutreachSentAt(talent.id, "mock_interview")
+                                      ? `Mock Interview sent ${new Date(getOutreachSentAt(talent.id, "mock_interview")!).toLocaleDateString()}`
+                                      : "Pitch Mock Interview"}
                                   </TooltipContent>
                                 </Tooltip>
                               )}
@@ -730,7 +738,7 @@ export function TalentPoolManager() {
                               {talent.phone && (
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    {getOutreachSentAt(talent.id, 'salary_analysis') ? (
+                                    {getOutreachSentAt(talent.id, "salary_analysis") ? (
                                       <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
                                         <Check className="w-4 h-4 text-amber-600" />
                                       </Button>
@@ -740,18 +748,20 @@ export function TalentPoolManager() {
                                         size="icon"
                                         className="h-8 w-8 text-amber-600 hover:text-amber-700"
                                         disabled={sendingOutreach === `${talent.id}-salary_analysis`}
-                                        onClick={() => sendProductOutreach(talent, 'salary_analysis')}
+                                        onClick={() => sendProductOutreach(talent, "salary_analysis")}
                                       >
-                                        {sendingOutreach === `${talent.id}-salary_analysis`
-                                          ? <Loader2 className="w-4 h-4 animate-spin" />
-                                          : <Banknote className="w-4 h-4" />}
+                                        {sendingOutreach === `${talent.id}-salary_analysis` ? (
+                                          <Loader2 className="w-4 h-4 animate-spin" />
+                                        ) : (
+                                          <Banknote className="w-4 h-4" />
+                                        )}
                                       </Button>
                                     )}
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    {getOutreachSentAt(talent.id, 'salary_analysis')
-                                      ? `Salary Analysis sent ${new Date(getOutreachSentAt(talent.id, 'salary_analysis')!).toLocaleDateString()}`
-                                      : 'Pitch Salary Analysis'}
+                                    {getOutreachSentAt(talent.id, "salary_analysis")
+                                      ? `Salary Analysis sent ${new Date(getOutreachSentAt(talent.id, "salary_analysis")!).toLocaleDateString()}`
+                                      : "Pitch Salary Analysis"}
                                   </TooltipContent>
                                 </Tooltip>
                               )}
@@ -760,7 +770,7 @@ export function TalentPoolManager() {
                               {talent.phone && (
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    {getOutreachSentAt(talent.id, 'career_scorecard') ? (
+                                    {getOutreachSentAt(talent.id, "career_scorecard") ? (
                                       <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
                                         <Check className="w-4 h-4 text-teal-600" />
                                       </Button>
@@ -770,18 +780,20 @@ export function TalentPoolManager() {
                                         size="icon"
                                         className="h-8 w-8 text-teal-600 hover:text-teal-700"
                                         disabled={sendingOutreach === `${talent.id}-career_scorecard`}
-                                        onClick={() => sendProductOutreach(talent, 'career_scorecard')}
+                                        onClick={() => sendProductOutreach(talent, "career_scorecard")}
                                       >
-                                        {sendingOutreach === `${talent.id}-career_scorecard`
-                                          ? <Loader2 className="w-4 h-4 animate-spin" />
-                                          : <ClipboardCheck className="w-4 h-4" />}
+                                        {sendingOutreach === `${talent.id}-career_scorecard` ? (
+                                          <Loader2 className="w-4 h-4 animate-spin" />
+                                        ) : (
+                                          <ClipboardCheck className="w-4 h-4" />
+                                        )}
                                       </Button>
                                     )}
                                   </TooltipTrigger>
                                   <TooltipContent>
-                                    {getOutreachSentAt(talent.id, 'career_scorecard')
-                                      ? `Scorecard sent ${new Date(getOutreachSentAt(talent.id, 'career_scorecard')!).toLocaleDateString()}`
-                                      : 'Pitch Career Scorecard'}
+                                    {getOutreachSentAt(talent.id, "career_scorecard")
+                                      ? `Scorecard sent ${new Date(getOutreachSentAt(talent.id, "career_scorecard")!).toLocaleDateString()}`
+                                      : "Pitch Career Scorecard"}
                                   </TooltipContent>
                                 </Tooltip>
                               )}
