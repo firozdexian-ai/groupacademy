@@ -795,6 +795,7 @@ export type Database = {
       contact_outreach: {
         Row: {
           channel: string
+          company_id: string | null
           contact_id: string | null
           id: string
           message_content: string | null
@@ -805,6 +806,7 @@ export type Database = {
         }
         Insert: {
           channel: string
+          company_id?: string | null
           contact_id?: string | null
           id?: string
           message_content?: string | null
@@ -815,6 +817,7 @@ export type Database = {
         }
         Update: {
           channel?: string
+          company_id?: string | null
           contact_id?: string | null
           id?: string
           message_content?: string | null
@@ -824,6 +827,13 @@ export type Database = {
           status?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "contact_outreach_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "contact_outreach_contact_id_fkey"
             columns: ["contact_id"]

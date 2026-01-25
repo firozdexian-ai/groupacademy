@@ -81,6 +81,7 @@ export function CompaniesManager() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [outreachHistory, setOutreachHistory] = useState<Record<string, { last_sent: string; template: string } | null>>({});
 
   // Pagination & Search State
   const [page, setPage] = useState(1);
@@ -95,6 +96,7 @@ export function CompaniesManager() {
   const [saving, setSaving] = useState(false);
   const [emailInput, setEmailInput] = useState("");
   const [showBatchUpload, setShowBatchUpload] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<DexianEmailTemplate>('discovery');
 
   // Fetch Data (Refactored for Server-Side Pagination)
   const loadCompanies = useCallback(async () => {
@@ -137,10 +139,43 @@ export function CompaniesManager() {
     }
   }, [page, debouncedSearch]);
 
+  // Load outreach history for displayed companies
+  const loadOutreachHistory = useCallback(async (companyIds: string[]) => {
+    if (companyIds.length === 0) return;
+    
+    try {
+      const { data } = await supabase
+        .from("contact_outreach")
+        .select("company_id, sent_at, message_type")
+        .in("company_id", companyIds)
+        .order("sent_at", { ascending: false });
+      
+      const historyMap: Record<string, { last_sent: string; template: string } | null> = {};
+      data?.forEach((record) => {
+        if (record.company_id && !historyMap[record.company_id]) {
+          historyMap[record.company_id] = {
+            last_sent: record.sent_at,
+            template: record.message_type || 'unknown',
+          };
+        }
+      });
+      setOutreachHistory(historyMap);
+    } catch (error) {
+      console.error("Error loading outreach history:", error);
+    }
+  }, []);
+
   // Trigger load on change
   useEffect(() => {
     loadCompanies();
   }, [loadCompanies]);
+
+  // Load outreach history when companies change
+  useEffect(() => {
+    if (companies.length > 0) {
+      loadOutreachHistory(companies.map((c) => c.id));
+    }
+  }, [companies, loadOutreachHistory]);
 
   // Reset page when searching
   useEffect(() => {
@@ -261,6 +296,58 @@ export function CompaniesManager() {
     }
   };
 
+  // Handle email outreach with tracking
+  const handleEmailOutreach = async (company: Company, template: DexianEmailTemplate) => {
+    if (!company.primary_email) {
+      toast.error("No email address available");
+      return;
+    }
+
+    // Open email client first
+    const mailtoLink = getDexianEmailLink(company.primary_email, template, company.name);
+    window.open(mailtoLink, '_blank');
+
+    // Log outreach to database
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const templateLabel = EMAIL_TEMPLATE_OPTIONS.find(t => t.value === template)?.label || template;
+        await supabase.from("contact_outreach").insert({
+          company_id: company.id,
+          channel: "email",
+          message_type: template,
+          message_content: `Dexian ${templateLabel} email to ${company.name}`,
+          sent_by: user.id,
+        });
+        
+        // Update local outreach history
+        setOutreachHistory((prev) => ({
+          ...prev,
+          [company.id]: { last_sent: new Date().toISOString(), template },
+        }));
+        
+        toast.success("Email opened & outreach logged");
+      } else {
+        toast.success("Email client opened");
+      }
+    } catch (error) {
+      console.error("Error logging outreach:", error);
+      toast.success("Email client opened (tracking failed)");
+    }
+  };
+
+  // Helper to format relative time
+  const getRelativeTime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays === 0) return "Today";
+    if (diffDays === 1) return "Yesterday";
+    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+    return `${Math.floor(diffDays / 30)} months ago`;
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -320,7 +407,7 @@ export function CompaniesManager() {
                       <TableHead>Company</TableHead>
                       <TableHead>Industry</TableHead>
                       <TableHead>Contact</TableHead>
-                      <TableHead>Links</TableHead>
+                      <TableHead>Outreach</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -357,18 +444,16 @@ export function CompaniesManager() {
                           )}
                         </TableCell>
                         <TableCell>
-                          <div className="flex gap-2">
-                            {company.website && (
-                              <a href={company.website} target="_blank" rel="noopener noreferrer">
-                                <Globe className="w-4 h-4 text-muted-foreground hover:text-foreground" />
-                              </a>
-                            )}
-                            {company.linkedin_url && (
-                              <a href={company.linkedin_url} target="_blank" rel="noopener noreferrer">
-                                <Linkedin className="w-4 h-4 text-muted-foreground hover:text-foreground" />
-                              </a>
-                            )}
-                          </div>
+                          {outreachHistory[company.id] ? (
+                            <Badge className="bg-green-100 text-green-700 hover:bg-green-100">
+                              <CheckCircle className="w-3 h-3 mr-1" />
+                              {getRelativeTime(outreachHistory[company.id]!.last_sent)}
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-muted-foreground">
+                              Never contacted
+                            </Badge>
+                          )}
                         </TableCell>
                         <TableCell>
                           {company.is_verified ? (
@@ -381,34 +466,60 @@ export function CompaniesManager() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    disabled={!company.primary_email}
-                                    onClick={() => {
-                                      if (company.primary_email) {
-                                        const mailtoLink = getDexianEmailLink(
-                                          company.primary_email,
-                                          'discovery',
-                                          company.name
-                                        );
-                                        window.open(mailtoLink, '_blank');
-                                        toast.success("Email client opened with Dexian template");
-                                      }
-                                    }}
-                                    className="text-blue-600 hover:text-blue-700"
-                                  >
-                                    <Send className="w-4 h-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Email via Dexian (Discovery)</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            {/* Email Template Dropdown */}
+                            <Select
+                              value={selectedTemplate}
+                              onValueChange={(val) => {
+                                setSelectedTemplate(val as DexianEmailTemplate);
+                                handleEmailOutreach(company, val as DexianEmailTemplate);
+                              }}
+                            >
+                              <SelectTrigger className="w-auto h-8 gap-1 text-blue-600 border-blue-200 hover:bg-blue-50" disabled={!company.primary_email}>
+                                <Send className="w-3 h-3" />
+                                <span className="hidden sm:inline text-xs">Email</span>
+                              </SelectTrigger>
+                              <SelectContent>
+                                {EMAIL_TEMPLATE_OPTIONS.map((opt) => (
+                                  <SelectItem key={opt.value} value={opt.value}>
+                                    <span className="flex items-center gap-2">
+                                      <span>{opt.icon}</span>
+                                      <span>{opt.label}</span>
+                                    </span>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            
+                            {/* Website & LinkedIn links */}
+                            {company.website && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="sm" asChild>
+                                      <a href={company.website} target="_blank" rel="noopener noreferrer">
+                                        <Globe className="w-4 h-4" />
+                                      </a>
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Website</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                            {company.linkedin_url && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="sm" asChild>
+                                      <a href={company.linkedin_url} target="_blank" rel="noopener noreferrer">
+                                        <Linkedin className="w-4 h-4" />
+                                      </a>
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>LinkedIn</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                            
                             <Button variant="ghost" size="sm" onClick={() => handleOpenDialog(company)}>
                               <Edit className="w-4 h-4" />
                             </Button>
