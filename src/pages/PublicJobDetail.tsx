@@ -1,13 +1,23 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { 
-  Building2, MapPin, Clock, DollarSign, Calendar, 
-  Briefcase, Star, Share2, RefreshCw, AlertCircle, UserPlus, LogIn
+import {
+  Building2,
+  MapPin,
+  Clock,
+  DollarSign,
+  Calendar,
+  Briefcase,
+  Star,
+  Share2,
+  RefreshCw,
+  AlertCircle,
+  UserPlus,
+  LogIn,
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -50,25 +60,44 @@ const EXPERIENCE_LEVELS: Record<string, string> = {
 export default function PublicJobDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [job, setJob] = useState<Job | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (id) loadJob();
+    if (id) {
+      loadJob();
+      trackSource();
+    }
   }, [id]);
+
+  const trackSource = async () => {
+    const source = searchParams.get("source");
+    if (source && id) {
+      try {
+        // Fire and forget tracking
+        await supabase.rpc("track_job_click", {
+          p_job_id: id,
+          p_source: source,
+        });
+
+        // Optional: Clean up URL
+        const newParams = new URLSearchParams(searchParams);
+        newParams.delete("source");
+        window.history.replaceState({}, "", `${window.location.pathname}?${newParams.toString()}`);
+      } catch (err) {
+        console.error("Failed to track job click", err);
+      }
+    }
+  };
 
   const loadJob = async () => {
     setLoading(true);
     setLoadError(null);
-    
+
     try {
-      const { data, error } = await supabase
-        .from("jobs")
-        .select("*")
-        .eq("id", id)
-        .eq("is_active", true)
-        .single();
+      const { data, error } = await supabase.from("jobs").select("*").eq("id", id).eq("is_active", true).single();
 
       if (error) throw error;
       setJob(data);
@@ -104,7 +133,7 @@ export default function PublicJobDetail() {
         toast.success("Link copied to clipboard!");
       }
     } catch (error) {
-      if (error instanceof Error && error.name !== 'AbortError') {
+      if (error instanceof Error && error.name !== "AbortError") {
         try {
           await navigator.clipboard.writeText(shareUrl);
           toast.success("Link copied to clipboard!");
@@ -139,15 +168,15 @@ export default function PublicJobDetail() {
           <CardContent className="pt-6 text-center">
             <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
             <h2 className="text-xl font-semibold mb-2">Job Not Found</h2>
-            <p className="text-muted-foreground mb-6">{loadError || "This job may have been removed or is no longer available."}</p>
+            <p className="text-muted-foreground mb-6">
+              {loadError || "This job may have been removed or is no longer available."}
+            </p>
             <div className="flex gap-2 justify-center">
               <Button onClick={loadJob} variant="outline">
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Try Again
               </Button>
-              <Button onClick={() => navigate("/auth?returnTo=/app/jobs")}>
-                Browse Jobs
-              </Button>
+              <Button onClick={() => navigate("/auth?returnTo=/app/jobs")}>Browse Jobs</Button>
             </div>
           </CardContent>
         </Card>
@@ -181,8 +210,8 @@ export default function PublicJobDetail() {
         {/* Company & Title */}
         <div className="flex gap-4 items-start mb-6">
           {job.company_logo_url ? (
-            <img 
-              src={job.company_logo_url} 
+            <img
+              src={job.company_logo_url}
               alt={job.company_name}
               className="w-16 h-16 rounded-xl object-cover bg-muted"
             />
@@ -199,9 +228,7 @@ export default function PublicJobDetail() {
                   <Star className="w-3 h-3 fill-current" /> Featured
                 </Badge>
               )}
-              {isDeadlinePassed && (
-                <Badge variant="destructive">Deadline Passed</Badge>
-              )}
+              {isDeadlinePassed && <Badge variant="destructive">Deadline Passed</Badge>}
             </div>
             <h1 className="text-2xl md:text-3xl font-bold">{job.title}</h1>
             <p className="text-lg text-muted-foreground">{job.company_name}</p>
@@ -218,9 +245,7 @@ export default function PublicJobDetail() {
             <Clock className="w-3 h-3" />
             {JOB_TYPES[job.job_type] || job.job_type}
           </Badge>
-          <Badge variant="secondary">
-            {EXPERIENCE_LEVELS[job.experience_level] || job.experience_level}
-          </Badge>
+          <Badge variant="secondary">{EXPERIENCE_LEVELS[job.experience_level] || job.experience_level}</Badge>
           {job.location && (
             <Badge variant="outline" className="gap-1">
               <MapPin className="w-3 h-3" />
@@ -237,20 +262,11 @@ export default function PublicJobDetail() {
 
         {/* CTA Buttons */}
         <div className="flex flex-col sm:flex-row gap-3 mb-8">
-          <Button 
-            size="lg" 
-            className="flex-1"
-            onClick={handleSignUpToApply}
-            disabled={isDeadlinePassed}
-          >
+          <Button size="lg" className="flex-1" onClick={handleSignUpToApply} disabled={isDeadlinePassed}>
             <UserPlus className="w-4 h-4 mr-2" />
             Sign Up to Apply
           </Button>
-          <Button 
-            size="lg" 
-            variant="outline"
-            onClick={handleShare}
-          >
+          <Button size="lg" variant="outline" onClick={handleShare}>
             <Share2 className="w-4 h-4 mr-2" />
             Share
           </Button>
@@ -260,7 +276,8 @@ export default function PublicJobDetail() {
         <Card className="mb-6 border-primary/20 bg-primary/5">
           <CardContent className="p-4">
             <p className="text-sm text-center">
-              <span className="font-medium">Create a free account</span> to apply for this job and access all career services including CV review, mock interviews, and more.
+              <span className="font-medium">Create a free account</span> to apply for this job and access all career
+              services including CV review, mock interviews, and more.
             </p>
           </CardContent>
         </Card>
@@ -270,11 +287,7 @@ export default function PublicJobDetail() {
           <Card className="mb-6">
             <CardContent className="p-4">
               <h2 className="text-sm font-semibold mb-3">Original Job Post</h2>
-              <img 
-                src={job.source_image_url} 
-                alt="Original job post" 
-                className="w-full rounded-lg border"
-              />
+              <img src={job.source_image_url} alt="Original job post" className="w-full rounded-lg border" />
             </CardContent>
           </Card>
         )}
@@ -283,9 +296,7 @@ export default function PublicJobDetail() {
         <Card className="mb-6">
           <CardContent className="p-4 md:p-6">
             <h2 className="text-lg font-semibold mb-3">Job Description</h2>
-            <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">
-              {displayDescription}
-            </div>
+            <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">{displayDescription}</div>
           </CardContent>
         </Card>
 
