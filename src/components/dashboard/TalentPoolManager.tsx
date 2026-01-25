@@ -31,11 +31,14 @@ import {
   Banknote,
   ClipboardCheck,
   GraduationCap,
+  Globe,
+  Filter,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { BatchTalentUpload } from "./BatchTalentUpload";
 import { OUTREACH_TEMPLATES, getOutreachWhatsAppLink, getFirstName as getOutreachFirstName, OutreachProduct } from "@/lib/outreachTemplates";
+import { COUNTRIES_WITH_PHONE, getCountryFlag } from "@/lib/constants/countries";
 
 // --- Internal Hook for Debounce ---
 function useDebounce<T>(value: T, delay: number): T {
@@ -62,6 +65,8 @@ interface Talent {
   created_at: string;
   updated_at: string;
   welcome_sent_at: string | null;
+  country: string | null;
+  country_code: string | null;
 }
 
 interface OutreachRecord {
@@ -86,10 +91,11 @@ export function TalentPoolManager() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Pagination & Search
+  // Pagination & Search & Filters
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
+  const [countryFilter, setCountryFilter] = useState<string>("all");
   const [outreachFilter, setOutreachFilter] = useState<string>("all");
   const debouncedSearch = useDebounce(searchQuery, 500);
 
@@ -115,6 +121,11 @@ export function TalentPoolManager() {
         );
       }
 
+      // Country Filter
+      if (countryFilter && countryFilter !== "all") {
+        query = query.eq("country", countryFilter);
+      }
+
       // Pagination
       const from = (page - 1) * ITEMS_PER_PAGE;
       const to = from + ITEMS_PER_PAGE - 1;
@@ -133,7 +144,7 @@ export function TalentPoolManager() {
     } finally {
       setIsLoading(false);
     }
-  }, [page, debouncedSearch]);
+  }, [page, debouncedSearch, countryFilter]);
 
   const loadProfessionCategories = useCallback(async () => {
     try {
@@ -222,10 +233,10 @@ export function TalentPoolManager() {
     }
   }, [talents, loadOutreachRecords]);
 
-  // Reset page on search
+  // Reset page on search or filter change
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch]);
+  }, [debouncedSearch, countryFilter, outreachFilter]);
 
   const getProfessionName = (categoryId: string | null, customProfession: string | null) => {
     if (customProfession) return customProfession;
@@ -363,6 +374,29 @@ export function TalentPoolManager() {
     ));
   };
 
+  // Filter talents based on outreach status (client-side filtering of loaded data)
+  const filteredTalents = talents.filter((talent) => {
+    if (outreachFilter === "all") return true;
+    
+    const talentOutreach = outreachRecords.filter(r => r.talent_id === talent.id);
+    const hasOutreachFor = (product: string) => talentOutreach.some(r => r.product === product);
+    
+    switch (outreachFilter) {
+      case "no_welcome":
+        return !talent.welcome_sent_at && !hasOutreachFor("welcome");
+      case "no_portfolio":
+        return !hasOutreachFor("portfolio");
+      case "no_mock":
+        return !hasOutreachFor("mock_interview");
+      case "no_salary":
+        return !hasOutreachFor("salary_analysis");
+      case "no_scorecard":
+        return !hasOutreachFor("career_scorecard");
+      default:
+        return true;
+    }
+  });
+
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
   return (
@@ -377,7 +411,13 @@ export function TalentPoolManager() {
                 <Users className="w-5 h-5" />
                 Talent Pool
               </CardTitle>
-              <CardDescription>{totalCount} talents in the database</CardDescription>
+              <CardDescription>
+                {outreachFilter !== "all" ? (
+                  <span>{filteredTalents.length} matching / {totalCount} total</span>
+                ) : (
+                  <span>{totalCount} talents in the database</span>
+                )}
+              </CardDescription>
             </div>
             <div className="flex gap-2">
               <Button variant="outline" onClick={loadTalents} disabled={isLoading}>
@@ -392,26 +432,136 @@ export function TalentPoolManager() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="mb-4">
-            <div className="relative max-w-sm">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by name, email, phone, or profession..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
+          {/* Filters Row */}
+          <div className="mb-4 flex flex-wrap gap-3 items-end">
+            {/* Search */}
+            <div className="flex-1 min-w-[200px] max-w-sm">
+              <Label className="text-xs text-muted-foreground mb-1 block">Search</Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Name, email, phone..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
             </div>
+
+            {/* Country Filter */}
+            <div className="w-[160px]">
+              <Label className="text-xs text-muted-foreground mb-1 block">Country</Label>
+              <Select value={countryFilter} onValueChange={setCountryFilter}>
+                <SelectTrigger className="bg-background">
+                  <SelectValue placeholder="All Countries" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover z-50">
+                  <SelectItem value="all">
+                    <div className="flex items-center gap-2">
+                      <Globe className="h-4 w-4" />
+                      All Countries
+                    </div>
+                  </SelectItem>
+                  {COUNTRIES_WITH_PHONE.slice(0, 15).map((country) => (
+                    <SelectItem key={country.code} value={country.code}>
+                      <div className="flex items-center gap-2">
+                        <span>{country.flag}</span>
+                        {country.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Outreach Filter */}
+            <div className="w-[180px]">
+              <Label className="text-xs text-muted-foreground mb-1 block">Outreach Status</Label>
+              <Select value={outreachFilter} onValueChange={setOutreachFilter}>
+                <SelectTrigger className="bg-background">
+                  <SelectValue placeholder="All" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover z-50">
+                  <SelectItem value="all">
+                    <div className="flex items-center gap-2">
+                      <Filter className="h-4 w-4" />
+                      All Talents
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="no_welcome">
+                    <div className="flex items-center gap-2">
+                      <Hand className="h-4 w-4 text-blue-500" />
+                      No Welcome Sent
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="no_portfolio">
+                    <div className="flex items-center gap-2">
+                      <Briefcase className="h-4 w-4 text-purple-500" />
+                      No Portfolio Pitch
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="no_mock">
+                    <div className="flex items-center gap-2">
+                      <Mic className="h-4 w-4 text-green-500" />
+                      No Mock Interview Pitch
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="no_salary">
+                    <div className="flex items-center gap-2">
+                      <Banknote className="h-4 w-4 text-amber-500" />
+                      No Salary Pitch
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="no_scorecard">
+                    <div className="flex items-center gap-2">
+                      <ClipboardCheck className="h-4 w-4 text-teal-500" />
+                      No Scorecard Pitch
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Active Filters Summary */}
+            {(countryFilter !== "all" || outreachFilter !== "all") && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setCountryFilter("all");
+                  setOutreachFilter("all");
+                }}
+                className="text-muted-foreground"
+              >
+                Clear Filters
+              </Button>
+            )}
           </div>
 
           {isLoading ? (
             <DashboardTableSkeleton rows={5} columns={6} />
           ) : error ? (
             <DashboardErrorState title="Failed to load talent pool" message={error} onRetry={loadTalents} />
-          ) : talents.length === 0 ? (
+          ) : filteredTalents.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <Users className="w-12 h-12 mx-auto mb-4 opacity-20" />
-              <p>No talents found</p>
+              {talents.length === 0 ? (
+                <p>No talents found</p>
+              ) : (
+                <>
+                  <p>No talents match the current filters</p>
+                  <Button
+                    variant="link"
+                    onClick={() => {
+                      setCountryFilter("all");
+                      setOutreachFilter("all");
+                    }}
+                    className="mt-2"
+                  >
+                    Clear filters
+                  </Button>
+                </>
+              )}
             </div>
           ) : (
             <>
@@ -421,14 +571,14 @@ export function TalentPoolManager() {
                     <TableRow>
                       <TableHead>Name</TableHead>
                       <TableHead>Contact</TableHead>
+                      <TableHead>Country</TableHead>
                       <TableHead>Profession</TableHead>
-                      <TableHead>Services Used</TableHead>
                       <TableHead>Updated</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {talents.map((talent) => (
+                    {filteredTalents.map((talent) => (
                       <TableRow key={talent.id}>
                         <TableCell>
                           <div>
@@ -442,16 +592,19 @@ export function TalentPoolManager() {
                           </div>
                         </TableCell>
                         <TableCell>
+                          {talent.country ? (
+                            <Badge variant="outline" className="gap-1">
+                              <span>{getCountryFlag(talent.country)}</span>
+                              {talent.country}
+                            </Badge>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
                           <Badge variant="secondary">
                             {getProfessionName(talent.profession_category_id, talent.custom_profession)}
                           </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex flex-wrap gap-1">
-                            {getServiceBadges(talent.services_used) || (
-                              <span className="text-xs text-muted-foreground">None</span>
-                            )}
-                          </div>
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {new Date(talent.updated_at).toLocaleDateString()}
