@@ -33,6 +33,35 @@ export function AssessmentStepper({ categoryId, categoryName, onComplete, onBack
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, any>>({});
+  const storageKey = `assessment_progress_${categoryId}`;
+
+  // Load saved progress from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem(storageKey);
+    if (saved) {
+      try {
+        const { savedAnswers, savedIndex } = JSON.parse(saved);
+        if (savedAnswers && typeof savedAnswers === 'object') {
+          setAnswers(savedAnswers);
+          setCurrentIndex(savedIndex || 0);
+          console.log("[AssessmentStepper] Restored progress:", Object.keys(savedAnswers).length, "answers");
+        }
+      } catch (e) {
+        console.warn("[AssessmentStepper] Failed to parse saved progress:", e);
+        localStorage.removeItem(storageKey);
+      }
+    }
+  }, [storageKey]);
+
+  // Save progress to localStorage whenever answers change
+  useEffect(() => {
+    if (Object.keys(answers).length > 0 && questions.length > 0) {
+      localStorage.setItem(storageKey, JSON.stringify({
+        savedAnswers: answers,
+        savedIndex: currentIndex
+      }));
+    }
+  }, [answers, currentIndex, storageKey, questions.length]);
 
   useEffect(() => {
     loadQuestions();
@@ -116,6 +145,8 @@ export function AssessmentStepper({ categoryId, categoryName, onComplete, onBack
     }
     
     if (currentIndex === questions.length - 1) {
+      // Clear saved progress on completion
+      localStorage.removeItem(storageKey);
       onComplete(answers);
     } else {
       setCurrentIndex(prev => prev + 1);

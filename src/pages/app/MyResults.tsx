@@ -43,26 +43,29 @@ export default function MyResults() {
     
     setLoading(true);
     try {
+      // Use exact lowercase match to avoid case sensitivity issues
+      const emailLower = talent.email.toLowerCase().trim();
+      
       const [assessments, interviews, salaries, portfolios] = await Promise.all([
         supabase
           .from('career_assessments')
           .select('id, created_at, percentage, readiness_level')
-          .ilike('email', talent.email)
+          .eq('email', emailLower)
           .order('created_at', { ascending: false }),
         supabase
           .from('mock_interviews')
           .select('id, created_at, selection_percentage, status, job_title')
-          .ilike('email', talent.email)
+          .eq('email', emailLower)
           .order('created_at', { ascending: false }),
         supabase
           .from('salary_analyses')
           .select('id, created_at, status, job_title')
-          .ilike('email', talent.email)
+          .eq('email', emailLower)
           .order('created_at', { ascending: false }),
         supabase
           .from('portfolio_requests')
           .select('id, created_at, status')
-          .ilike('email', talent.email)
+          .eq('email', emailLower)
           .order('created_at', { ascending: false })
       ]);
 

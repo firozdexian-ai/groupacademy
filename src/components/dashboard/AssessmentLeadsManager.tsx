@@ -36,6 +36,8 @@ const readinessColors: Record<string, string> = {
   expert: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
 };
 
+const PAGE_SIZE = 20;
+
 export function AssessmentLeadsManager() {
   const [leads, setLeads] = useState<AssessmentLead[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,16 +46,18 @@ export function AssessmentLeadsManager() {
   const [readinessFilter, setReadinessFilter] = useState<string>("all");
   const [selectedTalentEmail, setSelectedTalentEmail] = useState<string | null>(null);
   const [selectedTalentName, setSelectedTalentName] = useState<string>("");
+  const [page, setPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
 
   useEffect(() => {
     loadLeads();
-  }, []);
+  }, [page]);
 
   const loadLeads = async () => {
     setLoading(true);
     setError(null);
     try {
-      const { data, error: queryError } = await withTimeout(
+      const { data, error: queryError, count } = await withTimeout(
         Promise.resolve(
           supabase
             .from("career_assessments")
@@ -66,8 +70,9 @@ export function AssessmentLeadsManager() {
               readiness_level,
               created_at,
               profession_category:profession_categories(name)
-            `)
+            `, { count: 'exact' })
             .order("created_at", { ascending: false })
+            .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
         ).then(q => q),
         TIMEOUTS.DEFAULT,
         "Loading assessment leads timed out"
@@ -75,6 +80,7 @@ export function AssessmentLeadsManager() {
 
       if (queryError) throw queryError;
       setLeads(data || []);
+      setTotalCount(count || 0);
     } catch (err: any) {
       console.error("Error loading leads:", err);
       setError(err.message || "Failed to load assessment leads");
@@ -83,6 +89,8 @@ export function AssessmentLeadsManager() {
       setLoading(false);
     }
   };
+
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   const filteredLeads = leads.filter((lead) => {
     const matchesSearch =
@@ -129,7 +137,9 @@ export function AssessmentLeadsManager() {
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between flex-wrap gap-4">
-          <CardTitle className="text-lg">Assessment Leads ({filteredLeads.length})</CardTitle>
+          <CardTitle className="text-lg">
+            Assessment Leads ({totalCount} total{filteredLeads.length !== leads.length ? `, showing ${filteredLeads.length}` : ''})
+          </CardTitle>
           <Button onClick={exportToCSV} variant="outline" size="sm">
             <Download className="w-4 h-4 mr-2" />
             Export CSV
@@ -228,6 +238,33 @@ export function AssessmentLeadsManager() {
                 ))}
               </TableBody>
             </Table>
+          </div>
+        )}
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between pt-4 border-t mt-4">
+            <p className="text-sm text-muted-foreground">
+              Page {page + 1} of {totalPages}
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(p => Math.max(0, p - 1))}
+                disabled={page === 0 || loading}
+              >
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+                disabled={page >= totalPages - 1 || loading}
+              >
+                Next
+              </Button>
+            </div>
           </div>
         )}
       </CardContent>

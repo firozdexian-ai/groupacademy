@@ -18,7 +18,8 @@ import {
   Loader2,
   MessageCircle,
   Linkedin,
-  Twitter
+  Twitter,
+  History
 } from "lucide-react";
 import { toast } from "sonner";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
@@ -396,6 +397,10 @@ export default function AssessmentResults() {
             <Button onClick={() => navigate("/career-assessment")} variant="outline">
               <RefreshCw className="h-4 w-4 mr-2" />
               Retake Assessment
+            </Button>
+            <Button onClick={() => navigate("/app/my-results")} variant="ghost">
+              <History className="h-4 w-4 mr-2" />
+              View History
             </Button>
           </div>
 

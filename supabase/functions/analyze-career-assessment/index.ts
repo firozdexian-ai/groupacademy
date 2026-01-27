@@ -6,6 +6,21 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Helper function to check if user is an admin
+async function checkIsAdmin(supabase: any, userId: string): Promise<boolean> {
+  try {
+    const { data } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .in("role", ["admin", "talent_exec"])
+      .maybeSingle();
+    return !!data;
+  } catch {
+    return false;
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -77,10 +92,24 @@ serve(async (req) => {
       });
     }
 
+    // Get user's talent_id for ownership check
+    const { data: talent } = await supabaseAuth
+      .from("talents")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    const userTalentId = talent?.id;
+
     // 2. SECURITY: Ownership Check (IDOR Prevention)
-    // Ensure the assessment belongs to the requesting user
-    // (You might want to allow 'admin' role here too, but for now strict ownership is safest)
-    if (assessment.user_id !== user.id) {
+    // Allow access if:
+    // - User owns via user_id
+    // - User owns via talent_id
+    // - User is an admin
+    const isOwnerByUserId = assessment.user_id === user.id;
+    const isOwnerByTalentId = userTalentId && assessment.talent_id === userTalentId;
+    const isAdmin = await checkIsAdmin(supabaseAdmin, user.id);
+
+    if (!isOwnerByUserId && !isOwnerByTalentId && !isAdmin) {
       console.error(`Unauthorized access attempt: User ${user.id} tried to access assessment ${assessmentId}`);
       return new Response(JSON.stringify({ error: "Unauthorized access to this assessment" }), {
         status: 403,

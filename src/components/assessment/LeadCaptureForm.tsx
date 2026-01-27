@@ -3,21 +3,21 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { ArrowLeft, Loader2, Lock, AlertCircle, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { useTalent } from "@/hooks/useTalent";
-import { useCredits } from "@/hooks/useCredits";
 
 const leadSchema = z.object({
   full_name: z.string().trim().min(2, "Name must be at least 2 characters").max(100),
   email: z.string().trim().email("Invalid email address").max(255),
-  phone: z.string().trim().min(10, "Phone must be at least 10 digits").max(20),
+  phone: z.string().trim().min(6, "Phone number is required").max(20),
 });
 
 interface LeadCaptureFormProps {
@@ -38,14 +38,15 @@ export function LeadCaptureForm({
   onBack,
 }: LeadCaptureFormProps) {
   const navigate = useNavigate();
-  const { talent, user, addServiceUsed } = useTalent();
-  const { deductCredits } = useCredits();
+  const { talent, user } = useTalent();
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     full_name: "",
     email: email,
     phone: "",
+    countryCode: "+880",
+    country: "BD",
     whatsapp_opt_in: true,
     terms_accepted: false,
   });
@@ -59,6 +60,8 @@ export function LeadCaptureForm({
         full_name: prev.full_name || talent.fullName || "",
         email: prev.email || talent.email || email,
         phone: prev.phone || talent.phone || "",
+        countryCode: talent.countryCode || prev.countryCode,
+        country: talent.country || prev.country,
       }));
     }
   }, [talent, email]);
@@ -135,6 +138,9 @@ export function LeadCaptureForm({
       const tempAssessmentId = crypto.randomUUID();
       
       // Save assessment WITH talent_id if available
+      // Build full phone number with country code
+      const fullPhone = formData.countryCode + formData.phone;
+      
       const { error } = await withTimeout(
         Promise.resolve(supabase
           .from("career_assessments")
@@ -145,7 +151,7 @@ export function LeadCaptureForm({
             profession_category_id: categoryId,
             full_name: formData.full_name.trim(),
             email: formData.email.toLowerCase().trim(),
-            phone: formData.phone.trim(),
+            phone: fullPhone.trim(),
             answers: answers,
             total_score: scores.totalScore,
             max_score: scores.maxScore,
@@ -163,13 +169,8 @@ export function LeadCaptureForm({
         throw error;
       }
 
-      // Track service usage and deduct credits
-      if (talent?.id) {
-        await addServiceUsed('career_assessment');
-        await deductCredits('CAREER_ASSESSMENT', tempAssessmentId, 'Career Readiness Scorecard');
-        console.log("[LeadCaptureForm] Service usage and credits processed for talent:", talent.id);
-      }
-
+      // NOTE: Credit deduction is handled by the parent component (AppCareerAssessment)
+      // to avoid duplicate charges. LeadCaptureForm only handles data collection.
       console.log("[LeadCaptureForm] Assessment saved successfully:", tempAssessmentId);
       
       // Call onComplete AFTER successful database insert
@@ -261,13 +262,15 @@ export function LeadCaptureForm({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number *</Label>
-              <Input
-                id="phone"
-                type="tel"
-                placeholder="Your phone number"
+              <Label>Phone Number *</Label>
+              <PhoneInput
                 value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                countryCode={formData.countryCode}
+                onValueChange={(phone) => setFormData(prev => ({ ...prev, phone }))}
+                onCountryCodeChange={(code, country) => 
+                  setFormData(prev => ({ ...prev, countryCode: code, country }))
+                }
+                placeholder="Enter phone number"
                 disabled={submitting}
               />
               {errors.phone && (

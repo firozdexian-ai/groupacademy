@@ -49,7 +49,8 @@ export function ScorecardPDFTemplate({ assessment }: ScorecardPDFTemplateProps) 
         width: "794px",
         padding: "40px",
         backgroundColor: "#ffffff",
-        fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
+        // Use system fonts for reliable PDF rendering
+        fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
         color: BRAND.dark,
         position: "absolute",
         left: "-9999px",
@@ -71,7 +72,7 @@ export function ScorecardPDFTemplate({ assessment }: ScorecardPDFTemplateProps) 
             fontSize: "28px", 
             fontWeight: 700, 
             color: BRAND.primary,
-            fontFamily: "'Poppins', system-ui, sans-serif"
+            fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
           }}>
             GroUp Academy
           </h1>
@@ -97,7 +98,7 @@ export function ScorecardPDFTemplate({ assessment }: ScorecardPDFTemplateProps) 
         <div style={{ display: "flex", justifyContent: "space-between" }}>
           <div>
             <p style={{ margin: 0, fontSize: "12px", color: BRAND.muted }}>Candidate Name</p>
-            <p style={{ margin: "4px 0 0", fontSize: "18px", fontWeight: 600, fontFamily: "'Poppins', sans-serif" }}>
+            <p style={{ margin: "4px 0 0", fontSize: "18px", fontWeight: 600, fontFamily: "system-ui, sans-serif" }}>
               {assessment.full_name}
             </p>
           </div>
@@ -125,7 +126,7 @@ export function ScorecardPDFTemplate({ assessment }: ScorecardPDFTemplateProps) 
           fontSize: "72px", 
           fontWeight: 700, 
           lineHeight: 1,
-          fontFamily: "'Poppins', sans-serif"
+          fontFamily: "system-ui, sans-serif"
         }}>
           {assessment.percentage}%
         </p>
@@ -171,7 +172,7 @@ export function ScorecardPDFTemplate({ assessment }: ScorecardPDFTemplateProps) 
             display: "flex",
             alignItems: "center",
             gap: "6px",
-            fontFamily: "'Poppins', sans-serif"
+            fontFamily: "system-ui, sans-serif"
           }}>
             ✓ Strengths
           </h3>
@@ -198,7 +199,7 @@ export function ScorecardPDFTemplate({ assessment }: ScorecardPDFTemplateProps) 
             display: "flex",
             alignItems: "center",
             gap: "6px",
-            fontFamily: "'Poppins', sans-serif"
+            fontFamily: "system-ui, sans-serif"
           }}>
             △ Areas for Improvement
           </h3>
@@ -224,7 +225,7 @@ export function ScorecardPDFTemplate({ assessment }: ScorecardPDFTemplateProps) 
             fontSize: "14px", 
             fontWeight: 600,
             color: BRAND.primary,
-            fontFamily: "'Poppins', sans-serif"
+            fontFamily: "system-ui, sans-serif"
           }}>
             Personalized Recommendations
           </h3>
