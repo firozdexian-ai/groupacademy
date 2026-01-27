@@ -138,6 +138,7 @@ export function DiscussStage({
                 instructorName={instructorName}
                 placeholder="Ask questions about this module..."
                 className="h-full border-0 rounded-none"
+                onMessageSent={() => setAiMessageCount(prev => prev + 1)}
               />
             </CardContent>
           </Card>

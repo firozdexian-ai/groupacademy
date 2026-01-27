@@ -19,6 +19,7 @@ interface AIChatPanelProps {
   instructorName?: string;
   placeholder?: string;
   className?: string;
+  onMessageSent?: () => void;
 }
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-instructor-chat`;
@@ -30,6 +31,7 @@ export function AIChatPanel({
   instructorName = "AI Instructor",
   placeholder = "Ask me anything about your career or learning...",
   className = "",
+  onMessageSent,
 }: AIChatPanelProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -110,6 +112,9 @@ export function AIChatPanel({
     setInput("");
     setIsLoading(true);
     setLastError(null);
+    
+    // Notify parent that a message was sent
+    onMessageSent?.();
 
     let assistantContent = "";
 

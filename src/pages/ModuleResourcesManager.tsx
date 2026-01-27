@@ -223,21 +223,12 @@ export default function ModuleResourcesManager() {
     
     setSaving(true);
     try {
-      // Delete existing resources for this module with timeout
-      await withTimeout(
-        Promise.resolve(supabase
-          .from("module_resources")
-          .delete()
-          .eq("module_id", moduleId)),
-        TIMEOUTS.DEFAULT,
-        "Deleting resources timed out"
-      );
-
       // Filter out empty resources
       const validResources = resources.filter(r => r.title && (r.resource_url || r.resource_data));
 
       if (validResources.length > 0) {
-        const resourcesToInsert = validResources.map((r, idx) => ({
+        const resourcesToUpsert = validResources.map((r, idx) => ({
+          id: r.id || undefined, // Keep existing ID for upsert
           module_id: moduleId,
           title: r.title,
           description: r.description || null,
@@ -249,15 +240,46 @@ export default function ModuleResourcesManager() {
           is_required: r.is_required,
         }));
 
+        // Use upsert instead of delete+insert for safer save
         const { error } = await withTimeout(
           Promise.resolve(supabase
             .from("module_resources")
-            .insert(resourcesToInsert)),
+            .upsert(resourcesToUpsert, { onConflict: 'id' })),
           TIMEOUTS.DEFAULT,
           "Saving resources timed out"
         );
 
         if (error) throw error;
+
+        // Delete resources that were removed (not in current validResources but exist in DB)
+        const currentIds = validResources.filter(r => r.id).map(r => r.id);
+        const { data: existingResources } = await supabase
+          .from("module_resources")
+          .select("id")
+          .eq("module_id", moduleId);
+        
+        if (existingResources) {
+          const idsToDelete = existingResources
+            .filter(r => !currentIds.includes(r.id))
+            .map(r => r.id);
+          
+          if (idsToDelete.length > 0) {
+            await supabase
+              .from("module_resources")
+              .delete()
+              .in("id", idsToDelete);
+          }
+        }
+      } else {
+        // If no valid resources, delete all for this module
+        await withTimeout(
+          Promise.resolve(supabase
+            .from("module_resources")
+            .delete()
+            .eq("module_id", moduleId)),
+          TIMEOUTS.DEFAULT,
+          "Deleting resources timed out"
+        );
       }
 
       toast.success("Resources saved successfully!");

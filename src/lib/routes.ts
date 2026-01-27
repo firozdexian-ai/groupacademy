@@ -44,6 +44,8 @@ export const ROUTES = {
     learningMyCourses: '/app/learning/my-courses',
     learningEvents: '/app/learning/events',
     coursePlayer: (slug: string) => `/app/learn/${slug}`,
+    // Alias for consistency
+    learningCoursePlay: (slug: string) => `/app/learn/${slug}`,
     
     // Services
     services: '/app/services',

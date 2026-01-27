@@ -7,7 +7,8 @@ import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Loader2, AlertCircle, RefreshCw } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { ArrowLeft, Loader2, AlertCircle, RefreshCw, Menu } from "lucide-react";
 import { StageNavigation } from "@/components/player/StageNavigation";
 import { ImmersiveModuleList } from "@/components/player/ImmersiveModuleList";
 import { OrientationStage } from "@/components/player/stages/OrientationStage";
@@ -342,7 +343,32 @@ export default function ImmersiveCoursePlayer() {
         {/* Content Area */}
         <main className="flex-1 overflow-y-auto bg-background">
           <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
-            {/* Mobile Module Nav Trigger could go here */}
+            {/* Mobile Module Nav */}
+            <div className="lg:hidden mb-4">
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="sm" className="w-full justify-start gap-2">
+                    <Menu className="h-4 w-4" />
+                    <span className="truncate">Module {currentModuleIndex + 1}: {currentModule?.title}</span>
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-80 p-0">
+                  <SheetHeader className="p-4 border-b">
+                    <SheetTitle>Course Modules</SheetTitle>
+                  </SheetHeader>
+                  <div className="p-4 overflow-y-auto max-h-[calc(100vh-80px)]">
+                    <ImmersiveModuleList
+                      modules={modules}
+                      currentModuleId={currentModuleId}
+                      moduleProgress={moduleProgress}
+                      onModuleSelect={(moduleId) => {
+                        handleModuleSelect(moduleId);
+                      }}
+                    />
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>
 
             <StageNavigation
               currentStage={currentStage}

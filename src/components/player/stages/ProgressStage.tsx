@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Award, CheckCircle, ArrowRight, Download, Trophy, Target, Clock, Brain } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface ProgressStageProps {
   moduleName: string;
@@ -201,7 +202,15 @@ export function ProgressStage({
 
       {/* Actions */}
       <div className="flex gap-3">
-        <Button variant="outline" className="flex-1">
+        <Button 
+          variant="outline" 
+          className="flex-1"
+          onClick={() => {
+            toast.info("Notes download coming soon!", {
+              description: "We're working on generating downloadable notes for each module."
+            });
+          }}
+        >
           <Download className="h-4 w-4 mr-2" />
           Download Notes
         </Button>

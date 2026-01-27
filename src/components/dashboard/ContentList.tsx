@@ -262,7 +262,7 @@ const ContentList = ({ filter }: ContentListProps) => {
                         variant="outline"
                         size="sm"
                         className="flex-1"
-                        onClick={() => navigate(`/admin/content/${item.id}/edit`)} // Using correct admin route
+                        onClick={() => navigate(`/content/${item.id}/edit`)}
                       >
                         <Edit className="w-3 h-3 mr-1" />
                         Edit

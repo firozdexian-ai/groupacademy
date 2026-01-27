@@ -148,7 +148,7 @@ export function EnrollmentsManager() {
     } finally {
       setLoading(false);
     }
-  }, [page, statusFilter]); // debouncedSearch removed to avoid reloading on search for now
+  }, [page, statusFilter, debouncedSearch]);
 
   useEffect(() => {
     loadEnrollments();

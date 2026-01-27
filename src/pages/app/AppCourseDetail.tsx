@@ -383,7 +383,7 @@ export default function AppCourseDetail() {
           <Button
             size="lg"
             className="w-full md:w-auto md:min-w-[200px] h-12 text-base shadow-lg hover:shadow-xl transition-all"
-            onClick={() => navigate(`/app/learning/courses/${course.slug}/play`)}
+            onClick={() => navigate(`/app/learn/${course.slug}`)}
           >
             <Play className="h-5 w-5 mr-2 fill-current" />
             Start Learning
