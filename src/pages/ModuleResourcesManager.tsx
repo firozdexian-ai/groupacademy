@@ -249,39 +249,70 @@ export default function ModuleResourcesManager() {
       });
 
       if (validResources.length > 0) {
-        const resourcesToUpsert = validResources.map((r, idx) => ({
-          id: r.id || undefined, // Keep existing ID for upsert
-          module_id: moduleId,
-          title: r.title,
-          description: r.description || null,
-          resource_type: r.resource_type,
-          resource_url: r.resource_url,
-          resource_data: r.resource_data,
-          stage_number: r.stage_number,
-          display_order: idx,
-          is_required: r.is_required,
-        }));
+        // Separate existing resources (have ID) from new ones (no ID)
+        const existingResources = validResources.filter(r => r.id);
+        const newResources = validResources.filter(r => !r.id);
 
-        // Use upsert instead of delete+insert for safer save
-        const { error } = await withTimeout(
-          Promise.resolve(supabase
-            .from("module_resources")
-            .upsert(resourcesToUpsert, { onConflict: 'id' })),
-          TIMEOUTS.DEFAULT,
-          "Saving resources timed out"
-        );
+        // Update existing resources
+        if (existingResources.length > 0) {
+          const resourcesToUpdate = existingResources.map((r, idx) => ({
+            id: r.id,
+            module_id: moduleId,
+            title: r.title,
+            description: r.description || null,
+            resource_type: r.resource_type,
+            resource_url: r.resource_url,
+            resource_data: r.resource_data,
+            stage_number: r.stage_number,
+            display_order: idx,
+            is_required: r.is_required,
+          }));
 
-        if (error) throw error;
+          const { error: updateError } = await withTimeout(
+            Promise.resolve(supabase
+              .from("module_resources")
+              .upsert(resourcesToUpdate, { onConflict: 'id' })),
+            TIMEOUTS.DEFAULT,
+            "Updating resources timed out"
+          );
+
+          if (updateError) throw updateError;
+        }
+
+        // Insert new resources (without ID, let DB generate it)
+        if (newResources.length > 0) {
+          const resourcesToInsert = newResources.map((r, idx) => ({
+            module_id: moduleId,
+            title: r.title,
+            description: r.description || null,
+            resource_type: r.resource_type,
+            resource_url: r.resource_url,
+            resource_data: r.resource_data,
+            stage_number: r.stage_number,
+            display_order: existingResources.length + idx,
+            is_required: r.is_required,
+          }));
+
+          const { error: insertError } = await withTimeout(
+            Promise.resolve(supabase
+              .from("module_resources")
+              .insert(resourcesToInsert)),
+            TIMEOUTS.DEFAULT,
+            "Inserting resources timed out"
+          );
+
+          if (insertError) throw insertError;
+        }
 
         // Delete resources that were removed (not in current validResources but exist in DB)
         const currentIds = validResources.filter(r => r.id).map(r => r.id);
-        const { data: existingResources } = await supabase
+        const { data: dbResources } = await supabase
           .from("module_resources")
           .select("id")
           .eq("module_id", moduleId);
         
-        if (existingResources) {
-          const idsToDelete = existingResources
+        if (dbResources) {
+          const idsToDelete = dbResources
             .filter(r => !currentIds.includes(r.id))
             .map(r => r.id);
           
