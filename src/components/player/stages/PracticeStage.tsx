@@ -28,10 +28,48 @@ export function PracticeStage({
   const flashcardResource = resources.find(r => r.resource_type === "flashcards");
   const scenarioResource = resources.find(r => r.resource_type === "ai_scenario");
 
-  // Parse flashcards from resource_data
-  const flashcards: Flashcard[] = flashcardResource?.resource_data 
-    ? (flashcardResource.resource_data as { cards?: Flashcard[] }).cards || []
-    : [];
+  // Normalize flashcard data to handle various formats
+  const normalizeFlashcards = (resourceData: unknown): Flashcard[] => {
+    if (!resourceData) return [];
+    
+    try {
+      const data = resourceData as Record<string, unknown>;
+      
+      // Format 1: { cards: [...] }
+      if (data.cards && Array.isArray(data.cards)) {
+        return data.cards.map(normalizeCard).filter((c): c is Flashcard => c !== null);
+      }
+      
+      // Format 2: Direct array
+      if (Array.isArray(data)) {
+        return data.map(normalizeCard).filter((c): c is Flashcard => c !== null);
+      }
+      
+      return [];
+    } catch (e) {
+      console.error("Error parsing flashcards:", e);
+      return [];
+    }
+  };
+
+  const normalizeCard = (card: unknown, index: number): Flashcard | null => {
+    if (!card || typeof card !== 'object') return null;
+    const c = card as Record<string, unknown>;
+    
+    const front = String(c.front || c.question || c.term || c.q || '');
+    const back = String(c.back || c.answer || c.definition || c.a || '');
+    
+    if (!front && !back) return null;
+    
+    return {
+      id: String(c.id || `card-${index}`),
+      front,
+      back,
+      hint: c.hint ? String(c.hint) : undefined,
+    };
+  };
+
+  const flashcards = normalizeFlashcards(flashcardResource?.resource_data);
 
   // Parse scenario from resource_data
   const scenario: AIScenario | null = scenarioResource?.resource_data

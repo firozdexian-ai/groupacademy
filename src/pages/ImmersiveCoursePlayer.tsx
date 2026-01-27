@@ -130,6 +130,21 @@ export default function ImmersiveCoursePlayer() {
     timeout: TIMEOUTS.DEFAULT,
   });
 
+  // 5. Fetch ALL module progress from database for accurate progress bar
+  const { data: allModuleProgress = [] } = useQueryWithTimeout({
+    queryKey: ["all-module-progress", enrollment?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("enrollment_stage_progress")
+        .select("module_id, completed_stages")
+        .eq("enrollment_id", enrollment!.id);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!enrollment?.id,
+    timeout: TIMEOUTS.DEFAULT,
+  });
+
   // Initialize Module
   useEffect(() => {
     if (modules.length > 0 && !currentModuleId) {
@@ -221,10 +236,21 @@ export default function ImmersiveCoursePlayer() {
     }
   };
 
-  // Progress Calculation
+  // Progress Calculation - use persisted data from database for accuracy
   const totalStages = modules.length * 6;
-  const completedTotal =
-    Object.values(moduleProgress).reduce((sum, mp) => sum + mp.completedStages.length, 0) + completedStages.length;
+  
+  // Calculate from persisted database progress
+  const persistedCompletedStages = allModuleProgress.reduce((sum, mp) => {
+    const stages = mp.completed_stages as number[] | null;
+    return sum + (stages?.length || 0);
+  }, 0);
+  
+  // Use the higher of persisted or session progress (in case of optimistic updates)
+  const sessionCompletedStages = Object.values(moduleProgress).reduce(
+    (sum, mp) => sum + mp.completedStages.length, 0
+  ) + completedStages.length;
+  
+  const completedTotal = Math.max(persistedCompletedStages, sessionCompletedStages);
 
   // Safe progress calculation
   const overallProgress = totalStages > 0 ? Math.min((completedTotal / totalStages) * 100, 100) : 0;

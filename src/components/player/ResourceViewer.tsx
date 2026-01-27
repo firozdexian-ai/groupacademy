@@ -1,7 +1,8 @@
 import { useState, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Play, Pause, Volume2, VolumeX, Maximize, ExternalLink, CheckCircle } from "lucide-react";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Play, Pause, Volume2, VolumeX, Maximize, ExternalLink, CheckCircle, Download, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ResourceViewerProps {
@@ -24,7 +25,19 @@ export function ResourceViewer({
   const [audioPlaying, setAudioPlaying] = useState(false);
   const [audioMuted, setAudioMuted] = useState(false);
   const [audioProgress, setAudioProgress] = useState(0);
+  const [fullscreenOpen, setFullscreenOpen] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
+
+  // Detect if URL is a PDF
+  const isPDF = url?.toLowerCase().includes('.pdf') || url?.toLowerCase().includes('pdf');
+  
+  // Use Google Docs viewer for PDFs
+  const getViewerUrl = (docUrl: string) => {
+    if (isPDF || type === 'slides') {
+      return `https://docs.google.com/viewer?url=${encodeURIComponent(docUrl)}&embedded=true`;
+    }
+    return docUrl;
+  };
 
   // Extract YouTube video ID
   const getYouTubeId = (youtubeUrl: string) => {
@@ -97,26 +110,79 @@ export function ResourceViewer({
   }
 
   if (type === "slides") {
+    const viewerUrl = getViewerUrl(url);
+    
     return (
-      <Card className={cn("overflow-hidden", className)}>
-        <div className="aspect-video bg-muted">
-          <iframe
-            src={url}
-            title={title}
-            className="w-full h-full"
-            allowFullScreen
-          />
-        </div>
-        <CardContent className="p-3 flex items-center justify-between">
-          <p className="text-sm font-medium">{title}</p>
-          <Button variant="ghost" size="sm" asChild>
-            <a href={url} target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="h-4 w-4 mr-1" />
-              Open
-            </a>
-          </Button>
-        </CardContent>
-      </Card>
+      <>
+        <Card className={cn("overflow-hidden", className)}>
+          <div className="aspect-video bg-muted relative group">
+            <iframe
+              src={viewerUrl}
+              title={title}
+              className="w-full h-full"
+              allowFullScreen
+            />
+            {/* Overlay controls */}
+            <div className="absolute bottom-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <Button 
+                variant="secondary" 
+                size="sm"
+                onClick={() => setFullscreenOpen(true)}
+                className="shadow-lg"
+              >
+                <Maximize className="h-4 w-4" />
+              </Button>
+              <Button variant="secondary" size="sm" asChild className="shadow-lg">
+                <a href={url} download target="_blank" rel="noopener noreferrer">
+                  <Download className="h-4 w-4" />
+                </a>
+              </Button>
+            </div>
+          </div>
+          <CardContent className="p-3 flex items-center justify-between">
+            <p className="text-sm font-medium truncate flex-1 mr-2">{title}</p>
+            <div className="flex gap-2 shrink-0">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setFullscreenOpen(true)}
+              >
+                <Maximize className="h-4 w-4 mr-1" />
+                Fullscreen
+              </Button>
+              <Button variant="ghost" size="sm" asChild>
+                <a href={url} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="h-4 w-4 mr-1" />
+                  Open
+                </a>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Fullscreen Modal */}
+        <Dialog open={fullscreenOpen} onOpenChange={setFullscreenOpen}>
+          <DialogContent className="max-w-[95vw] max-h-[95vh] w-full h-full p-0">
+            <DialogTitle className="sr-only">{title}</DialogTitle>
+            <div className="relative w-full h-full min-h-[80vh]">
+              <Button
+                variant="secondary"
+                size="icon"
+                className="absolute top-3 right-3 z-10"
+                onClick={() => setFullscreenOpen(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+              <iframe
+                src={viewerUrl}
+                title={title}
+                className="w-full h-full"
+                allowFullScreen
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
+      </>
     );
   }
 

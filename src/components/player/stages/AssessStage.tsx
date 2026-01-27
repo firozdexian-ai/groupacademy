@@ -45,20 +45,34 @@ export function AssessStage({
   const [score, setScore] = useState(0);
   const [showExplanations, setShowExplanations] = useState(false);
 
-  // Fetch quiz questions for this content with timeout
+  // Fetch quiz questions for this module (or fallback to content-level questions)
   const { data: questions = [], isLoading, error: loadError, refetch } = useQueryWithTimeout({
-    queryKey: ["quiz-questions", contentId],
+    queryKey: ["quiz-questions", moduleId, contentId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First try to get module-specific questions
+      let { data, error } = await supabase
         .from("quiz_questions")
         .select("*")
-        .eq("content_id", contentId)
+        .eq("module_id", moduleId)
         .order("display_order");
+      
+      // If no module-specific questions, fall back to content-level questions
+      if (!error && (!data || data.length === 0)) {
+        const fallbackResult = await supabase
+          .from("quiz_questions")
+          .select("*")
+          .eq("content_id", contentId)
+          .is("module_id", null)
+          .order("display_order");
+        
+        data = fallbackResult.data;
+        error = fallbackResult.error;
+      }
       
       if (error) throw error;
       return data as QuizQuestion[];
     },
-    enabled: !!contentId,
+    enabled: !!moduleId && !!contentId,
     timeout: TIMEOUTS.DEFAULT,
   });
 

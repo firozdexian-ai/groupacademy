@@ -2778,6 +2778,7 @@ export type Database = {
           display_order: number | null
           explanation: string | null
           id: string
+          module_id: string | null
           option_a: string
           option_b: string
           option_c: string
@@ -2792,6 +2793,7 @@ export type Database = {
           display_order?: number | null
           explanation?: string | null
           id?: string
+          module_id?: string | null
           option_a: string
           option_b: string
           option_c: string
@@ -2806,6 +2808,7 @@ export type Database = {
           display_order?: number | null
           explanation?: string | null
           id?: string
+          module_id?: string | null
           option_a?: string
           option_b?: string
           option_c?: string
@@ -2819,6 +2822,13 @@ export type Database = {
             columns: ["content_id"]
             isOneToOne: false
             referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quiz_questions_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "course_modules"
             referencedColumns: ["id"]
           },
         ]
