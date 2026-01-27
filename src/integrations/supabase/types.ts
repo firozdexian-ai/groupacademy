@@ -2074,6 +2074,47 @@ export type Database = {
         }
         Relationships: []
       }
+      learning_activity: {
+        Row: {
+          activity_date: string
+          created_at: string | null
+          id: string
+          minutes_learned: number | null
+          modules_completed: number | null
+          stages_completed: number | null
+          talent_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          activity_date?: string
+          created_at?: string | null
+          id?: string
+          minutes_learned?: number | null
+          modules_completed?: number | null
+          stages_completed?: number | null
+          talent_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          activity_date?: string
+          created_at?: string | null
+          id?: string
+          minutes_learned?: number | null
+          modules_completed?: number | null
+          stages_completed?: number | null
+          talent_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learning_activity_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mock_interview_access_codes: {
         Row: {
           code: string
