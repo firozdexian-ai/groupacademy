@@ -902,23 +902,48 @@ export function JobsManager() {
           .maybeSingle();
         if (co) companyId = co.id;
         else {
-          const { data: newCo } = await supabase
+          const { data: newCo, error: coError } = await supabase
             .from("companies")
             .insert({ name: formData.company_name })
             .select()
             .single();
+          if (coError) console.warn("Company creation failed:", coError);
           if (newCo) companyId = newCo.id;
         }
       }
       const payload = { ...formData, company_id: companyId };
       delete payload.id;
-      if (editingJob) await supabase.from("jobs").update(payload).eq("id", editingJob.id);
-      else await supabase.from("jobs").insert(payload);
-      toast.success("Job saved");
+      
+      console.log("Saving job payload:", payload);
+      
+      let error;
+      if (editingJob) {
+        const result = await supabase.from("jobs").update(payload).eq("id", editingJob.id);
+        error = result.error;
+      } else {
+        const result = await supabase.from("jobs").insert(payload).select().single();
+        error = result.error;
+      }
+      
+      if (error) {
+        console.error("Job save error:", error);
+        if (error.message?.includes("null value")) {
+          toast.error("Please fill all required fields (title, company, description)");
+        } else if (error.message?.includes("row-level security")) {
+          toast.error("Permission denied. Please contact admin.");
+        } else {
+          toast.error(`Save failed: ${error.message}`);
+        }
+        return;
+      }
+      
+      toast.success("Job saved successfully!");
       setIsDialogOpen(false);
+      setEditingJob(null);
       loadJobs();
-    } catch {
-      toast.error("Save failed");
+    } catch (err: any) {
+      console.error("Unexpected error saving job:", err);
+      toast.error(`Unexpected error: ${err.message}`);
     } finally {
       setSaving(false);
     }
