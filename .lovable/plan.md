@@ -1,220 +1,361 @@
 
 
-## Comprehensive Enhancement: Credit Analytics + WhatsApp Strategy + Global Readiness
+# Comprehensive Learning Section Audit & Fix Plan
 
-### Overview
+## Executive Summary
 
-This plan addresses three interconnected improvements:
-1. **Revenue Analytics** - Add credit consumption tracking to admin dashboard
-2. **WhatsApp "Pull" Strategy** - Replace spam-prone outbound with user-initiated messages
-3. **Global Platform Fixes** - Fix international user data and remove Bangladesh-specific text
+After an extensive research of the learning section on both the seeker (talent) side and admin (management) side, I've identified **23 distinct issues** across 6 categories. These range from critical routing bugs that completely break functionality to UX improvements that would enhance the learning experience.
 
 ---
 
-### Part 1: Credit Revenue Analytics for Admin Dashboard
+## Issue Categories Overview
 
-#### Current Data (Live from Database)
-| Metric | Value |
-|--------|-------|
-| Total Credits Consumed (All-Time) | 3,145 credits |
-| Revenue Equivalent | ≈ ৳6,290 (3,145 × 2) |
-| January 2026 Consumption | 3,125 credits |
-| December 2025 Consumption | 20 credits |
-
-**Service Breakdown:**
-| Service | Credits Used | Count |
-|---------|-------------|-------|
-| Job Application | 2,525 | 101 |
-| Suggested Jobs | 400 | 20 |
-| Salary Analysis | 100 | 2 |
-| AI Agent Chat | 70 | 7 |
-| Career Assessment | 50 | 1 |
-
-#### Implementation
-
-**File: `src/components/dashboard/CreditsManager.tsx`**
-
-Add new revenue analytics section with:
-
-1. **New State Variables:**
-   - `totalConsumed` - All-time credits used
-   - `monthlyConsumption` - This month's usage
-   - `serviceBreakdown` - Usage by service type
-
-2. **New Stats Cards (Revenue Section):**
-   ```text
-   ┌─────────────────────┬─────────────────────┬─────────────────────┐
-   │ Total Consumed      │ This Month          │ Top Service         │
-   │ 3,145 credits       │ 3,125 credits       │ Job Applications    │
-   │ ≈ ৳6,290 revenue    │ ≈ ৳6,250            │ 80% of usage        │
-   └─────────────────────┴─────────────────────┴─────────────────────┘
-   ```
-
-3. **Query to Fetch Data:**
-   ```sql
-   SELECT 
-     SUM(ABS(amount)) as total_consumed,
-     service_type,
-     COUNT(*) as usage_count
-   FROM credit_transactions 
-   WHERE amount < 0 
-   GROUP BY service_type
-   ```
+| Category | Issues Found | Severity |
+|----------|-------------|----------|
+| 1. Critical Routing Bugs | 2 | 🔴 Critical |
+| 2. Data/Progress Tracking Issues | 5 | 🟠 High |
+| 3. Missing/Empty Content States | 4 | 🟠 High |
+| 4. Admin Management Gaps | 5 | 🟡 Medium |
+| 5. UX/Navigation Issues | 4 | 🟡 Medium |
+| 6. Missing Features | 3 | 🟢 Low |
 
 ---
 
-### Part 2: WhatsApp "Pull" Strategy - Expedite Application Feature
+## Category 1: Critical Routing Bugs 🔴
 
-#### Problem
-Outbound WhatsApp messages to new users are being flagged as spam. Solution: Create mechanisms where users message GroUp Academy first.
+### Issue 1.1: Course Player Route Mismatch
+**Severity**: Critical - Completely breaks "Start Learning" button
 
-#### Solution: "Expedite Application" Button
+**Problem**: In `AppCourseDetail.tsx`, the "Start Learning" button navigates to:
+```
+/app/learning/courses/${course.slug}/play
+```
 
-After a user submits a job application, show an additional button that lets them ping the career counselor.
+But the actual route defined in `App.tsx` is:
+```
+/app/learn/:slug  →  ImmersiveCoursePlayer
+```
 
-**File: `src/pages/app/AppJobApplication.tsx`**
+**Impact**: When an enrolled user clicks "Start Learning", they hit a 404 error.
 
-Add after the success message (line 282-304):
+**Fix**: Update `AppCourseDetail.tsx` line 386 to use correct route:
+```tsx
+onClick={() => navigate(`/app/learn/${course.slug}`)}
+```
+
+---
+
+### Issue 1.2: ContentList Edit Route Mismatch
+**Severity**: High - Admin can't edit content
+
+**Problem**: In `ContentList.tsx`, the Edit button navigates to:
+```
+/admin/content/${item.id}/edit
+```
+
+But the actual route is:
+```
+/content/:id/edit
+```
+
+**Impact**: Admin clicks Edit and gets 404.
+
+**Fix**: Update `ContentList.tsx` line 265:
+```tsx
+onClick={() => navigate(`/content/${item.id}/edit`)}
+```
+
+---
+
+## Category 2: Data/Progress Tracking Issues 🟠
+
+### Issue 2.1: Zero Module Resources in Database
+**Problem**: Query shows `module_resources` table is completely empty (0 records), despite having 12+ modules defined.
+
+**Evidence**:
+```sql
+SELECT * FROM module_resources → []  (empty)
+```
+
+**Impact**: All 6 learning stages (Orientation, Learn, Discuss, Practice, Assess, Progress) show "No content available" placeholders.
+
+**Fix**: Admin needs to populate module resources via `/content/:contentId/modules/:moduleId/resources` page. Consider adding a bulk content import feature.
+
+---
+
+### Issue 2.2: Zero Stage Progress Records
+**Problem**: `enrollment_stage_progress` table has 0 records despite 15+ enrollments.
+
+**Evidence**:
+```sql
+SELECT COUNT(*) FROM enrollment_stage_progress → 0
+```
+
+**Impact**: Users' progress within modules isn't being persisted. If they refresh the page, they lose their stage progress.
+
+**Root Cause**: The `useStageProgress` hook correctly upserts to this table, but either:
+- Users aren't reaching stages
+- The routing bug (Issue 1.1) prevents them from even starting
+
+**Fix**: After fixing routing bug, progress will start recording.
+
+---
+
+### Issue 2.3: All Enrollments Show 0% Progress
+**Problem**: Every enrollment in the database shows `progress: 0`.
+
+**Evidence**:
+```
+15 enrollments checked → All have progress: 0
+```
+
+**Impact**: "Continue Learning" section always shows 0% progress bars.
+
+**Root Cause**: The `useStageProgress` hook calculates and updates progress, but users can't reach the player (Issue 1.1).
+
+---
+
+### Issue 2.4: DiscussStage AI Message Counter Not Working
+**Problem**: In `DiscussStage.tsx`, the `aiMessageCount` state is initialized but never incremented.
+
+**Code Analysis**:
+```tsx
+const [aiMessageCount, setAiMessageCount] = useState(0);
+// ... 
+// AIChatPanel doesn't have an onMessage callback
+```
+
+**Impact**: Users can't complete Discuss stage via AI chat (requires 3+ messages).
+
+**Fix**: Add `onMessageSent` callback to `AIChatPanel` and wire it to `setAiMessageCount`.
+
+---
+
+### Issue 2.5: Quiz Questions Only for One Course
+**Problem**: Only 10 quiz questions exist, all for a single course ("Introduction to B2B/B2C Selling").
+
+**Evidence**: 3 recorded courses with `quiz_enabled`, but only 1 has quiz questions.
+
+**Impact**: "Sales Performance Metrics" and "Retail Channel Management" courses have no quizzes despite being marked as quiz-enabled.
+
+---
+
+## Category 3: Missing/Empty Content States 🟠
+
+### Issue 3.1: No Fallback for Empty Orientation Stage
+**Problem**: When `OrientationStage` has no video and no infographic, it shows a button to skip but the UX is confusing.
+
+**Current**: "Content for this stage is being prepared" → Skip button
+
+**Better UX**: Auto-advance to next stage with content, or show learning objectives.
+
+---
+
+### Issue 3.2: Practice Stage Has No Default Activities
+**Problem**: When `PracticeStage` has no flashcards and no AI scenarios, it shows empty state.
+
+**Impact**: Users must click "Skip to Next Stage" repeatedly through empty stages.
+
+---
+
+### Issue 3.3: Learn Stage Resources Not Tracked
+**Problem**: In `LearnStage.tsx`, clicking on slides/mindmap just sets local state. Not persisted.
 
 ```tsx
-{/* Expedite via WhatsApp */}
-<Button
-  variant="outline"
-  size="lg"
-  className="w-full sm:w-auto"
-  onClick={() => {
-    const message = encodeURIComponent(
-      `Hi! I just applied for the ${job.title} position at ${job.company_name}. Can you help expedite my application? 🙏`
-    );
-    window.open(`https://wa.me/8801889825025?text=${message}`, '_blank');
-  }}
->
-  <MessageCircle className="w-4 h-4 mr-2" />
-  Expedite via WhatsApp
+const [slidesViewed, setSlidesViewed] = useState(false);
+```
+
+**Impact**: If user refreshes, they lose their "viewed" status.
+
+---
+
+### Issue 3.4: Missing Module Video Resources
+**Problem**: Modules have `video_url` field but resources are empty, leading to fallback-only content.
+
+**Evidence**: Modules have video URLs, but no `module_resources` records of type "video".
+
+---
+
+## Category 4: Admin Management Gaps 🟡
+
+### Issue 4.1: No Navigation from Content Edit to Modules
+**Problem**: After saving a course in ContentEdit, there's no direct link to manage modules.
+
+**Current Flow**: 
+1. Edit Course → Save → Dashboard
+2. Must re-find course and click "Modules" button
+
+**Better Flow**: Add "Manage Modules" button in ContentEdit page.
+
+---
+
+### Issue 4.2: Module Resources Save Clears All First
+**Problem**: In `ModuleResourcesManager.tsx`, saving resources deletes ALL existing records first:
+
+```tsx
+await supabase.from("module_resources").delete().eq("module_id", moduleId);
+// Then insert new
+```
+
+**Risk**: If insert fails, all existing resources are lost.
+
+**Fix**: Use upsert or transaction pattern.
+
+---
+
+### Issue 4.3: No Bulk Content Creation for Stages
+**Problem**: Admin must manually add each resource for each of 6 stages × N modules.
+
+**Example**: A 4-module course needs 24 individual resource entries.
+
+**Suggestion**: Add template-based bulk creation (copy from another module).
+
+---
+
+### Issue 4.4: LearnerProgressManager Shows Limited Data
+**Problem**: `LearnerProgressManager.tsx` doesn't show actual stage-by-stage progress, only module counts.
+
+**Current**: Shows "Modules: 0/4"
+**Missing**: Which stage is user on? Where do they drop off?
+
+---
+
+### Issue 4.5: EnrollmentsManager Search Doesn't Work
+**Problem**: The `debouncedSearch` is defined but removed from query dependencies.
+
+```tsx
+// Line 151: debouncedSearch removed to avoid reloading on search for now
+```
+
+**Impact**: Search box exists but typing doesn't filter results.
+
+---
+
+## Category 5: UX/Navigation Issues 🟡
+
+### Issue 5.1: Inconsistent Route Patterns
+**Problem**: Learning routes use inconsistent patterns:
+
+```
+/app/learning/courses     → Course list
+/app/learning/courses/:slug → Course detail
+/app/learn/:slug          → Course player (different path!)
+```
+
+**Better**: `/app/learning/courses/:slug/play`
+
+---
+
+### Issue 5.2: LearningHub Shows 6 Items Max
+**Problem**: `LearningHub.tsx` limits enrollments to 6 with `.limit(6)`.
+
+**Impact**: Users with 7+ enrollments must click "View All" to see the rest, even if there's screen space.
+
+---
+
+### Issue 5.3: No Mobile Module Navigation in Player
+**Problem**: `ImmersiveCoursePlayer.tsx` has desktop sidebar but no mobile equivalent.
+
+```tsx
+{/* Mobile Module Nav Trigger could go here */}
+// Line 345 - Comment with no implementation
+```
+
+**Impact**: Mobile users can't switch modules easily.
+
+---
+
+### Issue 5.4: "Download Notes" Button Does Nothing
+**Problem**: In `ProgressStage.tsx`, the Download Notes button has no onClick handler:
+
+```tsx
+<Button variant="outline" className="flex-1">
+  <Download className="h-4 w-4 mr-2" />
+  Download Notes
 </Button>
 ```
 
-**User Flow:**
-1. User submits job application
-2. Success screen shows with existing buttons
-3. New "Expedite via WhatsApp" button appears
-4. Click opens WhatsApp with pre-filled message
-5. User sends message → establishes conversation → reduces spam flags
+**Impact**: Button appears clickable but nothing happens.
 
 ---
 
-### Part 3: Centralize Support Contact Information
+## Category 6: Missing Features 🟢
 
-#### Create New File: `src/lib/constants/support.ts`
+### Issue 6.1: No Certificate/Report Card Download
+**Problem**: `ProgressStage` shows "Download Notes" but no certificate generation for completed courses.
 
-```typescript
-export const SUPPORT_CONFIG = {
-  WHATSAPP_NUMBER: "8801889825025",
-  WHATSAPP_LINK: "https://wa.me/8801889825025",
-  SUPPORT_EMAIL: "support@groupacademy.com",
-  DISPLAY_NUMBER: "+880 1889-825025",
-} as const;
+**Current**: Only navigates to `/report-card/:enrollmentId` on course completion.
 
-export function getWhatsAppLink(message?: string): string {
-  const base = SUPPORT_CONFIG.WHATSAPP_LINK;
-  if (message) {
-    return `${base}?text=${encodeURIComponent(message)}`;
-  }
-  return base;
-}
-```
+---
 
-#### Files to Update (Replace Hardcoded Number)
+### Issue 6.2: No Profession Line Assignment for Courses
+**Problem**: Courses have `profession_line_id` field but it's often null, breaking AI instructor lookup.
 
-| File | Current | Change |
+**Evidence**: `ImmersiveCoursePlayer` queries `ai_instructors` by `profession_line_id`, but many courses don't have this set.
+
+---
+
+### Issue 6.3: No Learning Analytics for Seekers
+**Problem**: Seekers can't see their own learning stats (time spent, stages completed, quiz scores over time).
+
+**Current**: Only admin has `LearnerProgressManager`.
+
+---
+
+## Implementation Priority & Timeline
+
+### Phase 1: Critical Fixes (Must Fix First)
+| Task | File(s) | Effort |
 |------|---------|--------|
-| `src/components/credits/CreditPurchaseSheet.tsx` | `8801708459008` | Use `SUPPORT_CONFIG.WHATSAPP_NUMBER` |
-| `src/pages/CareerAssessment.tsx` | `8801708459008` (2 places) | Use `SUPPORT_CONFIG` |
-| `src/pages/MockInterviewSetup.tsx` | `8801708459008` (2 places) | Use `SUPPORT_CONFIG` |
-| `src/pages/CourseDetail.tsx` | `8801708459008` | Use `SUPPORT_CONFIG` |
-| `src/pages/PortfolioStatus.tsx` | `8801708459008` | Use `SUPPORT_CONFIG` |
+| Fix course player route | `AppCourseDetail.tsx` | 5 min |
+| Fix admin edit route | `ContentList.tsx` | 5 min |
+
+### Phase 2: Progress Tracking Fixes
+| Task | File(s) | Effort |
+|------|---------|--------|
+| Wire AI message counter | `DiscussStage.tsx`, `AIChatPanel.tsx` | 30 min |
+| Persist stage view status | `LearnStage.tsx`, `OrientationStage.tsx` | 1 hour |
+
+### Phase 3: Admin Improvements
+| Task | File(s) | Effort |
+|------|---------|--------|
+| Add modules link to ContentEdit | `ContentEdit.tsx` | 15 min |
+| Fix enrollment search | `EnrollmentsManager.tsx` | 20 min |
+| Safe resource save (upsert) | `ModuleResourcesManager.tsx` | 45 min |
+
+### Phase 4: UX Enhancements
+| Task | File(s) | Effort |
+|------|---------|--------|
+| Add mobile module nav | `ImmersiveCoursePlayer.tsx` | 1 hour |
+| Implement Download Notes | `ProgressStage.tsx` | 30 min |
+| Standardize routes | Multiple files | 1 hour |
 
 ---
 
-### Part 4: Fix International Users with Wrong Country Data
+## Files to Modify
 
-#### Users Identified (From Database)
-
-| Email | Phone | Current Country | Should Be |
-|-------|-------|-----------------|-----------|
-| bhaktibhat90@gmail.com | +971 542422416 | BD | AE (UAE) |
-| ashish7879@gmail.com | +919769710201 | BD | IN (India) |
-| john.doe@example.com | +16099999995 | BD | US (USA) |
-
-These users registered before phone was mandatory and manually typed international codes.
-
-#### Data Migration Query
-
-```sql
--- Fix users with international phone codes but wrong country
-UPDATE public.talents
-SET 
-  country = CASE 
-    WHEN phone LIKE '+971%' THEN 'AE'
-    WHEN phone LIKE '+91%' THEN 'IN'
-    WHEN phone LIKE '+1%' THEN 'US'
-    WHEN phone LIKE '+81%' THEN 'JP'
-    WHEN phone LIKE '+92%' THEN 'PK'
-    WHEN phone LIKE '+44%' THEN 'GB'
-    ELSE country
-  END,
-  country_code = CASE 
-    WHEN phone LIKE '+971%' THEN '+971'
-    WHEN phone LIKE '+91%' THEN '+91'
-    WHEN phone LIKE '+1%' THEN '+1'
-    WHEN phone LIKE '+81%' THEN '+81'
-    WHEN phone LIKE '+92%' THEN '+92'
-    WHEN phone LIKE '+44%' THEN '+44'
-    ELSE country_code
-  END
-WHERE country = 'BD' 
-  AND phone LIKE '+%' 
-  AND phone NOT LIKE '+880%';
-```
+| File | Changes |
+|------|---------|
+| `src/pages/app/AppCourseDetail.tsx` | Fix "Start Learning" route |
+| `src/components/dashboard/ContentList.tsx` | Fix Edit button route |
+| `src/components/player/stages/DiscussStage.tsx` | Wire AI message counter |
+| `src/components/player/stages/LearnStage.tsx` | Persist view states to DB |
+| `src/components/player/stages/ProgressStage.tsx` | Implement Download Notes |
+| `src/components/ai-instructor/AIChatPanel.tsx` | Add onMessageSent callback |
+| `src/pages/ContentEdit.tsx` | Add "Manage Modules" button |
+| `src/components/dashboard/EnrollmentsManager.tsx` | Fix search functionality |
+| `src/pages/ModuleResourcesManager.tsx` | Use upsert for safe save |
+| `src/pages/ImmersiveCoursePlayer.tsx` | Add mobile module drawer |
 
 ---
 
-### Part 5: Remove Bangladesh-Specific Helper Text
+## Expected Outcomes
 
-#### Files to Update
+After implementing all fixes:
 
-| File | Current Text | New Text |
-|------|--------------|----------|
-| `src/pages/app/AppSalaryAnalysisSetup.tsx` | "Bangladesh number without +880" | "Enter your phone number" |
-| `src/pages/SalaryAnalysisSetup.tsx` | Similar BD-specific text | Generic text |
-| `src/components/assessment/LeadCaptureForm.tsx` | Placeholder "+880 1XXX XXXXXX" | "Your phone number" |
-
----
-
-### Summary of All Changes
-
-| Category | File | Change |
-|----------|------|--------|
-| **New File** | `src/lib/constants/support.ts` | Centralized WhatsApp/support config |
-| **Analytics** | `src/components/dashboard/CreditsManager.tsx` | Add revenue cards (consumed, monthly, breakdown) |
-| **Expedite Feature** | `src/pages/app/AppJobApplication.tsx` | Add WhatsApp expedite button on success |
-| **WhatsApp Update** | `CreditPurchaseSheet.tsx` | Use new support config |
-| **WhatsApp Update** | `CareerAssessment.tsx` | Use new support config (2 places) |
-| **WhatsApp Update** | `MockInterviewSetup.tsx` | Use new support config (2 places) |
-| **WhatsApp Update** | `CourseDetail.tsx` | Use new support config |
-| **WhatsApp Update** | `PortfolioStatus.tsx` | Use new support config |
-| **Data Fix** | Database migration | Fix 3 international users' country codes |
-| **Globalization** | `AppSalaryAnalysisSetup.tsx` | Remove BD-specific helper text |
-| **Globalization** | `LeadCaptureForm.tsx` | Fix phone placeholder |
-
----
-
-### Expected Outcomes
-
-1. **Revenue Visibility**: Admin can see total credits consumed (3,145 = ৳6,290) and monthly trends
-2. **Reduced Spam Flags**: Users initiate WhatsApp contact → establishes trust → reduces spam
-3. **Faster Application Processing**: Users can ping for expedited review
-4. **Accurate User Data**: International users show correct country flags
-5. **Global Ready**: No Bangladesh-specific text confuses international users
-6. **Single Source of Truth**: All WhatsApp links use centralized config for easy updates
+1. **Users can actually start courses** - Route fix enables the core learning flow
+2. **Progress is tracked and persisted** - Stage completion saves to DB
+3. **Admin can manage content efficiently** - Working search, safer saves
+4. **Mobile users have full functionality** - Module navigation on mobile
+5. **All UI buttons work** - Download Notes, AI chat counter, etc.
 
