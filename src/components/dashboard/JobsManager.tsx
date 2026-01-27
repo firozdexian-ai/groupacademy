@@ -400,7 +400,16 @@ const JobForm = ({
       toast.success("Job parsed! Review details.");
       setShowParseSection(false);
     } catch (error: any) {
-      toast.error("Parse failed");
+      const message = error?.message?.toLowerCase() || "";
+      if (message.includes("malformed")) {
+        toast.error("AI couldn't parse this format. Please try a cleaner job post or enter manually.");
+      } else if (message.includes("quota") || message.includes("402")) {
+        toast.error("AI service temporarily unavailable. Please enter job details manually.");
+      } else if (message.includes("rate limit") || message.includes("429")) {
+        toast.error("Too many requests. Please wait a moment and try again.");
+      } else {
+        toast.error("Parse failed. Please try again or enter manually.");
+      }
     } finally {
       setParsing(false);
     }

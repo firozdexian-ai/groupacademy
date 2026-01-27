@@ -94,6 +94,109 @@ function matchProfessionCategory(text: string): string | null {
   return null;
 }
 
+// JSON repair function to fix common AI output issues
+function repairJSON(malformedJSON: string): string | null {
+  let cleaned = malformedJSON;
+  
+  // Remove any text outside the main JSON object
+  const firstBrace = cleaned.indexOf('{');
+  const lastBrace = cleaned.lastIndexOf('}');
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    cleaned = cleaned.slice(firstBrace, lastBrace + 1);
+  } else {
+    return null;
+  }
+  
+  // Fix common array issues - remove stray text between array elements
+  // This handles cases like: "text"\n   SomeRandomText",
+  cleaned = cleaned.replace(/"\s*\n\s*[^"\[\],{}\n:]+\s*"/g, '", "');
+  cleaned = cleaned.replace(/"\s*\n\s*[^"\[\],{}\n:]+\s*,/g, '",');
+  
+  // Fix unclosed strings in arrays (missing closing quote before ])
+  cleaned = cleaned.replace(/"\s*\n\s*\]/g, '"]');
+  
+  // Fix trailing commas before closing brackets
+  cleaned = cleaned.replace(/,\s*\]/g, ']');
+  cleaned = cleaned.replace(/,\s*\}/g, '}');
+  
+  // Fix missing commas between array elements
+  cleaned = cleaned.replace(/"\s*\n\s*"/g, '", "');
+  
+  try {
+    JSON.parse(cleaned);
+    return cleaned;
+  } catch {
+    return null;
+  }
+}
+
+// Clean markdown wrappers from AI response
+function cleanMarkdown(content: string): string {
+  let cleaned = content.trim();
+  if (cleaned.startsWith("```json")) {
+    cleaned = cleaned.slice(7);
+  }
+  if (cleaned.startsWith("```")) {
+    cleaned = cleaned.slice(3);
+  }
+  if (cleaned.endsWith("```")) {
+    cleaned = cleaned.slice(0, -3);
+  }
+  return cleaned.trim();
+}
+
+// Tool definition for structured output
+const extractJobDataTool = {
+  type: "function",
+  function: {
+    name: "extract_job_data",
+    description: "Extract structured job posting data from raw text",
+    parameters: {
+      type: "object",
+      properties: {
+        title: { type: "string", description: "Job title (e.g., 'Junior Graphics Designer')" },
+        company_name: { type: "string", description: "Company/organization name" },
+        company_about: { type: ["string", "null"], description: "Brief description of the company if mentioned" },
+        company_website: { type: ["string", "null"], description: "Company website URL if mentioned" },
+        location: { type: ["string", "null"], description: "Job location (city, area)" },
+        job_type: { 
+          type: "string", 
+          enum: ["full_time", "part_time", "contract", "internship", "freelance", "remote"],
+          description: "Type of employment"
+        },
+        experience_level: { 
+          type: "string", 
+          enum: ["entry", "mid", "senior", "executive"],
+          description: "Required experience level"
+        },
+        salary_range_min: { type: ["number", "null"], description: "Minimum salary if mentioned" },
+        salary_range_max: { type: ["number", "null"], description: "Maximum salary if mentioned" },
+        salary_note: { type: ["string", "null"], description: "e.g., 'Negotiable', 'Competitive'" },
+        description: { type: "string", description: "Full job description including responsibilities" },
+        requirements: { 
+          type: "array", 
+          items: { type: "string" },
+          description: "Array of required qualifications/skills"
+        },
+        preferred_skills: { 
+          type: "array", 
+          items: { type: "string" },
+          description: "Array of preferred/bonus skills"
+        },
+        application_email: { type: ["string", "null"], description: "Email address for applications" },
+        application_url: { type: ["string", "null"], description: "Application link/URL" },
+        deadline: { type: ["string", "null"], description: "Application deadline in YYYY-MM-DD format" },
+        source_platform: { 
+          type: "string", 
+          enum: ["facebook", "linkedin", "bdjobs", "website", "other"],
+          description: "Platform where job was posted"
+        }
+      },
+      required: ["title", "company_name", "description", "job_type", "experience_level", "requirements"]
+    }
+  }
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -154,121 +257,146 @@ serve(async (req) => {
 
     const systemPrompt = `You are an expert job post parser. Extract structured information from job postings copied from social media (Facebook, LinkedIn, etc.) or websites.
 
-Return a JSON object with the following structure:
-{
-  "title": "string - job title (e.g., 'Junior Graphics Designer')",
-  "company_name": "string - company/organization name",
-  "company_about": "string or null - brief description of the company if mentioned",
-  "company_website": "string or null - company website URL if mentioned",
-  "location": "string or null - job location (city, area)",
-  "job_type": "string - one of: full_time, part_time, contract, internship, freelance, remote",
-  "experience_level": "string - one of: entry, mid, senior, executive (infer from title like 'Junior', 'Senior', etc.)",
-  "salary_range_min": "number or null - minimum salary if mentioned",
-  "salary_range_max": "number or null - maximum salary if mentioned",
-  "salary_note": "string or null - e.g., 'Negotiable', 'Competitive'",
-  "description": "string - full job description including responsibilities",
-  "requirements": ["array of required qualifications/skills as strings"],
-  "preferred_skills": ["array of preferred/bonus skills"],
-  "application_email": "string or null - email address for applications",
-  "application_url": "string or null - application link/URL",
-  "deadline": "string or null - application deadline in YYYY-MM-DD format if mentioned",
-  "source_platform": "string - one of: facebook, linkedin, bdjobs, website, other (infer from content style)"
-}
-
-Important:
+Important parsing rules:
 - Extract ALL responsibilities and put them in the description
 - Separate required qualifications from preferred/bonus skills
 - For job_type, infer from context (most are full_time unless stated)
 - For experience_level: 'Junior' or 'Entry' = 'entry', 'Senior' or 'Lead' = 'senior', 'Manager/Director/VP' = 'executive', otherwise 'mid'
 - Parse salary amounts (remove BDT/Tk symbols, handle 'K' for thousands)
 - Extract application email/URL if provided
-- Extract company website if mentioned in the post
-- Return ONLY valid JSON, no markdown or extra text`;
+- Extract company website if mentioned in the post`;
 
-    const userPrompt = `Parse the following job post and extract structured information:
+    const userPrompt = `Parse the following job post and extract structured information using the extract_job_data function:
 
-${jobPostText}
-
-Return the structured JSON data.`;
+${jobPostText}`;
 
     // Add timeout controller for AI call (90 seconds)
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 90000);
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-      }),
-      signal: controller.signal,
-    });
+    let parsedData: any = null;
+    let parseAttempts = 0;
+    const maxAttempts = 2;
+
+    while (parseAttempts < maxAttempts && !parsedData) {
+      parseAttempts++;
+      console.log(`AI parse attempt ${parseAttempts}/${maxAttempts}`);
+
+      try {
+        // Use tool calling for structured output (most robust approach)
+        const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash",
+            messages: [
+              { role: "system", content: systemPrompt },
+              { role: "user", content: userPrompt },
+            ],
+            tools: [extractJobDataTool],
+            tool_choice: { type: "function", function: { name: "extract_job_data" } }
+          }),
+          signal: controller.signal,
+        });
+
+        if (!aiResponse.ok) {
+          const errorText = await aiResponse.text();
+          console.error("AI API error:", aiResponse.status, errorText);
+
+          if (aiResponse.status === 429) {
+            clearTimeout(timeoutId);
+            return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
+              status: 429,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+          if (aiResponse.status === 402) {
+            clearTimeout(timeoutId);
+            return new Response(JSON.stringify({ error: "AI service quota exceeded. Please try again later." }), {
+              status: 402,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+
+          // On other errors, retry if attempts left
+          if (parseAttempts < maxAttempts) {
+            console.log("Retrying after API error...");
+            continue;
+          }
+
+          clearTimeout(timeoutId);
+          return new Response(JSON.stringify({ error: "Failed to parse job post with AI" }), {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const aiData = await aiResponse.json();
+        
+        // Check for tool call response (preferred)
+        const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+        if (toolCall && toolCall.function?.arguments) {
+          try {
+            parsedData = JSON.parse(toolCall.function.arguments);
+            console.log("Parsed from tool call successfully");
+            break;
+          } catch (e) {
+            console.error("Failed to parse tool call arguments:", e);
+          }
+        }
+
+        // Fallback: try to parse from content (legacy mode)
+        let parsedContent = aiData.choices?.[0]?.message?.content;
+        if (parsedContent) {
+          parsedContent = cleanMarkdown(parsedContent);
+          
+          try {
+            parsedData = JSON.parse(parsedContent);
+            console.log("Parsed from content successfully");
+            break;
+          } catch (parseError) {
+            console.error(`Parse attempt ${parseAttempts} failed:`, parseError);
+            
+            // Try to repair the JSON
+            const repaired = repairJSON(parsedContent);
+            if (repaired) {
+              try {
+                parsedData = JSON.parse(repaired);
+                console.log("JSON repaired and parsed successfully");
+                break;
+              } catch (e) {
+                console.error("Repaired JSON still invalid:", e);
+              }
+            }
+          }
+        }
+
+        // If we get here with no parsedData and have retries left, continue
+        if (parseAttempts < maxAttempts) {
+          console.log("Retrying with fresh AI call...");
+        }
+
+      } catch (fetchError) {
+        console.error(`Fetch error on attempt ${parseAttempts}:`, fetchError);
+        if (parseAttempts >= maxAttempts) {
+          throw fetchError;
+        }
+      }
+    }
 
     clearTimeout(timeoutId);
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error("AI API error:", aiResponse.status, errorText);
-
-      if (aiResponse.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (aiResponse.status === 402) {
-        return new Response(JSON.stringify({ error: "AI service quota exceeded. Please try again later." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      return new Response(JSON.stringify({ error: "Failed to parse job post with AI" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const aiData = await aiResponse.json();
-    let parsedContent = aiData.choices?.[0]?.message?.content;
-
-    if (!parsedContent) {
-      console.error("No content in AI response");
-      return new Response(JSON.stringify({ error: "AI returned empty response" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Clean up JSON if wrapped in markdown
-    parsedContent = parsedContent.trim();
-    if (parsedContent.startsWith("```json")) {
-      parsedContent = parsedContent.slice(7);
-    }
-    if (parsedContent.startsWith("```")) {
-      parsedContent = parsedContent.slice(3);
-    }
-    if (parsedContent.endsWith("```")) {
-      parsedContent = parsedContent.slice(0, -3);
-    }
-    parsedContent = parsedContent.trim();
-
-    let parsedData;
-    try {
-      parsedData = JSON.parse(parsedContent);
-    } catch (parseError) {
-      console.error("Failed to parse AI response as JSON:", parseError, parsedContent);
-      return new Response(JSON.stringify({ error: "Failed to parse job post data" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (!parsedData) {
+      console.error("All parse attempts failed");
+      return new Response(
+        JSON.stringify({ 
+          error: "AI returned malformed data. Please try again or enter job details manually."
+        }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Match profession category
@@ -287,7 +415,7 @@ Return the structured JSON data.`;
         parsed: parsedData,
         professionCategoryId,
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
     console.error("Error in parse-job-post function:", error);
