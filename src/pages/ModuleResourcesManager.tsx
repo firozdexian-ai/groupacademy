@@ -63,6 +63,101 @@ const resourceTypeLabels: Record<ResourceType, string> = {
   report: "Report (Markdown)",
 };
 
+// Generic JSON editor with proper paste support
+function JsonDataEditor({ 
+  value, 
+  onChange,
+  defaultValue = {},
+  placeholder = '{}',
+  label = 'JSON Data'
+}: { 
+  value: any; 
+  onChange: (data: any) => void;
+  defaultValue?: any;
+  placeholder?: string;
+  label?: string;
+}) {
+  const [rawText, setRawText] = useState(() => 
+    JSON.stringify(value || defaultValue, null, 2)
+  );
+  const [parseError, setParseError] = useState<string | null>(null);
+
+  // Sync external value changes
+  useEffect(() => {
+    const newText = JSON.stringify(value || defaultValue, null, 2);
+    // Only update if the parsed values are different (avoid cursor jumping)
+    try {
+      const currentParsed = JSON.parse(rawText);
+      const newParsed = value || defaultValue;
+      if (JSON.stringify(currentParsed) !== JSON.stringify(newParsed)) {
+        setRawText(newText);
+        setParseError(null);
+      }
+    } catch {
+      setRawText(newText);
+      setParseError(null);
+    }
+  }, [value, defaultValue]);
+
+  const handleTextChange = (text: string) => {
+    setRawText(text);
+    try {
+      const parsed = JSON.parse(text);
+      setParseError(null);
+      onChange(parsed);
+    } catch (e) {
+      setParseError("Invalid JSON - will not be saved until fixed");
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    e.preventDefault();
+    const pastedText = e.clipboardData.getData('text');
+    
+    // Try to parse and format the pasted JSON
+    try {
+      const parsed = JSON.parse(pastedText);
+      const formatted = JSON.stringify(parsed, null, 2);
+      setRawText(formatted);
+      setParseError(null);
+      onChange(parsed);
+      toast.success("JSON pasted successfully");
+    } catch {
+      // If not valid JSON, just insert as-is at cursor position
+      const target = e.currentTarget;
+      const start = target.selectionStart;
+      const end = target.selectionEnd;
+      const newText = rawText.substring(0, start) + pastedText + rawText.substring(end);
+      handleTextChange(newText);
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      <Label className="flex items-center justify-between">
+        <span>{label}</span>
+        {parseError && (
+          <span className="text-xs text-destructive flex items-center gap-1">
+            <AlertCircle className="h-3 w-3" />
+            {parseError}
+          </span>
+        )}
+      </Label>
+      <Textarea
+        value={rawText}
+        onChange={(e) => handleTextChange(e.target.value)}
+        onPaste={handlePaste}
+        placeholder={placeholder}
+        rows={8}
+        className={`font-mono text-sm ${parseError ? 'border-destructive' : ''}`}
+      />
+      <p className="text-xs text-muted-foreground">
+        Paste JSON directly or edit manually.
+      </p>
+    </div>
+  );
+}
+
 export default function ModuleResourcesManager() {
   const { contentId, moduleId } = useParams();
   const navigate = useNavigate();
@@ -223,29 +318,15 @@ export default function ModuleResourcesManager() {
     
     setSaving(true);
     try {
-      // Filter out incomplete resources based on type
+      // Filter out resources without title - but keep resources that have title even if incomplete
+      // This allows saving work-in-progress resources
       const validResources = resources.filter(r => {
+        // Must have a title
         if (!r.title?.trim()) return false;
         
-        // URL-based resources need URL
-        if (['video', 'slides', 'infographic', 'mindmap', 'audio_podcast'].includes(r.resource_type)) {
-          return !!r.resource_url?.trim();
-        }
-        
-        // Data-based resources need data with content
-        if (['flashcards', 'ai_scenario'].includes(r.resource_type)) {
-          return r.resource_data && Object.keys(r.resource_data).length > 0;
-        }
-        
-        // Report needs content in resource_data
-        if (r.resource_type === 'report') {
-          return r.resource_data?.content;
-        }
-        
-        // Quiz doesn't need URL (managed separately in Quiz Manager)
-        if (r.resource_type === 'quiz') return true;
-        
-        return false;
+        // All resources with title are valid for saving
+        // The content (URL/data) can be filled in later
+        return true;
       });
 
       if (validResources.length > 0) {
@@ -477,46 +558,23 @@ export default function ModuleResourcesManager() {
           )}
 
           {resource.resource_type === "flashcards" && (
-            <div className="space-y-2">
-              <Label>Flashcards JSON</Label>
-              <Textarea
-                value={JSON.stringify(resource.resource_data || { cards: [] }, null, 2)}
-                onChange={(e) => {
-                  try {
-                    const parsed = JSON.parse(e.target.value);
-                    updateResource(globalIndex, "resource_data", parsed);
-                  } catch {
-                    // Invalid JSON, don't update
-                  }
-                }}
-                placeholder='{"cards": [{"front": "Question", "back": "Answer", "hint": "Optional hint"}]}'
-                rows={6}
-                className="font-mono text-sm"
-              />
-              <p className="text-xs text-muted-foreground">
-                Format: {`{"cards": [{"front": "...", "back": "...", "hint": "..."}]}`}
-              </p>
-            </div>
+            <JsonDataEditor
+              value={resource.resource_data}
+              onChange={(data) => updateResource(globalIndex, "resource_data", data)}
+              defaultValue={{ cards: [] }}
+              placeholder='{"cards": [{"front": "Question", "back": "Answer"}]}'
+              label="Flashcards JSON"
+            />
           )}
 
           {resource.resource_type === "ai_scenario" && (
-            <div className="space-y-2">
-              <Label>AI Scenarios JSON</Label>
-              <Textarea
-                value={JSON.stringify(resource.resource_data || { scenarios: [] }, null, 2)}
-                onChange={(e) => {
-                  try {
-                    const parsed = JSON.parse(e.target.value);
-                    updateResource(globalIndex, "resource_data", parsed);
-                  } catch {
-                    // Invalid JSON, don't update
-                  }
-                }}
-                placeholder='{"scenarios": [{"situation": "...", "question": "...", "options": [...], "feedback": {...}}]}'
-                rows={6}
-                className="font-mono text-sm"
-              />
-            </div>
+            <JsonDataEditor
+              value={resource.resource_data}
+              onChange={(data) => updateResource(globalIndex, "resource_data", data)}
+              defaultValue={{ scenarios: [] }}
+              placeholder='{"scenarios": [{"situation": "...", "question": "...", "options": [...]}]}'
+              label="AI Scenarios JSON"
+            />
           )}
 
           {resource.resource_type === "quiz" && (
