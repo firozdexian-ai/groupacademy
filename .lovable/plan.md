@@ -1,341 +1,152 @@
 
-# Comprehensive AI Services Reconstruction Plan
-## Complete Fix for All 5 AI Services - No More Patchwork
+
+# UX Improvements Plan: Mobile Navigation Header + PhoneInput Integration
+
+## Overview
+
+This plan addresses two UX improvements:
+1. **Mobile Navigation Header** - Add avatar and quick actions to the mobile header for better navigation
+2. **ProfileEdit Phone Input** - Ensure country/country_code fields are properly persisted when saving
 
 ---
 
-## Executive Summary
+## Issue 1: Mobile Navigation Header Enhancement
 
-After a deep audit of all AI service flows (edge functions, frontend pages, database), I've identified **11 critical issues** across the 5 services that need permanent fixes. This plan provides a complete reconstruction to ensure bulletproof operation.
+### Current State
+The mobile header in `TalentAppShell.tsx` (lines 198-208) currently shows:
+- Logo icon (left)
+- Notification dropdown (right)
 
----
+**Problem:** Users must open the hamburger menu to access their profile. The header lacks quick access to the user avatar and key actions.
 
-## Service 1: Career Assessment
+### Proposed Enhancement
+Add the user's avatar to the mobile header with a tap-to-navigate action to their profile, matching the pattern already used in `FeedHeader.tsx`.
 
-### Current Issues Found
+### Files to Modify
+**`src/layouts/TalentAppShell.tsx`**
 
-| Issue | Location | Severity |
-|-------|----------|----------|
-| **Question options malformed** | Database: `assessment_questions` rows 17-22 | CRITICAL |
-| Options stored as flat strings instead of objects | `["Never", "Rarely", ...]` vs `[{value, label}]` | |
-| Scale questions (17, 20, 23, 26) have NULL options | Missing minLabel/maxLabel | HIGH |
+### Changes
+Update the mobile header section (lines 198-208) to include:
+1. User avatar next to the notification icon
+2. Tap-to-navigate functionality to profile page
 
-### Root Cause
-Questions 17-26 were inserted with incorrect JSONB format. The `AssessmentStepper.tsx` expects:
-```typescript
-// Expected format
-{ value: "never", label: "Never", score: 1 }
+```tsx
+{/* Mobile Header */}
+<header className="md:hidden sticky top-0 z-50 bg-card/95 backdrop-blur-md border-b border-border/50 shadow-sm h-14 px-4 flex items-center justify-between">
+  <NavLink to="/app/feed">
+    <img src={logoIcon} alt="GroUp" className="h-8 w-8" />
+  </NavLink>
 
-// Current broken format
-"Never"  // Just a string!
-```
-
-### Fix Plan
-
-**Part 1: Database Migration - Fix All Malformed Questions**
-
-```sql
--- Fix Question 17 (scale with null options)
-UPDATE assessment_questions 
-SET options = '[{"min": 1, "max": 10, "minLabel": "Not confident", "maxLabel": "Very confident"}]'::jsonb
-WHERE id = 'e2060214-5cc7-4e6e-b169-cb57482db061';
-
--- Fix Question 18 (single_choice with flat array)
-UPDATE assessment_questions 
-SET options = '[
-  {"value": "never", "label": "Never", "score": 1},
-  {"value": "rarely", "label": "Rarely", "score": 2},
-  {"value": "sometimes", "label": "Sometimes", "score": 3},
-  {"value": "often", "label": "Often", "score": 4},
-  {"value": "always", "label": "Always", "score": 5}
-]'::jsonb
-WHERE id = '8fe62c72-2208-4084-8fb5-bd721324c388';
-
--- Fix Question 19 (single_choice with flat array)
-UPDATE assessment_questions 
-SET options = '[
-  {"value": "avoid", "label": "I avoid conflicts", "score": 1},
-  {"value": "struggle", "label": "I struggle with conflicts", "score": 2},
-  {"value": "manage", "label": "I manage reasonably well", "score": 3},
-  {"value": "effective", "label": "I handle conflicts effectively", "score": 4},
-  {"value": "excel", "label": "I excel at conflict resolution", "score": 5}
-]'::jsonb
-WHERE id = '158d47f3-5460-43c5-bcb6-a4c6b2681f94';
-
--- Fix Question 20 (scale with null options)
-UPDATE assessment_questions 
-SET options = '[{"min": 1, "max": 10, "minLabel": "Not proactive", "maxLabel": "Very proactive"}]'::jsonb
-WHERE id = '74d230e6-f30e-4e97-ae42-8ccccafd073b';
-
--- Fix remaining questions with flat arrays (21-26)
--- Similar pattern for each...
-```
-
-**Part 2: Frontend Defense - Add Options Normalizer**
-
-**File:** `src/components/assessment/AssessmentStepper.tsx`
-
-Add defensive normalization to handle any legacy/malformed data:
-
-```typescript
-// Helper function to normalize options
-const normalizeOptions = (options: any[]): Array<{value: string; label: string; score?: number}> => {
-  if (!options || !Array.isArray(options)) return [];
-  
-  return options.map((opt, idx) => {
-    // If already in correct format
-    if (typeof opt === 'object' && opt.value && opt.label) {
-      return opt;
-    }
-    // Handle flat string arrays (legacy format)
-    if (typeof opt === 'string') {
-      return {
-        value: opt.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, ''),
-        label: opt,
-        score: idx + 1
-      };
-    }
-    // Fallback
-    return { value: String(idx), label: String(opt), score: idx + 1 };
-  });
-};
-
-// Use before rendering
-const normalizedOptions = normalizeOptions(options);
+  <div className="flex items-center gap-2">
+    <NotificationDropdown />
+    <Avatar 
+      className="h-9 w-9 cursor-pointer ring-2 ring-border hover:ring-primary/50 transition-all"
+      onClick={() => navigate('/app/profile')}
+    >
+      <AvatarImage src={talent?.profilePhotoUrl || undefined} />
+      <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
+        {talent?.fullName?.charAt(0)?.toUpperCase() || 'U'}
+      </AvatarFallback>
+    </Avatar>
+  </div>
+</header>
 ```
 
 ---
 
-## Service 2: Mock Interview
+## Issue 2: ProfileEdit Phone Input Persistence
 
-### Current Issues Found
+### Current State
+Looking at `ProfileEdit.tsx`, I can see:
+1. ✅ The `PhoneInput` component is already imported (line 16)
+2. ✅ The form already has `countryCode` and `country` in state (lines 31-32)
+3. ✅ The `PhoneInput` is already being used (lines 366-375)
+4. ⚠️ **The `handleSubmit` function does NOT persist `country` and `countryCode`** (lines 218-233)
 
-| Issue | Location | Severity |
-|-------|----------|----------|
-| **Redundant capture page for app users** | `MockInterviewQuestions.tsx` line 182 | HIGH |
-| App users with `talent_id` still redirected to capture page | Unnecessary extra step | |
-| No inline analysis trigger for logged-in users | Must go through capture flow | MEDIUM |
+### Problem
+When the user updates their profile, the `country_code` and `country` fields are NOT being sent to the database in the `updateTalent` call.
 
-### Root Cause
-Line 182 always redirects to `/mock-interview/capture/:id` regardless of whether the user came from the app (already has name/phone/talent_id) or public flow.
+### Files to Modify
+**`src/pages/app/ProfileEdit.tsx`** - Update `handleSubmit` function
+**`src/contexts/TalentContext.tsx`** - Ensure `updateTalent` maps country fields
 
-### Fix Plan
+### Changes
 
-**File:** `src/pages/MockInterviewQuestions.tsx`
+**1. Update `ProfileEdit.tsx` handleSubmit (line 219-233):**
 
-**Change 1:** Load `talent_id` with interview data
-
-```typescript
-// In loadInterview(), also get talent_id
-setInterview({
-  id: data.id,
-  email: data.email,
-  job_title: data.job_title,
-  company_name: data.company_name,
-  questions,
-  answers: existingAnswers,
-  status: data.status || "in_progress",
-  talent_id: data.talent_id  // Add this
+```tsx
+await updateTalent({
+  fullName: formData.fullName,
+  phone: formData.phone,
+  countryCode: formData.countryCode,  // ADD THIS
+  country: formData.country,           // ADD THIS
+  customProfession: formData.customProfession,
+  currentStatus: formData.currentStatus,
+  institution: formData.institution,
+  fieldOfStudy: formData.fieldOfStudy,
+  linkedinUrl: formData.linkedinUrl,
+  portfolioUrl: formData.portfolioUrl,
+  profilePhotoUrl: profilePhotoUrl || undefined,
+  cvUrl: cvUrl || undefined,
+  skills: skills as any,
+  experience: experience as any,
+  education: education as any,
 });
 ```
 
-**Change 2:** Smart routing after final question
+**2. Update `TalentContext.tsx` updateTalent function (add mappings around line 205):**
 
-```typescript
-} else {
-  // All questions answered
-  if (interview.talent_id) {
-    // App user: has profile data, skip capture → analyze directly
-    setIsSubmitting(true);
-    try {
-      const { error } = await supabase.functions.invoke("analyze-mock-interview", {
-        body: { interviewId: id }
-      });
-      if (error) throw error;
-      toast.success("Analysis complete!");
-      navigate(`/mock-interview/results/${id}`);
-    } catch (err) {
-      toast.error("Analysis failed. Please try again.");
-      setIsSubmitting(false);
-    }
-  } else {
-    // Public user: needs lead capture
-    navigate(`/mock-interview/capture/${id}`);
-  }
-}
-```
-
-**Change 3:** Add loading state for analysis
-
-```typescript
-const [isSubmitting, setIsSubmitting] = useState(false);
-
-// Show processing UI during analysis
-if (isSubmitting) {
-  return (
-    <ProcessingCard
-      title="Analyzing Your Interview"
-      stages={INTERVIEW_ANALYSIS_STAGES}
-      duration={45000}
-    />
-  );
-}
+```tsx
+// Add these field mappings
+mapField("country", "country");
+mapField("countryCode", "country_code");
 ```
 
 ---
 
-## Service 3: Salary Analysis
-
-### Current Issues Found
-
-| Issue | Location | Severity |
-|-------|----------|----------|
-| Complex cooldown/access code flow | `SalaryAnalysisSetup.tsx` | LOW |
-| Duplicate logic between public and app pages | Two separate files | TECH DEBT |
-
-### Assessment
-The salary analysis flow is **working correctly**. The edge function has proper:
-- Authentication
-- Ownership verification (IDOR prevention)
-- Rate limit handling (429/402)
-- JSON parsing with fallbacks
-- 90-second timeout
-
-### Minor Improvement
-Add consistent error handling in `SalaryAnalysisProcessing.tsx` for AI failures.
-
----
-
-## Service 4: AI Agent Chat
-
-### Current Issues Found
-
-| Issue | Location | Severity |
-|-------|----------|----------|
-| Good streaming implementation | `useAgentChat.ts` | - |
-| Proper session management | 30-minute expiry works | - |
-
-### Assessment
-The AI Agent Chat is **working correctly**. The flow has:
-- Proper authentication with user token (not anon key)
-- Session-based credit charging
-- Token-by-token streaming
-- Session expiry management
-- Error handling with `aiErrorHandler.ts`
-
-### No Changes Required
-This service is solid.
-
----
-
-## Service 5: CV Parsing (parse-cv)
-
-### Current Issues Found
-
-| Issue | Location | Severity |
-|-------|----------|----------|
-| Base64 encoding implemented | Per memory note | RESOLVED |
-| Works with file upload and URL paste | | |
-
-### Assessment
-The CV parsing service was previously fixed to use Base64 encoding for PDF content. **No changes required.**
-
----
-
-## Implementation Roadmap
-
-### Phase 1: Critical Data Fix (Database)
-
-**Priority: IMMEDIATE**
-
-1. Run SQL migration to fix all malformed assessment questions (17-26)
-2. Verify all single_choice questions have proper `{value, label}` format
-3. Verify all scale questions have proper `{min, max, minLabel, maxLabel}` format
-
-### Phase 2: Frontend Resilience
-
-**Priority: HIGH**
-
-1. Add `normalizeOptions()` helper to `AssessmentStepper.tsx`
-2. Apply normalization before rendering radio/checkbox options
-3. Test all 26+ questions render correctly
-
-### Phase 3: Mock Interview Flow Optimization
-
-**Priority: HIGH**
-
-1. Update `MockInterviewQuestions.tsx` to check for `talent_id`
-2. Add inline analysis trigger for app users
-3. Add `ProcessingCard` loading state
-4. Skip capture page for logged-in users
-
-### Phase 4: Testing & Validation
-
-1. Test Career Assessment: Complete all 26 questions
-2. Test Mock Interview: App flow (no capture page) and public flow (with capture)
-3. Test Salary Analysis: Both app and public flows
-4. Test AI Agents: Start session, chat, expiry
-
----
-
-## Files to Modify
+## Implementation Summary
 
 | File | Changes |
 |------|---------|
-| Database Migration | Fix 10+ questions with malformed options |
-| `src/components/assessment/AssessmentStepper.tsx` | Add `normalizeOptions()` helper + apply to rendering |
-| `src/pages/MockInterviewQuestions.tsx` | Add talent_id check, inline analysis, skip capture for app users |
+| `src/layouts/TalentAppShell.tsx` | Add avatar to mobile header with profile navigation |
+| `src/pages/app/ProfileEdit.tsx` | Include `country` and `countryCode` in `updateTalent` call |
+| `src/contexts/TalentContext.tsx` | Add `country` and `country_code` field mappings in `updateTalent` |
 
 ---
 
 ## Technical Details
 
-### Database Question IDs to Fix
+### Mobile Header Visual Layout
 
-| ID | Display Order | Type | Issue |
-|----|---------------|------|-------|
-| `e2060214-5cc7-4e6e-b169-cb57482db061` | 17 | scale | NULL options |
-| `8fe62c72-2208-4084-8fb5-bd721324c388` | 18 | single_choice | Flat string array |
-| `158d47f3-5460-43c5-bcb6-a4c6b2681f94` | 19 | single_choice | Flat string array |
-| `74d230e6-f30e-4e97-ae42-8ccccafd073b` | 20 | scale | NULL options |
-| `639de7bb-bf68-40d5-9e92-977d88fbbfa8` | 21 | single_choice | Flat string array |
-| `e58ae8a0-a220-4061-b9dc-3676fd90dd46` | 22 | single_choice | Flat string array |
-| More... | 23-26 | mixed | Various issues |
+```text
+┌──────────────────────────────────────────┐
+│ [Logo]               [🔔] [Avatar]       │
+└──────────────────────────────────────────┘
+```
 
-### Mock Interview Interface Update
+- Logo: Links to /app/feed
+- Bell icon: Notification dropdown (existing)
+- Avatar: NEW - Links to /app/profile with user's photo or initials
 
-```typescript
-interface Interview {
-  id: string;
-  email: string;
-  job_title: string | null;
-  company_name: string | null;
-  questions: Question[];
-  answers: Answer[] | null;
-  status: string;
-  talent_id: string | null;  // ADD THIS
-}
+### Data Persistence Flow
+
+```text
+ProfileEdit Form
+    ↓ (includes countryCode, country)
+updateTalent()
+    ↓ (maps to country_code, country)
+Supabase talents table
+    ↓
+TalentContext refreshTalent()
+    ↓
+UI updated with persisted values
 ```
 
 ---
 
 ## Expected Outcomes
 
-After implementation:
+1. **Mobile Navigation:** Users can tap their avatar in the header to quickly access their profile without opening the menu
+2. **Phone Data Integrity:** Country and country code are properly persisted when editing profile, maintaining geographic segmentation data
+3. **Consistency:** Mobile header now matches the pattern used in `FeedHeader.tsx`
 
-1. **Career Assessment**: All 26+ questions render with proper option labels
-2. **Mock Interview**: App users go directly questions → analysis → results (no capture page)
-3. **Salary Analysis**: Continues working as expected
-4. **AI Agents**: Continues working as expected
-5. **CV Parsing**: Continues working as expected
-
----
-
-## Validation Checklist
-
-- [ ] Question 18 shows "Never", "Rarely", etc. labels
-- [ ] Question 17 shows slider with "Not confident" to "Very confident" labels
-- [ ] Mock Interview app flow skips capture page
-- [ ] Mock Interview public flow still shows capture page
-- [ ] All services handle 429/402 errors gracefully
-- [ ] All services have 90-second timeouts
