@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Upload, Video, FileText, Image, Music, Brain, HelpCircle, FileCheck, Trash2, Plus, Save, ExternalLink, RefreshCw, AlertCircle } from "lucide-react";
+import { ArrowLeft, Upload, Video, FileText, Image, Music, Brain, HelpCircle, FileCheck, Trash2, Plus, Save, ExternalLink, RefreshCw, AlertCircle, CheckCircle, Circle, Loader2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
@@ -40,6 +40,12 @@ interface Module {
 interface Course {
   id: string;
   title: string;
+}
+
+interface ResourceSaveState {
+  status: 'saved' | 'unsaved' | 'saving' | 'error';
+  error?: string;
+  lastSavedAt?: Date;
 }
 
 const stageConfig = [
@@ -169,6 +175,7 @@ export default function ModuleResourcesManager() {
   const [resources, setResources] = useState<ModuleResource[]>([]);
   const [activeStage, setActiveStage] = useState("1");
   const [uploadingFile, setUploadingFile] = useState<string | null>(null);
+  const [saveStates, setSaveStates] = useState<Record<string, ResourceSaveState>>({});
 
   useEffect(() => {
     loadData();
@@ -227,7 +234,7 @@ export default function ModuleResourcesManager() {
       );
 
       if (resourcesData) {
-        setResources(resourcesData.map(r => ({
+        const loadedResources = resourcesData.map(r => ({
           id: r.id,
           title: r.title,
           description: r.description || "",
@@ -237,7 +244,17 @@ export default function ModuleResourcesManager() {
           stage_number: r.stage_number || 1,
           display_order: r.display_order || 0,
           is_required: r.is_required || false,
-        })));
+        }));
+        setResources(loadedResources);
+        
+        // Mark loaded resources as saved
+        const initialSaveStates: Record<string, ResourceSaveState> = {};
+        loadedResources.forEach(r => {
+          if (r.id) {
+            initialSaveStates[r.id] = { status: 'saved', lastSavedAt: new Date() };
+          }
+        });
+        setSaveStates(initialSaveStates);
       }
     } catch (error: any) {
       console.error("Error loading data:", error);
@@ -254,6 +271,10 @@ export default function ModuleResourcesManager() {
     return resources.filter(r => r.stage_number === stageNumber);
   };
 
+  const getResourceKey = (resource: ModuleResource, index: number) => {
+    return resource.id || `temp-${index}`;
+  };
+
   const addResource = (stageNumber: number, resourceType: ResourceType) => {
     const stageResources = getResourcesByStage(stageNumber);
     const newResource: ModuleResource = {
@@ -268,17 +289,56 @@ export default function ModuleResourcesManager() {
       display_order: stageResources.length,
       is_required: false,
     };
+    const newIndex = resources.length;
     setResources([...resources, newResource]);
+    
+    // Mark new resource as unsaved
+    setSaveStates(prev => ({
+      ...prev,
+      [`temp-${newIndex}`]: { status: 'unsaved' }
+    }));
   };
 
   const updateResource = (index: number, field: keyof ModuleResource, value: any) => {
     const updated = [...resources];
     updated[index] = { ...updated[index], [field]: value };
     setResources(updated);
+    
+    // Mark as unsaved
+    const resourceKey = getResourceKey(updated[index], index);
+    setSaveStates(prev => ({
+      ...prev,
+      [resourceKey]: { status: 'unsaved' }
+    }));
   };
 
-  const removeResource = (index: number) => {
+  const removeResource = async (index: number) => {
+    const resource = resources[index];
+    
+    // If resource has ID, delete from database
+    if (resource.id) {
+      try {
+        const { error } = await supabase
+          .from("module_resources")
+          .delete()
+          .eq("id", resource.id);
+        
+        if (error) throw error;
+        toast.success(`"${resource.title}" deleted`);
+      } catch (error: any) {
+        toast.error(`Failed to delete: ${error.message}`);
+        return;
+      }
+    }
+    
+    // Remove from local state
+    const resourceKey = getResourceKey(resource, index);
     setResources(resources.filter((_, i) => i !== index));
+    setSaveStates(prev => {
+      const newStates = { ...prev };
+      delete newStates[resourceKey];
+      return newStates;
+    });
   };
 
   const handleFileUpload = async (
@@ -313,136 +373,231 @@ export default function ModuleResourcesManager() {
     }
   };
 
-  const handleSave = async () => {
-    if (!moduleId) return;
+  // Individual resource save function
+  const saveResource = async (resource: ModuleResource, index: number): Promise<boolean> => {
+    const resourceKey = getResourceKey(resource, index);
     
-    setSaving(true);
+    setSaveStates(prev => ({
+      ...prev,
+      [resourceKey]: { status: 'saving' }
+    }));
+
     try {
-      // Filter out resources without title - but keep resources that have title even if incomplete
-      // This allows saving work-in-progress resources
-      const validResources = resources.filter(r => {
-        // Must have a title
-        if (!r.title?.trim()) return false;
-        
-        // All resources with title are valid for saving
-        // The content (URL/data) can be filled in later
-        return true;
-      });
-
-      if (validResources.length > 0) {
-        // Separate existing resources (have ID) from new ones (no ID)
-        const existingResources = validResources.filter(r => r.id);
-        const newResources = validResources.filter(r => !r.id);
-
-        // Update existing resources
-        if (existingResources.length > 0) {
-          const resourcesToUpdate = existingResources.map((r, idx) => ({
-            id: r.id,
-            module_id: moduleId,
-            title: r.title,
-            description: r.description || null,
-            resource_type: r.resource_type,
-            resource_url: r.resource_url,
-            resource_data: r.resource_data,
-            stage_number: r.stage_number,
-            display_order: idx,
-            is_required: r.is_required,
-          }));
-
-          const { error: updateError } = await withTimeout(
-            Promise.resolve(supabase
-              .from("module_resources")
-              .upsert(resourcesToUpdate, { onConflict: 'id' })),
-            TIMEOUTS.DEFAULT,
-            "Updating resources timed out"
-          );
-
-          if (updateError) throw updateError;
-        }
-
-        // Insert new resources (without ID, let DB generate it)
-        if (newResources.length > 0) {
-          const resourcesToInsert = newResources.map((r, idx) => ({
-            module_id: moduleId,
-            title: r.title,
-            description: r.description || null,
-            resource_type: r.resource_type,
-            resource_url: r.resource_url,
-            resource_data: r.resource_data,
-            stage_number: r.stage_number,
-            display_order: existingResources.length + idx,
-            is_required: r.is_required,
-          }));
-
-          const { error: insertError } = await withTimeout(
-            Promise.resolve(supabase
-              .from("module_resources")
-              .insert(resourcesToInsert)),
-            TIMEOUTS.DEFAULT,
-            "Inserting resources timed out"
-          );
-
-          if (insertError) throw insertError;
-        }
-
-        // Delete resources that were removed (not in current validResources but exist in DB)
-        const currentIds = validResources.filter(r => r.id).map(r => r.id);
-        const { data: dbResources } = await supabase
-          .from("module_resources")
-          .select("id")
-          .eq("module_id", moduleId);
-        
-        if (dbResources) {
-          const idsToDelete = dbResources
-            .filter(r => !currentIds.includes(r.id))
-            .map(r => r.id);
-          
-          if (idsToDelete.length > 0) {
-            await supabase
-              .from("module_resources")
-              .delete()
-              .in("id", idsToDelete);
-          }
-        }
-      } else {
-        // If no valid resources, delete all for this module
-        await withTimeout(
-          Promise.resolve(supabase
-            .from("module_resources")
-            .delete()
-            .eq("module_id", moduleId)),
-          TIMEOUTS.DEFAULT,
-          "Deleting resources timed out"
-        );
+      // Validate resource
+      if (!resource.title?.trim()) {
+        throw new Error("Title is required");
       }
 
-      toast.success("Resources saved successfully!");
+      // Validate JSON for flashcards/ai_scenario
+      if (resource.resource_type === 'flashcards' || resource.resource_type === 'ai_scenario') {
+        if (!resource.resource_data || typeof resource.resource_data !== 'object') {
+          throw new Error("Invalid JSON data - please check the format");
+        }
+      }
+
+      if (resource.id) {
+        // Update existing
+        const { error } = await supabase
+          .from("module_resources")
+          .update({
+            title: resource.title,
+            description: resource.description || null,
+            resource_type: resource.resource_type,
+            resource_url: resource.resource_url,
+            resource_data: resource.resource_data,
+            stage_number: resource.stage_number,
+            display_order: resource.display_order,
+            is_required: resource.is_required,
+          })
+          .eq('id', resource.id);
+        
+        if (error) throw error;
+        
+        setSaveStates(prev => ({
+          ...prev,
+          [resource.id!]: { 
+            status: 'saved',
+            lastSavedAt: new Date()
+          }
+        }));
+      } else {
+        // Insert new
+        const { data, error } = await supabase
+          .from("module_resources")
+          .insert({
+            module_id: moduleId,
+            title: resource.title,
+            description: resource.description || null,
+            resource_type: resource.resource_type,
+            resource_url: resource.resource_url,
+            resource_data: resource.resource_data,
+            stage_number: resource.stage_number,
+            display_order: resource.display_order,
+            is_required: resource.is_required,
+          })
+          .select('id')
+          .single();
+        
+        if (error) throw error;
+        
+        // Update local state with new ID
+        const updated = [...resources];
+        updated[index] = { ...updated[index], id: data.id };
+        setResources(updated);
+        
+        // Remove temp state, add new ID state
+        setSaveStates(prev => {
+          const newStates = { ...prev };
+          delete newStates[resourceKey];
+          newStates[data.id] = { 
+            status: 'saved',
+            lastSavedAt: new Date()
+          };
+          return newStates;
+        });
+      }
+      
+      toast.success(`"${resource.title}" saved`);
+      return true;
     } catch (error: any) {
-      console.error("Save error:", error);
-      const errorMessage = error.message?.includes("timed out")
-        ? "Save operation timed out. Please try again."
-        : "Failed to save resources";
-      toast.error(errorMessage);
-    } finally {
-      setSaving(false);
+      const errorMessage = error.message || "Failed to save resource";
+      
+      setSaveStates(prev => ({
+        ...prev,
+        [resourceKey]: { 
+          status: 'error',
+          error: errorMessage
+        }
+      }));
+      
+      toast.error(`Failed to save "${resource.title}": ${errorMessage}`);
+      return false;
     }
+  };
+
+  // Save all unsaved resources
+  const saveAllUnsaved = async () => {
+    setSaving(true);
+    
+    let successCount = 0;
+    let errorCount = 0;
+    
+    for (let i = 0; i < resources.length; i++) {
+      const resource = resources[i];
+      const resourceKey = getResourceKey(resource, i);
+      const state = saveStates[resourceKey];
+      
+      // Save if unsaved, error, or no state (new resource)
+      if (!state || state.status === 'unsaved' || state.status === 'error') {
+        const success = await saveResource(resource, i);
+        if (success) {
+          successCount++;
+        } else {
+          errorCount++;
+        }
+      }
+    }
+    
+    if (successCount > 0 || errorCount > 0) {
+      if (errorCount === 0) {
+        toast.success(`All ${successCount} resources saved successfully!`);
+      } else {
+        toast.warning(`Saved ${successCount} resources. ${errorCount} failed - check individual errors.`);
+      }
+    } else {
+      toast.info("All resources are already saved");
+    }
+    
+    setSaving(false);
+  };
+
+  // Calculate save summary
+  const getSaveSummary = () => {
+    let unsavedCount = 0;
+    let errorCount = 0;
+    let savedCount = 0;
+    
+    resources.forEach((r, i) => {
+      const key = getResourceKey(r, i);
+      const state = saveStates[key];
+      if (!state || state.status === 'unsaved') {
+        unsavedCount++;
+      } else if (state.status === 'error') {
+        errorCount++;
+      } else if (state.status === 'saved') {
+        savedCount++;
+      }
+    });
+    
+    return { unsavedCount, errorCount, savedCount };
   };
 
   const renderResourceForm = (resource: ModuleResource, index: number) => {
     const globalIndex = resources.findIndex(r => r === resource);
+    const resourceKey = getResourceKey(resource, globalIndex);
+    const saveState = saveStates[resourceKey];
     
     return (
       <Card key={index} className="mb-4">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <Badge variant="outline">{resourceTypeLabels[resource.resource_type]}</Badge>
               {resource.is_required && <Badge variant="destructive">Required</Badge>}
+              
+              {/* Save Status Badge */}
+              {saveState?.status === 'saved' && (
+                <Badge className="bg-green-600 hover:bg-green-600">
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  Saved
+                </Badge>
+              )}
+              {(!saveState || saveState?.status === 'unsaved') && (
+                <Badge variant="secondary">
+                  <Circle className="h-3 w-3 mr-1" />
+                  Unsaved
+                </Badge>
+              )}
+              {saveState?.status === 'saving' && (
+                <Badge variant="secondary">
+                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                  Saving...
+                </Badge>
+              )}
+              {saveState?.status === 'error' && (
+                <Badge variant="destructive">
+                  <XCircle className="h-3 w-3 mr-1" />
+                  Error
+                </Badge>
+              )}
             </div>
-            <Button variant="ghost" size="sm" onClick={() => removeResource(globalIndex)}>
-              <Trash2 className="h-4 w-4 text-destructive" />
-            </Button>
+            <div className="flex items-center gap-2">
+              {/* Individual Save Button */}
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => saveResource(resource, globalIndex)}
+                disabled={saveState?.status === 'saving'}
+              >
+                {saveState?.status === 'saving' ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                <span className="ml-1 hidden sm:inline">Save</span>
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => removeResource(globalIndex)}>
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Button>
+            </div>
           </div>
+          {/* Error Message Display */}
+          {saveState?.status === 'error' && saveState.error && (
+            <p className="text-sm text-destructive mt-2 flex items-center gap-1">
+              <AlertCircle className="h-4 w-4" />
+              {saveState.error}
+            </p>
+          )}
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -659,18 +814,39 @@ export default function ModuleResourcesManager() {
     );
   }
 
+  const { unsavedCount, errorCount, savedCount } = getSaveSummary();
+
   return (
     <div className="min-h-screen bg-background py-8">
       <div className="container max-w-5xl mx-auto px-4">
-        <div className="mb-6 flex items-center justify-between">
+        <div className="mb-6 flex items-center justify-between flex-wrap gap-4">
           <Button variant="ghost" onClick={() => navigate(`/content/${contentId}/modules`)}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Modules
           </Button>
-          <Button onClick={handleSave} disabled={saving}>
-            <Save className="h-4 w-4 mr-2" />
-            {saving ? "Saving..." : "Save All Resources"}
-          </Button>
+          
+          {/* Save Summary and Button */}
+          <div className="flex items-center gap-3 flex-wrap">
+            {savedCount > 0 && (
+              <Badge variant="outline" className="border-green-600 text-green-600">
+                {savedCount} saved
+              </Badge>
+            )}
+            {unsavedCount > 0 && (
+              <Badge variant="secondary">{unsavedCount} unsaved</Badge>
+            )}
+            {errorCount > 0 && (
+              <Badge variant="destructive">{errorCount} with errors</Badge>
+            )}
+            <Button onClick={saveAllUnsaved} disabled={saving}>
+              {saving ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              {saving ? "Saving..." : "Save All Unsaved"}
+            </Button>
+          </div>
         </div>
 
         <Card className="mb-6">
