@@ -1,286 +1,349 @@
 
-# Course Completion Module Improvements Plan
 
-## Summary of Issues Identified
+# Career Assessment Scorecard - Comprehensive Audit & Improvement Plan
 
-Based on your feedback and my code exploration, I've identified **5 key issues** that need to be addressed:
+## Overview
 
-| Issue | Description | Priority |
-|-------|-------------|----------|
-| 1. Quiz per Module | Quiz is tied to `content_id` (whole course) instead of `module_id` | CRITICAL |
-| 2. AI Quiz Parser | Manual quiz entry is tedious; need paste-and-parse from AI-generated quizzes | HIGH |
-| 3. PDF Display | PDFs shown in basic iframe, not optimal viewing experience | MEDIUM |
-| 4. Flashcard Format | Flashcards work but may have parsing issues with inconsistent JSON | MEDIUM |
-| 5. Progress Bar Accuracy | Progress calculation only counts current session, not persisted data | HIGH |
+I've conducted a thorough analysis of the Career Assessment Scorecard feature across both the Seeker (user-facing) and Admin platforms. This audit covers the complete user journey, database schema, edge functions, UI/UX, and identifies bugs, inconsistencies, and improvement opportunities.
 
 ---
 
-## Issue 1: Quiz Per Module (Database Schema Change Required)
+## System Architecture
 
-### Current Problem
-The `quiz_questions` table has `content_id` (course-level), meaning ONE quiz for the ENTIRE course. Every module shows the same quiz.
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          SEEKER JOURNEY                                     │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  Entry Points:                                                              │
+│  ┌───────────────────────┐     ┌───────────────────────┐                   │
+│  │ /career-assessment    │     │ /app/services/        │                   │
+│  │ (Public + AuthGate)   │     │ assessment (App)      │                   │
+│  └───────────┬───────────┘     └───────────┬───────────┘                   │
+│              │                             │                                │
+│              ▼                             ▼                                │
+│  ┌───────────────────────────────────────────────────────────────┐         │
+│  │                     SHARED COMPONENTS                         │         │
+│  │  • ProfessionSelector → AssessmentStepper → LeadCaptureForm   │         │
+│  └───────────────────────────────────────────────────────────────┘         │
+│              │                                                              │
+│              ▼                                                              │
+│  ┌───────────────────────────────────────────────────────────────┐         │
+│  │              Edge Function: analyze-career-assessment          │         │
+│  │              (AI Analysis via Lovable Gateway)                 │         │
+│  └───────────────────────────────────────────────────────────────┘         │
+│              │                                                              │
+│              ▼                                                              │
+│  ┌───────────────────────────────────────────────────────────────┐         │
+│  │              /assessment-results/:id                           │         │
+│  │              (Results Page + PDF Download)                     │         │
+│  └───────────────────────────────────────────────────────────────┘         │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
 
-**Current Schema:**
-```sql
-quiz_questions:
-  - content_id (FK to content) -- COURSE level
-  - question_text, options, etc.
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          ADMIN DASHBOARD                                    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  • AssessmentLeadsManager - View all submissions, filter, export CSV        │
+│  • AssessmentCodeGenerator - Generate paid retake codes per lead            │
+│  • StandaloneAssessmentCodeGenerator - Bulk code generation                 │
+│  • ServiceOutreachManager - Trackable share links                           │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Solution
-Add `module_id` column to `quiz_questions` table to enable per-module quizzes.
+---
 
-**Changes Required:**
+## Issues Identified
 
-1. **Database Migration:**
-   - Add nullable `module_id` column to `quiz_questions`
-   - Add foreign key constraint to `course_modules`
+### CRITICAL BUGS
 
-2. **Update `AssessStage.tsx`:**
-   - Change query from `.eq("content_id", contentId)` to `.eq("module_id", moduleId)`
+| # | Issue | Location | Impact |
+|---|-------|----------|--------|
+| 1 | **Duplicate Credit Deduction** | `LeadCaptureForm.tsx:167-169` vs `AppCareerAssessment.tsx:161-164` | Credits deducted TWICE when using App flow - once in LeadCaptureForm and again in AppCareerAssessment |
+| 2 | **Edge Function Ownership Check Too Strict** | `analyze-career-assessment:83` | Assessment created by non-logged-in user (public path) cannot trigger AI analysis because `user_id` won't match |
+| 3 | **Public Path vs App Path Inconsistency** | CareerAssessment.tsx vs AppCareerAssessment.tsx | Different flows for same feature - public has email check + cooldown, app doesn't |
 
-3. **Update `QuizManagement.tsx`:**
-   - Restructure to manage quizzes per module instead of per course
-   - Change route from `/content/:contentId/quiz` to allow module selection
-   - Insert questions with `module_id`
+### HIGH PRIORITY ISSUES
 
-4. **Update Admin Workflow:**
-   - Add quiz management access from `ModuleResourcesManager.tsx`
-   - Or integrate quiz questions directly into the Stage 5 (Assess) tab
+| # | Issue | Location | Impact |
+|---|-------|----------|--------|
+| 4 | **No Pagination** | `AssessmentLeadsManager.tsx:56-74` | Fetches ALL assessments - will cause performance issues at scale |
+| 5 | **PDF Template Rendering Issues** | `ScorecardPDFTemplate.tsx` | Template uses Inter/Poppins fonts that may not render in PDF; positioned off-screen causes issues on some browsers |
+| 6 | **Results Query Uses email ILIKE** | `MyResults.tsx:47-51` | Case-insensitive match on email can return incorrect results if email has different casing |
+| 7 | **Missing Loading States** | `CareerAssessment.tsx:449-455` | ProfessionSelector shows before categories are loaded, causing flash of empty state |
+
+### MEDIUM PRIORITY UI/UX IMPROVEMENTS
+
+| # | Issue | Location | Recommendation |
+|---|-------|----------|----------------|
+| 8 | **No Progress Persistence** | `AssessmentStepper.tsx` | User loses progress if they refresh mid-assessment |
+| 9 | **Phone Input Inconsistency** | `LeadCaptureForm.tsx:266-275` | Uses basic Input instead of PhoneInput component with country selector |
+| 10 | **Cooldown Period Hardcoded** | `CareerAssessment.tsx:153-159` | 90-day cooldown not clearly communicated; uses database `expires_at` |
+| 11 | **Missing Service History Link** | Results page | No navigation to /app/my-results from assessment results |
+| 12 | **PDF Download UX** | `AssessmentResults.tsx:256-269` | No preview of PDF before download; users don't know what they'll get |
+
+### LOW PRIORITY ENHANCEMENTS
+
+| # | Issue | Location | Recommendation |
+|---|-------|----------|----------------|
+| 13 | **No Question Bank Management** | Admin Dashboard | No UI for admins to add/edit/manage assessment questions |
+| 14 | **No A/B Testing Support** | Assessment flow | No ability to test different question sets |
+| 15 | **No Retake Comparison** | Results page | When user retakes, no side-by-side comparison with previous score |
 
 ---
 
-## Issue 2: AI Quiz Parser for Admin
+## Detailed Fix Plan
 
-### Current Problem
-Manually entering quiz questions is tedious. Admins want to copy-paste AI-generated quizzes.
+### Phase 1: Critical Bug Fixes
 
-### Solution
-Add a "Parse AI Quiz" feature that accepts various formats and extracts questions.
+#### 1.1 Fix Duplicate Credit Deduction
 
-**Changes Required:**
+**Problem**: In the App flow (`AppCareerAssessment.tsx`), credits are deducted during processing (lines 161-164). But `LeadCaptureForm.tsx` ALSO deducts credits (lines 167-169). This means app users pay twice.
 
-1. **Create `QuizParser` component** in `QuizManagement.tsx`:
-   - Text area for pasting AI-generated quiz
-   - Parse common formats:
-     ```text
-     1. What is...?
-     A) Option A
-     B) Option B
-     C) Option C
-     D) Option D
-     Correct: B
-     Explanation: Because...
-     ```
-   - Also support JSON format for direct paste
+**Files to Modify**:
+- `src/components/assessment/LeadCaptureForm.tsx`
 
-2. **Parser Logic:**
-   ```typescript
-   function parseAIQuiz(text: string): Question[] {
-     // Detect format (numbered list, JSON, etc.)
-     // Extract questions, options, correct answers
-     // Return structured Question[]
-   }
-   ```
+**Changes**:
+Remove credit deduction from LeadCaptureForm since it's already handled in the parent (AppCareerAssessment). LeadCaptureForm should only handle data collection and validation.
 
-3. **UI Flow:**
-   - Button: "Import from AI"
-   - Modal with textarea for pasting
-   - Preview parsed questions
-   - Confirm to add to quiz
+```typescript
+// REMOVE these lines from LeadCaptureForm.tsx (around line 167-169):
+// await addServiceUsed('career_assessment');
+// await deductCredits('CAREER_ASSESSMENT', tempAssessmentId, 'Career Readiness Scorecard');
+```
+
+#### 1.2 Fix Edge Function Ownership Check
+
+**Problem**: The edge function checks `assessment.user_id !== user.id`, but assessments created through the public path may have `user_id = null` initially, or the `user_id` might be set during insert but the edge function call happens with a different user context.
+
+**Files to Modify**:
+- `supabase/functions/analyze-career-assessment/index.ts`
+
+**Changes**:
+Allow analysis if user owns the assessment via `user_id` OR `talent_id`, or if they're an admin:
+
+```typescript
+// Replace lines 80-89 with:
+const isOwner = assessment.user_id === user.id || assessment.talent_id === talentId;
+const isAdmin = await checkIsAdmin(supabaseAuth, user.id); // helper function
+
+if (!isOwner && !isAdmin) {
+  console.error(`Unauthorized access attempt`);
+  return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 403, ... });
+}
+```
+
+Also need to fetch the user's `talent_id` first:
+```typescript
+const { data: talent } = await supabaseAuth
+  .from('talents')
+  .select('id')
+  .eq('user_id', user.id)
+  .maybeSingle();
+const talentId = talent?.id;
+```
+
+#### 1.3 Align Public and App Assessment Flows
+
+**Problem**: Public path (`CareerAssessment.tsx`) has:
+- Email check step
+- Cooldown detection with access code bypass
+- 7-step flow
+
+App path (`AppCareerAssessment.tsx`) has:
+- No email check (uses logged-in user)
+- No cooldown detection
+- 5-step flow
+
+**Decision Required**: Should app users also have cooldown periods, or is the credit system sufficient?
+
+**Recommended Changes**:
+- Keep flows separate but add cooldown check to App flow as well
+- Add a "View Previous Results" link if user has recent assessment
 
 ---
 
-## Issue 3: Better PDF Display
+### Phase 2: High Priority Fixes
 
-### Current Problem
-PDFs are displayed in a basic iframe (`ResourceViewer.tsx` lines 99-120). On mobile, this is often unusable. Users have to click "Open" to view in new tab.
+#### 2.1 Add Pagination to Admin Leads Manager
 
-### Solution
-Improve PDF viewing with a dedicated viewer.
+**Files to Modify**:
+- `src/components/dashboard/AssessmentLeadsManager.tsx`
 
-**Option A: Google Docs Viewer (Simpler)**
+**Changes**:
+Add pagination with 20 items per page using Supabase's `.range()`:
+
+```typescript
+const [page, setPage] = useState(0);
+const PAGE_SIZE = 20;
+
+// In loadLeads():
+const { data, error, count } = await supabase
+  .from("career_assessments")
+  .select(`...`, { count: 'exact' })
+  .order("created_at", { ascending: false })
+  .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+```
+
+#### 2.2 Improve PDF Template Reliability
+
+**Files to Modify**:
+- `src/components/assessment/ScorecardPDFTemplate.tsx`
+- `src/lib/assessmentPdfGenerator.ts`
+
+**Changes**:
+1. Use system fonts that are guaranteed to render
+2. Add a PDF preview modal before download
+3. Consider using a server-side PDF generation approach for better reliability
+
+```typescript
+// Update font-family to system fonts only:
+fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
+```
+
+#### 2.3 Fix Email Case Sensitivity in MyResults
+
+**Files to Modify**:
+- `src/pages/app/MyResults.tsx`
+
+**Changes**:
+Use `.eq('email', talent.email.toLowerCase())` instead of `.ilike()`:
+
+```typescript
+// Line 48-51: Change to use exact lowercase match
+.eq('email', talent.email.toLowerCase().trim())
+```
+
+---
+
+### Phase 3: UX Improvements
+
+#### 3.1 Replace Phone Input with PhoneInput Component
+
+**Files to Modify**:
+- `src/components/assessment/LeadCaptureForm.tsx`
+
+**Changes**:
+Replace the basic Input with the PhoneInput component that's already used elsewhere:
+
 ```tsx
-// Use Google Docs viewer for better PDF rendering
-const pdfViewerUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`;
+import { PhoneInput } from '@/components/ui/phone-input';
+
+// Replace lines 266-275 with:
+<div className="space-y-2">
+  <Label>Phone Number *</Label>
+  <PhoneInput
+    value={formData.phone}
+    onChange={(phone, countryCode, country) => {
+      setFormData({ ...formData, phone, countryCode, country });
+    }}
+    defaultCountry="BD"
+    disabled={submitting}
+  />
+</div>
 ```
 
-**Option B: PDF.js Integration (More Control)**
-Add a proper PDF viewer with navigation controls, zoom, and page tracking.
+Also update the form state to include countryCode and country.
 
-**Recommended Changes:**
+#### 3.2 Add Progress Persistence (Optional)
 
-1. **Update `ResourceViewer.tsx`** for slides/PDF type:
-   - Use Google Docs viewer for embedded view
-   - Add full-screen modal option
-   - Add page navigation (if using PDF.js)
-   - Add download button
+**Files to Modify**:
+- `src/components/assessment/AssessmentStepper.tsx`
 
-2. **UI Improvements:**
-   ```tsx
-   <div className="relative">
-     <iframe 
-       src={`https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`}
-       className="w-full aspect-[4/3] rounded-lg"
-     />
-     <div className="absolute bottom-2 right-2 flex gap-2">
-       <Button size="sm" variant="secondary" onClick={openFullscreen}>
-         <Maximize className="h-4 w-4" />
-       </Button>
-       <Button size="sm" variant="secondary" asChild>
-         <a href={url} download>
-           <Download className="h-4 w-4" />
-         </a>
-       </Button>
-     </div>
-   </div>
-   ```
+**Changes**:
+Store answers in localStorage keyed by categoryId, clear on completion:
 
----
+```typescript
+useEffect(() => {
+  const saved = localStorage.getItem(`assessment_${categoryId}`);
+  if (saved) {
+    const { answers: savedAnswers, index } = JSON.parse(saved);
+    setAnswers(savedAnswers);
+    setCurrentIndex(index);
+  }
+}, [categoryId]);
 
-## Issue 4: Flashcard JSON Format Resilience
+// On answer change:
+useEffect(() => {
+  if (Object.keys(answers).length > 0) {
+    localStorage.setItem(`assessment_${categoryId}`, JSON.stringify({
+      answers,
+      index: currentIndex
+    }));
+  }
+}, [answers, currentIndex]);
 
-### Current Problem
-Flashcards show format errors that disappear on refresh. This suggests:
-1. JSON parsing issues with inconsistent formats
-2. State not persisting correctly
+// On complete:
+localStorage.removeItem(`assessment_${categoryId}`);
+```
 
-### Solution
-Add defensive parsing in `PracticeStage.tsx`:
+#### 3.3 Add "View History" Link to Results Page
 
-**Changes Required:**
+**Files to Modify**:
+- `src/pages/AssessmentResults.tsx`
 
-1. **Normalize Flashcard Data:**
-   ```typescript
-   function normalizeFlashcards(resourceData: any): Flashcard[] {
-     // Handle multiple possible formats
-     if (!resourceData) return [];
-     
-     // Format 1: { cards: [...] }
-     if (resourceData.cards && Array.isArray(resourceData.cards)) {
-       return resourceData.cards.map(normalizeCard);
-     }
-     
-     // Format 2: Direct array
-     if (Array.isArray(resourceData)) {
-       return resourceData.map(normalizeCard);
-     }
-     
-     return [];
-   }
-   
-   function normalizeCard(card: any, index: number): Flashcard {
-     return {
-       id: card.id || `card-${index}`,
-       front: card.front || card.question || card.term || '',
-       back: card.back || card.answer || card.definition || '',
-       hint: card.hint || undefined
-     };
-   }
-   ```
+**Changes**:
+Add a button to view all past results:
 
-2. **Add Loading/Error States:**
-   - Show skeleton while parsing
-   - Show helpful error if parsing fails
-
----
-
-## Issue 5: Accurate Progress Bar
-
-### Current Problem
-Progress calculation in `ImmersiveCoursePlayer.tsx` (lines 225-230) uses:
-- `moduleProgress` (local state for current session)
-- `completedStages` (from `useStageProgress` hook)
-
-But `moduleProgress` resets on page refresh, so progress appears incorrect.
-
-### Solution
-Load persisted progress for ALL modules on initial load.
-
-**Changes Required:**
-
-1. **Update `ImmersiveCoursePlayer.tsx`:**
-   ```typescript
-   // Fetch all module progress from database
-   const { data: allModuleProgress } = useQuery({
-     queryKey: ["all-module-progress", enrollment?.id],
-     queryFn: async () => {
-       const { data } = await supabase
-         .from("enrollment_stage_progress")
-         .select("module_id, completed_stages")
-         .eq("enrollment_id", enrollment.id);
-       return data || [];
-     },
-     enabled: !!enrollment?.id
-   });
-   
-   // Calculate accurate progress
-   const totalCompletedStages = allModuleProgress?.reduce((sum, mp) => 
-     sum + (mp.completed_stages?.length || 0), 0
-   ) || 0;
-   
-   const overallProgress = (totalCompletedStages / (modules.length * 6)) * 100;
-   ```
-
-2. **Also sync with `enrollments.progress` field:**
-   - The `useStageProgress` hook already updates this, but verify it's being read correctly
-
----
-
-## Implementation Roadmap
-
-### Phase 1: Critical Fixes (Quiz + Progress)
-1. **Database Migration:** Add `module_id` to `quiz_questions` table
-2. **Update `AssessStage.tsx`:** Query by `module_id` instead of `content_id`
-3. **Update `QuizManagement.tsx`:** Select module, save with `module_id`
-4. **Fix progress bar:** Load all module progress from database
-
-### Phase 2: Admin UX (Quiz Parser)
-1. **Create quiz parser utility:** `src/lib/quizParser.ts`
-2. **Add "Import from AI" button** in quiz management
-3. **Parse modal** with preview
-
-### Phase 3: Learning UX (PDF + Flashcards)
-1. **Improve PDF viewer** with Google Docs or PDF.js
-2. **Add defensive flashcard parsing** to handle format variations
-3. **Add fullscreen modal** for PDF viewing
-
----
-
-## Database Migration SQL
-
-```sql
--- Add module_id column to quiz_questions
-ALTER TABLE quiz_questions 
-ADD COLUMN module_id uuid REFERENCES course_modules(id) ON DELETE CASCADE;
-
--- Create index for efficient lookups
-CREATE INDEX idx_quiz_questions_module_id ON quiz_questions(module_id);
-
--- Note: Existing questions with NULL module_id will continue to work
--- They can be migrated to specific modules via admin UI
+```tsx
+// After the Retake Assessment button (around line 398):
+<Button onClick={() => navigate("/app/my-results")} variant="ghost">
+  <History className="h-4 w-4 mr-2" />
+  View All Results
+</Button>
 ```
 
 ---
 
-## Files to Create/Modify
+### Phase 4: Admin Enhancements (Future)
 
-| File | Action | Changes |
-|------|--------|---------|
-| Database | Migration | Add `module_id` column to `quiz_questions` |
-| `src/components/player/stages/AssessStage.tsx` | Modify | Query by `module_id` |
-| `src/pages/QuizManagement.tsx` | Modify | Add module selector, save with `module_id` |
-| `src/pages/ImmersiveCoursePlayer.tsx` | Modify | Load all module progress for accurate bar |
-| `src/lib/quizParser.ts` | Create | AI quiz text parser utility |
-| `src/components/player/ResourceViewer.tsx` | Modify | Improve PDF display |
-| `src/components/player/stages/PracticeStage.tsx` | Modify | Add defensive flashcard parsing |
+#### 4.1 Question Bank Management
+
+Create a new admin page for managing assessment questions:
+- View all questions by profession category
+- Add/edit/delete questions
+- Set question weights and display order
+- Toggle question active status
+
+This would require a new component: `src/components/dashboard/AssessmentQuestionsManager.tsx`
 
 ---
 
-## Expected Outcomes
+## Database Schema Notes
 
-1. **Quiz per Module:** Each module has its own quiz with 3-5 questions
-2. **AI Quiz Import:** Admins can paste AI-generated quizzes and have them parsed automatically
-3. **Better PDF Viewing:** PDFs render properly on mobile with fullscreen option
-4. **Reliable Flashcards:** Flashcards work consistently regardless of minor JSON format variations
-5. **Accurate Progress:** Progress bar reflects true completion across all modules
+The schema is well-designed:
+- `career_assessments` - Stores results with proper relations to `talents`, `users`, and `profession_categories`
+- `assessment_questions` - Questions with flexible JSONB options and category grouping
+- `assessment_access_codes` - Retake codes with expiration and usage tracking
+
+**RLS Policies are appropriate**:
+- Anyone can submit assessments (INSERT)
+- Users can view own assessments by user_id
+- Admins can manage all
+
+---
+
+## Implementation Priority
+
+| Phase | Items | Estimated Effort |
+|-------|-------|------------------|
+| 1 (Critical) | Fix duplicate credits, edge function auth, flow alignment | 2-3 hours |
+| 2 (High) | Pagination, PDF improvements, email fix | 2-3 hours |
+| 3 (UX) | PhoneInput, progress persistence, history link | 1-2 hours |
+| 4 (Future) | Question bank management | 4-6 hours |
+
+---
+
+## Files to Modify Summary
+
+| File | Changes |
+|------|---------|
+| `src/components/assessment/LeadCaptureForm.tsx` | Remove credit deduction, add PhoneInput |
+| `src/pages/app/AppCareerAssessment.tsx` | Add cooldown check (optional) |
+| `supabase/functions/analyze-career-assessment/index.ts` | Fix ownership check to include talent_id |
+| `src/components/dashboard/AssessmentLeadsManager.tsx` | Add pagination |
+| `src/components/assessment/ScorecardPDFTemplate.tsx` | Fix fonts, improve rendering |
+| `src/pages/app/MyResults.tsx` | Fix email case sensitivity |
+| `src/components/assessment/AssessmentStepper.tsx` | Add localStorage progress persistence |
+| `src/pages/AssessmentResults.tsx` | Add history link |
+
