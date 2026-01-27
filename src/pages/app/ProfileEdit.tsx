@@ -219,6 +219,8 @@ export default function ProfileEdit() {
       await updateTalent({
         fullName: formData.fullName,
         phone: formData.phone,
+        countryCode: formData.countryCode,
+        country: formData.country,
         customProfession: formData.customProfession,
         currentStatus: formData.currentStatus,
         institution: formData.institution,

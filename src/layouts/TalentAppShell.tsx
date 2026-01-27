@@ -203,7 +203,15 @@ export function TalentAppShell() {
 
           <div className="flex items-center gap-2">
             <NotificationDropdown />
-            {/* Using Credit Balance here might crowd it, better in the menu */}
+            <Avatar 
+              className="h-9 w-9 cursor-pointer ring-2 ring-border hover:ring-primary/50 transition-all"
+              onClick={() => navigate('/app/profile')}
+            >
+              <AvatarImage src={talent?.profilePhotoUrl || undefined} />
+              <AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">
+                {talent?.fullName?.charAt(0)?.toUpperCase() || 'U'}
+              </AvatarFallback>
+            </Avatar>
           </div>
         </header>
 

@@ -202,6 +202,8 @@ export function TalentProvider({ children }: { children: React.ReactNode }) {
         mapField("profilePhotoUrl", "profile_photo_url");
         mapField("onboardingCompletedAt", "onboarding_completed_at");
         mapField("onboardingStep", "onboarding_step");
+        mapField("country", "country");
+        mapField("countryCode", "country_code");
 
         // Optimistic update locally
         setTalent((prev) => (prev ? { ...prev, ...data } : null));
