@@ -76,6 +76,17 @@ const copyToClipboard = async (text: string) => {
   }
 };
 
+// --- Valid job fields for payload sanitization ---
+const VALID_JOB_FIELDS = [
+  'title', 'company_name', 'company_logo_url', 'location', 'job_type',
+  'experience_level', 'salary_range_min', 'salary_range_max', 'description',
+  'ai_enhanced_description', 'requirements', 'preferred_skills', 'application_type',
+  'application_email', 'application_url', 'source_url', 'source_platform',
+  'profession_category_id', 'deadline', 'is_active', 'is_featured',
+  'posted_by', 'source_image_url', 'company_id', 'ai_assessment_enabled',
+  'assessment_config', 'vacancies'
+];
+
 // --- Types ---
 type JobType = "full_time" | "part_time" | "contract" | "internship" | "freelance" | "remote";
 type ExperienceLevel = "entry" | "mid" | "senior" | "executive";
@@ -911,17 +922,20 @@ export function JobsManager() {
           if (newCo) companyId = newCo.id;
         }
       }
-      const payload = { ...formData, company_id: companyId };
-      delete payload.id;
+      // Sanitize payload to only include valid job fields
+      const payload = Object.fromEntries(
+        Object.entries({ ...formData, company_id: companyId })
+          .filter(([key]) => VALID_JOB_FIELDS.includes(key))
+      ) as Record<string, unknown>;
       
       console.log("Saving job payload:", payload);
       
       let error;
       if (editingJob) {
-        const result = await supabase.from("jobs").update(payload).eq("id", editingJob.id);
+        const result = await supabase.from("jobs").update(payload as any).eq("id", editingJob.id);
         error = result.error;
       } else {
-        const result = await supabase.from("jobs").insert(payload).select().single();
+        const result = await supabase.from("jobs").insert(payload as any).select().single();
         error = result.error;
       }
       

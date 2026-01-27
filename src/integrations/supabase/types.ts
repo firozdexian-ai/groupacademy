@@ -1860,6 +1860,7 @@ export type Database = {
           job_type: Database["public"]["Enums"]["job_type"]
           location: string | null
           posted_by: string | null
+          preferred_skills: Json | null
           profession_category_id: string | null
           requirements: Json | null
           salary_range_max: number | null
@@ -1891,6 +1892,7 @@ export type Database = {
           job_type?: Database["public"]["Enums"]["job_type"]
           location?: string | null
           posted_by?: string | null
+          preferred_skills?: Json | null
           profession_category_id?: string | null
           requirements?: Json | null
           salary_range_max?: number | null
@@ -1924,6 +1926,7 @@ export type Database = {
           job_type?: Database["public"]["Enums"]["job_type"]
           location?: string | null
           posted_by?: string | null
+          preferred_skills?: Json | null
           profession_category_id?: string | null
           requirements?: Json | null
           salary_range_max?: number | null
