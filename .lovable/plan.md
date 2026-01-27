@@ -1,82 +1,118 @@
 
 
-## Fix: Job Save Failing Due to Missing `preferred_skills` Column
+# Platform Improvement Plan: Critical Bug Fix + Abroad Section Validation
 
-### Problem Identified
+## Summary
 
-The error shows: **"Could not find the 'preferred_skills' column of 'jobs' in the schema cache"**
-
-**Root Cause Chain:**
-
-1. The `parse-job-post` edge function extracts `preferred_skills` from job posts (line 181-185 in the edge function)
-2. `handleParseJobPost` merges ALL parsed data into `formData` via `{ ...prev, ...data.parsed }`
-3. `handleSaveJob` sends ALL `formData` to Supabase via `{ ...formData, company_id: companyId }`
-4. The `jobs` table doesn't have a `preferred_skills` column → **Error**
+After comprehensive audit of all AI services and the abroad section:
+- **AI Services**: All 20 edge functions are properly implemented with security, error handling, and fallbacks
+- **Abroad Section**: All pages work correctly (CareerAbroad, StudyAbroad, StudyAbroadDetail, IELTSPrep)
+- **Critical Bug**: Found broken job save functionality in `AppJobDetail.tsx`
 
 ---
 
-### Solution (Two Parts)
+## Phase 1: Fix Critical `saved_jobs` Bug (Immediate)
 
-#### Part 1: Add Missing Column to Database
+### Problem
+`AppJobDetail.tsx` references a non-existent `saved_jobs` table. Database only has `saved_items` table.
 
-Add the `preferred_skills` column to store this useful data:
+### Files to Modify
 
-```sql
-ALTER TABLE public.jobs 
-ADD COLUMN preferred_skills jsonb DEFAULT '[]'::jsonb;
+**File: `src/pages/app/AppJobDetail.tsx`**
 
-COMMENT ON COLUMN public.jobs.preferred_skills IS 'Array of preferred/bonus skills for the job';
-```
+1. Add import for useSavedItems hook
+2. Replace direct Supabase calls with hook usage
+3. Remove `as any` type casting (clean code)
 
-#### Part 2: Sanitize Payload Before Save (Safety Net)
-
-Even after adding the column, we should filter out any fields that don't exist in the schema to prevent future similar issues:
-
-**File: `src/components/dashboard/JobsManager.tsx`**
+### Implementation
 
 ```typescript
-// Add a list of valid job fields
-const VALID_JOB_FIELDS = [
-  'title', 'company_name', 'company_logo_url', 'location', 'job_type', 
-  'experience_level', 'salary_range_min', 'salary_range_max', 'description',
-  'ai_enhanced_description', 'requirements', 'preferred_skills', 'application_type',
-  'application_email', 'application_url', 'source_url', 'source_platform',
-  'profession_category_id', 'deadline', 'is_active', 'is_featured', 
-  'posted_by', 'source_image_url', 'company_id', 'ai_assessment_enabled',
-  'assessment_config', 'vacancies'
-];
+// Add import
+import { useSavedItems } from '@/hooks/useSavedItems';
 
-// In handleSaveJob, filter the payload:
-const payload = Object.fromEntries(
-  Object.entries({ ...formData, company_id: companyId })
-    .filter(([key]) => VALID_JOB_FIELDS.includes(key))
-);
-delete payload.id;
+// In component, replace useState + manual Supabase logic:
+const { isSaved: checkIsSaved, toggleSave } = useSavedItems();
+
+// Remove the broken loadJobAndApplication saved_jobs check (lines 155-162)
+// Remove the broken handleSaveToggle function (lines 172-189)
+
+// Use hook methods instead:
+const jobIsSaved = id ? checkIsSaved(id, 'job') : false;
+
+const handleSaveToggle = async () => {
+  if (!id) return;
+  await toggleSave(id, 'job');
+};
 ```
 
 ---
+
+## Phase 2: Abroad Section Data Seeding (Optional Enhancement)
+
+### Current Data Status
+- `study_abroad_programs`: 6 active programs
+- `ielts_resources`: 8 active resources
+
+The abroad section works perfectly but could benefit from more content:
+
+### Suggested Content Additions (Admin Dashboard)
+1. Add more Study Abroad programs for popular destinations (UK, US, Canada, Australia)
+2. Add more IELTS resources per section (Listening, Reading, Writing, Speaking)
+3. Consider adding AI-powered IELTS speaking practice via the IELTS Tutor agent
+
+---
+
+## Technical Details
 
 ### Files to Modify
 
 | File | Change |
 |------|--------|
-| Database Migration | Add `preferred_skills` column to `jobs` table |
-| `src/components/dashboard/JobsManager.tsx` | Filter payload to only include valid columns |
+| `src/pages/app/AppJobDetail.tsx` | Refactor to use `useSavedItems` hook instead of broken direct queries |
+
+### No Changes Needed
+
+| Component | Status |
+|-----------|--------|
+| All 20 Edge Functions | Working correctly with proper auth, error handling, fallbacks |
+| CareerAbroad.tsx | Working correctly |
+| StudyAbroad.tsx | Working correctly - filters, search, debouncing |
+| StudyAbroadDetail.tsx | Working correctly - UUID validation, error states |
+| IELTSPrep.tsx | Working correctly - section tabs, resource display |
+| useSavedItems.ts | Working correctly - uses correct `saved_items` table |
 
 ---
 
-### Why This Happened
+## What Was Verified
 
-The AI parsing function was designed to extract as much useful data as possible (including preferred skills), but the database schema wasn't updated to accommodate this field. The form was blindly passing all parsed data to the database without validation.
+### AI Services (All 20 Functions)
+- Authentication with Authorization header
+- User ownership verification (IDOR prevention)
+- Rate limit handling (429/402)
+- 90-second timeout controllers
+- JSON parsing with markdown cleanup
+- Fallback responses when AI fails
+
+### Abroad Section Pages
+- Database queries work correctly
+- Filters and search functionality operational
+- Error states properly displayed
+- Navigation between pages works
+- Country selection and filtering work
+
+### Database Tables
+- `saved_items` table exists and is used by `useSavedItems` hook
+- `saved_jobs` table does NOT exist (bug confirmed)
+- `study_abroad_programs` has 6 active records
+- `ielts_resources` has 8 active records
 
 ---
 
-### Additional Fields to Consider
+## Expected Outcome
 
-While we're at it, the edge function also extracts these fields that don't exist in the schema:
-- `company_about` → Could add to `companies` table
-- `company_website` → Could add to `companies` table
-- `salary_note` → Could add to `jobs` table
-
-For now, we'll focus on `preferred_skills` to fix the immediate issue.
+After implementing Phase 1:
+- Job save/unsave functionality will work correctly
+- Users can bookmark jobs from the job detail page
+- Saved jobs will appear in the Saved Items page
+- No more silent failures when saving jobs
 
