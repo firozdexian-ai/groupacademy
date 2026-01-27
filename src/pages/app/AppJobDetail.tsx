@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useTalent } from "@/hooks/useTalent";
+import { useSavedItems } from "@/hooks/useSavedItems";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -80,12 +81,15 @@ export default function AppJobDetail() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { talent } = useTalent();
+  const { isSaved: checkIsSaved, toggleSave } = useSavedItems();
 
   const [job, setJob] = useState<Job | null>(null);
   const [existingApp, setExistingApp] = useState<ExistingApplication | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [isSaved, setIsSaved] = useState(false);
+
+  // Use the hook to check saved status
+  const isSaved = id ? checkIsSaved(id, 'job') : false;
 
   useEffect(() => {
     if (id) {
@@ -126,7 +130,7 @@ export default function AppJobDetail() {
       if (jobError) throw jobError;
       setJob(jobData);
 
-      // 2. Check for Existing Application & Saved Status (if user logged in)
+      // 2. Check for Existing Application (if user logged in)
       if (talent?.id) {
         const { data: appData, error: appError } = await supabase
           .from("job_applications")
@@ -151,15 +155,7 @@ export default function AppJobDetail() {
             assessment_score: assessment?.ai_score,
           });
         }
-
-        // Check if saved (Type cast to any to bypass missing table definition)
-        const { count } = await (supabase as any)
-          .from("saved_jobs")
-          .select("*", { count: "exact", head: true })
-          .eq("job_id", id)
-          .eq("talent_id", talent.id);
-
-        setIsSaved(!!count);
+        // Saved status is now handled by useSavedItems hook
       }
     } catch (error: any) {
       console.error("Error loading job:", error);
@@ -170,23 +166,8 @@ export default function AppJobDetail() {
   };
 
   const handleSaveToggle = async () => {
-    if (!talent) return;
-
-    // Optimistic Update
-    setIsSaved(!isSaved);
-
-    try {
-      if (isSaved) {
-        await (supabase as any).from("saved_jobs").delete().eq("job_id", id).eq("talent_id", talent.id);
-        toast.success("Job removed from saved items");
-      } else {
-        await (supabase as any).from("saved_jobs").insert({ job_id: id, talent_id: talent.id });
-        toast.success("Job saved for later");
-      }
-    } catch (error) {
-      setIsSaved(!isSaved); // Revert
-      toast.error("Failed to update saved status");
-    }
+    if (!id) return;
+    await toggleSave(id, 'job');
   };
 
   const formatSalary = (min: number | null, max: number | null) => {
