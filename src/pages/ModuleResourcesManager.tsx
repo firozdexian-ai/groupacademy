@@ -223,8 +223,30 @@ export default function ModuleResourcesManager() {
     
     setSaving(true);
     try {
-      // Filter out empty resources
-      const validResources = resources.filter(r => r.title && (r.resource_url || r.resource_data));
+      // Filter out incomplete resources based on type
+      const validResources = resources.filter(r => {
+        if (!r.title?.trim()) return false;
+        
+        // URL-based resources need URL
+        if (['video', 'slides', 'infographic', 'mindmap', 'audio_podcast'].includes(r.resource_type)) {
+          return !!r.resource_url?.trim();
+        }
+        
+        // Data-based resources need data with content
+        if (['flashcards', 'ai_scenario'].includes(r.resource_type)) {
+          return r.resource_data && Object.keys(r.resource_data).length > 0;
+        }
+        
+        // Report needs content in resource_data
+        if (r.resource_type === 'report') {
+          return r.resource_data?.content;
+        }
+        
+        // Quiz doesn't need URL (managed separately in Quiz Manager)
+        if (r.resource_type === 'quiz') return true;
+        
+        return false;
+      });
 
       if (validResources.length > 0) {
         const resourcesToUpsert = validResources.map((r, idx) => ({

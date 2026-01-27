@@ -86,6 +86,13 @@ export default function ModuleManagement() {
   };
 
   const removeModule = (index: number) => {
+    const module = modules[index];
+    if (module.id) {
+      // Module exists in DB - warn about potential resource loss
+      if (!confirm("Deleting this module will also remove its resources. Continue?")) {
+        return;
+      }
+    }
     setModules(modules.filter((_, i) => i !== index));
   };
 
@@ -122,9 +129,9 @@ export default function ModuleManagement() {
       return;
     }
 
-    const incomplete = modules.some(m => !m.title || !m.video_url);
+    const incomplete = modules.some(m => !m.title);
     if (incomplete) {
-      toast.error("Please complete all module titles and video URLs");
+      toast.error("Please complete all module titles");
       return;
     }
 
@@ -268,12 +275,15 @@ export default function ModuleManagement() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>YouTube Video URL *</Label>
+                  <Label>YouTube Video URL</Label>
                   <Input
                     value={module.video_url}
                     onChange={(e) => updateModule(index, "video_url", e.target.value)}
                     placeholder="https://www.youtube.com/watch?v=..."
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Primary video for Orientation stage (optional - can also add via Resources)
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

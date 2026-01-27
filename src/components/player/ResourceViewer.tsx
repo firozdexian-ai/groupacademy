@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Play, Pause, Volume2, VolumeX, Maximize, ExternalLink } from "lucide-react";
+import { Play, Pause, Volume2, VolumeX, Maximize, ExternalLink, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ResourceViewerProps {
@@ -78,8 +78,19 @@ export function ResourceViewer({
             className="w-full h-full"
           />
         </div>
-        <CardContent className="p-3">
+        <CardContent className="p-3 flex items-center justify-between">
           <p className="text-sm font-medium">{title}</p>
+          {onComplete && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={onComplete}
+              className="gap-1 shrink-0"
+            >
+              <CheckCircle className="h-4 w-4" />
+              Mark as Watched
+            </Button>
+          )}
         </CardContent>
       </Card>
     );

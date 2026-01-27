@@ -10,6 +10,7 @@ interface UseStageProgressOptions {
 export function useStageProgress({ enrollmentId, moduleId, totalStages = 6 }: UseStageProgressOptions) {
   const [completedStages, setCompletedStages] = useState<number[]>([]);
   const [currentStage, setCurrentStage] = useState(1);
+  const [resourceViewStates, setResourceViewStates] = useState<Record<string, boolean>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -24,7 +25,7 @@ export function useStageProgress({ enrollmentId, moduleId, totalStages = 6 }: Us
       try {
         const { data, error } = await supabase
           .from("enrollment_stage_progress")
-          .select("completed_stages, current_stage")
+          .select("completed_stages, current_stage, resource_view_states")
           .eq("enrollment_id", enrollmentId)
           .eq("module_id", moduleId)
           .maybeSingle();
@@ -34,10 +35,12 @@ export function useStageProgress({ enrollmentId, moduleId, totalStages = 6 }: Us
         } else if (data) {
           setCompletedStages(data.completed_stages || []);
           setCurrentStage(data.current_stage || 1);
+          setResourceViewStates((data.resource_view_states as Record<string, boolean>) || {});
         } else {
           // No progress record yet, start fresh
           setCompletedStages([]);
           setCurrentStage(1);
+          setResourceViewStates({});
         }
       } catch (err) {
         console.error("Error loading stage progress:", err);
@@ -72,7 +75,7 @@ export function useStageProgress({ enrollmentId, moduleId, totalStages = 6 }: Us
 
   // Persist progress to database
   const persistProgress = useCallback(
-    async (newCompletedStages: number[], newCurrentStage: number) => {
+    async (newCompletedStages: number[], newCurrentStage: number, newResourceViewStates?: Record<string, boolean>) => {
       if (!enrollmentId || !moduleId) return;
 
       setIsSaving(true);
@@ -85,6 +88,7 @@ export function useStageProgress({ enrollmentId, moduleId, totalStages = 6 }: Us
               module_id: moduleId,
               completed_stages: newCompletedStages,
               current_stage: newCurrentStage,
+              resource_view_states: newResourceViewStates || resourceViewStates,
               updated_at: new Date().toISOString(),
             },
             {
@@ -104,7 +108,7 @@ export function useStageProgress({ enrollmentId, moduleId, totalStages = 6 }: Us
         setIsSaving(false);
       }
     },
-    [enrollmentId, moduleId, updateEnrollmentProgress]
+    [enrollmentId, moduleId, resourceViewStates, updateEnrollmentProgress]
   );
 
   const markStageComplete = useCallback(
@@ -147,10 +151,31 @@ export function useStageProgress({ enrollmentId, moduleId, totalStages = 6 }: Us
     [completedStages]
   );
 
+  // Mark a specific resource as viewed (persisted)
+  const markResourceViewed = useCallback(
+    async (resourceId: string) => {
+      const newStates = { ...resourceViewStates, [resourceId]: true };
+      setResourceViewStates(newStates);
+      
+      // Persist to database
+      await persistProgress(completedStages, currentStage, newStates);
+    },
+    [resourceViewStates, completedStages, currentStage, persistProgress]
+  );
+
+  // Check if a resource has been viewed
+  const isResourceViewed = useCallback(
+    (resourceId: string) => {
+      return resourceViewStates[resourceId] === true;
+    },
+    [resourceViewStates]
+  );
+
   // Reset progress for a new module
   const resetForModule = useCallback((newModuleId: string) => {
     setCompletedStages([]);
     setCurrentStage(1);
+    setResourceViewStates({});
     setIsLoading(true);
   }, []);
 
@@ -165,5 +190,9 @@ export function useStageProgress({ enrollmentId, moduleId, totalStages = 6 }: Us
     isLoading,
     isSaving,
     resetForModule,
+    // Resource view tracking
+    resourceViewStates,
+    markResourceViewed,
+    isResourceViewed,
   };
 }

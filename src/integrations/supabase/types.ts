@@ -910,6 +910,7 @@ export type Database = {
           content_type: Database["public"]["Enums"]["content_type"]
           cover_image_url: string | null
           created_at: string | null
+          credit_cost: number | null
           currency: string | null
           current_enrollment: number | null
           description: string | null
@@ -943,6 +944,7 @@ export type Database = {
           content_type: Database["public"]["Enums"]["content_type"]
           cover_image_url?: string | null
           created_at?: string | null
+          credit_cost?: number | null
           currency?: string | null
           current_enrollment?: number | null
           description?: string | null
@@ -976,6 +978,7 @@ export type Database = {
           content_type?: Database["public"]["Enums"]["content_type"]
           cover_image_url?: string | null
           created_at?: string | null
+          credit_cost?: number | null
           currency?: string | null
           current_enrollment?: number | null
           description?: string | null
@@ -1290,6 +1293,7 @@ export type Database = {
           enrollment_id: string
           id: string
           module_id: string
+          resource_view_states: Json | null
           updated_at: string | null
         }
         Insert: {
@@ -1299,6 +1303,7 @@ export type Database = {
           enrollment_id: string
           id?: string
           module_id: string
+          resource_view_states?: Json | null
           updated_at?: string | null
         }
         Update: {
@@ -1308,6 +1313,7 @@ export type Database = {
           enrollment_id?: string
           id?: string
           module_id?: string
+          resource_view_states?: Json | null
           updated_at?: string | null
         }
         Relationships: [

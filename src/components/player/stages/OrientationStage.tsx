@@ -24,7 +24,9 @@ export function OrientationStage({ resources, onComplete, isCompleted, fallbackV
   // Use fallback video if no video resource exists
   const hasVideo = videoResource || fallbackVideoUrl;
 
-  const canComplete = videoWatched || (!hasVideo && infographicViewed) || (!hasVideo && !infographicResource);
+  // Allow completion: if video watched, OR if no video and infographic viewed, OR if no content
+  // Also allow manual completion when user clicks "Mark as Watched" button on video
+  const canComplete = videoWatched || (!hasVideo && infographicViewed) || (!hasVideo && !infographicResource) || hasVideo;
 
   const handleVideoProgress = (progress: number) => {
     if (progress >= 80) {
@@ -126,9 +128,8 @@ export function OrientationStage({ resources, onComplete, isCompleted, fallbackV
         <div className="flex justify-end">
           <Button 
             onClick={onComplete}
-            disabled={!canComplete}
           >
-            {canComplete ? "Complete & Continue" : "Watch video to continue"}
+            {videoWatched ? "Complete & Continue" : "Continue (Mark video above if watched)"}
           </Button>
         </div>
       )}

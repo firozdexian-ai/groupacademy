@@ -33,6 +33,7 @@ export default function ContentEdit() {
     content_type: "recorded_course" as "batch_class" | "free_video" | "live_webinar" | "offline_seminar" | "recorded_course",
     price: "",
     currency: "USD",
+    credit_cost: null as number | null,
     duration_hours: "",
     modules_count: "",
     instructor_name: "",
@@ -73,6 +74,7 @@ export default function ContentEdit() {
         content_type: data.content_type,
         price: data.price?.toString() || "",
         currency: data.currency || "BDT",
+        credit_cost: data.credit_cost ?? null,
         duration_hours: data.duration_hours?.toString() || "",
         modules_count: data.modules_count?.toString() || "",
         instructor_name: data.instructor_name || "",
@@ -143,6 +145,7 @@ export default function ContentEdit() {
           content_type: formData.content_type,
           price: formData.price ? parseFloat(formData.price) : null,
           currency: formData.currency,
+          credit_cost: formData.credit_cost,
           duration_hours: formData.duration_hours
             ? parseInt(formData.duration_hours)
             : null,
@@ -299,6 +302,30 @@ export default function ContentEdit() {
                   placeholder="BDT"
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="credit_cost">Credit Cost (Override)</Label>
+              <Input
+                id="credit_cost"
+                type="number"
+                value={formData.credit_cost ?? ""}
+                onChange={(e) =>
+                  setFormData({ 
+                    ...formData, 
+                    credit_cost: e.target.value ? parseInt(e.target.value) : null 
+                  })
+                }
+                placeholder="Auto-calculated from price if empty"
+              />
+              <p className="text-xs text-muted-foreground">
+                Leave empty to auto-calculate from price (1 credit = ৳2). 
+                {formData.price && !formData.credit_cost && (
+                  <span className="font-medium text-foreground ml-1">
+                    Auto: {Math.ceil(parseFloat(formData.price) / 2)} credits
+                  </span>
+                )}
+              </p>
             </div>
 
             {/* YouTube URL - Available for ALL content types */}

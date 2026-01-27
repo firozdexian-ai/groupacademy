@@ -82,8 +82,14 @@ export function takaToCredits(taka: number): number {
 }
 
 /**
- * Get the credit cost for a course based on its BDT price
+ * Get the credit cost for a course
+ * Uses direct credit_cost if set, otherwise calculates from BDT price
  */
-export function getCourseCredits(priceTaka: number): number {
+export function getCourseCredits(priceTaka: number, creditCost?: number | null): number {
+  // Direct credit cost takes precedence
+  if (creditCost !== undefined && creditCost !== null) {
+    return creditCost;
+  }
+  // Fallback to price calculation
   return Math.ceil(priceTaka / CREDIT_CONFIG.CREDIT_TO_TAKA);
 }
