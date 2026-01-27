@@ -1,120 +1,58 @@
 
-## Fix: Jobs Vanishing After Creation
+
+## Fix: Job Save Failing Due to Missing `preferred_skills` Column
 
 ### Problem Identified
 
-The `handleSaveJob` function in `JobsManager.tsx` **silently swallows database errors**:
+The error shows: **"Could not find the 'preferred_skills' column of 'jobs' in the schema cache"**
 
-```javascript
-// Current broken code (lines 892-925)
-const handleSaveJob = async (formData: any) => {
-  try {
-    // ...company logic...
-    if (editingJob) 
-      await supabase.from("jobs").update(payload).eq("id", editingJob.id);
-    else 
-      await supabase.from("jobs").insert(payload);  // ← NO error check!
-    toast.success("Job saved");  // ← Shows even on failure!
-  } catch {
-    toast.error("Save failed");  // ← Only catches exceptions, not Supabase errors
-  }
-};
-```
+**Root Cause Chain:**
 
-**Root Cause**: Supabase client returns `{ data, error }` but the code doesn't check the `error` object. The insert fails silently, showing "Job saved" while the data is never persisted.
+1. The `parse-job-post` edge function extracts `preferred_skills` from job posts (line 181-185 in the edge function)
+2. `handleParseJobPost` merges ALL parsed data into `formData` via `{ ...prev, ...data.parsed }`
+3. `handleSaveJob` sends ALL `formData` to Supabase via `{ ...formData, company_id: companyId }`
+4. The `jobs` table doesn't have a `preferred_skills` column → **Error**
 
 ---
 
-### Solution
+### Solution (Two Parts)
 
-Fix the `handleSaveJob` function to properly check for database errors:
+#### Part 1: Add Missing Column to Database
+
+Add the `preferred_skills` column to store this useful data:
+
+```sql
+ALTER TABLE public.jobs 
+ADD COLUMN preferred_skills jsonb DEFAULT '[]'::jsonb;
+
+COMMENT ON COLUMN public.jobs.preferred_skills IS 'Array of preferred/bonus skills for the job';
+```
+
+#### Part 2: Sanitize Payload Before Save (Safety Net)
+
+Even after adding the column, we should filter out any fields that don't exist in the schema to prevent future similar issues:
 
 **File: `src/components/dashboard/JobsManager.tsx`**
 
 ```typescript
-const handleSaveJob = async (formData: any) => {
-  setSaving(true);
-  try {
-    // Company linking logic (unchanged)
-    let companyId = null;
-    if (formData.company_name) {
-      const { data: co } = await supabase
-        .from("companies")
-        .select("id")
-        .ilike("name", formData.company_name)
-        .maybeSingle();
-      if (co) companyId = co.id;
-      else {
-        const { data: newCo, error: coError } = await supabase
-          .from("companies")
-          .insert({ name: formData.company_name })
-          .select()
-          .single();
-        if (coError) console.warn("Company creation failed:", coError);
-        if (newCo) companyId = newCo.id;
-      }
-    }
-    
-    const payload = { ...formData, company_id: companyId };
-    delete payload.id;
-    
-    // FIX: Actually check for errors!
-    let error;
-    if (editingJob) {
-      const result = await supabase
-        .from("jobs")
-        .update(payload)
-        .eq("id", editingJob.id);
-      error = result.error;
-    } else {
-      const result = await supabase
-        .from("jobs")
-        .insert(payload)
-        .select()  // Return the inserted row to confirm success
-        .single();
-      error = result.error;
-    }
-    
-    if (error) {
-      console.error("Job save error:", error);
-      // Provide specific error messages
-      if (error.message?.includes("null value")) {
-        toast.error("Please fill all required fields (title, company, description)");
-      } else if (error.message?.includes("row-level security")) {
-        toast.error("Permission denied. Please contact admin.");
-      } else {
-        toast.error(`Save failed: ${error.message}`);
-      }
-      return; // Don't close dialog on error
-    }
-    
-    toast.success("Job saved successfully!");
-    setIsDialogOpen(false);
-    setEditingJob(null);
-    loadJobs();
-  } catch (err: any) {
-    console.error("Unexpected error saving job:", err);
-    toast.error(`Unexpected error: ${err.message}`);
-  } finally {
-    setSaving(false);
-  }
-};
+// Add a list of valid job fields
+const VALID_JOB_FIELDS = [
+  'title', 'company_name', 'company_logo_url', 'location', 'job_type', 
+  'experience_level', 'salary_range_min', 'salary_range_max', 'description',
+  'ai_enhanced_description', 'requirements', 'preferred_skills', 'application_type',
+  'application_email', 'application_url', 'source_url', 'source_platform',
+  'profession_category_id', 'deadline', 'is_active', 'is_featured', 
+  'posted_by', 'source_image_url', 'company_id', 'ai_assessment_enabled',
+  'assessment_config', 'vacancies'
+];
+
+// In handleSaveJob, filter the payload:
+const payload = Object.fromEntries(
+  Object.entries({ ...formData, company_id: companyId })
+    .filter(([key]) => VALID_JOB_FIELDS.includes(key))
+);
+delete payload.id;
 ```
-
----
-
-### Additional Improvements
-
-1. **Add form validation before submit** (already exists but may not be called):
-   - The `validateForm()` function checks required fields
-   - Ensure it runs before `onSave` is called
-
-2. **Log the payload for debugging**:
-   ```typescript
-   console.log("Saving job payload:", payload);
-   ```
-
-3. **Verify company creation errors** are also captured
 
 ---
 
@@ -122,12 +60,23 @@ const handleSaveJob = async (formData: any) => {
 
 | File | Change |
 |------|--------|
-| `src/components/dashboard/JobsManager.tsx` | Fix `handleSaveJob` to check `error` from Supabase response |
+| Database Migration | Add `preferred_skills` column to `jobs` table |
+| `src/components/dashboard/JobsManager.tsx` | Filter payload to only include valid columns |
 
 ---
 
-### Why Jobs "Vanished"
+### Why This Happened
 
-Your 2 jobs were never saved to the database. The insert failed (likely due to missing required field or validation), but the code showed "Job saved" anyway because it never checked the `error` response from Supabase.
+The AI parsing function was designed to extract as much useful data as possible (including preferred skills), but the database schema wasn't updated to accommodate this field. The form was blindly passing all parsed data to the database without validation.
 
-After fixing this, you'll see the actual error message explaining why the save failed, and jobs will no longer appear to vanish.
+---
+
+### Additional Fields to Consider
+
+While we're at it, the edge function also extracts these fields that don't exist in the schema:
+- `company_about` → Could add to `companies` table
+- `company_website` → Could add to `companies` table
+- `salary_note` → Could add to `jobs` table
+
+For now, we'll focus on `preferred_skills` to fix the immediate issue.
+
