@@ -1448,6 +1448,42 @@ export type Database = {
           },
         ]
       }
+      ielts_resource_access: {
+        Row: {
+          id: string
+          purchased_at: string
+          resource_id: string
+          talent_id: string
+        }
+        Insert: {
+          id?: string
+          purchased_at?: string
+          resource_id: string
+          talent_id: string
+        }
+        Update: {
+          id?: string
+          purchased_at?: string
+          resource_id?: string
+          talent_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ielts_resource_access_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "ielts_resources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_resource_access_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ielts_resources: {
         Row: {
           content_data: Json | null

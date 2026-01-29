@@ -2,13 +2,17 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Headphones, BookOpen, PenTool, Mic, ArrowLeft, Play, FileText, CheckCircle, Clock, Lock } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Headphones, BookOpen, PenTool, Mic, ArrowLeft, Play, FileText, CheckCircle, Clock, Lock, Coins } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Progress } from '@/components/ui/progress';
+import { CreditGateModal } from '@/components/credits/CreditGateModal';
+import { CreditPurchaseSheet } from '@/components/credits/CreditPurchaseSheet';
+import { useCredits } from '@/hooks/useCredits';
+import { useTalent } from '@/hooks/useTalent';
+import { getServiceCost } from '@/lib/creditPricing';
+import { toast } from '@/hooks/use-toast';
 
 const SECTIONS = [
   { id: 'listening', name: 'Listening', icon: Headphones, color: 'text-blue-500', bgColor: 'bg-blue-500/10' },
@@ -25,9 +29,44 @@ const CONTENT_TYPE_ICONS: Record<string, typeof Play> = {
   tips: BookOpen,
 };
 
+interface IELTSResource {
+  id: string;
+  title: string;
+  description: string | null;
+  section: string;
+  content_type: string;
+  content_url: string | null;
+  is_free: boolean;
+  duration_mins: number | null;
+  difficulty_level: string | null;
+}
+
 export default function IELTSPrep() {
   const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState('listening');
+  const [selectedResource, setSelectedResource] = useState<IELTSResource | null>(null);
+  const [showCreditGate, setShowCreditGate] = useState(false);
+  const [showPurchaseSheet, setShowPurchaseSheet] = useState(false);
+  const [isUnlocking, setIsUnlocking] = useState(false);
+  
+  const { talent } = useTalent();
+  const { balance, deductCredits, refreshBalance } = useCredits();
+  const ieltsCost = getServiceCost('IELTS_MOCK');
+
+  // Fetch user's unlocked resources
+  const { data: unlockedResources, refetch: refetchAccess } = useQuery({
+    queryKey: ['ielts-access', talent?.id],
+    queryFn: async () => {
+      if (!talent?.id) return [];
+      const { data, error } = await supabase
+        .from('ielts_resource_access')
+        .select('resource_id')
+        .eq('talent_id', talent.id);
+      if (error) throw error;
+      return data?.map(r => r.resource_id) || [];
+    },
+    enabled: !!talent?.id,
+  });
 
   const { data: resources, isLoading } = useQuery({
     queryKey: ['ielts-resources', activeSection],
@@ -56,7 +95,6 @@ export default function IELTSPrep() {
     },
   });
 
-  // Calculate section stats
   const getSectionStats = (sectionId: string) => {
     if (!allResources) return { total: 0, free: 0 };
     const sectionResources = allResources.filter(r => r.section === sectionId);
@@ -64,6 +102,83 @@ export default function IELTSPrep() {
       total: sectionResources.length,
       free: sectionResources.filter(r => r.is_free).length,
     };
+  };
+
+  const isResourceUnlocked = (resourceId: string, isFree: boolean) => {
+    if (isFree) return true;
+    return unlockedResources?.includes(resourceId) || false;
+  };
+
+  const handleResourceClick = (resource: IELTSResource) => {
+    if (isResourceUnlocked(resource.id, resource.is_free)) {
+      if (resource.content_url) {
+        window.open(resource.content_url, '_blank');
+      } else {
+        toast({
+          title: 'Content Not Available',
+          description: 'This resource content is not yet available.',
+          variant: 'destructive',
+        });
+      }
+    } else {
+      // Show credit gate for premium resources
+      setSelectedResource(resource);
+      setShowCreditGate(true);
+    }
+  };
+
+  const handleConfirmPurchase = async () => {
+    if (!selectedResource || !talent?.id) return;
+    
+    setIsUnlocking(true);
+    try {
+      const success = await deductCredits('IELTS_MOCK', selectedResource.id, `Unlocked: ${selectedResource.title}`);
+      
+      if (success) {
+        // Track access in database
+        const { error } = await supabase
+          .from('ielts_resource_access')
+          .insert({
+            talent_id: talent.id,
+            resource_id: selectedResource.id,
+          });
+        
+        if (error) {
+          console.error('Failed to track access:', error);
+          toast({
+            title: 'Error',
+            description: 'Failed to save access. Please try again.',
+            variant: 'destructive',
+          });
+          return;
+        }
+        
+        // Refetch access list
+        await refetchAccess();
+        await refreshBalance();
+        
+        toast({
+          title: 'Resource Unlocked! 🎉',
+          description: `You now have access to "${selectedResource.title}"`,
+        });
+        
+        setShowCreditGate(false);
+        
+        // Open the resource
+        if (selectedResource.content_url) {
+          window.open(selectedResource.content_url, '_blank');
+        }
+      }
+    } catch (error) {
+      console.error('Error unlocking resource:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to unlock resource. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsUnlocking(false);
+    }
   };
 
   const currentSection = SECTIONS.find(s => s.id === activeSection);
@@ -75,10 +190,14 @@ export default function IELTSPrep() {
         <Button variant="ghost" size="icon" onClick={() => navigate('/app/abroad')}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <div>
+        <div className="flex-1">
           <h1 className="text-xl font-bold">IELTS Preparation</h1>
           <p className="text-muted-foreground">Master all four IELTS sections</p>
         </div>
+        <Badge variant="secondary" className="gap-1.5">
+          <Coins className="h-3.5 w-3.5 text-warning" />
+          {ieltsCost} credits per resource
+        </Badge>
       </div>
 
       {/* Section Overview Cards */}
@@ -138,6 +257,8 @@ export default function IELTSPrep() {
           <div className="grid gap-4 md:grid-cols-2">
             {resources.map((resource) => {
               const ContentIcon = CONTENT_TYPE_ICONS[resource.content_type] || FileText;
+              const unlocked = isResourceUnlocked(resource.id, resource.is_free);
+              
               return (
                 <Card key={resource.id} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-4">
@@ -150,10 +271,15 @@ export default function IELTSPrep() {
                       </div>
                       {resource.is_free ? (
                         <Badge className="bg-green-500/10 text-green-600">Free</Badge>
+                      ) : unlocked ? (
+                        <Badge className="bg-primary/10 text-primary">
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          Unlocked
+                        </Badge>
                       ) : (
                         <Badge variant="secondary" className="gap-1">
                           <Lock className="h-3 w-3" />
-                          Premium
+                          {ieltsCost} credits
                         </Badge>
                       )}
                     </div>
@@ -179,15 +305,10 @@ export default function IELTSPrep() {
                       </div>
                       <Button 
                         size="sm" 
-                        variant={resource.is_free ? "default" : "outline"}
-                        onClick={() => {
-                          if (resource.content_url) {
-                            window.open(resource.content_url, '_blank');
-                          }
-                        }}
-                        disabled={!resource.is_free && !resource.content_url}
+                        variant={unlocked ? "default" : "outline"}
+                        onClick={() => handleResourceClick(resource)}
                       >
-                        {resource.is_free ? 'Start' : 'Unlock'}
+                        {unlocked ? 'Start' : 'Unlock'}
                       </Button>
                     </div>
                   </CardContent>
@@ -205,7 +326,7 @@ export default function IELTSPrep() {
               <p className="text-muted-foreground mb-4">
                 {currentSection?.name} preparation materials will be added soon.
               </p>
-              <Button variant="outline" onClick={() => navigate('/app/agents')}>
+              <Button variant="outline" onClick={() => navigate('/app/agents/ielts-tutor')}>
                 Practice with AI Tutor
               </Button>
             </CardContent>
@@ -213,7 +334,7 @@ export default function IELTSPrep() {
         )}
       </div>
 
-      {/* AI Practice CTA */}
+      {/* AI Practice CTA - Now links directly to IELTS Tutor */}
       <Card className="bg-gradient-to-r from-primary/5 to-secondary/5 border-primary/20">
         <CardContent className="p-6">
           <div className="flex items-center justify-between flex-wrap gap-4">
@@ -224,16 +345,41 @@ export default function IELTSPrep() {
               <div>
                 <h3 className="font-semibold mb-1">AI-Powered Speaking Practice</h3>
                 <p className="text-sm text-muted-foreground">
-                  Practice your speaking skills with our AI interviewer and get instant feedback.
+                  Practice your speaking skills with our IELTS AI Tutor and get instant feedback.
                 </p>
               </div>
             </div>
-            <Button onClick={() => navigate('/app/agents')}>
+            <Button onClick={() => navigate('/app/agents/ielts-tutor')}>
               Start Practice
             </Button>
           </div>
         </CardContent>
       </Card>
+
+      {/* Credit Gate Modal */}
+      <CreditGateModal
+        isOpen={showCreditGate}
+        onClose={() => {
+          setShowCreditGate(false);
+          setSelectedResource(null);
+        }}
+        onConfirm={handleConfirmPurchase}
+        onBuyCredits={() => {
+          setShowCreditGate(false);
+          setShowPurchaseSheet(true);
+        }}
+        serviceName={selectedResource?.title || 'IELTS Resource'}
+        cost={ieltsCost}
+        currentBalance={balance}
+        isLoading={isUnlocking}
+      />
+
+      {/* Credit Purchase Sheet */}
+      <CreditPurchaseSheet
+        isOpen={showPurchaseSheet}
+        onClose={() => setShowPurchaseSheet(false)}
+        currentBalance={balance}
+      />
     </div>
   );
 }

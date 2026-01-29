@@ -5,6 +5,7 @@ import {
   DollarSign,
   BookOpen,
   Lightbulb,
+  GraduationCap,
   LucideIcon,
 } from "lucide-react";
 
@@ -82,10 +83,21 @@ export const AI_AGENTS: AIAgent[] = [
     shortName: "Skills",
     description: "Learn in-demand skills",
     icon: Lightbulb,
-    bgColor: "bg-cyan-500/10",
-    iconColor: "text-cyan-600",
+    bgColor: "bg-teal-500/10",
+    iconColor: "text-teal-600",
     expertise: ["Skill Gaps", "Learning Paths", "Industry Trends"],
     context: "You are an expert Skill Advisor. Recommend learning paths and skills.",
+  },
+  {
+    id: "study-abroad-advisor",
+    name: "Study Abroad Advisor",
+    shortName: "Abroad",
+    description: "Plan your international education",
+    icon: GraduationCap,
+    bgColor: "bg-cyan-500/10",
+    iconColor: "text-cyan-600",
+    expertise: ["University Selection", "Visa Guidance", "Scholarships", "Country Comparison"],
+    context: "You are an expert Study Abroad Advisor. Help users choose universities, navigate visa processes, and find scholarships for international education.",
   },
 ];
 
