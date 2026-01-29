@@ -9,20 +9,12 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { COUNTRIES, getCountryFlag } from "@/lib/constants/countries";
 
-// --- INLINE CONSTANTS ---
-const COUNTRIES = [
-  { name: "United Kingdom", code: "UK", flag: "🇬🇧" },
-  { name: "United States", code: "US", flag: "🇺🇸" },
-  { name: "Canada", code: "CA", flag: "🇨🇦" },
-  { name: "Australia", code: "AU", flag: "🇦🇺" },
-  { name: "Germany", code: "DE", flag: "🇩🇪" },
-  { name: "Singapore", code: "SG", flag: "🇸🇬" },
-  { name: "Japan", code: "JP", flag: "🇯🇵" },
-  { name: "Sweden", code: "SE", flag: "🇸🇪" },
-  { name: "Netherlands", code: "NL", flag: "🇳🇱" },
-  { name: "Malaysia", code: "MY", flag: "🇲🇾" },
-];
+// Filter for study abroad popular countries
+const STUDY_COUNTRIES = COUNTRIES.filter(c =>
+  ["US", "UK", "CA", "AU", "DE", "SG", "JP", "SE", "NL", "MY"].includes(c.code)
+);
 
 const DEGREE_TYPES = ["All Degrees", "Bachelor", "Master", "PhD", "Diploma"];
 
@@ -144,10 +136,10 @@ export default function StudyAbroad() {
                   <span>All Countries</span>
                 </span>
               </SelectItem>
-              {COUNTRIES.map((country) => (
+              {STUDY_COUNTRIES.map((country) => (
                 <SelectItem key={country.code} value={country.code}>
                   <span className="flex items-center gap-2">
-                    <span>{country.flag}</span>
+                    <span>{getCountryFlag(country.code)}</span>
                     <span>{country.name}</span>
                   </span>
                 </SelectItem>
@@ -209,7 +201,7 @@ export default function StudyAbroad() {
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-full bg-primary/5 flex items-center justify-center text-xl border">
-                      {COUNTRIES.find((c) => c.code === program.country_code)?.flag || "🌍"}
+                      {getCountryFlag(program.country_code)}
                     </div>
                     <div>
                       <CardTitle className="text-base group-hover:text-primary transition-colors line-clamp-1">

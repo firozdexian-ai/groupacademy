@@ -2,18 +2,12 @@ import { useNavigate } from "react-router-dom";
 import { GraduationCap, BookOpen, Briefcase, ChevronRight, Globe } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { COUNTRIES, getCountryFlag } from "@/lib/constants/countries";
 
-const COUNTRIES = [
-  { name: "UK", code: "UK", flag: "🇬🇧" },
-  { name: "USA", code: "US", flag: "🇺🇸" },
-  { name: "Canada", code: "CA", flag: "🇨🇦" },
-  { name: "Australia", code: "AU", flag: "🇦🇺" },
-  { name: "Germany", code: "DE", flag: "🇩🇪" },
-  { name: "Singapore", code: "SG", flag: "🇸🇬" },
-  { name: "Japan", code: "JP", flag: "🇯🇵" },
-  { name: "Sweden", code: "SE", flag: "🇸🇪" },
-  { name: "Netherlands", code: "NL", flag: "🇳🇱" },
-];
+// Popular destinations filtered from centralized constants
+const POPULAR_DESTINATIONS = COUNTRIES.filter(c => 
+  ["US", "UK", "CA", "AU", "DE", "SG", "JP", "SE", "NL"].includes(c.code)
+);
 
 const ABROAD_SECTIONS = [
   {
@@ -87,18 +81,18 @@ export default function CareerAbroad() {
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-bold">Popular Destinations</h2>
           <Badge variant="outline" className="text-xs">
-            {COUNTRIES.length} Countries
+            {POPULAR_DESTINATIONS.length} Countries
           </Badge>
         </div>
         <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-          {COUNTRIES.map((country) => (
+          {POPULAR_DESTINATIONS.map((country) => (
             <Card
               key={country.code}
               className="cursor-pointer hover:shadow-md transition-all border-0 shadow-sm press-scale hover:bg-muted/50"
               onClick={() => navigate(`/app/abroad/study?country=${country.code}`)}
             >
               <CardContent className="p-4 flex flex-col items-center gap-2">
-                <span className="text-3xl">{country.flag}</span>
+                <span className="text-3xl">{getCountryFlag(country.code)}</span>
                 <span className="font-medium text-xs truncate w-full text-center">{country.name}</span>
               </CardContent>
             </Card>

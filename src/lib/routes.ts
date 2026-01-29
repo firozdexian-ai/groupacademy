@@ -71,6 +71,9 @@ export const ROUTES = {
     
     // Other
     abroad: '/app/abroad',
+    abroadStudy: '/app/abroad/study',
+    abroadStudyDetail: (id: string) => `/app/abroad/study/${id}`,
+    abroadIelts: '/app/abroad/ielts',
     notifications: '/app/notifications',
   },
 

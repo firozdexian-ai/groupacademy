@@ -238,7 +238,7 @@ export default function StudyAbroadDetail() {
             <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
               <Button
                 variant="outline"
-                onClick={() => navigate("/app/agents/career-consultant")}
+                onClick={() => navigate("/app/agents/study-abroad-advisor")}
                 className="w-full sm:w-auto"
               >
                 Chat with Counselor

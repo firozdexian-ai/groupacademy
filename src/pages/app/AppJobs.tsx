@@ -163,6 +163,7 @@ export default function AppJobs() {
   const [selectedExpLevels, setSelectedExpLevels] = useState<string[]>([]);
   const [salaryRange, setSalaryRange] = useState([0]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isInternational, setIsInternational] = useState(searchParams.get("location") === "abroad");
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -201,16 +202,27 @@ export default function AppJobs() {
       const matchExp = selectedExpLevels.length === 0 || selectedExpLevels.includes(job.experience_level);
       const matchSalary =
         salaryRange[0] === 0 || (job.salary_range_max ? job.salary_range_max >= salaryRange[0] * 1000 : true);
-      return matchSearch && matchType && matchExp && matchSalary;
+      
+      // International filter: match jobs with international/abroad/overseas keywords or remote type
+      const matchLocation = !isInternational || 
+        (job.location?.toLowerCase().includes("remote") ||
+         job.location?.toLowerCase().includes("international") ||
+         job.location?.toLowerCase().includes("abroad") ||
+         job.location?.toLowerCase().includes("overseas") ||
+         job.job_type === "remote");
+         
+      return matchSearch && matchType && matchExp && matchSalary && matchLocation;
     });
-  }, [jobs, debouncedSearch, selectedJobTypes, selectedExpLevels, salaryRange]);
+  }, [jobs, debouncedSearch, selectedJobTypes, selectedExpLevels, salaryRange, isInternational]);
 
-  const activeFiltersCount = selectedJobTypes.length + selectedExpLevels.length + (salaryRange[0] > 0 ? 1 : 0);
+  const activeFiltersCount = selectedJobTypes.length + selectedExpLevels.length + (salaryRange[0] > 0 ? 1 : 0) + (isInternational ? 1 : 0);
   const clearFilters = () => {
     setSearchQuery("");
     setSelectedJobTypes([]);
     setSelectedExpLevels([]);
     setSalaryRange([0]);
+    setIsInternational(false);
+    setSearchParams({}, { replace: true });
   };
 
   return (
@@ -343,6 +355,20 @@ export default function AppJobs() {
       {/* Active Filters Row */}
       {activeFiltersCount > 0 && (
         <div className="flex gap-2 flex-wrap">
+          {isInternational && (
+            <Badge variant="secondary" className="gap-1 bg-cyan-500/10 text-cyan-700">
+              🌍 International
+              <X
+                className="w-3 h-3 cursor-pointer"
+                onClick={() => {
+                  setIsInternational(false);
+                  const newParams = new URLSearchParams(searchParams);
+                  newParams.delete("location");
+                  setSearchParams(newParams, { replace: true });
+                }}
+              />
+            </Badge>
+          )}
           {selectedJobTypes.map((t) => (
             <Badge key={t} variant="secondary" className="gap-1">
               {JOB_TYPES[t]}
