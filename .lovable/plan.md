@@ -1,373 +1,259 @@
 
 
-# Individual Resource Saving with Error Tracking
+# Monetization Expansion Plan for Services Hub
 
-## Problem Identified
+## Current Monetization Status
 
-Currently, `ModuleResourcesManager.tsx` has a **bulk save approach** that:
-1. Saves ALL resources in one operation (lines 316-429)
-2. Shows a single success/error message for the entire batch
-3. Makes it impossible to identify which resource failed
-4. User loses JSON data, YouTube links, and infographics because when one resource fails, the error message is generic
+### Already Credit-Gated Services
+| Service | Credits | Status |
+|---------|---------|--------|
+| Career Scorecard | 50 | ✅ Active |
+| Mock Interview | 50 | ✅ Active |
+| Salary Analysis | 50 | ✅ Active |
+| Portfolio Creation | 500 | ✅ Active |
+| Job Application | 25 | ✅ Active |
+| AI Agent Chat Session | 10 | ✅ Active |
+| AI Feed Refresh | 20 | ✅ Active (SUGGESTED_JOBS) |
 
-## Root Cause Analysis
+### Defined but NOT Implemented
+| Service | Credits | Status |
+|---------|---------|--------|
+| IELTS Mock Test | 100 | ❌ Not wired up |
 
-Looking at the save logic (lines 316-429):
-- All valid resources are collected
-- Existing resources are upserted in one batch call
-- New resources are inserted in one batch call
-- If ANY resource fails, the entire operation fails silently
+### No Monetization (Free Features)
+| Feature | Current State |
+|---------|---------------|
+| IELTS Resources | Premium badge shown but no credit gate |
+| Study Abroad Programs | Free to browse |
+| AI Speaking Practice CTA | Links to agents (already gated) |
 
-## Solution: Individual Resource Save + Save All
+---
 
-### Architecture
+## Monetization Opportunities
+
+### 1. IELTS Mock Test Credit Gate (High Priority)
+
+**Current State**: IELTS resources show "Premium" badge but clicking "Unlock" does nothing.
+
+**Implementation**:
+- Wire up the `IELTS_MOCK` service type (100 credits) defined in `creditPricing.ts`
+- Add credit gate modal when user clicks "Unlock" on premium IELTS resources
+- After payment, grant access to the resource content
+
+**Files to Modify**:
+- `src/pages/app/IELTSPrep.tsx` - Add CreditGateModal integration
 
 ```text
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         NEW SAVE ARCHITECTURE                                │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  Resource Card                                                              │
-│  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │ [Title Input] [Required Toggle]           [💾 Save] [🗑️ Delete]    │   │
-│  │                                                                     │   │
-│  │ Status: ● Saved ✓  |  ● Unsaved  |  ● Error ✗                      │   │
-│  │                                                                     │   │
-│  │ [Content Fields...]                                                 │   │
-│  └─────────────────────────────────────────────────────────────────────┘   │
-│                                                                             │
-│  Bottom Bar                                                                 │
-│  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │ Unsaved: 3  |  Errors: 1  |  Saved: 5     [Save All Unsaved]       │   │
-│  └─────────────────────────────────────────────────────────────────────┘   │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
+User Flow:
+┌────────────────┐     ┌─────────────────┐     ┌──────────────────┐
+│ Click "Unlock" │ ──► │ Credit Gate     │ ──► │ Access Content   │
+│ on Premium     │     │ Modal (100 cr)  │     │ (Open resource)  │
+└────────────────┘     └─────────────────┘     └──────────────────┘
 ```
 
-### Implementation Details
+---
 
-#### 1. Add Save State Tracking
+### 2. Study Abroad Application Assistance (Medium Priority)
 
-Add state to track each resource's save status:
+**Current State**: Programs link to external university websites. No value capture.
 
-```typescript
-interface ResourceSaveState {
-  status: 'saved' | 'unsaved' | 'saving' | 'error';
-  error?: string;
-  lastSavedAt?: Date;
-}
+**New Service**: "Application Prep Package" - 150 credits
+- AI-powered SOP (Statement of Purpose) generation
+- Document checklist personalized to program
+- Visa guidance document
+- Scholarship essay tips
 
-const [saveStates, setSaveStates] = useState<Record<string, ResourceSaveState>>({});
-```
+**Files to Create/Modify**:
+- `src/lib/creditPricing.ts` - Add `STUDY_ABROAD_ASSIST` service
+- `src/pages/app/StudyAbroadDetail.tsx` - Add "Get Application Help" CTA
+- Create edge function `generate-study-abroad-sop`
 
-#### 2. Individual Save Function
+---
 
-Create a function to save a single resource:
+### 3. Premium Feed Features (Low-Medium Priority)
 
-```typescript
-const saveResource = async (resource: ModuleResource, index: number): Promise<boolean> => {
-  const tempId = resource.id || `temp-${index}`;
-  
-  setSaveStates(prev => ({
-    ...prev,
-    [tempId]: { status: 'saving' }
-  }));
+**Current State**: Feed refresh charges 20 credits after first load.
 
-  try {
-    // Validate resource
-    if (!resource.title?.trim()) {
-      throw new Error("Title is required");
-    }
+**Enhancement Options**:
+- "Priority Matching" - 30 credits: Get jobs you match 80%+ first
+- "Hidden Jobs" - 50 credits: Access unlisted/confidential job postings
+- "Salary Preview" - 15 credits: See salary range before applying
 
-    // Validate JSON for flashcards/ai_scenario
-    if (resource.resource_type === 'flashcards' || resource.resource_type === 'ai_scenario') {
-      if (!resource.resource_data || typeof resource.resource_data !== 'object') {
-        throw new Error("Invalid JSON data");
-      }
-    }
+---
 
-    // Validate URL for video/slides/infographic
-    if (['video', 'slides', 'infographic', 'mindmap', 'audio_podcast'].includes(resource.resource_type)) {
-      if (!resource.resource_url?.trim()) {
-        throw new Error("URL/File is required for this resource type");
-      }
-    }
+### 4. IELTS Band Score Prediction (Medium Priority)
 
-    if (resource.id) {
-      // Update existing
-      const { error } = await supabase
-        .from("module_resources")
-        .update({
-          title: resource.title,
-          description: resource.description || null,
-          resource_type: resource.resource_type,
-          resource_url: resource.resource_url,
-          resource_data: resource.resource_data,
-          stage_number: resource.stage_number,
-          display_order: resource.display_order,
-          is_required: resource.is_required,
-        })
-        .eq('id', resource.id);
-      
-      if (error) throw error;
-    } else {
-      // Insert new
-      const { data, error } = await supabase
-        .from("module_resources")
-        .insert({
-          module_id: moduleId,
-          title: resource.title,
-          description: resource.description || null,
-          resource_type: resource.resource_type,
-          resource_url: resource.resource_url,
-          resource_data: resource.resource_data,
-          stage_number: resource.stage_number,
-          display_order: resource.display_order,
-          is_required: resource.is_required,
-        })
-        .select('id')
-        .single();
-      
-      if (error) throw error;
-      
-      // Update local state with new ID
-      const updated = [...resources];
-      updated[index] = { ...updated[index], id: data.id };
-      setResources(updated);
-    }
+**Current State**: AI Speaking Practice CTA exists but links to generic agents page.
 
-    setSaveStates(prev => ({
-      ...prev,
-      [resource.id || `temp-${index}`]: { 
-        status: 'saved',
-        lastSavedAt: new Date()
-      }
-    }));
-    
-    toast.success(`"${resource.title}" saved successfully`);
-    return true;
-  } catch (error: any) {
-    const errorMessage = error.message || "Failed to save resource";
-    
-    setSaveStates(prev => ({
-      ...prev,
-      [tempId]: { 
-        status: 'error',
-        error: errorMessage
-      }
-    }));
-    
-    toast.error(`Failed to save "${resource.title}": ${errorMessage}`);
-    return false;
-  }
-};
-```
+**New Service**: "IELTS Band Predictor" - 75 credits
+- User submits writing sample or records speaking
+- AI analyzes and predicts band score (1-9)
+- Provides detailed feedback on improvement areas
 
-#### 3. Track Unsaved Changes
+**Files to Create**:
+- Add to `creditPricing.ts`
+- Create `src/pages/app/IELTSBandPredictor.tsx`
+- Create edge function `predict-ielts-band`
 
-Mark resources as unsaved when modified:
+---
+
+### 5. Study Abroad Counselor Session (High Priority)
+
+**Current State**: "Chat with Counselor" links to generic Career Consultant.
+
+**New AI Agent**: "Study Abroad Advisor" - 10 credits/session
+- Specialized prompts for:
+  - University selection based on profile
+  - Visa process guidance
+  - Scholarship hunting
+  - Country comparison
+
+**Files to Modify**:
+- `src/lib/constants/agents.ts` - Add new agent definition
+- Database: Insert into `ai_agents` table
+
+---
+
+### 6. CV Tailor for Abroad Jobs (New Service)
+
+**New Service**: "International CV Formatter" - 40 credits
+- Converts CV to country-specific format (US, UK, EU standards)
+- Adds region-specific keywords
+- Generates cover letter template for international applications
+
+---
+
+## Implementation Priority
+
+### Phase 1: Quick Wins (1-2 days)
+1. **IELTS Premium Resource Gate** - Wire up existing IELTS_MOCK pricing
+2. **Study Abroad Advisor Agent** - Add to agents list
+
+### Phase 2: New Revenue Streams (3-5 days)
+3. **Study Abroad Application Package** - SOP generation + docs
+4. **IELTS Band Predictor** - AI-powered score prediction
+
+### Phase 3: Enhancement (5-7 days)
+5. **Premium Feed Features** - Priority matching, hidden jobs
+6. **International CV Formatter** - Region-specific CV conversion
+
+---
+
+## Credit Pricing Summary
+
+| New Service | Proposed Credits | Revenue Potential |
+|-------------|------------------|-------------------|
+| IELTS Premium Unlock | 100 | High (existing users) |
+| Study Abroad Package | 150 | Medium-High |
+| IELTS Band Predictor | 75 | Medium |
+| Study Abroad Advisor | 10/session | Medium |
+| International CV Format | 40 | Low-Medium |
+| Priority Job Matching | 30 | Medium |
+
+---
+
+## Technical Implementation Details
+
+### IELTS Premium Gate (Phase 1)
 
 ```typescript
-const updateResource = (index: number, field: keyof ModuleResource, value: any) => {
-  const updated = [...resources];
-  updated[index] = { ...updated[index], [field]: value };
-  setResources(updated);
-  
-  // Mark as unsaved
-  const resourceId = updated[index].id || `temp-${index}`;
-  setSaveStates(prev => ({
-    ...prev,
-    [resourceId]: { status: 'unsaved' }
-  }));
-};
-```
+// In IELTSPrep.tsx - Add state
+const [selectedResource, setSelectedResource] = useState(null);
+const [showCreditGate, setShowCreditGate] = useState(false);
 
-#### 4. Save All Unsaved Function
-
-Iterate through unsaved resources and save each individually:
-
-```typescript
-const saveAllUnsaved = async () => {
-  setSaving(true);
-  
-  let successCount = 0;
-  let errorCount = 0;
-  
-  for (let i = 0; i < resources.length; i++) {
-    const resource = resources[i];
-    const resourceId = resource.id || `temp-${i}`;
-    const state = saveStates[resourceId];
-    
-    if (state?.status === 'unsaved' || !state) {
-      const success = await saveResource(resource, i);
-      if (success) {
-        successCount++;
-      } else {
-        errorCount++;
-      }
-    }
-  }
-  
-  if (errorCount === 0) {
-    toast.success(`All ${successCount} resources saved successfully!`);
+// On Unlock click
+const handleUnlock = (resource) => {
+  if (resource.is_free) {
+    window.open(resource.content_url, '_blank');
   } else {
-    toast.warning(`Saved ${successCount} resources. ${errorCount} failed - check individual errors.`);
+    setSelectedResource(resource);
+    setShowCreditGate(true);
   }
-  
-  setSaving(false);
+};
+
+// On confirm
+const handleConfirmPurchase = async () => {
+  const success = await deductCredits("IELTS_MOCK", selectedResource.id);
+  if (success) {
+    // Track access in database
+    await supabase.from('ielts_resource_access').insert({
+      talent_id: talent.id,
+      resource_id: selectedResource.id
+    });
+    window.open(selectedResource.content_url, '_blank');
+  }
 };
 ```
 
-#### 5. Update Resource Card UI
+### Study Abroad Advisor Agent (Phase 1)
 
-Add save button and status indicator to each resource card:
-
-```tsx
-const renderResourceForm = (resource: ModuleResource, index: number) => {
-  const globalIndex = resources.findIndex(r => r === resource);
-  const resourceId = resource.id || `temp-${globalIndex}`;
-  const saveState = saveStates[resourceId];
-  
-  return (
-    <Card key={index} className="mb-4">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Badge variant="outline">{resourceTypeLabels[resource.resource_type]}</Badge>
-            {resource.is_required && <Badge variant="destructive">Required</Badge>}
-            {/* Save Status Badge */}
-            {saveState?.status === 'saved' && (
-              <Badge variant="default" className="bg-green-600">
-                <CheckCircle className="h-3 w-3 mr-1" />
-                Saved
-              </Badge>
-            )}
-            {saveState?.status === 'unsaved' && (
-              <Badge variant="secondary">
-                <Circle className="h-3 w-3 mr-1" />
-                Unsaved
-              </Badge>
-            )}
-            {saveState?.status === 'saving' && (
-              <Badge variant="secondary">
-                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                Saving...
-              </Badge>
-            )}
-            {saveState?.status === 'error' && (
-              <Badge variant="destructive">
-                <XCircle className="h-3 w-3 mr-1" />
-                Error
-              </Badge>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            {/* Individual Save Button */}
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => saveResource(resource, globalIndex)}
-              disabled={saveState?.status === 'saving' || saveState?.status === 'saved'}
-            >
-              <Save className="h-4 w-4 mr-1" />
-              Save
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => removeResource(globalIndex)}>
-              <Trash2 className="h-4 w-4 text-destructive" />
-            </Button>
-          </div>
-        </div>
-        {/* Error Message Display */}
-        {saveState?.status === 'error' && saveState.error && (
-          <p className="text-sm text-destructive mt-2 flex items-center gap-1">
-            <AlertCircle className="h-4 w-4" />
-            {saveState.error}
-          </p>
-        )}
-      </CardHeader>
-      {/* ... rest of form */}
-    </Card>
-  );
-};
-```
-
-#### 6. Update Bottom Action Bar
-
-Add summary and Save All button:
-
-```tsx
-{/* Summary Bar Before Save All Button */}
-<div className="flex items-center gap-4">
-  {(() => {
-    const unsavedCount = resources.filter((r, i) => {
-      const id = r.id || `temp-${i}`;
-      return saveStates[id]?.status === 'unsaved' || !saveStates[id];
-    }).length;
-    const errorCount = resources.filter((r, i) => {
-      const id = r.id || `temp-${i}`;
-      return saveStates[id]?.status === 'error';
-    }).length;
-    const savedCount = resources.filter((r, i) => {
-      const id = r.id || `temp-${i}`;
-      return saveStates[id]?.status === 'saved';
-    }).length;
-    
-    return (
-      <>
-        {unsavedCount > 0 && (
-          <Badge variant="secondary">{unsavedCount} unsaved</Badge>
-        )}
-        {errorCount > 0 && (
-          <Badge variant="destructive">{errorCount} with errors</Badge>
-        )}
-        {savedCount > 0 && (
-          <Badge variant="outline" className="border-green-600 text-green-600">
-            {savedCount} saved
-          </Badge>
-        )}
-      </>
-    );
-  })()}
-  <Button onClick={saveAllUnsaved} disabled={saving}>
-    <Save className="h-4 w-4 mr-2" />
-    {saving ? "Saving..." : "Save All Unsaved"}
-  </Button>
-</div>
+```typescript
+// In src/lib/constants/agents.ts - Add new agent
+{
+  id: "study-abroad-advisor",
+  name: "Study Abroad Advisor",
+  shortName: "Abroad",
+  description: "Plan your international education",
+  icon: GraduationCap,
+  bgColor: "bg-cyan-500/10",
+  iconColor: "text-cyan-600",
+  expertise: ["University Selection", "Visa Guidance", "Scholarships"],
+  context: "You are an expert Study Abroad Advisor. Help users choose universities, navigate visa processes, and find scholarships."
+}
 ```
 
 ---
 
-## Files to Modify
+## Database Changes Required
 
-| File | Changes |
-|------|---------|
-| `src/pages/ModuleResourcesManager.tsx` | Add save state tracking, individual save function, UI updates |
+### New Table: `ielts_resource_access`
+```sql
+CREATE TABLE ielts_resource_access (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  talent_id UUID REFERENCES talents(id),
+  resource_id UUID REFERENCES ielts_resources(id),
+  purchased_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(talent_id, resource_id)
+);
+
+-- RLS
+ALTER TABLE ielts_resource_access ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can view own access" ON ielts_resource_access
+  FOR SELECT USING (talent_id IN (SELECT id FROM talents WHERE user_id = auth.uid()));
+CREATE POLICY "Users can insert own access" ON ielts_resource_access
+  FOR INSERT WITH CHECK (talent_id IN (SELECT id FROM talents WHERE user_id = auth.uid()));
+```
+
+### Update `creditPricing.ts`
+```typescript
+STUDY_ABROAD_ASSIST: {
+  name: 'Study Abroad Package',
+  cost: 150,
+  description: 'SOP generation + visa guidance'
+},
+IELTS_BAND_PREDICT: {
+  name: 'IELTS Band Predictor',
+  cost: 75,
+  description: 'AI band score prediction with feedback'
+},
+INTERNATIONAL_CV: {
+  name: 'International CV Format',
+  cost: 40,
+  description: 'Convert CV to country-specific format'
+}
+```
 
 ---
 
-## Expected Outcomes
+## Expected Revenue Impact
 
-1. **Individual Save Buttons**: Each resource card has its own "Save" button
-2. **Visual Status Indicators**: Clear badges showing Saved/Unsaved/Saving/Error
-3. **Inline Error Messages**: Specific error shown on the resource that failed
-4. **Summary Count**: Bottom bar shows count of unsaved/errored/saved resources
-5. **Save All Unsaved**: Batch save only unsaved resources, with individual error tracking
-6. **No Data Loss**: If JSON is invalid, the specific resource shows the error and others can still be saved
+| Feature | Est. Monthly Uses | Credits | Monthly Revenue |
+|---------|-------------------|---------|-----------------|
+| IELTS Premium | 100 users | 100 | 10,000 credits |
+| Study Abroad Package | 50 users | 150 | 7,500 credits |
+| Band Predictor | 75 users | 75 | 5,625 credits |
+| Study Advisor Sessions | 200 sessions | 10 | 2,000 credits |
+| **Total New Revenue** | | | **25,125 credits/month** |
 
----
-
-## Validation Improvements
-
-Add specific validation for each resource type before saving:
-
-| Resource Type | Validation |
-|---------------|------------|
-| `video` | Must have valid YouTube URL |
-| `slides` | Must have PDF file uploaded |
-| `infographic`/`mindmap` | Must have image file uploaded |
-| `audio_podcast` | Must have audio file uploaded |
-| `flashcards` | Must have valid JSON with cards array |
-| `ai_scenario` | Must have valid JSON with scenarios array |
-| `quiz` | No URL/data required (managed separately) |
-| `report` | Must have content in resource_data |
+At 1 credit = ৳2, this equals approximately **৳50,250/month** in new revenue potential.
 
