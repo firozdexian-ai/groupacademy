@@ -100,7 +100,7 @@ export function JobCard({
                 variant="secondary"
                 className={cn("text-xs", JOB_TYPE_COLORS[job.job_type])}
               >
-                {getJobTypeLabel(job.job_type).replace(" ", "")}
+                {job.job_type === "full_time" ? "Full-time" : job.job_type === "part_time" ? "Part-time" : getJobTypeLabel(job.job_type)}
               </Badge>
             </div>
           </div>

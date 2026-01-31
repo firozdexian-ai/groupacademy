@@ -132,25 +132,42 @@ export function AIJobInsights({ jobId, talentId }: AIJobInsightsProps) {
           {/* Match Score Feature */}
           <Collapsible open={matchOpen} onOpenChange={setMatchOpen}>
             {!matchResult ? (
-              <Button
-                variant="outline"
-                className="w-full justify-between h-auto py-3 px-4"
-                onClick={handleGetMatch}
-                disabled={loadingMatch}
-              >
-                <div className="flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-purple-500" />
-                  <span className="font-medium">Show Match Details</span>
+              loadingMatch ? (
+                // Loading skeleton that matches the expanded state
+                <div className="space-y-3 animate-pulse">
+                  <div className="flex items-center gap-2 h-12 px-4 border rounded-md">
+                    <div className="w-4 h-4 bg-purple-200 dark:bg-purple-800 rounded" />
+                    <div className="h-4 bg-muted rounded w-32" />
+                    <div className="ml-auto h-5 bg-muted rounded w-20" />
+                  </div>
+                  <div className="space-y-3 px-1">
+                    <div className="h-4 bg-muted rounded w-40" />
+                    <div className="flex gap-1 flex-wrap">
+                      {[1, 2, 3].map(i => <div key={i} className="h-6 bg-muted rounded w-16" />)}
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="h-16 bg-muted/50 rounded-lg" />
+                      <div className="h-16 bg-muted/50 rounded-lg" />
+                    </div>
+                    <div className="h-12 bg-primary/5 border border-primary/20 rounded-lg" />
+                  </div>
                 </div>
-                {loadingMatch ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
+              ) : (
+                <Button
+                  variant="outline"
+                  className="w-full justify-between h-auto py-3 px-4"
+                  onClick={handleGetMatch}
+                >
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-purple-500" />
+                    <span className="font-medium">Show Match Details</span>
+                  </div>
                   <Badge variant="secondary" className="gap-1">
                     <Coins className="h-3 w-3 text-amber-500" />
                     10 credits
                   </Badge>
-                )}
-              </Button>
+                </Button>
+              )
             ) : (
               <>
                 <CollapsibleTrigger asChild>
@@ -236,25 +253,38 @@ export function AIJobInsights({ jobId, talentId }: AIJobInsightsProps) {
           {/* Market Insight Feature */}
           <Collapsible open={marketOpen} onOpenChange={setMarketOpen}>
             {!marketInsight ? (
-              <Button
-                variant="outline"
-                className="w-full justify-between h-auto py-3 px-4"
-                onClick={handleGetMarketInsight}
-                disabled={loadingMarket}
-              >
-                <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4 text-blue-500" />
-                  <span className="font-medium">Job & Applicant Insight</span>
+              loadingMarket ? (
+                // Loading skeleton that matches the expanded market insight state
+                <div className="space-y-3 animate-pulse">
+                  <div className="flex items-center gap-2 h-12 px-4 border rounded-md">
+                    <div className="w-4 h-4 bg-blue-200 dark:bg-blue-800 rounded" />
+                    <div className="h-4 bg-muted rounded w-40" />
+                    <div className="ml-auto h-5 bg-muted rounded w-20" />
+                  </div>
+                  <div className="space-y-3 px-1">
+                    <div className="grid grid-cols-2 gap-3">
+                      {[1, 2, 3, 4].map(i => <div key={i} className="h-14 bg-muted/50 rounded-lg" />)}
+                    </div>
+                    <div className="h-16 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg" />
+                    <div className="h-12 bg-muted/50 rounded-lg" />
+                  </div>
                 </div>
-                {loadingMarket ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
+              ) : (
+                <Button
+                  variant="outline"
+                  className="w-full justify-between h-auto py-3 px-4"
+                  onClick={handleGetMarketInsight}
+                >
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4 text-blue-500" />
+                    <span className="font-medium">Job & Applicant Insight</span>
+                  </div>
                   <Badge variant="secondary" className="gap-1">
                     <Coins className="h-3 w-3 text-amber-500" />
                     15 credits
                   </Badge>
-                )}
-              </Button>
+                </Button>
+              )
             ) : (
               <>
                 <CollapsibleTrigger asChild>

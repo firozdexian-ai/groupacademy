@@ -278,7 +278,7 @@ export default function Feed() {
                 <div
                   key={item.id}
                   className="animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-backwards"
-                  style={{ animationDelay: `${index * 100}ms` }}
+                  style={{ animationDelay: `${Math.min(index * 100, 500)}ms` }}
                 >
                   {item.type === "post" ? (
                     <PostCard

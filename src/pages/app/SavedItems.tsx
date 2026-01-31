@@ -61,65 +61,57 @@ export default function SavedItems() {
       const courseIds = savedItems.filter(i => i.item_type === 'course').map(i => i.item_id);
       const blogIds = savedItems.filter(i => i.item_type === 'blog').map(i => i.item_id);
 
-      // Fetch jobs
-      if (jobIds.length > 0) {
-        const { data } = await supabase
-          .from('jobs')
-          .select('id, title, company_name, location')
-          .in('id', jobIds);
-        
-        data?.forEach(job => {
-          const saved = savedItems.find(i => i.item_id === job.id);
-          if (saved) {
-            details.set(`${saved.item_type}-${job.id}`, {
-              ...saved,
-              title: job.title,
-              company: job.company_name,
-              location: job.location || undefined,
-            });
-          }
-        });
-      }
+      // Fetch all in parallel
+      const [jobsResult, coursesResult, blogsResult] = await Promise.all([
+        jobIds.length > 0 
+          ? supabase.from('jobs').select('id, title, company_name, location').in('id', jobIds)
+          : Promise.resolve({ data: [] }),
+        courseIds.length > 0
+          ? supabase.from('content').select('id, title, slug, thumbnail_url').in('id', courseIds)
+          : Promise.resolve({ data: [] }),
+        blogIds.length > 0
+          ? supabase.from('blog_posts').select('id, title, slug, featured_image').in('id', blogIds)
+          : Promise.resolve({ data: [] }),
+      ]);
 
-      // Fetch courses
-      if (courseIds.length > 0) {
-        const { data } = await supabase
-          .from('content')
-          .select('id, title, slug, thumbnail_url')
-          .in('id', courseIds);
-        
-        data?.forEach(course => {
-          const saved = savedItems.find(i => i.item_id === course.id);
-          if (saved) {
-            details.set(`${saved.item_type}-${course.id}`, {
-              ...saved,
-              title: course.title,
-              slug: course.slug,
-              thumbnail: course.thumbnail_url || undefined,
-            });
-          }
-        });
-      }
+      // Process jobs
+      jobsResult.data?.forEach(job => {
+        const saved = savedItems.find(i => i.item_id === job.id);
+        if (saved) {
+          details.set(`${saved.item_type}-${job.id}`, {
+            ...saved,
+            title: job.title,
+            company: job.company_name,
+            location: job.location || undefined,
+          });
+        }
+      });
 
-      // Fetch blogs
-      if (blogIds.length > 0) {
-        const { data } = await supabase
-          .from('blog_posts')
-          .select('id, title, slug, featured_image')
-          .in('id', blogIds);
-        
-        data?.forEach(blog => {
-          const saved = savedItems.find(i => i.item_id === blog.id);
-          if (saved) {
-            details.set(`${saved.item_type}-${blog.id}`, {
-              ...saved,
-              title: blog.title,
-              slug: blog.slug,
-              thumbnail: blog.featured_image || undefined,
-            });
-          }
-        });
-      }
+      // Process courses
+      coursesResult.data?.forEach(course => {
+        const saved = savedItems.find(i => i.item_id === course.id);
+        if (saved) {
+          details.set(`${saved.item_type}-${course.id}`, {
+            ...saved,
+            title: course.title,
+            slug: course.slug,
+            thumbnail: course.thumbnail_url || undefined,
+          });
+        }
+      });
+
+      // Process blogs
+      blogsResult.data?.forEach(blog => {
+        const saved = savedItems.find(i => i.item_id === blog.id);
+        if (saved) {
+          details.set(`${saved.item_type}-${blog.id}`, {
+            ...saved,
+            title: blog.title,
+            slug: blog.slug,
+            thumbnail: blog.featured_image || undefined,
+          });
+        }
+      });
 
       // Add any items without fetched details
       savedItems.forEach(item => {
