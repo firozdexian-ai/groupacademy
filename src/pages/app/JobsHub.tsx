@@ -344,26 +344,32 @@ export default function JobsHub() {
             </CardContent>
           </Card>
         ) : (
-          <ScrollArea className="w-full">
-            <div className="flex gap-4 pb-4">
-              {topPicks.map((job, index) => (
-                <div
-                  key={job.id}
-                  className="w-[300px] shrink-0 animate-in fade-in slide-in-from-right-4"
-                  style={{ animationDelay: `${index * 50}ms` }}
-                >
-                  <JobCard
-                    job={job}
-                    variant="default"
-                    isSaved={isSaved(job.id, 'job')}
-                    onSaveToggle={() => toggleSave(job.id, 'job')}
-                    onClick={() => navigate(`/app/jobs/${job.id}`)}
-                  />
-                </div>
-              ))}
-            </div>
-            <ScrollBar orientation="horizontal" />
-          </ScrollArea>
+          <div className="relative">
+            <ScrollArea className="w-full">
+              <div className="flex gap-4 pb-4">
+                {topPicks.map((job, index) => (
+                  <div
+                    key={job.id}
+                    className="w-[300px] shrink-0 animate-in fade-in slide-in-from-right-4"
+                    style={{ animationDelay: `${index * 50}ms` }}
+                  >
+                    <JobCard
+                      job={job}
+                      variant="default"
+                      isSaved={isSaved(job.id, 'job')}
+                      onSaveToggle={() => toggleSave(job.id, 'job')}
+                      onClick={() => navigate(`/app/jobs/${job.id}`)}
+                    />
+                  </div>
+                ))}
+              </div>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
+            {/* Scroll indicator - fade gradient on right */}
+            {topPicks.length > 1 && (
+              <div className="absolute right-0 top-0 bottom-4 w-12 bg-gradient-to-l from-background to-transparent pointer-events-none" />
+            )}
+          </div>
         )}
 
         {/* AI Recommendations Button */}

@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useTalent } from "@/hooks/useTalent";
 import type { Json } from "@/integrations/supabase/types";
+import { JOB_TYPES } from "@/lib/constants/jobTypes";
 
 interface JobPreferences {
   preferred_job_types: string[];
@@ -17,14 +18,11 @@ interface JobPreferences {
   industries: string[];
 }
 
-const JOB_TYPES = [
-  { value: "full_time", label: "Full-time" },
-  { value: "part_time", label: "Part-time" },
-  { value: "internship", label: "Internship" },
-  { value: "contract", label: "Contract" },
-  { value: "remote", label: "Remote" },
-  { value: "freelance", label: "Freelance" },
-];
+// Convert centralized job types to array format for checkboxes
+const JOB_TYPE_OPTIONS = Object.entries(JOB_TYPES).map(([value, config]) => ({
+  value,
+  label: config.label,
+}));
 
 const LOCATIONS = [
   "Dhaka",
@@ -155,7 +153,7 @@ export function JobPreferencesSheet({ open, onOpenChange }: JobPreferencesSheetP
           <div>
             <Label className="text-sm font-medium mb-3 block">Preferred Job Types</Label>
             <div className="grid grid-cols-2 gap-2">
-              {JOB_TYPES.map(type => (
+              {JOB_TYPE_OPTIONS.map(type => (
                 <label
                   key={type.value}
                   className="flex items-center gap-2 p-2 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
