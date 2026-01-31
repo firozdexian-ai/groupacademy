@@ -1,4 +1,4 @@
-import { ThumbsUp, ThumbsDown, Briefcase, Play, BookOpen, Sparkles, MapPin, Banknote, Clock } from "lucide-react";
+import { ThumbsUp, ThumbsDown, Play, BookOpen, Newspaper, FileText, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,51 +12,31 @@ interface FeedCardProps {
 }
 
 export function FeedCard({ item, onInterested, onNotInterested }: FeedCardProps) {
-  const isJob = item.type === "job";
-
-  // Job Specific Helpers
-  const salaryDisplay = () => {
-    if (!item.salaryMin && !item.salaryMax) return null;
-    const min = item.salaryMin ? `${Math.round(item.salaryMin / 1000)}k` : "";
-    const max = item.salaryMax ? `${Math.round(item.salaryMax / 1000)}k` : "";
-    const currency = "৳";
-
-    if (min && max) return `${currency}${min} - ${max}`;
-    if (min) return `${currency}${min}+`;
-    if (max) return `Up to ${currency}${max}`;
-    return null;
-  };
-
-  const experienceColor = (level: string) => {
-    const l = level?.toLowerCase() || "";
-    if (l.includes("entry") || l.includes("fresher") || l.includes("intern"))
-      return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 border-green-200 dark:border-green-800";
-    if (l.includes("senior") || l.includes("lead") || l.includes("manager"))
-      return "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 border-purple-200 dark:border-purple-800";
-    return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200 dark:border-blue-800";
-  };
-
   const getTypeIcon = () => {
     switch (item.type) {
-      case "job":
-        return <Briefcase className="h-3.5 w-3.5" />;
       case "video":
         return <Play className="h-3.5 w-3.5" />;
       case "course":
         return <BookOpen className="h-3.5 w-3.5" />;
+      case "blog":
+        return <Newspaper className="h-3.5 w-3.5" />;
+      case "post":
+        return <FileText className="h-3.5 w-3.5" />;
       default:
-        return <Briefcase className="h-3.5 w-3.5" />;
+        return <FileText className="h-3.5 w-3.5" />;
     }
   };
 
   const getTypeBadgeStyles = () => {
     switch (item.type) {
-      case "job":
-        return "bg-primary/10 text-primary border-primary/20";
       case "video":
         return "bg-destructive/10 text-destructive border-destructive/20";
       case "course":
         return "bg-accent/20 text-accent-foreground border-accent/30";
+      case "blog":
+        return "bg-secondary/20 text-secondary-foreground border-secondary/30";
+      case "post":
+        return "bg-primary/10 text-primary border-primary/20";
       default:
         return "bg-muted text-muted-foreground";
     }
@@ -110,13 +90,6 @@ export function FeedCard({ item, onInterested, onNotInterested }: FeedCardProps)
                   • {item.company}
                 </span>
               )}
-
-              {/* Job Specific Location Badge */}
-              {isJob && item.location && (
-                <span className="text-[10px] text-muted-foreground truncate flex items-center gap-0.5 ml-auto">
-                  <MapPin className="w-3 h-3" /> {item.location}
-                </span>
-              )}
             </div>
 
             {/* Title */}
@@ -124,40 +97,8 @@ export function FeedCard({ item, onInterested, onNotInterested }: FeedCardProps)
               {item.title}
             </h3>
 
-            {/* Job Metadata Pills */}
-            {isJob && (
-              <div className="flex flex-wrap gap-2 mb-2">
-                {salaryDisplay() && (
-                  <Badge
-                    variant="secondary"
-                    className="text-[10px] px-1.5 h-5 gap-1 font-normal bg-muted/50 whitespace-nowrap"
-                  >
-                    <Banknote className="w-3 h-3 text-muted-foreground" />
-                    {salaryDisplay()}
-                  </Badge>
-                )}
-                {item.experienceLevel && (
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      "text-[10px] px-1.5 h-5 border whitespace-nowrap font-medium",
-                      experienceColor(item.experienceLevel),
-                    )}
-                  >
-                    <Clock className="w-3 h-3 mr-1 opacity-70" />
-                    {item.experienceLevel}
-                  </Badge>
-                )}
-                {item.jobType && (
-                  <Badge variant="outline" className="text-[10px] px-1.5 h-5 text-muted-foreground whitespace-nowrap">
-                    {item.jobType.replace("_", " ")}
-                  </Badge>
-                )}
-              </div>
-            )}
-
-            {/* Description (Hide if Job to save space for metadata, or truncate more aggressively) */}
-            {!isJob && <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{item.description}</p>}
+            {/* Description */}
+            <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{item.description}</p>
 
             {/* Match Score */}
             {item.matchScore !== undefined && (
@@ -187,7 +128,7 @@ export function FeedCard({ item, onInterested, onNotInterested }: FeedCardProps)
         <div className="flex items-center gap-2 mt-4 pt-3 border-t border-border/50">
           <Button size="sm" className="flex-1 gap-2 shadow-sm" onClick={onInterested}>
             <ThumbsUp className="h-3.5 w-3.5" />
-            {isJob ? "Apply Now" : "Interested"}
+            View
           </Button>
           <Button
             variant="ghost"

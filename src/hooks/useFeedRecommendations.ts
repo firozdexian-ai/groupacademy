@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export interface FeedItem {
   id: string;
-  type: "job" | "course" | "video" | "blog";
+  type: "course" | "video" | "blog" | "post";
   title: string;
   description: string;
   company?: string;
@@ -23,14 +23,21 @@ export interface FeedItem {
   youtubeUrl?: string;
   category?: string;
   externalUrl?: string;
-  // Job-specific fields
-  salaryMin?: number;
-  salaryMax?: number;
-  experienceLevel?: string;
-  jobType?: string;
+  // Post-specific fields
+  authorName?: string;
+  authorAvatar?: string;
+  authorTitle?: string;
+  contentType?: "text" | "poll" | "tip" | "news" | "announcement" | "media";
+  textContent?: string;
+  pollOptions?: { id: string; text: string }[];
+  pollEndsAt?: string;
+  linkUrl?: string;
+  linkPreview?: { title: string; description?: string; image?: string };
+  tags?: string[];
+  isPinned?: boolean;
 }
 
-export type FeedFilterType = "all" | "job" | "course" | "video" | "blog";
+export type FeedFilterType = "all" | "course" | "video" | "blog" | "post" | "poll";
 export type FeedSortType = "match" | "newest";
 
 export interface FeedFilters {
@@ -97,17 +104,10 @@ export function useFeedRecommendations(): UseFeedRecommendationsResult {
     return match ? `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg` : null;
   }, []);
 
-  // Basic fallback fetch without AI
+  // Basic fallback fetch without AI (no jobs - they go to Jobs Hub)
   const fetchBasicFeed = useCallback(async () => {
     try {
-      const [jobsResult, coursesResult, blogsResult] = await Promise.all([
-        supabase
-          .from("jobs")
-          .select("id, title, description, company_name, company_logo_url, source_image_url, location, created_at, salary_range_min, salary_range_max, experience_level, job_type")
-          .eq("is_active", true)
-          .or("deadline.is.null,deadline.gte.now()")
-          .order("created_at", { ascending: false })
-          .limit(15),
+      const [coursesResult, blogsResult, postsResult] = await Promise.all([
         supabase
           .from("content")
           .select("id, title, description, thumbnail_url, cover_image_url, youtube_url, created_at, slug, content_type")
@@ -120,30 +120,41 @@ export function useFeedRecommendations(): UseFeedRecommendationsResult {
           .eq("status", "published")
           .order("created_at", { ascending: false })
           .limit(10),
+        supabase
+          .from("feed_posts")
+          .select("*")
+          .eq("is_active", true)
+          .order("is_pinned", { ascending: false })
+          .order("created_at", { ascending: false })
+          .limit(20),
       ]);
 
       const getRandomScore = () => Math.floor(Math.random() * 26) + 60;
       const items: FeedItem[] = [];
 
-      if (jobsResult.data) {
-        jobsResult.data.forEach((job) => {
-          const mediaUrl = job.source_image_url || job.company_logo_url || undefined;
+      // Add posts first (pinned posts will be at top)
+      if (postsResult.data) {
+        postsResult.data.forEach((post: any) => {
           items.push({
-            id: job.id,
-            type: "job",
-            title: job.title,
-            description: job.description?.substring(0, 150) + "..." || "",
-            company: job.company_name,
-            companyLogo: job.company_logo_url || undefined,
-            location: job.location || undefined,
-            createdAt: job.created_at || "",
-            matchScore: getRandomScore(),
-            mediaUrl: mediaUrl,
-            mediaType: mediaUrl ? "image" : undefined,
-            salaryMin: job.salary_range_min || undefined,
-            salaryMax: job.salary_range_max || undefined,
-            experienceLevel: job.experience_level || undefined,
-            jobType: job.job_type || undefined,
+            id: post.id,
+            type: "post",
+            title: post.text_content?.substring(0, 60) || "Post",
+            description: post.text_content || "",
+            createdAt: post.created_at || "",
+            matchScore: post.is_pinned ? 100 : getRandomScore(),
+            mediaUrl: post.media_url || undefined,
+            mediaType: post.media_url ? "image" : undefined,
+            authorName: post.author_name,
+            authorAvatar: post.author_avatar,
+            authorTitle: post.author_title,
+            contentType: post.content_type,
+            textContent: post.text_content,
+            pollOptions: post.poll_options,
+            pollEndsAt: post.poll_ends_at,
+            linkUrl: post.link_url,
+            linkPreview: post.link_preview,
+            tags: post.tags,
+            isPinned: post.is_pinned,
           });
         });
       }
@@ -384,8 +395,16 @@ export function useFeedRecommendations(): UseFeedRecommendationsResult {
   const filteredItems = useMemo(() => {
     return allItems
       .filter((item) => !dismissedIds.has(item.id))
-      .filter((item) => filters.type === "all" || item.type === filters.type)
+      .filter((item) => {
+        if (filters.type === "all") return true;
+        if (filters.type === "poll") return item.type === "post" && item.contentType === "poll";
+        return item.type === filters.type;
+      })
       .sort((a, b) => {
+        // Pinned posts always first
+        if (a.isPinned && !b.isPinned) return -1;
+        if (!a.isPinned && b.isPinned) return 1;
+        
         if (filters.sort === "match") {
           return (b.matchScore || 0) - (a.matchScore || 0);
         }

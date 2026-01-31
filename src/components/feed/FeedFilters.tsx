@@ -1,4 +1,4 @@
-import { Briefcase, Play, BookOpen, LayoutGrid, Newspaper } from 'lucide-react';
+import { Play, BookOpen, LayoutGrid, Newspaper, FileText, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { FeedFilters, FeedFilterType, FeedSortType } from '@/hooks/useFeedRecommendations';
 import {
@@ -12,15 +12,16 @@ import {
 interface FeedFiltersProps {
   filters: FeedFilters;
   onChange: (filters: FeedFilters) => void;
-  counts?: { all: number; job: number; course: number; video: number; blog: number };
+  counts?: { all: number; course: number; video: number; blog: number; post: number; poll: number };
 }
 
 const filterOptions: { value: FeedFilterType; label: string; icon: React.ReactNode }[] = [
   { value: 'all', label: 'All', icon: <LayoutGrid className="h-3.5 w-3.5" /> },
-  { value: 'job', label: 'Jobs', icon: <Briefcase className="h-3.5 w-3.5" /> },
+  { value: 'post', label: 'Posts', icon: <FileText className="h-3.5 w-3.5" /> },
+  { value: 'poll', label: 'Polls', icon: <BarChart3 className="h-3.5 w-3.5" /> },
   { value: 'course', label: 'Courses', icon: <BookOpen className="h-3.5 w-3.5" /> },
   { value: 'video', label: 'Videos', icon: <Play className="h-3.5 w-3.5" /> },
-  { value: 'blog', label: 'Blog', icon: <Newspaper className="h-3.5 w-3.5" /> },
+  { value: 'blog', label: 'Articles', icon: <Newspaper className="h-3.5 w-3.5" /> },
 ];
 
 export function FeedFilters({ filters, onChange, counts }: FeedFiltersProps) {
@@ -35,7 +36,7 @@ export function FeedFilters({ filters, onChange, counts }: FeedFiltersProps) {
   return (
     <div className="space-y-2">
       {/* Segmented Control - All Options Visible */}
-      <div className="grid grid-cols-5 gap-1 p-1 bg-muted/50 rounded-lg border border-border/50">
+      <div className="grid grid-cols-6 gap-1 p-1 bg-muted/50 rounded-lg border border-border/50">
         {filterOptions.map((option) => {
           const count = counts?.[option.value] ?? 0;
           const isActive = filters.type === option.value;
