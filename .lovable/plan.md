@@ -1,354 +1,211 @@
 
 
-# LinkedIn-Inspired Feed Transformation Plan
+# Comprehensive Fix Plan: Sign-In/Sign-Up & Feed Improvements
 
-## Executive Summary
-
-Transform the current job-heavy feed into an engaging, content-rich social experience. The goal is to make users **want** to scroll through the feed, discover insights, and interact with content - just like LinkedIn.
+## Issues Identified & Fixes
 
 ---
 
-## Current State Analysis
+## Part A: Authentication Fixes (Sign-In / Sign-Up)
 
-| Content Type | Count in DB | Current Feed Behavior |
-|--------------|-------------|----------------------|
-| Jobs | 129 | Dominates the feed (majority of items) |
-| Courses | 6 | Mixed in with jobs |
-| Blogs | 6 | Recently added, shown but minimal |
-| Videos | 1 | Rare appearance |
+### Issue 1: Phone Lookup Query is Too Loose (Security Risk)
+**File:** `src/hooks/useAuth.ts` (lines 82-88)
 
-**Key Issues Identified:**
-1. Feed is 90%+ job listings - feels like a job board, not a social feed
-2. Cards look identical - no variety in visual presentation
-3. No social features (reactions, comments, sharing)
-4. No engaging content types (polls, quick tips, industry news)
-5. Users can only "Skip" or "View" - no meaningful engagement
+**Current Problem:**
+```typescript
+.or(`phone.ilike.%${cleanPhone},phone.eq.${cleanPhone}`)
+```
+This uses `ILIKE %phone` which matches partial phone numbers (e.g., entering `1234` would match `+8801234567890`). This is a security vulnerability.
+
+**Fix:** Tighten the phone lookup to use exact matching with multiple formats:
+```typescript
+// Try exact match with different formats
+const { data, error } = await supabase
+  .from('talents')
+  .select('email, phone, country_code')
+  .or(`phone.eq.${cleanPhone},phone.eq.+${cleanPhone.replace(/^\+/, '')}`)
+  .not('email', 'is', null)
+  .limit(5);
+```
+
+Also add secondary check: if the phone entered includes a country code, strip it and try matching the local portion too.
 
 ---
 
-## Proposed Transformation
+### Issue 2: Missing Database Trigger for Phone Normalization
+**Current Problem:** The `normalize_phone` function exists but there's no trigger on the `talents` table to automatically normalize phone numbers on insert/update.
 
-### Phase 1: Remove Jobs from Feed
-
-**Change the Feed Purpose:**
-- Feed = Discovery, Learning, Engagement
-- Jobs Hub = Job search (already exists at `/app/jobs`)
-
-**Technical Changes:**
-1. Remove `type: 'job'` from `useFeedRecommendations.ts` fetch
-2. Remove "Jobs" filter option from `FeedFilters.tsx`
-3. Update feed type definitions to exclude 'job'
-
-### Phase 2: Create New "Post" Content Type
-
-Instead of just blogs, courses, and videos, introduce a flexible **Post** system (like LinkedIn posts).
-
-**New Database Table: `feed_posts`**
-
-| Column | Type | Description |
-|--------|------|-------------|
-| id | uuid | Primary key |
-| author_name | text | Admin/author name |
-| author_avatar | text | Avatar URL |
-| author_title | text | e.g., "Career Coach at GRO10X" |
-| content_type | enum | 'text', 'poll', 'tip', 'news', 'announcement' |
-| text_content | text | Main post text (markdown supported) |
-| media_url | text | Image/video URL |
-| poll_options | jsonb | For polls: [{id, text, votes}] |
-| poll_ends_at | timestamp | When poll closes |
-| link_url | text | External link |
-| link_preview | jsonb | {title, description, image} |
-| tags | text[] | Topic tags |
-| is_pinned | boolean | Show at top |
-| is_active | boolean | Published status |
-| created_at | timestamp | Posted at |
-
-**New Database Table: `post_reactions`**
-
-| Column | Type | Description |
-|--------|------|-------------|
-| id | uuid | Primary key |
-| post_id | uuid | FK to feed_posts |
-| talent_id | uuid | FK to talents |
-| reaction_type | text | 'like', 'insightful', 'celebrate', 'support' |
-| created_at | timestamp | Reacted at |
-
-**New Database Table: `poll_votes`**
-
-| Column | Type | Description |
-|--------|------|-------------|
-| id | uuid | Primary key |
-| post_id | uuid | FK to feed_posts (poll post) |
-| talent_id | uuid | FK to talents |
-| option_id | text | Which option they voted for |
-| voted_at | timestamp | When voted |
-
-### Phase 3: New LinkedIn-Style Post Card Component
-
-**Design Inspiration (LinkedIn Post Structure):**
-```
-┌─────────────────────────────────────────┐
-│ [Avatar] Author Name          • 2h      │
-│          Author Title                   │
-├─────────────────────────────────────────┤
-│                                         │
-│ Post content text goes here...          │
-│ Can be multiple paragraphs.             │
-│                                         │
-│ #CareerTips #FreshGraduates             │
-│                                         │
-├─────────────────────────────────────────┤
-│ [Optional Media: Image or Poll]         │
-│                                         │
-│ For Polls:                              │
-│  ○ Option 1 ─────────── 45%            │
-│  ● Option 2 ─────────────────── 55%    │
-│  500 votes • 2 days left                │
-│                                         │
-├─────────────────────────────────────────┤
-│ 👍 142  💡 28                           │
-├─────────────────────────────────────────┤
-│ [👍 Like] [💡 Insightful] [🔗 Share]    │
-└─────────────────────────────────────────┘
-```
-
-**New Components to Create:**
-
-1. `src/components/feed/PostCard.tsx` - Main LinkedIn-style post card
-2. `src/components/feed/ReactionBar.tsx` - Like, Insightful, Celebrate buttons
-3. `src/components/feed/PollWidget.tsx` - Interactive poll voting
-4. `src/components/feed/ShareSheet.tsx` - Share options (WhatsApp, LinkedIn, Copy Link)
-5. `src/components/feed/PostAuthor.tsx` - Avatar + name + title row
-
-### Phase 4: Update Feed Filters
-
-**New Filter Categories:**
-```
-[All] [Articles] [Videos] [Polls] [Tips] [Courses]
-```
-
-Remove "Jobs" filter entirely - direct users to Jobs Hub.
-
-### Phase 5: Admin Post Manager
-
-Create `src/components/dashboard/FeedPostsManager.tsx` for admins to:
-- Create text posts, polls, tips, announcements
-- Upload images
-- Schedule posts
-- View engagement stats (reactions, shares, poll votes)
-- Pin important posts
-
-### Phase 6: Enhanced Course/Blog Cards
-
-Update existing `FeedCardRedesigned.tsx` to support:
-- Author section at top (like LinkedIn)
-- Description as "post content"
-- Media below content
-- Reaction bar at bottom
-- Share functionality
-
----
-
-## Technical Implementation Details
-
-### Database Migration
-
+**Fix:** Create a database migration to add a trigger that normalizes phones on insert/update:
 ```sql
--- Create post types enum
-CREATE TYPE post_content_type AS ENUM (
-  'text', 'poll', 'tip', 'news', 'announcement', 'media'
-);
+CREATE OR REPLACE FUNCTION normalize_talent_phone()
+RETURNS trigger AS $$
+BEGIN
+  NEW.phone := normalize_phone(NEW.country_code, NEW.phone);
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 
--- Create reaction types enum
-CREATE TYPE reaction_type AS ENUM (
-  'like', 'insightful', 'celebrate', 'support'
-);
-
--- Feed posts table
-CREATE TABLE public.feed_posts (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  author_name text NOT NULL,
-  author_avatar text,
-  author_title text,
-  content_type post_content_type NOT NULL DEFAULT 'text',
-  text_content text NOT NULL,
-  media_url text,
-  poll_options jsonb,
-  poll_ends_at timestamptz,
-  link_url text,
-  link_preview jsonb,
-  tags text[] DEFAULT '{}',
-  is_pinned boolean DEFAULT false,
-  is_active boolean DEFAULT true,
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
-);
-
--- Post reactions table
-CREATE TABLE public.post_reactions (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  post_id uuid REFERENCES feed_posts(id) ON DELETE CASCADE,
-  talent_id uuid REFERENCES talents(id) ON DELETE CASCADE,
-  reaction_type reaction_type NOT NULL,
-  created_at timestamptz DEFAULT now(),
-  UNIQUE(post_id, talent_id)
-);
-
--- Poll votes table
-CREATE TABLE public.poll_votes (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  post_id uuid REFERENCES feed_posts(id) ON DELETE CASCADE,
-  talent_id uuid REFERENCES talents(id) ON DELETE CASCADE,
-  option_id text NOT NULL,
-  voted_at timestamptz DEFAULT now(),
-  UNIQUE(post_id, talent_id)
-);
-
--- RLS Policies
-ALTER TABLE feed_posts ENABLE ROW LEVEL SECURITY;
-ALTER TABLE post_reactions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE poll_votes ENABLE ROW LEVEL SECURITY;
-
--- Anyone can view active posts
-CREATE POLICY "Anyone can view active posts"
-  ON feed_posts FOR SELECT
-  USING (is_active = true);
-
--- Admins can manage posts
-CREATE POLICY "Admins can manage posts"
-  ON feed_posts FOR ALL
-  USING (has_role(auth.uid(), 'admin'))
-  WITH CHECK (has_role(auth.uid(), 'admin'));
-
--- Users can react to posts
-CREATE POLICY "Users can manage own reactions"
-  ON post_reactions FOR ALL
-  USING (talent_id IN (SELECT id FROM talents WHERE user_id = auth.uid()));
-
--- Users can vote on polls
-CREATE POLICY "Users can vote on polls"
-  ON poll_votes FOR INSERT
-  WITH CHECK (talent_id IN (SELECT id FROM talents WHERE user_id = auth.uid()));
-
-CREATE POLICY "Users can view own votes"
-  ON poll_votes FOR SELECT
-  USING (talent_id IN (SELECT id FROM talents WHERE user_id = auth.uid()));
+CREATE TRIGGER tr_normalize_talent_phone
+BEFORE INSERT OR UPDATE OF phone, country_code ON talents
+FOR EACH ROW EXECUTE FUNCTION normalize_talent_phone();
 ```
 
-### New Hook: `usePostReactions.ts`
+---
 
+### Issue 3: No Form-Level Validation Using Zod Schemas
+**File:** `src/pages/Auth.tsx`
+
+**Current Problem:** The `loginSchema` in `validations.ts` is defined but not used in the login form. Form validation is done manually.
+
+**Fix:** Keep manual validation for simplicity (Zod integration would require react-hook-form refactoring), but add clear user-friendly error messages for edge cases.
+
+---
+
+## Part B: Feed Transformation Fixes
+
+### Issue 4: FeedPostsManager Not Accessible from Admin Dashboard (Critical)
+**Files:** `src/components/dashboard/AdminSidebar.tsx`, `src/pages/Dashboard.tsx`
+
+**Current Problem:** The `FeedPostsManager` component was created but:
+1. Not added to the admin sidebar navigation
+2. Not added to the Dashboard switch/case for rendering
+3. Not added to `tabAccessMap` for role-based access
+
+**Fix:** Add "Feed Posts" to the Content Management group in AdminSidebar and wire it up in Dashboard.tsx.
+
+**AdminSidebar.tsx changes:**
+- Add to Content Management group: `{ title: "Feed Posts", icon: MessageSquare, value: "feed-posts" }`
+
+**Dashboard.tsx changes:**
+- Add import: `import { FeedPostsManager } from "@/components/dashboard/FeedPostsManager";`
+- Add to `tabAccessMap`: `"feed-posts": ["admin"]`
+- Add to `renderContent` switch: `case "feed-posts": return <FeedPostsManager />;`
+- Add to `getPageTitle`: `"feed-posts": "Feed Posts"`
+
+---
+
+### Issue 5: Empty Feed (No Seed Data)
+**Current Problem:** The `feed_posts` table is empty, so users see an empty feed.
+
+**Fix:** After the admin nav fix is deployed, use the FeedPostsManager to create initial content. Alternatively, I can seed 3-5 sample posts via SQL insert.
+
+**Sample seed data:**
+```sql
+INSERT INTO feed_posts (author_name, author_title, content_type, text_content, tags, is_active, is_pinned)
+VALUES 
+  ('GRO10X Team', 'Career Experts', 'tip', 'Resume tip: Always quantify your achievements. Instead of "Managed a team", write "Led a team of 8 engineers, delivering 3 projects ahead of schedule."', '{"CareerTips", "Resume", "FreshGraduates"}', true, true),
+  ('GRO10X Team', 'Career Experts', 'announcement', 'Welcome to our new social feed! Share your career journey, get insights, and connect with opportunities.', '{"Announcement", "Welcome"}', true, false),
+  ('GRO10X Team', 'Career Experts', 'poll', 'What skill would you like to learn next?', '{"Poll", "Learning"}', true, false);
+
+-- Add poll options for the poll post (need to update with actual UUID after insert)
+```
+
+---
+
+### Issue 6: Missing UPDATE Policy for post_reactions
+**Current Problem:** The RLS policies for `post_reactions` allow INSERT and DELETE but not UPDATE. Users changing their reaction type (e.g., from "like" to "insightful") would fail.
+
+**Current RLS:**
+- `Users can manage own reactions` (INSERT)
+- `Users can delete own reactions` (DELETE)
+- Missing: UPDATE policy
+
+**Fix:** The current implementation in `usePostReactions.ts` already handles this by deleting the old reaction and inserting a new one (lines 93-98). This pattern works correctly. No database change needed.
+
+---
+
+### Issue 7: poll_votes RLS Exposes Individual Votes
+**Current Problem:** `poll_votes` has `Anyone can view poll votes` with `qual: true`, meaning anyone can see who voted for what option.
+
+**Analysis:** This is actually acceptable for this use case since:
+1. The hook only fetches aggregated counts client-side
+2. Knowing who voted for what isn't sensitive information in a career platform context
+3. Changing this to aggregate-only would require a database function
+
+**Recommendation:** Leave as-is for now. If privacy becomes a concern, create an RPC function that returns only aggregated counts.
+
+---
+
+## Summary of Required Changes
+
+| Priority | Issue | File(s) | Change Type |
+|----------|-------|---------|-------------|
+| **Critical** | FeedPostsManager not in admin nav | AdminSidebar.tsx, Dashboard.tsx | Code edit |
+| **High** | Phone lookup too loose | useAuth.ts | Code edit |
+| **High** | Add phone normalization trigger | Database migration | SQL migration |
+| **High** | Seed feed posts | Database | SQL insert |
+| **Medium** | loginSchema not enforced | Auth.tsx | Optional enhancement |
+
+---
+
+## Implementation Steps
+
+### Step 1: Fix Admin Dashboard Navigation
+1. Edit `AdminSidebar.tsx` to add Feed Posts menu item
+2. Edit `Dashboard.tsx` to add import, tabAccessMap entry, and switch case
+
+### Step 2: Improve Phone Login Security
+1. Update `resolveEmailFromPhone` in `useAuth.ts` with stricter matching
+
+### Step 3: Add Phone Normalization Trigger (Database)
+1. Create migration for trigger on talents table
+
+### Step 4: Seed Initial Feed Content
+1. Insert 3-5 starter posts so feed isn't empty
+
+---
+
+## Technical Details
+
+### AdminSidebar.tsx Edit (Content Management group, around line 96):
 ```typescript
-// Manage reactions for a post
-export function usePostReactions(postId: string) {
-  const { talent } = useTalent();
-  
-  return {
-    reactions: [...], // Aggregated reactions count
-    userReaction: 'like' | null, // Current user's reaction
-    toggleReaction: async (type: ReactionType) => {...},
-    isLoading: boolean
-  };
-}
+// Add after "Blog Posts" item:
+{ title: "Feed Posts", icon: MessageSquare, value: "feed-posts" },
 ```
 
-### New Hook: `usePollVoting.ts`
-
+### Dashboard.tsx Edits:
 ```typescript
-// Manage poll voting
-export function usePollVoting(postId: string) {
-  const { talent } = useTalent();
-  
-  return {
-    hasVoted: boolean,
-    userVote: string | null,
-    results: { optionId: string, votes: number, percentage: number }[],
-    castVote: async (optionId: string) => {...},
-    totalVotes: number,
-    isLoading: boolean
-  };
-}
+// Add import (around line 32):
+import { FeedPostsManager } from "@/components/dashboard/FeedPostsManager";
+
+// Add to tabAccessMap (around line 87):
+"feed-posts": ["admin"],
+
+// Add to renderContent switch (around line 271):
+case "feed-posts":
+  return <FeedPostsManager />;
+
+// Add to getPageTitle (around line 315):
+"feed-posts": "Feed Posts",
 ```
 
-### Updated Feed Page Structure
+### useAuth.ts Edit (lines 79-100):
+Replace the `resolveEmailFromPhone` function with improved matching logic that:
+1. Removes all non-digit characters
+2. Tries exact match with and without country code
+3. Handles edge cases like leading zeros
 
-```tsx
-// Feed.tsx - Updated structure
-<div className="space-y-4">
-  {/* Pinned Posts First */}
-  {pinnedPosts.map(post => <PostCard key={post.id} post={post} />)}
-  
-  {/* Mix of content types */}
-  {items.map(item => {
-    if (item.type === 'post') {
-      return <PostCard key={item.id} post={item} />;
-    }
-    if (item.type === 'blog') {
-      return <BlogPostCard key={item.id} post={item} />;
-    }
-    if (item.type === 'course' || item.type === 'video') {
-      return <CourseCard key={item.id} course={item} />;
-    }
-  })}
-</div>
+### Database Migration:
+```sql
+-- Add phone normalization trigger
+CREATE OR REPLACE FUNCTION normalize_talent_phone()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = 'public'
+AS $$
+BEGIN
+  IF NEW.phone IS NOT NULL AND NEW.phone != '' THEN
+    NEW.phone := normalize_phone(NEW.country_code, NEW.phone);
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER tr_normalize_talent_phone
+BEFORE INSERT OR UPDATE ON talents
+FOR EACH ROW
+WHEN (NEW.phone IS DISTINCT FROM OLD.phone OR NEW.country_code IS DISTINCT FROM OLD.country_code OR OLD.phone IS NULL)
+EXECUTE FUNCTION normalize_talent_phone();
 ```
-
----
-
-## File Changes Summary
-
-### New Files to Create:
-
-| File | Purpose |
-|------|---------|
-| `src/components/feed/PostCard.tsx` | LinkedIn-style post card with reactions |
-| `src/components/feed/ReactionBar.tsx` | Like, Insightful, Celebrate buttons |
-| `src/components/feed/PollWidget.tsx` | Interactive poll display & voting |
-| `src/components/feed/ShareSheet.tsx` | Share dialog (WhatsApp, LinkedIn, Copy) |
-| `src/components/feed/PostAuthor.tsx` | Author avatar + name + title header |
-| `src/components/dashboard/FeedPostsManager.tsx` | Admin post creation/management |
-| `src/hooks/usePostReactions.ts` | Manage reactions for posts |
-| `src/hooks/usePollVoting.ts` | Manage poll voting |
-
-### Files to Modify:
-
-| File | Changes |
-|------|---------|
-| `src/pages/app/Feed.tsx` | Remove jobs, add posts, update layout |
-| `src/hooks/useFeedRecommendations.ts` | Exclude jobs, add feed_posts query |
-| `src/components/feed/FeedFilters.tsx` | Remove Jobs filter, add Polls/Tips |
-| `src/components/feed/FeedCardRedesigned.tsx` | Add author section, reaction bar |
-
----
-
-## User Experience Improvements
-
-### Before (Current):
-- Opens feed, sees wall of job cards
-- Only actions: "View Job" or "Skip"
-- No reason to scroll unless job hunting
-- Static, transactional experience
-
-### After (LinkedIn-Inspired):
-- Opens feed, sees mix of content:
-  - Industry insight post from Career Coach
-  - Poll: "What skill should we cover next?"
-  - Quick tip: "5 words to avoid in your CV"
-  - New course announcement
-  - Blog article on salary negotiation
-- Can react (like, insightful) to show appreciation
-- Can vote on polls to participate
-- Can share interesting posts to WhatsApp
-- **Reason to return daily** - new content, engagement, community feel
-
----
-
-## Migration Path
-
-1. **Phase 1**: Database migration (new tables)
-2. **Phase 2**: Create PostCard and related components
-3. **Phase 3**: Create FeedPostsManager for admin
-4. **Phase 4**: Update Feed.tsx to show posts + hide jobs
-5. **Phase 5**: Seed initial posts (convert some blogs to posts)
-6. **Phase 6**: Add reaction/poll functionality
-7. **Phase 7**: Remove jobs from feed hook completely
 
