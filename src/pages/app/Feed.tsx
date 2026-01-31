@@ -4,7 +4,6 @@ import {
   Inbox,
   RefreshCw,
   ArrowDown,
-  Briefcase,
   BookOpen,
   Video,
   FileText,
@@ -13,6 +12,7 @@ import {
   Clock,
   TrendingUp,
   Sparkles,
+  BarChart3,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,6 +20,7 @@ import { useTalent } from "@/hooks/useTalent";
 import { useFeedRecommendations, FeedItem, FeedFilterType } from "@/hooks/useFeedRecommendations";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { FeedCardRedesigned } from "@/components/feed/FeedCardRedesigned";
+import { PostCard } from "@/components/feed/PostCard";
 import { FeedFilters } from "@/components/feed/FeedFilters";
 import { FeedSkeleton } from "@/components/feed/FeedSkeleton";
 import { CareerInsightsStack } from "@/components/feed/CareerInsightsStack";
@@ -76,9 +77,6 @@ export default function Feed() {
   const handleInterested = async (item: FeedItem) => {
     await markInterested(item);
     switch (item.type) {
-      case "job":
-        navigate(`/app/jobs/${item.id}`);
-        break;
       case "blog":
         if (item.slug) navigate(`/app/blog/${item.slug}`);
         break;
@@ -86,6 +84,9 @@ export default function Feed() {
       case "video":
         if (item.slug) navigate(`/app/learning/courses/${item.slug}`);
         else if (item.youtubeUrl) window.open(item.youtubeUrl, "_blank");
+        break;
+      case "post":
+        // Posts are viewed inline, no navigation needed
         break;
     }
   };
@@ -120,16 +121,15 @@ export default function Feed() {
 
   const counts = {
     all: items.length,
-    job: items.filter((i) => i.type === "job").length,
     course: items.filter((i) => i.type === "course").length,
     video: items.filter((i) => i.type === "video").length,
     blog: items.filter((i) => i.type === "blog").length,
+    post: items.filter((i) => i.type === "post").length,
+    poll: items.filter((i) => i.type === "post" && i.contentType === "poll").length,
   };
 
   const getEmptyStateAction = (type: FeedFilterType) => {
     switch (type) {
-      case "job":
-        return { label: "Browse All Jobs", action: () => navigate("/app/jobs"), icon: Briefcase };
       case "course":
       case "video":
         return { label: "Explore Learning", action: () => navigate("/app/learning"), icon: BookOpen };
@@ -285,11 +285,32 @@ export default function Feed() {
                   className="animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-backwards"
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
-                  <FeedCardRedesigned
-                    item={item}
-                    onInterested={() => handleInterested(item)}
-                    onNotInterested={() => markNotInterested(item.id)}
-                  />
+                  {item.type === "post" ? (
+                    <PostCard
+                      post={{
+                        id: item.id,
+                        authorName: item.authorName || "GRO10X",
+                        authorAvatar: item.authorAvatar,
+                        authorTitle: item.authorTitle,
+                        contentType: item.contentType || "text",
+                        textContent: item.textContent || item.description,
+                        mediaUrl: item.mediaUrl,
+                        pollOptions: item.pollOptions,
+                        pollEndsAt: item.pollEndsAt,
+                        linkUrl: item.linkUrl,
+                        linkPreview: item.linkPreview,
+                        tags: item.tags,
+                        isPinned: item.isPinned,
+                        createdAt: item.createdAt,
+                      }}
+                    />
+                  ) : (
+                    <FeedCardRedesigned
+                      item={item}
+                      onInterested={() => handleInterested(item)}
+                      onNotInterested={() => markNotInterested(item.id)}
+                    />
+                  )}
                 </div>
               ))}
               {!error && items.length > 0 && (
@@ -320,8 +341,8 @@ export default function Feed() {
               <CardContent>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-muted/40 p-3 rounded-lg text-center">
-                    <div className="text-2xl font-bold">{counts.job}</div>
-                    <div className="text-xs text-muted-foreground">Jobs</div>
+                    <div className="text-2xl font-bold">{counts.post}</div>
+                    <div className="text-xs text-muted-foreground">Posts</div>
                   </div>
                   <div className="bg-muted/40 p-3 rounded-lg text-center">
                     <div className="text-2xl font-bold">{counts.course}</div>

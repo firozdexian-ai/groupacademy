@@ -1,4 +1,4 @@
-import { Briefcase, Play, BookOpen, MapPin, Building2, Newspaper, ArrowRight, Bookmark } from 'lucide-react';
+import { Play, BookOpen, Newspaper, FileText, ArrowRight, Bookmark } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,13 @@ interface FeedCardRedesignedProps {
 export function FeedCardRedesigned({ item, onInterested, onNotInterested }: FeedCardRedesignedProps) {
   const { isSaved, toggleSave } = useSavedItems();
   
-  const itemType = item.type as SavedItemType;
+  // Map 'post' to a valid SavedItemType (treat as 'blog' for saving)
+  const getSavedItemType = (): SavedItemType => {
+    if (item.type === 'post') return 'blog';
+    return item.type as SavedItemType;
+  };
+  
+  const itemType = getSavedItemType();
   const isBookmarked = isSaved(item.id, itemType);
 
   const handleToggleSave = async (e: React.MouseEvent) => {
@@ -27,59 +33,57 @@ export function FeedCardRedesigned({ item, onInterested, onNotInterested }: Feed
 
   const getTypeIcon = () => {
     switch (item.type) {
-      case 'job':
-        return <Briefcase className="h-3 w-3" />;
       case 'video':
         return <Play className="h-3 w-3" />;
       case 'course':
         return <BookOpen className="h-3 w-3" />;
       case 'blog':
         return <Newspaper className="h-3 w-3" />;
+      case 'post':
+        return <FileText className="h-3 w-3" />;
     }
   };
 
   const getTypeBadgeStyles = () => {
     switch (item.type) {
-      case 'job':
-        return 'bg-primary/10 text-primary border-primary/20';
       case 'video':
         return 'bg-destructive/10 text-destructive border-destructive/20';
       case 'course':
         return 'bg-accent/20 text-accent-foreground border-accent/30';
       case 'blog':
         return 'bg-secondary/20 text-secondary-foreground border-secondary/30';
+      case 'post':
+        return 'bg-primary/10 text-primary border-primary/20';
     }
   };
 
   const getGradientBackground = () => {
     switch (item.type) {
-      case 'job':
-        return 'from-primary/20 via-primary/10 to-background';
       case 'video':
         return 'from-destructive/20 via-destructive/10 to-background';
       case 'course':
         return 'from-accent/20 via-accent/10 to-background';
       case 'blog':
         return 'from-secondary/20 via-secondary/10 to-background';
+      case 'post':
+        return 'from-primary/20 via-primary/10 to-background';
     }
   };
 
   const getActionLabel = () => {
     switch (item.type) {
-      case 'job':
-        return 'View Job';
       case 'video':
         return 'Watch';
       case 'course':
         return 'Learn More';
       case 'blog':
         return 'Read';
+      case 'post':
+        return 'View';
     }
   };
 
-  const companyLogo = item.type === 'job' 
-    ? item.companyLogo || null
-    : item.thumbnail;
+  const companyLogo = item.thumbnail;
 
   const hasMedia = !!item.mediaUrl;
   const isVideo = item.mediaType === 'youtube';
@@ -171,36 +175,6 @@ export function FeedCardRedesigned({ item, onInterested, onNotInterested }: Feed
       )}
 
       <CardContent className="p-3">
-        {/* Company/Source Info */}
-        <div className="flex items-center gap-2 mb-2">
-          {/* Company Logo - Compact */}
-          <div className="flex-shrink-0">
-            {companyLogo ? (
-              <img
-                src={companyLogo}
-                alt={item.company || item.title}
-                className="w-8 h-8 rounded-lg object-cover ring-1 ring-border bg-muted"
-              />
-            ) : (
-              <div className="w-8 h-8 rounded-lg bg-gradient-primary flex items-center justify-center">
-                <Building2 className="h-4 w-4 text-primary-foreground" />
-              </div>
-            )}
-          </div>
-
-          <div className="flex-1 min-w-0">
-            {item.company && (
-              <p className="text-xs text-foreground font-medium truncate">{item.company}</p>
-            )}
-            {item.location && (
-              <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                <MapPin className="h-2.5 w-2.5" />
-                <span className="truncate">{item.location}</span>
-              </div>
-            )}
-          </div>
-        </div>
-
         {/* Title - Compact */}
         <h3 className="font-semibold text-foreground line-clamp-2 mb-1.5 text-sm leading-snug">{item.title}</h3>
 

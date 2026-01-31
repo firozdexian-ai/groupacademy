@@ -1448,6 +1448,63 @@ export type Database = {
           },
         ]
       }
+      feed_posts: {
+        Row: {
+          author_avatar: string | null
+          author_name: string
+          author_title: string | null
+          content_type: Database["public"]["Enums"]["post_content_type"]
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          is_pinned: boolean | null
+          link_preview: Json | null
+          link_url: string | null
+          media_url: string | null
+          poll_ends_at: string | null
+          poll_options: Json | null
+          tags: string[] | null
+          text_content: string
+          updated_at: string | null
+        }
+        Insert: {
+          author_avatar?: string | null
+          author_name: string
+          author_title?: string | null
+          content_type?: Database["public"]["Enums"]["post_content_type"]
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_pinned?: boolean | null
+          link_preview?: Json | null
+          link_url?: string | null
+          media_url?: string | null
+          poll_ends_at?: string | null
+          poll_options?: Json | null
+          tags?: string[] | null
+          text_content: string
+          updated_at?: string | null
+        }
+        Update: {
+          author_avatar?: string | null
+          author_name?: string
+          author_title?: string | null
+          content_type?: Database["public"]["Enums"]["post_content_type"]
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_pinned?: boolean | null
+          link_preview?: Json | null
+          link_url?: string | null
+          media_url?: string | null
+          poll_ends_at?: string | null
+          poll_options?: Json | null
+          tags?: string[] | null
+          text_content?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       ielts_resource_access: {
         Row: {
           id: string
@@ -2461,6 +2518,45 @@ export type Database = {
           },
         ]
       }
+      poll_votes: {
+        Row: {
+          id: string
+          option_id: string
+          post_id: string | null
+          talent_id: string | null
+          voted_at: string | null
+        }
+        Insert: {
+          id?: string
+          option_id: string
+          post_id?: string | null
+          talent_id?: string | null
+          voted_at?: string | null
+        }
+        Update: {
+          id?: string
+          option_id?: string
+          post_id?: string | null
+          talent_id?: string | null
+          voted_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poll_votes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "feed_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "poll_votes_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       portfolio_requests: {
         Row: {
           achievements: string | null
@@ -2563,6 +2659,45 @@ export type Database = {
           },
           {
             foreignKeyName: "portfolio_requests_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_reactions: {
+        Row: {
+          created_at: string | null
+          id: string
+          post_id: string | null
+          reaction_type: Database["public"]["Enums"]["reaction_type"]
+          talent_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          post_id?: string | null
+          reaction_type: Database["public"]["Enums"]["reaction_type"]
+          talent_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          post_id?: string | null
+          reaction_type?: Database["public"]["Enums"]["reaction_type"]
+          talent_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_reactions_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "feed_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_reactions_talent_id_fkey"
             columns: ["talent_id"]
             isOneToOne: false
             referencedRelation: "talents"
@@ -3614,8 +3749,16 @@ export type Database = {
         | "in_progress"
         | "completed"
         | "cancelled"
+      post_content_type:
+        | "text"
+        | "poll"
+        | "tip"
+        | "news"
+        | "announcement"
+        | "media"
       profession_level_type: "foundation" | "intermediate" | "executive"
       question_type: "single_choice" | "multiple_choice" | "scale" | "text"
+      reaction_type: "like" | "insightful" | "celebrate" | "support"
       readiness_level:
         | "beginner"
         | "developing"
@@ -3797,8 +3940,17 @@ export const Constants = {
         "completed",
         "cancelled",
       ],
+      post_content_type: [
+        "text",
+        "poll",
+        "tip",
+        "news",
+        "announcement",
+        "media",
+      ],
       profession_level_type: ["foundation", "intermediate", "executive"],
       question_type: ["single_choice", "multiple_choice", "scale", "text"],
+      reaction_type: ["like", "insightful", "celebrate", "support"],
       readiness_level: [
         "beginner",
         "developing",
