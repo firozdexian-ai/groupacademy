@@ -5,14 +5,11 @@ import {
   RefreshCw,
   ArrowDown,
   BookOpen,
-  Video,
   FileText,
-  Coins,
   WifiOff,
   Clock,
   TrendingUp,
   Sparkles,
-  BarChart3,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -71,7 +68,7 @@ export default function Feed() {
   const handleOnboardingComplete = async () => {
     setShowOnboarding(false);
     await refreshTalent();
-    refresh(true);
+    refresh();
   };
 
   const handleInterested = async (item: FeedItem) => {
@@ -114,7 +111,7 @@ export default function Feed() {
     if (!isPulling) return;
     setIsPulling(false);
     if (pullDistance > 60) {
-      await refresh(true);
+      await refresh();
     }
     setPullDistance(0);
   };
@@ -204,7 +201,7 @@ export default function Feed() {
           <FeedHeader
             talentName={talent?.fullName}
             talentPhoto={talent?.profilePhotoUrl}
-            onRefresh={() => refresh(true)}
+            onRefresh={() => refresh()}
             isRefreshing={isRefreshing}
           />
 
@@ -235,11 +232,9 @@ export default function Feed() {
               <CardContent className="p-6 text-center">
                 <WifiOff className="h-8 w-8 text-destructive mx-auto mb-3" />
                 <h3 className="font-semibold text-destructive mb-1">Couldn't load feed</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  {error === "402" ? "High traffic. Try again later." : "Something went wrong."}
-                </p>
+                <p className="text-sm text-muted-foreground mb-4">Something went wrong. Please try again.</p>
                 <div className="flex gap-2 justify-center">
-                  <Button variant="outline" size="sm" onClick={() => refresh(true)} className="gap-2">
+                  <Button variant="outline" size="sm" onClick={() => refresh()} className="gap-2">
                     <RefreshCw className="h-4 w-4" /> Retry
                   </Button>
                   <Button size="sm" onClick={() => navigate("/app/jobs")}>
@@ -262,11 +257,11 @@ export default function Feed() {
                 </h3>
                 <p className="text-sm text-muted-foreground mb-6 max-w-xs mx-auto">
                   {filters.type === "all"
-                    ? "We couldn't find any new recommendations for you right now."
+                    ? "We couldn't find any new content for you right now."
                     : `Try adjusting your filters or check back later.`}
                 </p>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="outline" onClick={() => refresh(true)}>
+                  <Button size="sm" variant="outline" onClick={() => refresh()}>
                     Refresh
                   </Button>
                   <Button size="sm" onClick={emptyAction.action}>
@@ -316,8 +311,8 @@ export default function Feed() {
               {!error && items.length > 0 && (
                 <div className="text-center py-8">
                   <p className="text-xs text-muted-foreground mb-3">You've reached the end</p>
-                  <Button variant="ghost" size="sm" onClick={() => refresh(true)} className="text-xs gap-1">
-                    <RefreshCw className="h-3.5 w-3.5" /> Load More (20 <Coins className="h-3 w-3 text-yellow-500" />)
+                  <Button variant="ghost" size="sm" onClick={() => refresh()} className="text-xs gap-1">
+                    <RefreshCw className="h-3.5 w-3.5" /> Load More
                   </Button>
                 </div>
               )}
@@ -331,7 +326,7 @@ export default function Feed() {
             {/* 1. Prompt Card */}
             <PersonalizedPromptCard />
 
-            {/* 2. Quick Stats Widget (New) */}
+            {/* 2. Quick Stats Widget */}
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center gap-2">
@@ -367,7 +362,7 @@ export default function Feed() {
               <Card className="bg-primary/5 border-primary/20">
                 <CardContent className="p-6 text-center">
                   <Sparkles className="h-8 w-8 text-primary mx-auto mb-2 opacity-50" />
-                  <p className="text-sm font-medium">Insights Generating...</p>
+                  <p className="text-sm font-medium">Career Tips</p>
                   <p className="text-xs text-muted-foreground mt-1">
                     Keep interacting with the feed to get personalized career advice.
                   </p>

@@ -1,22 +1,13 @@
 import { useState } from 'react';
-import { Lightbulb, ChevronDown, ChevronUp, RefreshCw, Sparkles } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Lightbulb, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
 interface CareerInsightsCardProps {
   insights: string[];
-  onRefresh: () => void;
-  isRefreshing: boolean;
-  hasGeneratedOnce: boolean;
 }
 
-export function CareerInsightsCard({ 
-  insights, 
-  onRefresh, 
-  isRefreshing,
-  hasGeneratedOnce 
-}: CareerInsightsCardProps) {
+export function CareerInsightsCard({ insights }: CareerInsightsCardProps) {
   const [isExpanded, setIsExpanded] = useState(true);
 
   if (insights.length === 0) return null;
@@ -69,21 +60,11 @@ export function CareerInsightsCard({
             ))}
           </ul>
 
-          {/* Refresh Button */}
-          <div className="mt-4 pt-3 border-t border-border/50 flex items-center justify-between">
+          {/* Footer */}
+          <div className="mt-4 pt-3 border-t border-border/50">
             <span className="text-xs text-muted-foreground">
-              {hasGeneratedOnce ? "Refresh costs 20 credits" : "First analysis is free"}
+              💡 Tips curated for career success
             </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onRefresh}
-              disabled={isRefreshing}
-              className="gap-1.5 text-xs h-7"
-            >
-              <RefreshCw className={cn("h-3 w-3", isRefreshing && "animate-spin")} />
-              {isRefreshing ? "Analyzing..." : "Refresh insights"}
-            </Button>
           </div>
         </div>
       </CardContent>

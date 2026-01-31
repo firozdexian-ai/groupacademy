@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTalent } from "@/hooks/useTalent";
-import { useCredits } from "@/hooks/useCredits";
 import { useToast } from "@/hooks/use-toast";
 
 export interface FeedItem {
@@ -53,7 +52,7 @@ interface UseFeedRecommendationsResult {
   error: string | null;
   filters: FeedFilters;
   setFilters: (filters: FeedFilters) => void;
-  refresh: (forceAI?: boolean) => Promise<void>;
+  refresh: () => Promise<void>;
   markInterested: (item: FeedItem) => Promise<void>;
   markNotInterested: (itemId: string) => void;
   hasGeneratedOnce: boolean;
@@ -61,26 +60,32 @@ interface UseFeedRecommendationsResult {
 
 const STORAGE_KEY_FILTERS = "feed_filters";
 
+// Static curated career tips - no AI needed
+const STATIC_INSIGHTS = [
+  "Keep your profile updated to increase visibility to employers",
+  "Practice common interview questions using our Mock Interview service",
+  "Check the Jobs Hub daily for new opportunities matching your skills",
+  "Build your portfolio to stand out from other candidates",
+  "Network with professionals in your field through events and courses",
+];
+
 export function useFeedRecommendations(): UseFeedRecommendationsResult {
   const { talent } = useTalent();
-  const { deductCredits, canAfford } = useCredits();
   const { toast } = useToast();
 
   const [allItems, setAllItems] = useState<FeedItem[]>([]);
-  const [insights, setInsights] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
-  const [hasGeneratedOnce, setHasGeneratedOnce] = useState(false);
 
   // Initialize filters from localStorage
   const [filters, setFiltersState] = useState<FeedFilters>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_FILTERS);
-      return saved ? JSON.parse(saved) : { type: "all", sort: "match" };
+      return saved ? JSON.parse(saved) : { type: "all", sort: "newest" };
     } catch {
-      return { type: "all", sort: "match" };
+      return { type: "all", sort: "newest" };
     }
   });
 
@@ -104,44 +109,47 @@ export function useFeedRecommendations(): UseFeedRecommendationsResult {
     return match ? `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg` : null;
   }, []);
 
-  // Basic fallback fetch without AI (no jobs - they go to Jobs Hub)
-  const fetchBasicFeed = useCallback(async () => {
+  // Simple, free feed fetch - no AI, no credits
+  const fetchFeed = useCallback(async () => {
     try {
+      // Parallel fetch from all content sources
       const [coursesResult, blogsResult, postsResult] = await Promise.all([
         supabase
           .from("content")
           .select("id, title, description, thumbnail_url, cover_image_url, youtube_url, created_at, slug, content_type")
           .eq("is_published", true)
           .order("created_at", { ascending: false })
-          .limit(15),
+          .limit(20),
         supabase
           .from("blog_posts")
           .select("id, title, excerpt, featured_image, created_at, slug, category, external_url")
           .eq("status", "published")
           .order("created_at", { ascending: false })
-          .limit(10),
+          .limit(15),
         supabase
           .from("feed_posts")
           .select("*")
           .eq("is_active", true)
           .order("is_pinned", { ascending: false })
           .order("created_at", { ascending: false })
-          .limit(20),
+          .limit(30),
       ]);
 
-      const getRandomScore = () => Math.floor(Math.random() * 26) + 60;
       const items: FeedItem[] = [];
+      const now = new Date();
+      const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
-      // Add posts first (pinned posts will be at top)
+      // Add posts (pinned posts naturally come first due to order)
       if (postsResult.data) {
         postsResult.data.forEach((post: any) => {
+          const isRecent = new Date(post.created_at) > oneDayAgo;
           items.push({
             id: post.id,
             type: "post",
             title: post.text_content?.substring(0, 60) || "Post",
             description: post.text_content || "",
             createdAt: post.created_at || "",
-            matchScore: post.is_pinned ? 100 : getRandomScore(),
+            matchScore: post.is_pinned ? 100 : (isRecent ? 90 : 70),
             mediaUrl: post.media_url || undefined,
             mediaType: post.media_url ? "image" : undefined,
             authorName: post.author_name,
@@ -159,6 +167,7 @@ export function useFeedRecommendations(): UseFeedRecommendationsResult {
         });
       }
 
+      // Add courses
       if (coursesResult.data) {
         coursesResult.data.forEach((course) => {
           let mediaUrl = course.cover_image_url || course.thumbnail_url || undefined;
@@ -174,6 +183,8 @@ export function useFeedRecommendations(): UseFeedRecommendationsResult {
             }
           }
 
+          const isRecent = new Date(course.created_at || "") > oneDayAgo;
+
           items.push({
             id: course.id,
             type: course.content_type === "free_video" ? "video" : "course",
@@ -182,7 +193,7 @@ export function useFeedRecommendations(): UseFeedRecommendationsResult {
             thumbnail: course.thumbnail_url || undefined,
             createdAt: course.created_at || "",
             slug: course.slug,
-            matchScore: getRandomScore(),
+            matchScore: isRecent ? 85 : 65,
             mediaUrl: mediaUrl,
             mediaType: mediaType,
             youtubeUrl: youtubeUrl,
@@ -190,8 +201,11 @@ export function useFeedRecommendations(): UseFeedRecommendationsResult {
         });
       }
 
+      // Add blogs
       if (blogsResult.data) {
         blogsResult.data.forEach((blog) => {
+          const isRecent = new Date(blog.created_at || "") > oneDayAgo;
+
           items.push({
             id: blog.id,
             type: "blog",
@@ -200,7 +214,7 @@ export function useFeedRecommendations(): UseFeedRecommendationsResult {
             thumbnail: blog.featured_image || undefined,
             createdAt: blog.created_at || "",
             slug: blog.slug,
-            matchScore: getRandomScore(),
+            matchScore: isRecent ? 85 : 60,
             mediaUrl: blog.featured_image || undefined,
             mediaType: blog.featured_image ? "image" : undefined,
             category: blog.category || undefined,
@@ -209,123 +223,37 @@ export function useFeedRecommendations(): UseFeedRecommendationsResult {
         });
       }
 
-      items.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      // Sort: pinned first, then by recency
+      items.sort((a, b) => {
+        if (a.isPinned && !b.isPinned) return -1;
+        if (!a.isPinned && b.isPinned) return 1;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
 
       if (isMounted.current) {
         setAllItems(items);
+        setError(null);
       }
     } catch (err) {
-      console.error("Error in fetchBasicFeed:", err);
+      console.error("Error fetching feed:", err);
+      if (isMounted.current) {
+        setError(err instanceof Error ? err.message : "Failed to load feed");
+      }
     }
   }, [getYoutubeThumbnail]);
 
-  // Fetch recommendations from AI
-  const fetchRecommendations = useCallback(
-    async (forceRefresh = false) => {
-      if (!talent?.id) return;
-
-      try {
-        if (forceRefresh) {
-          setIsRefreshing(true);
-        } else {
-          setIsLoading(true);
-        }
-        setError(null);
-
-        // 1. Invoke AI Edge Function
-        const { data, error: fnError } = await supabase.functions.invoke("generate-feed-recommendations", {
-          body: { talentId: talent.id, forceRefresh },
-        });
-
-        // 2. SAFETY NET: Concurrently fetch latest blogs manually
-        // (This ensures blogs appear even if the AI function hasn't indexed them yet)
-        const { data: recentBlogs } = await supabase
-          .from("blog_posts")
-          .select("id, title, excerpt, featured_image, created_at, slug, category, external_url")
-          .eq("status", "published")
-          .order("created_at", { ascending: false })
-          .limit(5);
-
-        if (!isMounted.current) return;
-
-        if (fnError) throw new Error(fnError.message);
-        if (data.error) throw new Error(data.error);
-
-        let aiItems: FeedItem[] = data.recommendations || [];
-
-        // 3. Merge AI results with latest blogs
-        if (recentBlogs && recentBlogs.length > 0) {
-          const blogItems: FeedItem[] = recentBlogs.map((blog) => ({
-            id: blog.id,
-            type: "blog",
-            title: blog.title,
-            description: blog.excerpt || "",
-            thumbnail: blog.featured_image || undefined,
-            createdAt: blog.created_at || "",
-            slug: blog.slug,
-            matchScore: 80, // Give new blogs a high default score
-            mediaUrl: blog.featured_image || undefined,
-            mediaType: blog.featured_image ? "image" : undefined,
-            category: blog.category || undefined,
-            externalUrl: blog.external_url || undefined,
-            matchReason: "New article you might like",
-          }));
-
-          // Deduplicate (don't add if AI already found it)
-          const existingIds = new Set(aiItems.map((i) => i.id));
-          const newBlogs = blogItems.filter((b) => !existingIds.has(b.id));
-
-          // Add new blogs to the top
-          aiItems = [...newBlogs, ...aiItems];
-        }
-
-        setAllItems(aiItems);
-        setInsights(data.careerInsights || []);
-        setHasGeneratedOnce(true);
-
-        if (!data.cached && forceRefresh) {
-          toast({
-            title: "Recommendations updated",
-            description: "AI has analyzed your profile for best matches",
-          });
-        }
-      } catch (err) {
-        console.error("Error in fetchRecommendations:", err);
-        if (isMounted.current) {
-          setError(err instanceof Error ? err.message : "Failed to load recommendations");
-          await fetchBasicFeed();
-        }
-      } finally {
-        if (isMounted.current) {
-          setIsLoading(false);
-          setIsRefreshing(false);
-        }
-      }
-    },
-    [talent?.id, toast, fetchBasicFeed],
-  );
-
-  // Refresh with credit check
-  const refresh = useCallback(
-    async (forceAI = false) => {
-      if (forceAI && hasGeneratedOnce) {
-        if (!canAfford("SUGGESTED_JOBS")) {
-          toast({
-            title: "Insufficient credits",
-            description: "You need 20 credits to refresh AI recommendations",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        const success = await deductCredits("SUGGESTED_JOBS", undefined, "AI feed refresh");
-        if (!success) return;
-      }
-
-      await fetchRecommendations(forceAI);
-    },
-    [fetchRecommendations, hasGeneratedOnce, canAfford, deductCredits, toast],
-  );
+  // Refresh function - now FREE (no credits needed)
+  const refresh = useCallback(async () => {
+    setIsRefreshing(true);
+    await fetchFeed();
+    if (isMounted.current) {
+      setIsRefreshing(false);
+      toast({
+        title: "Feed refreshed",
+        description: "Showing the latest content",
+      });
+    }
+  }, [fetchFeed, toast]);
 
   const markInterested = useCallback(
     async (item: FeedItem) => {
@@ -371,6 +299,7 @@ export function useFeedRecommendations(): UseFeedRecommendationsResult {
     [talent?.id, allItems, toast],
   );
 
+  // Load dismissed items
   useEffect(() => {
     if (!talent?.id) return;
     supabase
@@ -385,12 +314,18 @@ export function useFeedRecommendations(): UseFeedRecommendationsResult {
       });
   }, [talent?.id]);
 
+  // Initial fetch
   useEffect(() => {
-    if (talent?.id && !hasInitialFetch.current) {
+    if (!hasInitialFetch.current) {
       hasInitialFetch.current = true;
-      fetchRecommendations();
+      setIsLoading(true);
+      fetchFeed().finally(() => {
+        if (isMounted.current) {
+          setIsLoading(false);
+        }
+      });
     }
-  }, [talent?.id, fetchRecommendations]);
+  }, [fetchFeed]);
 
   const filteredItems = useMemo(() => {
     return allItems
@@ -412,6 +347,13 @@ export function useFeedRecommendations(): UseFeedRecommendationsResult {
       });
   }, [allItems, dismissedIds, filters.type, filters.sort]);
 
+  // Return static insights - no AI generation needed
+  const insights = useMemo(() => {
+    // Shuffle and pick 3 random insights
+    const shuffled = [...STATIC_INSIGHTS].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, 3);
+  }, []);
+
   return {
     items: filteredItems,
     insights,
@@ -423,6 +365,6 @@ export function useFeedRecommendations(): UseFeedRecommendationsResult {
     refresh,
     markInterested,
     markNotInterested,
-    hasGeneratedOnce,
+    hasGeneratedOnce: true, // Always true since we use static insights
   };
 }
