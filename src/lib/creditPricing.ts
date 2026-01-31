@@ -45,8 +45,18 @@ export const CREDIT_CONFIG = {
     },
     SUGGESTED_JOBS: {
       name: 'AI Job Suggestions',
-      cost: 20,
+      cost: 10,
       description: 'Get personalized job recommendations'
+    },
+    JOB_MATCH_SCORE: {
+      name: 'Job Match Analysis',
+      cost: 10,
+      description: 'See how well you match this job'
+    },
+    JOB_MARKET_INSIGHT: {
+      name: 'Job & Applicant Insight',
+      cost: 15,
+      description: 'Market intelligence and competition analysis'
     }
   },
   

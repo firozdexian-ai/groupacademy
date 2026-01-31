@@ -3522,6 +3522,7 @@ export type Database = {
           id: string
           institution: string | null
           is_featured: boolean | null
+          job_preferences: Json | null
           learner_status: string | null
           linkedin_url: string | null
           onboarding_completed_at: string | null
@@ -3557,6 +3558,7 @@ export type Database = {
           id?: string
           institution?: string | null
           is_featured?: boolean | null
+          job_preferences?: Json | null
           learner_status?: string | null
           linkedin_url?: string | null
           onboarding_completed_at?: string | null
@@ -3592,6 +3594,7 @@ export type Database = {
           id?: string
           institution?: string | null
           is_featured?: boolean | null
+          job_preferences?: Json | null
           learner_status?: string | null
           linkedin_url?: string | null
           onboarding_completed_at?: string | null

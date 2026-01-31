@@ -56,3 +56,9 @@ verify_jwt = false
 
 [functions.analyze-job-assessment]
 verify_jwt = false
+
+[functions.score-job-match]
+verify_jwt = false
+
+[functions.analyze-job-market]
+verify_jwt = false

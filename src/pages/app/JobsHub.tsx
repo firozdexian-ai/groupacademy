@@ -13,16 +13,24 @@ import {
   CheckCircle2,
   Send,
   Eye,
+  Bookmark,
+  Settings,
+  ChevronDown,
+  ChevronUp,
+  Coins,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTalent } from "@/hooks/useTalent";
+import { useSavedItems } from "@/hooks/useSavedItems";
+import { useCredits } from "@/hooks/useCredits";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { JobPreferencesSheet } from "@/components/jobs/JobPreferencesSheet";
+import { toast } from "sonner";
 
-// 1. Improved Interfaces
 interface Job {
   id: string;
   title: string;
@@ -43,7 +51,7 @@ interface JobApplication {
     title: string;
     company_name: string;
     company_logo_url: string | null;
-  }; // Removed 'any' cast by defining this structure properly
+  };
 }
 
 const JOB_COLLECTIONS = [
@@ -51,6 +59,11 @@ const JOB_COLLECTIONS = [
   { label: "Part-time", filter: "part_time", icon: Clock, gradient: "from-purple-500/20 to-purple-600/10" },
   { label: "Internship", filter: "internship", icon: Building2, gradient: "from-green-500/20 to-green-600/10" },
   { label: "Remote", filter: "remote", icon: MapPin, gradient: "from-orange-500/20 to-orange-600/10" },
+];
+
+const EXTENDED_COLLECTIONS = [
+  { label: "Contract", filter: "contract" },
+  { label: "Freelance", filter: "freelance" },
 ];
 
 const JOB_TYPE_COLORS: Record<string, string> = {
@@ -74,15 +87,27 @@ const APPLICATION_STATUS_CONFIG: Record<string, { label: string; color: string; 
 export default function JobsHub() {
   const navigate = useNavigate();
   const { talent } = useTalent();
+  const { savedItems } = useSavedItems();
+  const { canAfford, deductCredits } = useCredits();
+  
   const [searchQuery, setSearchQuery] = useState("");
   const [topPicks, setTopPicks] = useState<Job[]>([]);
+  const [personalizedJobs, setPersonalizedJobs] = useState<Job[]>([]);
   const [applications, setApplications] = useState<JobApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [applicationsLoading, setApplicationsLoading] = useState(true);
+  const [personalizedLoading, setPersonalizedLoading] = useState(false);
+  const [preferencesOpen, setPreferencesOpen] = useState(false);
+  const [showExtendedCollections, setShowExtendedCollections] = useState(false);
+  const [loadingAI, setLoadingAI] = useState(false);
+
+  // Count saved jobs
+  const savedJobsCount = savedItems.filter(item => item.item_type === 'job').length;
 
   useEffect(() => {
     fetchTopPicks();
-  }, []);
+    fetchPersonalizedJobs();
+  }, [talent?.id]);
 
   useEffect(() => {
     if (talent?.id) {
@@ -112,11 +137,39 @@ export default function JobsHub() {
     }
   }
 
+  async function fetchPersonalizedJobs() {
+    if (!talent?.id) return;
+    
+    setPersonalizedLoading(true);
+    try {
+      // Simple personalization based on profession category
+      let query = supabase
+        .from("jobs")
+        .select("id, title, company_name, company_logo_url, location, job_type, created_at")
+        .eq("is_active", true)
+        .or("deadline.is.null,deadline.gte.now()")
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      // If user has profession category, filter by it
+      if (talent.professionCategoryId) {
+        query = query.eq("profession_category_id", talent.professionCategoryId);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+      setPersonalizedJobs((data as Job[]) || []);
+    } catch (error) {
+      console.error("Error fetching personalized jobs:", error);
+    } finally {
+      setPersonalizedLoading(false);
+    }
+  }
+
   async function fetchApplications() {
     setApplicationsLoading(true);
     try {
-      // 2. Safe Typed Query
-      // We select the joined table 'jobs' and map it to the interface
       const { data, error } = await supabase
         .from("job_applications")
         .select(
@@ -138,9 +191,6 @@ export default function JobsHub() {
         .limit(3);
 
       if (error) throw error;
-
-      // We can now safely cast this because the query structure matches the interface
-      // (Supabase return types are complex, so 'unknown' cast first is standard practice)
       setApplications((data as unknown as JobApplication[]) || []);
     } catch (error) {
       console.error("Error fetching applications:", error);
@@ -157,6 +207,30 @@ export default function JobsHub() {
   function getApplicationStatus(app: JobApplication) {
     const status = app.application_status || app.delivery_status || "pending";
     return APPLICATION_STATUS_CONFIG[status] || APPLICATION_STATUS_CONFIG.pending;
+  }
+
+  async function handleShowAllAI() {
+    if (!canAfford("SUGGESTED_JOBS")) {
+      toast.error("Insufficient credits. You need 10 credits for AI recommendations.");
+      return;
+    }
+
+    setLoadingAI(true);
+    try {
+      const success = await deductCredits("SUGGESTED_JOBS", undefined, "AI Job Recommendations");
+      if (!success) {
+        toast.error("Failed to process credits");
+        return;
+      }
+      
+      // Navigate to all jobs with AI flag
+      navigate("/app/jobs/all?ai=true");
+    } catch (error) {
+      console.error("Error getting AI recommendations:", error);
+      toast.error("Failed to get AI recommendations");
+    } finally {
+      setLoadingAI(false);
+    }
   }
 
   return (
@@ -183,28 +257,46 @@ export default function JobsHub() {
         </form>
       </div>
 
-      {/* Job Categories - 2x2 Grid */}
-      <section>
-        <h2 className="text-lg font-bold mb-3">Browse by Type</h2>
-        <div className="grid grid-cols-2 gap-3">
-          {JOB_COLLECTIONS.map((collection, index) => (
-            <Card
-              key={collection.filter}
-              className={`cursor-pointer border-0 bg-gradient-to-br ${collection.gradient} animate-bounce-in press-scale hover:shadow-md transition-all`}
-              style={{ animationDelay: `${index * 50}ms` }}
-              onClick={() => navigate(`/app/jobs/all?type=${collection.filter}`)}
-            >
-              <CardContent className="p-4 flex flex-col items-center text-center">
-                <div className="w-11 h-11 bg-background/80 rounded-xl flex items-center justify-center mb-2 shadow-sm">
-                  <collection.icon className="h-5 w-5 text-primary" />
-                </div>
-                <span className="font-bold text-sm">{collection.label}</span>
-                <span className="text-xs text-muted-foreground mt-0.5">View jobs</span>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </section>
+      {/* Quick Access Pills */}
+      <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-none">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="shrink-0 gap-1.5"
+          onClick={() => navigate('/app/saved?tab=jobs')}
+        >
+          <Bookmark className="h-4 w-4" />
+          Saved Jobs
+          {savedJobsCount > 0 && (
+            <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+              {savedJobsCount}
+            </Badge>
+          )}
+        </Button>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="shrink-0 gap-1.5"
+          onClick={() => navigate('/app/applications')}
+        >
+          <FileText className="h-4 w-4" />
+          Applied
+          {applications.length > 0 && (
+            <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+              {applications.length}
+            </Badge>
+          )}
+        </Button>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="shrink-0 gap-1.5"
+          onClick={() => setPreferencesOpen(true)}
+        >
+          <Settings className="h-4 w-4" />
+          Preferences
+        </Button>
+      </div>
 
       {/* Top Picks */}
       <section>
@@ -305,7 +397,142 @@ export default function JobsHub() {
             ))}
           </div>
         )}
+
+        {/* Show All AI Button */}
+        {topPicks.length > 0 && (
+          <Button
+            variant="outline"
+            className="w-full mt-3 gap-2"
+            onClick={handleShowAllAI}
+            disabled={loadingAI}
+          >
+            <Sparkles className="h-4 w-4 text-purple-500" />
+            Show AI Recommendations
+            <Badge variant="secondary" className="gap-1 ml-auto">
+              <Coins className="h-3 w-3 text-amber-500" />
+              10 credits
+            </Badge>
+          </Button>
+        )}
       </section>
+
+      {/* Job Categories - 2x2 Grid with expand */}
+      <section>
+        <h2 className="text-lg font-bold mb-3">Browse by Type</h2>
+        <div className="grid grid-cols-2 gap-3">
+          {JOB_COLLECTIONS.map((collection, index) => (
+            <Card
+              key={collection.filter}
+              className={`cursor-pointer border-0 bg-gradient-to-br ${collection.gradient} animate-bounce-in press-scale hover:shadow-md transition-all`}
+              style={{ animationDelay: `${index * 50}ms` }}
+              onClick={() => navigate(`/app/jobs/all?type=${collection.filter}`)}
+            >
+              <CardContent className="p-4 flex flex-col items-center text-center">
+                <div className="w-11 h-11 bg-background/80 rounded-xl flex items-center justify-center mb-2 shadow-sm">
+                  <collection.icon className="h-5 w-5 text-primary" />
+                </div>
+                <span className="font-bold text-sm">{collection.label}</span>
+                <span className="text-xs text-muted-foreground mt-0.5">View jobs</span>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        
+        {/* Extended Collections */}
+        {showExtendedCollections && (
+          <div className="grid grid-cols-2 gap-3 mt-3">
+            {EXTENDED_COLLECTIONS.map((collection) => (
+              <Button
+                key={collection.filter}
+                variant="outline"
+                className="h-auto py-3"
+                onClick={() => navigate(`/app/jobs/all?type=${collection.filter}`)}
+              >
+                {collection.label}
+              </Button>
+            ))}
+          </div>
+        )}
+        
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full mt-2 text-muted-foreground"
+          onClick={() => setShowExtendedCollections(!showExtendedCollections)}
+        >
+          {showExtendedCollections ? (
+            <>Show Less <ChevronUp className="h-4 w-4 ml-1" /></>
+          ) : (
+            <>More Types <ChevronDown className="h-4 w-4 ml-1" /></>
+          )}
+        </Button>
+      </section>
+
+      {/* More Jobs for You */}
+      {personalizedJobs.length > 0 && (
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Briefcase className="h-5 w-5 text-primary" />
+              <h2 className="text-lg font-bold">More Jobs for You</h2>
+            </div>
+          </div>
+
+          {personalizedLoading ? (
+            <div className="space-y-3">
+              {[1, 2].map((i) => (
+                <Card key={i}>
+                  <CardContent className="p-3">
+                    <div className="flex items-center gap-3">
+                      <Skeleton className="h-10 w-10 rounded-lg shrink-0" />
+                      <div className="flex-1 space-y-1.5">
+                        <Skeleton className="h-4 w-3/4" />
+                        <Skeleton className="h-3 w-1/2" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {personalizedJobs.map((job) => (
+                <Card
+                  key={job.id}
+                  className="cursor-pointer press-scale hover:shadow-md transition-all hover:border-primary/30"
+                  onClick={() => navigate(`/app/jobs/${job.id}`)}
+                >
+                  <CardContent className="p-3">
+                    <div className="flex items-center gap-3">
+                      {job.company_logo_url ? (
+                        <img
+                          src={job.company_logo_url}
+                          alt={job.company_name}
+                          className="w-10 h-10 rounded-lg object-cover bg-muted shrink-0 border"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20">
+                          <Building2 className="w-4 h-4 text-primary" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-sm line-clamp-1">{job.title}</h3>
+                        <p className="text-xs text-muted-foreground">{job.company_name}</p>
+                      </div>
+                      <Badge
+                        variant="secondary"
+                        className={`text-xs shrink-0 ${JOB_TYPE_COLORS[job.job_type] || ""}`}
+                      >
+                        {job.job_type.replace("_", " ")}
+                      </Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       {/* My Applications - Inline Section */}
       <section>
@@ -398,6 +625,9 @@ export default function JobsHub() {
           </div>
         )}
       </section>
+
+      {/* Job Preferences Sheet */}
+      <JobPreferencesSheet open={preferencesOpen} onOpenChange={setPreferencesOpen} />
     </div>
   );
 }

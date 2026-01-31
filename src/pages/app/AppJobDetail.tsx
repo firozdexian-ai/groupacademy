@@ -18,21 +18,24 @@ import {
   Briefcase,
   Star,
   Share2,
-  RefreshCw,
   AlertCircle,
   CheckCircle,
   Brain,
   ArrowRight,
   Bookmark,
+  Globe,
+  Linkedin,
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { AIJobInsights } from "@/components/jobs/AIJobInsights";
 
 interface Job {
   id: string;
   title: string;
   company_name: string;
   company_logo_url: string | null;
+  company_id: string | null;
   location: string | null;
   job_type: string;
   experience_level: string;
@@ -49,6 +52,17 @@ interface Job {
   created_at: string;
   source_image_url: string | null;
   ai_assessment_enabled: boolean;
+}
+
+interface Company {
+  id: string;
+  name: string;
+  industry: string | null;
+  website: string | null;
+  linkedin_url: string | null;
+  address: string | null;
+  logo_url: string | null;
+  is_verified: boolean | null;
 }
 
 interface ExistingApplication {
@@ -84,6 +98,7 @@ export default function AppJobDetail() {
   const { isSaved: checkIsSaved, toggleSave } = useSavedItems();
 
   const [job, setJob] = useState<Job | null>(null);
+  const [company, setCompany] = useState<Company | null>(null);
   const [existingApp, setExistingApp] = useState<ExistingApplication | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -130,7 +145,20 @@ export default function AppJobDetail() {
       if (jobError) throw jobError;
       setJob(jobData);
 
-      // 2. Check for Existing Application (if user logged in)
+      // 2. Load Company Details if company_id exists
+      if (jobData.company_id) {
+        const { data: companyData, error: companyError } = await supabase
+          .from("companies")
+          .select("id, name, industry, website, linkedin_url, address, logo_url, is_verified")
+          .eq("id", jobData.company_id)
+          .single();
+
+        if (!companyError && companyData) {
+          setCompany(companyData);
+        }
+      }
+
+      // 3. Check for Existing Application (if user logged in)
       if (talent?.id) {
         const { data: appData, error: appError } = await supabase
           .from("job_applications")
@@ -155,7 +183,6 @@ export default function AppJobDetail() {
             assessment_score: assessment?.ai_score,
           });
         }
-        // Saved status is now handled by useSavedItems hook
       }
     } catch (error: any) {
       console.error("Error loading job:", error);
@@ -386,18 +413,20 @@ export default function AppJobDetail() {
           <p className="text-muted-foreground font-medium">{job.company_name}</p>
         </div>
 
-        <div className="flex gap-2">
-          <Button variant="outline" size="icon" onClick={handleSaveToggle} className="rounded-full">
-            <Bookmark className={`w-4 h-4 ${isSaved ? "fill-primary text-primary" : ""}`} />
-          </Button>
-          <Button variant="outline" size="icon" onClick={handleShare} className="rounded-full">
-            <Share2 className="w-4 h-4" />
-          </Button>
-        </div>
+        {/* Save Button - Prominent */}
+        <Button
+          variant={isSaved ? "default" : "outline"}
+          size="lg"
+          className="gap-2 shrink-0"
+          onClick={handleSaveToggle}
+        >
+          <Bookmark className={`w-4 h-4 ${isSaved ? "fill-current" : ""}`} />
+          {isSaved ? "Saved" : "Save"}
+        </Button>
       </div>
 
       {/* Info Badges */}
-      <div className="flex flex-wrap gap-2 mb-8">
+      <div className="flex flex-wrap gap-2 mb-6">
         <Badge variant="secondary" className="gap-1.5 py-1.5 px-3">
           <Clock className="w-3.5 h-3.5 opacity-70" />
           {JOB_TYPES[job.job_type] || job.job_type}
@@ -420,8 +449,22 @@ export default function AppJobDetail() {
         )}
       </div>
 
+      {/* AI Insights Section */}
+      {talent?.id && !existingApp && !isDeadlinePassed && (
+        <div className="mb-6">
+          <AIJobInsights jobId={job.id} talentId={talent.id} />
+        </div>
+      )}
+
       {/* Action Area */}
       {renderActionButton()}
+
+      {/* Share Button */}
+      <div className="flex justify-end mb-6">
+        <Button variant="ghost" size="sm" onClick={handleShare} className="gap-2">
+          <Share2 className="w-4 h-4" /> Share
+        </Button>
+      </div>
 
       {/* Main Content Grid */}
       <div className="space-y-6">
@@ -448,6 +491,58 @@ export default function AppJobDetail() {
                   </li>
                 ))}
               </ul>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* About the Company */}
+        {company && (
+          <Card>
+            <CardContent className="p-6">
+              <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
+                <Building2 className="h-5 w-5" /> About {company.name}
+              </h3>
+              <div className="space-y-3 text-sm">
+                {company.industry && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Industry</span>
+                    <span className="font-medium">{company.industry}</span>
+                  </div>
+                )}
+                {company.address && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Location</span>
+                    <span className="font-medium">{company.address}</span>
+                  </div>
+                )}
+                {company.is_verified && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Status</span>
+                    <Badge variant="secondary" className="gap-1 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                      <CheckCircle className="h-3 w-3" />
+                      Verified
+                    </Badge>
+                  </div>
+                )}
+                <div className="flex gap-2 pt-2">
+                  {company.website && (
+                    <Button variant="outline" size="sm" asChild>
+                      <a href={company.website} target="_blank" rel="noopener noreferrer">
+                        <Globe className="h-4 w-4 mr-1.5" />
+                        Website
+                      </a>
+                    </Button>
+                  )}
+                  {company.linkedin_url && (
+                    <Button variant="outline" size="sm" asChild>
+                      <a href={company.linkedin_url} target="_blank" rel="noopener noreferrer">
+                        <Linkedin className="h-4 w-4 mr-1.5" />
+                        LinkedIn
+                      </a>
+                    </Button>
+                  )}
+                </div>
+              </div>
             </CardContent>
           </Card>
         )}
