@@ -10,7 +10,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import {
   ArrowLeft,
-  Send,
   Building2,
   AlertCircle,
   CheckCircle,
@@ -25,6 +24,7 @@ import {
 import { toast } from "sonner";
 import { SUPPORT_CONFIG, getExpediteMessage } from "@/lib/constants/support";
 import { CreditPurchaseSheet } from "@/components/credits/CreditPurchaseSheet";
+import { InlineCVUpload } from "@/components/job-application/InlineCVUpload";
 
 interface Job {
   id: string;
@@ -364,39 +364,21 @@ export default function AppJobApplication() {
         </CardContent>
       </Card>
 
-      {/* CV Status */}
+      {/* CV Status - Inline Upload */}
       <Card className="mb-6">
         <CardHeader className="pb-3 border-b">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <FileText className="h-4 w-4 text-primary" />
             Resume / CV
           </CardTitle>
+          {!talent?.cvUrl && (
+            <CardDescription className="text-xs">
+              Upload your CV to apply — we'll auto-fill your profile
+            </CardDescription>
+          )}
         </CardHeader>
         <CardContent className="pt-4">
-          {talent?.cvUrl ? (
-            <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded bg-background flex items-center justify-center border">
-                  <FileText className="w-4 h-4 text-muted-foreground" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium">Current Resume</p>
-                  <p className="text-xs text-muted-foreground">Ready to send</p>
-                </div>
-              </div>
-              <CheckCircle className="h-5 w-5 text-green-500" />
-            </div>
-          ) : (
-            <div className="flex items-center justify-between p-3 bg-destructive/5 border border-destructive/20 rounded-lg">
-              <div className="flex items-center gap-3">
-                <AlertCircle className="h-5 w-5 text-destructive" />
-                <span className="text-sm font-medium text-destructive">CV Missing</span>
-              </div>
-              <Button size="sm" variant="outline" onClick={() => navigate("/app/profile/edit")}>
-                Upload
-              </Button>
-            </div>
-          )}
+          <InlineCVUpload />
         </CardContent>
       </Card>
 
