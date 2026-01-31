@@ -1,406 +1,335 @@
 
-# Jobs Hub Redesign Implementation Plan
 
-## Overview
+# Jobs Section UI/UX Deep Dive: Improvement Roadmap
 
-Transform the Jobs Hub into a personalized, AI-powered job discovery experience based on the provided wireframes. This includes a new layout for the Jobs page with quick access filters, AI-powered recommendations, and enhanced Job Details with two new premium AI features.
+## Executive Summary
 
----
-
-## Part A: Jobs Hub Page Redesign (`/app/jobs` → JobsHub.tsx)
-
-### New Layout Structure
-
-```text
-┌─────────────────────────────────────────┐
-│  [Logo]           [🔔] [👤]            │  <- Already in TalentAppShell
-├─────────────────────────────────────────┤
-│  [ 🔍 Search Jobs                    ]  │
-├─────────────────────────────────────────┤
-│ [Saved Jobs] [Applied Jobs] [Preferences]│ <- NEW quick access pills
-├─────────────────────────────────────────┤
-│  ⭐ Top Picks for You                   │
-│  ┌─────┐ ┌─────┐ ┌─────┐               │
-│  │Job 1│ │Job 2│ │Job 3│               │
-│  └─────┘ └─────┘ └─────┘               │
-│        [Show All - 10 credits]          │ <- NEW AI feature
-├─────────────────────────────────────────┤
-│  📂 Explore Job Collections             │
-│  [Full Time] [Part-Time] [Internship]   │
-│  [Remote]    [NGO]       [More ▸]       │ <- Expand to show more
-├─────────────────────────────────────────┤
-│  🎯 More Jobs for You                   │ <- NEW personalized section
-│  Based on profile, preferences,         │
-│  activity (applies, searches, saves)    │
-│  ┌─────────────────────────────┐        │
-│  │ Job Card 1                  │        │
-│  └─────────────────────────────┘        │
-│  ┌─────────────────────────────┐        │
-│  │ Job Card 2                  │        │
-│  └─────────────────────────────┘        │
-└─────────────────────────────────────────┘
-```
-
-### Technical Changes
-
-#### 1. Add Quick Access Pills (Saved/Applied/Preferences)
-
-Create three horizontally scrollable pill buttons below the search bar:
-
-```typescript
-// New component in JobsHub.tsx
-const QuickAccessPills = () => (
-  <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4">
-    <Button variant="outline" size="sm" onClick={() => navigate('/app/saved')}>
-      <Bookmark className="h-4 w-4 mr-1.5" />
-      Saved Jobs ({savedJobsCount})
-    </Button>
-    <Button variant="outline" size="sm" onClick={() => navigate('/app/applications')}>
-      <FileText className="h-4 w-4 mr-1.5" />
-      Applied ({applicationsCount})
-    </Button>
-    <Button variant="outline" size="sm" onClick={() => setPreferencesOpen(true)}>
-      <Settings className="h-4 w-4 mr-1.5" />
-      Preferences
-    </Button>
-  </div>
-);
-```
-
-#### 2. Add Job Preferences Sheet
-
-New slide-out sheet for users to set job preferences:
-- Preferred job types (Full-time, Part-time, etc.)
-- Preferred locations
-- Salary expectations
-- Industries of interest
-
-Store in new `job_preferences` table or JSONB field on `talents`.
-
-#### 3. "Show All - 10 credits" AI Button
-
-Add button under Top Picks that charges 10 credits to fetch AI-scored job recommendations:
-
-```typescript
-const handleShowAllAI = async () => {
-  if (!canAfford(10)) {
-    openCreditPurchase();
-    return;
-  }
-  
-  await deductCredits(10, 'SUGGESTED_JOBS', 'AI Job Recommendations');
-  
-  const { data } = await supabase.functions.invoke('generate-job-recommendations', {
-    body: { talentId: talent.id }
-  });
-  
-  navigate('/app/jobs/all', { state: { aiJobs: data.jobs } });
-};
-```
-
-#### 4. Expand Job Collections
-
-Add more collection types:
-- NGO/Development
-- Government
-- Startup
-- MNC (Multinational)
-- Add "More" button to reveal additional categories
-
-#### 5. "More Jobs for You" Section
-
-New section showing personalized job recommendations based on:
-- User's profession/skills from profile
-- Previously applied/saved jobs
-- Search history
-- Profile completeness
-
-This is fetched via simple database query (not AI) using the user's `profession_category_id` and skills matching.
+After thoroughly analyzing all job-related components, I've identified **23 improvement areas** across 5 categories: Layout & Visual Hierarchy, Navigation & Flow, Consistency Issues, Feature Gaps, and Performance. The current implementation is feature-rich but suffers from visual clutter, inconsistent patterns, and some UX friction points.
 
 ---
 
-## Part B: Job Details Page Enhancements (`/app/jobs/:id` → AppJobDetail.tsx)
+## Current State Analysis
 
-### New Layout Structure
+### Files Reviewed
+- `JobsHub.tsx` (633 lines) - Main jobs landing page
+- `AppJobs.tsx` (438 lines) - Full jobs listing with filters
+- `AppJobDetail.tsx` (589 lines) - Job details page
+- `AppJobApplication.tsx` (471 lines) - Application flow
+- `MyApplications.tsx` (433 lines) - Applications tracking
+- `SavedItems.tsx` (304 lines) - Saved items page
+- `AIJobInsights.tsx` (328 lines) - AI features component
+- `JobPreferencesSheet.tsx` (252 lines) - Preferences sheet
 
-```text
-┌─────────────────────────────────────────┐
-│ ← Back to Jobs                          │
-├─────────────────────────────────────────┤
-│ [Company Logo]  Job Title               │
-│                 Company Name            │
-│                                   [★ Save]│ <- PROMINENT save button
-├─────────────────────────────────────────┤
-│ [Full Time] [Dhaka] [Entry Level]       │
-├─────────────────────────────────────────┤
-│ ┌─────────────────────────────────────┐ │
-│ │ 🤖 AI Insights (Premium)            │ │ <- NEW collapsible section
-│ │                                     │ │
-│ │ [Show Match Details - 10 credits]   │ │ <- AI Feature #1
-│ │ [Job & Applicant Insight - 15 cr]   │ │ <- AI Feature #2
-│ └─────────────────────────────────────┘ │
-├─────────────────────────────────────────┤
-│        [Apply Now] (Primary CTA)        │
-├─────────────────────────────────────────┤
-│ 📋 About the Role                       │
-│ [Job description content...]            │
-├─────────────────────────────────────────┤
-│ ✅ Requirements                         │
-│ • Requirement 1                         │
-│ • Requirement 2                         │
-├─────────────────────────────────────────┤
-│ 🏢 About the Company                    │ <- NEW section
-│ Industry: Technology                    │
-│ Website: example.com                    │
-│ LinkedIn: linkedin.com/company/...      │
-│ [View Company →]                        │
-├─────────────────────────────────────────┤
-│ 📅 Job Overview                         │
-│ Posted: Jan 15, 2026                    │
-│ Deadline: Feb 15, 2026                  │
-└─────────────────────────────────────────┘
-```
+---
 
-### Technical Changes
+## Category 1: Layout & Visual Hierarchy Issues
 
-#### 1. Prominent Save Button
+### Issue 1.1: JobsHub Page Is Overloaded
+**Current State:**
+- 6 distinct sections stacked vertically: Hero, Quick Access Pills, Top Picks, Browse by Type, More Jobs for You, My Applications
+- Each section has its own visual treatment creating visual fatigue
+- ~630 lines of code in one component
 
-Replace the small icon button with a larger, more visible button:
+**Improvement:**
+- Consolidate sections into cleaner card groupings
+- Use consistent section headers (currently mixing icon+title patterns)
+- Extract sections into sub-components for maintainability
 
+### Issue 1.2: Inconsistent Card Designs Across Pages
+**Current State:**
+- JobsHub: Cards have arrow circles on right, company logos on left
+- AppJobs: Cards have "View Details" text link, different padding (p-5 vs p-4)
+- Personalized section: Cards use p-3 with smaller logos (w-10 vs w-11)
+
+**Improvement:**
+- Create a unified `JobCard` component with size variants: `compact`, `default`, `featured`
+- Standardize logo sizes, padding, and action indicators
+
+### Issue 1.3: Top Picks Section Layout
+**Current State:**
+- Shows only 3 jobs in vertical list
+- "Show AI Recommendations" button below feels disconnected
+- "See all" link in header competes with AI button
+
+**Improvement:**
+- Use horizontal scrollable cards for Top Picks (like a carousel)
+- Move AI recommendations trigger to a more prominent position
+- Add visual distinction for AI-powered content
+
+### Issue 1.4: Browse by Type Grid Is Too Dense
+**Current State:**
+- 2x2 grid with large gradient cards
+- "More Types" expands to show 2 plain buttons (inconsistent styling)
+- Extended collections look like afterthought
+
+**Improvement:**
+- Use horizontal scrollable pills instead of grid
+- All job type filters should look consistent
+- Remove gradient backgrounds for cleaner look
+
+---
+
+## Category 2: Navigation & Flow Issues
+
+### Issue 2.1: Duplicate "All Jobs" Entry Points
+**Current State:**
+- "See all" in Top Picks header
+- "Show AI Recommendations" button goes to /app/jobs/all?ai=true
+- Category cards go to /app/jobs/all?type=X
+- "Browse Jobs" in empty applications section
+
+**Improvement:**
+- Consolidate to single clear CTA: "Browse All Jobs"
+- Make AI recommendations a distinct feature, not a navigation variant
+
+### Issue 2.2: Quick Access Pills Don't Show Counts Correctly
+**Current State:**
 ```typescript
-<Button 
-  variant={isSaved ? "default" : "outline"} 
-  size="lg"
-  className={cn(
-    "gap-2 min-w-[120px]",
-    isSaved && "bg-primary text-primary-foreground"
-  )}
-  onClick={handleSaveToggle}
->
-  <Bookmark className={cn("h-5 w-5", isSaved && "fill-current")} />
-  {isSaved ? "Saved" : "Save Job"}
-</Button>
+<Badge variant="secondary">{applications.length}</Badge>
 ```
+But `applications` is limited to 3 items (line 191), so count is always 0-3.
 
-#### 2. AI Feature #1: Show Match Details (10 credits)
+**Improvement:**
+- Fetch actual total counts separately for accurate display
+- Or show "3+" when there are more
 
-New premium feature that analyzes user's profile against job requirements:
+### Issue 2.3: AppJobs Page Disconnect
+**Current State:**
+- Navigating to `/app/jobs/all` shows a completely different design (3-column grid)
+- Different header style, different card component
+- Feels like entering a different app
 
-**Output:**
-```json
-{
-  "overall_match": 78,
-  "skills_match": {
-    "matched": ["React", "TypeScript", "Node.js"],
-    "missing": ["AWS", "Docker"],
-    "percentage": 65
-  },
-  "experience_fit": 85,
-  "education_fit": 90,
-  "recommendation": "Strong candidate for this role",
-  "tips_to_improve": [
-    "Add AWS certification to your profile",
-    "Highlight Docker experience in your CV"
-  ]
-}
-```
+**Improvement:**
+- Align AppJobs.tsx visual style with JobsHub.tsx
+- Use same JobCard component
+- Consistent header with back navigation
 
-**Implementation:**
-- Create new edge function `score-job-match`
-- Reuse logic from existing `score-talent-match` function
-- Display results in an expandable card
+### Issue 2.4: No Clear Path from Job Detail Back to List
+**Current State:**
+- "Back to Jobs" goes to `/app/jobs` (JobsHub)
+- If user came from `/app/jobs/all` (filtered list), context is lost
 
-#### 3. AI Feature #2: Job & Applicant Insight (15 credits)
+**Improvement:**
+- Track navigation history and return to actual previous page
+- Or add breadcrumb: Jobs Hub > Full Time Jobs > Job Title
 
-Premium market intelligence feature:
+---
 
-**Output:**
-```json
-{
-  "applicant_count_estimate": "50-100",
-  "competition_level": "Medium",
-  "salary_insight": {
-    "market_range": "BDT 80,000 - 120,000",
-    "posted_salary_assessment": "Below market average"
-  },
-  "company_reputation": "Well-reviewed employer",
-  "similar_jobs_count": 12,
-  "hiring_timeline_estimate": "2-4 weeks",
-  "success_tips": [
-    "Apply early - this job type fills quickly",
-    "Highlight specific framework experience"
-  ]
-}
-```
+## Category 3: Consistency Issues
 
-**Implementation:**
-- Create new edge function `analyze-job-market`
-- Uses job applications count, similar jobs, company data
-- Display in expandable insight card
+### Issue 3.1: Job Type Color Mapping Duplication
+**Current State:**
+- `JOB_TYPE_COLORS` defined in JobsHub.tsx (lines 69-76)
+- Same mapping duplicated in AppJobs.tsx (lines 68-75)
+- Slight variations possible
 
-#### 4. About the Company Section
+**Improvement:**
+- Extract to shared constants file: `src/lib/constants/jobTypes.ts`
+- Include labels, colors, and icons in one place
 
-Fetch company details using the `company_id` foreign key:
+### Issue 3.2: Different "No Jobs" Empty States
+**Current State:**
+- JobsHub: "No job openings available right now" with Briefcase icon
+- AppJobs: "No jobs found" with "Clear filters" link
 
-```typescript
-// In loadJobAndApplication function
-if (jobData.company_id) {
-  const { data: companyData } = await supabase
-    .from('companies')
-    .select('name, industry, website, linkedin_url, address, notes, logo_url')
-    .eq('id', jobData.company_id)
-    .single();
-  
-  setCompany(companyData);
-}
-```
+**Improvement:**
+- Create reusable `EmptyJobsState` component
+- Consistent messaging and actions
 
-Display section:
+### Issue 3.3: Save Button Inconsistency
+**Current State:**
+- AppJobDetail: Large "Save" button with text (lines 417-425)
+- SavedItems page: Uses Trash icon for remove
+- No save toggle on job cards in lists
+
+**Improvement:**
+- Add save/bookmark icon on all job cards
+- Consistent save interaction across all views
+
+### Issue 3.4: Experience Level Naming Inconsistency
+**Current State:**
+- AppJobs.tsx: `entry_level`, `mid_level`, `senior_level` (lines 62-66)
+- AppJobDetail.tsx: `entry`, `mid`, `senior`, `executive` (lines 86-91)
+
+**Improvement:**
+- Standardize experience level keys across all files
+- Use consistent snake_case or simple values
+
+---
+
+## Category 4: Feature Gaps
+
+### Issue 4.1: No Skeleton for AI Insights Loading
+**Current State:**
+- AIJobInsights shows a Loader2 spinner inline
+- No skeleton placeholder during fetch
+
+**Improvement:**
+- Add proper skeleton state matching final layout
+- Show skeleton immediately while credits are being processed
+
+### Issue 4.2: JobPreferencesSheet Not Used for Filtering
+**Current State:**
+- Preferences are saved to `job_preferences` JSONB column
+- But `fetchPersonalizedJobs()` only uses `profession_category_id` (lines 155-157)
+- Saved preferences are not applied
+
+**Improvement:**
+- Use saved preferences for "More Jobs for You" filtering
+- Apply job_type, location, salary filters from preferences
+
+### Issue 4.3: No "Recently Viewed" Jobs
+**Current State:**
+- No tracking of viewed jobs
+- User can't easily find jobs they looked at before
+
+**Improvement:**
+- Track job views in `saved_items` table with type "viewed"
+- Or create `job_views` table with timestamp
+- Add "Recently Viewed" section to JobsHub
+
+### Issue 4.4: About Company Section Missing Logo
+**Current State:**
 ```tsx
-{company && (
-  <Card>
-    <CardContent className="p-6">
-      <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
-        <Building2 className="h-5 w-5" /> About {company.name}
-      </h3>
-      <div className="space-y-3 text-sm">
-        {company.industry && (
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Industry</span>
-            <span className="font-medium">{company.industry}</span>
-          </div>
-        )}
-        {company.website && (
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Website</span>
-            <a href={company.website} target="_blank" className="text-primary hover:underline">
-              Visit Website →
-            </a>
-          </div>
-        )}
-        {company.linkedin_url && (
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">LinkedIn</span>
-            <a href={company.linkedin_url} target="_blank" className="text-primary hover:underline">
-              View Profile →
-            </a>
-          </div>
-        )}
-      </div>
-    </CardContent>
-  </Card>
-)}
+<h3>About {company.name}</h3>
 ```
+Company logo is not shown in the "About the Company" section despite being fetched.
+
+**Improvement:**
+- Display company logo in the About section header
+- Show verified badge more prominently
+
+### Issue 4.5: No Deadline Urgency Indicator on Cards
+**Current State:**
+- Deadline only shown as text in Job Overview section
+- No visual urgency on job cards for jobs closing soon
+
+**Improvement:**
+- Add "Closing soon" badge on cards for jobs expiring within 3 days
+- Use red/amber color for urgency
 
 ---
 
-## Part C: New Edge Functions
+## Category 5: Performance & Code Quality
 
-### 1. `score-job-match` Edge Function
-
-Compares user profile to job requirements (10 credits):
-
+### Issue 5.1: Multiple Parallel Fetches Without Optimization
+**Current State (JobsHub.tsx):**
 ```typescript
-// supabase/functions/score-job-match/index.ts
-// Uses Lovable AI (google/gemini-2.5-flash)
-// Input: { jobId, talentId }
-// Output: Match score, skills analysis, recommendations
+useEffect(() => {
+  fetchTopPicks();
+  fetchPersonalizedJobs();
+}, [talent?.id]);
+
+useEffect(() => {
+  if (talent?.id) fetchApplications();
+}, [talent?.id]);
 ```
+Three separate API calls, could be combined.
 
-### 2. `analyze-job-market` Edge Function
+**Improvement:**
+- Combine into single data-fetching function
+- Use Promise.all for parallel execution
+- Consider React Query for caching
 
-Provides market intelligence for a job (15 credits):
+### Issue 5.2: No Pagination in AppJobs
+**Current State:**
+- Fetches ALL active jobs at once (line 185-190)
+- Filters client-side
 
-```typescript
-// supabase/functions/analyze-job-market/index.ts
-// Uses database aggregations + AI analysis
-// Input: { jobId }
-// Output: Competition level, salary insights, hiring tips
-```
+**Improvement:**
+- Implement server-side pagination
+- Use cursor-based or offset pagination
+- Load more on scroll or "Load More" button
+
+### Issue 5.3: Large Components Need Splitting
+**Current State:**
+- JobsHub.tsx: 633 lines
+- AppJobDetail.tsx: 589 lines
+
+**Improvement:**
+- Extract into smaller components:
+  - `TopPicksSection`
+  - `JobTypesGrid`
+  - `PersonalizedJobsSection`
+  - `ApplicationsPreview`
 
 ---
 
-## Part D: Database Changes
+## Recommended Implementation Phases
 
-### Option 1: Add job_preferences to talents table (simpler)
+### Phase 1: Foundation Cleanup (Low Risk)
+1. Create shared constants file for job types/colors
+2. Create unified `JobCard` component with variants
+3. Fix applications count in Quick Access Pills
+4. Fix experience level naming consistency
 
-```sql
-ALTER TABLE talents 
-ADD COLUMN job_preferences JSONB DEFAULT '{}'::jsonb;
-```
+### Phase 2: Visual Refinement
+1. Redesign JobsHub layout for less visual clutter
+2. Align AppJobs.tsx styling with JobsHub
+3. Add save buttons to job cards
+4. Add deadline urgency indicators
 
-**Structure:**
-```json
-{
-  "preferred_job_types": ["full_time", "remote"],
-  "preferred_locations": ["Dhaka", "Remote"],
-  "salary_min": 50000,
-  "salary_max": 100000,
-  "industries": ["Technology", "Finance"]
-}
-```
+### Phase 3: Feature Enhancement
+1. Implement job preferences filtering
+2. Add recently viewed jobs tracking
+3. Add company logo to About section
+4. Improve AI Insights loading states
 
-### Option 2: New job_preferences table (more flexible)
-
-```sql
-CREATE TABLE job_preferences (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  talent_id UUID REFERENCES talents(id) ON DELETE CASCADE UNIQUE,
-  preferred_job_types TEXT[] DEFAULT '{}',
-  preferred_locations TEXT[] DEFAULT '{}',
-  salary_range_min INTEGER,
-  salary_range_max INTEGER,
-  preferred_industries TEXT[] DEFAULT '{}',
-  remote_preference TEXT CHECK (remote_preference IN ('yes', 'no', 'hybrid', 'no_preference')),
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-```
+### Phase 4: Performance
+1. Implement server-side pagination in AppJobs
+2. Combine data fetches in JobsHub
+3. Split large components into sub-components
 
 ---
 
-## Part E: Credit System Updates
+## Technical Changes Summary
 
-### Add New Service Types to creditPricing.ts
+| Priority | Issue | File(s) | Impact |
+|----------|-------|---------|--------|
+| High | Create JobCard component | New component | Reduces duplication |
+| High | Extract job type constants | New lib file | Consistency |
+| High | Fix applications count | JobsHub.tsx | Accuracy |
+| Medium | Redesign TopPicks as carousel | JobsHub.tsx | Better UX |
+| Medium | Apply preferences to filtering | JobsHub.tsx | Feature completion |
+| Medium | Add save on job cards | JobCard.tsx | UX improvement |
+| Medium | Standardize experience levels | Multiple files | Consistency |
+| Low | Add pagination to AppJobs | AppJobs.tsx | Performance |
+| Low | Track recently viewed | New hook/table | Enhancement |
+| Low | Split large components | Multiple files | Maintainability |
 
-```typescript
-SERVICES: {
-  // ... existing services
-  
-  JOB_MATCH_SCORE: {
-    name: 'Job Match Analysis',
-    cost: 10,
-    description: 'See how well you match this job'
-  },
-  JOB_MARKET_INSIGHT: {
-    name: 'Job & Applicant Insight',
-    cost: 15,
-    description: 'Market intelligence and competition analysis'
-  },
-  // Keep existing SUGGESTED_JOBS for "Show All" feature
-}
+---
+
+## Design Mockup Suggestions
+
+### JobsHub Simplified Layout
+```text
+┌────────────────────────────────────────┐
+│  🔍 Search jobs, companies...       [→]│
+├────────────────────────────────────────┤
+│ [Saved (5)] [Applied (3)] [⚙ Prefs]    │ <- Pills with real counts
+├────────────────────────────────────────┤
+│  ⭐ Featured Jobs                      │
+│  ┌────┐ ┌────┐ ┌────┐ ←→              │ <- Horizontal scroll
+│  │Job1│ │Job2│ │Job3│                  │
+│  └────┘ └────┘ └────┘                  │
+│                    [View All Jobs →]   │
+├────────────────────────────────────────┤
+│  📂 Browse by Type                     │
+│  [Full-time][Part-time][Remote][More→] │ <- Horizontal pills
+├────────────────────────────────────────┤
+│  🎯 Recommended for You                │ <- Based on preferences
+│  ┌──────────────────────────────────┐  │
+│  │ Job Card (unified design)        │  │
+│  └──────────────────────────────────┘  │
+│  ┌──────────────────────────────────┐  │
+│  │ Job Card                         │  │
+│  └──────────────────────────────────┘  │
+├────────────────────────────────────────┤
+│  📝 Recent Applications (3)    [All →] │
+│  • Job 1 - Pending                     │
+│  • Job 2 - Reviewed                    │
+└────────────────────────────────────────┘
 ```
 
----
+This plan provides a comprehensive roadmap to transform the Jobs section from a functional but cluttered experience into a polished, consistent, and user-friendly job discovery platform.
 
-## Summary of Files to Create/Modify
-
-| File | Action | Description |
-|------|--------|-------------|
-| `src/pages/app/JobsHub.tsx` | Modify | Add quick access pills, preferences sheet, personalized section |
-| `src/pages/app/AppJobDetail.tsx` | Modify | Prominent save, AI insights section, About Company |
-| `src/lib/creditPricing.ts` | Modify | Add new service types |
-| `supabase/functions/score-job-match/index.ts` | Create | AI match scoring |
-| `supabase/functions/analyze-job-market/index.ts` | Create | Market insights |
-| Database migration | Create | Add job_preferences column to talents |
-
----
-
-## Implementation Order
-
-1. **Phase 1**: UI changes (no backend) - Prominent save button, About Company section
-2. **Phase 2**: Quick access pills and preferences sheet
-3. **Phase 3**: Database migration for preferences
-4. **Phase 4**: Edge functions for AI features
-5. **Phase 5**: Wire up AI features with credit system
-6. **Phase 6**: "More Jobs for You" personalized section
