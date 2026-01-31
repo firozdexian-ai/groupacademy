@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session, AuthError } from "@supabase/supabase-js";
 import { toast } from "sonner";
+import { isPhoneNumber } from "@/lib/validations";
 
 // 1. Define the return type for better safety in other files
 export interface AuthState {
@@ -74,10 +75,45 @@ export const useAuth = (): AuthState => {
     };
   }, []);
 
-  const signIn = async (email: string, password: string) => {
+  // Helper to resolve email from phone number
+  const resolveEmailFromPhone = async (phone: string): Promise<string | null> => {
+    const cleanPhone = phone.replace(/[\s\-()]/g, '');
+    
+    // Try multiple matching strategies for phone lookup
+    const { data, error } = await supabase
+      .from('talents')
+      .select('email, phone, country_code')
+      .or(`phone.ilike.%${cleanPhone},phone.eq.${cleanPhone}`)
+      .not('email', 'is', null)
+      .limit(5);
+
+    if (error || !data || data.length === 0) {
+      return null;
+    }
+
+    // If multiple accounts found with same phone (legacy duplicates)
+    if (data.length > 1) {
+      throw new Error("Multiple accounts found with this phone. Please use your email to login.");
+    }
+
+    return data[0].email;
+  };
+
+  const signIn = async (identifier: string, password: string) => {
     try {
+      let email = identifier.trim();
+
+      // Check if identifier is a phone number (no @ symbol)
+      if (isPhoneNumber(identifier)) {
+        const resolvedEmail = await resolveEmailFromPhone(identifier);
+        if (!resolvedEmail) {
+          throw new Error("No account found with this phone number.");
+        }
+        email = resolvedEmail;
+      }
+
       const { error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
+        email,
         password,
       });
 
