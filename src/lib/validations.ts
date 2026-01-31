@@ -2,9 +2,16 @@ import { z } from 'zod';
 
 // Auth validation schemas
 export const loginSchema = z.object({
-  email: z.string().trim().email("Invalid email address").min(1, "Email is required"),
+  identifier: z.string().trim().min(1, "Email or phone is required"),
   password: z.string().min(8, "Password must be at least 8 characters"),
 });
+
+// Helper to detect if input is a phone number
+export const isPhoneNumber = (value: string): boolean => {
+  const trimmed = value.trim();
+  // Phone if: starts with + followed by digits, or is all digits (with optional spaces/dashes)
+  return !trimmed.includes('@') && /^[+\d][\d\s\-()]*$/.test(trimmed);
+};
 
 export const signupSchema = z.object({
   fullName: z.string().trim().min(2, "Name must be at least 2 characters").max(100, "Name must be less than 100 characters"),

@@ -25,7 +25,7 @@ const Auth = () => {
   const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "login");
 
   // Form States
-  const [loginData, setLoginData] = useState({ email: "", password: "" });
+  const [loginData, setLoginData] = useState({ identifier: "", password: "" });
   const [signupData, setSignupData] = useState({ 
     fullName: "", 
     email: "", 
@@ -63,7 +63,7 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
-      await signIn(loginData.email, loginData.password);
+      await signIn(loginData.identifier, loginData.password);
 
       const {
         data: { user: currentUser },
@@ -113,6 +113,24 @@ const Auth = () => {
     const fullPhone = `${signupData.countryCode}${signupData.phone}`;
 
     try {
+      // Check for duplicate phone number before signup
+      const { data: existingTalent, error: checkError } = await supabase
+        .from('talents')
+        .select('id, email')
+        .or(`phone.eq.${fullPhone},phone.eq.${signupData.phone}`)
+        .limit(1);
+
+      if (checkError) {
+        console.error("Phone check error:", checkError);
+        // Continue with signup - don't block on check failure
+      } else if (existingTalent && existingTalent.length > 0) {
+        toast.error("This phone number is already registered. Please sign in instead.");
+        setLoginData({ identifier: fullPhone, password: "" });
+        setActiveTab("login");
+        setIsLoading(false);
+        return;
+      }
+
       const success = await signUp(
         signupData.fullName, 
         signupData.email, 
@@ -248,14 +266,15 @@ const Auth = () => {
                 <CardContent>
                   <form onSubmit={handleLogin} className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="login-email">Email</Label>
+                      <Label htmlFor="login-identifier">Email or Phone</Label>
                       <Input
-                        id="login-email"
-                        type="email"
-                        placeholder="you@example.com"
-                        value={loginData.email}
-                        onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
+                        id="login-identifier"
+                        type="text"
+                        placeholder="Email or phone number"
+                        value={loginData.identifier}
+                        onChange={(e) => setLoginData({ ...loginData, identifier: e.target.value })}
                         required
+                        autoComplete="username"
                       />
                     </div>
                     <div className="space-y-2">

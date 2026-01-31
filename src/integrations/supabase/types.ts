@@ -3565,6 +3565,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      normalize_phone: {
+        Args: { p_country_code: string; p_phone: string }
+        Returns: string
+      }
       track_content_click: {
         Args: { p_content_id: string; p_source: string }
         Returns: undefined
