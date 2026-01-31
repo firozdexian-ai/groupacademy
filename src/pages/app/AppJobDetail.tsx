@@ -25,10 +25,12 @@ import {
   Bookmark,
   Globe,
   Linkedin,
+  AlertTriangle,
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { AIJobInsights } from "@/components/jobs/AIJobInsights";
+import { JOB_TYPES, EXPERIENCE_LEVELS, getJobTypeLabel, getExperienceLevelLabel, isDeadlineUrgent, isDeadlinePassed } from "@/lib/constants/jobTypes";
 
 interface Job {
   id: string;
@@ -74,22 +76,6 @@ interface ExistingApplication {
   assessment_score?: number | null;
 }
 
-const JOB_TYPES: Record<string, string> = {
-  full_time: "Full Time",
-  part_time: "Part Time",
-  contract: "Contract",
-  internship: "Internship",
-  freelance: "Freelance",
-  remote: "Remote",
-};
-
-const EXPERIENCE_LEVELS: Record<string, string> = {
-  entry: "Entry Level",
-  mid: "Mid Level",
-  senior: "Senior Level",
-  executive: "Executive",
-};
-
 export default function AppJobDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -103,8 +89,9 @@ export default function AppJobDetail() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  // Use the hook to check saved status
   const isSaved = id ? checkIsSaved(id, 'job') : false;
+  const showUrgency = job?.deadline ? isDeadlineUrgent(job.deadline) : false;
+  const deadlinePassed = job?.deadline ? isDeadlinePassed(job.deadline) : false;
 
   useEffect(() => {
     if (id) {
@@ -121,7 +108,6 @@ export default function AppJobDetail() {
           p_job_id: id,
           p_source: source,
         });
-        // Clean URL after tracking
         window.history.replaceState({}, "", window.location.pathname);
       } catch (err) {
         console.error("Failed to track job click", err);
@@ -134,7 +120,6 @@ export default function AppJobDetail() {
     setLoadError(null);
 
     try {
-      // 1. Load Job Details
       const { data: jobData, error: jobError } = await supabase
         .from("jobs")
         .select("*")
@@ -145,34 +130,28 @@ export default function AppJobDetail() {
       if (jobError) throw jobError;
       setJob(jobData);
 
-      // 2. Load Company Details if company_id exists
       if (jobData.company_id) {
-        const { data: companyData, error: companyError } = await supabase
+        const { data: companyData } = await supabase
           .from("companies")
           .select("id, name, industry, website, linkedin_url, address, logo_url, is_verified")
           .eq("id", jobData.company_id)
           .single();
 
-        if (!companyError && companyData) {
-          setCompany(companyData);
-        }
+        if (companyData) setCompany(companyData);
       }
 
-      // 3. Check for Existing Application (if user logged in)
       if (talent?.id) {
-        const { data: appData, error: appError } = await supabase
+        const { data: appData } = await supabase
           .from("job_applications")
-          .select(
-            `
+          .select(`
             id, created_at, application_status,
             job_assessments(id, status, ai_score)
-          `,
-          )
+          `)
           .eq("job_id", id)
           .eq("talent_id", talent.id)
           .maybeSingle();
 
-        if (!appError && appData) {
+        if (appData) {
           const assessment = appData.job_assessments?.[0];
           setExistingApp({
             id: appData.id,
@@ -239,7 +218,7 @@ export default function AppJobDetail() {
   };
 
   const renderActionButton = () => {
-    if (isDeadlinePassed) {
+    if (deadlinePassed) {
       return (
         <Button size="lg" className="w-full mb-6" disabled>
           Application Closed
@@ -313,9 +292,7 @@ export default function AppJobDetail() {
         onClick={handleApply}
       >
         {job?.application_type === "link" ? (
-          <>
-            Apply Externally <ExternalLink className="w-4 h-4 ml-2" />
-          </>
+          <>Apply Externally <ExternalLink className="w-4 h-4 ml-2" /></>
         ) : (
           "Apply Now"
         )}
@@ -358,7 +335,6 @@ export default function AppJobDetail() {
   }
 
   const displayDescription = job.ai_enhanced_description || job.description;
-  const isDeadlinePassed = job.deadline && new Date(job.deadline) < new Date();
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6">
@@ -366,10 +342,10 @@ export default function AppJobDetail() {
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => navigate("/app/jobs")}
+        onClick={() => navigate(-1)}
         className="mb-4 -ml-2 text-muted-foreground hover:text-foreground"
       >
-        <ArrowLeft className="w-4 h-4 mr-2" /> Back to Jobs
+        <ArrowLeft className="w-4 h-4 mr-2" /> Back
       </Button>
 
       {/* Header Section */}
@@ -379,6 +355,12 @@ export default function AppJobDetail() {
             <img
               src={job.company_logo_url}
               alt={job.company_name}
+              className="w-16 h-16 rounded-xl object-cover border bg-white"
+            />
+          ) : company?.logo_url ? (
+            <img
+              src={company.logo_url}
+              alt={company.name}
               className="w-16 h-16 rounded-xl object-cover border bg-white"
             />
           ) : (
@@ -395,9 +377,12 @@ export default function AppJobDetail() {
                 <Star className="w-3 h-3 fill-current" /> Featured
               </Badge>
             )}
-            {isDeadlinePassed && (
-              <Badge variant="destructive" className="h-5 text-[10px]">
-                Closed
+            {deadlinePassed && (
+              <Badge variant="destructive" className="h-5 text-[10px]">Closed</Badge>
+            )}
+            {showUrgency && !deadlinePassed && (
+              <Badge variant="destructive" className="gap-1 h-5 text-[10px]">
+                <AlertTriangle className="w-3 h-3" /> Closing Soon
               </Badge>
             )}
             {job.ai_assessment_enabled && (
@@ -413,7 +398,7 @@ export default function AppJobDetail() {
           <p className="text-muted-foreground font-medium">{job.company_name}</p>
         </div>
 
-        {/* Save Button - Prominent */}
+        {/* Save Button */}
         <Button
           variant={isSaved ? "default" : "outline"}
           size="lg"
@@ -429,11 +414,11 @@ export default function AppJobDetail() {
       <div className="flex flex-wrap gap-2 mb-6">
         <Badge variant="secondary" className="gap-1.5 py-1.5 px-3">
           <Clock className="w-3.5 h-3.5 opacity-70" />
-          {JOB_TYPES[job.job_type] || job.job_type}
+          {getJobTypeLabel(job.job_type)}
         </Badge>
         <Badge variant="secondary" className="gap-1.5 py-1.5 px-3">
           <Briefcase className="w-3.5 h-3.5 opacity-70" />
-          {EXPERIENCE_LEVELS[job.experience_level] || job.experience_level}
+          {getExperienceLevelLabel(job.experience_level)}
         </Badge>
         {job.location && (
           <Badge variant="secondary" className="gap-1.5 py-1.5 px-3">
@@ -450,7 +435,7 @@ export default function AppJobDetail() {
       </div>
 
       {/* AI Insights Section */}
-      {talent?.id && !existingApp && !isDeadlinePassed && (
+      {talent?.id && !existingApp && !deadlinePassed && (
         <div className="mb-6">
           <AIJobInsights jobId={job.id} talentId={talent.id} />
         </div>
@@ -466,7 +451,7 @@ export default function AppJobDetail() {
         </Button>
       </div>
 
-      {/* Main Content Grid */}
+      {/* Main Content */}
       <div className="space-y-6">
         {/* Description */}
         <Card>
@@ -499,9 +484,26 @@ export default function AppJobDetail() {
         {company && (
           <Card>
             <CardContent className="p-6">
-              <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
-                <Building2 className="h-5 w-5" /> About {company.name}
-              </h3>
+              <div className="flex items-center gap-3 mb-4">
+                {company.logo_url && (
+                  <img
+                    src={company.logo_url}
+                    alt={company.name}
+                    className="w-10 h-10 rounded-lg object-cover border bg-white"
+                  />
+                )}
+                <div className="flex-1">
+                  <h3 className="text-base font-semibold flex items-center gap-2">
+                    About {company.name}
+                    {company.is_verified && (
+                      <Badge variant="secondary" className="gap-1 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-[10px] h-5">
+                        <CheckCircle className="h-3 w-3" />
+                        Verified
+                      </Badge>
+                    )}
+                  </h3>
+                </div>
+              </div>
               <div className="space-y-3 text-sm">
                 {company.industry && (
                   <div className="flex justify-between">
@@ -513,15 +515,6 @@ export default function AppJobDetail() {
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Location</span>
                     <span className="font-medium">{company.address}</span>
-                  </div>
-                )}
-                {company.is_verified && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Status</span>
-                    <Badge variant="secondary" className="gap-1 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                      <CheckCircle className="h-3 w-3" />
-                      Verified
-                    </Badge>
                   </div>
                 )}
                 <div className="flex gap-2 pt-2">
@@ -547,7 +540,7 @@ export default function AppJobDetail() {
           </Card>
         )}
 
-        {/* Additional Details */}
+        {/* Job Overview */}
         <Card>
           <CardContent className="p-6">
             <h3 className="text-base font-semibold mb-4">Job Overview</h3>
@@ -559,16 +552,19 @@ export default function AppJobDetail() {
               {job.deadline && (
                 <div>
                   <p className="text-muted-foreground mb-1">Deadline</p>
-                  <p className="font-medium text-destructive">{format(new Date(job.deadline), "MMM d, yyyy")}</p>
+                  <p className={`font-medium ${deadlinePassed ? "text-destructive" : showUrgency ? "text-amber-600" : ""}`}>
+                    {format(new Date(job.deadline), "MMM d, yyyy")}
+                    {showUrgency && !deadlinePassed && " (Soon!)"}
+                  </p>
                 </div>
               )}
               <div>
                 <p className="text-muted-foreground mb-1">Job Type</p>
-                <p className="font-medium">{JOB_TYPES[job.job_type]}</p>
+                <p className="font-medium">{getJobTypeLabel(job.job_type)}</p>
               </div>
               <div>
                 <p className="text-muted-foreground mb-1">Experience</p>
-                <p className="font-medium">{EXPERIENCE_LEVELS[job.experience_level]}</p>
+                <p className="font-medium">{getExperienceLevelLabel(job.experience_level)}</p>
               </div>
             </div>
           </CardContent>
