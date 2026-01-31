@@ -105,6 +105,7 @@ const navGroups: NavGroup[] = [
       { title: "Batch Classes", icon: Users, value: "batches" },
       { title: "Seminars", icon: Calendar, value: "seminars" },
       { title: "Blog Posts", icon: FileText, value: "blog" },
+      { title: "Feed Posts", icon: MessageSquare, value: "feed-posts" },
       { title: "Study Abroad", icon: GraduationCap, value: "study-abroad" },
       { title: "IELTS Resources", icon: BookOpen, value: "ielts" },
       { title: "Competitions", icon: Trophy, value: "competitions" },

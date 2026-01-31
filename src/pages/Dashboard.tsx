@@ -35,6 +35,7 @@ import { ContactsManager } from "@/components/dashboard/ContactsManager";
 import { ContentOutreachManager } from "@/components/dashboard/ContentOutreachManager";
 import { ServiceOutreachManager } from "@/components/dashboard/ServiceOutreachManager";
 import { MarketingAnalytics } from "@/components/dashboard/MarketingAnalytics";
+import { FeedPostsManager } from "@/components/dashboard/FeedPostsManager";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -85,6 +86,7 @@ const tabAccessMap: Record<string, AppRole[]> = {
   ielts: ["admin"],
   competitions: ["admin"],
   blog: ["admin"],
+  "feed-posts": ["admin"],
   analytics: ["admin", "talent_exec"],
 };
 
@@ -269,6 +271,8 @@ const Dashboard = () => {
         return <CompetitionsManager />;
       case "blog":
         return <BlogManager />;
+      case "feed-posts":
+        return <FeedPostsManager />;
       case "content-outreach":
         return <ContentOutreachManager />;
       case "service-outreach":
@@ -313,6 +317,7 @@ const Dashboard = () => {
       ielts: "IELTS Resources",
       competitions: "Competitions",
       blog: "Blog Posts",
+      "feed-posts": "Feed Posts",
       "content-outreach": "Content Outreach",
       "service-outreach": "Service Outreach",
       "learner-progress": "Learner Progress",
