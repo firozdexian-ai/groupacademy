@@ -75,15 +75,34 @@ export const useAuth = (): AuthState => {
     };
   }, []);
 
-  // Helper to resolve email from phone number
+  // Helper to resolve email from phone number (secure exact matching)
   const resolveEmailFromPhone = async (phone: string): Promise<string | null> => {
-    const cleanPhone = phone.replace(/[\s\-()]/g, '');
+    // Remove all non-digit characters except leading +
+    const cleanPhone = phone.replace(/[^\d+]/g, '');
     
-    // Try multiple matching strategies for phone lookup
+    // Prepare different phone formats for exact matching
+    const phoneVariants: string[] = [];
+    
+    // Original cleaned phone
+    phoneVariants.push(cleanPhone);
+    
+    // With + prefix if not present
+    if (!cleanPhone.startsWith('+')) {
+      phoneVariants.push(`+${cleanPhone}`);
+    }
+    
+    // Without + prefix if present
+    if (cleanPhone.startsWith('+')) {
+      phoneVariants.push(cleanPhone.substring(1));
+    }
+    
+    // Build exact match query (no partial matching for security)
+    const exactMatchQuery = phoneVariants.map(p => `phone.eq.${p}`).join(',');
+    
     const { data, error } = await supabase
       .from('talents')
       .select('email, phone, country_code')
-      .or(`phone.ilike.%${cleanPhone},phone.eq.${cleanPhone}`)
+      .or(exactMatchQuery)
       .not('email', 'is', null)
       .limit(5);
 
