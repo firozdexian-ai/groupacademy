@@ -16,6 +16,7 @@ import {
   Search,
   LogOut,
   X,
+  Coins, // Added missing import
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +34,13 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useCredits } from "@/hooks/useCredits";
 import logoIcon from "@/assets/logo-icon.png";
 
+// Define strict type to prevent TS recursion error
+interface NavItem {
+  label: string;
+  icon: React.ElementType;
+  path: string;
+}
+
 export function TalentAppShell() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -42,7 +50,7 @@ export function TalentAppShell() {
   const [searchQuery, setSearchQuery] = useState("");
 
   // LinkedIn-style Navigation Items
-  const navItems = [
+  const navItems: NavItem[] = [
     { label: "Home", icon: Home, path: "/app/feed" },
     { label: "Jobs", icon: Briefcase, path: "/app/jobs" },
     { label: "Learning", icon: GraduationCap, path: "/app/learning" },
@@ -157,7 +165,8 @@ export function TalentAppShell() {
               <DropdownMenuTrigger asChild>
                 <button className="flex flex-col items-center justify-center outline-none group">
                   <Avatar className="h-6 w-6 md:h-6 md:w-6 border cursor-pointer group-hover:opacity-80 transition-opacity">
-                    <AvatarImage src={talent?.profileImageUrl || ""} />
+                    {/* FIXED: Use profilePhotoUrl instead of profileImageUrl */}
+                    <AvatarImage src={talent?.profilePhotoUrl || ""} />
                     <AvatarFallback className="text-[10px]">ME</AvatarFallback>
                   </Avatar>
                   <span className="hidden md:block text-[10px] lg:text-xs font-medium text-gray-500 mt-0.5 flex items-center gap-0.5">
@@ -168,14 +177,16 @@ export function TalentAppShell() {
               <DropdownMenuContent align="end" className="w-64 p-2">
                 <div className="flex items-center gap-3 p-2 mb-2 bg-muted/30 rounded-md">
                   <Avatar className="h-12 w-12 border">
-                    <AvatarImage src={talent?.profileImageUrl || ""} />
+                    {/* FIXED: Use profilePhotoUrl */}
+                    <AvatarImage src={talent?.profilePhotoUrl || ""} />
                     <AvatarFallback>
                       <User className="h-6 w-6" />
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 overflow-hidden">
                     <p className="font-semibold text-sm truncate">{talent?.fullName || "User"}</p>
-                    <p className="text-xs text-muted-foreground truncate">{talent?.headline || "Student"}</p>
+                    {/* FIXED: Use email as fallback instead of missing headline */}
+                    <p className="text-xs text-muted-foreground truncate">{talent?.email || "Student"}</p>
                   </div>
                 </div>
                 <DropdownMenuItem
@@ -220,12 +231,14 @@ export function TalentAppShell() {
                   <div className="p-4 bg-white border-b">
                     <div className="flex items-center gap-3 mb-4">
                       <Avatar className="h-12 w-12 border">
-                        <AvatarImage src={talent?.profileImageUrl || ""} />
+                        {/* FIXED: Use profilePhotoUrl */}
+                        <AvatarImage src={talent?.profilePhotoUrl || ""} />
                         <AvatarFallback>ME</AvatarFallback>
                       </Avatar>
                       <div>
                         <p className="font-bold text-lg">{talent?.fullName}</p>
-                        <p className="text-sm text-muted-foreground line-clamp-1">{talent?.headline}</p>
+                        {/* FIXED: Use email fallback */}
+                        <p className="text-sm text-muted-foreground line-clamp-1">{talent?.email}</p>
                       </div>
                     </div>
                     <Button
