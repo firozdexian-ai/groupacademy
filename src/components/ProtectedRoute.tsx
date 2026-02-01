@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -17,10 +17,10 @@ interface ProtectedRouteProps {
   requireAnyAdminRole?: boolean;
 }
 
-export const ProtectedRoute = ({ 
-  children, 
+export const ProtectedRoute = ({
+  children,
   requireAdmin = false,
-  requireAnyAdminRole = false 
+  requireAnyAdminRole = false,
 }: ProtectedRouteProps) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -30,43 +30,47 @@ export const ProtectedRoute = ({
   const [userRole, setUserRole] = useState<AppRole | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Use ref to track if we've already checked auth to prevent double-firing
+  const checkedRef = useRef(false);
+
   // Use centralized timeout config - PWA users get longer timeout
   const authTimeout = isPWA ? TIMEOUTS.PWA_AUTH : TIMEOUTS.AUTH;
 
   const clearSessionAndRedirect = useCallback(async () => {
     try {
-      // Clear potentially corrupted session
       await supabase.auth.signOut();
     } catch (e) {
-      // Ignore signout errors
       console.warn("Error during session cleanup:", e);
     }
-    const returnUrl = location.pathname + location.search;
+    // Use window.location to avoid React dependency cycles
+    const returnUrl = window.location.pathname + window.location.search;
     navigate(`/auth?returnTo=${encodeURIComponent(returnUrl)}`, { replace: true });
-  }, [navigate, location]);
+  }, [navigate]);
 
   const checkAuth = useCallback(async () => {
+    // Prevent re-checking if we are already authorized (unless error handling)
+    if (checkedRef.current && isAuthorized) return;
+
     setIsChecking(true);
     setError(null);
-    
+
     try {
-      const timeoutPromise = new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('Auth check timed out')), authTimeout)
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Auth check timed out")), authTimeout),
       );
 
       let session;
       try {
         const sessionPromise = supabase.auth.getSession();
-        const result = await Promise.race([sessionPromise, timeoutPromise]) as Awaited<typeof sessionPromise>;
+        const result = (await Promise.race([sessionPromise, timeoutPromise])) as Awaited<typeof sessionPromise>;
         session = result.data.session;
       } catch (sessionErr: unknown) {
-        // Check if this is an invalid refresh token error
         const errorMessage = sessionErr instanceof Error ? sessionErr.message : String(sessionErr);
-        const isInvalidToken = 
-          errorMessage.includes('refresh_token_not_found') ||
-          errorMessage.includes('Invalid Refresh Token') ||
-          errorMessage.includes('Refresh Token Not Found');
-        
+        const isInvalidToken =
+          errorMessage.includes("refresh_token_not_found") ||
+          errorMessage.includes("Invalid Refresh Token") ||
+          errorMessage.includes("Refresh Token Not Found");
+
         if (isInvalidToken) {
           console.log("[ProtectedRoute] Invalid refresh token, clearing session...");
           await clearSessionAndRedirect();
@@ -74,9 +78,9 @@ export const ProtectedRoute = ({
         }
         throw sessionErr;
       }
-        
+
       if (!session) {
-        const returnUrl = location.pathname + location.search;
+        const returnUrl = window.location.pathname + window.location.search;
         navigate(`/auth?returnTo=${encodeURIComponent(returnUrl)}`, { replace: true });
         return;
       }
@@ -111,52 +115,49 @@ export const ProtectedRoute = ({
           navigate("/my-learning");
           return;
         }
-        
-        // Set the highest role (admin takes precedence)
-        const hasAdmin = roleData.some(r => r.role === "admin");
+
+        const hasAdmin = roleData.some((r) => r.role === "admin");
         setUserRole(hasAdmin ? "admin" : "talent_exec");
       }
 
       setIsAuthorized(true);
+      checkedRef.current = true;
     } catch (err) {
       console.error("Auth check error:", err);
-      
-      // Check if the error indicates a bad session
+
       const errorMessage = err instanceof Error ? err.message : String(err);
-      const isSessionError = 
-        errorMessage.includes('refresh_token') ||
-        errorMessage.includes('Invalid') ||
-        errorMessage.includes('session');
-      
-      if (isSessionError && errorMessage !== 'Auth check timed out') {
-        // Bad session - clear and redirect
+      const isSessionError =
+        errorMessage.includes("refresh_token") || errorMessage.includes("Invalid") || errorMessage.includes("session");
+
+      if (isSessionError && errorMessage !== "Auth check timed out") {
         await clearSessionAndRedirect();
         return;
       }
-      
-      const displayError = err instanceof Error && err.message === 'Auth check timed out' 
-        ? 'Authorization check timed out' 
-        : 'Authentication error';
+
+      const displayError =
+        err instanceof Error && err.message === "Auth check timed out"
+          ? "Authorization check timed out"
+          : "Authentication error";
       setError(displayError);
     } finally {
       setIsChecking(false);
     }
-  }, [navigate, requireAdmin, requireAnyAdminRole, authTimeout, location, clearSessionAndRedirect]);
+    // FIX: Removed 'location' from dependencies to prevent re-runs on navigation
+  }, [navigate, requireAdmin, requireAnyAdminRole, authTimeout, clearSessionAndRedirect]);
 
   useEffect(() => {
     checkAuth();
-    
+
     // Listen for auth state changes to handle session expiration
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("[ProtectedRoute] Auth state changed:", event);
-      
-      if (event === 'SIGNED_OUT' || !session) {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT" || !session) {
         navigate("/auth");
         return;
       }
-      
-      // Handle token refresh failures
-      if (event === 'TOKEN_REFRESHED' && !session) {
+
+      if (event === "TOKEN_REFRESHED" && !session) {
         console.log("[ProtectedRoute] Token refresh failed, redirecting to auth");
         navigate("/auth");
       }
@@ -166,25 +167,20 @@ export const ProtectedRoute = ({
   }, [checkAuth, navigate]);
 
   if (isChecking) {
-    // Show branded loading for PWA users
     if (isPWA) {
       return (
         <div className="min-h-screen bg-background flex flex-col items-center justify-center">
-          <img 
-            src={logoIcon} 
-            alt="GroUp Academy" 
-            className="w-16 h-16 mb-4 animate-pulse"
-          />
+          <img src={logoIcon} alt="GroUp Academy" className="w-16 h-16 mb-4 animate-pulse" />
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-            <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-            <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+            <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+            <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+            <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
           </div>
           <p className="text-muted-foreground text-sm mt-4">Loading...</p>
         </div>
       );
     }
-    
+
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -202,7 +198,14 @@ export const ProtectedRoute = ({
           <p className="text-destructive font-medium">{error}</p>
           <p className="text-muted-foreground text-sm">Please try again or sign in.</p>
           <div className="flex gap-3 justify-center">
-            <Button onClick={checkAuth} variant="outline" size="sm">
+            <Button
+              onClick={() => {
+                checkedRef.current = false;
+                checkAuth();
+              }}
+              variant="outline"
+              size="sm"
+            >
               <RefreshCw className="h-4 w-4 mr-2" />
               Retry
             </Button>
@@ -237,7 +240,9 @@ export const useUserRole = () => {
   useEffect(() => {
     const fetchRole = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
         if (!session) {
           setIsLoading(false);
           return;
@@ -250,7 +255,7 @@ export const useUserRole = () => {
           .in("role", ["admin", "talent_exec"]);
 
         if (roleData && roleData.length > 0) {
-          const hasAdmin = roleData.some(r => r.role === "admin");
+          const hasAdmin = roleData.some((r) => r.role === "admin");
           setRole(hasAdmin ? "admin" : "talent_exec");
         }
       } catch (error) {
