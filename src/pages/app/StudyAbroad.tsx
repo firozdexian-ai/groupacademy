@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { GraduationCap, MapPin, Calendar, DollarSign, ArrowLeft, Search, Award, X } from "lucide-react";
+import { GraduationCap, MapPin, Calendar, DollarSign, ArrowLeft, Search, Award, X, AlertCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,8 +12,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { COUNTRIES, getCountryFlag } from "@/lib/constants/countries";
 
 // Filter for study abroad popular countries
-const STUDY_COUNTRIES = COUNTRIES.filter(c =>
-  ["US", "UK", "CA", "AU", "DE", "SG", "JP", "SE", "NL", "MY"].includes(c.code)
+const STUDY_COUNTRIES = COUNTRIES.filter((c) =>
+  ["US", "UK", "CA", "AU", "DE", "SG", "JP", "SE", "NL", "MY"].includes(c.code),
 );
 
 const DEGREE_TYPES = ["All Degrees", "Bachelor", "Master", "PhD", "Diploma"];
@@ -60,15 +60,24 @@ export default function StudyAbroad() {
     setSearchParams(params, { replace: true });
   }, [selectedCountry, selectedDegree, debouncedSearch, setSearchParams]);
 
-  const { data: programs, isLoading } = useQuery({
+  // FIX 1: Destructure error states and refetch
+  const {
+    data: programs,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
     queryKey: ["study-abroad-programs", selectedCountry, selectedDegree, debouncedSearch],
-    queryFn: async () => {
+    queryFn: async ({ signal }) => {
+      // FIX 2: Use abortSignal for proper cancellation
       let query = supabase
         .from("study_abroad_programs")
         .select("*")
         .eq("is_active", true)
         .order("featured", { ascending: false })
-        .order("university_name");
+        .order("university_name")
+        .abortSignal(signal);
 
       if (selectedCountry !== "all") {
         query = query.eq("country_code", selectedCountry);
@@ -87,6 +96,8 @@ export default function StudyAbroad() {
       if (error) throw error;
       return data || [];
     },
+    staleTime: 5 * 60 * 1000, // Keep data fresh for 5 minutes
+    retry: 2, // Retry failed requests twice
   });
 
   const clearFilters = () => {
@@ -189,6 +200,26 @@ export default function StudyAbroad() {
             </Card>
           ))}
         </div>
+      ) : isError ? (
+        // FIX 3: Added Error UI State
+        <Card className="border-destructive/50 bg-destructive/5">
+          <CardContent className="py-12 text-center">
+            <div className="w-12 h-12 bg-background rounded-full flex items-center justify-center mx-auto mb-4 border border-destructive/20">
+              <AlertCircle className="h-6 w-6 text-destructive" />
+            </div>
+            <h3 className="font-semibold mb-2">Failed to load programs</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              {(error as Error)?.message || "Please check your connection and try again."}
+            </p>
+            <Button
+              onClick={() => refetch()}
+              variant="outline"
+              className="border-destructive/20 hover:bg-destructive/10"
+            >
+              Try Again
+            </Button>
+          </CardContent>
+        </Card>
       ) : programs && programs.length > 0 ? (
         <div className="grid gap-4 md:grid-cols-2">
           {programs.map((program) => (
