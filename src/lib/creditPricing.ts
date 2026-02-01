@@ -5,6 +5,7 @@
 
 export const CREDIT_CONFIG = {
   WELCOME_BONUS: 250,
+  WHATSAPP_CONNECT_BONUS: 10,
   CREDIT_TO_TAKA: 2, // 1 credit = 2 taka
   
   SERVICES: {

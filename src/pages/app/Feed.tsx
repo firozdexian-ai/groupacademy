@@ -22,7 +22,7 @@ import { FeedFilters } from "@/components/feed/FeedFilters";
 import { FeedSkeleton } from "@/components/feed/FeedSkeleton";
 import { CareerInsightsStack } from "@/components/feed/CareerInsightsStack";
 import { FeedHeader } from "@/components/feed/FeedHeader";
-import { FloatingAIButton } from "@/components/feed/FloatingAIButton";
+import { FloatingWhatsAppButton } from "@/components/feed/FloatingWhatsAppButton";
 import { PersonalizedPromptCard } from "@/components/feed/PersonalizedPromptCard";
 import { BannerCarousel } from "@/components/BannerCarousel";
 import { cn } from "@/lib/utils";
@@ -373,7 +373,10 @@ export default function Feed() {
         </div>
       </div>
 
-      <FloatingAIButton showPrompt={!talent?.servicesUsed?.length && items.length > 0} />
+      {/* Show WhatsApp button only if bonus not claimed yet */}
+      {!talent?.whatsappBonusClaimedAt && (
+        <FloatingWhatsAppButton showPrompt={items.length > 0} />
+      )}
     </div>
   );
 }

@@ -3538,6 +3538,7 @@ export type Database = {
           updated_at: string | null
           user_id: string | null
           welcome_sent_at: string | null
+          whatsapp_bonus_claimed_at: string | null
         }
         Insert: {
           achievements?: Json | null
@@ -3574,6 +3575,7 @@ export type Database = {
           updated_at?: string | null
           user_id?: string | null
           welcome_sent_at?: string | null
+          whatsapp_bonus_claimed_at?: string | null
         }
         Update: {
           achievements?: Json | null
@@ -3610,6 +3612,7 @@ export type Database = {
           updated_at?: string | null
           user_id?: string | null
           welcome_sent_at?: string | null
+          whatsapp_bonus_claimed_at?: string | null
         }
         Relationships: [
           {

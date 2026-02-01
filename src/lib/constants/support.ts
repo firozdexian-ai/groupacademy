@@ -33,3 +33,10 @@ export function getExpediteMessage(jobTitle: string, companyName: string): strin
 export function getCreditPurchaseMessage(credits: number, price: number, currentBalance: number): string {
   return `Hi, I want to purchase ${credits} credits for BDT ${price}. My current balance is ${currentBalance} credits.`;
 }
+
+/**
+ * Generate WhatsApp connect message for first-time users
+ */
+export function getWhatsAppConnectMessage(userName: string): string {
+  return `Hi! I'm ${userName} from GroUp Academy app. I'd like to connect for career support! 🎯`;
+}

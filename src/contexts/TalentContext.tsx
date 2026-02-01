@@ -36,6 +36,7 @@ export interface TalentProfile {
   onboardingStep: number;
   country: string | null;
   countryCode: string | null;
+  whatsappBonusClaimedAt: string | null;
 }
 
 interface TalentContextValue {
@@ -99,6 +100,7 @@ function mapRowToTalent(row: any): TalentProfile {
     onboardingStep: row.onboarding_step || 0,
     country: row.country || null,
     countryCode: row.country_code || null,
+    whatsappBonusClaimedAt: row.whatsapp_bonus_claimed_at || null,
   };
 }
 
