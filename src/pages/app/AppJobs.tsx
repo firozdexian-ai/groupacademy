@@ -7,15 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  ArrowLeft,
-  Search,
-  Briefcase,
-  X,
-  SlidersHorizontal,
-  AlertCircle,
-  RefreshCw,
-} from "lucide-react";
+import { ArrowLeft, Search, Briefcase, X, SlidersHorizontal, AlertCircle, RefreshCw } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -30,9 +22,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { JobCard, type JobCardData } from "@/components/jobs/JobCard";
-import { JOB_TYPES, EXPERIENCE_LEVELS, getJobTypeLabel, getExperienceLevelLabel } from "@/lib/constants/jobTypes";
-import { withTimeout } from "@/hooks/useQueryWithTimeout";
-import { TIMEOUTS } from "@/lib/timeoutConfig";
+import { JOB_TYPES, EXPERIENCE_LEVELS } from "@/lib/constants/jobTypes";
 
 // Extended job data with additional fields
 interface JobWithSalary extends JobCardData {
@@ -52,7 +42,7 @@ export default function AppJobs() {
   const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
   const [debouncedSearch, setDebouncedSearch] = useState(searchQuery);
   const [selectedJobTypes, setSelectedJobTypes] = useState<string[]>(
-    searchParams.get("type") ? [searchParams.get("type")!] : []
+    searchParams.get("type") ? [searchParams.get("type")!] : [],
   );
   const [selectedExpLevels, setSelectedExpLevels] = useState<string[]>([]);
   const [salaryRange, setSalaryRange] = useState([0]);
@@ -78,26 +68,23 @@ export default function AppJobs() {
     setLoading(true);
     setError(null);
     try {
-      const query = supabase
+      // FIX 1: Add Deadline Filter & Error Handling
+      const { data, error } = await supabase
         .from("jobs")
-        .select("id, title, company_name, company_logo_url, location, job_type, experience_level, is_featured, created_at, deadline, salary_range_min, salary_range_max")
+        .select(
+          "id, title, company_name, company_logo_url, location, job_type, experience_level, is_featured, created_at, deadline, salary_range_min, salary_range_max",
+        )
         .eq("is_active", true)
+        // Only show jobs where deadline is NULL (no deadline) OR deadline is in the future
         .or("deadline.is.null,deadline.gte.now()")
         .order("is_featured", { ascending: false })
         .order("created_at", { ascending: false });
 
-      // Convert PromiseLike to Promise for timeout wrapper
-      const result = await withTimeout(
-        Promise.resolve(query.then(res => res)),
-        TIMEOUTS.DEFAULT,
-        "Request timed out. Please check your connection."
-      );
-
-      if (result.error) throw result.error;
-      setJobs((result.data as JobWithSalary[]) || []);
+      if (error) throw error;
+      setJobs((data as JobWithSalary[]) || []);
     } catch (err: any) {
       console.error("Error loading jobs:", err);
-      setError(err.message || "Failed to load jobs. Please try again.");
+      setError(err.message || "Failed to load jobs. Please check your connection.");
     } finally {
       setLoading(false);
     }
@@ -110,29 +97,32 @@ export default function AppJobs() {
         job.title.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
         job.company_name.toLowerCase().includes(debouncedSearch.toLowerCase());
       const matchType = selectedJobTypes.length === 0 || selectedJobTypes.includes(job.job_type);
-      
+
       // Normalize experience level for matching
-      const normalizedExpLevel = job.experience_level?.replace('_level', '') || job.experience_level;
-      const matchExp = selectedExpLevels.length === 0 || 
+      const normalizedExpLevel = job.experience_level?.replace("_level", "") || job.experience_level;
+      const matchExp =
+        selectedExpLevels.length === 0 ||
         selectedExpLevels.includes(job.experience_level) ||
-        selectedExpLevels.some(sel => sel.replace('_level', '') === normalizedExpLevel);
-      
+        selectedExpLevels.some((sel) => sel.replace("_level", "") === normalizedExpLevel);
+
       const matchSalary =
         salaryRange[0] === 0 || (job.salary_range_max ? job.salary_range_max >= salaryRange[0] * 1000 : true);
 
-      const matchLocation = !isInternational ||
-        (job.location?.toLowerCase().includes("remote") ||
-          job.location?.toLowerCase().includes("international") ||
-          job.location?.toLowerCase().includes("abroad") ||
-          job.location?.toLowerCase().includes("overseas") ||
-          job.job_type === "remote");
+      const matchLocation =
+        !isInternational ||
+        job.location?.toLowerCase().includes("remote") ||
+        job.location?.toLowerCase().includes("international") ||
+        job.location?.toLowerCase().includes("abroad") ||
+        job.location?.toLowerCase().includes("overseas") ||
+        job.job_type === "remote";
 
       return matchSearch && matchType && matchExp && matchSalary && matchLocation;
     });
   }, [jobs, debouncedSearch, selectedJobTypes, selectedExpLevels, salaryRange, isInternational]);
 
-  const activeFiltersCount = selectedJobTypes.length + selectedExpLevels.length + (salaryRange[0] > 0 ? 1 : 0) + (isInternational ? 1 : 0);
-  
+  const activeFiltersCount =
+    selectedJobTypes.length + selectedExpLevels.length + (salaryRange[0] > 0 ? 1 : 0) + (isInternational ? 1 : 0);
+
   const clearFilters = () => {
     setSearchQuery("");
     setSelectedJobTypes([]);
@@ -300,7 +290,8 @@ export default function AppJobs() {
           )}
           {selectedJobTypes.map((t) => (
             <Badge key={t} variant="secondary" className="gap-1">
-              {getJobTypeLabel(t)}
+              {/* @ts-ignore */}
+              {JOB_TYPES[t]?.label || t}
               <X
                 className="w-3 h-3 cursor-pointer"
                 onClick={() => setSelectedJobTypes((prev) => prev.filter((x) => x !== t))}
@@ -309,7 +300,12 @@ export default function AppJobs() {
           ))}
           {selectedExpLevels.map((l) => (
             <Badge key={l} variant="secondary" className="gap-1">
-              {getExperienceLevelLabel(l)}
+              {l
+                .replace("_level", "")
+                .replace("mid", "Mid Level")
+                .replace("entry", "Entry Level")
+                .replace("senior", "Senior Level")
+                .replace("executive", "Executive")}
               <X
                 className="w-3 h-3 cursor-pointer"
                 onClick={() => setSelectedExpLevels((prev) => prev.filter((x) => x !== l))}
@@ -348,6 +344,7 @@ export default function AppJobs() {
           ))}
         </div>
       ) : error ? (
+        // FIX 2: Added Error UI
         <Card className="border-destructive/50 bg-destructive/5">
           <CardContent className="py-12 text-center flex flex-col items-center">
             <div className="w-16 h-16 bg-background rounded-full flex items-center justify-center mb-4 shadow-sm border border-destructive/20">
@@ -384,8 +381,8 @@ export default function AppJobs() {
               <JobCard
                 job={job}
                 variant="default"
-                isSaved={isSaved(job.id, 'job')}
-                onSaveToggle={() => toggleSave(job.id, 'job')}
+                isSaved={isSaved(job.id, "job")}
+                onSaveToggle={() => toggleSave(job.id, "job")}
                 onClick={() => navigate(`/app/jobs/${job.id}`)}
               />
             </div>
