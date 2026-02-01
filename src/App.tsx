@@ -129,7 +129,6 @@ const OnboardingGuard = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
 
   useEffect(() => {
-    // If talent is loaded BUT onboarding is incomplete, show the wizard
     if (talent && !talent.onboardingCompletedAt) {
       setShowWizard(true);
     }
@@ -143,9 +142,7 @@ const OnboardingGuard = ({ children }: { children: React.ReactNode }) => {
   if (showWizard) {
     return (
       <>
-        {/* Hide the underlying page content so they can't interact with it */}
         <div className="opacity-0 pointer-events-none h-0 overflow-hidden">{children}</div>
-        {/* Show the Wizard overlay */}
         <OnboardingWizard onComplete={handleComplete} />
       </>
     );
@@ -158,7 +155,8 @@ export default function App() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        {/* FIX: Removed future flags that cause nested route bouncing */}
+        <BrowserRouter>
           <BootGate>
             <TalentProvider>
               <TooltipProvider>
@@ -173,19 +171,15 @@ export default function App() {
 
                   {/* Public Job View */}
                   <Route path="/jobs/:id" element={<PublicJobDetail />} />
-
-                  {/* Dynamic Redirect Logic */}
                   <Route path="/jobs/:id/apply" element={<JobApplyRedirect />} />
 
-                  {/* Public Course Detail (for content tracking) */}
-                  <Route path="/courses/:slug" element={<CourseDetail />} />
-
-                  {/* Public Service Landing (for service tracking) */}
-                  <Route path="/services" element={<PublicServiceLanding />} />
-
                   {/* Public Content */}
+                  <Route path="/courses/:slug" element={<CourseDetail />} />
+                  <Route path="/services" element={<PublicServiceLanding />} />
                   <Route path="/blog" element={<Blog />} />
                   <Route path="/blog/:slug" element={<BlogPost />} />
+
+                  {/* Public Services */}
                   <Route path="/career-assessment" element={<CareerAssessment />} />
                   <Route path="/assessment-results/:id" element={<AssessmentResults />} />
                   <Route path="/portfolio-request" element={<PortfolioRequest />} />
@@ -351,7 +345,7 @@ export default function App() {
                     <Route path="agents" element={<AIAgents />} />
                     <Route path="profile" element={<Profile />} />
 
-                    {/* Job Routes */}
+                    {/* Job Routes - Specific Routes First */}
                     <Route path="jobs/all" element={<AppJobs />} />
                     <Route path="jobs/:id" element={<AppJobDetail />} />
                     <Route path="jobs/:id/apply" element={<AppJobApplication />} />
@@ -367,7 +361,6 @@ export default function App() {
                     <Route path="learning/courses/:slug" element={<AppCourseDetail />} />
                     <Route path="learning/my-courses" element={<AppMyLearning />} />
                     <Route path="learning/events" element={<AppEvents />} />
-                    {/* 👇 Added Fallback for Webinars to Events */}
                     <Route path="learning/webinars" element={<AppEvents />} />
                     <Route path="learning/competitions" element={<Competitions />} />
                     <Route path="learning/competitions/:slug" element={<CompetitionDetail />} />
@@ -390,7 +383,7 @@ export default function App() {
                     <Route path="profile/edit" element={<ProfileEdit />} />
                     <Route path="agents/:agentKey" element={<AgentChat />} />
 
-                    {/* Study Abroad */}
+                    {/* Study Abroad - Specific Routes First */}
                     <Route path="abroad/study" element={<StudyAbroad />} />
                     <Route path="abroad/study/:id" element={<StudyAbroadDetail />} />
                     <Route path="abroad/ielts" element={<IELTSPrep />} />
