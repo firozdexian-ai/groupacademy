@@ -1,161 +1,349 @@
 
+# Comprehensive Bug Fix & Feature Enhancement Plan
 
-# Content Management System - Deep Dive & Fix Plan
+## Summary of Issues
 
-## Issues Identified
-
-### Issue 1: Broken Navigation Links in Dashboard Overview (CRITICAL)
-
-**Location**: `src/components/dashboard/DashboardOverview.tsx` (lines 245, 339, 347, 352, 359, 367, 375)
-
-The Dashboard Overview uses `/admin/*` routes that don't exist in the routing configuration:
-
-| Button | Current Route (Broken) | Correct Route |
-|--------|----------------------|---------------|
-| "Add Content" | `/admin/content` | `/content/new` |
-| "Upload Video" | `/admin/content` | `/content/new` |
-| "Manage Talent" | `/admin/talent-pool` | `/dashboard?tab=talent` |
-| "Enrollments" | `/admin/enrollments` | `/dashboard?tab=enrollments` |
-| "Post Job" | `/admin/jobs` | `/dashboard?tab=jobs` |
-| "Verify Company" | `/admin/verify-companies` | `/dashboard?tab=companies` |
-| "Live Sessions" | `/admin/sessions` | `/sessions` |
-
-These routes result in 404 pages, which is why you can't find how to add content.
-
-### Issue 2: ContentList Has No "Add Content" Button
-
-**Location**: `src/components/dashboard/ContentList.tsx`
-
-When viewing the content tabs (All Content, Videos, Courses, etc.), there's no button to add new content. The ContentList component only shows a search bar and existing content cards. Users must either:
-1. Go back to Overview (which has a broken link), or
-2. Know the secret route `/content/new`
-
-### Issue 3: Content Creation Workflow is Incomplete
-
-The content workflow currently supports:
-- Creating content: `/content/new` - works but hard to find
-- Editing content: `/content/:id/edit` - works via Edit button on cards
-- Managing modules: `/content/:id/modules` - works via Manage Modules in edit
-- Managing resources: `/content/:id/modules/:moduleId/resources` - works
-
-But there's no clear user journey from "I want to add a course" to "course is live with modules and resources."
+Based on my deep investigation, here are the three reported problems and their root causes:
 
 ---
 
-## Solution Plan
+## Issue 1: Job Searching Screen Glitches (& Similar Issue on Study Abroad)
 
-### Fix 1: Repair Dashboard Overview Quick Actions
+### Symptoms
+- The screenshot shows "All Jobs" page stuck in a loading state with skeleton cards visible
+- Similar behavior reported for Study Abroad browsing
 
-**File**: `src/components/dashboard/DashboardOverview.tsx`
+### Root Cause Analysis
 
-Update all broken navigation links:
+**Primary Issue: Missing Error State Handling**
 
-```tsx
-// Line 245: "Add Content" button
-<Button onClick={() => navigate("/content/new")}>
-  <Plus className="mr-2 h-4 w-4" /> Add Content
-</Button>
+In `AppJobs.tsx`, when `fetchJobs()` fails:
+- The query fails silently - there's no `try/catch` around the fetch
+- Loading state is set to `false` but no error is displayed
+- Users see skeleton cards that never resolve or just an empty state
 
-// Lines 336-379: Quick Actions buttons
-onClick={() => navigate("/dashboard?tab=talent")}     // Manage Talent
-onClick={() => navigate("/dashboard?tab=enrollments")} // Enrollments  
-onClick={() => navigate("/dashboard?tab=jobs")}       // Post Job (opens jobs manager with dialog)
-onClick={() => navigate("/dashboard?tab=companies")}  // Verify Company
-onClick={() => navigate("/content/new")}              // Upload Video
-onClick={() => navigate("/sessions")}                 // Live Sessions
+```typescript
+// Current code (line 72-83)
+const fetchJobs = async () => {
+  setLoading(true);
+  const { data } = await supabase  // No error handling!
+    .from("jobs")
+    .select(...)
+  setJobs((data as JobWithSalary[]) || []);
+  setLoading(false);  // Runs even if query failed
+};
 ```
 
-### Fix 2: Add "Create Content" Button to ContentList
+**Secondary Issue: Query Timeout**
 
-**File**: `src/components/dashboard/ContentList.tsx`
+Neither `AppJobs.tsx` nor `StudyAbroad.tsx` implement query timeouts. If the network is slow or the database is under load, users see infinite loading.
 
-Add a prominent button next to the search bar for creating new content:
+**Third Issue: Race Conditions**
+
+The search debounce and URL sync in `AppJobs.tsx` can cause race conditions where:
+1. User types a search term
+2. Debounce timer triggers
+3. URL params update
+4. Component re-renders but fetch hasn't completed
+5. UI appears stuck
+
+### Solution
+
+1. **Add Error State Handling** to both `AppJobs.tsx` and `StudyAbroad.tsx`
+2. **Add Query Timeouts** using the existing `withTimeout` utility
+3. **Add Error UI** with retry button
+4. **Use React Query** consistently (StudyAbroad already uses it, but AppJobs doesn't)
+
+---
+
+## Issue 2: Cannot Delete Repeated Companies
+
+### Symptoms
+- Admin tried to delete duplicate companies but couldn't
+
+### Root Cause Analysis
+
+After reviewing `CompaniesManager.tsx`, the **delete functionality IS implemented** (lines 275-297):
+
+```typescript
+const handleDelete = async (id: string) => {
+  if (!confirm("Delete this company? Jobs linked to it won't be deleted.")) return;
+  
+  const { error } = await withTimeout(
+    Promise.resolve(supabase.from("companies").delete().eq("id", id)),
+    TIMEOUTS.DEFAULT,
+    "Delete timed out",
+  );
+  if (error) throw error;
+  toast.success("Company deleted");
+  ...
+};
+```
+
+**Potential Issues:**
+
+1. **Foreign Key Constraints**: The `jobs` table has a `company_id` foreign key. If jobs are linked to a company, the delete might silently fail due to RLS or FK constraints.
+
+2. **Poor Error Feedback**: The `catch` block (line 293-296) shows a generic error toast without specific guidance:
+   ```typescript
+   toast.error(error.message || "Failed to delete company");
+   ```
+
+3. **UI Button May Be Hard to Find**: The delete button (Trash icon) is small and at the end of the row - users might miss it or accidentally click something else.
+
+4. **No Bulk Delete**: When there are many duplicates, users must delete one by one which is tedious.
+
+### Solution
+
+1. **Add Bulk Selection & Delete** functionality for managing duplicates
+2. **Add Company Merge Feature** to combine duplicates (transfer jobs to one company, delete others)
+3. **Improve Error Messages** with specific guidance when FK constraints block deletion
+4. **Check RLS Policies** to ensure delete is allowed for admin users
+
+---
+
+## Issue 3: Missing "AI Assessment On" Button for Jobs
+
+### Symptoms
+- Admin colleague could not find the AI assessment toggle when editing a job
+
+### Root Cause Analysis
+
+After examining the `JobForm` component in `JobsManager.tsx`, I found:
+
+**The AI Assessment Toggle is MISSING from the form UI**
+
+Looking at the form structure (lines 514-842):
+- There are toggles for "Active" and "Featured" (lines 808-832)
+- But there is NO toggle for `ai_assessment_enabled` even though:
+  - The field exists in the `emptyJob` default (line 172)
+  - The field is in `VALID_JOB_FIELDS` (line 86)
+  - The Job interface includes it (line 119)
+
+The toggle was likely removed or never added when the form was refactored.
+
+### Solution
+
+1. **Add AI Assessment Toggle** to the JobForm with configuration options
+2. **Add Assessment Config Settings** (number of questions, voice enabled)
+3. **Place it prominently** near the Active/Featured toggles so it's visible
+
+---
+
+## Implementation Plan
+
+### Part 1: Fix Job Search & Study Abroad Loading Issues
+
+**Files to modify:**
+- `src/pages/app/AppJobs.tsx`
+
+**Changes:**
+1. Add `error` state variable
+2. Wrap `fetchJobs()` in try/catch
+3. Use `withTimeout` utility for query timeout protection
+4. Add error state UI with retry button
+5. Add loading skeleton with max display time
 
 ```tsx
-// After the search bar (around line 184-195)
-<div className="flex justify-between items-center gap-4">
-  <div className="relative flex-1 max-w-sm">
-    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-    <Input ... />
+// Add error state
+const [error, setError] = useState<string | null>(null);
+
+// Update fetchJobs with proper error handling
+const fetchJobs = async () => {
+  setLoading(true);
+  setError(null);
+  try {
+    const { data, error: fetchError } = await withTimeout(
+      Promise.resolve(supabase.from("jobs").select(...)),
+      TIMEOUTS.DEFAULT,
+      "Request timed out"
+    );
+    if (fetchError) throw fetchError;
+    setJobs((data as JobWithSalary[]) || []);
+  } catch (err: any) {
+    console.error("Error loading jobs:", err);
+    setError(err.message || "Failed to load jobs");
+  } finally {
+    setLoading(false);
+  }
+};
+```
+
+---
+
+### Part 2: Fix Company Delete & Add Bulk Operations
+
+**Files to modify:**
+- `src/components/dashboard/CompaniesManager.tsx`
+
+**Changes:**
+
+1. **Improve Delete Error Handling:**
+```tsx
+const handleDelete = async (id: string) => {
+  const companyToDelete = companies.find(c => c.id === id);
+  if (!confirm(`Delete "${companyToDelete?.name}"? Any jobs linked to this company will be unlinked.`)) return;
+
+  try {
+    // First, unlink any jobs from this company
+    await supabase.from("jobs").update({ company_id: null }).eq("company_id", id);
+    
+    // Then delete the company
+    const { error } = await supabase.from("companies").delete().eq("id", id);
+    if (error) throw error;
+    toast.success("Company deleted successfully");
+    loadCompanies();
+  } catch (error: any) {
+    if (error.message?.includes("foreign key")) {
+      toast.error("Cannot delete: This company has linked records. Please unlink them first.");
+    } else {
+      toast.error(error.message || "Failed to delete company");
+    }
+  }
+};
+```
+
+2. **Add Bulk Select & Delete:**
+   - Add checkbox column to table
+   - Add "Select All" checkbox in header
+   - Add "Delete Selected" button when items are selected
+   - Track selected IDs in state
+
+3. **Add Company Merge Feature:**
+   - Button to "Merge Companies" 
+   - Dialog to select target company and source companies to merge
+   - Transfer all jobs from source companies to target
+   - Delete source companies after merge
+
+---
+
+### Part 3: Add AI Assessment Toggle to Job Form
+
+**Files to modify:**
+- `src/components/dashboard/JobsManager.tsx`
+
+**Changes:**
+
+Add the AI Assessment section after the Status Toggles (around line 832):
+
+```tsx
+{/* AI Assessment Section */}
+<div className="space-y-4 p-4 border rounded-lg bg-purple-50/50">
+  <div className="flex items-center gap-3">
+    <Switch 
+      checked={formData.ai_assessment_enabled ?? false}
+      onCheckedChange={(checked) => setFormData({ 
+        ...formData, 
+        ai_assessment_enabled: checked 
+      })}
+    />
+    <div className="flex-1">
+      <Label className="flex items-center gap-2">
+        <Brain className="w-4 h-4 text-purple-600" /> Enable AI Assessment
+      </Label>
+      <p className="text-xs text-muted-foreground">
+        Applicants will take an AI-generated skills assessment
+      </p>
+    </div>
   </div>
-  
-  {/* ADD THIS BUTTON */}
-  <Button onClick={() => navigate("/content/new")} className="gap-2">
-    <Plus className="h-4 w-4" /> Add Content
-  </Button>
-  
-  <p className="text-sm text-muted-foreground hidden sm:block">Total: {totalCount}</p>
+
+  {formData.ai_assessment_enabled && (
+    <div className="grid grid-cols-2 gap-4 pt-2 border-t mt-2">
+      <div className="space-y-2">
+        <Label>Number of Questions</Label>
+        <Select 
+          value={String(formData.assessment_config?.questions || 5)}
+          onValueChange={(v) => setFormData({ 
+            ...formData, 
+            assessment_config: { 
+              ...formData.assessment_config, 
+              questions: parseInt(v) 
+            }
+          })}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="3">3 Questions</SelectItem>
+            <SelectItem value="5">5 Questions</SelectItem>
+            <SelectItem value="10">10 Questions</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="flex items-center gap-3 p-3 border rounded-lg bg-background">
+        <Switch 
+          checked={formData.assessment_config?.voice ?? false}
+          onCheckedChange={(checked) => setFormData({ 
+            ...formData, 
+            assessment_config: { 
+              ...formData.assessment_config, 
+              voice: checked 
+            }
+          })}
+        />
+        <div>
+          <Label>Voice Mode</Label>
+          <p className="text-xs text-muted-foreground">Allow voice answers</p>
+        </div>
+      </div>
+    </div>
+  )}
 </div>
 ```
 
-### Fix 3: Improve Empty State with Action
-
-When no content exists, update the empty state to include a call-to-action:
-
-```tsx
-// Lines 197-203
-{content.length === 0 ? (
-  <Card>
-    <CardContent className="py-12 text-center">
-      <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-      <p className="text-muted-foreground mb-4">No content found. Create your first content to get started!</p>
-      <Button onClick={() => navigate("/content/new")}>
-        <Plus className="mr-2 h-4 w-4" /> Create Content
-      </Button>
-    </CardContent>
-  </Card>
-)
-```
+Also need to import `Brain` icon from lucide-react.
 
 ---
 
-## Files to Modify
+## Files to Modify Summary
 
 | File | Changes |
 |------|---------|
-| `src/components/dashboard/DashboardOverview.tsx` | Fix 6 broken navigation links |
-| `src/components/dashboard/ContentList.tsx` | Add "Add Content" button + improve empty state |
+| `src/pages/app/AppJobs.tsx` | Add error state, timeout protection, error UI, retry button |
+| `src/components/dashboard/CompaniesManager.tsx` | Improve delete error handling, add bulk selection/delete, add merge feature |
+| `src/components/dashboard/JobsManager.tsx` | Add AI Assessment toggle section with configuration options |
 
 ---
 
-## Technical Details
+## Technical Considerations
 
-### Route Structure Reference
+### Database Constraints Check
 
-The existing route structure in `App.tsx` and `lib/routes.ts`:
+Before implementing, verify the `companies` table FK constraints in the schema:
+- If `jobs.company_id` has `ON DELETE SET NULL` - deletion will work
+- If it has `ON DELETE RESTRICT` - must unlink jobs first
+- If no FK exists - safe to delete
 
-**Content Management Routes**:
-- `/content/new` - Create new content (any type)
-- `/content/:id/edit` - Edit existing content
-- `/content/:id/modules` - Manage modules for a course
-- `/content/:id/modules/:moduleId/resources` - Manage resources for a module
-- `/quiz-manage/:contentId` - Manage quiz questions
+### RLS Policy Check
 
-**Dashboard Tab Navigation**:
-The dashboard uses URL query params for tab navigation: `/dashboard?tab=tabName`
+Verify admin users can delete from `companies` table - may need policy adjustment.
 
-Available tabs: `overview`, `all`, `videos`, `courses`, `webinars`, `batches`, `seminars`, `jobs`, `talent`, `enrollments`, `companies`, etc.
+### UI/UX Improvements
 
-### User Journey After Fix
-
-1. Admin logs in → lands on `/dashboard` (Overview tab)
-2. Clicks "Add Content" button → goes to `/content/new`
-3. Fills out form → creates content → returns to `/dashboard`
-4. Navigates to "All Content" tab via sidebar
-5. Sees new content with Edit button
-6. Clicks Edit → goes to `/content/:id/edit`
-7. Clicks "Manage Modules" → goes to `/content/:id/modules`
-8. Creates modules → clicks "Resources" on any module → goes to `/content/:id/modules/:moduleId/resources`
-9. Uploads resources (videos, flashcards, quizzes, etc.)
+1. **Error State Design**: Use the existing `DashboardErrorState` component pattern
+2. **Loading Timeout**: Show "Taking longer than expected..." after 10 seconds
+3. **Delete Confirmation**: More descriptive confirmation dialogs
+4. **AI Assessment Visibility**: Use purple/accent color to make the section stand out
 
 ---
 
-## Expected Outcome
+## Expected Outcomes
 
-After these fixes:
-1. All "Add Content" buttons navigate to the correct `/content/new` page
-2. Quick Action buttons in Overview work correctly
-3. ContentList has a visible "Add Content" button at the top
-4. Empty state provides clear guidance to create first content
-5. Complete content creation workflow is accessible without knowing hidden routes
+After implementing these fixes:
 
+1. **Job Search**: Shows clear error messages when queries fail, with retry option
+2. **Study Abroad**: Same improvements for robust error handling
+3. **Company Management**: Admins can easily delete duplicates, see clear error messages, and bulk-manage companies
+4. **AI Assessment**: Visible toggle in job form with configuration options clearly accessible
+
+---
+
+## Testing Checklist
+
+- [ ] Test job search with slow network (throttle to 3G)
+- [ ] Test job search with offline mode to verify error handling
+- [ ] Test company delete when company has linked jobs
+- [ ] Test bulk company selection and delete
+- [ ] Test AI assessment toggle saves correctly
+- [ ] Verify assessment config persists across edit sessions
