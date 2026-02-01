@@ -63,8 +63,6 @@ export default function JobsHub() {
   const [personalizedJobs, setPersonalizedJobs] = useState<JobCardData[]>([]);
   const [applications, setApplications] = useState<JobApplication[]>([]);
   const [applicationsCount, setApplicationsCount] = useState(0);
-
-  // FIX: Added explicit Error state
   const [error, setError] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(true);
@@ -84,10 +82,9 @@ export default function JobsHub() {
     setLoading(true);
     setApplicationsLoading(true);
     setPersonalizedLoading(true);
-    setError(null); // Reset error on load
+    setError(null);
 
     try {
-      // Parallel fetch all data
       const [topPicksResult, personalizedResult, applicationsResult, countResult] = await Promise.all([
         fetchTopPicks(),
         talent?.id ? fetchPersonalizedJobs() : Promise.resolve([]),
@@ -101,7 +98,7 @@ export default function JobsHub() {
       setApplicationsCount(countResult);
     } catch (error: any) {
       console.error("Error loading data:", error);
-      setError(error.message || "Failed to load jobs data"); // FIX: Set error state
+      setError(error.message || "Failed to load jobs data");
     } finally {
       setLoading(false);
       setApplicationsLoading(false);
@@ -116,7 +113,6 @@ export default function JobsHub() {
         "id, title, company_name, company_logo_url, location, job_type, experience_level, is_featured, created_at, deadline",
       )
       .eq("is_active", true)
-      // Ensure expired jobs are filtered out (kept from original, verified correct)
       .or("deadline.is.null,deadline.gte.now()")
       .order("is_featured", { ascending: false })
       .order("created_at", { ascending: false })
@@ -129,7 +125,6 @@ export default function JobsHub() {
   async function fetchPersonalizedJobs(): Promise<JobCardData[]> {
     if (!talent?.id) return [];
 
-    // Get user preferences
     const { data: talentData } = await supabase
       .from("talents")
       .select("job_preferences, profession_category_id")
@@ -146,14 +141,11 @@ export default function JobsHub() {
       .eq("is_active", true)
       .or("deadline.is.null,deadline.gte.now()");
 
-    // Apply filters from preferences
     if (preferences?.preferred_job_types?.length) {
-      // Cast to any to satisfy Supabase filter typing
       query = query.in("job_type", preferences.preferred_job_types as any);
     }
 
     if (preferences?.preferred_locations?.length) {
-      // Build location filter
       const locationFilters = preferences.preferred_locations.map((loc) => `location.ilike.%${loc}%`).join(",");
       query = query.or(locationFilters);
     }
@@ -162,7 +154,6 @@ export default function JobsHub() {
       query = query.gte("salary_range_max", preferences.salary_min);
     }
 
-    // Fallback: if no preferences, use profession category
     if (!preferences && talentData?.profession_category_id) {
       query = query.eq("profession_category_id", talentData.profession_category_id);
     }
@@ -178,10 +169,7 @@ export default function JobsHub() {
       .from("job_applications")
       .select(
         `
-        id,
-        created_at,
-        application_status,
-        delivery_status,
+        id, created_at, application_status, delivery_status,
         jobs:job_id (id, title, company_name, company_logo_url)
       `,
       )
@@ -205,8 +193,8 @@ export default function JobsHub() {
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
-    // FIX: Updated route from '/app/jobs/all' to '/app/jobs' to match AppJobs.tsx route
-    navigate(`/app/jobs?search=${encodeURIComponent(searchQuery)}`);
+    // FIX: Navigate to /all listing page instead of staying on Hub
+    navigate(`/app/jobs/all?search=${encodeURIComponent(searchQuery)}`);
   }
 
   function getApplicationStatus(app: JobApplication) {
@@ -227,8 +215,8 @@ export default function JobsHub() {
         toast.error("Failed to process credits");
         return;
       }
-      // FIX: Updated route here as well
-      navigate("/app/jobs?ai=true");
+      // FIX: Navigate to /all listing page
+      navigate("/app/jobs/all?ai=true");
     } catch (error) {
       console.error("Error getting AI recommendations:", error);
       toast.error("Failed to get AI recommendations");
@@ -250,7 +238,6 @@ export default function JobsHub() {
     return <Icon className="h-3 w-3 mr-1" />;
   };
 
-  // FIX: Added explicit Error UI Block
   if (error && !loading) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-12">
@@ -341,12 +328,12 @@ export default function JobsHub() {
             <Sparkles className="h-5 w-5 text-yellow-500" />
             <h2 className="text-lg font-bold">Featured Jobs</h2>
           </div>
+          {/* FIX: Navigate to /all */}
           <Button
             variant="ghost"
             size="sm"
             className="text-primary font-medium h-8"
-            // FIX: Updated route
-            onClick={() => navigate("/app/jobs")}
+            onClick={() => navigate("/app/jobs/all")}
           >
             View all <ChevronRight className="h-4 w-4 ml-0.5" />
           </Button>
@@ -388,13 +375,18 @@ export default function JobsHub() {
                     className="w-[300px] shrink-0 animate-in fade-in slide-in-from-right-4"
                     style={{ animationDelay: `${index * 50}ms` }}
                   >
-                    <JobCard
-                      job={job}
-                      variant="default"
-                      isSaved={isSaved(job.id, "job")}
-                      onSaveToggle={() => toggleSave(job.id, "job")}
-                      onClick={() => navigate(`/app/jobs/${job.id}`)}
-                    />
+                    {/* FIX: Wrapper DIV to ensure click works regardless of Card implementation */}
+                    <div onClick={() => navigate(`/app/jobs/${job.id}`)} className="cursor-pointer">
+                      <JobCard
+                        job={job}
+                        variant="default"
+                        isSaved={isSaved(job.id, "job")}
+                        onSaveToggle={(e) => {
+                          e?.stopPropagation(); // Prevent navigation when clicking save
+                          toggleSave(job.id, "job");
+                        }}
+                      />
+                    </div>
                   </div>
                 ))}
               </div>
@@ -424,13 +416,13 @@ export default function JobsHub() {
         <h2 className="text-lg font-bold mb-4">Browse by Type</h2>
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none -mx-4 px-4">
           {JOB_COLLECTIONS.map((collection) => (
+            // FIX: Navigate to /all with query param
             <Button
               key={collection.filter}
               variant="outline"
               size="sm"
               className="shrink-0 gap-2 h-10 rounded-full px-4 hover:bg-primary/10 hover:border-primary/50"
-              // FIX: Updated route
-              onClick={() => navigate(`/app/jobs?type=${collection.filter}`)}
+              onClick={() => navigate(`/app/jobs/all?type=${collection.filter}`)}
             >
               <collection.icon className="h-4 w-4 text-primary" />
               {collection.label}
@@ -468,7 +460,10 @@ export default function JobsHub() {
           ) : (
             <div className="space-y-2">
               {personalizedJobs.slice(0, 4).map((job) => (
-                <JobCard key={job.id} job={job} variant="compact" onClick={() => navigate(`/app/jobs/${job.id}`)} />
+                // FIX: Wrapper DIV here too
+                <div key={job.id} onClick={() => navigate(`/app/jobs/${job.id}`)} className="cursor-pointer">
+                  <JobCard job={job} variant="compact" />
+                </div>
               ))}
             </div>
           )}
@@ -516,8 +511,8 @@ export default function JobsHub() {
             <CardContent className="p-6 text-center">
               <FileText className="h-8 w-8 text-muted-foreground/50 mx-auto mb-2" />
               <p className="text-sm text-muted-foreground mb-3">No applications yet</p>
-              {/* FIX: Updated route */}
-              <Button size="sm" onClick={() => navigate("/app/jobs")}>
+              {/* FIX: Navigate to /all */}
+              <Button size="sm" onClick={() => navigate("/app/jobs/all")}>
                 Browse Jobs
               </Button>
             </CardContent>
