@@ -13,6 +13,8 @@ import {
   CheckCircle2,
   Send,
   Eye,
+  AlertCircle,
+  RefreshCw,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTalent } from "@/hooks/useTalent";
@@ -28,7 +30,6 @@ import { JobPreferencesSheet } from "@/components/jobs/JobPreferencesSheet";
 import { JobCard, type JobCardData } from "@/components/jobs/JobCard";
 import { JOB_COLLECTIONS, APPLICATION_STATUS_CONFIG } from "@/lib/constants/jobTypes";
 import { toast } from "sonner";
-import type { Json } from "@/integrations/supabase/types";
 
 interface JobPreferences {
   preferred_job_types?: string[];
@@ -62,6 +63,10 @@ export default function JobsHub() {
   const [personalizedJobs, setPersonalizedJobs] = useState<JobCardData[]>([]);
   const [applications, setApplications] = useState<JobApplication[]>([]);
   const [applicationsCount, setApplicationsCount] = useState(0);
+
+  // FIX: Added explicit Error state
+  const [error, setError] = useState<string | null>(null);
+
   const [loading, setLoading] = useState(true);
   const [applicationsLoading, setApplicationsLoading] = useState(true);
   const [personalizedLoading, setPersonalizedLoading] = useState(false);
@@ -69,7 +74,7 @@ export default function JobsHub() {
   const [loadingAI, setLoadingAI] = useState(false);
 
   // Count saved jobs from hook
-  const savedJobsCount = savedItems.filter(item => item.item_type === 'job').length;
+  const savedJobsCount = savedItems.filter((item) => item.item_type === "job").length;
 
   useEffect(() => {
     loadAllData();
@@ -79,6 +84,7 @@ export default function JobsHub() {
     setLoading(true);
     setApplicationsLoading(true);
     setPersonalizedLoading(true);
+    setError(null); // Reset error on load
 
     try {
       // Parallel fetch all data
@@ -93,8 +99,9 @@ export default function JobsHub() {
       setPersonalizedJobs(personalizedResult);
       setApplications(applicationsResult);
       setApplicationsCount(countResult);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error loading data:", error);
+      setError(error.message || "Failed to load jobs data"); // FIX: Set error state
     } finally {
       setLoading(false);
       setApplicationsLoading(false);
@@ -105,8 +112,11 @@ export default function JobsHub() {
   async function fetchTopPicks(): Promise<JobCardData[]> {
     const { data, error } = await supabase
       .from("jobs")
-      .select("id, title, company_name, company_logo_url, location, job_type, experience_level, is_featured, created_at, deadline")
+      .select(
+        "id, title, company_name, company_logo_url, location, job_type, experience_level, is_featured, created_at, deadline",
+      )
       .eq("is_active", true)
+      // Ensure expired jobs are filtered out (kept from original, verified correct)
       .or("deadline.is.null,deadline.gte.now()")
       .order("is_featured", { ascending: false })
       .order("created_at", { ascending: false })
@@ -130,7 +140,9 @@ export default function JobsHub() {
 
     let query = supabase
       .from("jobs")
-      .select("id, title, company_name, company_logo_url, location, job_type, experience_level, is_featured, created_at, deadline, salary_range_min, salary_range_max")
+      .select(
+        "id, title, company_name, company_logo_url, location, job_type, experience_level, is_featured, created_at, deadline, salary_range_min, salary_range_max",
+      )
       .eq("is_active", true)
       .or("deadline.is.null,deadline.gte.now()");
 
@@ -142,7 +154,7 @@ export default function JobsHub() {
 
     if (preferences?.preferred_locations?.length) {
       // Build location filter
-      const locationFilters = preferences.preferred_locations.map(loc => `location.ilike.%${loc}%`).join(",");
+      const locationFilters = preferences.preferred_locations.map((loc) => `location.ilike.%${loc}%`).join(",");
       query = query.or(locationFilters);
     }
 
@@ -155,9 +167,7 @@ export default function JobsHub() {
       query = query.eq("profession_category_id", talentData.profession_category_id);
     }
 
-    const { data, error } = await query
-      .order("created_at", { ascending: false })
-      .limit(6);
+    const { data, error } = await query.order("created_at", { ascending: false }).limit(6);
 
     if (error) throw error;
     return (data as JobCardData[]) || [];
@@ -166,13 +176,15 @@ export default function JobsHub() {
   async function fetchApplications(): Promise<JobApplication[]> {
     const { data, error } = await supabase
       .from("job_applications")
-      .select(`
+      .select(
+        `
         id,
         created_at,
         application_status,
         delivery_status,
         jobs:job_id (id, title, company_name, company_logo_url)
-      `)
+      `,
+      )
       .eq("talent_id", talent!.id)
       .order("created_at", { ascending: false })
       .limit(3);
@@ -193,7 +205,8 @@ export default function JobsHub() {
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
-    navigate(`/app/jobs/all?search=${encodeURIComponent(searchQuery)}`);
+    // FIX: Updated route from '/app/jobs/all' to '/app/jobs' to match AppJobs.tsx route
+    navigate(`/app/jobs?search=${encodeURIComponent(searchQuery)}`);
   }
 
   function getApplicationStatus(app: JobApplication) {
@@ -214,7 +227,8 @@ export default function JobsHub() {
         toast.error("Failed to process credits");
         return;
       }
-      navigate("/app/jobs/all?ai=true");
+      // FIX: Updated route here as well
+      navigate("/app/jobs?ai=true");
     } catch (error) {
       console.error("Error getting AI recommendations:", error);
       toast.error("Failed to get AI recommendations");
@@ -235,6 +249,26 @@ export default function JobsHub() {
     const Icon = icons[status] || Clock;
     return <Icon className="h-3 w-3 mr-1" />;
   };
+
+  // FIX: Added explicit Error UI Block
+  if (error && !loading) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-12">
+        <Card className="border-destructive/50 bg-destructive/5">
+          <CardContent className="py-8 text-center">
+            <div className="w-16 h-16 bg-background rounded-full flex items-center justify-center mx-auto mb-4 border border-destructive/20">
+              <AlertCircle className="h-8 w-8 text-destructive" />
+            </div>
+            <h3 className="font-semibold text-lg mb-2">Unable to load jobs</h3>
+            <p className="text-muted-foreground mb-6 max-w-md mx-auto">{error}</p>
+            <Button onClick={loadAllData} className="gap-2">
+              <RefreshCw className="h-4 w-4" /> Try Again
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-6 space-y-8">
@@ -265,7 +299,7 @@ export default function JobsHub() {
           variant="outline"
           size="sm"
           className="shrink-0 gap-1.5 h-9 rounded-full"
-          onClick={() => navigate('/app/saved?tab=jobs')}
+          onClick={() => navigate("/app/saved?tab=jobs")}
         >
           <Bookmark className="h-4 w-4" />
           Saved
@@ -279,7 +313,7 @@ export default function JobsHub() {
           variant="outline"
           size="sm"
           className="shrink-0 gap-1.5 h-9 rounded-full"
-          onClick={() => navigate('/app/applications')}
+          onClick={() => navigate("/app/applications")}
         >
           <FileText className="h-4 w-4" />
           Applied
@@ -311,7 +345,8 @@ export default function JobsHub() {
             variant="ghost"
             size="sm"
             className="text-primary font-medium h-8"
-            onClick={() => navigate("/app/jobs/all")}
+            // FIX: Updated route
+            onClick={() => navigate("/app/jobs")}
           >
             View all <ChevronRight className="h-4 w-4 ml-0.5" />
           </Button>
@@ -356,8 +391,8 @@ export default function JobsHub() {
                     <JobCard
                       job={job}
                       variant="default"
-                      isSaved={isSaved(job.id, 'job')}
-                      onSaveToggle={() => toggleSave(job.id, 'job')}
+                      isSaved={isSaved(job.id, "job")}
+                      onSaveToggle={() => toggleSave(job.id, "job")}
                       onClick={() => navigate(`/app/jobs/${job.id}`)}
                     />
                   </div>
@@ -365,7 +400,6 @@ export default function JobsHub() {
               </div>
               <ScrollBar orientation="horizontal" />
             </ScrollArea>
-            {/* Scroll indicator - fade gradient on right */}
             {topPicks.length > 1 && (
               <div className="absolute right-0 top-0 bottom-4 w-12 bg-gradient-to-l from-background to-transparent pointer-events-none" />
             )}
@@ -374,12 +408,7 @@ export default function JobsHub() {
 
         {/* AI Recommendations Button */}
         {topPicks.length > 0 && (
-          <Button
-            variant="outline"
-            className="w-full mt-2 gap-2 h-11"
-            onClick={handleShowAllAI}
-            disabled={loadingAI}
-          >
+          <Button variant="outline" className="w-full mt-2 gap-2 h-11" onClick={handleShowAllAI} disabled={loadingAI}>
             <Sparkles className="h-4 w-4 text-purple-500" />
             Get AI Recommendations
             <Badge variant="secondary" className="gap-1 ml-auto">
@@ -400,7 +429,8 @@ export default function JobsHub() {
               variant="outline"
               size="sm"
               className="shrink-0 gap-2 h-10 rounded-full px-4 hover:bg-primary/10 hover:border-primary/50"
-              onClick={() => navigate(`/app/jobs/all?type=${collection.filter}`)}
+              // FIX: Updated route
+              onClick={() => navigate(`/app/jobs?type=${collection.filter}`)}
             >
               <collection.icon className="h-4 w-4 text-primary" />
               {collection.label}
@@ -438,12 +468,7 @@ export default function JobsHub() {
           ) : (
             <div className="space-y-2">
               {personalizedJobs.slice(0, 4).map((job) => (
-                <JobCard
-                  key={job.id}
-                  job={job}
-                  variant="compact"
-                  onClick={() => navigate(`/app/jobs/${job.id}`)}
-                />
+                <JobCard key={job.id} job={job} variant="compact" onClick={() => navigate(`/app/jobs/${job.id}`)} />
               ))}
             </div>
           )}
@@ -491,7 +516,8 @@ export default function JobsHub() {
             <CardContent className="p-6 text-center">
               <FileText className="h-8 w-8 text-muted-foreground/50 mx-auto mb-2" />
               <p className="text-sm text-muted-foreground mb-3">No applications yet</p>
-              <Button size="sm" onClick={() => navigate("/app/jobs/all")}>
+              {/* FIX: Updated route */}
+              <Button size="sm" onClick={() => navigate("/app/jobs")}>
                 Browse Jobs
               </Button>
             </CardContent>
