@@ -12,11 +12,9 @@ import {
   User,
   Bell,
   Menu,
-  MessageSquare,
   Search,
   LogOut,
-  X,
-  Coins, // Verified import
+  Coins,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,15 +57,13 @@ export function TalentAppShell() {
     { label: "AI Agents", icon: Bot, path: "/app/agents" },
   ];
 
-  // Fetch unread notifications
   useEffect(() => {
     if (!talent?.id) return;
     const fetchNotifications = async () => {
       try {
-        // FIX: Cast table to 'any' to bypass TS2589 "excessively deep" error on complex schemas
         const { count } = await supabase
           .from("notifications" as any)
-          .select("*", { count: "exact", head: true })
+          .select("id", { count: "exact", head: true })
           .eq("user_id", talent.id)
           .eq("is_read", false);
         setUnreadCount(count || 0);
@@ -97,9 +93,11 @@ export function TalentAppShell() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F3F2EF] font-sans text-slate-900">
-      {/* --- TOP NAVBAR (Desktop & Mobile Header) --- */}
-      <header className="sticky top-0 z-50 bg-white border-b border-gray-200 h-14 px-4 shadow-sm">
+    // FIX: Theme-aware background. Light mode = LinkedIn Gray, Dark mode = Dark Background
+    <div className="min-h-screen bg-[#F3F2EF] dark:bg-background font-sans text-foreground transition-colors duration-300">
+      {/* --- TOP NAVBAR --- */}
+      {/* FIX: Header is white in light mode, dark borderless in dark mode */}
+      <header className="sticky top-0 z-50 bg-white dark:bg-background/95 dark:backdrop-blur-sm border-b border-border h-14 px-4 shadow-sm transition-colors duration-300">
         <div className="max-w-7xl mx-auto h-full flex items-center justify-between">
           {/* Left: Logo & Search */}
           <div className="flex items-center gap-4 flex-1">
@@ -109,17 +107,18 @@ export function TalentAppShell() {
 
             {/* Desktop Search */}
             <form onSubmit={handleSearch} className="hidden md:block relative w-full max-w-xs">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search"
-                className="h-9 pl-9 bg-[#EEF3F8] border-none focus-visible:ring-1 focus-visible:ring-primary/20 transition-all w-64 focus:w-80 placeholder:text-gray-500"
+                // FIX: Input background adapts to theme
+                className="h-9 pl-9 bg-[#EEF3F8] dark:bg-muted/50 border-none focus-visible:ring-1 focus-visible:ring-primary/20 transition-all w-64 focus:w-80 placeholder:text-muted-foreground"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </form>
 
-            {/* Mobile Search Icon Only */}
-            <Button variant="ghost" size="icon" className="md:hidden text-gray-600">
+            {/* Mobile Search Icon */}
+            <Button variant="ghost" size="icon" className="md:hidden text-muted-foreground">
               <Search className="h-5 w-5" />
             </Button>
           </div>
@@ -133,8 +132,9 @@ export function TalentAppShell() {
                 className={`flex flex-col items-center justify-center w-16 lg:w-20 h-full border-b-2 transition-all duration-200 group
                   ${
                     isActive(item.path)
-                      ? "border-black text-black"
-                      : "border-transparent text-gray-500 hover:text-black"
+                      ? // FIX: Active state handles dark mode text colors correctly
+                        "border-black dark:border-white text-black dark:text-white"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
                   }`}
               >
                 <div className="relative">
@@ -149,13 +149,13 @@ export function TalentAppShell() {
           <div className="flex items-center gap-2 md:gap-4 flex-none">
             {/* Notifications */}
             <button
-              className="relative flex flex-col items-center justify-center text-gray-500 hover:text-black transition-colors"
+              className="relative flex flex-col items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
               onClick={() => navigate("/app/notifications")}
             >
               <div className="relative">
                 <Bell className="h-6 w-6" />
                 {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-white">
+                  <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-background">
                     {unreadCount > 9 ? "9+" : unreadCount}
                   </span>
                 )}
@@ -163,23 +163,23 @@ export function TalentAppShell() {
               <span className="hidden md:block text-[10px] lg:text-xs font-medium mt-0.5">Notifications</span>
             </button>
 
-            <div className="h-8 w-px bg-gray-200 hidden md:block mx-1" />
+            <div className="h-8 w-px bg-border hidden md:block mx-1" />
 
             {/* Profile Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex flex-col items-center justify-center outline-none group">
-                  <Avatar className="h-6 w-6 md:h-6 md:w-6 border cursor-pointer group-hover:opacity-80 transition-opacity">
+                <button className="flex flex-col items-center justify-center outline-none group text-muted-foreground hover:text-foreground">
+                  <Avatar className="h-6 w-6 md:h-6 md:w-6 border border-border cursor-pointer group-hover:opacity-80 transition-opacity">
                     <AvatarImage src={talent?.profilePhotoUrl || ""} />
                     <AvatarFallback className="text-[10px]">ME</AvatarFallback>
                   </Avatar>
-                  <span className="hidden md:block text-[10px] lg:text-xs font-medium text-gray-500 mt-0.5 flex items-center gap-0.5">
+                  <span className="hidden md:block text-[10px] lg:text-xs font-medium mt-0.5 flex items-center gap-0.5">
                     Me <span className="text-[8px]">▼</span>
                   </span>
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-64 p-2">
-                <div className="flex items-center gap-3 p-2 mb-2 bg-muted/30 rounded-md">
+                <div className="flex items-center gap-3 p-2 mb-2 bg-muted/50 rounded-md">
                   <Avatar className="h-12 w-12 border">
                     <AvatarImage src={talent?.profilePhotoUrl || ""} />
                     <AvatarFallback>
@@ -214,23 +214,23 @@ export function TalentAppShell() {
             <div className="hidden md:flex flex-col items-end ml-2">
               <Badge
                 variant="secondary"
-                className="gap-1 bg-amber-100 text-amber-800 hover:bg-amber-200 cursor-pointer border-amber-200"
+                className="gap-1 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 border-amber-200 dark:border-amber-800"
               >
-                <Coins className="h-3 w-3 fill-amber-500 text-amber-600" />
+                <Coins className="h-3 w-3 fill-amber-500 text-amber-600 dark:text-amber-400" />
                 <span className="font-bold">{balance}</span>
               </Badge>
             </div>
 
-            {/* Mobile Menu Trigger (Hamburger) */}
+            {/* Mobile Menu Trigger */}
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="md:hidden ml-1">
-                  <Menu className="h-6 w-6 text-gray-600" />
+                <Button variant="ghost" size="icon" className="md:hidden ml-1 text-muted-foreground">
+                  <Menu className="h-6 w-6" />
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-[300px] sm:w-[400px] p-0">
-                <div className="flex flex-col h-full bg-[#F3F2EF]">
-                  <div className="p-4 bg-white border-b">
+                <div className="flex flex-col h-full bg-[#F3F2EF] dark:bg-background">
+                  <div className="p-4 bg-white dark:bg-card border-b">
                     <div className="flex items-center gap-3 mb-4">
                       <Avatar className="h-12 w-12 border">
                         <AvatarImage src={talent?.profilePhotoUrl || ""} />
@@ -252,20 +252,20 @@ export function TalentAppShell() {
                   <div className="flex-1 overflow-y-auto py-2">
                     <div className="px-4 py-2">
                       <h3 className="font-semibold text-sm mb-2 px-2">Credits Balance</h3>
-                      <div className="flex items-center gap-2 p-3 bg-white rounded-lg border shadow-sm">
+                      <div className="flex items-center gap-2 p-3 bg-white dark:bg-muted/30 rounded-lg border shadow-sm">
                         <Coins className="h-5 w-5 text-amber-500" />
                         <span className="font-bold text-lg">{balance}</span>
                         <span className="text-xs text-muted-foreground ml-auto">Valid until next month</span>
                       </div>
                     </div>
-                    <div className="h-px bg-gray-200 my-2 mx-4" />
+                    <div className="h-px bg-border my-2 mx-4" />
                     <nav className="space-y-1 px-2">
                       {navItems.map((item) => (
                         <button
                           key={item.path}
                           onClick={() => navigate(item.path)}
                           className={`w-full flex items-center gap-4 px-4 py-3 text-sm font-medium rounded-md transition-colors
-                            ${isActive(item.path) ? "bg-white text-black shadow-sm" : "text-gray-600 hover:bg-white/50"}`}
+                            ${isActive(item.path) ? "bg-white dark:bg-muted shadow-sm text-foreground" : "text-muted-foreground hover:bg-white/50 dark:hover:bg-muted/50"}`}
                         >
                           <item.icon className="h-5 w-5" />
                           {item.label}
@@ -273,7 +273,7 @@ export function TalentAppShell() {
                       ))}
                     </nav>
                   </div>
-                  <div className="p-4 border-t bg-white">
+                  <div className="p-4 border-t bg-white dark:bg-card">
                     <Button
                       variant="ghost"
                       className="w-full justify-start text-muted-foreground"
@@ -295,13 +295,13 @@ export function TalentAppShell() {
       </main>
 
       {/* --- MOBILE BOTTOM TAB BAR --- */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 h-16 px-2 flex items-center justify-around z-50 pb-safe shadow-[0_-1px_3px_rgba(0,0,0,0.05)]">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-background border-t border-border h-16 px-2 flex items-center justify-around z-50 pb-safe shadow-[0_-1px_3px_rgba(0,0,0,0.05)]">
         {navItems.slice(0, 5).map((item) => (
           <button
             key={item.path}
             onClick={() => navigate(item.path)}
             className={`flex flex-col items-center justify-center w-full h-full transition-colors
-              ${isActive(item.path) ? "text-black" : "text-gray-500 hover:text-gray-700"}`}
+              ${isActive(item.path) ? "text-black dark:text-white" : "text-gray-500 dark:text-gray-400"}`}
           >
             <item.icon className={`h-6 w-6 mb-1 ${isActive(item.path) ? "fill-current" : ""}`} />
             <span className="text-[10px] font-medium">{item.label}</span>
