@@ -13,7 +13,6 @@ import {
   MapPin,
   Clock,
   DollarSign,
-  Calendar,
   ExternalLink,
   Briefcase,
   Star,
@@ -30,7 +29,7 @@ import {
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { AIJobInsights } from "@/components/jobs/AIJobInsights";
-import { JOB_TYPES, EXPERIENCE_LEVELS, getJobTypeLabel, getExperienceLevelLabel, isDeadlineUrgent, isDeadlinePassed } from "@/lib/constants/jobTypes";
+import { getJobTypeLabel, getExperienceLevelLabel, isDeadlineUrgent, isDeadlinePassed } from "@/lib/constants/jobTypes";
 
 interface Job {
   id: string;
@@ -81,7 +80,9 @@ export default function AppJobDetail() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { talent } = useTalent();
-  const { isSaved: checkIsSaved, toggleSave } = useSavedItems();
+
+  // FIX 1: Use the hook correctly for checking state AND toggling
+  const { isSaved: checkIsSaved, toggleSave, isLoading: saveLoading } = useSavedItems();
 
   const [job, setJob] = useState<Job | null>(null);
   const [company, setCompany] = useState<Company | null>(null);
@@ -89,7 +90,9 @@ export default function AppJobDetail() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  const isSaved = id ? checkIsSaved(id, 'job') : false;
+  // FIX 2: Ensure ID exists before checking save status
+  const isSaved = id ? checkIsSaved(id, "job") : false;
+
   const showUrgency = job?.deadline ? isDeadlineUrgent(job.deadline) : false;
   const deadlinePassed = job?.deadline ? isDeadlinePassed(job.deadline) : false;
 
@@ -143,10 +146,12 @@ export default function AppJobDetail() {
       if (talent?.id) {
         const { data: appData } = await supabase
           .from("job_applications")
-          .select(`
+          .select(
+            `
             id, created_at, application_status,
             job_assessments(id, status, ai_score)
-          `)
+          `,
+          )
           .eq("job_id", id)
           .eq("talent_id", talent.id)
           .maybeSingle();
@@ -171,9 +176,14 @@ export default function AppJobDetail() {
     }
   };
 
+  // FIX 3: Simplified save handler using hook
   const handleSaveToggle = async () => {
     if (!id) return;
-    await toggleSave(id, 'job');
+    if (!talent) {
+      toast.error("Please login to save jobs");
+      return;
+    }
+    await toggleSave(id, "job");
   };
 
   const formatSalary = (min: number | null, max: number | null) => {
@@ -292,7 +302,9 @@ export default function AppJobDetail() {
         onClick={handleApply}
       >
         {job?.application_type === "link" ? (
-          <>Apply Externally <ExternalLink className="w-4 h-4 ml-2" /></>
+          <>
+            Apply Externally <ExternalLink className="w-4 h-4 ml-2" />
+          </>
         ) : (
           "Apply Now"
         )}
@@ -378,7 +390,9 @@ export default function AppJobDetail() {
               </Badge>
             )}
             {deadlinePassed && (
-              <Badge variant="destructive" className="h-5 text-[10px]">Closed</Badge>
+              <Badge variant="destructive" className="h-5 text-[10px]">
+                Closed
+              </Badge>
             )}
             {showUrgency && !deadlinePassed && (
               <Badge variant="destructive" className="gap-1 h-5 text-[10px]">
@@ -398,12 +412,13 @@ export default function AppJobDetail() {
           <p className="text-muted-foreground font-medium">{job.company_name}</p>
         </div>
 
-        {/* Save Button */}
+        {/* FIX 4: Use handleSaveToggle which uses hook logic */}
         <Button
           variant={isSaved ? "default" : "outline"}
           size="lg"
           className="gap-2 shrink-0"
           onClick={handleSaveToggle}
+          disabled={saveLoading}
         >
           <Bookmark className={`w-4 h-4 ${isSaved ? "fill-current" : ""}`} />
           {isSaved ? "Saved" : "Save"}
@@ -496,7 +511,10 @@ export default function AppJobDetail() {
                   <h3 className="text-base font-semibold flex items-center gap-2">
                     About {company.name}
                     {company.is_verified && (
-                      <Badge variant="secondary" className="gap-1 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-[10px] h-5">
+                      <Badge
+                        variant="secondary"
+                        className="gap-1 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-[10px] h-5"
+                      >
                         <CheckCircle className="h-3 w-3" />
                         Verified
                       </Badge>
@@ -552,7 +570,9 @@ export default function AppJobDetail() {
               {job.deadline && (
                 <div>
                   <p className="text-muted-foreground mb-1">Deadline</p>
-                  <p className={`font-medium ${deadlinePassed ? "text-destructive" : showUrgency ? "text-amber-600" : ""}`}>
+                  <p
+                    className={`font-medium ${deadlinePassed ? "text-destructive" : showUrgency ? "text-amber-600" : ""}`}
+                  >
                     {format(new Date(job.deadline), "MMM d, yyyy")}
                     {showUrgency && !deadlinePassed && " (Soon!)"}
                   </p>
