@@ -35,6 +35,8 @@ import {
   Mail,
   ExternalLink,
   Star,
+  Brain,
+  Mic,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format, endOfMonth } from "date-fns";
@@ -829,6 +831,72 @@ const JobForm = ({
             <p className="text-xs text-muted-foreground">Highlight in feed</p>
           </div>
         </div>
+      </div>
+
+      {/* AI Assessment Section */}
+      <div className="space-y-4 p-4 border rounded-lg bg-accent/30">
+        <div className="flex items-center gap-3">
+          <Switch 
+            checked={formData.ai_assessment_enabled ?? false}
+            onCheckedChange={(checked) => setFormData({ 
+              ...formData, 
+              ai_assessment_enabled: checked 
+            })}
+          />
+          <div className="flex-1">
+            <Label className="flex items-center gap-2">
+              <Brain className="w-4 h-4 text-primary" /> Enable AI Assessment
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              Applicants will take an AI-generated skills assessment
+            </p>
+          </div>
+        </div>
+
+        {formData.ai_assessment_enabled && (
+          <div className="grid grid-cols-2 gap-4 pt-3 border-t mt-3">
+            <div className="space-y-2">
+              <Label>Number of Questions</Label>
+              <Select 
+                value={String(formData.assessment_config?.questions || 5)}
+                onValueChange={(v) => setFormData({ 
+                  ...formData, 
+                  assessment_config: { 
+                    ...formData.assessment_config, 
+                    questions: parseInt(v) 
+                  }
+                })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="3">3 Questions</SelectItem>
+                  <SelectItem value="5">5 Questions</SelectItem>
+                  <SelectItem value="10">10 Questions</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-3 p-3 border rounded-lg bg-background">
+              <Switch 
+                checked={formData.assessment_config?.voice ?? false}
+                onCheckedChange={(checked) => setFormData({ 
+                  ...formData, 
+                  assessment_config: { 
+                    ...formData.assessment_config, 
+                    voice: checked 
+                  }
+                })}
+              />
+              <div>
+                <Label className="flex items-center gap-1">
+                  <Mic className="w-3 h-3" /> Voice Mode
+                </Label>
+                <p className="text-xs text-muted-foreground">Allow voice answers</p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="flex justify-end gap-2 pt-4 border-t">

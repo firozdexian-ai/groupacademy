@@ -13,6 +13,8 @@ import {
   Briefcase,
   X,
   SlidersHorizontal,
+  AlertCircle,
+  RefreshCw,
 } from "lucide-react";
 import {
   Sheet,
@@ -29,6 +31,8 @@ import { Slider } from "@/components/ui/slider";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { JobCard, type JobCardData } from "@/components/jobs/JobCard";
 import { JOB_TYPES, EXPERIENCE_LEVELS, getJobTypeLabel, getExperienceLevelLabel } from "@/lib/constants/jobTypes";
+import { withTimeout } from "@/hooks/useQueryWithTimeout";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
 
 // Extended job data with additional fields
 interface JobWithSalary extends JobCardData {
@@ -44,6 +48,7 @@ export default function AppJobs() {
   // State
   const [jobs, setJobs] = useState<JobWithSalary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
   const [debouncedSearch, setDebouncedSearch] = useState(searchQuery);
   const [selectedJobTypes, setSelectedJobTypes] = useState<string[]>(
@@ -71,15 +76,30 @@ export default function AppJobs() {
 
   const fetchJobs = async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from("jobs")
-      .select("id, title, company_name, company_logo_url, location, job_type, experience_level, is_featured, created_at, deadline, salary_range_min, salary_range_max")
-      .eq("is_active", true)
-      .or("deadline.is.null,deadline.gte.now()")
-      .order("is_featured", { ascending: false })
-      .order("created_at", { ascending: false });
-    setJobs((data as JobWithSalary[]) || []);
-    setLoading(false);
+    setError(null);
+    try {
+      const query = supabase
+        .from("jobs")
+        .select("id, title, company_name, company_logo_url, location, job_type, experience_level, is_featured, created_at, deadline, salary_range_min, salary_range_max")
+        .eq("is_active", true)
+        .or("deadline.is.null,deadline.gte.now()")
+        .order("is_featured", { ascending: false })
+        .order("created_at", { ascending: false });
+
+      const { data, error: fetchError } = await withTimeout(
+        Promise.resolve(query),
+        TIMEOUTS.DEFAULT,
+        "Request timed out. Please check your connection."
+      );
+
+      if (fetchError) throw fetchError;
+      setJobs((data as JobWithSalary[]) || []);
+    } catch (err: any) {
+      console.error("Error loading jobs:", err);
+      setError(err.message || "Failed to load jobs. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const filteredJobs = useMemo(() => {
@@ -326,6 +346,19 @@ export default function AppJobs() {
             </Card>
           ))}
         </div>
+      ) : error ? (
+        <Card className="border-destructive/50 bg-destructive/5">
+          <CardContent className="py-12 text-center flex flex-col items-center">
+            <div className="w-16 h-16 bg-background rounded-full flex items-center justify-center mb-4 shadow-sm border border-destructive/20">
+              <AlertCircle className="h-8 w-8 text-destructive" />
+            </div>
+            <h3 className="font-bold text-lg mb-2">Failed to load jobs</h3>
+            <p className="text-muted-foreground text-sm mb-4 max-w-md">{error}</p>
+            <Button onClick={fetchJobs} className="gap-2">
+              <RefreshCw className="h-4 w-4" /> Try Again
+            </Button>
+          </CardContent>
+        </Card>
       ) : filteredJobs.length === 0 ? (
         <Card className="border-dashed bg-muted/30">
           <CardContent className="py-16 text-center flex flex-col items-center">

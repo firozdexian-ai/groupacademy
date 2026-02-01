@@ -273,16 +273,29 @@ export function CompaniesManager() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this company? Jobs linked to it won't be deleted.")) return;
+    const companyToDelete = companies.find(c => c.id === id);
+    if (!confirm(`Delete "${companyToDelete?.name}"?\n\nAny jobs linked to this company will be unlinked first.`)) return;
 
     try {
+      // First, unlink any jobs from this company to avoid FK constraint issues
+      const { error: unlinkError } = await withTimeout(
+        Promise.resolve(supabase.from("jobs").update({ company_id: null }).eq("company_id", id)),
+        TIMEOUTS.DEFAULT,
+        "Unlink jobs timed out",
+      );
+      if (unlinkError) {
+        console.warn("Could not unlink jobs:", unlinkError);
+        // Continue anyway - FK might not be strict
+      }
+
+      // Then delete the company
       const { error } = await withTimeout(
         Promise.resolve(supabase.from("companies").delete().eq("id", id)),
         TIMEOUTS.DEFAULT,
         "Delete timed out",
       );
       if (error) throw error;
-      toast.success("Company deleted");
+      toast.success("Company deleted successfully");
 
       // Handle pagination logic after delete
       if (companies.length === 1 && page > 1) {
@@ -292,7 +305,14 @@ export function CompaniesManager() {
       }
     } catch (error: any) {
       console.error("Error deleting company:", error);
-      toast.error(error.message || "Failed to delete company");
+      // Provide specific guidance for common errors
+      if (error.message?.includes("foreign key") || error.message?.includes("violates")) {
+        toast.error("Cannot delete: This company has linked records that couldn't be unlinked. Please contact support.");
+      } else if (error.message?.includes("timed out")) {
+        toast.error("Request timed out. Please try again.");
+      } else {
+        toast.error(error.message || "Failed to delete company");
+      }
     }
   };
 
