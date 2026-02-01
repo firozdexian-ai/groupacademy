@@ -1,208 +1,110 @@
 
-
-# WhatsApp Connect Button with Credit Incentive
+# Add Image Upload to Feed Posts Manager
 
 ## Overview
 
-Transform the redundant `FloatingAIButton` into a **WhatsApp Connect Button** that incentivizes job seekers to connect with GroUp Academy on WhatsApp. Users receive **10 bonus credits** for their first WhatsApp contact, creating a valuable lead generation channel while resolving the UI duplication issue.
+Replace the current "Media Image URL" text input in the Feed Posts Manager with a proper image upload component. This allows admins to drag-and-drop or click to upload images directly, rather than needing to paste external URLs.
 
 ---
 
-## Current State Analysis
+## What Changes
 
-### Redundancy Issue Confirmed
-- **FloatingAIButton** (`src/components/feed/FloatingAIButton.tsx`): Floating button at `bottom-24` navigates to `/app/agents`
-- **Bottom Navigation** (`src/layouts/TalentAppShell.tsx`): "AI" tab in mobile nav also goes to `/app/agents`
-- **Result**: Two buttons doing the same thing, wasting valuable screen real estate
+### Current Behavior
+- Admin must find an image URL elsewhere and paste it into a text field
+- No image preview until the post is saved
+- Prone to broken links if external URLs change
 
-### Current Usage
-- FloatingAIButton is only used in `Feed.tsx` (line 376)
-- Shows tooltip "Need career advice? Chat with our AI assistants"
-- Conditional display based on whether user has used services
-
----
-
-## Proposed Solution
-
-### New Component: `FloatingWhatsAppButton`
-
-Replace the AI floating button with a WhatsApp connect button that:
-1. Opens WhatsApp with a pre-filled introductory message
-2. Grants 10 bonus credits on first tap (one-time reward)
-3. Disappears after the bonus is claimed (resolving redundancy)
-4. Uses existing `SUPPORT_CONFIG` for consistency
+### New Behavior  
+- Drag-and-drop or click to upload images directly
+- Instant image preview in the form
+- Images stored reliably in the backend
+- Remove button to clear the uploaded image
 
 ---
 
-## Technical Implementation
+## Technical Details
 
-### 1. Database Schema Change
+### 1. Create Storage Bucket
 
-Add tracking column to `talents` table:
+Create a new `feed-images` bucket to store feed post media:
 
 ```sql
-ALTER TABLE public.talents 
-ADD COLUMN whatsapp_bonus_claimed_at TIMESTAMP WITH TIME ZONE;
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('feed-images', 'feed-images', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Allow public read access
+CREATE POLICY "Public can view feed images" ON storage.objects
+  FOR SELECT USING (bucket_id = 'feed-images');
+
+-- Allow authenticated users (admins) to upload
+CREATE POLICY "Authenticated users can upload feed images" ON storage.objects
+  FOR INSERT WITH CHECK (bucket_id = 'feed-images');
+
+-- Allow authenticated users to delete their uploads
+CREATE POLICY "Authenticated users can delete feed images" ON storage.objects
+  FOR DELETE USING (bucket_id = 'feed-images');
 ```
 
-**Purpose**: Track when user claimed the WhatsApp bonus to prevent duplicate claims
+### 2. Update FeedPostsManager.tsx
 
-### 2. New Component: `FloatingWhatsAppButton.tsx`
+Replace the Media Image URL input field with the `ImageUpload` component:
 
-**Location**: `src/components/feed/FloatingWhatsAppButton.tsx`
-
-**Features**:
-- WhatsApp icon (green theme) instead of Bot icon
-- Tooltip: "Connect on WhatsApp - Get 10 free credits!"
-- On click:
-  1. Add 10 credits via `useCredits().addCredits()`
-  2. Update `whatsapp_bonus_claimed_at` timestamp
-  3. Open WhatsApp link with pre-filled message
-  4. Show success toast
-- After claim: Button no longer renders
-
-**Pre-filled Message**:
-```
-Hi! I'm [User's Name] from GroUp Academy app. I'd like to connect for career support! 🎯
+**Before** (lines 365-373):
+```tsx
+<div>
+  <Label>Media Image URL</Label>
+  <Input
+    value={formData.media_url}
+    onChange={(e) => setFormData(prev => ({ ...prev, media_url: e.target.value }))}
+    placeholder="https://... (image URL)"
+  />
+</div>
 ```
 
-### 3. Update Support Constants
-
-**File**: `src/lib/constants/support.ts`
-
-Add new message generator:
-```typescript
-export function getWhatsAppConnectMessage(userName: string): string {
-  return `Hi! I'm ${userName} from GroUp Academy app. I'd like to connect for career support! 🎯`;
-}
+**After**:
+```tsx
+<div>
+  <ImageUpload
+    value={formData.media_url}
+    onUpload={(url) => setFormData(prev => ({ ...prev, media_url: url }))}
+    onRemove={() => setFormData(prev => ({ ...prev, media_url: '' }))}
+    bucket="feed-images"
+  />
+</div>
 ```
 
-### 4. Update Credit Pricing Config
+### 3. Import Statement
 
-**File**: `src/lib/creditPricing.ts`
-
-Add constant for WhatsApp bonus:
-```typescript
-WHATSAPP_CONNECT_BONUS: 10,
-```
-
-### 5. Update Feed.tsx
-
-**File**: `src/pages/app/Feed.tsx`
-
-- Replace `FloatingAIButton` import with `FloatingWhatsAppButton`
-- Update conditional logic:
-  - Show button only if `!talent?.whatsappBonusClaimedAt`
-  - Hide button once bonus is claimed
-
-### 6. Update useTalent Hook
-
-**File**: `src/hooks/useTalent.ts`
-
-Add `whatsappBonusClaimedAt` to the TalentProfile interface and query
-
-### 7. Update Common Types
-
-**File**: `src/types/common.ts`
-
-Add to TalentProfile interface:
-```typescript
-whatsappBonusClaimedAt: string | null;
+Add the ImageUpload import at the top of FeedPostsManager.tsx:
+```tsx
+import { ImageUpload } from '@/components/ImageUpload';
 ```
 
 ---
 
-## User Flow
-
-```text
-1. User opens Feed page
-   ↓
-2. FloatingWhatsAppButton appears (green, bottom-right)
-   with tooltip "Connect on WhatsApp - Get 10 free credits!"
-   ↓
-3. User taps button
-   ↓
-4. System adds 10 credits + records timestamp
-   ↓
-5. WhatsApp opens with pre-filled message
-   ↓
-6. Toast: "🎉 You earned 10 bonus credits!"
-   ↓
-7. Button no longer appears (bonus claimed)
-```
-
----
-
-## UI Design Changes
-
-### Button Styling
-- **Icon**: WhatsApp icon from lucide-react (or custom SVG for brand accuracy)
-- **Color**: WhatsApp green (`#25D366`) instead of primary color
-- **Size**: Same as current floating button (h-14 w-14)
-- **Position**: Same position (bottom-24 right-4 on mobile, bottom-6 on desktop)
-
-### Tooltip Content
-- **Header**: "Connect on WhatsApp"
-- **Subtext**: "Get 10 free credits! 🎁"
-- **Dismiss X**: Keep the dismiss functionality
-
----
-
-## Files to Create/Modify
+## Files to Modify
 
 | Action | File | Description |
 |--------|------|-------------|
-| Create | `src/components/feed/FloatingWhatsAppButton.tsx` | New WhatsApp button component |
-| Modify | `src/lib/constants/support.ts` | Add `getWhatsAppConnectMessage()` |
-| Modify | `src/lib/creditPricing.ts` | Add `WHATSAPP_CONNECT_BONUS` constant |
-| Modify | `src/pages/app/Feed.tsx` | Replace FloatingAIButton with FloatingWhatsAppButton |
-| Modify | `src/hooks/useTalent.ts` | Add whatsappBonusClaimedAt field |
-| Modify | `src/types/common.ts` | Update TalentProfile interface |
-| Delete | `src/components/feed/FloatingAIButton.tsx` | Remove unused component |
-| DB | Migration | Add `whatsapp_bonus_claimed_at` column |
+| Create | SQL Migration | Add `feed-images` storage bucket with RLS policies |
+| Modify | `src/components/dashboard/FeedPostsManager.tsx` | Replace URL input with ImageUpload component |
 
 ---
 
-## Security Considerations
+## User Experience After Change
 
-1. **One-Time Claim**: Database timestamp prevents multiple claims
-2. **Server-Side Validation**: Could add RPC function for atomic operation (optional)
-3. **Rate Limiting**: Not needed since it's a one-time action
-
----
-
-## Analytics Value
-
-After implementation, you can query:
-```sql
--- Users who connected via WhatsApp
-SELECT COUNT(*) FROM talents WHERE whatsapp_bonus_claimed_at IS NOT NULL;
-
--- Conversion rate
-SELECT 
-  COUNT(*) FILTER (WHERE whatsapp_bonus_claimed_at IS NOT NULL) * 100.0 / COUNT(*) 
-FROM talents WHERE onboarding_completed_at IS NOT NULL;
-```
+1. Admin opens "Create Post" dialog
+2. Sees a drag-and-drop zone instead of a URL text field  
+3. Can drag an image or click to browse files
+4. Image uploads instantly with loading indicator
+5. Preview shows the uploaded image with a remove button
+6. Editing existing posts shows the current image with option to replace
 
 ---
 
-## Implementation Order
+## Notes
 
-1. Run database migration (add column)
-2. Update `support.ts` with new message function
-3. Update `creditPricing.ts` with bonus constant
-4. Update `useTalent.ts` and types
-5. Create `FloatingWhatsAppButton.tsx` component
-6. Update `Feed.tsx` to use new component
-7. Delete old `FloatingAIButton.tsx`
-8. Test end-to-end flow
-
----
-
-## Expected Outcomes
-
-- **Lead Generation**: Direct WhatsApp contacts with pre-qualified users
-- **User Engagement**: 10-credit incentive encourages action
-- **UI Cleanup**: Resolves floating button redundancy
-- **Trackable Metrics**: Database column enables conversion analysis
-
+- The existing `ImageUpload` component handles all validation (file type, 5MB limit)
+- Images are stored permanently in backend storage - no broken external links
+- Existing posts with external URLs will continue to work (the ImageUpload shows them as previews)
