@@ -86,14 +86,15 @@ export default function AppJobs() {
         .order("is_featured", { ascending: false })
         .order("created_at", { ascending: false });
 
-      const { data, error: fetchError } = await withTimeout(
-        Promise.resolve(query),
+      // Convert PromiseLike to Promise for timeout wrapper
+      const result = await withTimeout(
+        Promise.resolve(query.then(res => res)),
         TIMEOUTS.DEFAULT,
         "Request timed out. Please check your connection."
       );
 
-      if (fetchError) throw fetchError;
-      setJobs((data as JobWithSalary[]) || []);
+      if (result.error) throw result.error;
+      setJobs((result.data as JobWithSalary[]) || []);
     } catch (err: any) {
       console.error("Error loading jobs:", err);
       setError(err.message || "Failed to load jobs. Please try again.");
