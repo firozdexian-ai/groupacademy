@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Save, Loader2, FileText, Trash2, ExternalLink, Upload, AlertCircle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { useTalent } from "@/hooks/useTalent";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,7 @@ export default function ProfileEdit() {
   const [saving, setSaving] = useState(false);
   const [uploadingCV, setUploadingCV] = useState(false);
   const [parsingCV, setParsingCV] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
 
   const [profilePhotoUrl, setProfilePhotoUrl] = useState("");
   const [cvUrl, setCvUrl] = useState("");
@@ -90,8 +92,22 @@ export default function ProfileEdit() {
     }
   }, [talent]);
 
+  // Warn user before leaving with unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty]);
+
   const handlePhotoChange = (url: string | null) => {
     setProfilePhotoUrl(url || "");
+    setIsDirty(true);
   };
 
   const handleCVUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -183,8 +199,46 @@ export default function ProfileEdit() {
             setEducation(newEdu);
           }
 
-          toast.success("Profile Updated!", { description: "We've auto-filled details from your CV. Please review." });
+          // Immediately persist CV data to database
+          const immediateUpdate: Record<string, any> = {
+            cvUrl: publicUrl,
+            cvParsedAt: new Date().toISOString(),
+          };
+          
+          if (parsed.full_name) immediateUpdate.fullName = parsed.full_name;
+          if (parsed.phone) immediateUpdate.phone = parsed.phone;
+          if (parsed.linkedin_url) immediateUpdate.linkedinUrl = parsed.linkedin_url;
+          if (parsed.portfolio_url) immediateUpdate.portfolioUrl = parsed.portfolio_url;
+          if (parsed.skills?.length) immediateUpdate.skills = parsed.skills;
+          if (parsed.experience?.length) {
+            immediateUpdate.experience = parsed.experience.map((exp: any) => ({
+              company: exp.company || "",
+              position: exp.title || "",
+              startDate: exp.start_date || "",
+              endDate: exp.end_date || "",
+              description: exp.description || "",
+            }));
+          }
+          if (parsed.education?.length) {
+            immediateUpdate.education = parsed.education.map((edu: any) => ({
+              institution: edu.institution || "",
+              degree: edu.degree || "",
+              fieldOfStudy: edu.field || "",
+              startYear: edu.start_year || "",
+              endYear: edu.end_year || "",
+            }));
+          }
+
+          await updateTalent(immediateUpdate);
+          await refreshTalent();
+
+          toast.success("Profile Updated!", { 
+            description: "Your CV data has been saved automatically. Continue editing or go back." 
+          });
         } else {
+          // Still save the CV URL even if parsing failed
+          await updateTalent({ cvUrl: publicUrl });
+          await refreshTalent();
           toast.warning("CV Uploaded", { description: "Could not auto-extract details. Please fill them manually." });
         }
       } catch (parseErr) {
@@ -207,9 +261,26 @@ export default function ProfileEdit() {
     toast.info("CV Removed");
   };
 
-  const handleChange = (field: string, value: string) => {
+  const handleChange = useCallback((field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-  };
+    setIsDirty(true);
+  }, []);
+
+  // Mark dirty when skills, experience, or education change
+  const handleSkillsChange = useCallback((newSkills: string[]) => {
+    setSkills(newSkills);
+    setIsDirty(true);
+  }, []);
+
+  const handleExperienceChange = useCallback((newExp: ExperienceEntry[]) => {
+    setExperience(newExp);
+    setIsDirty(true);
+  }, []);
+
+  const handleEducationChange = useCallback((newEdu: EducationEntry[]) => {
+    setEducation(newEdu);
+    setIsDirty(true);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -235,6 +306,7 @@ export default function ProfileEdit() {
       });
 
       await refreshTalent(); // Ensure global state is fresh
+      setIsDirty(false); // Reset dirty state after successful save
       toast.success("Profile saved successfully");
       navigate("/app/profile");
     } catch (error) {
@@ -248,7 +320,15 @@ export default function ProfileEdit() {
   if (!talent) return null; // Or a loading spinner
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 pb-20">
+    <div className="max-w-2xl mx-auto px-4 py-6 pb-44">
+      {/* Unsaved changes indicator */}
+      {isDirty && (
+        <div className="fixed top-16 md:top-4 right-4 z-50">
+          <Badge variant="destructive" className="animate-pulse shadow-lg">
+            Unsaved changes
+          </Badge>
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center gap-4 mb-6">
         <Button variant="ghost" size="icon" onClick={() => navigate("/app/profile")}>
@@ -404,21 +484,21 @@ export default function ProfileEdit() {
         {/* Skills */}
         <Card>
           <CardContent className="pt-6">
-            <SkillsEditor skills={skills} onChange={setSkills} />
+            <SkillsEditor skills={skills} onChange={handleSkillsChange} />
           </CardContent>
         </Card>
 
         {/* Experience */}
         <Card>
           <CardContent className="pt-6">
-            <ExperienceEditor experience={experience} onChange={setExperience} />
+            <ExperienceEditor experience={experience} onChange={handleExperienceChange} />
           </CardContent>
         </Card>
 
         {/* Education */}
         <Card>
           <CardContent className="pt-6">
-            <EducationEditor education={education} onChange={setEducation} />
+            <EducationEditor education={education} onChange={handleEducationChange} />
           </CardContent>
         </Card>
 
@@ -451,8 +531,8 @@ export default function ProfileEdit() {
           </CardContent>
         </Card>
 
-        {/* Sticky Save Bar (Mobile Friendly) */}
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-md border-t z-50 md:relative md:p-0 md:bg-transparent md:border-0">
+        {/* Sticky Save Bar (Mobile Friendly - positioned above bottom nav) */}
+        <div className="fixed bottom-[68px] md:bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-md border-t z-50 md:relative md:p-0 md:bg-transparent md:border-0 safe-bottom">
           <div className="max-w-2xl mx-auto flex gap-3">
             <Button type="button" variant="outline" className="flex-1" onClick={() => navigate("/app/profile")}>
               Cancel
