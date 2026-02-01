@@ -242,7 +242,7 @@ export function DashboardOverview() {
           <Button onClick={loadStats} variant="outline" size="sm">
             <RefreshCw className="mr-2 h-4 w-4" /> Refresh
           </Button>
-          <Button onClick={() => navigate("/admin/content")}>
+          <Button onClick={() => navigate("/content/new")}>
             <Plus className="mr-2 h-4 w-4" /> Add Content
           </Button>
         </div>
@@ -336,7 +336,7 @@ export function DashboardOverview() {
           <Button
             variant="outline"
             className="h-auto py-4 flex flex-col gap-2"
-            onClick={() => navigate("/admin/talent-pool")}
+            onClick={() => navigate("/dashboard?tab=talent")}
           >
             <Users className="h-5 w-5" />
             <span>Manage Talent</span>
@@ -344,19 +344,19 @@ export function DashboardOverview() {
           <Button
             variant="outline"
             className="h-auto py-4 flex flex-col gap-2"
-            onClick={() => navigate("/admin/enrollments")}
+            onClick={() => navigate("/dashboard?tab=enrollments")}
           >
             <BookOpen className="h-5 w-5" />
             <span>Enrollments</span>
           </Button>
-          <Button variant="outline" className="h-auto py-4 flex flex-col gap-2" onClick={() => navigate("/admin/jobs")}>
+          <Button variant="outline" className="h-auto py-4 flex flex-col gap-2" onClick={() => navigate("/dashboard?tab=jobs")}>
             <Briefcase className="h-5 w-5" />
             <span>Post Job</span>
           </Button>
           <Button
             variant="outline"
             className="h-auto py-4 flex flex-col gap-2"
-            onClick={() => navigate("/admin/verify-companies")}
+            onClick={() => navigate("/dashboard?tab=companies")}
           >
             <UserCheck className="h-5 w-5" />
             <span>Verify Company</span>
@@ -364,7 +364,7 @@ export function DashboardOverview() {
           <Button
             variant="outline"
             className="h-auto py-4 flex flex-col gap-2"
-            onClick={() => navigate("/admin/content")}
+            onClick={() => navigate("/content/new")}
           >
             <Video className="h-5 w-5" />
             <span>Upload Video</span>
@@ -372,7 +372,7 @@ export function DashboardOverview() {
           <Button
             variant="outline"
             className="h-auto py-4 flex flex-col gap-2"
-            onClick={() => navigate("/admin/sessions")}
+            onClick={() => navigate("/sessions")}
           >
             <PlayCircle className="h-5 w-5" />
             <span>Live Sessions</span>

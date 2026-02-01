@@ -27,6 +27,7 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
+  Plus,
   type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -181,8 +182,8 @@ const ContentList = ({ filter }: ContentListProps) => {
   return (
     <div className="space-y-6">
       {/* Search Bar */}
-      <div className="flex justify-between items-center gap-4">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="relative flex-1 max-w-sm w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search content..."
@@ -191,14 +192,22 @@ const ContentList = ({ filter }: ContentListProps) => {
             className="pl-9"
           />
         </div>
-        <p className="text-sm text-muted-foreground hidden sm:block">Total: {totalCount}</p>
+        <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
+          <p className="text-sm text-muted-foreground">Total: {totalCount}</p>
+          <Button onClick={() => navigate("/content/new")} className="gap-2">
+            <Plus className="h-4 w-4" /> Add Content
+          </Button>
+        </div>
       </div>
 
       {content.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
             <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground">No content found. Create your first content to get started!</p>
+            <p className="text-muted-foreground mb-4">No content found. Create your first content to get started!</p>
+            <Button onClick={() => navigate("/content/new")}>
+              <Plus className="mr-2 h-4 w-4" /> Create Content
+            </Button>
           </CardContent>
         </Card>
       ) : (
