@@ -193,7 +193,6 @@ export default function JobsHub() {
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
-    // FIX: Navigate to /all listing page instead of staying on Hub
     navigate(`/app/jobs/all?search=${encodeURIComponent(searchQuery)}`);
   }
 
@@ -215,7 +214,6 @@ export default function JobsHub() {
         toast.error("Failed to process credits");
         return;
       }
-      // FIX: Navigate to /all listing page
       navigate("/app/jobs/all?ai=true");
     } catch (error) {
       console.error("Error getting AI recommendations:", error);
@@ -328,7 +326,6 @@ export default function JobsHub() {
             <Sparkles className="h-5 w-5 text-yellow-500" />
             <h2 className="text-lg font-bold">Featured Jobs</h2>
           </div>
-          {/* FIX: Navigate to /all */}
           <Button
             variant="ghost"
             size="sm"
@@ -375,16 +372,15 @@ export default function JobsHub() {
                     className="w-[300px] shrink-0 animate-in fade-in slide-in-from-right-4"
                     style={{ animationDelay: `${index * 50}ms` }}
                   >
-                    {/* FIX: Wrapper DIV to ensure click works regardless of Card implementation */}
+                    {/* FIX: Wrapper DIV to ensure click works */}
                     <div onClick={() => navigate(`/app/jobs/${job.id}`)} className="cursor-pointer">
                       <JobCard
                         job={job}
                         variant="default"
                         isSaved={isSaved(job.id, "job")}
-                        onSaveToggle={(e) => {
-                          e?.stopPropagation(); // Prevent navigation when clicking save
-                          toggleSave(job.id, "job");
-                        }}
+                        // FIX: Remove event arg to match signature
+                        onSaveToggle={() => toggleSave(job.id, "job")}
+                        onClick={() => navigate(`/app/jobs/${job.id}`)}
                       />
                     </div>
                   </div>
@@ -416,7 +412,6 @@ export default function JobsHub() {
         <h2 className="text-lg font-bold mb-4">Browse by Type</h2>
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none -mx-4 px-4">
           {JOB_COLLECTIONS.map((collection) => (
-            // FIX: Navigate to /all with query param
             <Button
               key={collection.filter}
               variant="outline"
@@ -460,9 +455,13 @@ export default function JobsHub() {
           ) : (
             <div className="space-y-2">
               {personalizedJobs.slice(0, 4).map((job) => (
-                // FIX: Wrapper DIV here too
                 <div key={job.id} onClick={() => navigate(`/app/jobs/${job.id}`)} className="cursor-pointer">
-                  <JobCard job={job} variant="compact" />
+                  <JobCard
+                    job={job}
+                    variant="compact"
+                    // FIX: Added required onClick prop
+                    onClick={() => navigate(`/app/jobs/${job.id}`)}
+                  />
                 </div>
               ))}
             </div>
@@ -511,7 +510,6 @@ export default function JobsHub() {
             <CardContent className="p-6 text-center">
               <FileText className="h-8 w-8 text-muted-foreground/50 mx-auto mb-2" />
               <p className="text-sm text-muted-foreground mb-3">No applications yet</p>
-              {/* FIX: Navigate to /all */}
               <Button size="sm" onClick={() => navigate("/app/jobs/all")}>
                 Browse Jobs
               </Button>
