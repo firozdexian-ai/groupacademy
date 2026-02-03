@@ -262,33 +262,59 @@ serve(async (req: Request): Promise<Response> => {
 
     console.log("Sending email to:", job.application_email, "with CC:", talent.email);
 
-    const emailResponse = await sendEmail(
-      job.application_email,
-      talent.email,
-      talent.email,
-      `New Application: ${talent.full_name} for ${job.title}`,
-      emailHtml,
-    );
+    try {
+      const emailResponse = await sendEmail(
+        job.application_email,
+        talent.email,
+        talent.email,
+        `New Application: ${talent.full_name} for ${job.title}`,
+        emailHtml,
+      );
 
-    console.log("Email sent successfully");
+      console.log("Email sent successfully");
 
-    // Update application delivery status
-    const { error: updateError } = await supabaseAdmin
-      .from("job_applications")
-      .update({
-        delivery_status: "sent",
-        application_status: "sent_to_employer",
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", applicationId);
+      // Update application delivery status to sent
+      await supabaseAdmin
+        .from("job_applications")
+        .update({
+          delivery_status: "sent",
+          application_status: "sent_to_employer",
+        })
+        .eq("id", applicationId);
 
-    if (updateError) {
-      console.error("Error updating delivery status:", updateError);
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    } catch (emailError: any) {
+      console.error("Email sending failed:", emailError.message);
+
+      // Check if it's a Resend domain verification error (403)
+      const isDomainError = emailError.message?.includes("403") || emailError.message?.includes("verify a domain");
+
+      // Mark as pending manual forward instead of failing completely
+      await supabaseAdmin
+        .from("job_applications")
+        .update({
+          delivery_status: isDomainError ? "pending_forward" : "failed",
+          application_status: isDomainError ? "pending" : "failed",
+          delivery_error: emailError.message,
+        })
+        .eq("id", applicationId);
+
+      if (isDomainError) {
+        // Return success - application saved, just needs manual forwarding
+        return new Response(
+          JSON.stringify({
+            success: true,
+            manual_forward_required: true,
+            message: "Application saved! An admin will forward it to the employer.",
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      throw emailError;
     }
-
-    return new Response(JSON.stringify({ success: true }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
   } catch (error: any) {
     console.error("Error sending application:", error);
 
