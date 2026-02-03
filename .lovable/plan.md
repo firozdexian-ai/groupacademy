@@ -1,405 +1,198 @@
 
 
-# Enhanced Investor Relations System
+# IR Dashboard Enhancement Plan
 
-## Understanding Your Requirements
+## Issues Identified
 
-### 1. MRR Target → Credit Usage Breakdown
-When you set an MRR target (e.g., $2,000), the system will automatically calculate:
-- **Total credits needed**: $2,000 × 50 = 100,000 credits/month
-- **Service-wise targets**: Based on expected usage mix, broken down by each service
+### 1. Credit Usage Not Displaying Correctly
+The dashboard only queries `transaction_type = 'service_usage'` but historical data also uses `transaction_type = 'usage'`. This inconsistency means the dashboard shows incomplete data.
 
-### 2. AI-Assisted Email Generation with Context
-- Store investor replies and feedback
-- Use full conversation history when generating emails
-- Personalize based on past interactions, interests, and stage of relationship
+**Current query (missing data):**
+```typescript
+.eq("transaction_type", "service_usage")
+```
+
+**Actual data in DB:**
+| transaction_type | service_type | credits |
+|------------------|--------------|---------|
+| service_usage | JOB_APPLICATION | 1,650 |
+| usage | JOB_APPLICATION | 925 |
+| service_usage | SUGGESTED_JOBS | 340 |
+| usage | SUGGESTED_JOBS | 230 |
+
+### 2. No Monthly Snapshots Being Saved
+The `ir_metrics_snapshots` table exists but is empty. There's no mechanism to save end-of-month data.
+
+### 3. Missing Key Metrics
+- **Total Talents**: 269 registered (not shown)
+- **Monthly Active Talents**: Users who used at least 1 credit (not tracked)
+- **MoM Growth**: Cannot calculate without historical snapshots
+
+### 4. No Historical Target vs Actual Tracking
+When a month ends, we lose the ability to compare targets vs actual results.
 
 ---
 
-## MRR Breakdown Logic
+## Proposed Solution
 
-### Conversion Constants
-```
-$1 USD = 50 Credits
-$10 USD = 500 Credits
-1 Credit = $0.02 USD
-```
+### Schema Enhancement
 
-### Service-Wise Expected Mix (Configurable)
-Based on your platform's service costs and expected usage patterns:
-
-| Service | Credit Cost | Expected Mix % | For $2,000 MRR (100K credits) |
-|---------|-------------|----------------|-------------------------------|
-| AI Agent Chat | 10 | 30% | 3,000 sessions |
-| Job Match Score | 10 | 15% | 1,500 uses |
-| Job Market Insight | 15 | 5% | 333 uses |
-| Job Application | 25 | 15% | 600 applications |
-| Career Assessment | 50 | 10% | 200 assessments |
-| Mock Interview | 50 | 10% | 200 interviews |
-| Salary Analysis | 50 | 8% | 160 analyses |
-| IELTS Mock | 100 | 3% | 30 tests |
-| Study Abroad Roadmap | 100 | 3% | 30 roadmaps |
-| Portfolio | 500 | 1% | 2 portfolios |
-
-### Visual Dashboard Widget
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│  MRR TARGET: $2,000                               [Edit Target]     │
-├─────────────────────────────────────────────────────────────────────┤
-│  Total Credit Target: 100,000 credits/month                         │
-│                                                                     │
-│  ┌─────────────────────────────────────────────────────────────┐   │
-│  │ Service Targets (Auto-calculated)                           │   │
-│  │                                                             │   │
-│  │ AI Agent Chat      ████████████████████████  3,000 sessions │   │
-│  │ Job Match Score    ████████████             1,500 uses      │   │
-│  │ Job Application    ████████████             600 applications│   │
-│  │ Career Assessment  ███████                  200 assessments │   │
-│  │ Mock Interview     ███████                  200 interviews  │   │
-│  │ Salary Analysis    █████                    160 analyses    │   │
-│  │ ...                                                         │   │
-│  └─────────────────────────────────────────────────────────────┘   │
-│                                                                     │
-│  Current Month Progress: 45,000 / 100,000 (45%)                    │
-│  ████████████████████░░░░░░░░░░░░░░░░░░░░░                         │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## AI-Assisted Email System
-
-### Enhanced Investor Data Model
-Store conversation context for personalized emails:
+Add `actual_mrr_usd` and `actual_credits_consumed` columns to `ir_monthly_targets` to store final results when month closes:
 
 ```sql
--- Enhanced ir_investors table
-ir_investors:
-  - full_name
-  - vc_firm_id
-  - email
-  - notes
-  - subscription_status
-  - investor_interests TEXT[]     -- ["edtech", "ai", "emerging_markets"]
-  - investment_stage TEXT         -- "seed", "series_a"
-  - last_feedback TEXT            -- Latest feedback/reply summary
-  - conversation_context TEXT     -- AI-readable summary of relationship
-
--- Investor interactions table (NEW)
-ir_investor_interactions:
-  - id
-  - investor_id (FK)
-  - interaction_type: "email_sent" | "reply_received" | "meeting" | "note"
-  - subject TEXT
-  - content TEXT                  -- Full email/reply content
-  - sentiment: "positive" | "neutral" | "negative" | null
-  - key_points TEXT[]             -- AI-extracted key points
-  - follow_up_needed BOOLEAN
-  - created_at
-  - created_by (FK to auth.users)
+ALTER TABLE ir_monthly_targets ADD COLUMN IF NOT EXISTS actual_mrr_usd DECIMAL(12,2);
+ALTER TABLE ir_monthly_targets ADD COLUMN IF NOT EXISTS actual_credits_consumed INTEGER;
+ALTER TABLE ir_monthly_targets ADD COLUMN IF NOT EXISTS total_talents INTEGER;
+ALTER TABLE ir_monthly_targets ADD COLUMN IF NOT EXISTS active_talents INTEGER;
+ALTER TABLE ir_monthly_targets ADD COLUMN IF NOT EXISTS is_closed BOOLEAN DEFAULT false;
+ALTER TABLE ir_monthly_targets ADD COLUMN IF NOT EXISTS closed_at TIMESTAMPTZ;
 ```
 
-### Email Composer with AI Assist
+### Dashboard Enhancements
+
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│  COMPOSE EMAIL TO: John Smith (Sequoia Capital)                     │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│  Email Type: [Weekly Update ▼]  [Introduction]  [Special Update]   │
-│                                                                     │
-│  ┌───────────────────────────────────────────────────────────────┐ │
-│  │ CONVERSATION CONTEXT (Auto-loaded)                            │ │
-│  │                                                               │ │
-│  │ • Last email: Jan 28 - Weekly Update (Opened)                 │ │
-│  │ • Last reply: "Interesting growth, keep me posted on MENA"    │ │
-│  │ • Interests: EdTech, Emerging Markets, AI                     │ │
-│  │ • Stage preference: Series A                                  │ │
-│  │ • Sentiment: Positive                                         │ │
-│  └───────────────────────────────────────────────────────────────┘ │
-│                                                                     │
-│  ┌───────────────────────────────────────────────────────────────┐ │
-│  │ PASTE INVESTOR REPLY/FEEDBACK (Optional)                      │ │
-│  │                                                               │ │
-│  │ [Paste any recent reply or meeting notes here...]            │ │
-│  │                                                               │ │
-│  └───────────────────────────────────────────────────────────────┘ │
-│                                                                     │
-│  [🤖 Generate with AI]                                             │
-│                                                                     │
-│  Subject: ___________________________________________________      │
-│                                                                     │
-│  ┌───────────────────────────────────────────────────────────────┐ │
-│  │                                                               │ │
-│  │ [AI-generated email content will appear here...]             │ │
-│  │                                                               │ │
-│  │ The AI will consider:                                         │ │
-│  │ - Past conversation history                                   │ │
-│  │ - Investor's stated interests                                 │ │
-│  │ - Their last feedback/questions                               │ │
-│  │ - Current company metrics                                     │ │
-│  │                                                               │ │
-│  └───────────────────────────────────────────────────────────────┘ │
-│                                                                     │
-│  [Save Draft]  [Preview]  [📧 Open in Email Client]                │
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-### AI Email Generation Edge Function
-The edge function will receive:
-1. **Investor profile** - Name, firm, interests, stage preference
-2. **Conversation history** - All past emails and replies
-3. **Latest feedback** - Any new reply/note being added
-4. **Current metrics** - MRR, growth, users from dashboard
-5. **Email type** - Introduction, Weekly Update, or Special Update
-
----
-
-## Database Schema (Enhanced)
-
-### New Tables
-
-```sql
--- 1. Monthly KPI Targets (with service mix)
-CREATE TABLE ir_monthly_targets (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  month DATE NOT NULL UNIQUE,
-  mrr_target_usd DECIMAL(12,2) NOT NULL,
-  
-  -- Auto-calculated fields (stored for historical tracking)
-  total_credits_target INTEGER GENERATED ALWAYS AS (mrr_target_usd * 50) STORED,
-  arr_target_usd DECIMAL(12,2) GENERATED ALWAYS AS (mrr_target_usd * 12) STORED,
-  
-  -- Service mix percentages (configurable)
-  service_mix JSONB DEFAULT '{
-    "AI_AGENT_CHAT": 30,
-    "JOB_MATCH_SCORE": 15,
-    "JOB_APPLICATION": 15,
-    "CAREER_ASSESSMENT": 10,
-    "MOCK_INTERVIEW": 10,
-    "SALARY_ANALYSIS": 8,
-    "JOB_MARKET_INSIGHT": 5,
-    "IELTS_MOCK": 3,
-    "STUDY_ABROAD_ROADMAP": 3,
-    "PORTFOLIO": 1
-  }',
-  
-  -- Other targets
-  target_paying_users INTEGER,
-  target_churn_rate DECIMAL(5,2) DEFAULT 5,
-  notes TEXT,
-  created_by UUID REFERENCES auth.users(id),
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-
--- 2. VC Firms
-CREATE TABLE ir_vc_firms (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL,
-  logo_url TEXT,
-  stage_focus TEXT[],
-  sector_focus TEXT[],
-  website TEXT,
-  linkedin_url TEXT,
-  status TEXT DEFAULT 'prospecting',
-  notes TEXT,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-
--- 3. Investors (enhanced with context fields)
-CREATE TABLE ir_investors (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  vc_firm_id UUID REFERENCES ir_vc_firms(id) ON DELETE SET NULL,
-  full_name TEXT NOT NULL,
-  title TEXT,
-  email TEXT,
-  phone TEXT,
-  linkedin_url TEXT,
-  twitter_handle TEXT,
-  
-  -- Context for AI personalization
-  investor_interests TEXT[],
-  investment_stage_pref TEXT,
-  relationship_summary TEXT,
-  last_feedback_summary TEXT,
-  
-  subscription_status TEXT DEFAULT 'pending',
-  last_contacted_at TIMESTAMPTZ,
-  notes TEXT,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-
--- 4. Investor Interactions (conversation history)
-CREATE TABLE ir_investor_interactions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  investor_id UUID REFERENCES ir_investors(id) ON DELETE CASCADE,
-  interaction_type TEXT NOT NULL, -- email_sent, reply_received, meeting, call, note
-  subject TEXT,
-  content TEXT,
-  sentiment TEXT, -- positive, neutral, negative
-  key_points TEXT[],
-  follow_up_needed BOOLEAN DEFAULT false,
-  follow_up_date DATE,
-  created_by UUID REFERENCES auth.users(id),
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-
--- 5. Email Communications (sent emails with tracking)
-CREATE TABLE ir_email_communications (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  investor_id UUID REFERENCES ir_investors(id) ON DELETE CASCADE,
-  email_type TEXT NOT NULL,
-  subject TEXT NOT NULL,
-  content TEXT,
-  ai_generated BOOLEAN DEFAULT false,
-  sent_at TIMESTAMPTZ,
-  sent_by UUID REFERENCES auth.users(id),
-  status TEXT DEFAULT 'draft',
-  open_count INTEGER DEFAULT 0,
-  click_count INTEGER DEFAULT 0,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
-
--- 6. Metrics Snapshots (for tracking progress over time)
-CREATE TABLE ir_metrics_snapshots (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  snapshot_date DATE NOT NULL DEFAULT CURRENT_DATE UNIQUE,
-  mrr_usd DECIMAL(12,2),
-  arr_usd DECIMAL(12,2),
-  total_credits_consumed INTEGER,
-  paying_users INTEGER,
-  total_users INTEGER,
-  mom_growth_rate DECIMAL(5,2),
-  service_breakdown JSONB,
-  created_at TIMESTAMPTZ DEFAULT now()
-);
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  INVESTOR RELATIONS DASHBOARD                              [Set Targets]    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐           │
+│  │ MRR Target  │ │ Current MRR │ │ Total       │ │ Monthly     │           │
+│  │ $2,000      │ │ $45         │ │ Talents     │ │ Active      │           │
+│  │ 64% to goal │ │ 2,225 cr    │ │ 269         │ │ 12 talents  │           │
+│  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘           │
+│                                                                             │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐           │
+│  │ Credits     │ │ Active VCs  │ │ Investors   │ │ MoM Growth  │           │
+│  │ Used        │ │ 12          │ │ 28          │ │ +15%        │           │
+│  │ 2,225       │ │             │ │             │ │             │           │
+│  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘           │
+│                                                                             │
+│  ┌──────────────────────────────────────────────────────────────────────┐  │
+│  │  SERVICE-WISE BREAKDOWN (Actual vs Target)                          │  │
+│  │                                                                      │  │
+│  │  AI Agent Chat    70 / 3,000 cr   ██░░░░░░░░░░░░░  2.3%             │  │
+│  │  Job Application  2,575 / 15,000  ██████████░░░░░  17.2%            │  │
+│  │  Job Match Score  50 / 1,500 cr   █░░░░░░░░░░░░░░  3.3%             │  │
+│  │  Salary Analysis  100 / 800 cr    ████░░░░░░░░░░░  12.5%            │  │
+│  │  ...                                                                 │  │
+│  └──────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  ┌──────────────────────────────────────────────────────────────────────┐  │
+│  │  HISTORICAL PERFORMANCE (Last 6 Months)                             │  │
+│  │                                                                      │  │
+│  │  Month      Target   Actual   Achievement   Growth                  │  │
+│  │  Jan 2026   $2,000   $1,200   60%           -                       │  │
+│  │  Feb 2026   $2,500   -        In Progress   -                       │  │
+│  └──────────────────────────────────────────────────────────────────────┘  │
+│                                                                             │
+│  [📊 Close Month & Save Snapshot]                                          │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Edge Function: generate-investor-email
+## Implementation Details
+
+### 1. Fix Credit Query (Both transaction types)
+Update dashboard to include both `service_usage` and `usage` transaction types:
 
 ```typescript
-// Key inputs for AI email generation:
-interface GenerateEmailRequest {
-  investorId: string;
-  emailType: 'introduction' | 'weekly_update' | 'special_update';
-  newFeedback?: string;          // Pasted reply/feedback
-  specialUpdateTopic?: string;   // For special updates
-  customInstructions?: string;   // Any specific points to include
-}
-
-// AI will receive context:
-interface AIContext {
-  investor: {
-    name: string;
-    firm: string;
-    interests: string[];
-    stagePreference: string;
-    relationshipSummary: string;
-  };
-  conversationHistory: Array<{
-    date: string;
-    type: string;
-    content: string;
-    sentiment?: string;
-  }>;
-  currentMetrics: {
-    mrr: number;
-    mrrGrowth: number;
-    users: number;
-    highlights: string[];
-  };
-  newFeedback?: string;
-}
+const { data, error } = await supabase
+  .from("credit_transactions")
+  .select("amount, service_type, talent_id")
+  .in("transaction_type", ["service_usage", "usage"])
+  .gte("created_at", startOfMonth.toISOString());
 ```
 
+### 2. Add Talent Metrics Queries
+```typescript
+// Total talents
+const { count: totalTalents } = await supabase
+  .from("talents")
+  .select("*", { count: "exact", head: true });
+
+// Monthly active talents (distinct users who used credits this month)
+const { data: activeData } = await supabase
+  .from("credit_transactions")
+  .select("talent_id")
+  .in("transaction_type", ["service_usage", "usage"])
+  .gte("created_at", startOfMonth.toISOString());
+
+const monthlyActiveTalents = new Set(activeData?.map(d => d.talent_id)).size;
+```
+
+### 3. Close Month Function
+Add a "Close Month" button that:
+1. Saves current metrics to `ir_monthly_targets` (actual_mrr_usd, actual_credits_consumed, etc.)
+2. Creates a snapshot in `ir_metrics_snapshots`
+3. Marks the month as closed (is_closed = true)
+
+### 4. Historical Performance Table
+Show past months with target vs actual comparison:
+- Fetches all `ir_monthly_targets` with `is_closed = true`
+- Calculates achievement percentage
+- Shows MoM growth
+
 ---
-
-## Files to Create
-
-| File | Purpose |
-|------|---------|
-| `src/lib/irConfig.ts` | IR constants, USD/credit conversion helpers |
-| `src/components/dashboard/ir/IRDashboard.tsx` | Main dashboard with MRR breakdown |
-| `src/components/dashboard/ir/MRRTargetManager.tsx` | Set targets, view service breakdown |
-| `src/components/dashboard/ir/VCFirmsManager.tsx` | CRUD for VC firms |
-| `src/components/dashboard/ir/InvestorsManager.tsx` | CRUD for investors with context |
-| `src/components/dashboard/ir/InvestorDetailSheet.tsx` | View investor + interactions |
-| `src/components/dashboard/ir/EmailComposer.tsx` | AI-assisted email composition |
-| `src/components/dashboard/ir/InteractionLogger.tsx` | Log replies, meetings, notes |
-| `src/lib/irEmailTemplates.ts` | Base templates for emails |
-| `supabase/functions/generate-investor-email/index.ts` | AI email generation |
-| Database migration | 6 new tables |
 
 ## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/components/dashboard/AdminSidebar.tsx` | Add "Investor Relations" nav group |
-| `src/pages/Dashboard.tsx` | Add IR tab routing |
-| `src/lib/creditPricing.ts` | Add USD conversion constants |
+| Database migration | Add new columns to ir_monthly_targets |
+| `src/components/dashboard/ir/IRDashboard.tsx` | Fix credit query, add talent metrics, add historical table |
+| `src/components/dashboard/ir/MRRTargetManager.tsx` | Add "Close Month" functionality |
+| `src/lib/irConfig.ts` | Add helper for calculating MoM growth |
 
 ---
 
-## Admin Sidebar Addition
+## Technical Implementation
 
+### Database Migration
+```sql
+-- Add actuals tracking to monthly targets
+ALTER TABLE ir_monthly_targets 
+ADD COLUMN IF NOT EXISTS actual_mrr_usd DECIMAL(12,2),
+ADD COLUMN IF NOT EXISTS actual_credits_consumed INTEGER,
+ADD COLUMN IF NOT EXISTS total_talents INTEGER,
+ADD COLUMN IF NOT EXISTS active_talents INTEGER,
+ADD COLUMN IF NOT EXISTS is_closed BOOLEAN DEFAULT false,
+ADD COLUMN IF NOT EXISTS closed_at TIMESTAMPTZ,
+ADD COLUMN IF NOT EXISTS service_actuals JSONB;
+```
+
+### New Dashboard Cards
+1. **Total Talents** - Count from talents table
+2. **Monthly Active Talents** - Distinct talent_ids from credit_transactions this month
+3. **MoM Growth** - Compare current vs last month's closed data
+
+### Service Breakdown Enhancement
+Show actual usage vs target for each service:
+- Pull actual from credit_transactions (both transaction types)
+- Compare against service_mix targets
+- Show progress bar and percentage
+
+### Historical Table Component
+New section showing past months:
 ```typescript
-{
-  title: "Investor Relations",
-  icon: Landmark, // or TrendingUp
-  roles: ["admin"],
-  items: [
-    { title: "IR Dashboard", icon: LayoutDashboard, value: "ir-dashboard" },
-    { title: "MRR Targets", icon: Target, value: "ir-targets" },
-    { title: "VC Firms", icon: Building2, value: "ir-vcs" },
-    { title: "Investors", icon: Users, value: "ir-investors" },
-    { title: "Email Updates", icon: Mail, value: "ir-emails" },
-  ],
+interface MonthlyResult {
+  month: string;
+  mrrTarget: number;
+  actualMrr: number;
+  achievement: number; // percentage
+  growth: number; // vs previous month
 }
 ```
 
 ---
 
-## Key Workflows
-
-### 1. Setting MRR Target
-1. Admin enters MRR target (e.g., $2,000)
-2. System auto-calculates:
-   - Total credits needed (100,000)
-   - Service-wise targets based on mix percentages
-   - ARR, required users, break-even point
-3. Dashboard shows progress vs targets
-
-### 2. Managing Investor Relationship
-1. Add VC firm → Add investor contact
-2. Set investor interests and stage preference
-3. View full conversation history in detail sheet
-4. Log any replies/meetings/notes
-
-### 3. Sending AI-Assisted Email
-1. Select investor to email
-2. Optionally paste any recent reply/feedback
-3. System loads conversation context
-4. Click "Generate with AI"
-5. AI creates personalized email considering:
-   - All past interactions
-   - Investor's interests
-   - Current metrics
-   - Their last feedback
-6. Edit if needed, then send via mailto link
-7. System auto-logs as interaction
-
----
-
 ## Summary
 
-This enhanced IR system provides:
+This enhancement will:
 
-1. **Smart MRR Planning** - Set target, see automatic service-wise credit breakdown
-2. **Relationship Memory** - Track all interactions with each investor
-3. **AI Personalization** - Generate emails that reference past conversations
-4. **Feedback Integration** - Paste replies to inform future communications
-5. **Global Currency** - All metrics in USD ($10 = 500 credits standard)
+1. **Fix data accuracy** - Query both transaction types for complete picture
+2. **Add user metrics** - Total Talents & Monthly Active Talents
+3. **Enable historical tracking** - Close months and save actuals
+4. **Show growth trends** - MoM comparison with previous periods
+5. **Service-level insights** - Actual vs target breakdown per service
 
