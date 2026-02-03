@@ -507,8 +507,8 @@ export default function AppJobApplication() {
         </CardContent>
       </Card>
 
-      {/* Cost & Submit */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t md:relative md:p-0 md:border-0 md:bg-transparent z-10">
+      {/* Cost & Submit - positioned above mobile nav */}
+      <div className="fixed bottom-16 left-0 right-0 p-4 bg-background border-t md:relative md:bottom-0 md:p-0 md:border-0 md:bg-transparent z-10">
         <div className="max-w-2xl mx-auto flex flex-col gap-3">
           <div className="flex items-center justify-between text-sm px-1">
             <span className="text-muted-foreground">
@@ -553,6 +553,9 @@ export default function AppJobApplication() {
           )}
         </div>
       </div>
+      
+      {/* Spacer to prevent content from being hidden behind fixed footer */}
+      <div className="h-32 md:hidden" />
 
       <CreditPurchaseSheet
         isOpen={showPurchaseSheet}
