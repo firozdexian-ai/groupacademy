@@ -18,6 +18,7 @@ interface ContentItem {
   slug: string;
   type: ContentType | "blog";
   thumbnail_url?: string | null;
+  cover_image_url?: string | null;
   description?: string | null;
   credit_cost?: number | null;
   price?: number | null;
@@ -76,7 +77,7 @@ export function UnifiedDiscovery() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("content")
-        .select("id, title, slug, thumbnail_url, description, credit_cost, price, content_type, event_date")
+        .select("id, title, slug, thumbnail_url, cover_image_url, description, credit_cost, price, content_type, event_date")
         .eq("is_published", true)
         .in("content_type", ["batch_class", "recorded_course", "free_video", "live_webinar", "offline_seminar"])
         .order("display_order")
@@ -88,7 +89,8 @@ export function UnifiedDiscovery() {
         title: item.title,
         slug: item.slug,
         type: item.content_type as ContentType,
-        thumbnail_url: item.thumbnail_url,
+        thumbnail_url: item.thumbnail_url || item.cover_image_url,
+        cover_image_url: item.cover_image_url,
         description: item.description,
         credit_cost: item.credit_cost,
         price: item.price,
@@ -200,9 +202,9 @@ export function UnifiedDiscovery() {
 
       {/* Content Grid */}
       {isLoading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="aspect-[4/5] rounded-xl" />
+            <Skeleton key={i} className="aspect-[4/3] rounded-xl" />
           ))}
         </div>
       ) : filteredItems.length === 0 ? (
@@ -212,7 +214,7 @@ export function UnifiedDiscovery() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {filteredItems.slice(0, 8).map((item) => {
             const Icon = getTypeIcon(item.type);
             

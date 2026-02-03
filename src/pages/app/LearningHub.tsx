@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { GraduationCap, BookOpen, ChevronRight } from "lucide-react";
+import { GraduationCap, BookOpen, ChevronRight, Target, Calendar, Library } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -9,6 +9,8 @@ import { ActiveCourseHero } from "@/components/learning/ActiveCourseHero";
 import { LearningStatsRow } from "@/components/learning/LearningStreak";
 import { UnifiedDiscovery } from "@/components/learning/UnifiedDiscovery";
 import { QuickStats } from "@/components/learning/QuickStats";
+import { QuickActionCard } from "@/components/learning/QuickActionCard";
+import { CareerTracksPreview } from "@/components/learning/CareerTracksPreview";
 import { CreditBalance } from "@/components/credits/CreditBalance";
 
 function getGreeting(): string {
@@ -36,7 +38,7 @@ export default function LearningHub() {
   const firstName = talent?.fullName?.split(" ")[0] || "there";
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6 space-y-8">
+    <div className="max-w-4xl mx-auto px-4 py-6 space-y-6 pb-32">
       {/* Header Section */}
       <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent rounded-2xl p-6">
         {/* Top bar with streak and credits */}
@@ -83,6 +85,40 @@ export default function LearningHub() {
           </div>
         </div>
       </div>
+
+      {/* Quick Actions */}
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Quick Actions</h2>
+        <div className="grid grid-cols-2 gap-3">
+          <QuickActionCard
+            icon={BookOpen}
+            label="My Courses"
+            count={activeEnrollments.length}
+            path="/app/learning/my-courses"
+          />
+          <QuickActionCard
+            icon={Target}
+            label="Career Tracks"
+            description="Structured paths"
+            path="/app/learning/tracks"
+          />
+          <QuickActionCard
+            icon={Library}
+            label="All Courses"
+            description="Browse catalog"
+            path="/app/learning/courses"
+          />
+          <QuickActionCard
+            icon={Calendar}
+            label="Events"
+            description="Live sessions"
+            path="/app/learning/events"
+          />
+        </div>
+      </section>
+
+      {/* Career Tracks Preview */}
+      <CareerTracksPreview />
 
       {/* Continue Learning Section */}
       {isLoading ? (
