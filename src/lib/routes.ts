@@ -74,6 +74,8 @@ export const ROUTES = {
     abroadStudy: '/app/abroad/study',
     abroadStudyDetail: (id: string) => `/app/abroad/study/${id}`,
     abroadIelts: '/app/abroad/ielts',
+    abroadRoadmap: '/app/abroad/roadmap',
+    abroadRoadmapResults: (id: string) => `/app/abroad/roadmap/${id}`,
     notifications: '/app/notifications',
   },
 

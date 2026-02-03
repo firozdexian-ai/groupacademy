@@ -3565,6 +3565,95 @@ export type Database = {
         }
         Relationships: []
       }
+      study_abroad_roadmaps: {
+        Row: {
+          budget_level: string | null
+          completed_at: string | null
+          created_at: string | null
+          cv_text: string | null
+          degree_level: string
+          education_summary: Json | null
+          email: string
+          experience_summary: Json | null
+          family_support: boolean | null
+          field_of_study: string | null
+          full_name: string | null
+          gpa: string | null
+          has_taken_ielts: boolean | null
+          id: string
+          ielts_score: number | null
+          part_time_work_interest: boolean | null
+          roadmap_result: Json | null
+          special_requirements: string | null
+          status: string | null
+          talent_id: string | null
+          target_countries: string[]
+          target_intake: string | null
+          updated_at: string | null
+          years_experience: number | null
+        }
+        Insert: {
+          budget_level?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          cv_text?: string | null
+          degree_level: string
+          education_summary?: Json | null
+          email: string
+          experience_summary?: Json | null
+          family_support?: boolean | null
+          field_of_study?: string | null
+          full_name?: string | null
+          gpa?: string | null
+          has_taken_ielts?: boolean | null
+          id?: string
+          ielts_score?: number | null
+          part_time_work_interest?: boolean | null
+          roadmap_result?: Json | null
+          special_requirements?: string | null
+          status?: string | null
+          talent_id?: string | null
+          target_countries: string[]
+          target_intake?: string | null
+          updated_at?: string | null
+          years_experience?: number | null
+        }
+        Update: {
+          budget_level?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          cv_text?: string | null
+          degree_level?: string
+          education_summary?: Json | null
+          email?: string
+          experience_summary?: Json | null
+          family_support?: boolean | null
+          field_of_study?: string | null
+          full_name?: string | null
+          gpa?: string | null
+          has_taken_ielts?: boolean | null
+          id?: string
+          ielts_score?: number | null
+          part_time_work_interest?: boolean | null
+          roadmap_result?: Json | null
+          special_requirements?: string | null
+          status?: string | null
+          talent_id?: string | null
+          target_countries?: string[]
+          target_intake?: string | null
+          updated_at?: string | null
+          years_experience?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "study_abroad_roadmaps_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       talent_credits: {
         Row: {
           balance: number

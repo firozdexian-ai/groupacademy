@@ -1,8 +1,10 @@
 import { useNavigate } from "react-router-dom";
-import { GraduationCap, BookOpen, Briefcase, ChevronRight, Globe } from "lucide-react";
+import { GraduationCap, BookOpen, Briefcase, ChevronRight, Globe, Map, Sparkles, CheckCircle2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { COUNTRIES, getCountryFlag } from "@/lib/constants/countries";
+import { CREDIT_CONFIG } from "@/lib/creditPricing";
 
 // Popular destinations filtered from centralized constants
 const POPULAR_DESTINATIONS = COUNTRIES.filter(c => 
@@ -99,6 +101,58 @@ export default function CareerAbroad() {
           ))}
         </div>
       </section>
+
+      {/* AI Roadmap CTA - Premium Feature */}
+      <Card className="relative overflow-hidden border-2 border-primary/20 shadow-lg">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5" />
+        <CardContent className="relative p-6 md:p-8">
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
+            <div className="p-4 bg-primary/10 rounded-2xl">
+              <Map className="h-10 w-10 text-primary" />
+            </div>
+
+            <div className="flex-1 space-y-3">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-lg font-bold">Get Your Personalized Roadmap</h3>
+                <Badge className="bg-primary/10 text-primary border-primary/20">
+                  <Sparkles className="h-3 w-3 mr-1" />
+                  AI-Powered
+                </Badge>
+              </div>
+              <p className="text-sm text-muted-foreground max-w-lg">
+                Not sure where to start? Let AI create a step-by-step 12-month application plan tailored to your profile and goals.
+              </p>
+              <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <CheckCircle2 className="h-3 w-3 text-primary" />
+                  University recommendations
+                </span>
+                <span className="flex items-center gap-1">
+                  <CheckCircle2 className="h-3 w-3 text-primary" />
+                  Month-by-month timeline
+                </span>
+                <span className="flex items-center gap-1">
+                  <CheckCircle2 className="h-3 w-3 text-primary" />
+                  Budget breakdown
+                </span>
+                <span className="flex items-center gap-1">
+                  <CheckCircle2 className="h-3 w-3 text-primary" />
+                  Scholarship matches
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-center gap-2 min-w-[160px]">
+              <Button size="lg" onClick={() => navigate("/app/abroad/roadmap")} className="w-full">
+                Get My Roadmap
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                {CREDIT_CONFIG.SERVICES.STUDY_ABROAD_ROADMAP?.cost || 100} Credits
+              </span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* IELTS CTA - Wide Card */}
       <Card

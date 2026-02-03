@@ -58,6 +58,11 @@ export const CREDIT_CONFIG = {
       name: 'Job & Applicant Insight',
       cost: 15,
       description: 'Market intelligence and competition analysis'
+    },
+    STUDY_ABROAD_ROADMAP: {
+      name: 'AI Study Abroad Roadmap',
+      cost: 100,
+      description: 'Personalized 12-month application plan with university recommendations'
     }
   },
   

@@ -95,6 +95,8 @@ import SalaryAnalysisResults from "./pages/SalaryAnalysisResults";
 // Study Abroad & Blog
 import StudyAbroad from "./pages/app/StudyAbroad";
 import StudyAbroadDetail from "./pages/app/StudyAbroadDetail";
+import StudyAbroadRoadmap from "./pages/app/StudyAbroadRoadmap";
+import StudyAbroadRoadmapResults from "./pages/app/StudyAbroadRoadmapResults";
 import IELTSPrep from "./pages/app/IELTSPrep";
 import Competitions from "./pages/app/Competitions";
 import CompetitionDetail from "./pages/app/CompetitionDetail";
@@ -387,6 +389,8 @@ export default function App() {
                     <Route path="abroad/study" element={<StudyAbroad />} />
                     <Route path="abroad/study/:id" element={<StudyAbroadDetail />} />
                     <Route path="abroad/ielts" element={<IELTSPrep />} />
+                    <Route path="abroad/roadmap" element={<StudyAbroadRoadmap />} />
+                    <Route path="abroad/roadmap/:id" element={<StudyAbroadRoadmapResults />} />
 
                     {/* Content Players */}
                     <Route path="learn/:slug" element={<ImmersiveCoursePlayer />} />
