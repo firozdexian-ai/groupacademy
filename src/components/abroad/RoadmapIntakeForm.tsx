@@ -44,11 +44,11 @@ const FIELDS_OF_STUDY = [
 ];
 
 const INTAKE_OPTIONS = [
-  "Fall 2025",
-  "Spring 2026",
   "Fall 2026",
   "Spring 2027",
   "Fall 2027",
+  "Spring 2028",
+  "Fall 2028",
 ];
 
 const BUDGET_LEVELS = [

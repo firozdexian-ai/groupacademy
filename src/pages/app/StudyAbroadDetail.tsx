@@ -34,8 +34,6 @@ export default function StudyAbroadDetail() {
   } = useQuery({
     queryKey: ["study-abroad-program", id],
     queryFn: async () => {
-      console.log("🔍 Fetching program details for ID:", id); // Debug log
-
       if (!id) throw new Error("No Program ID provided");
 
       // FIX: Used 'maybeSingle()' instead of 'single()' to prevent 406 errors on 0 rows

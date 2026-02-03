@@ -157,8 +157,8 @@ export default function App() {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        {/* FIX: Removed future flags that cause nested route bouncing */}
-        <BrowserRouter>
+        {/* FIX: Added React Router v7 future flags */}
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <BootGate>
             <TalentProvider>
               <TooltipProvider>

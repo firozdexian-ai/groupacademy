@@ -81,7 +81,6 @@ export default function AIAgents() {
         category: "career" as const,
         avatarUrl: null,
         isCompanyAgent: false,
-        companyName: null,
       }));
     }
 
@@ -101,7 +100,6 @@ export default function AIAgents() {
         category: (agent.category || "career") as AgentCategory,
         avatarUrl: agent.avatar_url,
         isCompanyAgent: agent.agent_type === "company",
-        companyName: null, // TODO: Join with companies table
       };
     });
   }, [dbAgents]);
@@ -340,7 +338,6 @@ export default function AIAgents() {
                     category={agent.category}
                     isActive={!!activeSession}
                     isCompanyAgent={agent.isCompanyAgent}
-                    companyName={agent.companyName || undefined}
                     expertise={agent.expertise}
                     onClick={() => handleAgentClick(agent.agent_key)}
                   />
