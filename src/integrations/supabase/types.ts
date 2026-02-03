@@ -153,50 +153,94 @@ export type Database = {
       ai_agents: {
         Row: {
           agent_key: string
+          agent_type: string | null
+          avatar_url: string | null
+          average_rating: number | null
           bg_color: string | null
+          capabilities: string[] | null
+          category: string | null
           color: string | null
+          company_id: string | null
           created_at: string | null
+          credit_cost: number | null
           description: string
           display_order: number | null
           expertise_areas: string[] | null
           icon: string | null
           id: string
           is_active: boolean | null
+          is_featured: boolean | null
           name: string
+          personality_traits: Json | null
+          sample_conversations: Json | null
+          session_duration_minutes: number | null
           system_prompt: string
+          total_conversations: number | null
           updated_at: string | null
         }
         Insert: {
           agent_key: string
+          agent_type?: string | null
+          avatar_url?: string | null
+          average_rating?: number | null
           bg_color?: string | null
+          capabilities?: string[] | null
+          category?: string | null
           color?: string | null
+          company_id?: string | null
           created_at?: string | null
+          credit_cost?: number | null
           description: string
           display_order?: number | null
           expertise_areas?: string[] | null
           icon?: string | null
           id?: string
           is_active?: boolean | null
+          is_featured?: boolean | null
           name: string
+          personality_traits?: Json | null
+          sample_conversations?: Json | null
+          session_duration_minutes?: number | null
           system_prompt: string
+          total_conversations?: number | null
           updated_at?: string | null
         }
         Update: {
           agent_key?: string
+          agent_type?: string | null
+          avatar_url?: string | null
+          average_rating?: number | null
           bg_color?: string | null
+          capabilities?: string[] | null
+          category?: string | null
           color?: string | null
+          company_id?: string | null
           created_at?: string | null
+          credit_cost?: number | null
           description?: string
           display_order?: number | null
           expertise_areas?: string[] | null
           icon?: string | null
           id?: string
           is_active?: boolean | null
+          is_featured?: boolean | null
           name?: string
+          personality_traits?: Json | null
+          sample_conversations?: Json | null
+          session_duration_minutes?: number | null
           system_prompt?: string
+          total_conversations?: number | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ai_agents_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ai_chat_sessions: {
         Row: {
@@ -674,6 +718,57 @@ export type Database = {
           website?: string | null
         }
         Relationships: []
+      }
+      company_agents: {
+        Row: {
+          agent_id: string
+          company_id: string
+          created_at: string | null
+          credits_used: number | null
+          id: string
+          is_active: boolean | null
+          monthly_budget: number | null
+          sponsorship_type: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          agent_id: string
+          company_id: string
+          created_at?: string | null
+          credits_used?: number | null
+          id?: string
+          is_active?: boolean | null
+          monthly_budget?: number | null
+          sponsorship_type?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          agent_id?: string
+          company_id?: string
+          created_at?: string | null
+          credits_used?: number | null
+          id?: string
+          is_active?: boolean | null
+          monthly_budget?: number | null
+          sponsorship_type?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_agents_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_agents_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       competition_submissions: {
         Row: {
@@ -3705,6 +3800,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      increment_agent_conversations: {
+        Args: { p_agent_key: string }
+        Returns: undefined
       }
       normalize_phone: {
         Args: { p_country_code: string; p_phone: string }

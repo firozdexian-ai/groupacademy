@@ -141,9 +141,23 @@ export function useAgentChat(): UseAgentChatReturn {
 
       setIsLoading(true);
       try {
-        // Create new session with 30-minute expiry
+        // Fetch agent config from database for dynamic pricing/duration
+        const { data: agentConfig } = await supabase
+          .from("ai_agents")
+          .select("credit_cost, session_duration_minutes")
+          .eq("agent_key", agentKey)
+          .eq("is_active", true)
+          .single();
+
+        const creditCost = agentConfig?.credit_cost ?? 10;
+        const sessionDuration = agentConfig?.session_duration_minutes ?? 30;
+
+        // Create new session with dynamic duration
         const now = new Date();
-        const expiresAt = new Date(now.getTime() + 30 * 60 * 1000);
+        const expiresAt = new Date(now.getTime() + sessionDuration * 60 * 1000);
+
+        // Increment conversation counter
+        await supabase.rpc("increment_agent_conversations", { p_agent_key: agentKey });
 
         const { data, error } = await supabase
           .from("agent_chat_sessions")
@@ -152,7 +166,7 @@ export function useAgentChat(): UseAgentChatReturn {
             agent_key: agentKey,
             messages: [],
             is_active: true,
-            credits_charged: 10,
+            credits_charged: creditCost,
             session_started_at: now.toISOString(),
             session_expires_at: expiresAt.toISOString(),
           })
