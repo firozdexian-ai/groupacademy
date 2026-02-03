@@ -1,198 +1,119 @@
 
 
-# IR Dashboard Enhancement Plan
+# Add Course/Content Revenue Tracking to IR Dashboard
 
-## Issues Identified
+## The Gap
 
-### 1. Credit Usage Not Displaying Correctly
-The dashboard only queries `transaction_type = 'service_usage'` but historical data also uses `transaction_type = 'usage'`. This inconsistency means the dashboard shows incomplete data.
-
-**Current query (missing data):**
-```typescript
-.eq("transaction_type", "service_usage")
-```
-
-**Actual data in DB:**
-| transaction_type | service_type | credits |
-|------------------|--------------|---------|
-| service_usage | JOB_APPLICATION | 1,650 |
-| usage | JOB_APPLICATION | 925 |
-| service_usage | SUGGESTED_JOBS | 340 |
-| usage | SUGGESTED_JOBS | 230 |
-
-### 2. No Monthly Snapshots Being Saved
-The `ir_metrics_snapshots` table exists but is empty. There's no mechanism to save end-of-month data.
-
-### 3. Missing Key Metrics
-- **Total Talents**: 269 registered (not shown)
-- **Monthly Active Talents**: Users who used at least 1 credit (not tracked)
-- **MoM Growth**: Cannot calculate without historical snapshots
-
-### 4. No Historical Target vs Actual Tracking
-When a month ends, we lose the ability to compare targets vs actual results.
-
----
+Currently, course enrollment credits (e.g., 50 credits for a paid course) are:
+- Counted in the total MRR calculation
+- NOT shown in the service-wise breakdown
+- NOT configurable in the service mix targets
 
 ## Proposed Solution
 
-### Schema Enhancement
+Add a separate "Content Revenue" category alongside "Service Revenue" to track both revenue streams.
 
-Add `actual_mrr_usd` and `actual_credits_consumed` columns to `ir_monthly_targets` to store final results when month closes:
+### Option A: Add to Service Mix (Recommended)
 
-```sql
-ALTER TABLE ir_monthly_targets ADD COLUMN IF NOT EXISTS actual_mrr_usd DECIMAL(12,2);
-ALTER TABLE ir_monthly_targets ADD COLUMN IF NOT EXISTS actual_credits_consumed INTEGER;
-ALTER TABLE ir_monthly_targets ADD COLUMN IF NOT EXISTS total_talents INTEGER;
-ALTER TABLE ir_monthly_targets ADD COLUMN IF NOT EXISTS active_talents INTEGER;
-ALTER TABLE ir_monthly_targets ADD COLUMN IF NOT EXISTS is_closed BOOLEAN DEFAULT false;
-ALTER TABLE ir_monthly_targets ADD COLUMN IF NOT EXISTS closed_at TIMESTAMPTZ;
+Add `COURSE_ENROLLMENT` as a trackable service type in the IR config:
+
+```typescript
+// irConfig.ts - Add to SERVICE_COSTS
+SERVICE_COSTS: {
+  // ... existing services
+  COURSE_ENROLLMENT: 0,  // Variable cost (depends on course price)
+}
+
+// Add to SERVICE_LABELS
+SERVICE_LABELS: {
+  // ... existing services  
+  COURSE_ENROLLMENT: 'Course Purchases',
+}
+
+// Add to DEFAULT_SERVICE_MIX (optional - can be 0 if not targeting)
+DEFAULT_SERVICE_MIX: {
+  // ... existing mix
+  COURSE_ENROLLMENT: 0,  // User can set target percentage
+}
 ```
 
 ### Dashboard Enhancements
 
+**1. Service Breakdown Update**
+- Show COURSE_ENROLLMENT in the breakdown with actual usage
+- If not in target mix, show as "Other Revenue" section
+
+**2. Add Revenue Split Card**
+Show a summary of revenue sources:
 ```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  INVESTOR RELATIONS DASHBOARD                              [Set Targets]    │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐           │
-│  │ MRR Target  │ │ Current MRR │ │ Total       │ │ Monthly     │           │
-│  │ $2,000      │ │ $45         │ │ Talents     │ │ Active      │           │
-│  │ 64% to goal │ │ 2,225 cr    │ │ 269         │ │ 12 talents  │           │
-│  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘           │
-│                                                                             │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐           │
-│  │ Credits     │ │ Active VCs  │ │ Investors   │ │ MoM Growth  │           │
-│  │ Used        │ │ 12          │ │ 28          │ │ +15%        │           │
-│  │ 2,225       │ │             │ │             │ │             │           │
-│  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘           │
-│                                                                             │
-│  ┌──────────────────────────────────────────────────────────────────────┐  │
-│  │  SERVICE-WISE BREAKDOWN (Actual vs Target)                          │  │
-│  │                                                                      │  │
-│  │  AI Agent Chat    70 / 3,000 cr   ██░░░░░░░░░░░░░  2.3%             │  │
-│  │  Job Application  2,575 / 15,000  ██████████░░░░░  17.2%            │  │
-│  │  Job Match Score  50 / 1,500 cr   █░░░░░░░░░░░░░░  3.3%             │  │
-│  │  Salary Analysis  100 / 800 cr    ████░░░░░░░░░░░  12.5%            │  │
-│  │  ...                                                                 │  │
-│  └──────────────────────────────────────────────────────────────────────┘  │
-│                                                                             │
-│  ┌──────────────────────────────────────────────────────────────────────┐  │
-│  │  HISTORICAL PERFORMANCE (Last 6 Months)                             │  │
-│  │                                                                      │  │
-│  │  Month      Target   Actual   Achievement   Growth                  │  │
-│  │  Jan 2026   $2,000   $1,200   60%           -                       │  │
-│  │  Feb 2026   $2,500   -        In Progress   -                       │  │
-│  └──────────────────────────────────────────────────────────────────────┘  │
-│                                                                             │
-│  [📊 Close Month & Save Snapshot]                                          │
-└─────────────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────┐
+│  Revenue by Category                            │
+│                                                 │
+│  AI Services    $42  ████████████████████ 93%  │
+│  Course Sales   $3   ██                   7%   │
+│                                                 │
+│  Total MRR: $45                                │
+└─────────────────────────────────────────────────┘
 ```
 
----
+**3. Handle Dynamic Pricing**
+Unlike services with fixed credit costs, courses have variable prices. The system will:
+- Track actual credits consumed (already working)
+- Show usage count (number of course enrollments)
+- Not calculate "usage target" since pricing varies
 
-## Implementation Details
+### Implementation
 
-### 1. Fix Credit Query (Both transaction types)
-Update dashboard to include both `service_usage` and `usage` transaction types:
-
-```typescript
-const { data, error } = await supabase
-  .from("credit_transactions")
-  .select("amount, service_type, talent_id")
-  .in("transaction_type", ["service_usage", "usage"])
-  .gte("created_at", startOfMonth.toISOString());
-```
-
-### 2. Add Talent Metrics Queries
-```typescript
-// Total talents
-const { count: totalTalents } = await supabase
-  .from("talents")
-  .select("*", { count: "exact", head: true });
-
-// Monthly active talents (distinct users who used credits this month)
-const { data: activeData } = await supabase
-  .from("credit_transactions")
-  .select("talent_id")
-  .in("transaction_type", ["service_usage", "usage"])
-  .gte("created_at", startOfMonth.toISOString());
-
-const monthlyActiveTalents = new Set(activeData?.map(d => d.talent_id)).size;
-```
-
-### 3. Close Month Function
-Add a "Close Month" button that:
-1. Saves current metrics to `ir_monthly_targets` (actual_mrr_usd, actual_credits_consumed, etc.)
-2. Creates a snapshot in `ir_metrics_snapshots`
-3. Marks the month as closed (is_closed = true)
-
-### 4. Historical Performance Table
-Show past months with target vs actual comparison:
-- Fetches all `ir_monthly_targets` with `is_closed = true`
-- Calculates achievement percentage
-- Shows MoM growth
-
----
-
-## Files to Modify
+**Files to Modify:**
 
 | File | Changes |
 |------|---------|
-| Database migration | Add new columns to ir_monthly_targets |
-| `src/components/dashboard/ir/IRDashboard.tsx` | Fix credit query, add talent metrics, add historical table |
-| `src/components/dashboard/ir/MRRTargetManager.tsx` | Add "Close Month" functionality |
-| `src/lib/irConfig.ts` | Add helper for calculating MoM growth |
+| `src/lib/irConfig.ts` | Add COURSE_ENROLLMENT to SERVICE_COSTS, LABELS, and optionally DEFAULT_SERVICE_MIX |
+| `src/components/dashboard/ir/IRDashboard.tsx` | Show all service types including COURSE_ENROLLMENT in breakdown |
+| `src/components/dashboard/ir/MRRTargetManager.tsx` | Add COURSE_ENROLLMENT to configurable mix (optional target) |
 
----
+**Code Changes:**
 
-## Technical Implementation
-
-### Database Migration
-```sql
--- Add actuals tracking to monthly targets
-ALTER TABLE ir_monthly_targets 
-ADD COLUMN IF NOT EXISTS actual_mrr_usd DECIMAL(12,2),
-ADD COLUMN IF NOT EXISTS actual_credits_consumed INTEGER,
-ADD COLUMN IF NOT EXISTS total_talents INTEGER,
-ADD COLUMN IF NOT EXISTS active_talents INTEGER,
-ADD COLUMN IF NOT EXISTS is_closed BOOLEAN DEFAULT false,
-ADD COLUMN IF NOT EXISTS closed_at TIMESTAMPTZ,
-ADD COLUMN IF NOT EXISTS service_actuals JSONB;
-```
-
-### New Dashboard Cards
-1. **Total Talents** - Count from talents table
-2. **Monthly Active Talents** - Distinct talent_ids from credit_transactions this month
-3. **MoM Growth** - Compare current vs last month's closed data
-
-### Service Breakdown Enhancement
-Show actual usage vs target for each service:
-- Pull actual from credit_transactions (both transaction types)
-- Compare against service_mix targets
-- Show progress bar and percentage
-
-### Historical Table Component
-New section showing past months:
 ```typescript
-interface MonthlyResult {
-  month: string;
-  mrrTarget: number;
-  actualMrr: number;
-  achievement: number; // percentage
-  growth: number; // vs previous month
+// irConfig.ts additions
+SERVICE_COSTS: {
+  // ... existing
+  COURSE_ENROLLMENT: 0, // Variable - shows actual usage
+}
+
+SERVICE_LABELS: {
+  // ... existing
+  COURSE_ENROLLMENT: 'Course Purchases',
+}
+
+DEFAULT_SERVICE_MIX: {
+  // ... existing
+  COURSE_ENROLLMENT: 0, // Can be set if targeting content sales
 }
 ```
 
----
+```typescript
+// IRDashboard.tsx - Show "Other" services not in mix
+const allServiceUsage = creditUsage?.byService || {};
+const unmappedServices = Object.entries(allServiceUsage)
+  .filter(([key]) => !IR_CONFIG.SERVICE_LABELS[key])
+  .map(([key, value]) => ({ service: key, credits: value }));
 
-## Summary
+// Display COURSE_ENROLLMENT and any other unmapped types
+```
 
-This enhancement will:
+### Benefits
 
-1. **Fix data accuracy** - Query both transaction types for complete picture
-2. **Add user metrics** - Total Talents & Monthly Active Talents
-3. **Enable historical tracking** - Close months and save actuals
-4. **Show growth trends** - MoM comparison with previous periods
-5. **Service-level insights** - Actual vs target breakdown per service
+1. **Complete Revenue Picture** - All credit usage visible, not just predefined services
+2. **Flexible Targeting** - Can set 0% target for courses or include them in planning
+3. **Clear Breakdown** - See exactly where revenue comes from
+4. **Future-Proof** - Any new service types automatically appear in "Other"
+
+### Summary
+
+This enhancement ensures:
+- Course enrollment credits appear in the service breakdown
+- Admins can optionally set targets for content sales
+- Total MRR includes ALL revenue sources with clear visibility
+- Dashboard shows both service revenue and content revenue separately
 
