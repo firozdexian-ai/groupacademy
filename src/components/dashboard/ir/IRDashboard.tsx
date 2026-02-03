@@ -373,6 +373,7 @@ export function IRDashboard({ onNavigate }: IRDashboardProps) {
           <div className="space-y-4">
             {serviceTargets.map((service) => {
               const actualUsage = creditUsage?.byService?.[service.service] || 0;
+              const isVariableCost = IR_CONFIG.SERVICE_COSTS[service.service] === 0;
               const serviceProgress = service.creditTarget > 0 
                 ? Math.min(100, (actualUsage / service.creditTarget) * 100) 
                 : 0;
@@ -382,18 +383,41 @@ export function IRDashboard({ onNavigate }: IRDashboardProps) {
                   <div className="flex items-center justify-between text-sm">
                     <span className="font-medium">{service.label}</span>
                     <span className="text-muted-foreground">
-                      {actualUsage.toLocaleString()} / {service.creditTarget.toLocaleString()} credits
+                      {actualUsage.toLocaleString()} {isVariableCost ? 'credits' : `/ ${service.creditTarget.toLocaleString()} credits`}
                     </span>
                   </div>
                   <div className="flex items-center gap-4">
-                    <Progress value={serviceProgress} className="flex-1 h-2" />
+                    <Progress value={isVariableCost ? (actualUsage > 0 ? 100 : 0) : serviceProgress} className="flex-1 h-2" />
                     <span className="text-xs text-muted-foreground w-20 text-right">
-                      {serviceProgress.toFixed(1)}%
+                      {isVariableCost ? (actualUsage > 0 ? 'Active' : '-') : `${serviceProgress.toFixed(1)}%`}
                     </span>
                   </div>
                 </div>
               );
             })}
+            
+            {/* Show unmapped services (not in config but have usage) */}
+            {(() => {
+              const unmappedServices = Object.entries(creditUsage?.byService || {})
+                .filter(([key]) => !IR_CONFIG.SERVICE_LABELS[key as keyof typeof IR_CONFIG.SERVICE_LABELS])
+                .filter(([, value]) => value > 0);
+              
+              if (unmappedServices.length === 0) return null;
+              
+              return (
+                <>
+                  <div className="border-t pt-4 mt-4">
+                    <p className="text-sm font-medium text-muted-foreground mb-3">Other Revenue Sources</p>
+                    {unmappedServices.map(([service, credits]) => (
+                      <div key={service} className="flex items-center justify-between text-sm py-1">
+                        <span className="capitalize">{service.replace(/_/g, ' ').toLowerCase()}</span>
+                        <span className="text-muted-foreground">{credits.toLocaleString()} credits</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              );
+            })()}
           </div>
           
           <Button 
