@@ -6,6 +6,7 @@ import {
   BookOpen,
   Lightbulb,
   GraduationCap,
+  Heart,
   LucideIcon,
 } from "lucide-react";
 
@@ -98,6 +99,17 @@ export const AI_AGENTS: AIAgent[] = [
     iconColor: "text-cyan-600",
     expertise: ["University Selection", "Visa Guidance", "Scholarships", "Country Comparison"],
     context: "You are an expert Study Abroad Advisor. Help users choose universities, navigate visa processes, and find scholarships for international education.",
+  },
+  {
+    id: "mental-wellness-coach",
+    name: "Mental Wellness Coach",
+    shortName: "Wellness",
+    description: "Manage stress and find balance",
+    icon: Heart,
+    bgColor: "bg-pink-500/10",
+    iconColor: "text-pink-600",
+    expertise: ["Stress Management", "Mindfulness", "Work-Life Balance", "Burnout Prevention"],
+    context: "You are a Mental Wellness Coach. Help users manage work stress and find balance.",
   },
 ];
 
