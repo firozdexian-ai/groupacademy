@@ -23,6 +23,7 @@ export const IR_CONFIG = {
     IELTS_MOCK: CREDIT_CONFIG.SERVICES.IELTS_MOCK.cost,
     STUDY_ABROAD_ROADMAP: CREDIT_CONFIG.SERVICES.STUDY_ABROAD_ROADMAP.cost,
     PORTFOLIO: CREDIT_CONFIG.SERVICES.PORTFOLIO.cost,
+    COURSE_ENROLLMENT: 0, // Variable cost (depends on course price)
   } as const,
   
   // Default service mix percentages (configurable per target)
@@ -37,6 +38,7 @@ export const IR_CONFIG = {
     IELTS_MOCK: 3,
     STUDY_ABROAD_ROADMAP: 3,
     PORTFOLIO: 1,
+    COURSE_ENROLLMENT: 0, // Can be set if targeting content sales
   } as const,
   
   // Service display names
@@ -51,6 +53,7 @@ export const IR_CONFIG = {
     IELTS_MOCK: 'IELTS Mock Test',
     STUDY_ABROAD_ROADMAP: 'Study Abroad Roadmap',
     PORTFOLIO: 'Digital Portfolio',
+    COURSE_ENROLLMENT: 'Course Purchases',
   } as const,
   
   // Investor status options
