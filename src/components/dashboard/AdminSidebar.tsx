@@ -33,6 +33,8 @@ import {
   Settings,
   Megaphone,
   Target,
+  Landmark,
+  Mail,
 } from "lucide-react";
 import {
   Sidebar,
@@ -139,6 +141,18 @@ const navGroups: NavGroup[] = [
       { title: "Agent Sessions", icon: MessageSquare, value: "agent-sessions" },
       { title: "Credits Manager", icon: Coins, value: "credits" },
       { title: "Notifications", icon: Bell, value: "notifications" },
+    ],
+  },
+  {
+    title: "Investor Relations",
+    icon: Landmark,
+    roles: ["admin"],
+    items: [
+      { title: "IR Dashboard", icon: LayoutDashboard, value: "ir-dashboard" },
+      { title: "MRR Targets", icon: Target, value: "ir-targets" },
+      { title: "VC Firms", icon: Building2, value: "ir-vcs" },
+      { title: "Investors", icon: Users, value: "ir-investors" },
+      { title: "Email Updates", icon: Mail, value: "ir-emails" },
     ],
   },
   {

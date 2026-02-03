@@ -65,3 +65,6 @@ verify_jwt = false
 
 [functions.generate-study-roadmap]
 verify_jwt = false
+
+[functions.generate-investor-email]
+verify_jwt = false

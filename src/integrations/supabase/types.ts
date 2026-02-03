@@ -1738,6 +1738,297 @@ export type Database = {
         }
         Relationships: []
       }
+      ir_email_communications: {
+        Row: {
+          ai_generated: boolean | null
+          click_count: number | null
+          content: string | null
+          created_at: string | null
+          email_type: string
+          id: string
+          investor_id: string | null
+          open_count: number | null
+          sent_at: string | null
+          sent_by: string | null
+          status: string | null
+          subject: string
+        }
+        Insert: {
+          ai_generated?: boolean | null
+          click_count?: number | null
+          content?: string | null
+          created_at?: string | null
+          email_type: string
+          id?: string
+          investor_id?: string | null
+          open_count?: number | null
+          sent_at?: string | null
+          sent_by?: string | null
+          status?: string | null
+          subject: string
+        }
+        Update: {
+          ai_generated?: boolean | null
+          click_count?: number | null
+          content?: string | null
+          created_at?: string | null
+          email_type?: string
+          id?: string
+          investor_id?: string | null
+          open_count?: number | null
+          sent_at?: string | null
+          sent_by?: string | null
+          status?: string | null
+          subject?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ir_email_communications_investor_id_fkey"
+            columns: ["investor_id"]
+            isOneToOne: false
+            referencedRelation: "ir_investors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ir_investor_interactions: {
+        Row: {
+          content: string | null
+          created_at: string | null
+          created_by: string | null
+          follow_up_date: string | null
+          follow_up_needed: boolean | null
+          id: string
+          interaction_type: string
+          investor_id: string | null
+          key_points: string[] | null
+          sentiment: string | null
+          subject: string | null
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          follow_up_date?: string | null
+          follow_up_needed?: boolean | null
+          id?: string
+          interaction_type: string
+          investor_id?: string | null
+          key_points?: string[] | null
+          sentiment?: string | null
+          subject?: string | null
+        }
+        Update: {
+          content?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          follow_up_date?: string | null
+          follow_up_needed?: boolean | null
+          id?: string
+          interaction_type?: string
+          investor_id?: string | null
+          key_points?: string[] | null
+          sentiment?: string | null
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ir_investor_interactions_investor_id_fkey"
+            columns: ["investor_id"]
+            isOneToOne: false
+            referencedRelation: "ir_investors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ir_investors: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          full_name: string
+          id: string
+          investment_stage_pref: string | null
+          investor_interests: string[] | null
+          last_contacted_at: string | null
+          last_feedback_summary: string | null
+          linkedin_url: string | null
+          notes: string | null
+          phone: string | null
+          relationship_summary: string | null
+          subscription_status: string | null
+          title: string | null
+          twitter_handle: string | null
+          updated_at: string | null
+          vc_firm_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          full_name: string
+          id?: string
+          investment_stage_pref?: string | null
+          investor_interests?: string[] | null
+          last_contacted_at?: string | null
+          last_feedback_summary?: string | null
+          linkedin_url?: string | null
+          notes?: string | null
+          phone?: string | null
+          relationship_summary?: string | null
+          subscription_status?: string | null
+          title?: string | null
+          twitter_handle?: string | null
+          updated_at?: string | null
+          vc_firm_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          full_name?: string
+          id?: string
+          investment_stage_pref?: string | null
+          investor_interests?: string[] | null
+          last_contacted_at?: string | null
+          last_feedback_summary?: string | null
+          linkedin_url?: string | null
+          notes?: string | null
+          phone?: string | null
+          relationship_summary?: string | null
+          subscription_status?: string | null
+          title?: string | null
+          twitter_handle?: string | null
+          updated_at?: string | null
+          vc_firm_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ir_investors_vc_firm_id_fkey"
+            columns: ["vc_firm_id"]
+            isOneToOne: false
+            referencedRelation: "ir_vc_firms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ir_metrics_snapshots: {
+        Row: {
+          arr_usd: number | null
+          created_at: string | null
+          id: string
+          mom_growth_rate: number | null
+          mrr_usd: number | null
+          paying_users: number | null
+          service_breakdown: Json | null
+          snapshot_date: string
+          total_credits_consumed: number | null
+          total_users: number | null
+        }
+        Insert: {
+          arr_usd?: number | null
+          created_at?: string | null
+          id?: string
+          mom_growth_rate?: number | null
+          mrr_usd?: number | null
+          paying_users?: number | null
+          service_breakdown?: Json | null
+          snapshot_date?: string
+          total_credits_consumed?: number | null
+          total_users?: number | null
+        }
+        Update: {
+          arr_usd?: number | null
+          created_at?: string | null
+          id?: string
+          mom_growth_rate?: number | null
+          mrr_usd?: number | null
+          paying_users?: number | null
+          service_breakdown?: Json | null
+          snapshot_date?: string
+          total_credits_consumed?: number | null
+          total_users?: number | null
+        }
+        Relationships: []
+      }
+      ir_monthly_targets: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          id: string
+          month: string
+          mrr_target_usd: number
+          notes: string | null
+          service_mix: Json | null
+          target_churn_rate: number | null
+          target_paying_users: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          month: string
+          mrr_target_usd: number
+          notes?: string | null
+          service_mix?: Json | null
+          target_churn_rate?: number | null
+          target_paying_users?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          month?: string
+          mrr_target_usd?: number
+          notes?: string | null
+          service_mix?: Json | null
+          target_churn_rate?: number | null
+          target_paying_users?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      ir_vc_firms: {
+        Row: {
+          created_at: string | null
+          id: string
+          linkedin_url: string | null
+          logo_url: string | null
+          name: string
+          notes: string | null
+          sector_focus: string[] | null
+          stage_focus: string[] | null
+          status: string | null
+          updated_at: string | null
+          website: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          linkedin_url?: string | null
+          logo_url?: string | null
+          name: string
+          notes?: string | null
+          sector_focus?: string[] | null
+          stage_focus?: string[] | null
+          status?: string | null
+          updated_at?: string | null
+          website?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          linkedin_url?: string | null
+          logo_url?: string | null
+          name?: string
+          notes?: string | null
+          sector_focus?: string[] | null
+          stage_focus?: string[] | null
+          status?: string | null
+          updated_at?: string | null
+          website?: string | null
+        }
+        Relationships: []
+      }
       job_analytics: {
         Row: {
           clicked_at: string | null

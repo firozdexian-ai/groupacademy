@@ -38,6 +38,11 @@ import { ContentOutreachManager } from "@/components/dashboard/ContentOutreachMa
 import { ServiceOutreachManager } from "@/components/dashboard/ServiceOutreachManager";
 import { MarketingAnalytics } from "@/components/dashboard/MarketingAnalytics";
 import { FeedPostsManager } from "@/components/dashboard/FeedPostsManager";
+import { IRDashboard } from "@/components/dashboard/ir/IRDashboard";
+import { MRRTargetManager } from "@/components/dashboard/ir/MRRTargetManager";
+import { VCFirmsManager } from "@/components/dashboard/ir/VCFirmsManager";
+import { InvestorsManager } from "@/components/dashboard/ir/InvestorsManager";
+import { EmailComposer } from "@/components/dashboard/ir/EmailComposer";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -96,6 +101,13 @@ const tabAccessMap: Record<string, AppRole[]> = {
   "agent-sessions": ["admin"],
   credits: ["admin"],
   notifications: ["admin"],
+  
+  // Investor Relations - Admin only
+  "ir-dashboard": ["admin"],
+  "ir-targets": ["admin"],
+  "ir-vcs": ["admin"],
+  "ir-investors": ["admin"],
+  "ir-emails": ["admin"],
   
   // Platform Config - Admin only
   codes: ["admin"],
@@ -296,6 +308,16 @@ const Dashboard = () => {
         return <ServiceOutreachManager />;
       case "analytics":
         return <MarketingAnalytics />;
+      case "ir-dashboard":
+        return <IRDashboard onNavigate={setActiveTab} />;
+      case "ir-targets":
+        return <MRRTargetManager />;
+      case "ir-vcs":
+        return <VCFirmsManager />;
+      case "ir-investors":
+        return <InvestorsManager />;
+      case "ir-emails":
+        return <EmailComposer />;
       default:
         return userRole === "talent_exec" ? <CVOutreachGenerator /> : <DashboardOverview />;
     }
@@ -340,6 +362,11 @@ const Dashboard = () => {
       "learner-progress": "Learner Progress",
       enrollments: "Enrollments",
       analytics: "Marketing Analytics",
+      "ir-dashboard": "Investor Relations",
+      "ir-targets": "MRR Targets",
+      "ir-vcs": "VC Firms",
+      "ir-investors": "Investors",
+      "ir-emails": "Email Updates",
     };
     return titles[activeTab] || "Dashboard";
   };
