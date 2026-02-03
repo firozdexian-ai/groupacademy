@@ -1,83 +1,188 @@
-# AI Agent Network - Implementation Status
 
-## ✅ Completed (Phase 1 & 2)
 
-### Database Extensions
-- [x] Added new columns to `ai_agents` table:
-  - `avatar_url`, `credit_cost`, `session_duration_minutes`
-  - `agent_type` (platform/company/specialized)
-  - `company_id` (FK to companies)
-  - `capabilities[]`, `personality_traits`, `sample_conversations`
-  - `total_conversations`, `average_rating`, `is_featured`, `category`
-- [x] Created `company_agents` table for B2B sponsorship
-- [x] Added RLS policies for agents and company_agents
-- [x] Created `increment_agent_conversations()` function
+# Add Mental Wellness AI Agent
 
-### UI Transformation
-- [x] Created `AgentAvatar.tsx` - Humanized avatar with online status & company badge
-- [x] Created `AgentListItem.tsx` - Messaging-style conversation row
-- [x] Created `AgentFilters.tsx` - Category tabs + search
-- [x] Redesigned `AIAgents.tsx` with:
-  - Active Sessions section (green highlight)
-  - All Agents list (messaging style)
-  - Recent Chats section
-  - Category filtering (Career, Education, Finance, Wellness, Company)
-  - Search functionality
+## Overview
 
-### Dynamic Pricing
-- [x] Updated `useAgentChat.ts` to fetch `credit_cost` and `session_duration_minutes` from DB
-- [x] Updated edge function to read `system_prompt` from database
-- [x] Fallback to static prompts if DB lookup fails
+Add a specialized Mental Wellness AI Agent to the platform that provides:
+- Stress management techniques
+- Mindfulness exercises  
+- Work-life balance guidance
+- Career burnout prevention
+- Non-clinical emotional support (with clear disclaimers)
 
 ---
 
-## 🔜 Pending (Future Phases)
+## Implementation Steps
 
-### Phase 3: Specialized Agents
-- [ ] Add Mental Wellness Agent (non-career)
-- [ ] Create Image Generation edge function (`ai-agent-image`)
-- [ ] Test image generation with `gemini-2.5-flash-image` model
+### Step 1: Add to Static Constants (Fallback)
 
-### Phase 4: B2B Company Agent System
-- [ ] Add Company Agent section to `AIAgentsManager.tsx`
-- [ ] Company agent creation dialog
-- [ ] Credit budget tracking for companies
-- [ ] Company branding in user-facing UI
+**File: `src/lib/constants/agents.ts`**
 
-### Phase 5: Polish & Launch
-- [ ] Agent ratings system
-- [ ] Conversation analytics dashboard
-- [ ] Performance optimization
-- [ ] User testing
+Add the Mental Wellness agent to the `AI_AGENTS` array:
 
----
+```typescript
+import { Heart } from "lucide-react"; // Add to imports
 
-## Architecture Notes
-
-### Agent Source of Truth
-Agents are now **database-driven** via the `ai_agents` table. The static `src/lib/constants/agents.ts` serves as a fallback for icons/colors until the DB is fully populated with avatars.
-
-### Credit Flow
-1. User clicks agent → Check for active session
-2. If no session → Show credit gate modal with agent's `credit_cost`
-3. On confirm → Deduct credits via `deduct_credits()` RPC
-4. Start session with dynamic `session_duration_minutes`
-
-### Edge Function
-- Reads `system_prompt` from `ai_agents` table
-- Falls back to `FALLBACK_PROMPTS` if agent not in DB
-- Uses service role key for DB access
+{
+  id: "mental-wellness-coach",
+  name: "Mental Wellness Coach",
+  shortName: "Wellness",
+  description: "Manage stress and find balance",
+  icon: Heart,
+  bgColor: "bg-pink-500/10",
+  iconColor: "text-pink-600",
+  expertise: ["Stress Management", "Mindfulness", "Work-Life Balance", "Burnout Prevention"],
+  context: "You are a Mental Wellness Coach. Help users manage work stress and find balance.",
+}
+```
 
 ---
 
-## Files Modified/Created
+### Step 2: Insert Agent into Database
 
-| File | Action | Status |
-|------|--------|--------|
-| `src/pages/app/AIAgents.tsx` | Redesigned | ✅ |
-| `src/components/ai-agents/AgentAvatar.tsx` | Created | ✅ |
-| `src/components/ai-agents/AgentListItem.tsx` | Created | ✅ |
-| `src/components/ai-agents/AgentFilters.tsx` | Created | ✅ |
-| `src/hooks/useAgentChat.ts` | Modified | ✅ |
-| `supabase/functions/ai-agent-chat/index.ts` | Modified | ✅ |
-| Database migration | Applied | ✅ |
+**SQL Migration:**
+
+```sql
+INSERT INTO ai_agents (
+  agent_key,
+  name,
+  description,
+  system_prompt,
+  expertise_areas,
+  icon,
+  color,
+  bg_color,
+  credit_cost,
+  category,
+  capabilities,
+  display_order,
+  is_active,
+  is_featured
+) VALUES (
+  'mental-wellness-coach',
+  'Mental Wellness Coach',
+  'Manage stress and find balance in your professional life',
+  'YOUR COMPREHENSIVE SYSTEM PROMPT HERE',
+  ARRAY['Stress Management', 'Mindfulness', 'Work-Life Balance', 'Burnout Prevention'],
+  'Heart',
+  'text-pink-600',
+  'bg-pink-500/10',
+  10,
+  'wellness',
+  ARRAY['text'],
+  8,
+  true,
+  true
+);
+```
+
+---
+
+### Step 3: Comprehensive System Prompt
+
+The system prompt will include:
+
+```
+You are Mira, a Mental Wellness Coach AI at GroUp Academy, specializing in workplace wellbeing and professional mental health support for individuals in Bangladesh.
+
+IMPORTANT DISCLAIMER:
+You provide general wellness guidance and coping strategies, NOT clinical mental health treatment. For serious mental health concerns, always recommend consulting a licensed professional (psychiatrist, psychologist, or counselor).
+
+YOUR EXPERTISE:
+- Workplace stress management and burnout prevention
+- Mindfulness and meditation techniques
+- Work-life balance strategies
+- Managing career anxiety and imposter syndrome
+- Building resilience and emotional intelligence
+- Time management for reduced stress
+- Healthy boundary setting at work
+- Sleep hygiene for professionals
+
+CONVERSATION STYLE:
+- Be warm, empathetic, and non-judgmental
+- Use calming, supportive language
+- Ask about their feelings before offering solutions
+- Validate their experiences ("That sounds really challenging...")
+- Offer practical, actionable techniques
+- Share simple breathing exercises when appropriate
+- Occasionally use Bangla phrases for connection (e.g., "আপনি একা নন", "সব ঠিক হয়ে যাবে")
+
+TECHNIQUES TO SHARE:
+- 4-7-8 breathing technique
+- 5-4-3-2-1 grounding exercise
+- Progressive muscle relaxation
+- Pomodoro technique for work stress
+- Gratitude journaling prompts
+- Setting work boundaries scripts
+
+RESPONSE FORMAT:
+- Keep responses warm and concise (2-3 paragraphs)
+- End with a gentle check-in question
+- Offer one practical technique per response
+- Include self-care reminders when appropriate
+
+SAFETY PROTOCOLS:
+- If user mentions self-harm, severe depression, or crisis, immediately provide:
+  - Kaan Pete Roi (Bangladesh): 01779-554391
+  - National Mental Health Helpline: 16789
+  - Encourage speaking with a trusted person
+- Do not diagnose conditions
+- Do not recommend stopping medications
+```
+
+---
+
+### Step 4: Add Fallback Prompt to Edge Function
+
+**File: `supabase/functions/ai-agent-chat/index.ts`**
+
+Add to `FALLBACK_PROMPTS` object:
+
+```typescript
+"mental-wellness-coach": `You are Mira, a Mental Wellness Coach AI at GroUp Academy...
+[abbreviated version of system prompt for fallback]`
+```
+
+---
+
+## Technical Details
+
+| Item | Value |
+|------|-------|
+| Agent Key | `mental-wellness-coach` |
+| Category | `wellness` |
+| Icon | `Heart` (lucide-react) |
+| Color | Pink (`text-pink-600`, `bg-pink-500/10`) |
+| Credit Cost | 10 credits (standard) |
+| Capabilities | `['text']` |
+
+---
+
+## Files to Modify
+
+| File | Change |
+|------|--------|
+| `src/lib/constants/agents.ts` | Add Mental Wellness Coach to AI_AGENTS array |
+| `supabase/functions/ai-agent-chat/index.ts` | Add fallback prompt |
+| Database migration | INSERT new agent row |
+
+---
+
+## Safety Considerations
+
+1. **Clear Disclaimers**: The agent will always clarify it's not a replacement for professional help
+2. **Crisis Resources**: Bangladesh mental health helpline numbers included
+3. **Escalation Protocol**: System prompt includes safety protocols for concerning messages
+4. **Non-Clinical Focus**: Focuses on workplace wellness, not clinical treatment
+
+---
+
+## Expected Outcome
+
+After implementation:
+- Mental Wellness Coach appears in "Wellness" category filter
+- Users can chat about stress, burnout, work-life balance
+- Agent provides practical mindfulness techniques
+- Safety protocols redirect crisis situations to professional help
+
