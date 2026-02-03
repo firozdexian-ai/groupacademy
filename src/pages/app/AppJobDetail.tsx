@@ -221,7 +221,13 @@ export default function AppJobDetail() {
 
   const handleApply = () => {
     if (job?.application_type === "link" && job.application_url) {
-      window.open(job.application_url, "_blank");
+      // Validate URL before opening to handle misconfigured jobs gracefully
+      try {
+        new URL(job.application_url);
+        window.open(job.application_url, "_blank");
+      } catch {
+        toast.error("This job has an invalid application link. Please contact support.");
+      }
     } else {
       navigate(`/app/jobs/${id}/apply`);
     }

@@ -507,7 +507,7 @@ const JobForm = ({
     }
   };
 
-  // FIX: ADDED EMAIL VALIDATION HERE
+  // Validates job form data before submission
   const validateForm = () => {
     if (!formData.title?.trim()) {
       toast.error("Job title is required");
@@ -518,15 +518,25 @@ const JobForm = ({
       return false;
     }
 
-    // Critical Fix: Require email if application_type is 'email'
+    // Require email if application_type is 'email'
     if (formData.application_type === "email" && !formData.application_email?.trim()) {
       toast.error("Employer email is required for email applications");
       return false;
     }
 
-    if (formData.application_type === "link" && !formData.application_url?.trim()) {
-      toast.error("Application URL is required for link applications");
-      return false;
+    // Require valid URL if application_type is 'link'
+    if (formData.application_type === "link") {
+      if (!formData.application_url?.trim()) {
+        toast.error("Application URL is required for link applications");
+        return false;
+      }
+      // Validate URL format
+      try {
+        new URL(formData.application_url);
+      } catch {
+        toast.error("Please enter a valid URL (must start with http:// or https://)");
+        return false;
+      }
     }
     return true;
   };
