@@ -1,365 +1,171 @@
 
+# Pre-Publication System Audit Report
 
-# AI Study Abroad Roadmap - Personalized Application Planner
-
-## Problem Analysis
-
-Study abroad seekers face these key pain points:
-
-1. **Information Overload** - Too many countries, universities, programs to research
-2. **No Clear Timeline** - Don't know when to start, what deadlines matter
-3. **Document Confusion** - Unclear what documents are needed and when
-4. **Financial Uncertainty** - Budget planning, scholarship opportunities unclear
-5. **Generic Advice** - Most resources aren't personalized to their profile
-
-## Solution: AI-Powered Study Abroad Roadmap
-
-A premium credit-gated service that generates a **fully personalized 12-month application roadmap** based on the user's profile, goals, and constraints.
+## Executive Summary
+Found **3 bugs**, **4 security warnings**, and **6 improvement areas** that should be addressed before publishing.
 
 ---
 
-## Feature Overview
+## Critical Bugs (Must Fix)
 
-### User Flow
+### BUG 1: Outdated Intake Date Options
+**File:** `src/components/abroad/RoadmapIntakeForm.tsx` (lines 46-52)
+**Issue:** The Study Abroad Roadmap intake options include "Fall 2025" but the current date is February 2026, making this a past date.
 
-```text
-┌─────────────────────────────────────────────────────────────────┐
-│  1. ENTRY POINT (from CareerAbroad or StudyAbroad page)         │
-│     "Get My Personalized Roadmap" → 100 credits                 │
-├─────────────────────────────────────────────────────────────────┤
-│  2. INTAKE FORM (multi-step wizard)                             │
-│     • Target Countries (1-3 selections)                         │
-│     • Degree Level (Bachelor/Master/PhD)                        │
-│     • Field of Study preference                                 │
-│     • Target Intake (Fall 2026, Spring 2027, etc.)              │
-│     • Budget Range (Low/Medium/High/Scholarship-dependent)      │
-│     • Current IELTS/TOEFL score (or "Not taken yet")            │
-│     • Profile source: Use existing CV OR fill form              │
-├─────────────────────────────────────────────────────────────────┤
-│  3. AI PROCESSING                                               │
-│     • Analyze CV/profile for eligibility signals                │
-│     • Match against country requirements                        │
-│     • Generate month-by-month timeline                          │
-│     • Identify scholarship opportunities                        │
-│     • Create document checklist                                 │
-├─────────────────────────────────────────────────────────────────┤
-│  4. ROADMAP OUTPUT                                              │
-│     • Interactive timeline view                                 │
-│     • Downloadable PDF report                                   │
-│     • Recommended universities (3-5)                            │
-│     • Month-by-month action items                               │
-│     • Document checklist with deadlines                         │
-│     • Estimated budget breakdown                                │
-│     • Scholarship matches                                       │
-└─────────────────────────────────────────────────────────────────┘
+**Current Code:**
+```typescript
+const INTAKE_OPTIONS = [
+  "Fall 2025",    // PAST - should be removed
+  "Spring 2026",  // Current semester
+  "Fall 2026",
+  "Spring 2027",
+  "Fall 2027",
+];
+```
+
+**Fix:** Update to dynamically generate options or update static list:
+```typescript
+const INTAKE_OPTIONS = [
+  "Fall 2026",
+  "Spring 2027", 
+  "Fall 2027",
+  "Spring 2028",
+  "Fall 2028",
+];
 ```
 
 ---
 
-## Roadmap Output Structure
-
-The AI will generate a comprehensive report containing:
-
-### 1. Profile Assessment Summary
-- Education match score for target country
-- Skills/experience alignment with field
-- Identified strengths and gaps
-
-### 2. Recommended Universities (3-5)
-For each university:
-- University name and ranking
-- Program name and duration
-- Tuition estimate
-- Why it's a good fit for this profile
-- Application deadline
-- Acceptance rate tier (Reach/Target/Safety)
-
-### 3. 12-Month Application Timeline
-Month-by-month breakdown:
-- **Month 1-2**: Research & Test Prep
-- **Month 3-4**: IELTS/TOEFL preparation
-- **Month 5**: Take standardized tests
-- **Month 6-7**: Document preparation (SOP, LORs)
-- **Month 8-9**: Application submissions
-- **Month 10-11**: Interview preparation
-- **Month 12**: Decision & Visa process
-
-### 4. Document Checklist
-- Academic transcripts
-- IELTS/TOEFL scores
-- Statement of Purpose (SOP)
-- Letters of Recommendation
-- CV/Resume
-- Portfolio (if applicable)
-- Financial documents
-- Passport copy
-
-### 5. Budget Breakdown
-- Tuition range
-- Living expenses estimate
-- Application fees
-- Test fees
-- Visa costs
-- Travel costs
-- Emergency fund recommendation
-
-### 6. Scholarship Opportunities
-Matched scholarships based on:
-- Nationality
-- Field of study
-- Academic performance
-- Financial need
-
----
-
-## Technical Implementation
-
-### New Files to Create
-
-| File | Purpose |
-|------|---------|
-| `src/pages/app/StudyAbroadRoadmap.tsx` | Main setup wizard page |
-| `src/pages/app/StudyAbroadRoadmapResults.tsx` | Results display page |
-| `src/components/abroad/RoadmapIntakeForm.tsx` | Multi-step intake form |
-| `src/components/abroad/RoadmapTimeline.tsx` | Visual timeline component |
-| `src/components/abroad/RoadmapPDFTemplate.tsx` | PDF generation template |
-| `supabase/functions/generate-study-roadmap/index.ts` | AI edge function |
-
-### Database Changes
-
-New table: `study_abroad_roadmaps`
-
-```sql
-CREATE TABLE study_abroad_roadmaps (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  talent_id UUID REFERENCES talents(id),
-  user_id UUID REFERENCES auth.users(id),
-  email TEXT NOT NULL,
-  full_name TEXT,
-  
-  -- Intake preferences
-  target_countries TEXT[] NOT NULL,
-  degree_level TEXT NOT NULL,
-  field_of_study TEXT,
-  target_intake TEXT,
-  budget_level TEXT,
-  ielts_score DECIMAL(2,1),
-  has_taken_ielts BOOLEAN DEFAULT false,
-  
-  -- Profile data snapshot
-  cv_text TEXT,
-  education_summary JSONB,
-  experience_summary JSONB,
-  
-  -- AI Output
-  roadmap_result JSONB,
-  status TEXT DEFAULT 'pending',
-  
-  created_at TIMESTAMPTZ DEFAULT now(),
-  completed_at TIMESTAMPTZ
-);
-```
-
-### Credit Pricing
-
-Add to `creditPricing.ts`:
+### BUG 2: Incomplete TODO in Production Code
+**File:** `src/pages/app/AIAgents.tsx` (line 104)
+**Issue:** Company agent name is hardcoded as `null` with a TODO comment.
 
 ```typescript
-STUDY_ABROAD_ROADMAP: {
-  name: 'AI Study Abroad Roadmap',
-  cost: 100,
-  description: 'Personalized 12-month application plan with university recommendations'
-}
+companyName: null, // TODO: Join with companies table
 ```
 
-### Edge Function: `generate-study-roadmap`
+**Fix:** Either implement the companies table join or remove the `companyName` field if not needed.
 
-AI prompt will include:
-- User's education history and GPA
-- Work experience
-- Target countries and their requirements
-- Field of study preferences
-- Budget constraints
-- Current English proficiency
+---
 
-Output structure:
+### BUG 3: Debug Console Log in Production
+**File:** `src/pages/app/StudyAbroadDetail.tsx` (line 37)
+**Issue:** Debug logging left in production code.
+
 ```typescript
-interface RoadmapResult {
-  profileSummary: {
-    strengths: string[];
-    gaps: string[];
-    overallReadiness: 'high' | 'medium' | 'low';
-  };
-  recommendedUniversities: Array<{
-    name: string;
-    country: string;
-    program: string;
-    ranking?: string;
-    tuitionRange: string;
-    fitReason: string;
-    deadline: string;
-    tier: 'reach' | 'target' | 'safety';
-  }>;
-  timeline: Array<{
-    month: number;
-    title: string;
-    tasks: string[];
-    deadline?: string;
-  }>;
-  documents: Array<{
-    name: string;
-    required: boolean;
-    deadline?: string;
-    tips: string;
-  }>;
-  budget: {
-    tuitionRange: string;
-    livingExpenses: string;
-    applicationFees: string;
-    testFees: string;
-    visaCosts: string;
-    totalEstimate: string;
-  };
-  scholarships: Array<{
-    name: string;
-    amount: string;
-    eligibility: string;
-    deadline?: string;
-  }>;
-}
+console.log("🔍 Fetching program details for ID:", id); // Debug log
 ```
 
+**Fix:** Remove or conditionally log only in development.
+
 ---
 
-## UI/UX Design
+## Security Findings (Important)
 
-### Entry Point - Add to CareerAbroad.tsx
+### SEC 1: Leaked Password Protection Disabled (WARN)
+**Finding:** Auth configuration doesn't check passwords against known breach databases.
+**Impact:** Users may set compromised passwords.
+**Fix:** Enable leaked password protection in Auth settings.
 
-New prominent card in the Career Abroad hub:
+### SEC 2: RLS Policy Always True (WARN) - 9 occurrences
+**Finding:** Some RLS policies use `USING (true)` or `WITH CHECK (true)` for INSERT/UPDATE/DELETE.
+**Tables Affected:** Multiple analytics and logging tables.
+**Impact:** These tables may allow unintended write access.
+**Fix:** Review and tighten policies to require authentication or specific conditions.
 
-```text
-┌─────────────────────────────────────────────────────────────────┐
-│  🗺️  GET YOUR PERSONALIZED ROADMAP                              │
-│                                                                 │
-│  Not sure where to start? Let AI create a step-by-step         │
-│  application plan tailored to your profile and goals.          │
-│                                                                 │
-│  ✓ University recommendations based on your profile            │
-│  ✓ 12-month timeline with deadlines                            │
-│  ✓ Document checklist                                          │
-│  ✓ Scholarship matches                                         │
-│  ✓ Budget breakdown                                            │
-│                                                                 │
-│  [Get My Roadmap - 100 Credits]                                 │
-└─────────────────────────────────────────────────────────────────┘
+### SEC 3: Function Search Path Mutable (WARN) - 2 functions
+**Finding:** Two database functions don't have `search_path` set.
+**Impact:** Potential for search path injection attacks.
+**Fix:** Add `SET search_path = 'public'` to affected functions.
+
+### SEC 4: Talent Email Exposure (ERROR)
+**Finding:** RLS policies on talents table allow access via email matching in addition to user_id.
+**Impact:** Anyone knowing a user's email could potentially access their profile data.
+**Fix:** Strengthen policies to require user_id matching only.
+
+---
+
+## UI/UX Improvements
+
+### UI 1: Mobile Tab Labels Too Long
+**File:** `src/pages/app/StudyAbroadRoadmapResults.tsx` (lines 309-331)
+**Issue:** 5 tabs in roadmap results may overflow on mobile.
+**Fix:** Icons are hidden on `sm:` breakpoint which is good, but consider tab scrolling.
+
+### UI 2: Processing State Could Show Progress
+**File:** `src/pages/app/StudyAbroadRoadmapResults.tsx`
+**Enhancement:** The "Generating Your Roadmap" state could show progress stages instead of just a spinner.
+
+---
+
+## Code Quality Issues
+
+### CQ 1: Placeholder Text Consistency
+**Files:** Multiple service setup pages
+**Issue:** Phone placeholder formats vary (`01XXXXXXXXX`, `+880XXXXXXXXX`, `01XXX-XXXXXX`).
+**Fix:** Standardize placeholder format across forms.
+
+### CQ 2: Potential React Router Warnings
+**Console:** Two deprecation warnings about future flags.
+**Fix:** Add future flags to BrowserRouter configuration:
+```typescript
+<BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
 ```
 
-### Intake Form (3-step wizard)
-
-**Step 1: Destination & Program**
-- Target countries (multi-select, max 3)
-- Degree level (Bachelor/Master/PhD)
-- Field of study (dropdown)
-- Target intake semester
-
-**Step 2: Profile & Readiness**
-- Use existing CV? (toggle)
-- Current IELTS score (optional)
-- GPA or academic standing
-- Years of work experience
-
-**Step 3: Budget & Preferences**
-- Budget level (Low/Medium/High/Scholarship-only)
-- Part-time work interest
-- Family support available
-- Specific requirements (e.g., spouse visa)
-
-### Results Page
-
-Interactive dashboard with:
-- **Timeline Tab**: Visual month-by-month roadmap
-- **Universities Tab**: Recommended schools with details
-- **Documents Tab**: Checklist with progress tracking
-- **Budget Tab**: Cost breakdown
-- **Download PDF**: Full report export
+### CQ 3: Duplicate Route Definitions
+**File:** `src/App.tsx`
+**Issue:** Blog routes are defined both at root level (`/blog`) and under `/app/learning/blog` and `/app/blog`.
+**Impact:** Minor - works but adds confusion.
 
 ---
 
-## Integration Points
+## Database Health Check Results
 
-### 1. Connect to Existing Study Abroad Advisor Agent
-- CTA: "Have questions about your roadmap? Chat with our Study Abroad Advisor"
-- Pass roadmap context to agent for follow-up conversations
-
-### 2. Connect to IELTS Prep
-- If IELTS score is low or not taken, recommend IELTS prep resources
-- "Your timeline shows IELTS in Month 3 - Start preparing now"
-
-### 3. Save to Profile
-- Store roadmap preferences in talent profile
-- Enable "Re-generate" with updated info
+| Check | Status | Notes |
+|-------|--------|-------|
+| RLS Enabled | Pass | All user tables have RLS |
+| Notifications | Pass | Uses `talent_id` correctly |
+| Credits System | Pass | UUID validation in place |
+| Study Abroad Roadmaps | Pass | New table properly configured |
 
 ---
 
-## Business Value
+## Recommended Actions (Priority Order)
 
-| Metric | Impact |
-|--------|--------|
-| **Revenue** | 100 credits per roadmap = significant monetization |
-| **Engagement** | Users return to track progress against timeline |
-| **Lead Quality** | Captures detailed study abroad intent data |
-| **Upsell Path** | Roadmap → IELTS Prep → Advisor Chat → Portfolio |
-| **Differentiation** | No competitor offers AI-personalized roadmaps |
+### High Priority (Block Publication)
+1. Fix outdated intake dates in RoadmapIntakeForm
+2. Enable leaked password protection
+3. Review and tighten permissive RLS policies on write operations
 
----
+### Medium Priority (Fix Soon After Launch)
+4. Complete company agent name join implementation
+5. Remove debug console.log statements
+6. Standardize phone placeholder formats
 
-## Implementation Phases
-
-### Phase 1: Core Feature (Week 1-2)
-- Database table and RLS policies
-- Intake form wizard (3 steps)
-- Edge function with AI prompt
-- Basic results display
-
-### Phase 2: Results Enhancement (Week 3)
-- Interactive timeline component
-- University cards with details
-- Document checklist with checkboxes
-- PDF export
-
-### Phase 3: Integration (Week 4)
-- Connect to Study Abroad Advisor agent
-- Add to CareerAbroad hub
-- Progress tracking persistence
-- Re-generate functionality
+### Low Priority (Technical Debt)
+7. Add React Router future flags
+8. Clean up duplicate blog routes
+9. Add search_path to database functions
 
 ---
 
-## Files to Create/Modify
+## Files Requiring Changes
 
-| File | Action | Description |
-|------|--------|-------------|
-| `src/pages/app/StudyAbroadRoadmap.tsx` | Create | Setup wizard page |
-| `src/pages/app/StudyAbroadRoadmapResults.tsx` | Create | Results display |
-| `src/components/abroad/RoadmapIntakeForm.tsx` | Create | Multi-step form |
-| `src/components/abroad/RoadmapTimeline.tsx` | Create | Timeline visualization |
-| `src/components/abroad/RoadmapPDFTemplate.tsx` | Create | PDF export template |
-| `supabase/functions/generate-study-roadmap/index.ts` | Create | AI analysis function |
-| `src/pages/app/CareerAbroad.tsx` | Modify | Add entry point CTA |
-| `src/lib/creditPricing.ts` | Modify | Add service pricing |
-| `src/lib/routes.ts` | Modify | Add new routes |
-| Database migration | Create | New table + RLS |
+| File | Priority | Changes |
+|------|----------|---------|
+| `src/components/abroad/RoadmapIntakeForm.tsx` | High | Update intake options |
+| `src/pages/app/StudyAbroadDetail.tsx` | Medium | Remove debug log |
+| `src/pages/app/AIAgents.tsx` | Medium | Implement company join or remove field |
+| Database migration | High | Fix function search_path |
 
 ---
 
 ## Summary
 
-This feature transforms the Study Abroad section from a **passive directory** into an **active AI career planning tool**. Users get:
+The codebase is generally well-structured with good error handling and timeout patterns. The main concerns are:
 
-1. **Clarity** - Know exactly what to do and when
-2. **Personalization** - Recommendations based on their unique profile
-3. **Confidence** - Expert-level guidance at a fraction of consultant costs
-4. **Action** - Downloadable plan they can execute immediately
+1. **Data accuracy** - Past dates showing in forms
+2. **Security hardening** - A few RLS policies need tightening
+3. **Code cleanup** - Remove TODOs and debug logs before production
 
-It aligns perfectly with GroUp Academy's mission of **AI-powered career guidance** and creates a high-value monetization opportunity while genuinely solving user pain points.
-
+Once these items are addressed, the application is ready for publication.
