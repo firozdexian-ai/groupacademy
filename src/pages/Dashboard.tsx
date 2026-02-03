@@ -29,6 +29,7 @@ import { EnrollmentsManager } from "@/components/dashboard/EnrollmentsManager";
 import { LearnerProgressManager } from "@/components/dashboard/LearnerProgressManager"; // 👈 Added Import
 import { StudyAbroadManager } from "@/components/dashboard/StudyAbroadManager";
 import { IELTSResourcesManager } from "@/components/dashboard/IELTSResourcesManager";
+import { StudyAbroadRoadmapLeadsManager } from "@/components/dashboard/StudyAbroadRoadmapLeadsManager";
 import { CompetitionsManager } from "@/components/dashboard/CompetitionsManager";
 import { BlogManager } from "@/components/dashboard/BlogManager";
 import { LeadHunterManager } from "@/components/dashboard/LeadHunterManager";
@@ -49,49 +50,59 @@ type AppRole = Database["public"]["Enums"]["app_role"];
 
 // Define which tabs are accessible by which roles
 const tabAccessMap: Record<string, AppRole[]> = {
+  // Admin only - Overview
   overview: ["admin"],
+  
+  // Learning - Admin only
   all: ["admin"],
   videos: ["admin"],
   courses: ["admin"],
   webinars: ["admin"],
-  batches: ["admin"],
-  seminars: ["admin"],
-  codes: ["admin"],
-  banners: ["admin"],
   enrollments: ["admin"],
-  "learner-progress": ["admin"], // 👈 Added Access
-  professions: ["admin"],
-  team: ["admin"],
-  "content-outreach": ["admin"],
-  "service-outreach": ["admin"],
-  // Talent exec accessible tabs
+  "learner-progress": ["admin"],
+  
+  // Talent & Leads - Both roles
   leads: ["admin", "talent_exec"],
   interviews: ["admin", "talent_exec"],
   salary: ["admin", "talent_exec"],
-  outreach: ["admin", "talent_exec"],
-  talent: ["admin", "talent_exec"],
   portfolios: ["admin", "talent_exec"],
+  talent: ["admin", "talent_exec"],
   "lead-hunter": ["admin", "talent_exec"],
-  // Recruitment - accessible by both admin and talent_exec
+  
+  // Recruitment - Both roles
   "jobs-kpis": ["admin", "talent_exec"],
   jobs: ["admin", "talent_exec"],
   applications: ["admin", "talent_exec"],
   companies: ["admin", "talent_exec"],
   contacts: ["admin", "talent_exec"],
-  // AI & Credits tabs
+  
+  // Marketing & Outreach - Both roles
+  analytics: ["admin", "talent_exec"],
+  outreach: ["admin", "talent_exec"],
+  "content-outreach": ["admin", "talent_exec"],
+  "service-outreach": ["admin", "talent_exec"],
+  blog: ["admin", "talent_exec"],
+  "feed-posts": ["admin", "talent_exec"],
+  competitions: ["admin", "talent_exec"],
+  
+  // Career Abroad - Admin only
+  "study-abroad": ["admin"],
+  ielts: ["admin"],
+  "roadmap-leads": ["admin"],
+  
+  // AI & Monetization - Admin only
   "ai-agents": ["admin"],
   "company-agents": ["admin"],
   "agent-sessions": ["admin"],
   credits: ["admin"],
   notifications: ["admin"],
-  "study-abroad": ["admin"],
-  ielts: ["admin"],
-  competitions: ["admin"],
-  blog: ["admin"],
-  "feed-posts": ["admin"],
-  analytics: ["admin", "talent_exec"],
+  
+  // Platform Config - Admin only
+  codes: ["admin"],
+  banners: ["admin"],
+  professions: ["admin"],
+  team: ["admin"],
 };
-
 const Dashboard = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -271,6 +282,8 @@ const Dashboard = () => {
         return <StudyAbroadManager />;
       case "ielts":
         return <IELTSResourcesManager />;
+      case "roadmap-leads":
+        return <StudyAbroadRoadmapLeadsManager />;
       case "competitions":
         return <CompetitionsManager />;
       case "blog":
@@ -294,21 +307,19 @@ const Dashboard = () => {
       all: "All Content",
       videos: "Free Videos",
       courses: "Recorded Courses",
-      webinars: "Webinars",
-      batches: "Batch Classes",
-      seminars: "Seminars",
+      webinars: "Live Sessions",
       codes: "Access Codes",
       banners: "Banners",
       leads: "Assessment Leads",
       portfolios: "Portfolio Requests",
-      interviews: "Mock Interviews",
-      salary: "Salary Analysis",
+      interviews: "Mock Interview Leads",
+      salary: "Salary Analysis Leads",
       professions: "Professions Manager",
       "lead-hunter": "Lead Hunter",
       "jobs-kpis": "Jobs KPIs",
       jobs: "Jobs Board",
       applications: "Job Applications",
-      outreach: "CV Outreach Generator",
+      outreach: "CV Outreach",
       talent: "Talent Pool",
       companies: "Companies",
       contacts: "Contacts",
@@ -320,12 +331,14 @@ const Dashboard = () => {
       notifications: "Notifications",
       "study-abroad": "Study Abroad Programs",
       ielts: "IELTS Resources",
+      "roadmap-leads": "Roadmap Leads",
       competitions: "Competitions",
       blog: "Blog Posts",
       "feed-posts": "Feed Posts",
       "content-outreach": "Content Outreach",
       "service-outreach": "Service Outreach",
       "learner-progress": "Learner Progress",
+      enrollments: "Enrollments",
       analytics: "Marketing Analytics",
     };
     return titles[activeTab] || "Dashboard";

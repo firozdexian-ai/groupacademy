@@ -28,6 +28,11 @@ import {
   BarChart,
   PieChart,
   Sparkles,
+  Globe,
+  Map,
+  Settings,
+  Megaphone,
+  Target,
 } from "lucide-react";
 import {
   Sidebar,
@@ -63,17 +68,16 @@ interface NavGroup {
 
 const navGroups: NavGroup[] = [
   {
-    title: "Talent Management",
-    icon: DatabaseIcon,
+    title: "Talent & Leads",
+    icon: Users,
     roles: ["admin", "talent_exec"],
     items: [
       { title: "Talent Pool", icon: DatabaseIcon, value: "talent" },
-      { title: "Lead Hunter", icon: TrendingUp, value: "lead-hunter" },
+      { title: "Lead Hunter", icon: Target, value: "lead-hunter" },
       { title: "Assessment Leads", icon: ClipboardList, value: "leads" },
-      { title: "Mock Interviews", icon: MessageSquare, value: "interviews" },
-      { title: "Salary Analysis", icon: TrendingUp, value: "salary" },
+      { title: "Mock Interview Leads", icon: MessageSquare, value: "interviews" },
+      { title: "Salary Analysis Leads", icon: TrendingUp, value: "salary" },
       { title: "Portfolio Requests", icon: Briefcase, value: "portfolios" },
-      { title: "CV Outreach", icon: Send, value: "outreach" },
     ],
   },
   {
@@ -86,49 +90,69 @@ const navGroups: NavGroup[] = [
       { title: "Applications", icon: FileCheck, value: "applications" },
       { title: "Companies", icon: Building2, value: "companies" },
       { title: "Contacts", icon: Users, value: "contacts" },
-      { title: "Marketing Analytics", icon: PieChart, value: "analytics" },
     ],
   },
   {
-    title: "Content Management",
+    title: "Learning",
     icon: BookOpen,
     roles: ["admin"],
     items: [
       { title: "All Content", icon: BookOpen, value: "all" },
-      { title: "Enrollments", icon: Users, value: "enrollments" }, // 👈 Added
-      { title: "Learner Progress", icon: BarChart, value: "learner-progress" }, // 👈 Added
-      { title: "Content Outreach", icon: Send, value: "content-outreach" },
-      { title: "Service Outreach", icon: Sparkles, value: "service-outreach" },
+      { title: "Enrollments", icon: Users, value: "enrollments" },
+      { title: "Learner Progress", icon: BarChart, value: "learner-progress" },
       { title: "Free Videos", icon: Video, value: "videos" },
       { title: "Recorded Courses", icon: Tv, value: "courses" },
-      { title: "Webinars", icon: Tv, value: "webinars" },
-      { title: "Batch Classes", icon: Users, value: "batches" },
-      { title: "Seminars", icon: Calendar, value: "seminars" },
+      { title: "Live Sessions", icon: Calendar, value: "webinars" },
+    ],
+  },
+  {
+    title: "Marketing & Outreach",
+    icon: Megaphone,
+    roles: ["admin", "talent_exec"],
+    items: [
+      { title: "Marketing Analytics", icon: PieChart, value: "analytics" },
+      { title: "CV Outreach", icon: Send, value: "outreach" },
+      { title: "Content Outreach", icon: BookOpen, value: "content-outreach" },
+      { title: "Service Outreach", icon: Sparkles, value: "service-outreach" },
       { title: "Blog Posts", icon: FileText, value: "blog" },
       { title: "Feed Posts", icon: MessageSquare, value: "feed-posts" },
-      { title: "Study Abroad", icon: GraduationCap, value: "study-abroad" },
-      { title: "IELTS Resources", icon: BookOpen, value: "ielts" },
       { title: "Competitions", icon: Trophy, value: "competitions" },
     ],
   },
   {
-    title: "Platform Settings",
-    icon: UserCog,
+    title: "Career Abroad",
+    icon: Globe,
+    roles: ["admin"],
+    items: [
+      { title: "Study Abroad Programs", icon: GraduationCap, value: "study-abroad" },
+      { title: "IELTS Resources", icon: BookOpen, value: "ielts" },
+      { title: "Roadmap Leads", icon: Map, value: "roadmap-leads" },
+    ],
+  },
+  {
+    title: "AI & Monetization",
+    icon: Bot,
+    roles: ["admin"],
+    items: [
+      { title: "AI Agents", icon: Bot, value: "ai-agents" },
+      { title: "Company Agents", icon: Building2, value: "company-agents" },
+      { title: "Agent Sessions", icon: MessageSquare, value: "agent-sessions" },
+      { title: "Credits Manager", icon: Coins, value: "credits" },
+      { title: "Notifications", icon: Bell, value: "notifications" },
+    ],
+  },
+  {
+    title: "Platform Config",
+    icon: Settings,
     roles: ["admin"],
     items: [
       { title: "Access Codes", icon: Key, value: "codes" },
       { title: "Banners", icon: ImageIcon, value: "banners" },
       { title: "Professions", icon: GraduationCap, value: "professions" },
-      { title: "AI Agents", icon: Bot, value: "ai-agents" },
-      { title: "Company Agents", icon: Building2, value: "company-agents" },
-      { title: "Agent Sessions", icon: MessageSquare, value: "agent-sessions" },
-      { title: "Credits", icon: Coins, value: "credits" },
-      { title: "Notifications", icon: Bell, value: "notifications" },
       { title: "Team Members", icon: UserCog, value: "team" },
     ],
   },
 ];
-
 interface AdminSidebarProps {
   activeTab: string;
   onTabChange: (value: string) => void;
