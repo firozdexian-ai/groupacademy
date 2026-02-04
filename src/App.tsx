@@ -102,6 +102,7 @@ import Competitions from "./pages/app/Competitions";
 import CompetitionDetail from "./pages/app/CompetitionDetail";
 import Blog from "./pages/app/Blog";
 import BlogPost from "./pages/app/BlogPost";
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -112,56 +113,52 @@ const queryClient = new QueryClient({
         }
         return failureCount < 2;
       },
-      refetchOnWindowFocus: false
-    }
-  }
+      refetchOnWindowFocus: false,
+    },
+  },
 });
 
 // Helper component to handle dynamic redirect with ID
 const JobApplyRedirect = () => {
-  const {
-    id
-  } = useParams();
+  const { id } = useParams();
   return <Navigate to={`/auth?returnTo=/app/jobs/${id}/apply`} replace />;
 };
 
 // Inline Guard Component to Force Onboarding
-const OnboardingGuard = ({
-  children
-}: {
-  children: React.ReactNode;
-}) => {
-  const {
-    talent,
-    refreshTalent
-  } = useTalent();
+const OnboardingGuard = ({ children }: { children: React.ReactNode }) => {
+  const { talent, refreshTalent } = useTalent();
   const [showWizard, setShowWizard] = useState(false);
   const location = useLocation();
+
   useEffect(() => {
     if (talent && !talent.onboardingCompletedAt) {
       setShowWizard(true);
     }
   }, [talent, location.pathname]);
+
   const handleComplete = async () => {
     await refreshTalent();
     setShowWizard(false);
   };
+
   if (showWizard) {
-    return <>
+    return (
+      <>
         <div className="opacity-0 pointer-events-none h-0 overflow-hidden">{children}</div>
         <OnboardingWizard onComplete={handleComplete} />
-      </>;
+      </>
+    );
   }
+
   return <>{children}</>;
 };
+
 export default function App() {
-  return <ErrorBoundary>
+  return (
+    <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         {/* FIX: Added React Router v7 future flags */}
-        <BrowserRouter future={{
-        v7_startTransition: true,
-        v7_relativeSplatPath: true
-      }}>
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <BootGate>
             <TalentProvider>
               <TooltipProvider>
@@ -213,61 +210,136 @@ export default function App() {
                   <Route path="/my-learning" element={<Navigate to="/app/learning/my-courses" replace />} />
 
                   {/* ================= ADMIN ROUTES ================= */}
-                  <Route path="/dashboard" element={<ProtectedRoute requireAnyAdminRole>
+                  <Route
+                    path="/dashboard"
+                    element={
+                      <ProtectedRoute requireAnyAdminRole>
                         <Dashboard />
-                      </ProtectedRoute>} />
-                  <Route path="/students" element={<ProtectedRoute requireAdmin>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/students"
+                    element={
+                      <ProtectedRoute requireAdmin>
                         <Students />
-                      </ProtectedRoute>} />
-                  <Route path="/enrollments" element={<ProtectedRoute requireAdmin>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/enrollments"
+                    element={
+                      <ProtectedRoute requireAdmin>
                         <Enrollments />
-                      </ProtectedRoute>} />
-                  <Route path="/instructors" element={<ProtectedRoute>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/instructors"
+                    element={
+                      <ProtectedRoute>
                         <Instructors />
-                      </ProtectedRoute>} />
-                  <Route path="/instructors/new" element={<ProtectedRoute requireAdmin>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/instructors/new"
+                    element={
+                      <ProtectedRoute requireAdmin>
                         <InstructorNew />
-                      </ProtectedRoute>} />
-                  <Route path="/instructors/:id/edit" element={<ProtectedRoute requireAdmin>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/instructors/:id/edit"
+                    element={
+                      <ProtectedRoute requireAdmin>
                         <InstructorEdit />
-                      </ProtectedRoute>} />
-                  <Route path="/sessions" element={<ProtectedRoute requireAdmin>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/sessions"
+                    element={
+                      <ProtectedRoute requireAdmin>
                         <Sessions />
-                      </ProtectedRoute>} />
-                  <Route path="/sessions/new" element={<ProtectedRoute requireAdmin>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/sessions/new"
+                    element={
+                      <ProtectedRoute requireAdmin>
                         <SessionNew />
-                      </ProtectedRoute>} />
-                  <Route path="/sessions/:id/edit" element={<ProtectedRoute requireAdmin>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/sessions/:id/edit"
+                    element={
+                      <ProtectedRoute requireAdmin>
                         <SessionEdit />
-                      </ProtectedRoute>} />
-                  <Route path="/content/new" element={<ProtectedRoute requireAdmin>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/content/new"
+                    element={
+                      <ProtectedRoute requireAdmin>
                         <ContentNew />
-                      </ProtectedRoute>} />
-                  <Route path="/content/:id/edit" element={<ProtectedRoute requireAdmin>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/content/:id/edit"
+                    element={
+                      <ProtectedRoute requireAdmin>
                         <ContentEdit />
-                      </ProtectedRoute>} />
-                  <Route path="/quiz-manage/:contentId" element={<ProtectedRoute requireAdmin>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/quiz-manage/:contentId"
+                    element={
+                      <ProtectedRoute requireAdmin>
                         <QuizManagement />
-                      </ProtectedRoute>} />
-                  <Route path="/content/:contentId/modules" element={<ProtectedRoute requireAdmin>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/content/:contentId/modules"
+                    element={
+                      <ProtectedRoute requireAdmin>
                         <ModuleManagement />
-                      </ProtectedRoute>} />
-                  <Route path="/content/:contentId/modules/:moduleId/resources" element={<ProtectedRoute requireAdmin>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/content/:contentId/modules/:moduleId/resources"
+                    element={
+                      <ProtectedRoute requireAdmin>
                         <ModuleResourcesManager />
-                      </ProtectedRoute>} />
+                      </ProtectedRoute>
+                    }
+                  />
                   <Route path="/org" element={<Organization />} />
 
                   {/* ================= MAIN APP ROUTES (Protected) ================= */}
                   <Route path="/app" element={<Navigate to="/app/feed" replace />} />
 
                   {/* The TalentAppShell Layout Wraps All These Routes */}
-                  <Route path="/app/*" element={<ProtectedRoute>
+                  <Route
+                    path="/app/*"
+                    element={
+                      <ProtectedRoute>
                         <OnboardingGuard>
                           <TalentAppShell />
                         </OnboardingGuard>
-                      </ProtectedRoute>}>
+                      </ProtectedRoute>
+                    }
+                  >
                     {/* Main Hubs */}
-                    
+                    <Route path="feed" element={<Feed />} />
                     <Route path="jobs" element={<JobsHub />} />
                     <Route path="learning" element={<LearningHub />} />
                     <Route path="services" element={<ServicesHub />} />
@@ -334,5 +406,6 @@ export default function App() {
           </BootGate>
         </BrowserRouter>
       </QueryClientProvider>
-    </ErrorBoundary>;
+    </ErrorBoundary>
+  );
 }

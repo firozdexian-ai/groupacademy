@@ -196,7 +196,7 @@ export function TalentAppShell() {
             {/* Mobile Menu Trigger */}
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="md:hidden ml-1 text-muted-foreground text-right">
+                <Button variant="ghost" size="icon" className="md:hidden ml-1 text-muted-foreground">
                   <Menu className="h-6 w-6" />
                 </Button>
               </SheetTrigger>
