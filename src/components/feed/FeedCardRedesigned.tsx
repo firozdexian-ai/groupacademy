@@ -174,9 +174,9 @@ export function FeedCardRedesigned({ item, onInterested, onNotInterested }: Feed
         </div>
       )}
 
-      <CardContent className="p-3">
+      <CardContent className="p-4">
         {/* Title - Compact */}
-        <h3 className="font-semibold text-foreground line-clamp-2 mb-1.5 text-sm leading-snug">{item.title}</h3>
+        <h3 className="font-semibold text-foreground line-clamp-2 mb-1.5 text-[15px] leading-snug">{item.title}</h3>
 
         {/* Skills */}
         {item.skills && item.skills.length > 0 && (
@@ -200,7 +200,7 @@ export function FeedCardRedesigned({ item, onInterested, onNotInterested }: Feed
               e.stopPropagation();
               onNotInterested();
             }}
-            className="flex-1 h-9 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50"
+            className="flex-1 h-10 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50"
           >
             Skip
           </Button>
@@ -212,7 +212,7 @@ export function FeedCardRedesigned({ item, onInterested, onNotInterested }: Feed
               e.stopPropagation();
               onInterested();
             }}
-            className="flex-1 h-9 text-xs gap-1"
+            className="flex-1 h-10 text-xs gap-1"
           >
             {getActionLabel()}
             <ArrowRight className="h-3.5 w-3.5" />

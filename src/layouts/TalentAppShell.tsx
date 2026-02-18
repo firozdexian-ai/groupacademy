@@ -248,16 +248,17 @@ export function TalentAppShell() {
       </header>
 
       {/* --- MAIN CONTENT AREA --- */}
-      <main className="max-w-7xl mx-auto py-6 px-0 md:px-4 pb-20 md:pb-6">
+      <main className="max-w-7xl mx-auto py-6 px-0 md:px-4 pb-24 md:pb-6">
         <Outlet />
       </main>
 
       {/* --- MOBILE BOTTOM TAB BAR --- */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-background border-t border-border h-16 px-2 flex items-center justify-around z-50 pb-safe shadow-[0_-1px_3px_rgba(0,0,0,0.05)]">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-background border-t border-border h-[60px] px-2 flex items-center justify-around z-50 pb-safe shadow-[0_-2px_8px_rgba(0,0,0,0.08)]">
         {navItems.slice(0, 5).map(item => <button key={item.path} onClick={() => navigate(item.path)} className={`flex flex-col items-center justify-center w-full h-full transition-colors
-              ${isActive(item.path) ? "text-black dark:text-white" : "text-gray-500 dark:text-gray-400"}`}>
-            <item.icon className={`h-6 w-6 mb-1 ${isActive(item.path) ? "fill-current" : ""}`} />
-            <span className="text-[10px] font-medium">{item.label}</span>
+              ${isActive(item.path) ? "text-primary" : "text-gray-500 dark:text-gray-400"}`}>
+            <item.icon className={`h-5 w-5 mb-0.5 ${isActive(item.path) ? "fill-current" : ""}`} />
+            <span className="text-[11px] font-medium">{item.label}</span>
+            {isActive(item.path) && <span className="w-1 h-1 rounded-full bg-primary mt-0.5" />}
           </button>)}
       </nav>
     </div>

@@ -11,6 +11,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CREDIT_CONFIG } from "@/lib/creditPricing";
+import { AgentCard } from "@/components/ai-agents/AgentCard";
 import { AgentListItem } from "@/components/ai-agents/AgentListItem";
 import { AgentFilters, AgentCategory } from "@/components/ai-agents/AgentFilters";
 import { useAgentChat } from "@/hooks/useAgentChat";
@@ -320,31 +321,28 @@ export default function AIAgents() {
             </CardContent>
           </Card>
         ) : (
-          <Card>
-            <CardContent className="p-2 divide-y divide-border/50">
-              {filteredAgents.map((agent) => {
-                const activeSession = getActiveSession(agent.agent_key);
-                return (
-                  <AgentListItem
-                    key={agent.id}
-                    id={agent.id}
-                    name={agent.name}
-                    description={agent.description}
-                    icon={agent.icon}
-                    bgColor={agent.bgColor}
-                    iconColor={agent.iconColor}
-                    avatarUrl={agent.avatarUrl}
-                    creditCost={agent.creditCost}
-                    category={agent.category}
-                    isActive={!!activeSession}
-                    isCompanyAgent={agent.isCompanyAgent}
-                    expertise={agent.expertise}
-                    onClick={() => handleAgentClick(agent.agent_key)}
-                  />
-                );
-              })}
-            </CardContent>
-          </Card>
+          <div className="grid grid-cols-2 gap-3">
+            {filteredAgents.map((agent) => {
+              const activeSession = getActiveSession(agent.agent_key);
+              return (
+                <AgentCard
+                  key={agent.id}
+                  id={agent.id}
+                  name={agent.name}
+                  description={agent.description}
+                  icon={agent.icon}
+                  color={agent.iconColor}
+                  bgColor={agent.bgColor}
+                  expertise={agent.expertise}
+                  creditCost={agent.creditCost}
+                  avatarUrl={agent.avatarUrl}
+                  hasActiveSession={!!activeSession}
+                  onClick={() => handleAgentClick(agent.agent_key)}
+                  onResume={activeSession ? () => navigate(`/app/agents/${agent.agent_key}`) : undefined}
+                />
+              );
+            })}
+          </div>
         )}
       </section>
 
