@@ -32,7 +32,7 @@ export function CreditPurchaseSheet({
   return (
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <SheetContent side="bottom" className="h-[85vh] sm:h-auto sm:max-h-[90vh]">
-        <SheetHeader className="mb-6">
+        <SheetHeader className="mb-4">
           <SheetTitle className="flex items-center gap-2">
             <Coins className="h-5 w-5 text-warning" />
             Buy Credits
@@ -42,7 +42,7 @@ export function CreditPurchaseSheet({
           </SheetDescription>
         </SheetHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Current Balance */}
           <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
             <span className="text-sm text-muted-foreground">Your Balance</span>
@@ -97,26 +97,11 @@ export function CreditPurchaseSheet({
           </div>
 
           {/* Benefits */}
-          <div className="space-y-2 p-4 bg-muted/50 rounded-lg">
-            <h4 className="font-medium text-sm">What you can do with credits:</h4>
-            <ul className="space-y-1 text-sm text-muted-foreground">
-              <li className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-primary" />
-                Career Assessments (50 credits each)
-              </li>
-              <li className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-primary" />
-                AI Mock Interviews (50 credits each)
-              </li>
-              <li className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-primary" />
-                Salary Analysis (50 credits each)
-              </li>
-              <li className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-primary" />
-                Job Applications (25 credits after 5 free)
-              </li>
-            </ul>
+          <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
+            <Check className="h-4 w-4 text-primary shrink-0" />
+            <p className="text-xs text-muted-foreground">
+              Use for assessments, mock interviews, salary analysis, portfolio & more.
+            </p>
           </div>
 
           {/* WhatsApp CTA */}
