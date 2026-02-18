@@ -11,6 +11,7 @@ import { ServiceHistoryCard } from "@/components/credits/ServiceHistoryCard";
 import { useCredits } from "@/hooks/useCredits";
 import { ServiceType } from "@/lib/creditPricing";
 import { cn } from "@/lib/utils";
+import { SectionHeader } from "@/components/ui/section-header";
 
 interface ServiceCardData {
   id: ServiceType;
@@ -153,7 +154,7 @@ export default function ServicesHub() {
 
       {/* Services Grid */}
       <div>
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">Available Tools</h2>
+        <SectionHeader icon={Sparkles} title="Available Tools" />
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {CAREER_SERVICES.map((service, index) => {
             const cost = getServiceCost(service.id);
@@ -207,10 +208,7 @@ export default function ServicesHub() {
 
       {/* Service History */}
       <div>
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <History className="h-5 w-5 text-muted-foreground" />
-          Recent Activity
-        </h2>
+        <SectionHeader icon={History} title="Recent Activity" />
         <ServiceHistoryCard />
       </div>
 

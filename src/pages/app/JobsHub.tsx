@@ -30,6 +30,7 @@ import { JobPreferencesSheet } from "@/components/jobs/JobPreferencesSheet";
 import { JobCard, type JobCardData } from "@/components/jobs/JobCard";
 import { JOB_COLLECTIONS, APPLICATION_STATUS_CONFIG } from "@/lib/constants/jobTypes";
 import { toast } from "sonner";
+import { SectionHeader } from "@/components/ui/section-header";
 
 interface JobPreferences {
   preferred_job_types?: string[];
@@ -321,20 +322,11 @@ export default function JobsHub() {
 
       {/* Featured Jobs - Horizontal Scroll */}
       <section>
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-yellow-500" />
-            <h2 className="text-lg font-bold">Featured Jobs</h2>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-primary font-medium h-8"
-            onClick={() => navigate("/app/jobs/all")}
-          >
-            View all <ChevronRight className="h-4 w-4 ml-0.5" />
-          </Button>
-        </div>
+        <SectionHeader
+          icon={Sparkles}
+          title="Featured Jobs"
+          viewAllPath="/app/jobs/all"
+        />
 
         {loading ? (
           <div className="flex gap-4 overflow-hidden pb-2">
@@ -409,7 +401,7 @@ export default function JobsHub() {
 
       {/* Browse by Type - Horizontal Pills */}
       <section>
-        <h2 className="text-lg font-bold mb-4">Browse by Type</h2>
+        <SectionHeader icon={Briefcase} title="Browse by Type" />
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none -mx-4 px-4">
           {JOB_COLLECTIONS.map((collection) => (
             <Button
@@ -429,12 +421,10 @@ export default function JobsHub() {
       {/* Recommended for You */}
       {personalizedJobs.length > 0 && (
         <section>
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Briefcase className="h-5 w-5 text-primary" />
-              <h2 className="text-lg font-bold">Recommended for You</h2>
-            </div>
-          </div>
+          <SectionHeader
+            icon={Briefcase}
+            title="Recommended for You"
+          />
 
           {personalizedLoading ? (
             <div className="space-y-3">
@@ -471,22 +461,11 @@ export default function JobsHub() {
 
       {/* Recent Applications */}
       <section>
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-bold">Recent Applications</h2>
-          </div>
-          {applications.length > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-primary font-medium h-8"
-              onClick={() => navigate("/app/applications")}
-            >
-              View all <ChevronRight className="h-4 w-4 ml-0.5" />
-            </Button>
-          )}
-        </div>
+        <SectionHeader
+          icon={FileText}
+          title="Recent Applications"
+          viewAllPath={applications.length > 0 ? "/app/applications" : undefined}
+        />
 
         {applicationsLoading ? (
           <div className="space-y-2">

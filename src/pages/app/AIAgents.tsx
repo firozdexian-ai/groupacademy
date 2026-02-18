@@ -20,6 +20,7 @@ import { CreditGateModal } from "@/components/credits/CreditGateModal";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AI_AGENTS, getAgentById } from "@/lib/constants/agents";
+import { SectionHeader } from "@/components/ui/section-header";
 
 interface DBAgent {
   id: string;
@@ -258,13 +259,11 @@ export default function AIAgents() {
       {/* Active Conversations */}
       {activeConversations.length > 0 && (
         <section>
-          <div className="flex items-center gap-2 mb-3">
-            <div className="relative">
-              <MessageCircle className="h-4 w-4 text-green-600" />
-              <span className="absolute -top-0.5 -right-0.5 h-2 w-2 bg-green-500 rounded-full animate-pulse" />
-            </div>
-            <h2 className="text-sm font-semibold">Active Sessions</h2>
-          </div>
+          <SectionHeader
+            icon={MessageCircle}
+            title="Active Sessions"
+            size="sm"
+          />
           <Card className="border-green-200/50 dark:border-green-800/30 bg-green-50/30 dark:bg-green-950/10">
             <CardContent className="p-2 divide-y divide-border/50">
               {activeConversations.map((conv) => (
@@ -291,13 +290,12 @@ export default function AIAgents() {
 
       {/* All Agents */}
       <section>
-        <div className="flex items-center gap-2 mb-3">
-          <Sparkles className="h-4 w-4 text-muted-foreground" />
-          <h2 className="text-sm font-semibold">
-            {searchQuery || selectedCategory !== "all" ? "Results" : "All Agents"}
-          </h2>
-          <span className="text-xs text-muted-foreground">({filteredAgents.length})</span>
-        </div>
+        <SectionHeader
+          icon={Sparkles}
+          title={searchQuery || selectedCategory !== "all" ? "Results" : "All Agents"}
+          count={filteredAgents.length}
+          size="sm"
+        />
 
         {isLoading ? (
           <div className="space-y-2">
@@ -349,10 +347,11 @@ export default function AIAgents() {
       {/* Recent Chats */}
       {recentChats.length > 0 && !searchQuery && selectedCategory === "all" && (
         <section>
-          <div className="flex items-center gap-2 mb-3">
-            <MessageCircle className="h-4 w-4 text-muted-foreground" />
-            <h2 className="text-sm font-semibold">Recent Chats</h2>
-          </div>
+          <SectionHeader
+            icon={MessageCircle}
+            title="Recent Chats"
+            size="sm"
+          />
           <Card className="bg-muted/30">
             <CardContent className="p-2 divide-y divide-border/50">
               {recentChats.map((chat) => (

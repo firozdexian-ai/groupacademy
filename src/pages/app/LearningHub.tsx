@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { GraduationCap, BookOpen, ChevronRight, Target, Calendar, Library } from "lucide-react";
+import { SectionHeader } from "@/components/ui/section-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -88,7 +89,7 @@ export default function LearningHub() {
 
       {/* Quick Actions */}
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Quick Actions</h2>
+        <SectionHeader icon={BookOpen} title="Quick Actions" size="sm" />
         <div className="grid grid-cols-2 gap-3">
           <QuickActionCard
             icon={BookOpen}
