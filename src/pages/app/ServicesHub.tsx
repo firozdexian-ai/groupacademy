@@ -154,7 +154,7 @@ export default function ServicesHub() {
       {/* Services Grid */}
       <div>
         <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">Available Tools</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {CAREER_SERVICES.map((service, index) => {
             const cost = getServiceCost(service.id);
             const affordable = canAfford(service.id);
@@ -169,27 +169,27 @@ export default function ServicesHub() {
                 style={{ animationDelay: `${index * 100}ms` }}
                 onClick={() => handleServiceClick(service)}
               >
-                <CardContent className="p-5 flex flex-col h-full">
+                <CardContent className="p-4 sm:p-5 flex flex-col h-full items-center text-center sm:items-start sm:text-left">
                   {/* Icon */}
                   <div
                     className={cn(
-                      "w-12 h-12 rounded-2xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110 duration-300 shadow-inner",
+                      "w-11 h-11 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center mb-3 sm:mb-4 transition-transform group-hover:scale-110 duration-300 shadow-inner",
                       service.iconBg,
                     )}
                   >
-                    <service.icon className={cn("h-6 w-6", service.iconColor)} />
+                    <service.icon className={cn("h-5 w-5 sm:h-6 sm:w-6", service.iconColor)} />
                   </div>
 
                   {/* Title & Desc */}
-                  <div className="flex-1 mb-4">
-                    <h3 className="font-bold text-base text-foreground mb-1 group-hover:text-primary transition-colors">
+                  <div className="flex-1 mb-3 sm:mb-4">
+                    <h3 className="font-bold text-sm sm:text-base text-foreground mb-1 group-hover:text-primary transition-colors">
                       {service.title}
                     </h3>
-                    <p className="text-xs text-muted-foreground leading-relaxed">{service.description}</p>
+                    <p className="text-[11px] sm:text-xs text-muted-foreground leading-relaxed">{service.description}</p>
                   </div>
 
                   {/* Footer: Cost & Usage */}
-                  <div className="flex items-center justify-between mt-auto pt-4 border-t border-border/40">
+                  <div className="flex items-center justify-between w-full mt-auto pt-3 sm:pt-4 border-t border-border/40">
                     <div className="flex items-center gap-1.5 bg-muted/50 px-2 py-1 rounded-md">
                       <Coins className={cn("h-3.5 w-3.5", affordable ? "text-amber-500" : "text-muted-foreground")} />
                       <span className={cn("text-xs font-bold", affordable ? "text-foreground" : "text-destructive")}>
