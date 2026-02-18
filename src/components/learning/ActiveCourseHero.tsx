@@ -45,7 +45,7 @@ export function ActiveCourseHero({ enrollment, upNextEnrollments = [] }: ActiveC
         <Card className="overflow-hidden border-primary/20 bg-gradient-to-br from-background to-muted/30">
           <div className="grid md:grid-cols-[200px,1fr] h-full">
             {/* Thumbnail */}
-            <div className="aspect-video md:aspect-auto relative overflow-hidden bg-muted">
+            <div className="aspect-[2/1] md:aspect-auto relative overflow-hidden bg-muted">
               {content.thumbnail_url ? (
                 <img
                   src={content.thumbnail_url}
@@ -107,17 +107,17 @@ export function ActiveCourseHero({ enrollment, upNextEnrollments = [] }: ActiveC
           </div>
         </Card>
 
-        {/* Up Next Sidebar */}
+        {/* Up Next Sidebar - horizontal scroll on mobile */}
         <div className="space-y-3">
           <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
             Up Next
           </h3>
-          <div className="space-y-2">
+          <div className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-x-visible pb-2 lg:pb-0">
             {nextModules.length > 0 ? (
               nextModules.map((module, idx) => (
                 <Card
                   key={module.id}
-                  className="p-3 cursor-pointer hover:bg-muted/50 transition-colors"
+                  className="p-3 cursor-pointer hover:bg-muted/50 transition-colors shrink-0 min-w-[200px] lg:min-w-0"
                   onClick={handleResume}
                 >
                   <div className="flex items-start gap-3">

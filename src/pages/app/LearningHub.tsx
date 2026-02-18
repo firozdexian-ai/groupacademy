@@ -39,9 +39,9 @@ export default function LearningHub() {
   const firstName = talent?.fullName?.split(" ")[0] || "there";
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6 space-y-6 pb-32">
+    <div className="max-w-4xl mx-auto px-4 py-4 space-y-4 pb-32">
       {/* Header Section */}
-      <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent rounded-2xl p-6">
+      <div className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent rounded-2xl p-5">
         {/* Top bar with streak and credits */}
         <div className="flex items-center justify-between mb-4">
           <LearningStatsRow
@@ -88,8 +88,8 @@ export default function LearningHub() {
       </div>
 
       {/* Quick Actions */}
-      <section className="space-y-3">
-        <SectionHeader icon={BookOpen} title="Quick Actions" size="sm" />
+      <section className="bg-card rounded-2xl p-4 shadow-sm space-y-3">
+        <h2 className="text-sm font-bold">Quick Actions</h2>
         <div className="grid grid-cols-2 gap-3">
           <QuickActionCard
             icon={BookOpen}

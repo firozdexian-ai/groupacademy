@@ -280,7 +280,7 @@ export default function AppCourseDetail() {
   const embedUrl = getYouTubeEmbedUrl(course.youtube_url);
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6">
+    <div className="max-w-4xl mx-auto px-4 py-4 pb-28 md:pb-6">
       <Button
         variant="ghost"
         size="sm"
@@ -421,6 +421,37 @@ export default function AppCourseDetail() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Sticky Bottom CTA - Mobile */}
+      <div className="fixed bottom-16 left-0 right-0 bg-background/95 backdrop-blur-md border-t p-3 flex gap-3 md:hidden z-40">
+        {isEnrolled ? (
+          <Button
+            className="flex-1 h-12 text-base"
+            onClick={() => navigate(`/app/learn/${course.slug}`)}
+          >
+            <Play className="h-5 w-5 mr-2 fill-current" />
+            Start Learning
+          </Button>
+        ) : (
+          <Button
+            className="flex-1 h-12 text-base"
+            onClick={handleEnrollClick}
+            disabled={isEnrolling}
+          >
+            {isEnrolling ? (
+              <>
+                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              <>
+                Enroll Now
+                {course.price > 0 && <span className="ml-1 opacity-90 text-sm">({creditCost} credits)</span>}
+              </>
+            )}
+          </Button>
+        )}
+      </div>
 
       {/* Modals */}
       <CreditGateModal

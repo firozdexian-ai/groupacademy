@@ -202,7 +202,7 @@ export function UnifiedDiscovery() {
 
       {/* Content Grid */}
       {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {[1, 2, 3, 4].map((i) => (
             <Skeleton key={i} className="aspect-[4/3] rounded-xl" />
           ))}
@@ -214,7 +214,7 @@ export function UnifiedDiscovery() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
           {filteredItems.slice(0, 8).map((item) => {
             const Icon = getTypeIcon(item.type);
             

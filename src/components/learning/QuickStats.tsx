@@ -54,11 +54,11 @@ export function QuickStats({
       <div className="grid grid-cols-3 gap-3">
         {stats.map((stat) => (
           <Card key={stat.label} className="border-0 shadow-sm">
-            <CardContent className="p-4 flex flex-col items-center text-center">
-              <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center mb-2", stat.bgColor)}>
-                <stat.icon className={cn("h-5 w-5", stat.color)} />
+            <CardContent className="p-3 flex flex-col items-center text-center">
+              <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center mb-1.5", stat.bgColor)}>
+                <stat.icon className={cn("h-4 w-4", stat.color)} />
               </div>
-              <span className="text-2xl font-bold">{stat.value}</span>
+              <span className="text-xl font-bold">{stat.value}</span>
               <span className="text-xs text-muted-foreground">{stat.label}</span>
             </CardContent>
           </Card>

@@ -1,10 +1,10 @@
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Target, ChevronRight, Briefcase, Building2, Code, HeartPulse, Megaphone, DollarSign } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Target, Briefcase, Building2, Code, HeartPulse, Megaphone, DollarSign } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
+import { SectionHeader } from "@/components/ui/section-header";
 import { supabase } from "@/integrations/supabase/client";
 
 // Icon mapping for profession categories
@@ -71,21 +71,11 @@ export function CareerTracksPreview() {
 
   return (
     <section className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold flex items-center gap-2">
-          <Target className="h-5 w-5 text-primary" />
-          Career Tracks
-        </h2>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="text-primary"
-          onClick={() => navigate("/app/learning/tracks")}
-        >
-          View All
-          <ChevronRight className="h-4 w-4 ml-1" />
-        </Button>
-      </div>
+      <SectionHeader
+        icon={Target}
+        title="Career Tracks"
+        viewAllPath="/app/learning/tracks"
+      />
 
       <ScrollArea className="w-full -mx-4 px-4">
         <div className="flex gap-3 pb-2">
