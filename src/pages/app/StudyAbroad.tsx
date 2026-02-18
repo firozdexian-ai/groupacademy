@@ -110,22 +110,22 @@ export default function StudyAbroad() {
     (selectedCountry !== "all" ? 1 : 0) + (selectedDegree !== "All Degrees" ? 1 : 0) + (searchTerm ? 1 : 0);
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6">
+    <div className="max-w-5xl mx-auto px-4 py-4">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate("/app/abroad")} className="rounded-full">
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold">Study Abroad</h1>
+            <h1 className="text-xl font-bold">Study Abroad</h1>
             <p className="text-muted-foreground text-sm">Explore top universities and programs</p>
           </div>
         </div>
       </div>
 
       {/* Filters Bar */}
-      <div className="bg-card border rounded-xl p-3 mb-6 shadow-sm sticky top-0 z-10">
+      <div className="bg-card border rounded-xl p-3 mb-4 shadow-sm sticky top-0 z-10">
         <div className="flex flex-col md:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

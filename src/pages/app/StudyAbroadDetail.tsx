@@ -105,7 +105,7 @@ export default function StudyAbroadDetail() {
   const requirements = Array.isArray(program.requirements) ? program.requirements : [];
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6">
+    <div className="max-w-4xl mx-auto px-4 py-4 pb-28 sm:pb-6">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <Button variant="ghost" size="icon" onClick={() => navigate("/app/abroad/study")}>
@@ -159,7 +159,7 @@ export default function StudyAbroadDetail() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 p-4 bg-muted/30 rounded-lg border">
             {program.degree_type && (
               <div className="flex items-center gap-3 text-sm">
-                <div className="p-2.5 rounded-lg bg-background border shadow-sm">
+                <div className="p-2 rounded-lg bg-background border shadow-sm">
                   <GraduationCap className="h-4 w-4 text-primary" />
                 </div>
                 <div>
@@ -170,7 +170,7 @@ export default function StudyAbroadDetail() {
             )}
             {program.duration && (
               <div className="flex items-center gap-3 text-sm">
-                <div className="p-2.5 rounded-lg bg-background border shadow-sm">
+                <div className="p-2 rounded-lg bg-background border shadow-sm">
                   <Clock className="h-4 w-4 text-blue-600" />
                 </div>
                 <div>
@@ -181,7 +181,7 @@ export default function StudyAbroadDetail() {
             )}
             {program.tuition_range && (
               <div className="flex items-center gap-3 text-sm">
-                <div className="p-2.5 rounded-lg bg-background border shadow-sm">
+                <div className="p-2 rounded-lg bg-background border shadow-sm">
                   <DollarSign className="h-4 w-4 text-green-600" />
                 </div>
                 <div>
@@ -192,7 +192,7 @@ export default function StudyAbroadDetail() {
             )}
             {program.application_deadline && (
               <div className="flex items-center gap-3 text-sm">
-                <div className="p-2.5 rounded-lg bg-background border shadow-sm">
+                <div className="p-2 rounded-lg bg-background border shadow-sm">
                   <Calendar className="h-4 w-4 text-orange-600" />
                 </div>
                 <div>
@@ -240,8 +240,8 @@ export default function StudyAbroadDetail() {
         </CardContent>
       </Card>
 
-      {/* CTA */}
-      <Card className="bg-gradient-to-r from-primary/5 via-background to-secondary/5 border-primary/20">
+      {/* CTA - Desktop only */}
+      <Card className="bg-gradient-to-r from-primary/5 via-background to-secondary/5 border-primary/20 hidden sm:block">
         <CardContent className="p-6">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
@@ -268,6 +268,25 @@ export default function StudyAbroadDetail() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Sticky Bottom CTA - Mobile only */}
+      <div className="fixed bottom-16 left-0 right-0 bg-background/95 backdrop-blur border-t p-3 flex gap-2 sm:hidden z-20">
+        <Button
+          variant="outline"
+          onClick={() => navigate("/app/agents/study-abroad-advisor")}
+          className="flex-1"
+        >
+          Chat with Counselor
+        </Button>
+        {program.url && (
+          <Button asChild className="flex-1">
+            <a href={program.url} target="_blank" rel="noopener noreferrer">
+              Visit Website
+              <ExternalLink className="h-4 w-4 ml-1" />
+            </a>
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

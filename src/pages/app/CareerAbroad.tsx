@@ -32,7 +32,7 @@ const ABROAD_SECTIONS = [{
 }];
 export default function CareerAbroad() {
   const navigate = useNavigate();
-  return <div className="max-w-4xl mx-auto px-4 py-6 space-y-8">
+  return <div className="max-w-4xl mx-auto px-4 py-4 space-y-5">
       {/* Header */}
       <div className="bg-gradient-to-br from-blue-500/10 via-cyan-500/5 to-transparent rounded-2xl p-6 py-[10px] px-[10px]">
         <div className="flex items-center gap-3 mb-2">
@@ -72,8 +72,8 @@ export default function CareerAbroad() {
         </div>
         <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
           {POPULAR_DESTINATIONS.map(country => <Card key={country.code} className="cursor-pointer hover:shadow-md transition-all border-0 shadow-sm press-scale hover:bg-muted/50" onClick={() => navigate(`/app/abroad/study?country=${country.code}`)}>
-              <CardContent className="p-4 flex flex-col items-center gap-2">
-                <span className="text-3xl">{getCountryFlag(country.code)}</span>
+              <CardContent className="p-3 flex flex-col items-center gap-1.5">
+                <span className="text-2xl">{getCountryFlag(country.code)}</span>
                 <span className="font-medium text-xs truncate w-full text-center">{country.name}</span>
               </CardContent>
             </Card>)}
@@ -83,24 +83,24 @@ export default function CareerAbroad() {
       {/* AI Roadmap CTA - Premium Feature */}
       <Card className="relative overflow-hidden border-2 border-primary/20 shadow-lg">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5" />
-        <CardContent className="relative p-6 md:p-8">
-          <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
-            <div className="p-4 bg-primary/10 rounded-2xl">
-              <Map className="h-10 w-10 text-primary" />
+        <CardContent className="relative p-4 md:p-6">
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+            <div className="p-3 bg-primary/10 rounded-2xl">
+              <Map className="h-8 w-8 text-primary" />
             </div>
 
-            <div className="flex-1 space-y-3">
+            <div className="flex-1 space-y-2">
               <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="text-lg font-bold">Get Your Personalized Roadmap</h3>
+                <h3 className="text-base font-bold">Get Your Personalized Roadmap</h3>
                 <Badge className="bg-primary/10 text-primary border-primary/20">
                   <Sparkles className="h-3 w-3 mr-1" />
                   AI-Powered
                 </Badge>
               </div>
               <p className="text-sm text-muted-foreground max-w-lg">
-                Not sure where to start? Let AI create a step-by-step 12-month application plan tailored to your profile and goals.
+                Let AI create a step-by-step 12-month application plan tailored to your profile and goals.
               </p>
-              <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground">
+              <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <CheckCircle2 className="h-3 w-3 text-primary" />
                   University recommendations
@@ -120,11 +120,11 @@ export default function CareerAbroad() {
               </div>
             </div>
 
-            <div className="flex flex-col items-center gap-2 min-w-[160px]">
-              <Button size="lg" onClick={() => navigate("/app/abroad/roadmap")} className="w-full">
+            <div className="flex items-center gap-3 w-full md:w-auto md:flex-col md:min-w-[160px]">
+              <Button size="lg" onClick={() => navigate("/app/abroad/roadmap")} className="flex-1 md:w-full">
                 Get My Roadmap
               </Button>
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs text-muted-foreground whitespace-nowrap">
                 {CREDIT_CONFIG.SERVICES.STUDY_ABROAD_ROADMAP?.cost || 100} Credits
               </span>
             </div>
@@ -134,31 +134,19 @@ export default function CareerAbroad() {
 
       {/* IELTS CTA - Wide Card */}
       <Card className="bg-gradient-to-r from-primary/5 to-secondary/5 border-0 shadow-sm cursor-pointer hover:shadow-md transition-all press-scale group" onClick={() => navigate("/app/abroad/ielts")}>
-        <CardContent className="p-6 md:p-8 flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
-          <div className="p-4 bg-background/80 backdrop-blur rounded-2xl shadow-sm">
-            <BookOpen className="h-8 w-8 text-primary" />
+        <CardContent className="p-4 md:p-6 flex items-center gap-3">
+          <div className="p-3 bg-background/80 backdrop-blur rounded-2xl shadow-sm flex-shrink-0">
+            <BookOpen className="h-6 w-6 text-primary" />
           </div>
 
-          <div className="flex-1">
-            <h3 className="text-lg font-bold mb-2">Start IELTS Preparation</h3>
-            <p className="text-sm text-muted-foreground mb-4 md:mb-0 max-w-md">
-              Take AI-powered mock tests, get instant band score predictions, and improve your speaking and writing
-              skills.
+          <div className="flex-1 min-w-0">
+            <h3 className="text-base font-bold mb-0.5">Start IELTS Preparation</h3>
+            <p className="text-xs text-muted-foreground line-clamp-2">
+              AI-powered mock tests, band score predictions, and speaking & writing practice.
             </p>
           </div>
 
-          <div className="flex flex-col gap-2 min-w-[140px]">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground bg-background/50 px-3 py-1.5 rounded-lg">
-              <Badge variant="secondary" className="h-1.5 w-1.5 rounded-full p-0" />
-              AI Mock Tests
-            </div>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground bg-background/50 px-3 py-1.5 rounded-lg">
-              <Badge variant="secondary" className="h-1.5 w-1.5 rounded-full p-0" />
-              Band Predictor
-            </div>
-          </div>
-
-          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors">
+          <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors flex-shrink-0">
             <ChevronRight className="h-5 w-5" />
           </div>
         </CardContent>

@@ -226,7 +226,7 @@ export function RoadmapIntakeForm() {
   return (
     <div className="max-w-2xl mx-auto">
       {/* Progress */}
-      <div className="mb-6">
+      <div className="mb-4">
         <div className="flex justify-between text-sm text-muted-foreground mb-2">
           <span>Step {step} of 3</span>
           <span>{Math.round((step / 3) * 100)}% complete</span>
@@ -243,7 +243,7 @@ export function RoadmapIntakeForm() {
               Destination & Program
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-4">
             {/* Target Countries */}
             <div className="space-y-3">
               <Label>Target Countries (select up to 3) *</Label>
@@ -260,19 +260,19 @@ export function RoadmapIntakeForm() {
                   );
                 })}
               </div>
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+              <div className="grid grid-cols-4 sm:grid-cols-4 gap-2">
                 {POPULAR_COUNTRIES.map((country) => (
                   <button
                     key={country.code}
                     type="button"
                     onClick={() => toggleCountry(country.code)}
-                    className={`p-2 rounded-lg border text-center text-sm transition-all ${
+                    className={`p-1.5 rounded-lg border text-center text-sm transition-all ${
                       formData.targetCountries.includes(country.code)
                         ? "border-primary bg-primary/10 text-primary"
                         : "border-border hover:border-primary/50"
                     }`}
                   >
-                    <span className="text-xl block mb-1">{getCountryFlag(country.code)}</span>
+                    <span className="text-lg block mb-0.5">{getCountryFlag(country.code)}</span>
                     <span className="text-xs">{country.name}</span>
                   </button>
                 ))}
@@ -280,7 +280,7 @@ export function RoadmapIntakeForm() {
             </div>
 
             {/* Degree Level */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>Degree Level *</Label>
               <Select value={formData.degreeLevel} onValueChange={(v) => setFormData((p) => ({ ...p, degreeLevel: v }))}>
                 <SelectTrigger>
@@ -297,7 +297,7 @@ export function RoadmapIntakeForm() {
             </div>
 
             {/* Field of Study */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>Field of Study</Label>
               <Select value={formData.fieldOfStudy} onValueChange={(v) => setFormData((p) => ({ ...p, fieldOfStudy: v }))}>
                 <SelectTrigger>
@@ -314,7 +314,7 @@ export function RoadmapIntakeForm() {
             </div>
 
             {/* Target Intake */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label>Target Intake *</Label>
               <Select value={formData.targetIntake} onValueChange={(v) => setFormData((p) => ({ ...p, targetIntake: v }))}>
                 <SelectTrigger>
@@ -342,7 +342,7 @@ export function RoadmapIntakeForm() {
               Profile & Readiness
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-4">
             {/* Use Existing CV */}
             <div className="flex items-center space-x-2">
               <Checkbox
@@ -419,7 +419,7 @@ export function RoadmapIntakeForm() {
               Budget & Preferences
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-4">
             {/* Budget Level */}
             <div className="space-y-3">
               <Label>Budget Level *</Label>
@@ -496,7 +496,7 @@ export function RoadmapIntakeForm() {
       )}
 
       {/* Navigation */}
-      <div className="flex justify-between mt-6">
+      <div className="flex justify-between mt-4">
         <Button variant="outline" onClick={() => (step > 1 ? setStep(step - 1) : navigate("/app/abroad"))} disabled={isSubmitting}>
           <ChevronLeft className="h-4 w-4 mr-1" />
           {step > 1 ? "Back" : "Cancel"}

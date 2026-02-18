@@ -184,24 +184,26 @@ export default function IELTSPrep() {
   const currentSection = SECTIONS.find(s => s.id === activeSection);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6">
+    <div className="max-w-6xl mx-auto px-4 py-4">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex items-center gap-3 mb-4">
         <Button variant="ghost" size="icon" onClick={() => navigate('/app/abroad')}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="flex-1">
           <h1 className="text-xl font-bold">IELTS Preparation</h1>
-          <p className="text-muted-foreground">Master all four IELTS sections</p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-muted-foreground text-sm">Master all four IELTS sections</p>
+            <Badge variant="secondary" className="gap-1">
+              <Coins className="h-3 w-3 text-warning" />
+              {ieltsCost} credits/resource
+            </Badge>
+          </div>
         </div>
-        <Badge variant="secondary" className="gap-1.5">
-          <Coins className="h-3.5 w-3.5 text-warning" />
-          {ieltsCost} credits per resource
-        </Badge>
       </div>
 
       {/* Section Overview Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
         {SECTIONS.map(section => {
           const stats = getSectionStats(section.id);
           const SectionIcon = section.icon;
@@ -213,7 +215,7 @@ export default function IELTSPrep() {
               onClick={() => setActiveSection(section.id)}
             >
               <CardContent className="p-4">
-                <div className={`p-2.5 rounded-xl ${section.bgColor} w-fit mb-3`}>
+                <div className={`p-2 rounded-xl ${section.bgColor} w-fit mb-2`}>
                   <SectionIcon className={`h-5 w-5 ${section.color}`} />
                 </div>
                 <h3 className="font-semibold">{section.name}</h3>
@@ -227,8 +229,8 @@ export default function IELTSPrep() {
       </div>
 
       {/* Resources List */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
+      <div className="mb-5">
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             {currentSection && (
               <>
@@ -336,7 +338,7 @@ export default function IELTSPrep() {
 
       {/* AI Practice CTA - Now links directly to IELTS Tutor */}
       <Card className="bg-gradient-to-r from-primary/5 to-secondary/5 border-primary/20">
-        <CardContent className="p-6">
+        <CardContent className="p-4">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-4">
               <div className="p-2.5 bg-primary/10 rounded-xl">
