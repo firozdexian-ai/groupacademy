@@ -1,91 +1,84 @@
 
 
-# Add Quick Actions Grid to Feed/Home Page
+# Home Page and Profile Tab Improvements
 
 ## Overview
 
-Add a 4x2 icon grid below the banner on the Feed page for quick access to key app features: Jobs, Abroad, Services, Career Tracks, Assessment, Mock Interview, Salary Analysis, and Portfolio.
+Based on the current state of the app and the reference screenshots, here are the improvement areas for the Home (Feed) page and Profile tab.
 
 ---
 
-## Implementation
+## Home Page Improvements
 
-### 1. Create New Component: `src/components/feed/QuickActionsGrid.tsx`
+### 1. Banner Aspect Ratio Fix
 
-A self-contained grid component with 8 items in a `grid-cols-4` layout (4 columns, 2 rows):
+The reference banners show a **wider, shorter aspect ratio** (~2.5:1 to 3:1). The current `h-44` compact height makes the banner too tall relative to its width on mobile, cropping the banner artwork poorly.
 
-| Row 1 | Jobs | Abroad | Services | Tracks |
-|-------|------|--------|----------|--------|
-| Row 2 | Assessment | Interview | Salary | Portfolio |
+**Fix:** Change compact height from `h-44` to `h-36` (144px) and use `rounded-2xl` for softer corners matching the reference. Also use `aspect-ratio` approach for better responsiveness.
 
-Each item will have:
-- A circular colored icon container (using the existing `bg-primary/10` pattern)
-- A label below the icon (11-12px text)
-- Tap navigates to the relevant route
-- Optional badge support (e.g., "New", "Hot") for future use
+**File:** `src/components/BannerCarousel.tsx`
 
-Routes mapped from `src/lib/routes.ts`:
-- Jobs -> `/app/jobs`
-- Abroad -> `/app/abroad`
-- Services -> `/app/services`
-- Career Tracks -> `/app/learning/tracks`
-- Assessment -> `/app/services/assessment`
-- Mock Interview -> `/app/services/mock-interview`
-- Salary Analysis -> `/app/services/salary-analysis`
-- Portfolio -> `/app/services/portfolio`
+### 2. Feed Header - Remove Redundant "Updated" Timestamp
 
-Icons from lucide-react:
-- Briefcase, Plane, Sparkles, Target, ClipboardList, Mic, DollarSign, Palette
+The "Updated less than a minute ago" text between the header and banner wastes vertical space. Remove or move it to be less prominent.
 
-### 2. Integrate into Feed Page: `src/pages/app/Feed.tsx`
+**File:** `src/pages/app/Feed.tsx`
 
-Insert `<QuickActionsGrid />` directly after the `<BannerCarousel compact />` on line 218, before the mobile-only widgets section.
+### 3. Quick Actions Grid - Add Background Cards
 
-```tsx
-{/* Banner */}
-<BannerCarousel compact />
+The current quick actions are just floating icons. Add a subtle card background (`bg-card rounded-2xl p-4 shadow-sm`) around the grid for better visual grouping, matching the reference app style.
 
-{/* Quick Actions Grid */}
-<QuickActionsGrid />
+**File:** `src/components/feed/QuickActionsGrid.tsx`
 
-{/* Mobile-Only Widgets */}
-...
-```
+### 4. Tighten Vertical Spacing
 
-The grid will be visible on all screen sizes but most impactful on mobile.
+The `space-y-6` gap between sections on the main column is too generous on mobile. Reduce to `space-y-4` for a denser, more app-like feel.
+
+**File:** `src/pages/app/Feed.tsx`
 
 ---
 
-## Technical Details
+## Profile Tab Improvements
 
-### QuickActionsGrid Component Structure
-```tsx
-const actions = [
-  { icon: Briefcase, label: "Jobs", path: "/app/jobs" },
-  { icon: Plane, label: "Abroad", path: "/app/abroad" },
-  { icon: Sparkles, label: "Services", path: "/app/services" },
-  { icon: Target, label: "Tracks", path: "/app/learning/tracks" },
-  { icon: ClipboardList, label: "Assessment", path: "/app/services/assessment" },
-  { icon: Mic, label: "Interview", path: "/app/services/mock-interview" },
-  { icon: DollarSign, label: "Salary", path: "/app/services/salary-analysis" },
-  { icon: Palette, label: "Portfolio", path: "/app/services/portfolio" },
-];
-```
+### 5. Profile Hero - Match Reference Style
 
-Each item renders as:
-- A tappable `div` with `cursor-pointer` and `active:scale-95` for feedback
-- Circular icon container (`h-12 w-12 rounded-full bg-primary/10`)
-- Icon inside (`h-5 w-5 text-primary`)
-- Label below (`text-[11px] text-center`)
+The reference shows the profile photo on the left side with a ring border, name and tagline to the right, on a branded gradient background. The current layout already has this general structure but can be improved:
 
-The grid uses `grid grid-cols-4 gap-3` for a compact 4x2 layout.
+- Make the avatar slightly larger (`h-24 w-24`) with a thicker white ring (`ring-4 ring-white`)
+- Add the user's profession/tagline more prominently
+- Ensure the gradient background extends to cover the full hero area with proper padding
+
+**File:** `src/pages/app/Profile.tsx`
+
+### 6. Quick Actions - Use Grid Instead of Horizontal Scroll
+
+The horizontal scroll for quick actions (My Learning, Saved Jobs, Applications, Edit Profile) is hard to discover. Switch to a 2x2 grid layout so all items are visible without scrolling.
+
+**File:** `src/pages/app/Profile.tsx`
+
+### 7. Credits Card - Better Integration
+
+Move the credits card from floating overlap to be part of the quick actions section for cleaner layout. Show it as the first item in a stats row.
+
+**File:** `src/pages/app/Profile.tsx`
 
 ---
 
-## Files Summary
+## Technical Summary
 
-| File | Action | Purpose |
-|------|--------|---------|
-| `src/components/feed/QuickActionsGrid.tsx` | Create | New 4x2 icon grid component |
-| `src/pages/app/Feed.tsx` | Modify | Insert QuickActionsGrid after banner |
+| File | Change |
+|------|--------|
+| `src/components/BannerCarousel.tsx` | Reduce compact height to `h-36`, use `rounded-2xl` |
+| `src/pages/app/Feed.tsx` | Remove timestamp, tighten `space-y-6` to `space-y-4` |
+| `src/components/feed/QuickActionsGrid.tsx` | Wrap grid in a card container |
+| `src/pages/app/Profile.tsx` | Larger avatar with white ring, 2x2 quick actions grid, cleaner credits integration |
+
+---
+
+## What stays the same
+
+- All colors, gradients, and theme remain untouched
+- No backend or database changes
+- All existing functionality preserved
+- Bottom navigation unchanged
 
