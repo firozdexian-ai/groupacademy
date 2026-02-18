@@ -104,7 +104,7 @@ export const BannerCarousel = ({ compact = false }: BannerCarouselProps) => {
   return (
     <div className={cn(
       "relative w-full rounded-xl overflow-hidden bg-muted group",
-      compact ? "h-40 mb-4" : "h-64 sm:h-72 md:h-80 lg:h-[400px] mb-8"
+      compact ? "h-44 mb-3" : "h-48 sm:h-56 md:h-72 lg:h-[360px] mb-6"
     )}>
       {/* Banner Image with optimized loading */}
       <img
@@ -130,7 +130,7 @@ export const BannerCarousel = ({ compact = false }: BannerCarouselProps) => {
           <Button
             variant="ghost"
             size="icon"
-            className="absolute left-4 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background/90 opacity-0 group-hover:opacity-100 transition-opacity"
+            className="absolute left-2 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background/90 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
             onClick={goToPrevious}
           >
             <ChevronLeft className="w-6 h-6" />
@@ -138,7 +138,7 @@ export const BannerCarousel = ({ compact = false }: BannerCarouselProps) => {
           <Button
             variant="ghost"
             size="icon"
-            className="absolute right-4 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background/90 opacity-0 group-hover:opacity-100 transition-opacity"
+            className="absolute right-2 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background/90 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
             onClick={goToNext}
           >
             <ChevronRight className="w-6 h-6" />
