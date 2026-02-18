@@ -211,7 +211,7 @@ export default function AIAgents() {
   const isLoading = isLoadingAgents || isLoadingSessions;
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+    <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
       {/* Credit Gate Modal */}
       <CreditGateModal
         isOpen={showCreditGate}
@@ -225,7 +225,7 @@ export default function AIAgents() {
       />
 
       {/* Hero Header */}
-      <div className="bg-gradient-to-br from-violet-500/10 via-fuchsia-500/5 to-transparent rounded-2xl p-5">
+      <div className="bg-gradient-to-br from-violet-500/10 via-fuchsia-500/5 to-transparent rounded-2xl p-4">
         <div className="flex items-center gap-3 mb-2">
           <div className="p-2 bg-background rounded-xl shadow-sm">
             <Bot className="h-5 w-5 text-primary" />

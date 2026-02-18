@@ -120,7 +120,7 @@ export default function AgentChat() {
   const AgentIcon = agent.icon;
 
   return (
-    <div className="max-w-4xl mx-auto h-[calc(100vh-4rem)] md:h-[calc(100vh-2rem)] flex flex-col">
+    <div className="max-w-4xl mx-auto h-[calc(100vh-4rem)] md:h-[calc(100vh-2rem)] flex flex-col pb-16 md:pb-0">
       {/* Credit Gate (The Door) */}
       <CreditGateModal
         isOpen={showCreditGate}

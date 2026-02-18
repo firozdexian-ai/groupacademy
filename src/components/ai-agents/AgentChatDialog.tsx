@@ -103,7 +103,7 @@ export function AgentChatDialog({
   const suggestions = getSuggestions(agent.id);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)] max-h-[700px] bg-background rounded-lg border shadow-sm overflow-hidden">
+    <div className="flex flex-col h-[calc(100vh-8rem)] bg-background md:max-h-[700px] md:rounded-lg md:border md:shadow-sm overflow-hidden">
       {/* Header */}
       <div className="flex items-center gap-3 p-4 border-b bg-muted/40 backdrop-blur-sm sticky top-0 z-10">
         <Button variant="ghost" size="icon" onClick={onBack} className="shrink-0 h-9 w-9">
@@ -165,13 +165,13 @@ export function AgentChatDialog({
                 I'm here to help you achieve your career goals. Pick a topic below to get started.
               </p>
 
-              <div className="flex flex-wrap justify-center gap-2 max-w-md">
+              <div className="flex overflow-x-auto gap-2 max-w-md pb-2 scrollbar-hide md:flex-wrap md:justify-center md:overflow-visible md:pb-0">
                 {suggestions.map((suggestion) => (
                   <button
                     key={suggestion}
                     onClick={() => onSendMessage(suggestion)}
                     disabled={isStreaming || isSessionExpired}
-                    className="px-4 py-2 text-xs font-medium rounded-full border bg-background hover:bg-primary/5 hover:border-primary/30 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
+                    className="px-4 py-2 text-xs font-medium rounded-full border bg-background hover:bg-primary/5 hover:border-primary/30 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 shrink-0"
                   >
                     {suggestion}
                   </button>
@@ -267,7 +267,7 @@ export function AgentChatDialog({
       </ScrollArea>
 
       {/* Input Area */}
-      <form onSubmit={handleSubmit} className="p-4 border-t bg-background relative">
+      <form onSubmit={handleSubmit} className="p-3 md:p-4 border-t bg-background relative">
         {isSessionExpired ? (
           <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center z-10 p-4 text-center">
             <Badge variant="destructive" className="mb-2 px-3 py-1">
@@ -299,7 +299,7 @@ export function AgentChatDialog({
             <Send className="h-5 w-5" />
           </Button>
         </div>
-        <div className="text-[10px] text-muted-foreground text-center mt-2 opacity-50">
+        <div className="hidden md:block text-[10px] text-muted-foreground text-center mt-2 opacity-50">
           AI can make mistakes. Check important info.
         </div>
       </form>

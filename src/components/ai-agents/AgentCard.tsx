@@ -41,7 +41,7 @@ export function AgentCard({
     >
       <CardContent className="p-3 flex flex-col items-center text-center gap-2">
         {/* Avatar / Icon */}
-        <div className="pt-2">
+        <div>
           {avatarUrl ? (
             <Avatar className="h-14 w-14 ring-2 ring-border">
               <AvatarImage src={avatarUrl} alt={name} />
@@ -62,7 +62,7 @@ export function AgentCard({
         </h3>
 
         {/* Description */}
-        <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed min-h-[2.5rem]">
+        <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
           {description}
         </p>
 
@@ -71,13 +71,6 @@ export function AgentCard({
           <Badge variant="secondary" className="text-[10px] gap-1">
             <Coins className="h-3 w-3" />
             {creditCost} pts
-          </Badge>
-        )}
-
-        {/* Active Session Badge */}
-        {hasActiveSession && (
-          <Badge className="bg-green-500/10 text-green-600 border-green-500/20 text-[10px]">
-            Active
           </Badge>
         )}
 

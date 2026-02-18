@@ -37,7 +37,7 @@ export function AgentFilters({
   );
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {/* Search */}
       <div className="relative">
         <Search
