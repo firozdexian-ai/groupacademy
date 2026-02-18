@@ -25,6 +25,7 @@ import { FeedHeader } from "@/components/feed/FeedHeader";
 import { FloatingWhatsAppButton } from "@/components/feed/FloatingWhatsAppButton";
 import { PersonalizedPromptCard } from "@/components/feed/PersonalizedPromptCard";
 import { BannerCarousel } from "@/components/BannerCarousel";
+import { QuickActionsGrid } from "@/components/feed/QuickActionsGrid";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 
@@ -216,6 +217,9 @@ export default function Feed() {
 
           {/* Banner */}
           <BannerCarousel compact />
+
+          {/* Quick Actions Grid */}
+          <QuickActionsGrid />
 
           {/* Mobile-Only Widgets */}
           <div className="lg:hidden space-y-6">
