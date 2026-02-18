@@ -257,9 +257,9 @@ export default function JobsHub() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6 space-y-8">
+    <div className="max-w-4xl mx-auto px-4 py-6 space-y-5">
       {/* Search Section */}
-      <section className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent rounded-2xl p-5">
+      <section className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent rounded-2xl p-4">
         <h1 className="text-xl font-bold mb-1">Find Your Dream Job</h1>
         <p className="text-sm text-muted-foreground mb-4">Discover opportunities tailored to your skills</p>
 
@@ -284,7 +284,7 @@ export default function JobsHub() {
         <Button
           variant="outline"
           size="sm"
-          className="shrink-0 gap-1.5 h-9 rounded-full"
+          className="shrink-0 gap-1.5 h-9 rounded-full bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20"
           onClick={() => navigate("/app/saved?tab=jobs")}
         >
           <Bookmark className="h-4 w-4" />
@@ -298,7 +298,7 @@ export default function JobsHub() {
         <Button
           variant="outline"
           size="sm"
-          className="shrink-0 gap-1.5 h-9 rounded-full"
+          className="shrink-0 gap-1.5 h-9 rounded-full bg-blue-500/10 border-blue-500/30 text-blue-700 dark:text-blue-400 hover:bg-blue-500/20"
           onClick={() => navigate("/app/applications")}
         >
           <FileText className="h-4 w-4" />
@@ -312,7 +312,7 @@ export default function JobsHub() {
         <Button
           variant="outline"
           size="sm"
-          className="shrink-0 gap-1.5 h-9 rounded-full"
+          className="shrink-0 gap-1.5 h-9 rounded-full bg-muted/60 hover:bg-muted"
           onClick={() => setPreferencesOpen(true)}
         >
           <Settings className="h-4 w-4" />
@@ -331,7 +331,7 @@ export default function JobsHub() {
         {loading ? (
           <div className="flex gap-4 overflow-hidden pb-2">
             {[1, 2, 3].map((i) => (
-              <Card key={i} className="w-[300px] shrink-0">
+              <Card key={i} className="w-[260px] shrink-0">
                 <CardContent className="p-4 space-y-3">
                   <div className="flex gap-3">
                     <Skeleton className="h-12 w-12 rounded-xl shrink-0" />
@@ -361,7 +361,7 @@ export default function JobsHub() {
                 {topPicks.map((job, index) => (
                   <div
                     key={job.id}
-                    className="w-[300px] shrink-0 animate-in fade-in slide-in-from-right-4"
+                    className="w-[260px] shrink-0 animate-in fade-in slide-in-from-right-4"
                     style={{ animationDelay: `${index * 50}ms` }}
                   >
                     {/* FIX: Wrapper DIV to ensure click works */}

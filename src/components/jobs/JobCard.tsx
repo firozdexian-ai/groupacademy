@@ -177,7 +177,7 @@ export function JobCard({
           </Badge>
 
           {formatSalary() && (
-            <Badge variant="outline" className="text-[10px] h-6 px-2 text-muted-foreground bg-muted/30">
+            <Badge variant="outline" className="text-[10px] h-6 px-2 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20">
               <Banknote className="w-3 h-3 mr-1" />
               {formatSalary()}
             </Badge>

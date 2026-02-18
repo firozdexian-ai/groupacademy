@@ -355,7 +355,7 @@ export default function AppJobDetail() {
   const displayDescription = job.ai_enhanced_description || job.description;
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6">
+    <div className="max-w-3xl mx-auto px-4 py-6 pb-28 md:pb-6">
       {/* Navigation */}
       <Button
         variant="ghost"
@@ -604,6 +604,38 @@ export default function AppJobDetail() {
             </div>
             <img src={job.source_image_url} alt="Original job post" className="w-full h-auto" />
           </Card>
+        )}
+      </div>
+
+      {/* Sticky Bottom CTA Bar - Mobile Only */}
+      <div className="fixed bottom-0 left-0 right-0 md:hidden bg-background/95 backdrop-blur-sm border-t p-3 flex gap-2 z-40">
+        <Button
+          variant="outline"
+          size="lg"
+          className="shrink-0 gap-2"
+          onClick={handleSaveToggle}
+          disabled={saveLoading}
+        >
+          <Bookmark className={`w-4 h-4 ${isSaved ? "fill-current text-primary" : ""}`} />
+          {isSaved ? "Saved" : "Save"}
+        </Button>
+        {deadlinePassed ? (
+          <Button size="lg" className="flex-1" disabled>
+            Closed
+          </Button>
+        ) : existingApp ? (
+          <Button size="lg" className="flex-1 bg-green-600" disabled>
+            <CheckCircle className="w-4 h-4 mr-2" />
+            Applied
+          </Button>
+        ) : (
+          <Button size="lg" className="flex-1" onClick={handleApply}>
+            {job?.application_type === "link" ? (
+              <>Apply Externally <ExternalLink className="w-4 h-4 ml-2" /></>
+            ) : (
+              "Apply Now"
+            )}
+          </Button>
         )}
       </div>
     </div>
