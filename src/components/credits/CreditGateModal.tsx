@@ -64,18 +64,15 @@ export function CreditGateModal({
           </div>
 
           <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-            <span className="text-sm text-muted-foreground">Cost</span>
             <div className="flex items-center gap-1.5">
-              <Coins className="h-4 w-4 text-warning" />
-              <span className="font-semibold">{cost}</span>
+              <span className="text-sm text-muted-foreground">Cost:</span>
+              <Coins className="h-3.5 w-3.5 text-warning" />
+              <span className="font-semibold text-sm">{cost}</span>
             </div>
-          </div>
-
-          <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-            <span className="text-sm text-muted-foreground">Current Balance</span>
             <div className="flex items-center gap-1.5">
-              <Coins className="h-4 w-4 text-warning" />
-              <span className="font-semibold">{currentBalance}</span>
+              <span className="text-sm text-muted-foreground">Balance:</span>
+              <Coins className="h-3.5 w-3.5 text-warning" />
+              <span className="font-semibold text-sm">{currentBalance}</span>
             </div>
           </div>
 

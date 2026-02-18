@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { ClipboardCheck, Mic, DollarSign, Palette, Coins, Sparkles, History } from "lucide-react";
+import { ClipboardCheck, Mic, DollarSign, Palette, Coins, Sparkles, History, ArrowRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CreditGateModal } from "@/components/credits/CreditGateModal";
 import { CreditPurchaseSheet } from "@/components/credits/CreditPurchaseSheet";
-import { ServiceUsageBadge } from "@/components/credits/ServiceUsageBadge";
+
 import { ServiceHistoryCard } from "@/components/credits/ServiceHistoryCard";
 import { useCredits } from "@/hooks/useCredits";
 import { ServiceType } from "@/lib/creditPricing";
@@ -117,9 +117,9 @@ export default function ServicesHub() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6 space-y-8">
+    <div className="max-w-4xl mx-auto px-4 py-4 space-y-5">
       {/* Header with Credits */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2 mb-1">
             <Sparkles className="h-6 w-6 text-primary" />
@@ -130,13 +130,13 @@ export default function ServicesHub() {
 
         {/* Compact Credits Card */}
         <Card className="overflow-hidden border-0 shadow-lg md:w-auto w-full bg-gradient-to-br from-primary to-primary/90 text-primary-foreground">
-          <div className="p-4 flex items-center justify-between gap-6">
+          <div className="p-3 sm:p-4 flex items-center justify-between gap-6">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-white/20 rounded-xl backdrop-blur-sm">
-                <Coins className="h-6 w-6 text-white" />
+              <div className="p-2 sm:p-2.5 bg-white/20 rounded-xl backdrop-blur-sm">
+                <Coins className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               </div>
               <div>
-                <p className="text-2xl font-bold leading-none mb-1">{balance}</p>
+                <p className="text-xl sm:text-2xl font-bold leading-none mb-1">{balance}</p>
                 <p className="text-[10px] uppercase tracking-wider font-medium opacity-90">Credits Available</p>
               </div>
             </div>
@@ -197,7 +197,7 @@ export default function ServicesHub() {
                         {cost}
                       </span>
                     </div>
-                    <ServiceUsageBadge serviceType={service.id} />
+                    <ArrowRight className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
                   </div>
                 </CardContent>
               </Card>

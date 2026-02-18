@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
-import { ClipboardCheck, Mic, DollarSign, Briefcase, Calendar, ArrowRight, Loader2 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ClipboardCheck, Mic, DollarSign, Briefcase, ArrowRight, Loader2 } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useServiceHistory, ServiceHistoryItem } from '@/hooks/useServiceHistory';
 import { formatDistanceToNow } from 'date-fns';
@@ -60,13 +60,7 @@ export function ServiceHistoryCard() {
 
   return (
     <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base flex items-center gap-2">
-          <Calendar className="h-5 w-5 text-muted-foreground" />
-          Service History
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-3 pt-4">
         {recentHistory.map((item) => {
           const config = SERVICE_CONFIG[item.type];
           const Icon = config.icon;
