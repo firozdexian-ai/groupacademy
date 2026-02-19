@@ -1,71 +1,129 @@
 
 
-# Profile and Profile Edit - Mobile UX Improvements
+# Final Batch: All Remaining Sub-Pages Mobile UX Consistency
 
 ## Overview
 
-Both pages are already in good shape with smart patterns (sticky save bar, unsaved changes warning, CV auto-parse). The improvements focus on tightening spacing for mobile density consistency and reducing a few oversized elements.
+This is the final sweep across ~17 remaining sub-pages that still use generous `py-6`, `space-y-6/8`, `mb-6/8`, and `text-2xl` patterns. After this batch, every page in the app will follow the same tight mobile layout standard.
 
 ---
 
 ## Improvements
 
-### 1. Profile Page (`Profile.tsx`) - Tighten Spacing
+### Group A: Learning Sub-Pages
 
-**Current issues:**
-- `py-6` and `mb-6` on the hero header create generous top/bottom gaps
-- The hero gradient area uses `p-6 pb-8` -- slightly generous on mobile
-- `space-y-4` on profile sections (About, Experience, Education, Skills) is fine, but the `CardHeader` in each section has default padding that adds up across 4+ cards
-- Sign Out button has `mt-8` creating a large gap at the bottom
-- Experience/Education icon containers use `p-2.5` -- slightly large
+**1. My Learning (`AppMyLearning.tsx`)**
+- Reduce `py-6` to `py-4` and header `mb-6` to `mb-4`
+- Reduce title from `text-2xl` to `text-xl`
+- Reduce stats grid `mb-8` to `mb-5`
+- Reduce Tabs `space-y-6` to `space-y-4`
+- Reduce empty state `py-12` to `py-8`
 
-**Fixes:**
-- Reduce `py-6` to `py-4` and hero `mb-6` to `mb-5`
-- Reduce hero gradient padding from `p-6 pb-8` to `p-5 pb-7`
-- Reduce Experience/Education icon containers from `p-2.5` to `p-2`
-- Reduce Sign Out `mt-8` to `mt-6`
+**2. Course Detail (`AppCourseDetail.tsx`)**
+- Reduce `py-6` to `py-4` in main and loading/error states
 
-### 2. Profile Edit (`ProfileEdit.tsx`) - Compact Form Sections
+**3. Events (`AppEvents.tsx`)**
+- Reduce `py-6` to `py-4` and header `mb-6` to `mb-4`
+- Reduce title from `text-2xl` to `text-xl`
+- Reduce section `mb-8` to `mb-5` (Today's Events, Upcoming, Past)
+- Reduce filter tabs `mb-6` to `mb-4`
 
-**Current issues:**
-- `space-y-8` between form cards (Photo, CV, Basic Info, Skills, Experience, Education, Links) creates very large vertical gaps -- 7 cards x 32px = 224px of wasted spacing
-- Header `mb-6` is generous
-- CV upload empty state uses `p-6` padding and `h-8` icons -- slightly large on mobile
-- `pb-44` at the top is very generous (only needs ~120px for the sticky bar + bottom nav)
+### Group B: Jobs Sub-Pages
 
-**Fixes:**
-- Reduce form `space-y-8` to `space-y-5` for tighter card grouping
+**4. Job Detail (`AppJobDetail.tsx`)**
+- Already has `pb-28` sticky CTA -- good
+- Reduce `py-6` to `py-4` in main and loading/error states
+- Reduce content `space-y-6` to `space-y-4`
 - Reduce header `mb-6` to `mb-4`
-- Reduce CV upload empty state padding from `p-6` to `p-5` and icon from `h-8` to `h-7`
-- Reduce `pb-44` to `pb-36` (still sufficient clearance for sticky bar + bottom nav)
 
-### 3. Profile Completion Meter (`ProfileCompletionMeter.tsx`) - Minor Polish
+**5. Job Application (`AppJobApplication.tsx`)**
+- Reduce `py-6` to `py-4` in all states (main, loading, submitted, error)
+- Reduce header `mb-6` to `mb-4`
+- Reduce card gaps `mb-6` to `mb-4` between sections (Job Info, CV, Form)
 
-**Current issues:**
-- The "full" variant's checklist items have `mb-4` below the list and `mb-4` above, creating 32px of internal spacing before the CTA button
-- The progress ring in the full variant is `w-16 h-16` which is slightly large
+**6. Job Assessment (`JobAssessment.tsx`)**
+- Reduce `py-6` to `py-4` in all states
+- Reduce header `mb-6` to `mb-4`
 
-**Fixes:**
-- Reduce checklist `mb-4` to `mb-3` for tighter grouping
-- Reduce header gap `mb-4` to `mb-3`
-- Keep the ring size as-is (it serves as a visual anchor and is already well-proportioned)
+**7. Job Assessment Results (`JobAssessmentResults.tsx`)**
+- Reduce `py-6` to `py-4` in all states
+- Reduce processing state `space-y-8` to `space-y-5`
+- Reduce results `space-y-6` to `space-y-4`
+
+### Group C: Services Sub-Pages
+
+**8. Mock Interview Setup (`AppMockInterviewSetup.tsx`)**
+- Reduce `py-6` to `py-4`
+- Reduce form `space-y-6` to `space-y-4` inside CardContent
+
+**9. Career Assessment (`AppCareerAssessment.tsx`)**
+- Reduce `py-6` to `py-4`
+- Reduce progress bar `mb-6` to `mb-4`
+- Reduce intro `space-y-8` to `space-y-5`
+
+**10. Salary Analysis Setup (`AppSalaryAnalysisSetup.tsx`)**
+- Reduce `py-6` to `py-4`
+
+**11. Portfolio Request (`AppPortfolioRequest.tsx`)**
+- Reduce `py-6` to `py-4` if present
+
+### Group D: Explore Sub-Pages
+
+**12. Professions Listing (`AppProfessions.tsx`)**
+- Reduce `py-6` to `py-4` if present
+
+**13. Profession Detail (`AppProfessionDetail.tsx`)**
+- Reduce `py-6` to `py-4` in all states
+
+### Group E: AI & Chat Sub-Pages
+
+**14. AI Agents (`AIAgents.tsx`)**
+- Reduce `py-6` to `py-4` if present
+
+**15. Agent Chat (`AgentChat.tsx`)**
+- Reduce `py-6` to `py-4` if present
+
+### Group F: Results & Roadmap Sub-Pages
+
+**16. My Results (`MyResults.tsx`)**
+- Already uses `py-6` and `text-xl` -- reduce `py-6` to `py-4`
+
+**17. Study Abroad Roadmap Results (`StudyAbroadRoadmapResults.tsx`)**
+- Reduce `py-6` to `py-4` in all states
+- Reduce `space-y-6` to `space-y-4`
+- Reduce processing state `mb-8` to `mb-5`
 
 ---
 
 ## Technical Summary
 
-| File | Changes |
-|------|---------|
-| `src/pages/app/Profile.tsx` | Reduce `py-6` to `py-4`, hero `mb-6` to `mb-5`, gradient `p-6 pb-8` to `p-5 pb-7`, icon containers `p-2.5` to `p-2`, sign out `mt-8` to `mt-6` |
-| `src/pages/app/ProfileEdit.tsx` | Reduce `space-y-8` to `space-y-5`, header `mb-6` to `mb-4`, CV upload `p-6` to `p-5`, `pb-44` to `pb-36` |
-| `src/components/profile/ProfileCompletionMeter.tsx` | Reduce internal `mb-4` to `mb-3` in full variant |
+| File | Key Changes |
+|------|-------------|
+| `src/pages/app/AppMyLearning.tsx` | `py-4`, title `text-xl`, stats `mb-5`, tabs `space-y-4`, empty `py-8` |
+| `src/pages/app/AppCourseDetail.tsx` | `py-4` on all states |
+| `src/pages/app/AppEvents.tsx` | `py-4`, title `text-xl`, sections `mb-5`, tabs `mb-4` |
+| `src/pages/app/AppJobDetail.tsx` | `py-4`, content `space-y-4`, header `mb-4` |
+| `src/pages/app/AppJobApplication.tsx` | `py-4` all states, card gaps `mb-4` |
+| `src/pages/app/JobAssessment.tsx` | `py-4`, header `mb-4` |
+| `src/pages/app/JobAssessmentResults.tsx` | `py-4`, processing `space-y-5`, results `space-y-4` |
+| `src/pages/app/AppMockInterviewSetup.tsx` | `py-4`, form `space-y-4` |
+| `src/pages/app/AppCareerAssessment.tsx` | `py-4`, progress `mb-4`, intro `space-y-5` |
+| `src/pages/app/AppSalaryAnalysisSetup.tsx` | `py-4` |
+| `src/pages/app/AppPortfolioRequest.tsx` | `py-4` |
+| `src/pages/app/AppProfessions.tsx` | `py-4` |
+| `src/pages/app/AppProfessionDetail.tsx` | `py-4` all states |
+| `src/pages/app/AIAgents.tsx` | `py-4` |
+| `src/pages/app/AgentChat.tsx` | `py-4` |
+| `src/pages/app/MyResults.tsx` | `py-4` |
+| `src/pages/app/StudyAbroadRoadmapResults.tsx` | `py-4`, `space-y-4`, processing `mb-5` |
 
 ---
 
 ## What stays the same
 
-- All existing functionality (CV upload/parse, photo upload, experience enhance, save/cancel, dirty state warning)
-- Sticky save bar position at `bottom-[68px]`
+- All existing functionality (enrollment, job applications, assessments, AI chat, roadmaps)
+- Sticky CTAs already in place (Job Detail, etc.)
 - Color palette and theme
 - No database changes
+- Data fetching and navigation logic unchanged
 
