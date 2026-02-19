@@ -1606,6 +1606,55 @@ export type Database = {
         }
         Relationships: []
       }
+      gig_share_logs: {
+        Row: {
+          channel: string
+          gig_submission_id: string | null
+          id: string
+          job_id: string | null
+          shared_at: string
+          talent_id: string
+        }
+        Insert: {
+          channel: string
+          gig_submission_id?: string | null
+          id?: string
+          job_id?: string | null
+          shared_at?: string
+          talent_id: string
+        }
+        Update: {
+          channel?: string
+          gig_submission_id?: string | null
+          id?: string
+          job_id?: string | null
+          shared_at?: string
+          talent_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gig_share_logs_gig_submission_id_fkey"
+            columns: ["gig_submission_id"]
+            isOneToOne: false
+            referencedRelation: "gig_submissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gig_share_logs_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gig_share_logs_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gig_submissions: {
         Row: {
           admin_notes: string | null
