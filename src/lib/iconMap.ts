@@ -1,7 +1,9 @@
 import { 
   Briefcase, 
   Code, 
-  DollarSign, 
+  DollarSign,
+  Gift,
+  Upload, 
   Users, 
   TrendingUp, 
   Building2,
@@ -240,6 +242,8 @@ export const iconMap: Record<string, LucideIcon> = {
   "leaf": Leaf,
   "sun": Sun,
   "flame": Flame,
+  "gift": Gift,
+  "upload": Upload,
 };
 
 // Default icon when no match found

@@ -38,6 +38,8 @@ import { ContentOutreachManager } from "@/components/dashboard/ContentOutreachMa
 import { ServiceOutreachManager } from "@/components/dashboard/ServiceOutreachManager";
 import { MarketingAnalytics } from "@/components/dashboard/MarketingAnalytics";
 import { FeedPostsManager } from "@/components/dashboard/FeedPostsManager";
+import { GigsManager } from "@/components/dashboard/GigsManager";
+import { GigSubmissionsManager } from "@/components/dashboard/GigSubmissionsManager";
 import { IRDashboard } from "@/components/dashboard/ir/IRDashboard";
 import { MRRTargetManager } from "@/components/dashboard/ir/MRRTargetManager";
 import { VCFirmsManager } from "@/components/dashboard/ir/VCFirmsManager";
@@ -99,6 +101,8 @@ const tabAccessMap: Record<string, AppRole[]> = {
   "ai-agents": ["admin"],
   "company-agents": ["admin"],
   "agent-sessions": ["admin"],
+  gigs: ["admin"],
+  "gig-submissions": ["admin"],
   credits: ["admin"],
   notifications: ["admin"],
   
@@ -286,6 +290,10 @@ const Dashboard = () => {
         return <CompanyAgentsManager />;
       case "agent-sessions":
         return <AgentSessionsManager />;
+      case "gigs":
+        return <GigsManager />;
+      case "gig-submissions":
+        return <GigSubmissionsManager />;
       case "credits":
         return <CreditsManager />;
       case "notifications":
@@ -349,6 +357,8 @@ const Dashboard = () => {
       "ai-agents": "AI Agents",
       "company-agents": "Company Agents",
       "agent-sessions": "Agent Sessions",
+      gigs: "Manage Gigs",
+      "gig-submissions": "Gig Submissions",
       credits: "Credits Manager",
       notifications: "Notifications",
       "study-abroad": "Study Abroad Programs",

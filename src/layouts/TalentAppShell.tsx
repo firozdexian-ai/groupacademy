@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useTalent } from "@/hooks/useTalent";
 import { supabase } from "@/integrations/supabase/client";
-import { Home, Briefcase, GraduationCap, Sparkles, Globe, Bot, User, Bell, Menu, Search, LogOut, Coins } from "lucide-react";
+import { Home, Briefcase, GraduationCap, Globe, Gift, User, Bell, Menu, Search, LogOut, Coins } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -44,17 +44,13 @@ export function TalentAppShell() {
     icon: GraduationCap,
     path: "/app/learning"
   }, {
-    label: "Services",
-    icon: Sparkles,
-    path: "/app/services"
-  }, {
     label: "Abroad",
     icon: Globe,
     path: "/app/abroad"
   }, {
-    label: "AI Agents",
-    icon: Bot,
-    path: "/app/agents"
+    label: "Gigs",
+    icon: Gift,
+    path: "/app/gigs"
   }];
   useEffect(() => {
     if (!talent?.id) return;
