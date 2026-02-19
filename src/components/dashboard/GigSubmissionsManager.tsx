@@ -7,9 +7,167 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { CheckCircle2, XCircle, Eye, Coins } from "lucide-react";
+import { CheckCircle2, XCircle, Eye, Coins, User, Briefcase, MapPin, Phone, FileText, Share2, BookOpen, ExternalLink, Image } from "lucide-react";
 import { format } from "date-fns";
 import { useState } from "react";
+
+function SubmissionPreview({ submission }: { submission: any }) {
+  const data = submission.submission_data as any;
+  const category = submission.gigs?.category;
+
+  if (!data) return <pre className="text-xs bg-muted p-3 rounded whitespace-pre-wrap">No data</pre>;
+
+  if (category === "cv_upload") {
+    return (
+      <div className="space-y-3">
+        <div className="bg-muted/50 rounded-xl p-4 space-y-2">
+          <h4 className="font-semibold text-sm flex items-center gap-1.5">
+            <User className="h-4 w-4" /> Parsed Profile
+          </h4>
+          <div className="grid gap-1.5 text-sm">
+            <p><span className="text-muted-foreground">Name:</span> {data.parsed_name || "—"}</p>
+            <p><span className="text-muted-foreground">Phone:</span> {data.parsed_phone || "—"}</p>
+            <p><span className="text-muted-foreground">Email:</span> {data.parsed_email || "—"}</p>
+            {data.parsed_profession && (
+              <div className="flex items-center gap-1.5">
+                <span className="text-muted-foreground">Profession:</span>
+                <Badge variant="secondary" className="text-xs">{data.parsed_profession}</Badge>
+              </div>
+            )}
+            {data.parsed_skills?.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1">
+                {data.parsed_skills.slice(0, 6).map((s: string, i: number) => (
+                  <Badge key={i} variant="outline" className="text-xs">{s}</Badge>
+                ))}
+              </div>
+            )}
+          </div>
+          {data.cv_url && (
+            <a href={data.cv_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary flex items-center gap-1 mt-2">
+              <ExternalLink className="h-3 w-3" /> View CV
+            </a>
+          )}
+        </div>
+        {data.outreach_message && (
+          <div className="bg-green-50 dark:bg-green-950/30 rounded-xl p-3">
+            <Label className="text-xs text-muted-foreground mb-1 block">WhatsApp Message</Label>
+            <p className="text-xs whitespace-pre-wrap">{data.outreach_message}</p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (category === "job_posting") {
+    const job = data.parsed_job;
+    return (
+      <div className="space-y-3">
+        {job && (
+          <div className="bg-muted/50 rounded-xl p-4 space-y-2">
+            <h4 className="font-semibold text-sm flex items-center gap-1.5">
+              <Briefcase className="h-4 w-4" /> Parsed Job
+            </h4>
+            <div className="grid gap-1.5 text-sm">
+              <p className="font-medium">{job.title || "—"}</p>
+              <p><span className="text-muted-foreground">Company:</span> {job.company_name || "—"}</p>
+              <p className="flex items-center gap-1">
+                <MapPin className="h-3 w-3 text-muted-foreground" /> {job.location || "—"}
+              </p>
+              {job.job_type && <Badge variant="secondary" className="text-xs w-fit">{job.job_type}</Badge>}
+              {job.experience_level && <Badge variant="outline" className="text-xs w-fit">{job.experience_level}</Badge>}
+            </div>
+          </div>
+        )}
+        {data.source_image_url && (
+          <div>
+            <Label className="text-xs text-muted-foreground mb-1 block">Source Screenshot</Label>
+            <img src={data.source_image_url} alt="Source" className="rounded-lg max-h-48 object-cover w-full" />
+          </div>
+        )}
+        {data.raw_text && (
+          <details className="text-xs">
+            <summary className="text-muted-foreground cursor-pointer">Raw text</summary>
+            <pre className="bg-muted p-2 rounded mt-1 whitespace-pre-wrap max-h-32 overflow-y-auto">{data.raw_text}</pre>
+          </details>
+        )}
+      </div>
+    );
+  }
+
+  if (category === "job_sharing") {
+    return (
+      <div className="bg-muted/50 rounded-xl p-4 space-y-2">
+        <h4 className="font-semibold text-sm flex items-center gap-1.5">
+          <Share2 className="h-4 w-4" /> Share Details
+        </h4>
+        <div className="grid gap-1.5 text-sm">
+          <p><span className="text-muted-foreground">Job:</span> {data.job_title || "—"}</p>
+          <p><span className="text-muted-foreground">Company:</span> {data.job_company || "—"}</p>
+          <div className="flex items-center gap-1.5">
+            <span className="text-muted-foreground">Shared on:</span>
+            {data.channels_shared?.map((ch: string) => (
+              <Badge key={ch} variant="secondary" className="text-xs">{ch}</Badge>
+            ))}
+          </div>
+          {data.share_url && (
+            <a href={data.share_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary flex items-center gap-1">
+              <ExternalLink className="h-3 w-3" /> View Job
+            </a>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (category === "content_creation") {
+    return (
+      <div className="bg-muted/50 rounded-xl p-4 space-y-2">
+        <h4 className="font-semibold text-sm flex items-center gap-1.5">
+          <FileText className="h-4 w-4" /> Content: {data.content_type || "post"}
+        </h4>
+        {data.title && <p className="font-medium text-sm">{data.title}</p>}
+        {data.text && <p className="text-sm whitespace-pre-wrap">{data.text}</p>}
+        {data.body && <p className="text-sm whitespace-pre-wrap max-h-40 overflow-y-auto">{data.body}</p>}
+        {data.poll_question && (
+          <div className="space-y-1">
+            <p className="text-sm font-medium">{data.poll_question}</p>
+            {data.poll_options?.map((opt: string, i: number) => (
+              <p key={i} className="text-xs text-muted-foreground ml-2">• {opt}</p>
+            ))}
+          </div>
+        )}
+        {data.image_url && (
+          <img src={data.image_url} alt="Content" className="rounded-lg max-h-40 object-cover w-full" />
+        )}
+      </div>
+    );
+  }
+
+  if (category === "course_resell") {
+    return (
+      <div className="bg-muted/50 rounded-xl p-4 space-y-2">
+        <h4 className="font-semibold text-sm flex items-center gap-1.5">
+          <BookOpen className="h-4 w-4" /> Course Referral
+        </h4>
+        <div className="grid gap-1.5 text-sm">
+          <p><span className="text-muted-foreground">Course:</span> {data.course_title || "—"}</p>
+          {data.referral_link && (
+            <a href={data.referral_link} target="_blank" rel="noopener noreferrer" className="text-xs text-primary flex items-center gap-1">
+              <ExternalLink className="h-3 w-3" /> Referral Link
+            </a>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Fallback: raw JSON
+  return (
+    <pre className="text-xs bg-muted p-3 rounded whitespace-pre-wrap max-h-48 overflow-y-auto">
+      {JSON.stringify(data, null, 2)}
+    </pre>
+  );
+}
 
 export function GigSubmissionsManager() {
   const queryClient = useQueryClient();
@@ -171,6 +329,7 @@ export function GigSubmissionsManager() {
                   <TableHead>Status</TableHead>
                   <TableHead>Credits</TableHead>
                   <TableHead>Date</TableHead>
+                  <TableHead></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -187,6 +346,11 @@ export function GigSubmissionsManager() {
                     <TableCell className="text-xs text-muted-foreground">
                       {sub.reviewed_at ? format(new Date(sub.reviewed_at), "MMM d") : "-"}
                     </TableCell>
+                    <TableCell>
+                      <Button variant="ghost" size="icon" onClick={() => { setSelectedSubmission(sub); setAdminNotes(""); }}>
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -195,54 +359,67 @@ export function GigSubmissionsManager() {
         </div>
       )}
 
-      {/* Detail Dialog */}
+      {/* Detail Dialog with Rich Preview */}
       <Dialog open={!!selectedSubmission} onOpenChange={(o) => !o && setSelectedSubmission(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Submission Details</DialogTitle>
           </DialogHeader>
           {selectedSubmission && (
             <div className="space-y-4">
-              <div>
-                <p className="text-sm font-medium">{selectedSubmission.talents?.full_name}</p>
-                <p className="text-xs text-muted-foreground">{selectedSubmission.talents?.email}</p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">{selectedSubmission.talents?.full_name}</p>
+                  <p className="text-xs text-muted-foreground">{selectedSubmission.talents?.email}</p>
+                </div>
+                <Badge variant="outline">{selectedSubmission.gigs?.category}</Badge>
               </div>
+
               <div>
                 <Label className="text-xs text-muted-foreground">Gig</Label>
                 <p className="text-sm font-medium">{selectedSubmission.gigs?.title}</p>
               </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">Submission Data</Label>
-                <pre className="text-xs bg-muted p-3 rounded mt-1 whitespace-pre-wrap">
-                  {JSON.stringify(selectedSubmission.submission_data, null, 2)}
-                </pre>
-              </div>
-              <div className="space-y-2">
-                <Label>Admin Notes (optional)</Label>
-                <Textarea
-                  value={adminNotes}
-                  onChange={(e) => setAdminNotes(e.target.value)}
-                  placeholder="Feedback for the user..."
-                  rows={2}
-                />
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  className="flex-1 gap-1"
-                  onClick={() => approveMutation.mutate(selectedSubmission.id)}
-                  disabled={approveMutation.isPending}
-                >
-                  <CheckCircle2 className="h-4 w-4" /> Approve
-                </Button>
-                <Button
-                  variant="destructive"
-                  className="flex-1 gap-1"
-                  onClick={() => rejectMutation.mutate(selectedSubmission.id)}
-                  disabled={rejectMutation.isPending}
-                >
-                  <XCircle className="h-4 w-4" /> Reject
-                </Button>
-              </div>
+
+              {/* Rich Preview */}
+              <SubmissionPreview submission={selectedSubmission} />
+
+              {selectedSubmission.status === "pending" && (
+                <>
+                  <div className="space-y-2">
+                    <Label>Admin Notes (optional)</Label>
+                    <Textarea
+                      value={adminNotes}
+                      onChange={(e) => setAdminNotes(e.target.value)}
+                      placeholder="Feedback for the user..."
+                      rows={2}
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      className="flex-1 gap-1"
+                      onClick={() => approveMutation.mutate(selectedSubmission.id)}
+                      disabled={approveMutation.isPending}
+                    >
+                      <CheckCircle2 className="h-4 w-4" /> Approve
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      className="flex-1 gap-1"
+                      onClick={() => rejectMutation.mutate(selectedSubmission.id)}
+                      disabled={rejectMutation.isPending}
+                    >
+                      <XCircle className="h-4 w-4" /> Reject
+                    </Button>
+                  </div>
+                </>
+              )}
+
+              {selectedSubmission.admin_notes && selectedSubmission.status !== "pending" && (
+                <div className="bg-muted/50 rounded-lg p-3">
+                  <Label className="text-xs text-muted-foreground mb-1 block">Admin Notes</Label>
+                  <p className="text-sm">{selectedSubmission.admin_notes}</p>
+                </div>
+              )}
             </div>
           )}
         </DialogContent>
