@@ -8,7 +8,9 @@ import { useCredits } from "@/hooks/useCredits";
 import { CreditGateModal } from "@/components/credits/CreditGateModal";
 import { CreditPurchaseSheet } from "@/components/credits/CreditPurchaseSheet";
 import { toast } from "sonner";
-import { getAgentById } from "@/lib/constants/agents"; // <--- IMPORT ADDED
+import { getAgentById } from "@/lib/constants/agents";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function AgentChat() {
   const { agentKey } = useParams<{ agentKey: string }>();
@@ -36,9 +38,27 @@ export default function AgentChat() {
 
   const { balance, deductCredits } = useCredits();
 
-  // Retrieve Agent Data
-  const agent = agentKey ? getAgentById(agentKey) : null;
+  // Retrieve Agent Data from static constants
+  const staticAgent = agentKey ? getAgentById(agentKey) : null;
   const serviceCost = CREDIT_CONFIG.SERVICES.AI_AGENT_CHAT.cost;
+
+  // Fetch DB agent for avatar_url
+  const { data: dbAgent } = useQuery({
+    queryKey: ["ai-agent-detail", agentKey],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("ai_agents")
+        .select("avatar_url, name, bg_color, color")
+        .eq("agent_key", agentKey!)
+        .eq("is_active", true)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!agentKey,
+    staleTime: 10 * 60 * 1000,
+  });
+
+  const agent = staticAgent;
 
   // 1. Session Initialization Logic
   useEffect(() => {
@@ -151,6 +171,7 @@ export default function AgentChat() {
             name: agent.name,
             color: agent.bgColor,
             icon: <AgentIcon className={`h-4 w-4 ${agent.iconColor}`} />,
+            avatarUrl: dbAgent?.avatar_url,
           }}
           messages={messages}
           isStreaming={isStreaming}

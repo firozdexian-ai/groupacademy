@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Briefcase, Plane, Sparkles, Target, ClipboardList, Mic, DollarSign, Palette, Bot, Gift, LucideIcon } from "lucide-react";
+import { Briefcase, Plane, Target, ClipboardList, Mic, DollarSign, Bot, Gift, LucideIcon } from "lucide-react";
 
 interface QuickAction {
   icon: LucideIcon;
@@ -11,7 +11,7 @@ const actions: QuickAction[] = [
   { icon: Briefcase, label: "Jobs", path: "/app/jobs" },
   { icon: Gift, label: "Gigs", path: "/app/gigs" },
   { icon: Bot, label: "AI Agents", path: "/app/agents" },
-  { icon: Sparkles, label: "Services", path: "/app/services" },
+  { icon: Plane, label: "Abroad", path: "/app/abroad" },
   { icon: Target, label: "Tracks", path: "/app/learning/tracks" },
   { icon: ClipboardList, label: "Assessment", path: "/app/services/assessment" },
   { icon: Mic, label: "Interview", path: "/app/services/mock-interview" },

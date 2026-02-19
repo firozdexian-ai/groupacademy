@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,10 +16,11 @@ import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown"; // Ensure this is installed: npm install react-markdown
 
 interface AgentInfo {
-  id?: string; // Added ID for contextual suggestions
+  id?: string;
   name: string;
   icon: React.ReactNode;
   color: string;
+  avatarUrl?: string | null;
 }
 
 interface AgentChatDialogProps {
@@ -112,6 +113,7 @@ export function AgentChatDialog({
 
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <Avatar className="h-9 w-9 shrink-0 ring-2 ring-background">
+            {agent.avatarUrl && <AvatarImage src={agent.avatarUrl} alt={agent.name} />}
             <AvatarFallback className={cn("text-white font-bold", agent.color)}>{agent.icon}</AvatarFallback>
           </Avatar>
 
@@ -188,6 +190,7 @@ export function AgentChatDialog({
               <div key={index} className={cn("flex gap-3 group", isUser ? "justify-end" : "justify-start")}>
                 {!isUser && (
                   <Avatar className="h-8 w-8 shrink-0 mt-0.5 ring-1 ring-border">
+                    {agent.avatarUrl && <AvatarImage src={agent.avatarUrl} alt={agent.name} />}
                     <AvatarFallback className={cn("text-white text-xs", agent.color)}>{agent.icon}</AvatarFallback>
                   </Avatar>
                 )}
@@ -246,6 +249,7 @@ export function AgentChatDialog({
           {isStreaming && messages[messages.length - 1]?.role !== "assistant" && (
             <div className="flex gap-3 justify-start">
               <Avatar className="h-8 w-8 shrink-0 mt-0.5 ring-1 ring-border">
+                {agent.avatarUrl && <AvatarImage src={agent.avatarUrl} alt={agent.name} />}
                 <AvatarFallback className={cn("text-white text-xs", agent.color)}>{agent.icon}</AvatarFallback>
               </Avatar>
               <div className="bg-muted rounded-2xl rounded-bl-sm px-4 py-3 border shadow-sm">

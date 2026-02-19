@@ -343,7 +343,7 @@ export default function App() {
                     <Route path="feed" element={<Feed />} />
                     <Route path="jobs" element={<JobsHub />} />
                     <Route path="learning" element={<LearningHub />} />
-                    <Route path="services" element={<ServicesHub />} />
+                    <Route path="services" element={<Navigate to="/app/agents" replace />} />
                     <Route path="abroad" element={<CareerAbroad />} />
                     <Route path="agents" element={<AIAgents />} />
                     <Route path="gigs" element={<Gigs />} />
