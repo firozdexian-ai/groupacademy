@@ -92,7 +92,7 @@ export default function AppProfessions() {
 
   if (isLoading) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-6">
+      <div className="max-w-4xl mx-auto px-4 py-4">
         <Skeleton className="h-8 w-48 mb-4" />
         <Skeleton className="h-5 w-64 mb-6" />
         <div className="grid gap-4 md:grid-cols-2">
@@ -104,7 +104,7 @@ export default function AppProfessions() {
 
   if (loadingError) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-6 text-center">
+      <div className="max-w-4xl mx-auto px-4 py-4 text-center">
         <AlertCircle className="h-12 w-12 mx-auto text-destructive mb-4" />
         <h1 className="text-xl font-bold mb-2">Failed to Load</h1>
         <p className="text-muted-foreground mb-4">{loadingError}</p>
@@ -117,7 +117,7 @@ export default function AppProfessions() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6">
+    <div className="max-w-4xl mx-auto px-4 py-4">
       <Button 
         variant="ghost" 
         size="sm" 

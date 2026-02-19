@@ -136,7 +136,7 @@ export default function AppEvents() {
 
   if (isLoading) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-6">
+      <div className="max-w-4xl mx-auto px-4 py-4">
         <Skeleton className="h-8 w-48 mb-2" />
         <Skeleton className="h-4 w-72 mb-6" />
         <div className="grid gap-4 md:grid-cols-2">
@@ -159,14 +159,14 @@ export default function AppEvents() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">Webinars & Events</h1>
+    <div className="max-w-4xl mx-auto px-4 py-4">
+      <div className="mb-4">
+        <h1 className="text-xl font-bold">Webinars & Events</h1>
         <p className="text-muted-foreground">Join live sessions and networking opportunities</p>
       </div>
 
       {/* Filter Tabs */}
-      <Tabs value={eventType} onValueChange={(v) => setEventType(v as EventType)} className="mb-6">
+      <Tabs value={eventType} onValueChange={(v) => setEventType(v as EventType)} className="mb-4">
         <TabsList>
           <TabsTrigger value="all">All Events</TabsTrigger>
           <TabsTrigger value="live_webinar">Webinars</TabsTrigger>
@@ -176,7 +176,7 @@ export default function AppEvents() {
 
       {/* Today's Events */}
       {todayEvents.length > 0 && (
-        <div className="mb-8">
+        <div className="mb-5">
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
             <Badge variant="destructive">Live Today</Badge>
           </h2>
@@ -190,7 +190,7 @@ export default function AppEvents() {
 
       {/* Upcoming Events */}
       {upcomingEvents.length > 0 && (
-        <div className="mb-8">
+        <div className="mb-5">
           <h2 className="text-lg font-semibold mb-4">Upcoming Events</h2>
           <div className="grid gap-4 md:grid-cols-2">
             {upcomingEvents.map(event => (
@@ -202,7 +202,7 @@ export default function AppEvents() {
 
       {/* Past Events */}
       {pastEvents.length > 0 && (
-        <div className="mb-8">
+        <div className="mb-5">
           <h2 className="text-lg font-semibold mb-4 text-muted-foreground">Past Events</h2>
           <div className="grid gap-4 md:grid-cols-2 opacity-75">
             {pastEvents.slice(0, 4).map(event => (

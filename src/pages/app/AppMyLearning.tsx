@@ -184,15 +184,15 @@ export default function AppMyLearning() {
 
   if (isLoading) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-6">
-        <div className="flex items-center gap-3 mb-6">
+      <div className="max-w-4xl mx-auto px-4 py-4">
+        <div className="flex items-center gap-3 mb-4">
           <Skeleton className="h-8 w-8 rounded-full" />
           <div className="space-y-2">
             <Skeleton className="h-6 w-40" />
             <Skeleton className="h-4 w-60" />
           </div>
         </div>
-        <div className="grid grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-3 gap-4 mb-5">
           {[1, 2, 3].map((i) => (
             <Skeleton key={i} className="h-24 rounded-xl" />
           ))}
@@ -208,7 +208,7 @@ export default function AppMyLearning() {
 
   if (error) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-6">
+      <div className="max-w-4xl mx-auto px-4 py-4">
         <Button variant="ghost" onClick={() => navigate("/app/learning")} className="mb-4">
           <ArrowLeft className="h-4 w-4 mr-2" /> Back
         </Button>
@@ -223,19 +223,19 @@ export default function AppMyLearning() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6">
-      <div className="flex items-center gap-3 mb-6">
+    <div className="max-w-4xl mx-auto px-4 py-4">
+      <div className="flex items-center gap-3 mb-4">
         <Button variant="ghost" size="icon" onClick={() => navigate("/app/learning")}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold">My Learning</h1>
+          <h1 className="text-xl font-bold">My Learning</h1>
           <p className="text-muted-foreground text-sm">Track your progress and achievements</p>
         </div>
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-3 gap-4 mb-5">
         <Card className="bg-primary/5 border-primary/10">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium text-primary">Active</CardTitle>
@@ -266,7 +266,7 @@ export default function AppMyLearning() {
       </div>
 
       {/* Enrollments Tabs */}
-      <Tabs defaultValue="active" className="space-y-6">
+      <Tabs defaultValue="active" className="space-y-4">
         <TabsList className="w-full grid grid-cols-2 lg:w-[400px]">
           <TabsTrigger value="active">Active ({activeEnrollments.length})</TabsTrigger>
           <TabsTrigger value="completed">Completed ({completedEnrollments.length})</TabsTrigger>
@@ -275,7 +275,7 @@ export default function AppMyLearning() {
         <TabsContent value="active" className="mt-0">
           {activeEnrollments.length === 0 ? (
             <Card className="border-dashed">
-              <CardContent className="py-12 text-center">
+              <CardContent className="py-8 text-center">
                 <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
                 <h3 className="font-semibold mb-1">No active courses</h3>
                 <p className="text-muted-foreground text-sm mb-4">Start a new course to see it here</p>
@@ -294,7 +294,7 @@ export default function AppMyLearning() {
         <TabsContent value="completed" className="mt-0">
           {completedEnrollments.length === 0 ? (
             <Card className="border-dashed">
-              <CardContent className="py-12 text-center">
+              <CardContent className="py-8 text-center">
                 <CheckCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
                 <h3 className="font-semibold mb-1">No completed courses</h3>
                 <p className="text-muted-foreground text-sm">Finish a course to earn your certificate</p>

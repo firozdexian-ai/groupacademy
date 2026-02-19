@@ -213,7 +213,7 @@ export default function MyResults() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6">
+    <div className="max-w-4xl mx-auto px-4 py-4">
       <div className="mb-4">
         <h1 className="text-xl font-bold">My Results</h1>
         <p className="text-sm text-muted-foreground">View your past assessments and service results</p>

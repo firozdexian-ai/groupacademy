@@ -278,8 +278,8 @@ export default function AppJobApplication() {
 
   if (loading) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-6">
-        <Skeleton className="h-8 w-32 mb-6" />
+      <div className="max-w-2xl mx-auto px-4 py-4">
+        <Skeleton className="h-8 w-32 mb-4" />
         <Skeleton className="h-24 w-full mb-4" />
         <Skeleton className="h-40 w-full" />
       </div>
@@ -288,7 +288,7 @@ export default function AppJobApplication() {
 
   if (!job) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-6">
+      <div className="max-w-2xl mx-auto px-4 py-4">
         <Card>
           <CardContent className="py-12 text-center">
             <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
@@ -304,7 +304,7 @@ export default function AppJobApplication() {
 
   if (submitted) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-6">
+      <div className="max-w-2xl mx-auto px-4 py-4">
         <Card className="border-green-100 dark:border-green-900 bg-green-50/50 dark:bg-green-950/20">
           <CardContent className="py-12 text-center">
             <div className="w-20 h-20 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -361,9 +361,9 @@ export default function AppJobApplication() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6">
+    <div className="max-w-2xl mx-auto px-4 py-4">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex items-center gap-3 mb-4">
         <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
@@ -374,7 +374,7 @@ export default function AppJobApplication() {
       </div>
 
       {/* Job Info */}
-      <Card className="mb-6">
+      <Card className="mb-4">
         <CardContent className="p-4">
           <div className="flex gap-4 items-center">
             {job.company_logo_url ? (
@@ -397,7 +397,7 @@ export default function AppJobApplication() {
       </Card>
 
       {/* CV Status - Inline Upload */}
-      <Card className={`mb-6 ${!talent?.cvUrl ? "border-primary/50 bg-primary/5" : ""}`} id="cv-upload-section">
+      <Card className={`mb-4 ${!talent?.cvUrl ? "border-primary/50 bg-primary/5" : ""}`} id="cv-upload-section">
         <CardHeader className="pb-3 border-b">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <FileText className="h-4 w-4 text-primary" />
@@ -475,7 +475,7 @@ export default function AppJobApplication() {
       </Card>
 
       {/* Cover Letter */}
-      <Card className="mb-6">
+      <Card className="mb-4">
         <CardHeader className="pb-3 border-b flex flex-row items-center justify-between space-y-0">
           <div>
             <CardTitle className="text-sm font-medium">Cover Letter</CardTitle>

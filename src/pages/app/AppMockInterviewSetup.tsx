@@ -247,7 +247,7 @@ export default function AppMockInterviewSetup() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6">
+    <div className="max-w-2xl mx-auto px-4 py-4">
       {/* Back Button */}
       <Button variant="ghost" className="mb-4" onClick={() => navigate("/app/services")}>
         <ArrowLeft className="mr-2 h-4 w-4" />
@@ -313,7 +313,7 @@ export default function AppMockInterviewSetup() {
             <CardTitle>Configure Your Interview</CardTitle>
             <CardDescription>Customize the interview to match your preparation needs</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-4">
             {generationError && (
               <RetryErrorCard
                 type={getErrorType(generationError)}
@@ -323,7 +323,7 @@ export default function AppMockInterviewSetup() {
             )}
 
             {/* Config Form Fields */}
-            <div className="space-y-6">
+            <div className="space-y-4">
               <div className="space-y-3">
                 <Label>Number of Questions</Label>
                 <RadioGroup

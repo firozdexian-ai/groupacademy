@@ -320,7 +320,7 @@ export default function AppJobDetail() {
 
   if (loading) {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
+      <div className="max-w-3xl mx-auto px-4 py-4 space-y-4">
         <Skeleton className="h-8 w-24" />
         <div className="flex gap-4">
           <Skeleton className="h-16 w-16 rounded-xl" />
@@ -337,7 +337,7 @@ export default function AppJobDetail() {
 
   if (loadError || !job) {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-6">
+      <div className="max-w-3xl mx-auto px-4 py-4">
         <Card>
           <CardContent className="pt-6 text-center">
             <AlertCircle className="h-10 w-10 text-destructive mx-auto mb-4" />
@@ -355,7 +355,7 @@ export default function AppJobDetail() {
   const displayDescription = job.ai_enhanced_description || job.description;
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6 pb-28 md:pb-6">
+    <div className="max-w-3xl mx-auto px-4 py-4 pb-28 md:pb-4">
       {/* Navigation */}
       <Button
         variant="ghost"
@@ -367,7 +367,7 @@ export default function AppJobDetail() {
       </Button>
 
       {/* Header Section */}
-      <div className="flex gap-4 items-start mb-6">
+      <div className="flex gap-4 items-start mb-4">
         <div className="shrink-0">
           {job.company_logo_url ? (
             <img
@@ -432,7 +432,7 @@ export default function AppJobDetail() {
       </div>
 
       {/* Info Badges */}
-      <div className="flex flex-wrap gap-2 mb-6">
+      <div className="flex flex-wrap gap-2 mb-4">
         <Badge variant="secondary" className="gap-1.5 py-1.5 px-3">
           <Clock className="w-3.5 h-3.5 opacity-70" />
           {getJobTypeLabel(job.job_type)}
@@ -466,14 +466,14 @@ export default function AppJobDetail() {
       {renderActionButton()}
 
       {/* Share Button */}
-      <div className="flex justify-end mb-6">
+      <div className="flex justify-end mb-4">
         <Button variant="ghost" size="sm" onClick={handleShare} className="gap-2">
           <Share2 className="w-4 h-4" /> Share
         </Button>
       </div>
 
       {/* Main Content */}
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Description */}
         <Card>
           <CardContent className="p-6">
