@@ -1,0 +1,1 @@
+ALTER TABLE public.banners ADD COLUMN placement TEXT NOT NULL DEFAULT 'carousel';

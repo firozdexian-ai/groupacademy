@@ -49,6 +49,7 @@ export const BannerCarousel = ({ compact = false }: BannerCarouselProps) => {
         .from("banners")
         .select("*")
         .eq("is_active", true)
+        .eq("placement", "carousel")
         .order("display_order");
 
       if (error) throw error;

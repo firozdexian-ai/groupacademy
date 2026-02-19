@@ -206,17 +206,11 @@ export default function Feed() {
             isRefreshing={isRefreshing}
           />
 
-          {/* Banner */}
-          <BannerCarousel compact />
-
           {/* Quick Actions Grid */}
           <QuickActionsGrid />
 
-          {/* Mobile-Only Widgets */}
-          <div className="lg:hidden space-y-6">
-            <PersonalizedPromptCard />
-            {insights.length > 0 && <CareerInsightsStack insights={insights} />}
-          </div>
+          {/* Banner Carousel */}
+          <BannerCarousel compact />
 
           {/* Filters */}
           <FeedFilters filters={filters} onChange={setFilters} counts={counts} />

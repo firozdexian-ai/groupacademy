@@ -457,6 +457,7 @@ export type Database = {
           image_url: string
           is_active: boolean | null
           link_content_id: string | null
+          placement: string
         }
         Insert: {
           created_at?: string | null
@@ -466,6 +467,7 @@ export type Database = {
           image_url: string
           is_active?: boolean | null
           link_content_id?: string | null
+          placement?: string
         }
         Update: {
           created_at?: string | null
@@ -475,6 +477,7 @@ export type Database = {
           image_url?: string
           is_active?: boolean | null
           link_content_id?: string | null
+          placement?: string
         }
         Relationships: [
           {

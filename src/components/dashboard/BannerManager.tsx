@@ -39,6 +39,7 @@ export const BannerManager = () => {
     image_url: "",
     link_content_id: "none",
     display_order: 0,
+    placement: "carousel" as "carousel" | "hero",
   });
 
   useEffect(() => {
@@ -95,6 +96,7 @@ export const BannerManager = () => {
             image_url: newBanner.image_url,
             link_content_id: newBanner.link_content_id === "none" ? null : newBanner.link_content_id,
             display_order: newBanner.display_order,
+            placement: newBanner.placement,
             created_by: user.id,
           },
         ])),
@@ -105,7 +107,7 @@ export const BannerManager = () => {
       if (error) throw error;
 
       toast.success("Banner created successfully");
-      setNewBanner({ image_url: "", link_content_id: "none", display_order: 0 });
+      setNewBanner({ image_url: "", link_content_id: "none", display_order: 0, placement: "carousel" });
       loadData();
     } catch (error: any) {
       console.error("Error creating banner:", error);
@@ -218,6 +220,27 @@ export const BannerManager = () => {
             </div>
 
             <div className="space-y-2">
+              <Label>Placement</Label>
+              <Select
+                value={newBanner.placement}
+                onValueChange={(value: "carousel" | "hero") =>
+                  setNewBanner({ ...newBanner, placement: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="carousel">Carousel</SelectItem>
+                  <SelectItem value="hero">Hero (Feed Header)</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Hero banners appear as the feed header background. Only one hero banner should be active at a time.
+              </p>
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="display_order">Display Order</Label>
               <Input
                 id="display_order"
@@ -271,9 +294,14 @@ export const BannerManager = () => {
 
                   {/* Banner Info */}
                   <div className="flex-1">
-                    <p className="font-medium">
-                      {banner.content?.title || "No linked course"}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium">
+                        {banner.content?.title || "No linked course"}
+                      </p>
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${(banner as any).placement === 'hero' ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                        {(banner as any).placement === 'hero' ? 'Hero' : 'Carousel'}
+                      </span>
+                    </div>
                     <p className="text-sm text-muted-foreground">
                       Order: {banner.display_order}
                     </p>
