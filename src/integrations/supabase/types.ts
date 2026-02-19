@@ -1346,6 +1346,7 @@ export type Database = {
           created_at: string | null
           description: string | null
           id: string
+          is_earned: boolean
           reference_id: string | null
           service_type: string | null
           talent_id: string
@@ -1357,6 +1358,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           id?: string
+          is_earned?: boolean
           reference_id?: string | null
           service_type?: string | null
           talent_id: string
@@ -1368,6 +1370,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           id?: string
+          is_earned?: boolean
           reference_id?: string | null
           service_type?: string | null
           talent_id?: string
@@ -1599,6 +1602,108 @@ export type Database = {
           poll_options?: Json | null
           tags?: string[] | null
           text_content?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      gig_submissions: {
+        Row: {
+          admin_notes: string | null
+          created_at: string | null
+          credits_awarded: number | null
+          gig_id: string
+          id: string
+          reviewed_at: string | null
+          status: string
+          submission_data: Json | null
+          talent_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string | null
+          credits_awarded?: number | null
+          gig_id: string
+          id?: string
+          reviewed_at?: string | null
+          status?: string
+          submission_data?: Json | null
+          talent_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string | null
+          credits_awarded?: number | null
+          gig_id?: string
+          id?: string
+          reviewed_at?: string | null
+          status?: string
+          submission_data?: Json | null
+          talent_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gig_submissions_gig_id_fkey"
+            columns: ["gig_id"]
+            isOneToOne: false
+            referencedRelation: "gigs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gig_submissions_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gigs: {
+        Row: {
+          category: string
+          created_at: string | null
+          credit_reward: number
+          description: string
+          display_order: number | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          max_completions_per_user: number | null
+          requirements: string | null
+          title: string
+          total_budget: number | null
+          total_completed: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          credit_reward?: number
+          description: string
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_completions_per_user?: number | null
+          requirements?: string | null
+          title: string
+          total_budget?: number | null
+          total_completed?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          credit_reward?: number
+          description?: string
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_completions_per_user?: number | null
+          requirements?: string | null
+          title?: string
+          total_budget?: number | null
+          total_completed?: number | null
           updated_at?: string | null
         }
         Relationships: []
@@ -3973,6 +4078,7 @@ export type Database = {
         Row: {
           balance: number
           created_at: string | null
+          earned_balance: number
           id: string
           talent_id: string
           updated_at: string | null
@@ -3980,6 +4086,7 @@ export type Database = {
         Insert: {
           balance?: number
           created_at?: string | null
+          earned_balance?: number
           id?: string
           talent_id: string
           updated_at?: string | null
@@ -3987,6 +4094,7 @@ export type Database = {
         Update: {
           balance?: number
           created_at?: string | null
+          earned_balance?: number
           id?: string
           talent_id?: string
           updated_at?: string | null
@@ -4169,6 +4277,10 @@ export type Database = {
         Args: { p_service: string; p_talent_id: string }
         Returns: undefined
       }
+      award_gig_credits: {
+        Args: { p_admin_notes?: string; p_submission_id: string }
+        Returns: Json
+      }
       check_rate_limit: {
         Args: {
           p_endpoint: string
@@ -4212,6 +4324,10 @@ export type Database = {
       normalize_phone: {
         Args: { p_country_code: string; p_phone: string }
         Returns: string
+      }
+      reject_gig_submission: {
+        Args: { p_admin_notes?: string; p_submission_id: string }
+        Returns: Json
       }
       track_content_click: {
         Args: { p_content_id: string; p_source: string }

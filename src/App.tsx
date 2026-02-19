@@ -58,6 +58,7 @@ import Notifications from "./pages/app/Notifications";
 import MyResults from "./pages/app/MyResults";
 import MyApplications from "./pages/app/MyApplications";
 import SavedItems from "./pages/app/SavedItems";
+import Gigs from "./pages/app/Gigs";
 
 // Feature Details
 import AppJobs from "./pages/app/AppJobs";
@@ -345,6 +346,7 @@ export default function App() {
                     <Route path="services" element={<ServicesHub />} />
                     <Route path="abroad" element={<CareerAbroad />} />
                     <Route path="agents" element={<AIAgents />} />
+                    <Route path="gigs" element={<Gigs />} />
                     <Route path="profile" element={<Profile />} />
 
                     {/* Job Routes - Specific Routes First */}

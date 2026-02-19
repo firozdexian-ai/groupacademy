@@ -139,6 +139,8 @@ const navGroups: NavGroup[] = [
       { title: "AI Agents", icon: Bot, value: "ai-agents" },
       { title: "Company Agents", icon: Building2, value: "company-agents" },
       { title: "Agent Sessions", icon: MessageSquare, value: "agent-sessions" },
+      { title: "Manage Gigs", icon: Briefcase, value: "gigs" },
+      { title: "Gig Submissions", icon: FileCheck, value: "gig-submissions" },
       { title: "Credits Manager", icon: Coins, value: "credits" },
       { title: "Notifications", icon: Bell, value: "notifications" },
     ],

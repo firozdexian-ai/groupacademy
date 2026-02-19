@@ -77,6 +77,9 @@ export const ROUTES = {
     abroadRoadmap: '/app/abroad/roadmap',
     abroadRoadmapResults: (id: string) => `/app/abroad/roadmap/${id}`,
     notifications: '/app/notifications',
+    
+    // Gigs
+    gigs: '/app/gigs',
   },
 
   // Admin/Dashboard routes
