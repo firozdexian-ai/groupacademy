@@ -199,7 +199,7 @@ export default function JobAssessmentResults() {
 
   if (loading) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
+      <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-32 w-full" />
         <Skeleton className="h-48 w-full" />
@@ -209,7 +209,7 @@ export default function JobAssessmentResults() {
 
   if (!result) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-6">
+      <div className="max-w-2xl mx-auto px-4 py-4">
         <Card>
           <CardContent className="py-12 text-center">
             <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
@@ -226,9 +226,9 @@ export default function JobAssessmentResults() {
   // Show analyzing state (Progress Bar)
   if ((result.status === "completed" && result.ai_score === null) || polling) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-6">
+      <div className="max-w-2xl mx-auto px-4 py-4">
         <Card className="border-primary/20 shadow-lg">
-          <CardContent className="py-16 text-center space-y-8">
+          <CardContent className="py-16 text-center space-y-5">
             <div className="relative">
               <div className="absolute inset-0 flex items-center justify-center">
                 <Brain className="h-16 w-16 text-primary/20 animate-pulse" />
@@ -279,7 +279,7 @@ export default function JobAssessmentResults() {
   const score = result.ai_score || 0;
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 space-y-6 animate-in fade-in duration-500">
+    <div className="max-w-2xl mx-auto px-4 py-4 space-y-4 animate-in fade-in duration-500">
       {/* Header */}
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" onClick={() => navigate("/app/applications")}>

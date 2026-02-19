@@ -144,7 +144,7 @@ export default function StudyAbroadRoadmapResults() {
 
   if (isLoading) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+      <div className="max-w-4xl mx-auto px-4 py-4 space-y-4">
         <Skeleton className="h-12 w-64" />
         <Skeleton className="h-64 w-full" />
         <Skeleton className="h-96 w-full" />
@@ -154,7 +154,7 @@ export default function StudyAbroadRoadmapResults() {
 
   if (!roadmap) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-6 text-center">
+      <div className="max-w-4xl mx-auto px-4 py-4 text-center">
         <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
         <h2 className="text-lg font-semibold mb-2">Roadmap Not Found</h2>
         <Button onClick={() => navigate("/app/abroad")}>Back to Career Abroad</Button>
@@ -169,8 +169,8 @@ export default function StudyAbroadRoadmapResults() {
   // Processing state
   if (isProcessing) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-6">
-        <div className="flex items-center gap-3 mb-8">
+      <div className="max-w-4xl mx-auto px-4 py-4">
+        <div className="flex items-center gap-3 mb-5">
           <Button variant="ghost" size="icon" onClick={() => navigate("/app/abroad")}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
@@ -201,8 +201,8 @@ export default function StudyAbroadRoadmapResults() {
   // Failed state
   if (isFailed || !result) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-6">
-        <div className="flex items-center gap-3 mb-8">
+      <div className="max-w-4xl mx-auto px-4 py-4">
+        <div className="flex items-center gap-3 mb-5">
           <Button variant="ghost" size="icon" onClick={() => navigate("/app/abroad")}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
@@ -236,7 +236,7 @@ export default function StudyAbroadRoadmapResults() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+    <div className="max-w-4xl mx-auto px-4 py-4 space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">

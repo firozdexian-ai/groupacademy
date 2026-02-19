@@ -307,7 +307,7 @@ export default function AppPortfolioRequest() {
 
   if (isSuccess) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-6">
+      <div className="max-w-2xl mx-auto px-4 py-4">
         <Card className="text-center">
           <CardHeader>
             <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
@@ -335,7 +335,7 @@ export default function AppPortfolioRequest() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6">
+    <div className="max-w-2xl mx-auto px-4 py-4">
       <Button variant="ghost" className="mb-4" onClick={() => navigate("/app/services")}>
         <ArrowLeft className="mr-2 h-4 w-4" />
         Back to Services

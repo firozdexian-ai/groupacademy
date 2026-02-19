@@ -107,7 +107,7 @@ export default function AppProfessionDetail() {
 
   if (isLoading) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-6">
+      <div className="max-w-4xl mx-auto px-4 py-4">
         <Skeleton className="h-8 w-24 mb-4" />
         <Skeleton className="h-10 w-3/4 mb-2" />
         <Skeleton className="h-5 w-full mb-6" />
@@ -121,7 +121,7 @@ export default function AppProfessionDetail() {
 
   if (loadingError || !profession) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-6 text-center">
+      <div className="max-w-4xl mx-auto px-4 py-4 text-center">
         <AlertCircle className="h-12 w-12 mx-auto text-destructive mb-4" />
         <h1 className="text-xl font-bold mb-2">Failed to Load</h1>
         <p className="text-muted-foreground mb-4">{loadingError || "Profession not found"}</p>
@@ -146,7 +146,7 @@ export default function AppProfessionDetail() {
   }, {} as Record<string, Course[]>);
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6">
+    <div className="max-w-4xl mx-auto px-4 py-4">
       <Button 
         variant="ghost" 
         size="sm" 

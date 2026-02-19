@@ -215,9 +215,9 @@ export default function AppCareerAssessment() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6 min-h-screen">
+    <div className="max-w-4xl mx-auto px-4 py-4 min-h-screen">
       {/* Progress Bar (Visual Step Indicator) */}
-      <div className="mb-6">
+      <div className="mb-4">
         <div className="flex justify-between text-xs text-muted-foreground mb-2 px-1">
           <span>Start</span>
           <span>Role</span>
@@ -238,7 +238,7 @@ export default function AppCareerAssessment() {
 
       {/* Intro Step */}
       {step === "intro" && (
-        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="text-center space-y-4">
             <Badge variant="secondary" className="px-4 py-1">
               Career Readiness Assessment

@@ -354,8 +354,8 @@ export default function JobAssessment() {
 
   if (loading) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-6">
-        <Skeleton className="h-8 w-48 mb-6" />
+      <div className="max-w-2xl mx-auto px-4 py-4">
+        <Skeleton className="h-8 w-48 mb-4" />
         <Skeleton className="h-4 w-full mb-4" />
         <Skeleton className="h-64 w-full" />
       </div>
@@ -364,7 +364,7 @@ export default function JobAssessment() {
 
   if (!assessment) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-6">
+      <div className="max-w-2xl mx-auto px-4 py-4">
         <Card>
           <CardContent className="py-12 text-center">
             <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
@@ -380,7 +380,7 @@ export default function JobAssessment() {
 
   if (assessment.status === 'completed') {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-6">
+      <div className="max-w-2xl mx-auto px-4 py-4">
         <Card>
           <CardContent className="py-12 text-center">
             <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
@@ -400,7 +400,7 @@ export default function JobAssessment() {
   // Check expiry
   if (assessment.expires_at && new Date(assessment.expires_at) < new Date()) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-6">
+      <div className="max-w-2xl mx-auto px-4 py-4">
         <Card>
           <CardContent className="py-12 text-center">
             <Clock className="h-12 w-12 text-destructive mx-auto mb-4" />
@@ -431,9 +431,9 @@ export default function JobAssessment() {
     : Boolean(answers[currentQuestion?.id]);
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6">
+    <div className="max-w-2xl mx-auto px-4 py-4">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex items-center gap-3 mb-4">
         <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
@@ -450,7 +450,7 @@ export default function JobAssessment() {
       </div>
 
       {/* Progress */}
-      <Progress value={progress} className="mb-6 h-2" />
+      <Progress value={progress} className="mb-4 h-2" />
 
       {/* Question Card */}
       <Card className="mb-6">

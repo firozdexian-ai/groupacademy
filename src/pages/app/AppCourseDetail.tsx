@@ -246,7 +246,7 @@ export default function AppCourseDetail() {
 
   if (isLoading) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-6">
+      <div className="max-w-4xl mx-auto px-4 py-4">
         <Skeleton className="h-8 w-24 mb-4" />
         <Skeleton className="h-10 w-3/4 mb-2" />
         <Skeleton className="aspect-video w-full rounded-lg mb-4" />
@@ -258,7 +258,7 @@ export default function AppCourseDetail() {
 
   if (loadingError || !course) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-6">
+      <div className="max-w-4xl mx-auto px-4 py-4">
         <Card>
           <CardContent className="pt-6 text-center">
             <AlertCircle className="h-10 w-10 text-destructive mx-auto mb-4" />
