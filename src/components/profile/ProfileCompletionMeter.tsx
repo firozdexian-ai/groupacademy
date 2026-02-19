@@ -186,7 +186,7 @@ export function ProfileCompletionMeter({
     <Card className="rounded-2xl shadow-sm">
       <CardContent className="p-4">
         {/* Header with Progress */}
-        <div className="flex items-center gap-4 mb-4">
+        <div className="flex items-center gap-4 mb-3">
           <div className="relative w-16 h-16 flex-shrink-0">
             <svg className="w-16 h-16 transform -rotate-90">
               <circle
@@ -233,7 +233,7 @@ export function ProfileCompletionMeter({
         </div>
 
         {/* Checklist */}
-        <div className="space-y-2 mb-4">
+        <div className="space-y-2 mb-3">
           {completionItems.map((item) => (
             <div 
               key={item.key}

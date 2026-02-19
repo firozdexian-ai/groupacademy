@@ -116,11 +116,11 @@ export default function Profile() {
   };
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-6">
+    <div className="max-w-lg mx-auto px-4 py-4">
       {/* Profile Hero Header - bKash Style */}
-      <div className="relative mb-6 rounded-3xl overflow-hidden shadow-lg animate-bounce-in">
+      <div className="relative mb-5 rounded-3xl overflow-hidden shadow-lg animate-bounce-in">
         {/* Gradient Background */}
-        <div className="bg-gradient-primary p-6 pb-8">
+        <div className="bg-gradient-primary p-5 pb-7">
           <div className="flex items-start justify-between mb-4">
             <Avatar className="h-24 w-24 ring-4 ring-white shadow-xl">
               <AvatarImage src={talent.profilePhotoUrl || undefined} />
@@ -350,7 +350,7 @@ export default function Profile() {
               <div className="space-y-3">
                 {talent.experience.slice(0, 3).map((exp, i) => (
                   <div key={i} className="flex gap-3">
-                    <div className="p-2.5 bg-muted rounded-xl h-fit">
+                    <div className="p-2 bg-muted rounded-xl h-fit">
                       <Briefcase className="h-4 w-4 text-muted-foreground" />
                     </div>
                     <div className="flex-1">
@@ -385,7 +385,7 @@ export default function Profile() {
               <div className="space-y-3">
                 {talent.education.slice(0, 3).map((edu, i) => (
                   <div key={i} className="flex gap-3">
-                    <div className="p-2.5 bg-muted rounded-xl h-fit">
+                    <div className="p-2 bg-muted rounded-xl h-fit">
                       <GraduationCap className="h-4 w-4 text-muted-foreground" />
                     </div>
                     <div>
@@ -435,7 +435,7 @@ export default function Profile() {
       </div>
 
       {/* Sign Out */}
-      <div className="mt-8">
+      <div className="mt-6">
         <Button
           variant="outline"
           className="w-full rounded-xl text-destructive hover:bg-destructive/10 border-destructive/30 press-scale"

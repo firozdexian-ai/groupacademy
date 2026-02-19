@@ -320,7 +320,7 @@ export default function ProfileEdit() {
   if (!talent) return null; // Or a loading spinner
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 pb-44">
+    <div className="max-w-2xl mx-auto px-4 py-4 pb-36">
       {/* Unsaved changes indicator */}
       {isDirty && (
         <div className="fixed top-16 md:top-4 right-4 z-50">
@@ -330,7 +330,7 @@ export default function ProfileEdit() {
         </div>
       )}
       {/* Header */}
-      <div className="flex items-center gap-4 mb-6">
+      <div className="flex items-center gap-4 mb-4">
         <Button variant="ghost" size="icon" onClick={() => navigate("/app/profile")}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
@@ -340,7 +340,7 @@ export default function ProfileEdit() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-8">
+      <form onSubmit={handleSubmit} className="space-y-5">
         {/* Profile Photo */}
         <Card>
           <CardHeader>
@@ -395,7 +395,7 @@ export default function ProfileEdit() {
                 </div>
               </div>
             ) : (
-              <div className="relative border-2 border-dashed rounded-lg p-6 hover:bg-muted/50 transition-colors">
+              <div className="relative border-2 border-dashed rounded-lg p-5 hover:bg-muted/50 transition-colors">
                 <Input
                   id="cv-upload"
                   type="file"
@@ -406,9 +406,9 @@ export default function ProfileEdit() {
                 />
                 <div className="text-center space-y-2 pointer-events-none">
                   {uploadingCV ? (
-                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+                    <Loader2 className="h-7 w-7 animate-spin mx-auto text-primary" />
                   ) : (
-                    <Upload className="h-8 w-8 mx-auto text-muted-foreground" />
+                    <Upload className="h-7 w-7 mx-auto text-muted-foreground" />
                   )}
                   <div>
                     <p className="text-sm font-medium">{uploadingCV ? "Uploading..." : "Click to upload CV"}</p>
