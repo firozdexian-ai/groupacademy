@@ -1,129 +1,87 @@
 
 
-# Final Batch: All Remaining Sub-Pages Mobile UX Consistency
+# Feed Layout Restructure: Admin Banner Header + Cleanup
 
 ## Overview
 
-This is the final sweep across ~17 remaining sub-pages that still use generous `py-6`, `space-y-6/8`, `mb-6/8`, and `text-2xl` patterns. After this batch, every page in the app will follow the same tight mobile layout standard.
+Transform the Feed header area into an admin-changeable banner with the user greeting overlaid on top, move the promotional BannerCarousel below Quick Actions, and remove the low-engagement "Recommended for you" and "Career Insights" sections from mobile.
 
 ---
 
-## Improvements
+## Current Feed Layout (top to bottom)
 
-### Group A: Learning Sub-Pages
+1. FeedHeader ("Hi, Firoz!" with hardcoded background)
+2. BannerCarousel (promotional banners)
+3. QuickActionsGrid (8 action buttons)
+4. PersonalizedPromptCard ("Recommended for you")
+5. CareerInsightsStack ("Career Insights")
+6. FeedFilters
+7. Feed Items
 
-**1. My Learning (`AppMyLearning.tsx`)**
-- Reduce `py-6` to `py-4` and header `mb-6` to `mb-4`
-- Reduce title from `text-2xl` to `text-xl`
-- Reduce stats grid `mb-8` to `mb-5`
-- Reduce Tabs `space-y-6` to `space-y-4`
-- Reduce empty state `py-12` to `py-8`
+## New Feed Layout (top to bottom)
 
-**2. Course Detail (`AppCourseDetail.tsx`)**
-- Reduce `py-6` to `py-4` in main and loading/error states
+1. **Hero Banner** -- Admin-changeable background image with user greeting overlaid (avatar + "Hi, Firoz!" + subtitle)
+2. QuickActionsGrid (8 action buttons)
+3. BannerCarousel (promotional banners -- moved below Quick Actions)
+4. FeedFilters
+5. Feed Items
 
-**3. Events (`AppEvents.tsx`)**
-- Reduce `py-6` to `py-4` and header `mb-6` to `mb-4`
-- Reduce title from `text-2xl` to `text-xl`
-- Reduce section `mb-8` to `mb-5` (Today's Events, Upcoming, Past)
-- Reduce filter tabs `mb-6` to `mb-4`
+"Recommended for you" and "Career Insights" are removed from mobile entirely. On desktop sidebar, they remain as-is since they fill useful whitespace there.
 
-### Group B: Jobs Sub-Pages
+---
 
-**4. Job Detail (`AppJobDetail.tsx`)**
-- Already has `pb-28` sticky CTA -- good
-- Reduce `py-6` to `py-4` in main and loading/error states
-- Reduce content `space-y-6` to `space-y-4`
-- Reduce header `mb-6` to `mb-4`
+## Changes
 
-**5. Job Application (`AppJobApplication.tsx`)**
-- Reduce `py-6` to `py-4` in all states (main, loading, submitted, error)
-- Reduce header `mb-6` to `mb-4`
-- Reduce card gaps `mb-6` to `mb-4` between sections (Job Info, CV, Form)
+### 1. New `banners.placement` column
 
-**6. Job Assessment (`JobAssessment.tsx`)**
-- Reduce `py-6` to `py-4` in all states
-- Reduce header `mb-6` to `mb-4`
+Add a `placement` column to the existing `banners` table so admins can designate a banner as the "feed hero" vs the regular carousel.
 
-**7. Job Assessment Results (`JobAssessmentResults.tsx`)**
-- Reduce `py-6` to `py-4` in all states
-- Reduce processing state `space-y-8` to `space-y-5`
-- Reduce results `space-y-6` to `space-y-4`
+- Values: `'carousel'` (default) or `'hero'`
+- Only one hero banner should be active at a time (enforced by UI, not constraint)
+- This reuses the existing banners infrastructure -- no new table needed
 
-### Group C: Services Sub-Pages
+### 2. Update FeedHeader to use admin banner image
 
-**8. Mock Interview Setup (`AppMockInterviewSetup.tsx`)**
-- Reduce `py-6` to `py-4`
-- Reduce form `space-y-6` to `space-y-4` inside CardContent
+Instead of the hardcoded `feed-bg.jpg` background, FeedHeader will:
+- Query `banners` for an active banner with `placement = 'hero'`
+- Use that banner's `image_url` as the background
+- Fall back to a gradient/default if no hero banner is set
+- Keep the greeting overlay (avatar, name, subtitle) exactly as-is
+- **Banner size**: Same as the current FeedHeader -- full-width, `h-36` on mobile (compact), matching the existing carousel compact height. Recommended upload size: **1200x400px (3:1 ratio)** -- same as existing banners.
 
-**9. Career Assessment (`AppCareerAssessment.tsx`)**
-- Reduce `py-6` to `py-4`
-- Reduce progress bar `mb-6` to `mb-4`
-- Reduce intro `space-y-8` to `space-y-5`
+### 3. Reorder Feed layout
 
-**10. Salary Analysis Setup (`AppSalaryAnalysisSetup.tsx`)**
-- Reduce `py-6` to `py-4`
+In `Feed.tsx`, change the order:
+- FeedHeader (now with admin banner)
+- QuickActionsGrid
+- BannerCarousel (moved down)
+- FeedFilters
+- Feed Items
 
-**11. Portfolio Request (`AppPortfolioRequest.tsx`)**
-- Reduce `py-6` to `py-4` if present
+### 4. Remove mobile-only widgets
 
-### Group D: Explore Sub-Pages
+Remove the `lg:hidden` block containing `PersonalizedPromptCard` and `CareerInsightsStack` from the mobile feed. They remain in the desktop sidebar only.
 
-**12. Professions Listing (`AppProfessions.tsx`)**
-- Reduce `py-6` to `py-4` if present
+### 5. Update BannerManager
 
-**13. Profession Detail (`AppProfessionDetail.tsx`)**
-- Reduce `py-6` to `py-4` in all states
-
-### Group E: AI & Chat Sub-Pages
-
-**14. AI Agents (`AIAgents.tsx`)**
-- Reduce `py-6` to `py-4` if present
-
-**15. Agent Chat (`AgentChat.tsx`)**
-- Reduce `py-6` to `py-4` if present
-
-### Group F: Results & Roadmap Sub-Pages
-
-**16. My Results (`MyResults.tsx`)**
-- Already uses `py-6` and `text-xl` -- reduce `py-6` to `py-4`
-
-**17. Study Abroad Roadmap Results (`StudyAbroadRoadmapResults.tsx`)**
-- Reduce `py-6` to `py-4` in all states
-- Reduce `space-y-6` to `space-y-4`
-- Reduce processing state `mb-8` to `mb-5`
+Add a "Placement" dropdown (Hero / Carousel) to the banner creation form and display list so admins can control which banner appears as the feed header.
 
 ---
 
 ## Technical Summary
 
-| File | Key Changes |
-|------|-------------|
-| `src/pages/app/AppMyLearning.tsx` | `py-4`, title `text-xl`, stats `mb-5`, tabs `space-y-4`, empty `py-8` |
-| `src/pages/app/AppCourseDetail.tsx` | `py-4` on all states |
-| `src/pages/app/AppEvents.tsx` | `py-4`, title `text-xl`, sections `mb-5`, tabs `mb-4` |
-| `src/pages/app/AppJobDetail.tsx` | `py-4`, content `space-y-4`, header `mb-4` |
-| `src/pages/app/AppJobApplication.tsx` | `py-4` all states, card gaps `mb-4` |
-| `src/pages/app/JobAssessment.tsx` | `py-4`, header `mb-4` |
-| `src/pages/app/JobAssessmentResults.tsx` | `py-4`, processing `space-y-5`, results `space-y-4` |
-| `src/pages/app/AppMockInterviewSetup.tsx` | `py-4`, form `space-y-4` |
-| `src/pages/app/AppCareerAssessment.tsx` | `py-4`, progress `mb-4`, intro `space-y-5` |
-| `src/pages/app/AppSalaryAnalysisSetup.tsx` | `py-4` |
-| `src/pages/app/AppPortfolioRequest.tsx` | `py-4` |
-| `src/pages/app/AppProfessions.tsx` | `py-4` |
-| `src/pages/app/AppProfessionDetail.tsx` | `py-4` all states |
-| `src/pages/app/AIAgents.tsx` | `py-4` |
-| `src/pages/app/AgentChat.tsx` | `py-4` |
-| `src/pages/app/MyResults.tsx` | `py-4` |
-| `src/pages/app/StudyAbroadRoadmapResults.tsx` | `py-4`, `space-y-4`, processing `mb-5` |
-
----
+| File | Changes |
+|------|---------|
+| Database migration | Add `placement TEXT DEFAULT 'carousel'` to `banners` table |
+| `src/components/feed/FeedHeader.tsx` | Fetch hero banner from DB, use as background image, keep greeting overlay |
+| `src/pages/app/Feed.tsx` | Reorder: Header > QuickActions > BannerCarousel. Remove mobile PersonalizedPromptCard + CareerInsightsStack block |
+| `src/components/BannerCarousel.tsx` | Filter to only show `placement = 'carousel'` banners |
+| `src/components/dashboard/BannerManager.tsx` | Add placement selector (Hero/Carousel) to create form and list view |
 
 ## What stays the same
 
-- All existing functionality (enrollment, job applications, assessments, AI chat, roadmaps)
-- Sticky CTAs already in place (Job Detail, etc.)
-- Color palette and theme
-- No database changes
-- Data fetching and navigation logic unchanged
-
+- All existing banner CRUD functionality
+- Desktop sidebar keeps PersonalizedPromptCard and CareerInsightsStack
+- BannerCarousel navigation (arrows, dots, auto-rotate)
+- Greeting overlay design (avatar, name, subtitle)
+- No changes to feed items, filters, or pull-to-refresh
