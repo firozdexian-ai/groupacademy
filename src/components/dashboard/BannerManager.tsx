@@ -195,6 +195,7 @@ export const BannerManager = () => {
                 onRemove={() => setNewBanner({ ...newBanner, image_url: "" })}
                 bucket="course-covers"
               />
+              <p className="text-xs text-muted-foreground">Recommended: 1200×400px (3:1 ratio). Used for both Hero and Carousel banners.</p>
             </div>
 
             <div className="space-y-2">
