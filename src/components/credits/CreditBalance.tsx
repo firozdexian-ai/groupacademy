@@ -11,7 +11,7 @@ interface CreditBalanceProps {
 }
 
 export function CreditBalance({ variant = 'default', onClick, className }: CreditBalanceProps) {
-  const { balance, isLoading } = useCredits();
+  const { balance, earnedBalance, freeBalance, isLoading } = useCredits();
 
   if (isLoading) {
     return <Skeleton className="h-8 w-16" />;
@@ -28,11 +28,23 @@ export function CreditBalance({ variant = 'default', onClick, className }: Credi
 
   if (variant === 'full') {
     return (
-      <div className={cn('flex items-center justify-between p-3 bg-muted rounded-lg', className)}>
-        <span className="text-sm text-muted-foreground">Credits</span>
-        <div className="flex items-center gap-1.5">
-          <Coins className="h-4 w-4 text-warning" />
-          <span className="font-semibold">{balance}</span>
+      <div className={cn('space-y-2 p-3 bg-muted rounded-lg', className)}>
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-muted-foreground">Total Credits</span>
+          <div className="flex items-center gap-1.5">
+            <Coins className="h-4 w-4 text-warning" />
+            <span className="font-semibold">{balance}</span>
+          </div>
+        </div>
+        <div className="border-t border-border pt-2 space-y-1">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-emerald-600 dark:text-emerald-400">Earned (withdrawable)</span>
+            <span className="font-medium text-emerald-600 dark:text-emerald-400">{earnedBalance}</span>
+          </div>
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-sky-600 dark:text-sky-400">Free</span>
+            <span className="font-medium text-sky-600 dark:text-sky-400">{freeBalance}</span>
+          </div>
         </div>
       </div>
     );

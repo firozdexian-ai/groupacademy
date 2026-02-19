@@ -39,7 +39,7 @@ import { cn } from "@/lib/utils";
 export default function Profile() {
   const navigate = useNavigate();
   const { talent, signOut, updateTalent, refreshTalent, isLoading: isTalentLoading } = useTalent();
-  const { balance, isLoading: creditsLoading } = useCredits();
+  const { balance, earnedBalance, freeBalance, isLoading: creditsLoading } = useCredits();
   const { getSavedCount } = useSavedItems();
   const [showCreditSheet, setShowCreditSheet] = useState(false);
   const [showEnhanceDialog, setShowEnhanceDialog] = useState(false);
@@ -166,6 +166,18 @@ export default function Profile() {
                     )}
                     <p className="text-[10px] text-muted-foreground">Credits Available</p>
                   </div>
+                </div>
+              </div>
+              <div className="border-t border-border mt-2 pt-2 flex items-center justify-between px-1">
+                <div className="flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  <span className="text-[10px] text-muted-foreground">Earned</span>
+                  <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">{creditsLoading ? '—' : earnedBalance}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-sky-500" />
+                  <span className="text-[10px] text-muted-foreground">Free</span>
+                  <span className="text-[10px] font-semibold text-sky-600 dark:text-sky-400">{creditsLoading ? '—' : freeBalance}</span>
                 </div>
                 <Button
                   size="sm"

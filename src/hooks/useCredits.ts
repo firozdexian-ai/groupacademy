@@ -16,11 +16,14 @@ export interface CreditTransaction {
 
 interface CreditBalance {
   balance: number;
+  earnedBalance: number;
   isLoading: boolean;
 }
 
 interface UseCreditsReturn {
   balance: number;
+  earnedBalance: number;
+  freeBalance: number;
   isLoading: boolean;
   canAfford: (service: ServiceType) => boolean;
   canAffordAmount: (amount: number) => boolean;
@@ -48,19 +51,19 @@ const isValidUUID = (id: any) => {
 export function useCredits(): UseCreditsReturn {
   const { talent } = useTalent();
   const { toast } = useToast();
-  const [creditData, setCreditData] = useState<CreditBalance>({ balance: 0, isLoading: true });
+  const [creditData, setCreditData] = useState<CreditBalance>({ balance: 0, earnedBalance: 0, isLoading: true });
   const [transactionHistory, setTransactionHistory] = useState<CreditTransaction[]>([]);
 
   const fetchBalance = useCallback(async () => {
     if (!talent?.id) {
-      setCreditData({ balance: 0, isLoading: false });
+      setCreditData({ balance: 0, earnedBalance: 0, isLoading: false });
       return;
     }
 
     try {
       const { data, error } = await supabase
         .from("talent_credits")
-        .select("balance")
+        .select("balance, earned_balance")
         .eq("talent_id", talent.id)
         .maybeSingle();
 
@@ -68,6 +71,7 @@ export function useCredits(): UseCreditsReturn {
 
       setCreditData({
         balance: data?.balance ?? 0,
+        earnedBalance: (data as any)?.earned_balance ?? 0,
         isLoading: false,
       });
 
@@ -93,7 +97,7 @@ export function useCredits(): UseCreditsReturn {
       }
     } catch (error) {
       console.error("Error fetching credit balance:", error);
-      setCreditData({ balance: 0, isLoading: false });
+      setCreditData({ balance: 0, earnedBalance: 0, isLoading: false });
     }
   }, [talent?.id]);
 
@@ -304,6 +308,8 @@ export function useCredits(): UseCreditsReturn {
 
   return {
     balance: creditData.balance,
+    earnedBalance: creditData.earnedBalance,
+    freeBalance: creditData.balance - creditData.earnedBalance,
     isLoading: creditData.isLoading,
     canAfford,
     canAffordAmount,
