@@ -1,106 +1,173 @@
 
-
-# Wire Up "Approve & Create" Actions in GigSubmissionsManager
+# Bulk Import LinkedIn Jobs -- Smart Application Routing
 
 ## Overview
 
-Add two one-click actions to the admin review dialog so that when approving a CV Upload or Job Posting submission, the system automatically creates the corresponding record in the `talents` or `jobs` table -- eliminating manual data entry.
+Build an admin tool that imports LinkedIn scraper JSON and intelligently routes each job's application method based on available data -- prioritizing direct company links and extracted emails over generic LinkedIn URLs.
+
+## Smart Application Logic
+
+The LinkedIn data contains two `applyMethod.type` values:
+
+```text
+Type                    Data Available              Our Mapping
+--------------------    -------------------------   --------------------------
+OffsiteApply            companyApplyUrl (direct)     application_type = 'link'
+                                                     application_url = companyApplyUrl
+ComplexOnsiteApply      easyApplyUrl (LinkedIn)      application_type = 'link'
+                                                     application_url = linkedinUrl
+```
+
+Additionally, some job descriptions contain email addresses (e.g., "send CV to careers@eguardian.com"). The importer will:
+
+1. **Check `applyMethod.type`**: If `OffsiteApply`, use `companyApplyUrl` (direct company link)
+2. **Extract email from description**: Regex scan for email patterns. If found, set `application_type = 'email'` and `application_email` = extracted email
+3. **Fallback**: Use `linkedinUrl` as `application_url` with `application_type = 'link'`
+
+**Priority order**: Company email > Company apply URL > LinkedIn URL
+
+## Data Mapping
+
+```text
+LinkedIn Field                    Jobs Column           Notes
+-------------------------------   -------------------   -------------------------
+title                             title                 Direct
+company.name                      company_name          Direct
+company.logo (200x200)            company_logo_url      CDN URL
+location.parsed.text              location              Parsed location
+employmentType                    job_type              Maps to enum
+experienceLevel                   experience_level      Text-to-enum mapping
+descriptionText                   description           Plain text
+descriptionHtml                   ai_enhanced_description  Rich HTML version
+applyMethod.companyApplyUrl       application_url       If OffsiteApply
+extracted email from description  application_email     If email found
+linkedinUrl                       source_url            For dedup + fallback
+company.website                   (stored for ref)      Company website
+expireAt                          deadline              Direct
+salary.min / salary.max           salary_range_min/max  Often null
+workRemoteAllowed                 job_type override     If true, set 'remote'
+--                                source_platform       'linkedin'
+--                                is_active             true
+```
+
+### Experience Level Mapping
+
+```text
+LinkedIn Value           Our Enum
+"Entry level"            entry
+"Associate"              entry
+"Mid-Senior level"       senior
+"Director"               executive
+"Executive"              executive
+"Internship"             entry
+null / unknown           mid (default)
+```
 
 ## Changes
 
-### 1. GigSubmissionsManager.tsx -- Add Two New Mutations
+### 1. New Component: `src/components/dashboard/BatchLinkedInJobUpload.tsx`
 
-**"Approve & Create Talent" (for `cv_upload` submissions)**
+A multi-step dialog:
 
-After calling `award_gig_credits` (existing approve flow), insert a new row into `talents` using the parsed CV data from `submission_data`:
+**Step 1 -- Upload**: Accept `.json` file, parse and validate the array structure.
 
+**Step 2 -- Preview with Application Routing**: Table showing:
+- Title, Company, Location, Type
+- **Apply Method** column showing: "Direct Link" (green), "Email" (blue), or "LinkedIn" (gray) so admin can see how each job will route
+- Total count and breakdown by apply method
+
+**Step 3 -- Deduplication**: Check existing `source_url` values where `source_platform = 'linkedin'` to skip duplicates.
+
+**Step 4 -- Import**: Batch insert in chunks of 10, with progress bar.
+
+**Step 5 -- Results**: Summary showing created / skipped / errors, plus breakdown of how many are direct-link vs email vs LinkedIn-only.
+
+### 2. Application Routing Logic
+
+```typescript
+function resolveApplicationMethod(job: LinkedInJob) {
+  // 1. Check for email in description
+  const emailMatch = job.descriptionText?.match(
+    /[\w.-]+@[\w.-]+\.\w{2,}/
+  );
+  
+  // 2. Check for direct company apply URL
+  const hasDirectUrl = job.applyMethod?.type === 'OffsiteApply' 
+    && job.applyMethod?.companyApplyUrl;
+  
+  if (emailMatch) {
+    return {
+      application_type: 'email',
+      application_email: emailMatch[0],
+      application_url: hasDirectUrl 
+        ? job.applyMethod.companyApplyUrl 
+        : job.linkedinUrl,
+    };
+  }
+  
+  if (hasDirectUrl) {
+    return {
+      application_type: 'link',
+      application_url: job.applyMethod.companyApplyUrl,
+      application_email: null,
+    };
+  }
+  
+  // Fallback: LinkedIn URL
+  return {
+    application_type: 'link',
+    application_url: job.linkedinUrl,
+    application_email: null,
+  };
+}
 ```
-INSERT INTO talents:
-- full_name: submission_data.parsed_name
-- email: submission_data.parsed_email
-- phone: submission_data.parsed_phone
-- cv_url: submission_data.cv_url
-- custom_profession: submission_data.parsed_profession
-- skills: submission_data.parsed_skills (as JSONB array)
-```
 
-Uses the existing `get_or_create_talent` DB function (already built) to avoid duplicates -- if a talent with that email exists, it updates instead.
+### 3. Wire into JobsManager.tsx
 
-**"Approve & Create Job" (for `job_posting` submissions)**
+Add an "Import LinkedIn Jobs" button next to the existing "Add Job" button. Clicking it opens the `BatchLinkedInJobUpload` dialog.
 
-After calling `award_gig_credits`, insert a new row into `jobs` using the parsed job data from `submission_data.parsed_job`:
+### 4. Bonus: Store HTML Description
 
-```
-INSERT INTO jobs:
-- title: parsed_job.title
-- company_name: parsed_job.company_name
-- location: parsed_job.location
-- job_type: parsed_job.job_type (default: 'full_time')
-- experience_level: parsed_job.experience_level (default: 'entry')
-- description: parsed_job.description or raw_text fallback
-- source_image_url: submission_data.source_image_url
-- source_platform: 'other'
-- is_active: true
-```
-
-### 2. UI Changes in the Review Dialog
-
-In the `selectedSubmission.status === "pending"` section, add category-specific approve buttons:
-
-- **CV Upload submissions**: Show "Approve & Create Talent" button (with User icon) alongside the plain "Approve" button
-- **Job Posting submissions**: Show "Approve & Create Job" button (with Briefcase icon) alongside the plain "Approve" button
-- Other categories keep just the standard "Approve" button
-
-The enhanced buttons call the new mutations which: (1) award credits via `award_gig_credits`, then (2) create the record. Toast confirms what was created.
-
-### 3. Quick-Approve Buttons in Table Row
-
-Add the same enhanced approve icons in the table row actions column -- if the category is `cv_upload` or `job_posting`, the green checkmark calls the "approve & create" flow instead of plain approve.
+Use `descriptionHtml` as `ai_enhanced_description` so job detail pages render rich formatted content (lists, bold headings) instead of plain text.
 
 ## Technical Details
 
 ### No Database Changes Needed
 
-- `get_or_create_talent` RPC already handles upsert by email
-- `jobs` table accepts direct inserts from admin (RLS allows admin writes via `has_any_admin_role`)
-- `award_gig_credits` already handles credit awarding and status update
+- `source_platform` already supports 'linkedin'
+- `application_type` supports 'link' and 'email'
+- `application_email`, `application_url`, `source_url` columns exist
+- `ai_enhanced_description` column exists for HTML content
 
-### New Mutations (inside GigSubmissionsManager)
+### Batch Insert (chunks of 10)
 
 ```typescript
-// Approve + Create Talent
-const approveAndCreateTalentMutation = useMutation({
-  mutationFn: async (submission) => {
-    // 1. Award credits
-    await supabase.rpc("award_gig_credits", { ... });
-    // 2. Create/update talent via RPC
-    await supabase.rpc("get_or_create_talent", {
-      p_email, p_full_name, p_phone
-    });
-    // 3. Update talent record with CV URL and skills
-    await supabase.from("talents").update({ cv_url, skills, custom_profession })
-      .eq("email", p_email);
-  }
-});
-
-// Approve + Create Job
-const approveAndCreateJobMutation = useMutation({
-  mutationFn: async (submission) => {
-    // 1. Award credits
-    await supabase.rpc("award_gig_credits", { ... });
-    // 2. Insert job
-    await supabase.from("jobs").insert({
-      title, company_name, location, description, ...
-    });
-  }
-});
+for (let i = 0; i < newJobs.length; i += 10) {
+  const chunk = newJobs.slice(i, i + 10);
+  await supabase.from('jobs').insert(chunk);
+  setProgress(((i + 10) / newJobs.length) * 100);
+}
 ```
 
-### Files Modified
+### Remote Job Handling
+
+If `workRemoteAllowed === true`, override `job_type` to `'remote'` regardless of the `employmentType` field, since remote is more useful info for seekers.
+
+### Files
 
 | File | Change |
 |------|--------|
-| `src/components/dashboard/GigSubmissionsManager.tsx` | Add 2 mutations, update dialog buttons for cv_upload/job_posting categories, update table row quick-actions |
+| `src/components/dashboard/BatchLinkedInJobUpload.tsx` | **New** -- LinkedIn JSON import dialog with smart routing |
+| `src/components/dashboard/JobsManager.tsx` | Add "Import LinkedIn" button to header |
 
-Single file change -- all logic stays in the existing manager component.
+### Preview Table Columns
 
+```text
+Title | Company | Location | Type | Apply Via | Deadline
+------|---------|----------|------|-----------|--------
+Cloud Manager | Canonical | APJ | Remote | Direct Link | Mar 28
+Electrical Mgr | Group Co | Dhaka | Full-time | LinkedIn | Mar 28
+Finance Exec | EGUARDIAN | Dhaka | Full-time | Email | Mar 28
+```
+
+The "Apply Via" column uses color-coded badges so admin can quickly see the routing quality before importing.
