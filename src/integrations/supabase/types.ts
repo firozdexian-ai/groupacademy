@@ -4326,6 +4326,7 @@ export type Database = {
         Args: { p_service: string; p_talent_id: string }
         Returns: undefined
       }
+      auto_deactivate_expired_jobs: { Args: never; Returns: number }
       award_gig_credits: {
         Args: { p_admin_notes?: string; p_submission_id: string }
         Returns: Json
