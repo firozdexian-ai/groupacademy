@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { CheckCircle2, XCircle, Eye, Coins, User, Briefcase, MapPin, Phone, FileText, Share2, BookOpen, ExternalLink, Image } from "lucide-react";
+import { CheckCircle2, XCircle, Eye, Coins, User, Briefcase, MapPin, Phone, FileText, Share2, BookOpen, ExternalLink, Image, UserPlus, BriefcaseBusiness } from "lucide-react";
 import { format } from "date-fns";
 import { useState } from "react";
 
@@ -225,6 +225,89 @@ export function GigSubmissionsManager() {
     onError: (err: any) => toast.error(err.message),
   });
 
+  const approveAndCreateTalentMutation = useMutation({
+    mutationFn: async (submission: any) => {
+      // 1. Award credits
+      const { data: awardResult, error: awardError } = await supabase.rpc("award_gig_credits", {
+        p_submission_id: submission.id,
+        p_admin_notes: adminNotes || null,
+      });
+      if (awardError) throw awardError;
+      const award = awardResult as any;
+      if (!award?.success) throw new Error(award?.error || "Failed to approve");
+
+      const sd = submission.submission_data as any;
+      const email = sd?.parsed_email;
+      if (!email) throw new Error("No email found in parsed CV data");
+
+      // 2. Create/update talent via RPC
+      const { error: talentError } = await supabase.rpc("get_or_create_talent", {
+        p_email: email,
+        p_full_name: sd.parsed_name || null,
+        p_phone: sd.parsed_phone || null,
+      });
+      if (talentError) throw talentError;
+
+      // 3. Update talent with CV URL, skills, profession
+      const updateFields: any = {};
+      if (sd.cv_url) updateFields.cv_url = sd.cv_url;
+      if (sd.parsed_profession) updateFields.custom_profession = sd.parsed_profession;
+      if (sd.parsed_skills?.length) updateFields.skills = sd.parsed_skills;
+
+      if (Object.keys(updateFields).length > 0) {
+        await supabase.from("talents").update(updateFields).ilike("email", email);
+      }
+
+      return award;
+    },
+    onSuccess: (data) => {
+      toast.success(`Approved! ${data.credits_awarded} credits awarded & talent record created.`);
+      queryClient.invalidateQueries({ queryKey: ["admin-gig-submissions"] });
+      setSelectedSubmission(null);
+      setAdminNotes("");
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  const approveAndCreateJobMutation = useMutation({
+    mutationFn: async (submission: any) => {
+      // 1. Award credits
+      const { data: awardResult, error: awardError } = await supabase.rpc("award_gig_credits", {
+        p_submission_id: submission.id,
+        p_admin_notes: adminNotes || null,
+      });
+      if (awardError) throw awardError;
+      const award = awardResult as any;
+      if (!award?.success) throw new Error(award?.error || "Failed to approve");
+
+      const sd = submission.submission_data as any;
+      const job = sd?.parsed_job;
+
+      // 2. Insert job record
+      const { error: jobError } = await supabase.from("jobs").insert({
+        title: job?.title || "Untitled Position",
+        company_name: job?.company_name || "Unknown Company",
+        location: job?.location || null,
+        job_type: job?.job_type || "full_time",
+        experience_level: job?.experience_level || "entry",
+        description: job?.description || sd?.raw_text || "",
+        source_image_url: sd?.source_image_url || null,
+        source_platform: "other" as any,
+        is_active: true,
+      });
+      if (jobError) throw jobError;
+
+      return award;
+    },
+    onSuccess: (data) => {
+      toast.success(`Approved! ${data.credits_awarded} credits awarded & job listing created.`);
+      queryClient.invalidateQueries({ queryKey: ["admin-gig-submissions"] });
+      setSelectedSubmission(null);
+      setAdminNotes("");
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
   const pendingSubmissions = submissions?.filter((s: any) => s.status === "pending") || [];
   const processedSubmissions = submissions?.filter((s: any) => s.status !== "pending") || [];
 
@@ -290,14 +373,38 @@ export function GigSubmissionsManager() {
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-green-600"
-                          onClick={() => approveMutation.mutate(sub.id)}
-                        >
-                          <CheckCircle2 className="h-4 w-4" />
-                        </Button>
+                        {sub.gigs?.category === "cv_upload" ? (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-green-600"
+                            title="Approve & Create Talent"
+                            onClick={() => approveAndCreateTalentMutation.mutate(sub)}
+                            disabled={approveAndCreateTalentMutation.isPending}
+                          >
+                            <UserPlus className="h-4 w-4" />
+                          </Button>
+                        ) : sub.gigs?.category === "job_posting" ? (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-green-600"
+                            title="Approve & Create Job"
+                            onClick={() => approveAndCreateJobMutation.mutate(sub)}
+                            disabled={approveAndCreateJobMutation.isPending}
+                          >
+                            <BriefcaseBusiness className="h-4 w-4" />
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-green-600"
+                            onClick={() => approveMutation.mutate(sub.id)}
+                          >
+                            <CheckCircle2 className="h-4 w-4" />
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="icon"
@@ -394,13 +501,32 @@ export function GigSubmissionsManager() {
                       rows={2}
                     />
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap">
+                    {selectedSubmission.gigs?.category === "cv_upload" && (
+                      <Button
+                        className="flex-1 gap-1"
+                        onClick={() => approveAndCreateTalentMutation.mutate(selectedSubmission)}
+                        disabled={approveAndCreateTalentMutation.isPending}
+                      >
+                        <UserPlus className="h-4 w-4" /> Approve & Create Talent
+                      </Button>
+                    )}
+                    {selectedSubmission.gigs?.category === "job_posting" && (
+                      <Button
+                        className="flex-1 gap-1"
+                        onClick={() => approveAndCreateJobMutation.mutate(selectedSubmission)}
+                        disabled={approveAndCreateJobMutation.isPending}
+                      >
+                        <BriefcaseBusiness className="h-4 w-4" /> Approve & Create Job
+                      </Button>
+                    )}
                     <Button
+                      variant="secondary"
                       className="flex-1 gap-1"
                       onClick={() => approveMutation.mutate(selectedSubmission.id)}
                       disabled={approveMutation.isPending}
                     >
-                      <CheckCircle2 className="h-4 w-4" /> Approve
+                      <CheckCircle2 className="h-4 w-4" /> Approve Only
                     </Button>
                     <Button
                       variant="destructive"
