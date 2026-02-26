@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Briefcase, Target, Users, FileCheck, TrendingUp, Calendar, 
-  Building2, Edit, Save, X, ChevronRight, Loader2
+  Building2, Edit, Save, X, ChevronRight, Loader2, Signal
 } from "lucide-react";
 import { toast } from "sonner";
 import { format, startOfMonth, endOfMonth, differenceInDays, eachDayOfInterval, isToday } from "date-fns";
@@ -32,6 +32,7 @@ interface KPIData {
     created_at: string;
   }[];
   jobsExpiringThisWeek: number;
+  liveJobs: number;
 }
 
 interface KPITarget {
@@ -65,6 +66,9 @@ export function JobsKPIDashboard() {
   const loadData = async () => {
     setLoading(true);
     try {
+      // Auto-deactivate expired jobs first
+      await supabase.rpc("auto_deactivate_expired_jobs");
+
       // Fetch KPI targets
       const { data: targetsData } = await supabase
         .from("kpi_targets")
@@ -160,6 +164,12 @@ export function JobsKPIDashboard() {
         .lte("deadline", weekFromNow.toISOString())
         .gte("deadline", now.toISOString());
 
+      // Live jobs count
+      const { count: liveJobsCount } = await supabase
+        .from("jobs")
+        .select("id", { count: "exact", head: true })
+        .eq("is_active", true);
+
       setKpiData({
         jobsThisMonth: jobs.length,
         jobsToday,
@@ -170,7 +180,8 @@ export function JobsKPIDashboard() {
         jobsBySource,
         dailyJobsData,
         recentJobs,
-        jobsExpiringThisWeek: expiringJobs?.length || 0
+        jobsExpiringThisWeek: expiringJobs?.length || 0,
+        liveJobs: liveJobsCount || 0
       });
     } catch (error) {
       console.error("Error loading KPI data:", error);
@@ -334,7 +345,21 @@ export function JobsKPIDashboard() {
       </Card>
 
       {/* Quick Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <Card className="border-green-500/30 bg-green-500/5">
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-green-500/10 rounded-lg">
+                <Signal className="w-5 h-5 text-green-500" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-green-600">{kpiData.liveJobs}</p>
+                <p className="text-xs text-muted-foreground">Live Jobs</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardContent className="pt-4">
             <div className="flex items-center gap-3">

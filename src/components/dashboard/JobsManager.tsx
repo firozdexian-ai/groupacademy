@@ -967,6 +967,7 @@ export function JobsManager() {
   const [shareJob, setShareJob] = useState<Job | null>(null);
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [categories, setCategories] = useState<ProfessionCategory[]>([]);
+  const [jobShareCounts, setJobShareCounts] = useState<Record<string, number>>({});
 
   // New state for expiring jobs logic
   const [expiringLoading, setExpiringLoading] = useState(false);
@@ -984,6 +985,9 @@ export function JobsManager() {
     setLoading(true);
     setError(null);
     try {
+      // Auto-deactivate expired jobs first
+      await supabase.rpc("auto_deactivate_expired_jobs");
+
       let query = supabase.from("jobs").select("*", { count: "exact" }).order("created_at", { ascending: false });
       if (debouncedSearch) query = query.or(`title.ilike.%${debouncedSearch}%,company_name.ilike.%${debouncedSearch}%`);
       if (statusFilter !== "all")
@@ -995,8 +999,29 @@ export function JobsManager() {
       query = query.range(from, from + ITEMS_PER_PAGE - 1);
       const result = await withTimeout(Promise.resolve(query), TIMEOUTS.DEFAULT, "Timeout");
       if (result.error) throw result.error;
-      setJobs((result.data as unknown as Job[]) || []);
+      const fetchedJobs = (result.data as unknown as Job[]) || [];
+      setJobs(fetchedJobs);
       setTotalCount(result.count || 0);
+
+      // Fetch share log counts for visible jobs
+      if (fetchedJobs.length > 0) {
+        const jobIds = fetchedJobs.map(j => j.id);
+        const { data: shareLogs } = await supabase
+          .from("job_share_logs")
+          .select("job_id, channel")
+          .in("job_id", jobIds);
+        
+        const counts: Record<string, Set<string>> = {};
+        (shareLogs || []).forEach(log => {
+          if (!counts[log.job_id]) counts[log.job_id] = new Set();
+          counts[log.job_id].add(log.channel);
+        });
+        const countsMap: Record<string, number> = {};
+        Object.entries(counts).forEach(([id, channels]) => {
+          countsMap[id] = channels.size;
+        });
+        setJobShareCounts(countsMap);
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -1172,16 +1197,19 @@ export function JobsManager() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Job</TableHead>
+                     <TableHead>Job</TableHead>
                     <TableHead>Location</TableHead>
                     <TableHead>Type</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Shared</TableHead>
                     <TableHead>Deadline</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {jobs.map((job) => (
+                  {jobs.map((job) => {
+                    const shareCount = jobShareCounts[job.id] || 0;
+                    return (
                     <TableRow key={job.id}>
                       <TableCell>
                         <div>
@@ -1196,6 +1224,21 @@ export function JobsManager() {
                       <TableCell>
                         <Badge variant={job.is_active ? "default" : "secondary"}>
                           {job.is_active ? "Active" : "Inactive"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className={
+                            shareCount >= 4
+                              ? "border-green-500 text-green-700 bg-green-50"
+                              : shareCount > 0
+                              ? "border-amber-500 text-amber-700 bg-amber-50"
+                              : "text-muted-foreground"
+                          }
+                        >
+                          {shareCount >= 4 && <CheckCircle2 className="w-3 h-3 mr-1" />}
+                          {shareCount}/4
                         </Badge>
                       </TableCell>
                       <TableCell>{job.deadline ? format(new Date(job.deadline), "MMM d") : "-"}</TableCell>
@@ -1233,7 +1276,8 @@ export function JobsManager() {
                         </div>
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
