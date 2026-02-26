@@ -1,173 +1,183 @@
 
-# Bulk Import LinkedIn Jobs -- Smart Application Routing
 
-## Overview
+# Maximize LinkedIn Data Utilization -- Companies + Jobs
 
-Build an admin tool that imports LinkedIn scraper JSON and intelligently routes each job's application method based on available data -- prioritizing direct company links and extracted emails over generic LinkedIn URLs.
+## Problem
 
-## Smart Application Logic
+The current LinkedIn import only creates job records with flat `company_name` and `company_logo_url` text fields. It ignores the rich company data in the JSON (website, industry, LinkedIn URL, description, employee count, HQ address) and never links jobs to the centralized `companies` table via `company_id`. This means:
 
-The LinkedIn data contains two `applyMethod.type` values:
+- Companies Manager stays empty for LinkedIn-sourced employers
+- Job detail pages can't show enriched company profiles
+- Duplicate company names pile up without consolidation
 
-```text
-Type                    Data Available              Our Mapping
---------------------    -------------------------   --------------------------
-OffsiteApply            companyApplyUrl (direct)     application_type = 'link'
-                                                     application_url = companyApplyUrl
-ComplexOnsiteApply      easyApplyUrl (LinkedIn)      application_type = 'link'
-                                                     application_url = linkedinUrl
+## Solution
+
+Enhance `BatchLinkedInJobUpload.tsx` to **auto-resolve companies** before inserting jobs -- exactly like `JobsManager.handleSaveJob` already does for single jobs (lines 1014-1031), but in bulk with enriched data.
+
+## What Data We Extract
+
+From each job's `company` object in the LinkedIn JSON:
+
+```
+LinkedIn Field              -->  companies Column     Notes
+--------------------------       ------------------   -------------------------
+company.name                     name                 Match key (case-insensitive)
+company.website                  website              e.g. "http://bdjobs.com"
+company.linkedinUrl              linkedin_url         e.g. "linkedin.com/company/x"
+company.logo (400x400)           logo_url             Highest-res available
+company.industries[0].name       industry             e.g. "IT Services"
+company.locations[0] (HQ)        address              Formatted HQ address
+company.description              notes                Company bio (first 500 chars)
 ```
 
-Additionally, some job descriptions contain email addresses (e.g., "send CV to careers@eguardian.com"). The importer will:
+This means every imported company gets a proper profile -- not just a name.
 
-1. **Check `applyMethod.type`**: If `OffsiteApply`, use `companyApplyUrl` (direct company link)
-2. **Extract email from description**: Regex scan for email patterns. If found, set `application_type = 'email'` and `application_email` = extracted email
-3. **Fallback**: Use `linkedinUrl` as `application_url` with `application_type = 'link'`
+## Implementation Steps
 
-**Priority order**: Company email > Company apply URL > LinkedIn URL
+### Step 1: Company Resolution Phase (before job insert)
 
-## Data Mapping
+During the import, after parsing and before inserting jobs:
 
-```text
-LinkedIn Field                    Jobs Column           Notes
--------------------------------   -------------------   -------------------------
-title                             title                 Direct
-company.name                      company_name          Direct
-company.logo (200x200)            company_logo_url      CDN URL
-location.parsed.text              location              Parsed location
-employmentType                    job_type              Maps to enum
-experienceLevel                   experience_level      Text-to-enum mapping
-descriptionText                   description           Plain text
-descriptionHtml                   ai_enhanced_description  Rich HTML version
-applyMethod.companyApplyUrl       application_url       If OffsiteApply
-extracted email from description  application_email     If email found
-linkedinUrl                       source_url            For dedup + fallback
-company.website                   (stored for ref)      Company website
-expireAt                          deadline              Direct
-salary.min / salary.max           salary_range_min/max  Often null
-workRemoteAllowed                 job_type override     If true, set 'remote'
---                                source_platform       'linkedin'
---                                is_active             true
+1. **Extract unique companies** from the parsed JSON (deduplicate by name)
+2. **Query existing companies** from the database using case-insensitive name matching
+3. **Create missing companies** with all enriched fields (website, industry, LinkedIn URL, logo, address, notes)
+4. **Update sparse existing records** -- if a company already exists but is missing fields like `website` or `linkedin_url`, fill them in from the LinkedIn data
+5. **Build a name-to-ID map** and assign `company_id` to each job before batch insert
+
+### Step 2: Enhanced Data Mapping
+
+Beyond companies, we also maximize other data fields already in the JSON but currently ignored:
+
+| LinkedIn Field | Target | Currently Used? | Change |
+|---|---|---|---|
+| `company.*` (full object) | `companies` table + `company_id` | No | **New -- create/link companies** |
+| `descriptionHtml` | `ai_enhanced_description` | Yes | Already mapped |
+| `workRemoteAllowed` | `job_type` override to `remote` | Yes | Already mapped |
+| `industries[]` | Job's industry context | No | **New -- store in company record** |
+| `company.description` | Company bio | No | **New -- store as `notes`** |
+| `company.website` | Company website | No | **New -- store in company record** |
+| `company.linkedinUrl` | Company LinkedIn profile | No | **New -- store in company record** |
+| `company.locations[0]` (HQ) | Company address | No | **New -- store in company record** |
+
+### Step 3: Preview Enhancements
+
+Update the preview table to show a "Companies" summary:
+- Total unique companies found
+- How many are new vs. already exist
+- A small badge per job row showing if the company is "New" or "Existing"
+
+### Step 4: Import Flow Update
+
+The import sequence becomes:
+
 ```
-
-### Experience Level Mapping
-
-```text
-LinkedIn Value           Our Enum
-"Entry level"            entry
-"Associate"              entry
-"Mid-Senior level"       senior
-"Director"               executive
-"Executive"              executive
-"Internship"             entry
-null / unknown           mid (default)
+1. Parse JSON
+2. Deduplicate jobs (by source_url)
+3. Extract unique companies
+4. Query existing companies (by name)
+5. Upsert companies (create new / enrich existing)
+6. Build company name -> ID map
+7. Assign company_id to each job
+8. Batch insert jobs (chunks of 10)
+9. Show results: X jobs + Y companies created
 ```
-
-## Changes
-
-### 1. New Component: `src/components/dashboard/BatchLinkedInJobUpload.tsx`
-
-A multi-step dialog:
-
-**Step 1 -- Upload**: Accept `.json` file, parse and validate the array structure.
-
-**Step 2 -- Preview with Application Routing**: Table showing:
-- Title, Company, Location, Type
-- **Apply Method** column showing: "Direct Link" (green), "Email" (blue), or "LinkedIn" (gray) so admin can see how each job will route
-- Total count and breakdown by apply method
-
-**Step 3 -- Deduplication**: Check existing `source_url` values where `source_platform = 'linkedin'` to skip duplicates.
-
-**Step 4 -- Import**: Batch insert in chunks of 10, with progress bar.
-
-**Step 5 -- Results**: Summary showing created / skipped / errors, plus breakdown of how many are direct-link vs email vs LinkedIn-only.
-
-### 2. Application Routing Logic
-
-```typescript
-function resolveApplicationMethod(job: LinkedInJob) {
-  // 1. Check for email in description
-  const emailMatch = job.descriptionText?.match(
-    /[\w.-]+@[\w.-]+\.\w{2,}/
-  );
-  
-  // 2. Check for direct company apply URL
-  const hasDirectUrl = job.applyMethod?.type === 'OffsiteApply' 
-    && job.applyMethod?.companyApplyUrl;
-  
-  if (emailMatch) {
-    return {
-      application_type: 'email',
-      application_email: emailMatch[0],
-      application_url: hasDirectUrl 
-        ? job.applyMethod.companyApplyUrl 
-        : job.linkedinUrl,
-    };
-  }
-  
-  if (hasDirectUrl) {
-    return {
-      application_type: 'link',
-      application_url: job.applyMethod.companyApplyUrl,
-      application_email: null,
-    };
-  }
-  
-  // Fallback: LinkedIn URL
-  return {
-    application_type: 'link',
-    application_url: job.linkedinUrl,
-    application_email: null,
-  };
-}
-```
-
-### 3. Wire into JobsManager.tsx
-
-Add an "Import LinkedIn Jobs" button next to the existing "Add Job" button. Clicking it opens the `BatchLinkedInJobUpload` dialog.
-
-### 4. Bonus: Store HTML Description
-
-Use `descriptionHtml` as `ai_enhanced_description` so job detail pages render rich formatted content (lists, bold headings) instead of plain text.
 
 ## Technical Details
 
-### No Database Changes Needed
-
-- `source_platform` already supports 'linkedin'
-- `application_type` supports 'link' and 'email'
-- `application_email`, `application_url`, `source_url` columns exist
-- `ai_enhanced_description` column exists for HTML content
-
-### Batch Insert (chunks of 10)
+### Company Resolution Logic
 
 ```typescript
-for (let i = 0; i < newJobs.length; i += 10) {
-  const chunk = newJobs.slice(i, i + 10);
-  await supabase.from('jobs').insert(chunk);
-  setProgress(((i + 10) / newJobs.length) * 100);
+async function resolveCompanies(jobs: LinkedInJob[]) {
+  // 1. Extract unique companies by name
+  const uniqueCompanies = new Map();
+  for (const job of jobs) {
+    const name = job.company?.name;
+    if (name && !uniqueCompanies.has(name.toLowerCase())) {
+      uniqueCompanies.set(name.toLowerCase(), {
+        name,
+        website: job.company.website || null,
+        linkedin_url: job.company.linkedinUrl || null,
+        logo_url: job.company.logo || null,
+        industry: job.company.industries?.[0]?.name || null,
+        address: formatAddress(job.company.locations?.[0]),
+        notes: job.company.description?.slice(0, 500) || null,
+      });
+    }
+  }
+
+  // 2. Check which exist already
+  const names = [...uniqueCompanies.keys()];
+  const { data: existing } = await supabase
+    .from("companies")
+    .select("id, name, website, linkedin_url, logo_url, industry")
+    .in("name", [...uniqueCompanies.values()].map(c => c.name));
+
+  const nameToId = new Map();
+  const toCreate = [];
+  const toUpdate = [];
+
+  for (const [key, company] of uniqueCompanies) {
+    const match = existing?.find(
+      e => e.name.toLowerCase() === key
+    );
+    if (match) {
+      nameToId.set(key, match.id);
+      // Enrich if fields are missing
+      const updates = {};
+      if (!match.website && company.website) updates.website = company.website;
+      if (!match.linkedin_url && company.linkedin_url) updates.linkedin_url = company.linkedin_url;
+      if (!match.logo_url && company.logo_url) updates.logo_url = company.logo_url;
+      if (!match.industry && company.industry) updates.industry = company.industry;
+      if (Object.keys(updates).length > 0) toUpdate.push({ id: match.id, ...updates });
+    } else {
+      toCreate.push(company);
+    }
+  }
+
+  // 3. Create new companies
+  if (toCreate.length > 0) {
+    const { data: created } = await supabase
+      .from("companies").insert(toCreate).select("id, name");
+    created?.forEach(c => nameToId.set(c.name.toLowerCase(), c.id));
+  }
+
+  // 4. Enrich existing companies
+  for (const upd of toUpdate) {
+    await supabase.from("companies").update(upd).eq("id", upd.id);
+  }
+
+  return nameToId; // Map<lowercase_name, uuid>
 }
 ```
 
-### Remote Job Handling
+### Updated Job Insert
 
-If `workRemoteAllowed === true`, override `job_type` to `'remote'` regardless of the `employmentType` field, since remote is more useful info for seekers.
-
-### Files
-
-| File | Change |
-|------|--------|
-| `src/components/dashboard/BatchLinkedInJobUpload.tsx` | **New** -- LinkedIn JSON import dialog with smart routing |
-| `src/components/dashboard/JobsManager.tsx` | Add "Import LinkedIn" button to header |
-
-### Preview Table Columns
-
-```text
-Title | Company | Location | Type | Apply Via | Deadline
-------|---------|----------|------|-----------|--------
-Cloud Manager | Canonical | APJ | Remote | Direct Link | Mar 28
-Electrical Mgr | Group Co | Dhaka | Full-time | LinkedIn | Mar 28
-Finance Exec | EGUARDIAN | Dhaka | Full-time | Email | Mar 28
+```typescript
+// Before batch insert, assign company_id
+const jobsWithCompanyId = newJobs.map(job => ({
+  ...job,
+  company_id: nameToId.get(job.company_name.toLowerCase()) || null,
+}));
 ```
 
-The "Apply Via" column uses color-coded badges so admin can quickly see the routing quality before importing.
+### Results Summary Update
+
+The results step will now show:
+- Jobs created / skipped / errors
+- Companies created / enriched
+- Apply method breakdown (direct / email / LinkedIn)
+
+### Files Modified
+
+| File | Change |
+|---|---|
+| `src/components/dashboard/BatchLinkedInJobUpload.tsx` | Add company resolution phase, update LinkedInJob type to include full company data, update preview to show company stats, update import flow, update results summary |
+
+Single file change -- everything stays in the existing import component.
+
+### No Database Changes Needed
+
+- `companies` table already has all needed columns (name, website, linkedin_url, logo_url, industry, address, notes)
+- `jobs.company_id` FK already exists
+- RLS policies already allow admin inserts on both tables
+
