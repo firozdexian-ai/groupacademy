@@ -478,9 +478,13 @@ export default function AppJobDetail() {
         <Card>
           <CardContent className="p-6">
             <h3 className="text-base font-semibold mb-4">About the Role</h3>
-            <div className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground whitespace-pre-wrap">
-              {displayDescription}
-            </div>
+            {/<[a-z][\s\S]*>/i.test(displayDescription || "") ? (
+              <div className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground" dangerouslySetInnerHTML={{ __html: displayDescription || "" }} />
+            ) : (
+              <div className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground whitespace-pre-wrap">
+                {displayDescription}
+              </div>
+            )}
           </CardContent>
         </Card>
 

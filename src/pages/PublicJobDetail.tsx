@@ -296,7 +296,11 @@ export default function PublicJobDetail() {
         <Card className="mb-6">
           <CardContent className="p-4 md:p-6">
             <h2 className="text-lg font-semibold mb-3">Job Description</h2>
-            <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">{displayDescription}</div>
+            {/<[a-z][\s\S]*>/i.test(displayDescription || "") ? (
+              <div className="prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: displayDescription || "" }} />
+            ) : (
+              <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">{displayDescription}</div>
+            )}
           </CardContent>
         </Card>
 
