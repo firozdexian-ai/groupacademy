@@ -44,6 +44,7 @@ import { format, endOfMonth } from "date-fns";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { DashboardTableSkeleton, DashboardErrorState } from "./DashboardSkeleton";
+import { BatchLinkedInJobUpload } from "./BatchLinkedInJobUpload";
 
 // --- Internal Hook for Debounce ---
 function useDebounce<T>(value: T, delay: number): T {
@@ -969,6 +970,7 @@ export function JobsManager() {
 
   // New state for expiring jobs logic
   const [expiringLoading, setExpiringLoading] = useState(false);
+  const [isLinkedInImportOpen, setIsLinkedInImportOpen] = useState(false);
 
   useEffect(() => {
     const loadCategories = async () => {
@@ -1119,6 +1121,9 @@ export function JobsManager() {
                 )}
                 Deactivate Expired
               </Button>
+              <Button variant="outline" onClick={() => setIsLinkedInImportOpen(true)} className="gap-2">
+                <Linkedin className="w-4 h-4" /> Import LinkedIn
+              </Button>
               <Button
                 onClick={() => {
                   setEditingJob(null);
@@ -1256,6 +1261,11 @@ export function JobsManager() {
         </CardContent>
       </Card>
       <ShareJobDialog job={shareJob} isOpen={isShareOpen} onClose={() => setIsShareOpen(false)} />
+      <BatchLinkedInJobUpload
+        isOpen={isLinkedInImportOpen}
+        onClose={() => setIsLinkedInImportOpen(false)}
+        onComplete={loadJobs}
+      />
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
