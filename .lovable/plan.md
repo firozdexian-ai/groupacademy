@@ -1,57 +1,48 @@
 
-# Implement Profile Card + Feed Card Refinements
 
-Two sets of changes from earlier approved feedback that haven't been applied yet.
+# Profile Card Redesign -- Match Reference Layout
 
----
+## What's Changing
 
-## 1. Profile Card -- Center-Aligned Layout (`src/components/feed/FeedHeader.tsx`)
+The profile card needs to switch from a **vertically centered** layout to a **left-aligned avatar with text beside it** layout, matching your reference screenshot.
 
-**Current**: Left-aligned layout with "Hi, FirstName! wave" greeting, small 10x10 avatar, credits always visible on right.
+## Reference Layout (from your screenshot)
 
-**Changes**:
-- Switch to vertical center-aligned layout (`flex flex-col items-center text-center`)
-- Display **full name** (e.g., "Firoze Uddin Ahmed") instead of "Hi, FirstName! wave"
-- Show **profession** below name in smaller muted text
-- Enlarge avatar from `h-10 w-10` to `h-16 w-16`, centered
-- Credits badge centered below avatar, **hidden by default** -- tap to reveal (toggle state)
-- Keep the 3:1 aspect ratio background image (already implemented)
+```text
++--------------------------------------------------+
+|                                                  |
+|  [LARGE       ]   Name                           |
+|  [AVATAR      ]   Profession / Tagline           |
+|  [PHOTO       ]                    [credits pill] |
+|                                                  |
++--------------------------------------------------+
+         (admin-managed background image)
+```
 
----
+Key differences from current implementation:
+- Avatar is **large** and positioned on the **left side**, slightly overlapping the card edge
+- Name and profession are to the **right** of the avatar, left-aligned
+- No heavy dark overlay -- the banner image is visible with only a subtle gradient
+- Credits pill is on the **right side** of the card (hidden by default, tap to reveal)
 
-## 2. Feed Cards -- Remove Skip, Add Share, Embed YouTube (`src/components/feed/FeedCardRedesigned.tsx`)
+## Technical Changes
 
-**Current**: Shows static thumbnail with play overlay for videos/courses. Has "Skip" + action button at bottom.
+### File: `src/components/feed/FeedHeader.tsx`
 
-**Changes**:
+1. **Layout**: Change from `flex-col items-center` (vertical center) to a horizontal `flex items-center` layout
+   - Avatar on the left, large (`h-24 w-24` or similar) with a white/green ring
+   - Text block (name + profession) to the right of avatar
+   - Credits pill positioned on the right side of the card
 
-### a) YouTube Embed for Videos/Courses
-- When `item.youtubeUrl` exists, replace the static thumbnail + play overlay with an embedded YouTube `iframe` (16:9 aspect ratio)
-- Extract video ID using regex pattern already used elsewhere: `/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/`
-- Users can watch directly from the feed
+2. **Overlay**: Replace the heavy `bg-black/50` overlay with a subtle left-to-right gradient (`bg-gradient-to-r from-black/40 to-transparent`) so the banner artwork remains visible on the right
 
-### b) Remove Skip Button, Add Share
-- Remove the "Skip" button entirely (remove `onNotInterested` usage)
-- Replace with type-specific action buttons:
+3. **Avatar**: Increase size to ~`h-20 w-20` with a thick ring (`ring-4 ring-white/40`), positioned with some left padding. Clicking navigates to profile.
 
-| Type | Button 1 | Button 2 |
-|------|----------|----------|
-| Course | Learn More | Share |
-| Video | Watch on YouTube | Share |
-| Blog | Read | Share |
+4. **Text**: 
+   - Name: bold, white, larger font (`text-lg font-bold`)
+   - Profession: smaller muted white text below (`text-xs text-white/70`)
 
-- Use the existing `ShareSheet` component for the Share button
-- "Watch on YouTube" opens `item.youtubeUrl` in a new tab
-- Generate share URLs based on item type and slug/id
+5. **Credits**: A pill/badge on the right side of the card, hidden by default and shown on tap (toggle). Uses `absolute right-4` positioning or flex spacer.
 
-### c) Interface Cleanup
-- The `onNotInterested` prop can remain in the interface for backward compatibility but won't render a button
+6. **Aspect ratio**: Keep the existing `aspect-[3/1]` container with rounded corners
 
----
-
-## Files Modified
-
-| File | Change |
-|------|--------|
-| `src/components/feed/FeedHeader.tsx` | Center layout, full name, larger avatar, hidden credits toggle |
-| `src/components/feed/FeedCardRedesigned.tsx` | YouTube embed, remove Skip, add ShareSheet, type-specific actions |
