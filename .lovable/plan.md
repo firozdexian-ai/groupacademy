@@ -1,72 +1,88 @@
 
-# Wire Up "Get AI Recommendations" to Show Top Matching Jobs
 
-## Current Problem
+# Add Filters + Improve Share Captions in Admin Panel
 
-The "Get AI Recommendations" button (10 credits) deducts credits and navigates to `/app/jobs/all?ai=true`, but the `AppJobs` page completely ignores the `ai` query parameter. Users pay 10 credits and see the same generic "All Jobs" list.
+## Problem
+
+1. **Jobs Manager** only has status filter (All/Active/Inactive) and text search. No way to filter by country/location or by company -- making it hard to find and share jobs for specific regions or employers.
+
+2. **Companies Manager** has no way to see "all jobs for this company" quickly.
+
+3. **Share captions** are hardcoded, repetitive templates like `"Hiring: {title} at {company} - {location} - Apply: {link} #hiring"`. They don't vary between channels and aren't engaging.
 
 ## Solution
 
-Create a new edge function that uses AI to rank jobs against the talent's profile, and display the results inline on the Jobs Hub page (no navigation away) in a dedicated "AI Recommended" section that appears after clicking the button.
+### 1. Add Location/Country Filter to Jobs Manager
 
-## Changes
+Add a new dropdown filter next to the existing status filter with options extracted from the `location` column:
+- "All Locations" (default)
+- "Bangladesh" / "Remote" / "Abroad" / specific country names detected from the data
+- The filter applies server-side via `.ilike("location", "%filterValue%")` in the existing `loadJobs` query
 
-### 1. New Edge Function: `suggest-jobs-for-talent`
+Also add a **Company filter** dropdown:
+- Fetches the list of companies from the `companies` table on mount
+- Filters jobs by `company_name` (ilike match)
+- Useful for sharing all jobs from a specific employer
 
-A new backend function that:
-- Fetches the talent's skills, experience, education, CV text, and profession
-- Fetches up to 50 active jobs (title, company, requirements, preferred_skills, job_type, location, experience_level)
-- Sends both to the AI gateway (gemini-2.5-flash) asking it to return the top 10 most relevant job IDs with match scores and a one-line reason
-- Returns a ranked list: `[{ job_id, match_score, reason }]`
+### 2. Add "View Jobs" Link in Companies Manager
 
-This approach uses AI to do intelligent matching (understanding transferable skills, context, seniority fit) rather than simple keyword overlap.
+Add a small button/link on each company row that navigates to the Jobs Manager tab with the company name pre-filled as a filter. This uses the existing `?tab=jobs` query parameter pattern and passes the company name.
 
-### 2. Update `JobsHub.tsx` -- Show Results Inline
+### 3. AI-Generated Share Captions (All in English)
 
-Instead of navigating away to `/app/jobs/all?ai=true`:
-- After credit deduction, call the new edge function
-- Display results in a new "AI Recommended for You" section that appears right below the button
-- Show up to 10 job cards (compact variant) with match score badges and the AI's one-line reason
-- Each card is clickable and navigates to the job detail page
-- Add a loading skeleton state while AI processes
+Replace the hardcoded share templates with AI-generated, channel-specific captions. When the Share dialog opens:
+- Call a new edge function `generate-job-share-caption` that takes the job details + channel name
+- Returns an engaging, unique English caption tailored for each platform (LinkedIn = professional tone, Facebook = community tone, WhatsApp = conversational, Telegram = concise)
+- Captions include relevant emojis, a call-to-action, and the apply link
+- Show a loading skeleton while generating, with a "Regenerate" button for a fresh variation
+- Remove the Bangla template entirely (all English as requested)
 
-Remove the navigation to `/app/jobs/all?ai=true` entirely.
-
-### 3. Update `JobCard.tsx` -- Optional Match Info
-
-Add an optional `matchInfo` prop to `JobCard`:
-- Displays a small match percentage badge and the AI reason line below the job title
-- Only shown when the prop is passed (no visual change for regular job cards)
-
-## Technical Detail
-
-### Edge Function Prompt Strategy
-
-```text
-System: You are a job matching expert. Given a candidate profile and a list of jobs,
-return the top 10 most relevant jobs ranked by fit.
-
-Return JSON array: [{ job_id: string, match_score: number (0-100), reason: string }]
-
-Consider: skill overlap, experience level fit, industry relevance, transferable skills.
-Be selective -- only include genuinely relevant jobs.
-```
-
-The function sends job data as a compact summary (id + title + company + requirements) to stay within token limits. Uses `google/gemini-2.5-flash` for speed and cost efficiency.
-
-### UI Flow
-
-1. User taps "Get AI Recommendations" (10 credits)
-2. Button shows loading spinner
-3. Edge function runs (~3-5 seconds)
-4. A new "AI Recommended for You" section slides in below the button with up to 10 compact job cards
-5. Each card shows: job title, company, match score badge (e.g., "92% match"), and a one-line AI reason
-6. Section persists until page reload
-
-### Files Changed
+## Files Changed
 
 | File | Change |
 |------|--------|
-| `supabase/functions/suggest-jobs-for-talent/index.ts` | **New** -- AI-powered job ranking edge function |
-| `src/pages/app/JobsHub.tsx` | Replace navigation with inline edge function call; render AI results section |
-| `src/components/jobs/JobCard.tsx` | Add optional `matchInfo` prop for score badge + reason text |
+| `src/components/dashboard/JobsManager.tsx` | Add location filter dropdown + company filter dropdown to the filter bar; pass company filter from URL params |
+| `src/components/dashboard/CompaniesManager.tsx` | Add "View Jobs" action button on each row that navigates to jobs tab with company filter |
+| `src/components/dashboard/JobsManager.tsx` (ShareJobDialog) | Replace hardcoded templates with AI-generated captions; add loading state and regenerate button; all English |
+| `supabase/functions/generate-job-share-caption/index.ts` | **New** -- Takes job details + channel, returns an engaging English caption using gemini-2.5-flash |
+
+## Technical Details
+
+### Location Filter
+```text
+State: locationFilter (default: "all")
+Predefined options: "All", "Bangladesh", "Remote", "International/Abroad"
++ Dynamic: unique locations extracted from a quick distinct query on load
+
+Query modification in loadJobs:
+if (locationFilter === "abroad") -> .not("location", "ilike", "%Bangladesh%")
+if (locationFilter === "remote") -> .ilike("location", "%remote%")
+else -> .ilike("location", `%${locationFilter}%`)
+```
+
+### Company Filter
+```text
+State: companyFilter (default: "all")
+Options loaded from companies table (id + name)
+Query: .ilike("company_name", selectedCompanyName)
+```
+
+### AI Caption Edge Function
+Uses gemini-2.5-flash-lite (fast, cheap) with a prompt like:
+```text
+Write a compelling English social media caption for sharing this job opening on {channel}.
+Job: {title} at {company}, Location: {location}, Type: {job_type}
+Requirements: {requirements snippet}
+Apply link: {link}
+
+Rules:
+- Channel-appropriate tone (LinkedIn=professional, Facebook=engaging, WhatsApp=friendly, Telegram=brief)
+- Include 2-3 relevant emojis
+- Include the apply link naturally
+- Under 280 characters for Telegram, under 500 for others
+- Make it unique and attention-grabbing, avoid generic "We're hiring" openings
+- English only
+```
+
+The caption is generated once per channel tab switch and cached in component state so switching back doesn't re-generate. A "Regenerate" button allows getting a fresh variation.
+
