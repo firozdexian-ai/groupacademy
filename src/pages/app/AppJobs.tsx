@@ -48,6 +48,10 @@ export default function AppJobs() {
   const [salaryRange, setSalaryRange] = useState([0]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [isInternational, setIsInternational] = useState(searchParams.get("location") === "abroad");
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const PAGE_SIZE = 50;
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -64,29 +68,48 @@ export default function AppJobs() {
     fetchJobs();
   }, []);
 
-  const fetchJobs = async () => {
-    setLoading(true);
-    setError(null);
+  const fetchJobs = async (pageNum = 0, append = false) => {
+    if (!append) {
+      setLoading(true);
+      setError(null);
+    } else {
+      setLoadingMore(true);
+    }
     try {
-      // FIX 1: Add Deadline Filter & Error Handling
+      const from = pageNum * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
       const { data, error } = await supabase
         .from("jobs")
         .select(
           "id, title, company_name, company_logo_url, location, job_type, experience_level, is_featured, created_at, deadline, salary_range_min, salary_range_max",
         )
         .eq("is_active", true)
-        // Only show jobs where deadline is NULL (no deadline) OR deadline is in the future
         .or("deadline.is.null,deadline.gte.now()")
         .order("is_featured", { ascending: false })
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .range(from, to);
 
       if (error) throw error;
-      setJobs((data as JobWithSalary[]) || []);
+      const newJobs = (data as JobWithSalary[]) || [];
+      setHasMore(newJobs.length === PAGE_SIZE);
+      if (append) {
+        setJobs(prev => [...prev, ...newJobs]);
+      } else {
+        setJobs(newJobs);
+      }
+      setPage(pageNum);
     } catch (err: any) {
       console.error("Error loading jobs:", err);
       setError(err.message || "Failed to load jobs. Please check your connection.");
     } finally {
       setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  const loadMore = () => {
+    if (!loadingMore && hasMore) {
+      fetchJobs(page + 1, true);
     }
   };
 
@@ -352,7 +375,7 @@ export default function AppJobs() {
             </div>
             <h3 className="font-bold text-lg mb-2">Failed to load jobs</h3>
             <p className="text-muted-foreground text-sm mb-4 max-w-md">{error}</p>
-            <Button onClick={fetchJobs} className="gap-2">
+            <Button onClick={() => fetchJobs()} className="gap-2">
               <RefreshCw className="h-4 w-4" /> Try Again
             </Button>
           </CardContent>
@@ -387,6 +410,14 @@ export default function AppJobs() {
               />
             </div>
           ))}
+          {hasMore && (
+            <div className="col-span-full flex justify-center py-4">
+              <Button variant="outline" onClick={loadMore} disabled={loadingMore} className="gap-2">
+                {loadingMore ? <RefreshCw className="h-4 w-4 animate-spin" /> : null}
+                {loadingMore ? "Loading..." : "Load More Jobs"}
+              </Button>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useTalent } from "@/hooks/useTalent";
 import { supabase } from "@/integrations/supabase/client";
-import { Home, Briefcase, GraduationCap, Globe, Gift, User, Bell, Menu, Search, LogOut, Coins } from "lucide-react";
+import { Home, Briefcase, GraduationCap, Globe, Gift, User, Bell, Menu, Search, LogOut, Coins, Sun, Moon, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -10,6 +10,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useCredits } from "@/hooks/useCredits";
+import { useTheme } from "next-themes";
+import { getWhatsAppLink } from "@/lib/constants/support";
 import logoIcon from "@/assets/logo-icon.png";
 
 // Define strict type for nav items
@@ -27,8 +29,10 @@ export function TalentAppShell() {
   const {
     balance
   } = useCredits();
+  const { theme, setTheme } = useTheme();
   const [unreadCount, setUnreadCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
   // LinkedIn-style Navigation Items
   const navItems: NavItem[] = [{
@@ -68,6 +72,27 @@ export function TalentAppShell() {
       }
     };
     fetchNotifications();
+
+    // Real-time subscription for notification count
+    const channel = supabase
+      .channel('notification-count')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `talent_id=eq.${talent.id}`,
+        },
+        () => {
+          fetchNotifications();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [talent?.id]);
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -106,7 +131,7 @@ export function TalentAppShell() {
             </form>
 
             {/* Mobile Search Icon */}
-            <Button variant="ghost" size="icon" className="md:hidden text-muted-foreground">
+            <Button variant="ghost" size="icon" className="md:hidden text-muted-foreground" onClick={() => setMobileSearchOpen(!mobileSearchOpen)}>
               <Search className="h-5 w-5" />
             </Button>
           </div>
@@ -173,7 +198,13 @@ export function TalentAppShell() {
                 <DropdownMenuItem onClick={() => navigate("/app/profile/edit")} className="cursor-pointer">
                   Settings & Privacy
                 </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer">Help Center</DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer" onClick={() => window.open(getWhatsAppLink("Hi! I need help with the app"), "_blank")}>
+                  <HelpCircle className="h-4 w-4 mr-2" /> Help Center
+                </DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
+                  {theme === 'dark' ? <Sun className="h-4 w-4 mr-2" /> : <Moon className="h-4 w-4 mr-2" />}
+                  {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-muted-foreground">
                   <LogOut className="h-4 w-4 mr-2" /> Sign Out
@@ -242,6 +273,22 @@ export function TalentAppShell() {
           </div>
         </div>
       </header>
+
+      {/* Mobile Search Bar */}
+      {mobileSearchOpen && (
+        <div className="md:hidden px-4 py-2 bg-white dark:bg-background border-b border-border animate-in slide-in-from-top-2 duration-200">
+          <form onSubmit={(e) => { handleSearch(e); setMobileSearchOpen(false); }} className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search jobs, courses..."
+              className="pl-10 h-10 bg-muted/50 border-none"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              autoFocus
+            />
+          </form>
+        </div>
+      )}
 
       {/* --- MAIN CONTENT AREA --- */}
       <main className="max-w-7xl mx-auto py-6 px-0 md:px-4 pb-24 md:pb-6">

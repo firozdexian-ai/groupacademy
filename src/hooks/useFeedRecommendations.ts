@@ -53,6 +53,7 @@ interface UseFeedRecommendationsResult {
   filters: FeedFilters;
   setFilters: (filters: FeedFilters) => void;
   refresh: () => Promise<void>;
+  loadMore: () => Promise<void>;
   markInterested: (item: FeedItem) => Promise<void>;
   markNotInterested: (itemId: string) => void;
   hasGeneratedOnce: boolean;
@@ -110,29 +111,39 @@ export function useFeedRecommendations(): UseFeedRecommendationsResult {
   }, []);
 
   // Simple, free feed fetch - no AI, no credits
-  const fetchFeed = useCallback(async () => {
+  const fetchFeed = useCallback(async (olderThan?: string) => {
     try {
       // Parallel fetch from all content sources
+      let coursesQuery = supabase
+        .from("content")
+        .select("id, title, description, thumbnail_url, cover_image_url, youtube_url, created_at, slug, content_type")
+        .eq("is_published", true)
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      let blogsQuery = supabase
+        .from("blog_posts")
+        .select("id, title, excerpt, featured_image, created_at, slug, category, external_url")
+        .eq("status", "published")
+        .order("created_at", { ascending: false })
+        .limit(15);
+
+      let postsQuery = supabase
+        .from("feed_posts")
+        .select("*")
+        .eq("is_active", true)
+        .order("is_pinned", { ascending: false })
+        .order("created_at", { ascending: false })
+        .limit(30);
+
+      if (olderThan) {
+        coursesQuery = coursesQuery.lt("created_at", olderThan);
+        blogsQuery = blogsQuery.lt("created_at", olderThan);
+        postsQuery = postsQuery.lt("created_at", olderThan);
+      }
+
       const [coursesResult, blogsResult, postsResult] = await Promise.all([
-        supabase
-          .from("content")
-          .select("id, title, description, thumbnail_url, cover_image_url, youtube_url, created_at, slug, content_type")
-          .eq("is_published", true)
-          .order("created_at", { ascending: false })
-          .limit(20),
-        supabase
-          .from("blog_posts")
-          .select("id, title, excerpt, featured_image, created_at, slug, category, external_url")
-          .eq("status", "published")
-          .order("created_at", { ascending: false })
-          .limit(15),
-        supabase
-          .from("feed_posts")
-          .select("*")
-          .eq("is_active", true)
-          .order("is_pinned", { ascending: false })
-          .order("created_at", { ascending: false })
-          .limit(30),
+        coursesQuery, blogsQuery, postsQuery,
       ]);
 
       const items: FeedItem[] = [];
@@ -231,7 +242,11 @@ export function useFeedRecommendations(): UseFeedRecommendationsResult {
       });
 
       if (isMounted.current) {
-        setAllItems(items);
+        if (olderThan) {
+          setAllItems(prev => [...prev, ...items]);
+        } else {
+          setAllItems(items);
+        }
         setError(null);
       }
     } catch (err) {
@@ -254,6 +269,17 @@ export function useFeedRecommendations(): UseFeedRecommendationsResult {
       });
     }
   }, [fetchFeed, toast]);
+
+  // Load more - cursor-based pagination
+  const loadMore = useCallback(async () => {
+    if (allItems.length === 0) return;
+    const oldestItem = allItems[allItems.length - 1];
+    setIsRefreshing(true);
+    await fetchFeed(oldestItem.createdAt);
+    if (isMounted.current) {
+      setIsRefreshing(false);
+    }
+  }, [fetchFeed, allItems]);
 
   const markInterested = useCallback(
     async (item: FeedItem) => {
@@ -363,6 +389,7 @@ export function useFeedRecommendations(): UseFeedRecommendationsResult {
     filters,
     setFilters,
     refresh,
+    loadMore,
     markInterested,
     markNotInterested,
     hasGeneratedOnce: true, // Always true since we use static insights

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Mail,
+  Phone,
   Briefcase,
   GraduationCap,
   FileText,
@@ -141,11 +142,17 @@ export default function Profile() {
           <h1 className="text-xl font-bold text-primary-foreground mb-0.5">{talent.fullName}</h1>
           <p className="text-primary-foreground/80 text-sm">{talent.customProfession || "Career Explorer"}</p>
 
-          <div className="flex items-center gap-4 mt-3 text-xs text-primary-foreground/70">
+          <div className="flex items-center gap-4 mt-3 text-xs text-primary-foreground/70 flex-wrap">
             <span className="flex items-center gap-1">
               <Mail className="h-3.5 w-3.5" />
               {talent.email}
             </span>
+            {talent.phone && (
+              <span className="flex items-center gap-1">
+                <Phone className="h-3.5 w-3.5" />
+                {talent.phone}
+              </span>
+            )}
           </div>
         </div>
 

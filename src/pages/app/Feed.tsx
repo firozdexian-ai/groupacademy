@@ -50,6 +50,7 @@ export default function Feed() {
     filters,
     setFilters,
     refresh,
+    loadMore,
     markInterested,
     markNotInterested,
   } = useFeedRecommendations();
@@ -299,9 +300,9 @@ export default function Feed() {
               ))}
               {!error && items.length > 0 && (
                 <div className="text-center py-8">
-                  <p className="text-xs text-muted-foreground mb-3">You've reached the end</p>
-                  <Button variant="ghost" size="sm" onClick={() => refresh()} className="text-xs gap-1">
-                    <RefreshCw className="h-3.5 w-3.5" /> Load More
+                  <p className="text-xs text-muted-foreground mb-3">Showing {items.length} items</p>
+                  <Button variant="ghost" size="sm" onClick={() => loadMore()} disabled={isRefreshing} className="text-xs gap-1">
+                    <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} /> Load More
                   </Button>
                 </div>
               )}
