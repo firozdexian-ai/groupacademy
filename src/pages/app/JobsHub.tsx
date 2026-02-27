@@ -17,6 +17,9 @@ import {
   RefreshCw,
   Loader2,
   Brain,
+  Building2,
+  Globe,
+  Flame,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTalent } from "@/hooks/useTalent";
@@ -33,6 +36,7 @@ import { JobCard, type JobCardData, type JobMatchInfo } from "@/components/jobs/
 import { JOB_COLLECTIONS, APPLICATION_STATUS_CONFIG } from "@/lib/constants/jobTypes";
 import { toast } from "sonner";
 import { SectionHeader } from "@/components/ui/section-header";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 interface JobPreferences {
   preferred_job_types?: string[];
@@ -49,13 +53,15 @@ interface AISuggestion {
   job: JobCardData;
 }
 
+interface TopCompany {
+  name: string;
+  logo_url: string | null;
+  count: number;
+}
 
-interface JobPreferences {
-  preferred_job_types?: string[];
-  preferred_locations?: string[];
-  salary_min?: number | null;
-  salary_max?: number | null;
-  industries?: string[];
+interface TopCountry {
+  location: string;
+  count: number;
 }
 
 interface JobApplication {
@@ -91,6 +97,11 @@ export default function JobsHub() {
   const [loadingAI, setLoadingAI] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState<AISuggestion[]>([]);
 
+  // New state for browse sections
+  const [topCompanies, setTopCompanies] = useState<TopCompany[]>([]);
+  const [topCountries, setTopCountries] = useState<TopCountry[]>([]);
+  const [promotedJobs, setPromotedJobs] = useState<JobCardData[]>([]);
+
   // Count saved jobs from hook
   const savedJobsCount = savedItems.filter((item) => item.item_type === "job").length;
 
@@ -105,17 +116,23 @@ export default function JobsHub() {
     setError(null);
 
     try {
-      const [topPicksResult, personalizedResult, applicationsResult, countResult] = await Promise.all([
+      const [topPicksResult, personalizedResult, applicationsResult, countResult, companiesResult, countriesResult, promotedResult] = await Promise.all([
         fetchTopPicks(),
         talent?.id ? fetchPersonalizedJobs() : Promise.resolve([]),
         talent?.id ? fetchApplications() : Promise.resolve([]),
         talent?.id ? fetchApplicationsCount() : Promise.resolve(0),
+        fetchTopCompanies(),
+        fetchTopCountries(),
+        fetchPromotedJobs(),
       ]);
 
       setTopPicks(topPicksResult);
       setPersonalizedJobs(personalizedResult);
       setApplications(applicationsResult);
       setApplicationsCount(countResult);
+      setTopCompanies(companiesResult);
+      setTopCountries(countriesResult);
+      setPromotedJobs(promotedResult);
     } catch (error: any) {
       console.error("Error loading data:", error);
       setError(error.message || "Failed to load jobs data");
@@ -137,6 +154,80 @@ export default function JobsHub() {
       .order("is_featured", { ascending: false })
       .order("created_at", { ascending: false })
       .limit(5);
+
+    if (error) throw error;
+    return (data as JobCardData[]) || [];
+  }
+
+  async function fetchTopCompanies(): Promise<TopCompany[]> {
+    const { data, error } = await supabase
+      .from("jobs")
+      .select("company_name, company_logo_url")
+      .eq("is_active", true)
+      .or("deadline.is.null,deadline.gte.now()")
+      .limit(500);
+
+    if (error) throw error;
+    if (!data) return [];
+
+    const map = new Map<string, { logo_url: string | null; count: number }>();
+    for (const job of data) {
+      if (!job.company_name) continue;
+      const existing = map.get(job.company_name);
+      if (existing) {
+        existing.count++;
+        if (!existing.logo_url && job.company_logo_url) existing.logo_url = job.company_logo_url;
+      } else {
+        map.set(job.company_name, { logo_url: job.company_logo_url, count: 1 });
+      }
+    }
+
+    return Array.from(map.entries())
+      .map(([name, info]) => ({ name, logo_url: info.logo_url, count: info.count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 8);
+  }
+
+  async function fetchTopCountries(): Promise<TopCountry[]> {
+    const { data, error } = await supabase
+      .from("jobs")
+      .select("location")
+      .eq("is_active", true)
+      .or("deadline.is.null,deadline.gte.now()")
+      .not("location", "is", null)
+      .limit(500);
+
+    if (error) throw error;
+    if (!data) return [];
+
+    const map = new Map<string, number>();
+    for (const job of data) {
+      const loc = job.location?.trim();
+      if (!loc) continue;
+      map.set(loc, (map.get(loc) || 0) + 1);
+    }
+
+    return Array.from(map.entries())
+      .map(([location, count]) => ({ location, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 8);
+  }
+
+  async function fetchPromotedJobs(): Promise<JobCardData[]> {
+    const sevenDaysFromNow = new Date();
+    sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+    const deadlineStr = sevenDaysFromNow.toISOString();
+
+    const { data, error } = await supabase
+      .from("jobs")
+      .select(
+        "id, title, company_name, company_logo_url, location, job_type, experience_level, is_featured, created_at, deadline",
+      )
+      .eq("is_active", true)
+      .or("deadline.is.null,deadline.gte.now()")
+      .or(`is_featured.eq.true,deadline.lte.${deadlineStr}`)
+      .order("deadline", { ascending: true, nullsFirst: false })
+      .limit(8);
 
     if (error) throw error;
     return (data as JobCardData[]) || [];
@@ -396,13 +487,11 @@ export default function JobsHub() {
                     className="w-[260px] shrink-0 animate-in fade-in slide-in-from-right-4"
                     style={{ animationDelay: `${index * 50}ms` }}
                   >
-                    {/* FIX: Wrapper DIV to ensure click works */}
                     <div onClick={() => navigate(`/app/jobs/${job.id}`)} className="cursor-pointer">
                       <JobCard
                         job={job}
                         variant="default"
                         isSaved={isSaved(job.id, "job")}
-                        // FIX: Remove event arg to match signature
                         onSaveToggle={() => toggleSave(job.id, "job")}
                         onClick={() => navigate(`/app/jobs/${job.id}`)}
                       />
@@ -502,6 +591,95 @@ export default function JobsHub() {
         </div>
       </section>
 
+      {/* NEW: Job by Company */}
+      {!loading && topCompanies.length > 0 && (
+        <section>
+          <SectionHeader
+            icon={Building2}
+            title="Job by Company"
+            viewAllPath="/app/jobs/all"
+          />
+          <div className="relative">
+            <ScrollArea className="w-full">
+              <div className="flex gap-4 pb-4">
+                {topCompanies.map((company, index) => (
+                  <button
+                    key={company.name}
+                    className="flex flex-col items-center gap-2 shrink-0 w-20 group cursor-pointer animate-in fade-in slide-in-from-right-4"
+                    style={{ animationDelay: `${index * 40}ms` }}
+                    onClick={() => navigate(`/app/jobs/all?company=${encodeURIComponent(company.name)}`)}
+                  >
+                    <Avatar className="h-14 w-14 border-2 border-border group-hover:border-primary transition-colors">
+                      {company.logo_url ? (
+                        <AvatarImage src={company.logo_url} alt={company.name} className="object-cover" />
+                      ) : null}
+                      <AvatarFallback className="bg-primary/10 text-primary text-sm font-bold">
+                        {company.name.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="text-center">
+                      <p className="text-xs font-medium line-clamp-1 group-hover:text-primary transition-colors">
+                        {company.name}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {company.count} {company.count === 1 ? "job" : "jobs"}
+                      </p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
+            {topCompanies.length > 4 && (
+              <div className="absolute right-0 top-0 bottom-4 w-12 bg-gradient-to-l from-background to-transparent pointer-events-none" />
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* NEW: Job by Country */}
+      {!loading && topCountries.length > 0 && (
+        <section>
+          <SectionHeader
+            icon={Globe}
+            title="Job by Location"
+            viewAllPath="/app/jobs/all"
+          />
+          <div className="relative">
+            <ScrollArea className="w-full">
+              <div className="flex gap-3 pb-4">
+                {topCountries.map((country, index) => (
+                  <Card
+                    key={country.location}
+                    className="shrink-0 cursor-pointer hover:border-primary/50 hover:shadow-md transition-all group animate-in fade-in slide-in-from-right-4"
+                    style={{ animationDelay: `${index * 40}ms` }}
+                    onClick={() => navigate(`/app/jobs/all?location=${encodeURIComponent(country.location)}`)}
+                  >
+                    <CardContent className="p-3 px-4 flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                        <Globe className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium whitespace-nowrap group-hover:text-primary transition-colors">
+                          {country.location}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {country.count} {country.count === 1 ? "job" : "jobs"}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
+            {topCountries.length > 3 && (
+              <div className="absolute right-0 top-0 bottom-4 w-12 bg-gradient-to-l from-background to-transparent pointer-events-none" />
+            )}
+          </div>
+        </section>
+      )}
+
       {/* Recommended for You */}
       {personalizedJobs.length > 0 && (
         <section>
@@ -533,13 +711,50 @@ export default function JobsHub() {
                   <JobCard
                     job={job}
                     variant="compact"
-                    // FIX: Added required onClick prop
                     onClick={() => navigate(`/app/jobs/${job.id}`)}
                   />
                 </div>
               ))}
             </div>
           )}
+        </section>
+      )}
+
+      {/* NEW: Promoted / Expiring Soon */}
+      {!loading && promotedJobs.length > 0 && (
+        <section>
+          <SectionHeader
+            icon={Flame}
+            title="Promoted / Expiring Soon"
+            viewAllPath="/app/jobs/all"
+          />
+          <div className="relative">
+            <ScrollArea className="w-full">
+              <div className="flex gap-4 pb-4">
+                {promotedJobs.map((job, index) => (
+                  <div
+                    key={job.id}
+                    className="w-[260px] shrink-0 animate-in fade-in slide-in-from-right-4"
+                    style={{ animationDelay: `${index * 50}ms` }}
+                  >
+                    <div onClick={() => navigate(`/app/jobs/${job.id}`)} className="cursor-pointer">
+                      <JobCard
+                        job={job}
+                        variant="default"
+                        isSaved={isSaved(job.id, "job")}
+                        onSaveToggle={() => toggleSave(job.id, "job")}
+                        onClick={() => navigate(`/app/jobs/${job.id}`)}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
+            {promotedJobs.length > 1 && (
+              <div className="absolute right-0 top-0 bottom-4 w-12 bg-gradient-to-l from-background to-transparent pointer-events-none" />
+            )}
+          </div>
         </section>
       )}
 
