@@ -968,6 +968,7 @@ export function JobsManager() {
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [categories, setCategories] = useState<ProfessionCategory[]>([]);
   const [jobShareCounts, setJobShareCounts] = useState<Record<string, number>>({});
+  const [jobApplyClicks, setJobApplyClicks] = useState<Record<string, number>>({});
 
   // New state for expiring jobs logic
   const [expiringLoading, setExpiringLoading] = useState(false);
@@ -1021,6 +1022,18 @@ export function JobsManager() {
           countsMap[id] = channels.size;
         });
         setJobShareCounts(countsMap);
+
+        // Fetch apply click counts for visible jobs
+        const { data: clickLogs } = await supabase
+          .from("job_apply_clicks")
+          .select("job_id")
+          .in("job_id", jobIds);
+        
+        const clickCounts: Record<string, number> = {};
+        (clickLogs || []).forEach(log => {
+          clickCounts[log.job_id] = (clickCounts[log.job_id] || 0) + 1;
+        });
+        setJobApplyClicks(clickCounts);
       }
     } catch (err: any) {
       setError(err.message);
@@ -1202,6 +1215,7 @@ export function JobsManager() {
                     <TableHead>Type</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Shared</TableHead>
+                    <TableHead>Clicks</TableHead>
                     <TableHead>Deadline</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
@@ -1209,6 +1223,7 @@ export function JobsManager() {
                 <TableBody>
                   {jobs.map((job) => {
                     const shareCount = jobShareCounts[job.id] || 0;
+                    const applyClickCount = jobApplyClicks[job.id] || 0;
                     return (
                     <TableRow key={job.id}>
                       <TableCell>
@@ -1240,6 +1255,16 @@ export function JobsManager() {
                           {shareCount >= 4 && <CheckCircle2 className="w-3 h-3 mr-1" />}
                           {shareCount}/4
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {applyClickCount > 0 ? (
+                          <Badge variant="outline" className="border-blue-500 text-blue-700 bg-blue-50">
+                            <ExternalLink className="w-3 h-3 mr-1" />
+                            {applyClickCount}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        )}
                       </TableCell>
                       <TableCell>{job.deadline ? format(new Date(job.deadline), "MMM d") : "-"}</TableCell>
                       <TableCell>

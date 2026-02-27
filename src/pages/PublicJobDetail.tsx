@@ -144,7 +144,19 @@ export default function PublicJobDetail() {
     }
   };
 
-  const handleSignUpToApply = () => {
+  const handleSignUpToApply = async () => {
+    // Track external apply click (anonymous - no talent_id)
+    if (id) {
+      try {
+        await supabase.rpc("track_job_apply_click", {
+          p_job_id: id,
+          p_talent_id: null,
+          p_source: "public_page",
+        });
+      } catch (err) {
+        console.error("Failed to track apply click", err);
+      }
+    }
     navigate(`/auth?returnTo=/app/jobs/${id}`);
   };
 

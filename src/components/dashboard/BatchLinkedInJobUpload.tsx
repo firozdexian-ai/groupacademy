@@ -320,16 +320,40 @@ export function BatchLinkedInJobUpload({
       const mapped = arr.map((j) => mapLinkedInJob(j));
       setMappedJobs(mapped);
 
-      // Dedup check
+      // Dedup check: source_url + title+company_name
       const sourceUrls = mapped.map((j) => j.source_url).filter(Boolean);
-      const { data: existing } = await supabase
+      const { data: existingByUrl } = await supabase
         .from("jobs")
         .select("source_url")
         .eq("source_platform", "linkedin")
         .in("source_url", sourceUrls);
 
-      const existingSet = new Set(existing?.map((j) => j.source_url) || []);
-      const fresh = mapped.filter((j) => !existingSet.has(j.source_url));
+      const existingUrlSet = new Set(existingByUrl?.map((j) => j.source_url) || []);
+
+      // Secondary dedup: title + company_name (case-insensitive)
+      const uniquePairs = [...new Set(mapped.map((j) => `${j.title.toLowerCase().trim()}|||${j.company_name.toLowerCase().trim()}`))];
+      const titleCompanyDupes = new Set<string>();
+      // Check in batches of 50
+      for (let i = 0; i < uniquePairs.length; i += 50) {
+        const batch = uniquePairs.slice(i, i + 50);
+        for (const pair of batch) {
+          const [title, company] = pair.split("|||");
+          const { data: match } = await supabase
+            .from("jobs")
+            .select("id")
+            .ilike("title", title)
+            .ilike("company_name", company)
+            .limit(1);
+          if (match && match.length > 0) titleCompanyDupes.add(pair);
+        }
+      }
+
+      const fresh = mapped.filter((j) => {
+        if (existingUrlSet.has(j.source_url)) return false;
+        const key = `${j.title.toLowerCase().trim()}|||${j.company_name.toLowerCase().trim()}`;
+        if (titleCompanyDupes.has(key)) return false;
+        return true;
+      });
       const dupes = mapped.length - fresh.length;
 
       setNewJobs(fresh);

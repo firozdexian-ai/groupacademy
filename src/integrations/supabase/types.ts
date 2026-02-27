@@ -2391,6 +2391,45 @@ export type Database = {
           },
         ]
       }
+      job_apply_clicks: {
+        Row: {
+          clicked_at: string
+          id: string
+          job_id: string
+          source: string
+          talent_id: string | null
+        }
+        Insert: {
+          clicked_at?: string
+          id?: string
+          job_id: string
+          source?: string
+          talent_id?: string | null
+        }
+        Update: {
+          clicked_at?: string
+          id?: string
+          job_id?: string
+          source?: string
+          talent_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_apply_clicks_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_apply_clicks_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_assessments: {
         Row: {
           ai_analysis: Json | null
@@ -4381,6 +4420,10 @@ export type Database = {
       }
       track_content_click: {
         Args: { p_content_id: string; p_source: string }
+        Returns: undefined
+      }
+      track_job_apply_click: {
+        Args: { p_job_id: string; p_source?: string; p_talent_id?: string }
         Returns: undefined
       }
       track_job_click: {
