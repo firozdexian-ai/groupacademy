@@ -81,6 +81,7 @@ export const ROUTES = {
     
     // Gigs
     gigs: '/app/gigs',
+    transactions: '/app/transactions',
   },
 
   // Admin/Dashboard routes

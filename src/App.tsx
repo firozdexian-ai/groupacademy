@@ -60,6 +60,7 @@ import MyResults from "./pages/app/MyResults";
 import MyApplications from "./pages/app/MyApplications";
 import SavedItems from "./pages/app/SavedItems";
 import Gigs from "./pages/app/Gigs";
+import Transactions from "./pages/app/Transactions";
 
 // Feature Details
 import AppJobs from "./pages/app/AppJobs";
@@ -388,6 +389,7 @@ export default function App() {
                     <Route path="profile/edit" element={<ProfileEdit />} />
                     <Route path="agents/:agentKey" element={<AgentChat />} />
                     <Route path="ai-general" element={<AIGeneral />} />
+                    <Route path="transactions" element={<Transactions />} />
 
                     {/* Study Abroad - Specific Routes First */}
                     <Route path="abroad/study" element={<StudyAbroad />} />

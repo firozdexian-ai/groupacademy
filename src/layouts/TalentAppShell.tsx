@@ -154,7 +154,7 @@ export function TalentAppShell() {
                   <ScrollArea className="flex-1">
                     <div className="py-2 space-y-0.5">
                       {[
-                        { icon: Receipt, label: "Transactions", action: () => navigate("/app/profile") },
+                        { icon: Receipt, label: "Transactions", action: () => navigate("/app/transactions") },
                         { icon: Wallet, label: "Disbursement Account", action: () => navigate("/app/profile") },
                         { icon: Bookmark, label: "Saved Jobs", action: () => navigate("/app/saved") },
                         { icon: BookOpen, label: "My Learning", action: () => navigate("/app/learning/my-courses") },
