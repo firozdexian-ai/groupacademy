@@ -1,129 +1,117 @@
 
 
-# Profile Page Redesign -- LinkedIn-Style Layout
+# Transactions Page -- Credit Ledger with Monthly Statements
 
 ## Overview
 
-Rebuild the Profile view page (`src/pages/app/Profile.tsx`) to match the wireframe. The page becomes a clean, section-by-section professional profile with inline edit/add capabilities per section, removing dashboard-style widgets that now live in the sidebar.
+Create a new `/app/transactions` page with two tabs: **Transaction History** (scrollable ledger) and **Monthly Statement** (summary view). Follows the bKash-style wireframe with wallet summary at top and detailed transaction list below.
 
-## Target Layout
+## Layout
 
 ```text
+Tab 1: Transaction History
 +---------------------------------------+
-| <-  Profile               [Settings]  |
+| <-  Transaction History    [Settings] |
 +---------------------------------------+
-| [Cover Image / Gradient Banner]       |
-|                                       |
-|  [Avatar]                             |
-|  FIROZ UDDIN AHMED                    |
-|  Headline                             |
-|  Current Position                     |
-|  Education | Location                 |
-|  Contact Info              [Edit btn] |
+| Wallet Summary Card                   |
+| Total: 250 | Earned: 90 | Free: 160  |
 +---------------------------------------+
-| Profile Completion: 72%               |
-| Suggested: Add skills, Upload CV...   |
+| Statement Request              >      |
 +---------------------------------------+
-| About                      [Edit]     |
-| "Summary text..."                     |
+| Transactions from last 90 days        |
 +---------------------------------------+
-| Experience (3)        [Add] [Edit]    |
-| [icon] Designation                    |
-|        Company - Full-Time            |
-|        Jan 2020 - Present             |
-|        Location                       |
+| [icon] Job Application       -25      |
+|        Job #xyz              Feb 25   |
+|        10:30 AM        [Details >]    |
 +---------------------------------------+
-| Education (2)         [Add] [Edit]    |
-| [icon] Degree                         |
-|        Institution                    |
-|        2016 - 2020                    |
+| [icon] AI Agent Chat         -10      |
+|        Career Coach          Feb 24   |
+|        2:15 PM         [Details >]    |
 +---------------------------------------+
-| Skills (12)           [Add] [Edit]    |
-| [badge] [badge] [badge] ...          |
+| [icon] Welcome Bonus         +250     |
+|        Sign-up reward        Feb 20   |
+|        9:00 AM          [Details >]   |
 +---------------------------------------+
-| Honors & Awards (1)  [Add] [Edit]    |
-| Award Name - Issuer - Date           |
+
+Tab 2: Monthly Statement
 +---------------------------------------+
-| Languages             [Add] [Edit]    |
-| English - Fluent                      |
-| Bangla - Native                       |
+| <-  Transaction History    [Settings] |
++---------------------------------------+
+| Wallet Summary Card                   |
++---------------------------------------+
+| [Month Picker: < February 2026 >]    |
++---------------------------------------+
+| Last update: 10:30 AM, Feb 27        |
++---------------------------------------+
+| Start Balance    |    End Balance     |
+|     500          |       250          |
++---------------------------------------+
+| Service-wise Breakdown                |
++---------------------------------------+
+| Job Application          -150         |
+| AI Agent Chat             -60         |
+| Job Share (earned)        +90         |
+| Welcome Bonus            +250         |
++---------------------------------------+
+| Net Change: +130                      |
 +---------------------------------------+
 ```
 
-## What Gets Removed
+## No Database Changes Required
 
-These elements exist on the current Profile page but are now redundant (moved to sidebar or unnecessary):
-
-1. **Credits card** (floating) -- already accessible via sidebar "Transactions"
-2. **Quick Actions 2x2 grid** (My Learning, Saved Jobs, Applications, Edit Profile) -- all in sidebar now
-3. **CV upload/status card** -- belongs on Edit page only, not the view page
-4. **Service History card** -- accessible via sidebar or dedicated page
-5. **Application History card** -- accessible via sidebar "Applications"
-6. **Sign Out button** -- already in sidebar
-
-## What Gets Added
-
-### 1. Cover Image / Background Banner
-- A gradient banner area at the top (default: brand gradient)
-- Future: allow user to upload a custom cover image (placeholder for now)
-
-### 2. Enhanced Profile Card
-- Larger, more detailed info display: Name, Headline/Profession, Current Position (from latest experience), Education (from latest education), Location (from country), Contact info (email + phone)
-- Single Edit button (pencil icon) that navigates to ProfileEdit for basic info only
-
-### 3. Settings Icon in Header
-- A gear/settings icon in the top-right of the header bar
-- For now, links to ProfileEdit (or a future Account Preferences page)
-
-### 4. Section Counts
-- Each section header shows the count: "Experience (3)", "Skills (12)", etc.
-
-### 5. Per-Section Edit and Add Buttons
-- Each section gets its own Edit (pencil) and Add (plus) buttons
-- These navigate to ProfileEdit with a hash/scroll target: `/app/profile/edit#experience`
-
-### 6. Honors and Awards Section (New)
-- New section displaying achievements/awards from `talent.achievements` (already exists in the database schema)
-- Shows: Award name, issuer/organization, date
-
-### 7. Languages Section (New)
-- New section for language proficiency
-- This will require a new field in the professionals table (`languages` jsonb array)
-- Each entry: language name + proficiency level (Native, Fluent, Intermediate, Basic)
-
-## Database Changes
-
-A single migration to add a `languages` column to the `professionals` table:
-
-```sql
-ALTER TABLE public.professionals
-ADD COLUMN IF NOT EXISTS languages jsonb DEFAULT '[]'::jsonb;
-```
+All data comes from the existing `credit_transactions` table which already has: `amount`, `service_type`, `transaction_type`, `balance_after`, `created_at`, `description`, `is_earned`.
 
 ## File Changes
 
-### `src/pages/app/Profile.tsx` (Major Rewrite)
-- Remove: Credits card, Quick Actions grid, CV status card, ServiceHistoryCard, ApplicationHistoryCard, Sign Out button
-- Restructure: Cover banner at top, enhanced profile card beneath, then vertical sections
-- Add: Honors/Awards section rendering from `talent.achievements`
-- Add: Languages section rendering from new `talent.languages` field
-- Add: Item counts on all section headers
-- Add: Per-section Edit + Add buttons (linking to ProfileEdit with hash anchors)
-- Add: Settings icon in header
+### 1. New File: `src/pages/app/Transactions.tsx`
 
-### `src/pages/app/ProfileEdit.tsx` (Minor Updates)
-- Add: Languages editor section (similar pattern to SkillsEditor)
-- Add: Honors/Awards editor section
-- Add: Scroll-to-section logic to handle hash anchors from Profile page
+The main page with two tabs:
 
-### `src/contexts/TalentContext.tsx` (Minor Update)
-- Ensure `languages` and `achievements` fields are included in the TalentProfile type and data fetching
+**Tab 1 -- History:**
+- Wallet summary card at top (reuses CreditBalance `full` variant)
+- "Statement Request" link (switches to Tab 2)
+- Fetches last 90 days of transactions from `credit_transactions` ordered by `created_at desc`
+- Each row shows: service icon (mapped from `service_type`), service label, description/source, signed amount (+/-) color-coded (green for positive, red for negative), date, time
+- "Details" expand button per row showing: balance after, reference ID, transaction type
+- Pagination or infinite scroll (load 20, then "Load more")
+
+**Tab 2 -- Monthly Statement:**
+- Month picker (previous/next arrows with month-year label)
+- "Last update" timestamp from most recent transaction in that month
+- Start Balance (balance_after of last transaction from previous month) and End Balance (balance_after of last transaction in selected month)
+- Service-wise breakdown: group transactions by `service_type`, sum amounts per type
+- Net change for the month
+
+**Service icon mapping** (reuses existing icon patterns):
+- `JOB_APPLICATION` -> Briefcase
+- `AI_AGENT_CHAT` -> Bot
+- `CAREER_ASSESSMENT` -> ClipboardCheck
+- `MOCK_INTERVIEW` -> Mic
+- `SALARY_ANALYSIS` -> DollarSign
+- `welcome_bonus` / `purchase` -> Gift / CreditCard
+- `IELTS_MOCK` -> BookOpen
+- Default -> Coins
+
+### 2. Update: `src/lib/routes.ts`
+
+Add the transactions route:
+```
+transactions: '/app/transactions',
+```
+
+### 3. Update: `src/App.tsx`
+
+Add route entry for `/app/transactions` -> `Transactions` page (lazy loaded).
+
+### 4. Update: `src/layouts/TalentAppShell.tsx`
+
+Change the sidebar "Transactions" link from `/app/profile` to `/app/transactions`.
 
 ## Technical Notes
 
-- The Edit and Add buttons per section will navigate to `/app/profile/edit#experience` (etc.), and the ProfileEdit page will use `useEffect` with `location.hash` to auto-scroll to the relevant section
-- Honors/Awards will read from the existing `achievements` jsonb column in professionals
-- Languages requires a new `languages` jsonb column (migration included above)
-- The cover image feature will be a gradient placeholder for now, with the upload capability deferred to a follow-up task
-- No changes to the bottom nav bar or sidebar -- those remain as recently redesigned
+- Transaction history query fetches from `credit_transactions` with `talent_id` filter, last 90 days default, ordered by `created_at desc`
+- Monthly statement aggregates using JS grouping (no new DB functions needed) -- group by `service_type` and sum `amount`
+- Start/End balance calculation: query first and last transaction of the month for `balance_after`
+- Color coding: positive amounts in green (`text-emerald-600`), negative in red (`text-destructive`)
+- Follows mobile-first compact design with `space-y-2` and `gap-2` patterns per existing standards
 
