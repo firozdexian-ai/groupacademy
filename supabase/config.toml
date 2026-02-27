@@ -71,3 +71,6 @@ verify_jwt = false
 
 [functions.suggest-jobs-for-talent]
 verify_jwt = false
+
+[functions.generate-job-share-caption]
+verify_jwt = false
