@@ -235,10 +235,11 @@ serve(async (req) => {
       });
     }
 
-    const { jobPostText } = await req.json();
+    const { jobPostText, rawText } = await req.json();
+    const text = jobPostText || rawText;
 
-    if (!jobPostText || jobPostText.trim().length < 50) {
-      return new Response(JSON.stringify({ error: "Please provide job post text (minimum 50 characters)" }), {
+    if (!text || text.trim().length < 20) {
+      return new Response(JSON.stringify({ error: "Please provide job post text (minimum 20 characters)" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -253,7 +254,7 @@ serve(async (req) => {
       });
     }
 
-    console.log(`Parsing job post for user ${user.id}, text length: ${jobPostText.length}`);
+    console.log(`Parsing job post for user ${user.id}, text length: ${text.length}`);
 
     const systemPrompt = `You are an expert job post parser. Extract structured information from job postings copied from social media (Facebook, LinkedIn, etc.) or websites.
 
@@ -268,7 +269,7 @@ Important parsing rules:
 
     const userPrompt = `Parse the following job post and extract structured information using the extract_job_data function:
 
-${jobPostText}`;
+${text}`;
 
     // Add timeout controller for AI call (90 seconds)
     const controller = new AbortController();
@@ -400,7 +401,7 @@ ${jobPostText}`;
     }
 
     // Match profession category
-    const professionCategoryId = matchProfessionCategory(jobPostText);
+    const professionCategoryId = matchProfessionCategory(text);
 
     console.log("Job post parsed successfully:", {
       title: parsedData.title,
