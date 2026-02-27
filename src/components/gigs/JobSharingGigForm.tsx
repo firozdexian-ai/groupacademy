@@ -71,6 +71,20 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
   const [sharedChannels, setSharedChannels] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Fetch talent's ref_code for unique share links
+  const { data: talentRefCode } = useQuery({
+    queryKey: ["talent-ref-code", talentId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("talents")
+        .select("ref_code")
+        .eq("id", talentId)
+        .single();
+      if (error) throw error;
+      return data?.ref_code as string;
+    },
+  });
+
   const { data: jobs, isLoading } = useQuery({
     queryKey: ["active-jobs-for-sharing"],
     queryFn: async () => {
@@ -97,7 +111,9 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
   }, [jobs, searchTerm, locationFilter]);
 
   const selectedJob = jobs?.find((j: any) => j.id === selectedJobId);
-  const shareUrl = selectedJob ? `https://groupacademy.lovable.app/jobs/${selectedJob.id}` : "";
+  const shareUrl = selectedJob
+    ? `https://groupacademy.lovable.app/jobs/${selectedJob.id}${talentRefCode ? `?ref=${talentRefCode}` : ""}`
+    : "";
 
   const generateCaption = async (channel: Channel) => {
     if (!selectedJob) return;
@@ -202,7 +218,7 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
         },
       });
       if (error) throw error;
-      toast.success("Share submission recorded! Credits will be awarded on approval.");
+      toast.success("Share submitted! You'll earn credits automatically once your link gets 10+ clicks.");
       onSubmitted();
     } catch (err: any) {
       toast.error(err.message || "Failed to submit");

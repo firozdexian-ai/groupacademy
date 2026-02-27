@@ -2,7 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Coins, Clock, CheckCircle2, XCircle, FileText } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Coins, Clock, CheckCircle2, XCircle, FileText, MousePointerClick } from "lucide-react";
 import { format } from "date-fns";
 
 interface MySubmissionsProps {
@@ -30,6 +31,31 @@ export function MySubmissions({ talentId }: MySubmissionsProps) {
     },
   });
 
+  // Get click counts for pending job_sharing submissions
+  const pendingJobShareSubs = submissions?.filter(
+    (s: any) => s.status === "pending" && s.gigs?.category === "job_sharing" && (s.submission_data as any)?.job_id
+  ) || [];
+
+  const { data: clickCounts } = useQuery({
+    queryKey: ["share-click-counts", talentId, pendingJobShareSubs.map((s: any) => (s.submission_data as any)?.job_id)],
+    enabled: pendingJobShareSubs.length > 0,
+    queryFn: async () => {
+      const counts: Record<string, number> = {};
+      for (const sub of pendingJobShareSubs) {
+        const jobId = (sub.submission_data as any)?.job_id;
+        if (jobId) {
+          const { count, error } = await supabase
+            .from("job_share_clicks")
+            .select("*", { count: "exact", head: true })
+            .eq("talent_id", talentId!)
+            .eq("job_id", jobId);
+          if (!error) counts[jobId] = count || 0;
+        }
+      }
+      return counts;
+    },
+  });
+
   if (isLoading) {
     return (
       <div className="space-y-3">
@@ -54,6 +80,11 @@ export function MySubmissions({ talentId }: MySubmissionsProps) {
       {submissions.map((sub: any) => {
         const config = statusConfig[sub.status as keyof typeof statusConfig] || statusConfig.pending;
         const StatusIcon = config.icon;
+        const isJobSharing = sub.gigs?.category === "job_sharing";
+        const jobId = (sub.submission_data as any)?.job_id;
+        const clicks = isJobSharing && jobId && clickCounts ? (clickCounts[jobId] || 0) : null;
+        const CLICK_THRESHOLD = 10;
+
         return (
           <div key={sub.id} className="bg-card rounded-xl p-4 border border-border shadow-sm">
             <div className="flex items-center justify-between">
@@ -76,6 +107,23 @@ export function MySubmissions({ talentId }: MySubmissionsProps) {
                 </Badge>
               </div>
             </div>
+
+            {/* Click progress for pending job sharing submissions */}
+            {isJobSharing && sub.status === "pending" && clicks !== null && (
+              <div className="mt-2.5 space-y-1">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground flex items-center gap-1">
+                    <MousePointerClick className="h-3 w-3" />
+                    {clicks}/{CLICK_THRESHOLD} clicks
+                  </span>
+                  <span className="text-muted-foreground">
+                    {clicks >= CLICK_THRESHOLD ? "Auto-approving..." : `${CLICK_THRESHOLD - clicks} more needed`}
+                  </span>
+                </div>
+                <Progress value={Math.min((clicks / CLICK_THRESHOLD) * 100, 100)} className="h-1.5" />
+              </div>
+            )}
+
             {sub.admin_notes && (
               <p className="text-xs text-muted-foreground mt-2 bg-muted/50 rounded p-2 italic">
                 {sub.admin_notes}

@@ -2503,6 +2503,48 @@ export type Database = {
           },
         ]
       }
+      job_share_clicks: {
+        Row: {
+          clicked_at: string
+          id: string
+          ip_hash: string | null
+          job_id: string
+          ref_code: string
+          talent_id: string
+        }
+        Insert: {
+          clicked_at?: string
+          id?: string
+          ip_hash?: string | null
+          job_id: string
+          ref_code: string
+          talent_id: string
+        }
+        Update: {
+          clicked_at?: string
+          id?: string
+          ip_hash?: string | null
+          job_id?: string
+          ref_code?: string
+          talent_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_share_clicks_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_share_clicks_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       job_share_logs: {
         Row: {
           channel: string
@@ -4227,6 +4269,7 @@ export type Database = {
           profession_category_id: string | null
           profile_photo_url: string | null
           projects: Json | null
+          ref_code: string | null
           services_used: Json | null
           skills: Json | null
           student_id: string | null
@@ -4264,6 +4307,7 @@ export type Database = {
           profession_category_id?: string | null
           profile_photo_url?: string | null
           projects?: Json | null
+          ref_code?: string | null
           services_used?: Json | null
           skills?: Json | null
           student_id?: string | null
@@ -4301,6 +4345,7 @@ export type Database = {
           profession_category_id?: string | null
           profile_photo_url?: string | null
           projects?: Json | null
+          ref_code?: string | null
           services_used?: Json | null
           skills?: Json | null
           student_id?: string | null
@@ -4433,6 +4478,10 @@ export type Database = {
       track_service_click: {
         Args: { p_slug: string; p_source: string }
         Returns: undefined
+      }
+      track_shared_job_click: {
+        Args: { p_job_id: string; p_ref_code: string }
+        Returns: Json
       }
     }
     Enums: {

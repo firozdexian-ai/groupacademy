@@ -70,6 +70,7 @@ export default function PublicJobDetail() {
     if (id) {
       loadJob();
       trackSource();
+      trackRefClick();
     }
   }, [id]);
 
@@ -77,18 +78,30 @@ export default function PublicJobDetail() {
     const source = searchParams.get("source");
     if (source && id) {
       try {
-        // Fire and forget tracking
         await supabase.rpc("track_job_click", {
           p_job_id: id,
           p_source: source,
         });
 
-        // Optional: Clean up URL
         const newParams = new URLSearchParams(searchParams);
         newParams.delete("source");
         window.history.replaceState({}, "", `${window.location.pathname}?${newParams.toString()}`);
       } catch (err) {
         console.error("Failed to track job click", err);
+      }
+    }
+  };
+
+  const trackRefClick = async () => {
+    const ref = searchParams.get("ref");
+    if (ref && id) {
+      try {
+        await supabase.rpc("track_shared_job_click", {
+          p_job_id: id,
+          p_ref_code: ref,
+        });
+      } catch (err) {
+        console.error("Failed to track shared job click", err);
       }
     }
   };
