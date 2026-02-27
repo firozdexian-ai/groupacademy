@@ -1,26 +1,49 @@
 
 
-# Fix Click Tracking and Notification Query Issues
+# Fix and Improve the Job Posting Gig
 
-## Problems Found
+## Root Cause of the Error
 
-### 1. Clicks not counted on published site
-The click tracking code is working correctly (confirmed by testing in the preview). The issue is that the **published version** of the app may not have the latest code deployed. When you opened the link on `groupacademy.lovable.app`, it was running an older version that didn't include the `trackRefClick()` function. You need to **publish the latest version** for the tracking to work on the live site.
-
-### 2. Notification badge query uses wrong column name
-In `src/layouts/TalentAppShell.tsx` line 64, the unread notification count query uses `.eq("user_id", talent.id)` but the `notifications` table has a `talent_id` column, not `user_id`. This causes a 400 error on every page load, meaning the notification badge never shows unread counts.
+The frontend sends `{ rawText: jobText }` but the edge function reads `{ jobPostText }` -- a **field name mismatch**. This means the edge function always receives `undefined` for the job text and returns a 400 error ("Please provide job post text").
 
 ## Changes
 
-### Fix 1: `src/layouts/TalentAppShell.tsx`
-Change `.eq("user_id", talent.id)` to `.eq("talent_id", talent.id)` in the unread notification count query. This fixes the notification badge so seekers can see when they have new notifications (including the auto-approval reward notifications).
+### 1. Fix the field name mismatch (edge function)
+**File:** `supabase/functions/parse-job-post/index.ts`
 
-### Fix 2: Publish reminder
-After the code fix, the latest version needs to be published so the click tracking and notifications work on the live `groupacademy.lovable.app` domain.
+Change line 238 to accept both field names for backward compatibility:
+```
+const { jobPostText, rawText } = await req.json();
+const text = jobPostText || rawText;
+```
+Then use `text` for the rest of the function. This ensures both the gig form and any other callers (like the admin dashboard) continue to work.
 
-## Files Changed
+### 2. Add ability to edit parsed fields before submitting
+**File:** `src/components/gigs/JobPostingGigForm.tsx`
+
+Currently the parsed preview is read-only. If the AI parses something incorrectly, the seeker is stuck. Add inline editing:
+- Make the Title, Company, Location, and Job Type fields editable `Input` fields instead of plain text
+- Pre-fill them from the parsed data
+- Allow the seeker to correct mistakes before submitting
+- Add a "Re-parse" button so they can try again with edited text
+
+### 3. Better error handling and UX feedback
+**File:** `src/components/gigs/JobPostingGigForm.tsx`
+
+- Show a clear error state when parsing fails (not just a toast that disappears)
+- Add a character count indicator near the textarea so seekers know the 20-char minimum
+- Disable the submit button if required parsed fields (title, company) are empty/dashes
+
+### 4. Show job posting details in MySubmissions
+**File:** `src/components/gigs/MySubmissions.tsx`
+
+For `job_posting` category submissions (not just `job_sharing`), display the parsed job title and company from `submission_data.parsed_job` so seekers can identify which job they submitted.
+
+## Technical Details
 
 | File | Change |
 |------|--------|
-| `src/layouts/TalentAppShell.tsx` | Fix `user_id` to `talent_id` in notification count query |
+| `supabase/functions/parse-job-post/index.ts` | Accept both `rawText` and `jobPostText` field names |
+| `src/components/gigs/JobPostingGigForm.tsx` | Editable parsed fields, re-parse button, better error states, char count |
+| `src/components/gigs/MySubmissions.tsx` | Show parsed job title/company for `job_posting` submissions |
 
