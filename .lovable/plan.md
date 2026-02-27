@@ -1,78 +1,86 @@
 
 
-# Upgrade Job Sharing Gig to Match Admin-Level Sharing Experience
+# Auto-Approve Job Sharing Gigs via Unique Share Links and Click Tracking
 
-## Problem
-The current seeker job sharing flow has three major issues:
-1. **No AI captions** -- uses a basic static template ("Job Title at Company, Apply now: link") that looks unprofessional and gets ignored on social media
-2. **No copy-to-clipboard for captions** -- LinkedIn and Facebook share buttons just open a URL sharer that doesn't include the caption text, so seekers can't paste a polished message
-3. **Only 20 jobs, no search/filter** -- with 2,000+ active jobs, seekers can't find the ones they want to share
-4. **Cramped UI** -- tiny job cards in a small scrollable area
+## How It Works (Summary)
 
-## Solution
-Bring the admin-level AI caption experience into the seeker gig form, plus add search/filter to handle 2,000+ jobs.
+Each seeker gets a **unique share link** per job (e.g., `groupacademy.lovable.app/jobs/abc123?ref=talent456`). When anyone clicks that link, the click is tracked and attributed to the seeker. Once the link reaches **10+ clicks**, the gig submission is **automatically approved** and the seeker earns **credits** -- no manual review needed.
+
+## Current State
+
+- Share URL is generic: `/jobs/{jobId}` with no per-user tracking
+- `job_analytics` table tracks clicks by `source` (e.g., "facebook", "linkedin") but has no talent attribution
+- `track_job_click` RPC inserts into `job_analytics` with `(job_id, source)` only
+- Gig submissions require manual admin approval via `award_gig_credits` RPC
 
 ## Changes
 
-### 1. Redesign `src/components/gigs/JobSharingGigForm.tsx` (major rewrite)
+### 1. Database: Add talent-attributed click tracking
 
-**Search and Filter (top section):**
-- Add a search input filtering by job title or company name
-- Add horizontal filter chips: "All", "Bangladesh", "Remote", "International" for quick location filtering
-- Fetch up to 100 jobs sorted by featured first, then newest
-- Client-side filtering for instant results
+**New table: `job_share_clicks`**
+- `id` (UUID, PK)
+- `job_id` (UUID, FK to jobs)
+- `talent_id` (UUID, FK to talents) -- who shared it
+- `ref_code` (text) -- the unique ref param (talent's short ID or hash)
+- `clicked_at` (timestamptz, default now)
+- `ip_hash` (text, nullable) -- optional dedup per IP
 
-**Job Picker (middle section):**
-- Taller scrollable list (max-h-64 instead of max-h-48)
-- Each card shows company name bold, title below, location and type badges
-- "NEW" badge for jobs posted in last 48 hours
-- Clear selected state with checkmark and highlighted border
+This table is separate from `job_analytics` because it tracks clicks attributed to a specific seeker's share link, while `job_analytics` tracks general traffic sources.
 
-**AI Caption + Share (bottom section, after selecting a job):**
-- Channel tabs (LinkedIn, Facebook, WhatsApp, Telegram) -- same layout as admin panel
-- On tab click, call the existing `generate-job-share-caption` edge function to get an AI-generated caption for that channel
-- Show caption in a read-only text area with a loading skeleton while generating
-- **"Copy Caption" button** -- copies the AI caption to clipboard so seekers can paste it into LinkedIn/Facebook posts
-- **"Share" button** -- opens the social platform share URL (for WhatsApp/Telegram this includes the caption; for LinkedIn/Facebook it opens the URL sharer)
-- "Regenerate" button to get a fresh caption variation
-- After sharing on at least one channel, show "Submit for Review" button
+**New RPC: `track_shared_job_click(p_job_id, p_ref_code)`**
+- SECURITY DEFINER, public access (anonymous visitors click these links)
+- Looks up the talent_id from the ref_code
+- Inserts a click record into `job_share_clicks`
+- Checks if total clicks for this (talent_id, job_id) pair >= 10
+- If threshold met, finds the matching pending `gig_submission` and auto-approves it by calling the credit-awarding logic inline (same as `award_gig_credits` but system-triggered)
 
-**Share logging:**
-- Log to `gig_share_logs` table (same as current) when a share action is taken, so admin can verify
+**Add `ref_code` column to `talents` table**
+- A short, unique, URL-safe identifier per talent (e.g., first 8 chars of their UUID)
+- Generated via a trigger on insert, or backfilled for existing talents
 
-### 2. Widen dialog in `src/components/gigs/GigSubmissionForm.tsx`
+### 2. Frontend: Unique share links
 
-- Change `max-w-md` to `max-w-lg` specifically for `job_sharing` category to give room for the caption area and filters
+**File: `src/components/gigs/JobSharingGigForm.tsx`**
+- Change share URL from `/jobs/{jobId}` to `/jobs/{jobId}?ref={talentRefCode}`
+- The `ref` param makes every seeker's link unique and trackable
+- Fetch the talent's `ref_code` alongside the form data
 
-## Technical Details
+### 3. Frontend: Track clicks on public job page
 
-The existing `generate-job-share-caption` edge function already handles all 4 channels and returns polished, multi-line captions. No backend changes needed -- we just need to call it from the seeker form the same way the admin panel does.
+**File: `src/pages/PublicJobDetail.tsx`**
+- When a `ref` query param is present, call the new `track_shared_job_click` RPC
+- Keep existing `source` tracking as-is (they serve different purposes)
 
-```
-Query (job fetch):
-  .from("jobs")
-  .select("id, title, company_name, location, job_type, created_at, is_featured, requirements")
-  .eq("is_active", true)
-  .gte("deadline", now)
-  .order("is_featured", { ascending: false })
-  .order("created_at", { ascending: false })
-  .limit(100)
+### 4. Auto-approval logic (inside the new RPC)
 
-AI caption call (per channel):
-  supabase.functions.invoke("generate-job-share-caption", {
-    body: { title, company, location, job_type, requirements, apply_link, channel }
-  })
+When the click count for a (talent_id, job_id) pair crosses 10:
+1. Find the pending `gig_submission` where `submission_data->>'job_id'` matches and `talent_id` matches
+2. Update status to `approved`, set `credits_awarded` to the gig's `credit_reward`
+3. Credit the talent's balance and earned_balance in `talent_credits`
+4. Record in `credit_transactions` with `transaction_type = 'gig_reward'`
+5. Increment the gig's `total_completed` counter
 
-Client-side location filter:
-  "bangladesh" -> location includes "bangladesh" or "dhaka"
-  "remote" -> location includes "remote"
-  "international" -> neither of the above
-```
+This all happens atomically inside the RPC -- no cron job or edge function needed.
+
+### 5. Frontend: Show click progress to seeker
+
+**File: `src/components/gigs/MySubmissions.tsx`**
+- For job sharing submissions that are still pending, show a progress indicator: "7/10 clicks"
+- Query `job_share_clicks` count for that talent + job combo
+- Once auto-approved, it shows "Approved" as usual
 
 ## Files Changed
 
 | File | Change |
 |------|--------|
-| `src/components/gigs/JobSharingGigForm.tsx` | Major rewrite: add search/filter, AI captions with copy, channel tabs, regenerate |
-| `src/components/gigs/GigSubmissionForm.tsx` | Widen dialog for job_sharing category |
+| Database migration | Create `job_share_clicks` table, add `ref_code` to talents, create `track_shared_job_click` RPC with auto-approve logic |
+| `src/components/gigs/JobSharingGigForm.tsx` | Use `/jobs/{jobId}?ref={refCode}` as the share URL |
+| `src/pages/PublicJobDetail.tsx` | Detect `ref` param and call `track_shared_job_click` RPC |
+| `src/components/gigs/MySubmissions.tsx` | Show click progress (e.g., "7/10 clicks") for pending job sharing submissions |
+
+## Security Considerations
+
+- `job_share_clicks` has RLS: anon can INSERT (for tracking), authenticated users can SELECT their own clicks
+- The auto-approve RPC is SECURITY DEFINER so it can update credits/submissions regardless of caller
+- Optional IP-hash dedup prevents a single person from spam-clicking to inflate counts
 
