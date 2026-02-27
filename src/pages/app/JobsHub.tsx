@@ -15,6 +15,8 @@ import {
   Eye,
   AlertCircle,
   RefreshCw,
+  Loader2,
+  Brain,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTalent } from "@/hooks/useTalent";
@@ -27,10 +29,26 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { JobPreferencesSheet } from "@/components/jobs/JobPreferencesSheet";
-import { JobCard, type JobCardData } from "@/components/jobs/JobCard";
+import { JobCard, type JobCardData, type JobMatchInfo } from "@/components/jobs/JobCard";
 import { JOB_COLLECTIONS, APPLICATION_STATUS_CONFIG } from "@/lib/constants/jobTypes";
 import { toast } from "sonner";
 import { SectionHeader } from "@/components/ui/section-header";
+
+interface JobPreferences {
+  preferred_job_types?: string[];
+  preferred_locations?: string[];
+  salary_min?: number | null;
+  salary_max?: number | null;
+  industries?: string[];
+}
+
+interface AISuggestion {
+  job_id: string;
+  match_score: number;
+  reason: string;
+  job: JobCardData;
+}
+
 
 interface JobPreferences {
   preferred_job_types?: string[];
@@ -71,6 +89,7 @@ export default function JobsHub() {
   const [personalizedLoading, setPersonalizedLoading] = useState(false);
   const [preferencesOpen, setPreferencesOpen] = useState(false);
   const [loadingAI, setLoadingAI] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState<AISuggestion[]>([]);
 
   // Count saved jobs from hook
   const savedJobsCount = savedItems.filter((item) => item.item_type === "job").length;
@@ -215,10 +234,23 @@ export default function JobsHub() {
         toast.error("Failed to process credits");
         return;
       }
-      navigate("/app/jobs/all?ai=true");
+
+      const { data, error: fnError } = await supabase.functions.invoke("suggest-jobs-for-talent");
+
+      if (fnError) throw fnError;
+      if (data?.error) throw new Error(data.error);
+
+      const suggestions = data?.suggestions || [];
+      setAiSuggestions(suggestions);
+
+      if (suggestions.length === 0) {
+        toast.info("No strong matches found. Try updating your profile with more skills.");
+      } else {
+        toast.success(`Found ${suggestions.length} recommended jobs for you!`);
+      }
     } catch (error) {
       console.error("Error getting AI recommendations:", error);
-      toast.error("Failed to get AI recommendations");
+      toast.error("Failed to get AI recommendations. Please try again.");
     } finally {
       setLoadingAI(false);
     }
@@ -387,10 +419,14 @@ export default function JobsHub() {
         )}
 
         {/* AI Recommendations Button */}
-        {topPicks.length > 0 && (
+        {topPicks.length > 0 && aiSuggestions.length === 0 && (
           <Button variant="outline" className="w-full mt-2 gap-2 h-11" onClick={handleShowAllAI} disabled={loadingAI}>
-            <Sparkles className="h-4 w-4 text-purple-500" />
-            Get AI Recommendations
+            {loadingAI ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4 text-primary" />
+            )}
+            {loadingAI ? "Analyzing your profile..." : "Get AI Recommendations"}
             <Badge variant="secondary" className="gap-1 ml-auto">
               <Coins className="h-3 w-3 text-amber-500" />
               10 credits
@@ -398,6 +434,54 @@ export default function JobsHub() {
           </Button>
         )}
       </section>
+
+      {/* AI Loading Skeleton */}
+      {loadingAI && (
+        <section className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Brain className="h-5 w-5 text-primary animate-pulse" />
+            <h2 className="font-semibold text-base">Finding your best matches...</h2>
+          </div>
+          {[1, 2, 3].map((i) => (
+            <Card key={i}>
+              <CardContent className="p-3">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="h-10 w-10 rounded-lg" />
+                  <div className="flex-1 space-y-1.5">
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-3 w-1/2" />
+                    <Skeleton className="h-3 w-2/3" />
+                  </div>
+                  <Skeleton className="h-5 w-20 rounded-full" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </section>
+      )}
+
+      {/* AI Recommended Jobs */}
+      {aiSuggestions.length > 0 && (
+        <section>
+          <SectionHeader icon={Brain} title="AI Recommended for You" />
+          <div className="space-y-2">
+            {aiSuggestions.map((suggestion, index) => (
+              <div
+                key={suggestion.job_id}
+                className="animate-in fade-in slide-in-from-bottom-2"
+                style={{ animationDelay: `${index * 50}ms` }}
+              >
+                <JobCard
+                  job={suggestion.job}
+                  variant="compact"
+                  matchInfo={{ match_score: suggestion.match_score, reason: suggestion.reason }}
+                  onClick={() => navigate(`/app/jobs/${suggestion.job_id}`)}
+                />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Browse by Type - Horizontal Pills */}
       <section>

@@ -20,6 +20,11 @@ export interface JobCardData {
   salary_range_max?: number | null;
 }
 
+export interface JobMatchInfo {
+  match_score: number;
+  reason: string;
+}
+
 interface JobCardProps {
   job: JobCardData;
   variant?: "default" | "compact" | "featured";
@@ -27,6 +32,7 @@ interface JobCardProps {
   onSaveToggle?: () => void;
   onClick: () => void;
   className?: string;
+  matchInfo?: JobMatchInfo;
 }
 
 export function JobCard({ 
@@ -35,7 +41,8 @@ export function JobCard({
   isSaved = false, 
   onSaveToggle, 
   onClick,
-  className 
+  className,
+  matchInfo,
 }: JobCardProps) {
   const isCompact = variant === "compact";
   const showUrgency = isDeadlineUrgent(job.deadline || null);
@@ -86,10 +93,18 @@ export function JobCard({
                 {job.title}
               </h3>
               <p className="text-xs text-muted-foreground line-clamp-1">{job.company_name}</p>
+              {matchInfo && (
+                <p className="text-[10px] text-primary/80 line-clamp-1 mt-0.5">{matchInfo.reason}</p>
+              )}
             </div>
 
             {/* Badges */}
             <div className="flex items-center gap-2 shrink-0">
+              {matchInfo && (
+                <Badge className="text-[10px] h-5 px-1.5 bg-primary/10 text-primary border-primary/20">
+                  {matchInfo.match_score}% match
+                </Badge>
+              )}
               {showUrgency && (
                 <Badge variant="destructive" className="text-[10px] h-5 px-1.5 gap-0.5">
                   <AlertTriangle className="w-3 h-3" />
