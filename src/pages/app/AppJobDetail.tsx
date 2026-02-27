@@ -219,8 +219,18 @@ export default function AppJobDetail() {
     }
   };
 
-  const handleApply = () => {
+  const handleApply = async () => {
     if (job?.application_type === "link" && job.application_url) {
+      // Track external apply click before opening
+      try {
+        await supabase.rpc("track_job_apply_click", {
+          p_job_id: job.id,
+          p_talent_id: talent?.id || null,
+          p_source: "internal_app",
+        });
+      } catch (err) {
+        console.error("Failed to track apply click", err);
+      }
       // Validate URL before opening to handle misconfigured jobs gracefully
       try {
         new URL(job.application_url);

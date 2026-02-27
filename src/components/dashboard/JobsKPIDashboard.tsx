@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Briefcase, Target, Users, FileCheck, TrendingUp, Calendar, 
-  Building2, Edit, Save, X, ChevronRight, Loader2, Signal
+  Building2, Edit, Save, X, ChevronRight, Loader2, Signal, MousePointerClick
 } from "lucide-react";
 import { toast } from "sonner";
 import { format, startOfMonth, endOfMonth, differenceInDays, eachDayOfInterval, isToday } from "date-fns";
@@ -33,6 +33,7 @@ interface KPIData {
   }[];
   jobsExpiringThisWeek: number;
   liveJobs: number;
+  totalApplyClicks: number;
 }
 
 interface KPITarget {
@@ -170,6 +171,14 @@ export function JobsKPIDashboard() {
         .select("id", { count: "exact", head: true })
         .eq("is_active", true);
 
+      // Total apply clicks (last 30 days)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const { count: applyClicksCount } = await supabase
+        .from("job_apply_clicks")
+        .select("id", { count: "exact", head: true })
+        .gte("clicked_at", thirtyDaysAgo.toISOString());
+
       setKpiData({
         jobsThisMonth: jobs.length,
         jobsToday,
@@ -181,7 +190,8 @@ export function JobsKPIDashboard() {
         dailyJobsData,
         recentJobs,
         jobsExpiringThisWeek: expiringJobs?.length || 0,
-        liveJobs: liveJobsCount || 0
+        liveJobs: liveJobsCount || 0,
+        totalApplyClicks: applyClicksCount || 0,
       });
     } catch (error) {
       console.error("Error loading KPI data:", error);
@@ -345,7 +355,7 @@ export function JobsKPIDashboard() {
       </Card>
 
       {/* Quick Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4">
         <Card className="border-green-500/30 bg-green-500/5">
           <CardContent className="pt-4">
             <div className="flex items-center gap-3">
@@ -425,6 +435,20 @@ export function JobsKPIDashboard() {
               <div>
                 <p className="text-2xl font-bold">{kpiData.jobsExpiringThisWeek}</p>
                 <p className="text-xs text-muted-foreground">Expiring Soon</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-cyan-500/30 bg-cyan-500/5">
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-cyan-500/10 rounded-lg">
+                <MousePointerClick className="w-5 h-5 text-cyan-500" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-cyan-600">{kpiData.totalApplyClicks}</p>
+                <p className="text-xs text-muted-foreground">Apply Clicks (30d)</p>
               </div>
             </div>
           </CardContent>
