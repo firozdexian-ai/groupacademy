@@ -279,6 +279,7 @@ export function BatchLinkedInJobUpload({
   onComplete: () => void;
 }) {
   const [step, setStep] = useState<Step>("upload");
+  const [isProcessingFile, setIsProcessingFile] = useState(false);
   const [rawJobs, setRawJobs] = useState<LinkedInJob[]>([]);
   const [mappedJobs, setMappedJobs] = useState<(MappedJob & { applyVia: ApplyVia })[]>([]);
   const [newJobs, setNewJobs] = useState<(MappedJob & { applyVia: ApplyVia })[]>([]);
@@ -294,6 +295,7 @@ export function BatchLinkedInJobUpload({
 
   const reset = () => {
     setStep("upload");
+    setIsProcessingFile(false);
     setRawJobs([]);
     setMappedJobs([]);
     setNewJobs([]);
@@ -310,6 +312,7 @@ export function BatchLinkedInJobUpload({
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setIsProcessingFile(true);
     try {
       const text = await file.text();
       const raw = JSON.parse(text);
@@ -320,7 +323,7 @@ export function BatchLinkedInJobUpload({
       const mapped = arr.map((j) => mapLinkedInJob(j));
       setMappedJobs(mapped);
 
-      // Dedup check: source_url + title+company_name
+      // Dedup check: source_url
       const sourceUrls = mapped.map((j) => j.source_url).filter(Boolean);
       const { data: existingByUrl } = await supabase
         .from("jobs")
@@ -330,28 +333,25 @@ export function BatchLinkedInJobUpload({
 
       const existingUrlSet = new Set(existingByUrl?.map((j) => j.source_url) || []);
 
-      // Secondary dedup: title + company_name (case-insensitive)
-      const uniquePairs = [...new Set(mapped.map((j) => `${j.title.toLowerCase().trim()}|||${j.company_name.toLowerCase().trim()}`))];
-      const titleCompanyDupes = new Set<string>();
-      // Check in batches of 50
-      for (let i = 0; i < uniquePairs.length; i += 50) {
-        const batch = uniquePairs.slice(i, i + 50);
-        for (const pair of batch) {
-          const [title, company] = pair.split("|||");
-          const { data: match } = await supabase
-            .from("jobs")
-            .select("id")
-            .ilike("title", title)
-            .ilike("company_name", company)
-            .limit(1);
-          if (match && match.length > 0) titleCompanyDupes.add(pair);
-        }
+      // Secondary dedup: bulk fetch existing jobs by company names, compare in-memory
+      const companyNamesForDedup = [...new Set(mapped.map(j => j.company_name))];
+      const existingJobPairs = new Set<string>();
+
+      for (let i = 0; i < companyNamesForDedup.length; i += 20) {
+        const batch = companyNamesForDedup.slice(i, i + 20);
+        const { data: existingJobs } = await supabase
+          .from("jobs")
+          .select("title, company_name")
+          .in("company_name", batch);
+        existingJobs?.forEach(j => {
+          existingJobPairs.add(`${j.title.toLowerCase().trim()}|||${j.company_name.toLowerCase().trim()}`);
+        });
       }
 
       const fresh = mapped.filter((j) => {
         if (existingUrlSet.has(j.source_url)) return false;
         const key = `${j.title.toLowerCase().trim()}|||${j.company_name.toLowerCase().trim()}`;
-        if (titleCompanyDupes.has(key)) return false;
+        if (existingJobPairs.has(key)) return false;
         return true;
       });
       const dupes = mapped.length - fresh.length;
@@ -387,7 +387,9 @@ export function BatchLinkedInJobUpload({
       setStep("preview");
       toast.success(`Parsed ${mapped.length} jobs from ${uniqueNames.size} companies`);
     } catch (err: any) {
-      toast.error("Invalid JSON file: " + (err.message || "Parse error"));
+      toast.error("Failed to process file: " + (err.message || "Unknown error"));
+    } finally {
+      setIsProcessingFile(false);
     }
     if (fileRef.current) fileRef.current.value = "";
   };
@@ -476,17 +478,26 @@ export function BatchLinkedInJobUpload({
         {/* Step: Upload */}
         {step === "upload" && (
           <div className="flex flex-col items-center justify-center py-12 gap-4">
-            <div className="w-20 h-20 rounded-2xl bg-blue-50 flex items-center justify-center">
-              <FileJson className="w-10 h-10 text-blue-600" />
-            </div>
-            <p className="text-sm text-muted-foreground text-center max-w-sm">
-              Upload the <code className="bg-muted px-1 rounded">.json</code> file exported from your LinkedIn scraper.
-              Companies will be auto-created and linked.
-            </p>
-            <input ref={fileRef} type="file" accept=".json" className="hidden" onChange={handleFileUpload} />
-            <Button onClick={() => fileRef.current?.click()} className="gap-2">
-              <Upload className="w-4 h-4" /> Select JSON File
-            </Button>
+            {isProcessingFile ? (
+              <>
+                <Loader2 className="w-10 h-10 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">Processing file & checking for duplicates…</p>
+              </>
+            ) : (
+              <>
+                <div className="w-20 h-20 rounded-2xl bg-blue-50 flex items-center justify-center">
+                  <FileJson className="w-10 h-10 text-blue-600" />
+                </div>
+                <p className="text-sm text-muted-foreground text-center max-w-sm">
+                  Upload the <code className="bg-muted px-1 rounded">.json</code> file exported from your LinkedIn scraper.
+                  Companies will be auto-created and linked.
+                </p>
+                <input ref={fileRef} type="file" accept=".json" className="hidden" onChange={handleFileUpload} />
+                <Button onClick={() => fileRef.current?.click()} className="gap-2">
+                  <Upload className="w-4 h-4" /> Select JSON File
+                </Button>
+              </>
+            )}
           </div>
         )}
 
