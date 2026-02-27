@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { MoreHorizontal, Pin, ExternalLink, Play } from 'lucide-react';
+import { Pin, ExternalLink, Play } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { AspectRatio } from '@/components/ui/aspect-ratio';
 import { PostAuthor } from './PostAuthor';
 import { ReactionBar, ReactionType } from './ReactionBar';
@@ -53,6 +52,8 @@ export function PostCard({ post }: PostCardProps) {
     ? post.textContent.slice(0, 280) + '...' 
     : post.textContent;
 
+  const totalReactions = Object.values(reactions).reduce((sum, count) => sum + count, 0);
+
   const getContentTypeBadge = () => {
     switch (post.contentType) {
       case 'tip':
@@ -86,18 +87,20 @@ export function PostCard({ post }: PostCardProps) {
         </div>
       )}
 
-      <CardContent className="p-4">
-        {/* Author Section */}
-        <div className="flex items-start justify-between mb-3">
+      <CardContent className="p-3">
+        {/* Author Section -- reaction count moved to top-right (replaces 3-dot menu) */}
+        <div className="flex items-start justify-between mb-2">
           <PostAuthor
             name={post.authorName}
             title={post.authorTitle}
             avatar={post.authorAvatar}
             createdAt={post.createdAt}
           />
-          <Button variant="ghost" size="icon" className="h-8 w-8 -mt-1 -mr-2">
-            <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-          </Button>
+          {totalReactions > 0 && (
+            <span className="text-[11px] text-muted-foreground whitespace-nowrap mt-1">
+              {totalReactions} reaction{totalReactions !== 1 ? 's' : ''}
+            </span>
+          )}
         </div>
 
         {/* Type Badge */}
@@ -108,7 +111,7 @@ export function PostCard({ post }: PostCardProps) {
         )}
 
         {/* Text Content */}
-        <div className="mb-3">
+        <div className="mb-2">
           <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
             {displayText}
           </p>
@@ -124,7 +127,7 @@ export function PostCard({ post }: PostCardProps) {
 
         {/* Tags */}
         {post.tags && post.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mb-3">
+          <div className="flex flex-wrap gap-1.5 mb-2">
             {post.tags.map((tag) => (
               <span key={tag} className="text-xs text-primary hover:underline cursor-pointer">
                 #{tag}
@@ -135,13 +138,9 @@ export function PostCard({ post }: PostCardProps) {
 
         {/* Media */}
         {post.mediaUrl && post.contentType !== 'poll' && (
-          <div className="mb-3 -mx-4">
+          <div className="mb-2 -mx-3">
             <AspectRatio ratio={16 / 9} className="bg-muted overflow-hidden">
-              <img
-                src={post.mediaUrl}
-                alt=""
-                className="w-full h-full object-cover"
-              />
+              <img src={post.mediaUrl} alt="" className="w-full h-full object-cover" />
               {isVideo && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/30">
                   <div className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
@@ -155,7 +154,7 @@ export function PostCard({ post }: PostCardProps) {
 
         {/* Poll */}
         {post.contentType === 'poll' && pollOptions.length > 0 && (
-          <div className="mb-3">
+          <div className="mb-2">
             <PollWidget
               options={pollOptions}
               results={results}
@@ -175,21 +174,15 @@ export function PostCard({ post }: PostCardProps) {
             href={post.linkUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="block mb-3 border rounded-lg overflow-hidden hover:bg-muted/50 transition-colors"
+            className="block mb-2 border rounded-lg overflow-hidden hover:bg-muted/50 transition-colors"
           >
             {post.linkPreview.image && (
-              <img
-                src={post.linkPreview.image}
-                alt=""
-                className="w-full h-32 object-cover"
-              />
+              <img src={post.linkPreview.image} alt="" className="w-full h-32 object-cover" />
             )}
             <div className="p-3">
               <h4 className="text-sm font-medium line-clamp-2">{post.linkPreview.title}</h4>
               {post.linkPreview.description && (
-                <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
-                  {post.linkPreview.description}
-                </p>
+                <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{post.linkPreview.description}</p>
               )}
               <div className="flex items-center gap-1 text-xs text-muted-foreground mt-2">
                 <ExternalLink className="h-3 w-3" />
@@ -199,23 +192,20 @@ export function PostCard({ post }: PostCardProps) {
           </a>
         )}
 
-        {/* Reactions & Actions */}
-        <div className="space-y-2">
+        {/* Reactions + Share -- ALL IN ONE ROW */}
+        <div className="flex items-center gap-1 border-t border-border/50 pt-2">
           <ReactionBar
             reactions={reactions}
             userReaction={userReaction}
             onReact={handleReact}
             disabled={reactionsLoading}
+            inline
           />
-          
-          {/* Share Button */}
-          <div className="flex border-t border-border/50 pt-2">
-            <ShareSheet
-              title={post.textContent.slice(0, 100)}
-              url={`/app/feed?post=${post.id}`}
-              description={post.textContent.slice(0, 200)}
-            />
-          </div>
+          <ShareSheet
+            title={post.textContent.slice(0, 100)}
+            url={`/app/feed?post=${post.id}`}
+            description={post.textContent.slice(0, 200)}
+          />
         </div>
       </CardContent>
     </Card>

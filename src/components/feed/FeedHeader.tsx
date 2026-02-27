@@ -1,11 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Coins } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useCredits } from '@/hooks/useCredits';
 
 interface FeedHeaderProps {
   talentName?: string;
   talentPhoto?: string;
+  talentProfession?: string;
   onRefresh: () => void;
   isRefreshing: boolean;
 }
@@ -13,10 +17,12 @@ interface FeedHeaderProps {
 export function FeedHeader({
   talentName,
   talentPhoto,
+  talentProfession,
   onRefresh,
   isRefreshing
 }: FeedHeaderProps) {
   const navigate = useNavigate();
+  const { balance } = useCredits();
   const firstName = talentName?.split(' ')[0] || 'there';
   const initials = talentName?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'U';
   const [heroBannerUrl, setHeroBannerUrl] = useState<string | null>(null);
@@ -38,10 +44,10 @@ export function FeedHeader({
   }, []);
 
   return (
-    <div className="relative overflow-hidden rounded-2xl shadow-md mb-4 p-4 md:p-8 group">
+    <div className="relative overflow-hidden rounded-xl shadow-sm aspect-[3/1]">
       {/* Background Image Layer */}
       <div
-        className="absolute inset-0 z-0 transition-transform duration-700 group-hover:scale-105"
+        className="absolute inset-0 z-0"
         style={
           heroBannerUrl
             ? { backgroundImage: `url('${heroBannerUrl}')`, backgroundSize: 'cover', backgroundPosition: 'center' }
@@ -50,30 +56,38 @@ export function FeedHeader({
       />
 
       {/* Dark Overlay */}
-      <div className="absolute inset-0 bg-black/60 z-0" />
+      <div className="absolute inset-0 bg-black/50 z-0" />
 
       {/* Content */}
-      <div className="relative z-10 flex items-center justify-between text-white mx-0 px-0 pr-0">
-        {/* Left: Avatar + Welcome */}
-        <div className="flex items-center gap-4">
+      <div className="relative z-10 flex items-end justify-between h-full p-3 text-white">
+        {/* Left: Avatar + Info */}
+        <div className="flex items-center gap-2.5">
           <Avatar
-            className="h-11 w-11 md:h-14 md:w-14 cursor-pointer ring-2 ring-white/30 hover:ring-white/50 transition-all press-scale shadow-md"
+            className="h-10 w-10 cursor-pointer ring-2 ring-white/30 shadow-md"
             onClick={() => navigate('/app/profile')}
           >
             <AvatarImage src={talentPhoto} alt={talentName || 'User'} />
-            <AvatarFallback className="bg-white/20 text-white font-bold text-lg">
+            <AvatarFallback className="bg-white/20 text-white font-bold text-sm">
               {initials}
             </AvatarFallback>
           </Avatar>
-          <div>
-            <h1 className="font-bold text-lg">
+          <div className="min-w-0">
+            <h1 className="font-bold text-sm leading-tight truncate">
               Hi, {firstName}! 👋
             </h1>
-            <p className="text-blue-100 text-xs">
-              Your personalized career feed
-            </p>
+            {talentProfession && (
+              <p className="text-white/70 text-[11px] leading-tight truncate">
+                {talentProfession}
+              </p>
+            )}
           </div>
         </div>
+
+        {/* Right: Credits badge */}
+        <Badge className="gap-1 bg-white/20 backdrop-blur-sm text-white border-white/30 text-[11px] h-6 flex-shrink-0">
+          <Coins className="h-3 w-3" />
+          <span className="font-bold">{balance}</span>
+        </Badge>
       </div>
     </div>
   );

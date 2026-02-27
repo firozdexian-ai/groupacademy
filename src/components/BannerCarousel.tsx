@@ -32,13 +32,11 @@ export const BannerCarousel = ({ compact = false }: BannerCarouselProps) => {
     if (banners.length > 1) {
       const interval = setInterval(() => {
         setCurrentIndex((prev) => (prev + 1) % banners.length);
-      }, 5000); // Auto-rotate every 5 seconds
-
+      }, 5000);
       return () => clearInterval(interval);
     }
   }, [banners.length]);
 
-  // Reset image loaded state when index changes
   useEffect(() => {
     setImageLoaded(false);
   }, [currentIndex]);
@@ -57,7 +55,6 @@ export const BannerCarousel = ({ compact = false }: BannerCarouselProps) => {
       if (data && data.length > 0) {
         setBanners(data);
 
-        // Fetch content slugs for linked banners
         const contentIds = data
           .map((b) => b.link_content_id)
           .filter((id): id is string => id !== null);
@@ -103,18 +100,13 @@ export const BannerCarousel = ({ compact = false }: BannerCarouselProps) => {
   }
 
   return (
-    <div className={cn(
-      "relative w-full rounded-xl overflow-hidden bg-muted group",
-      compact ? "h-36 mb-3" : "h-48 sm:h-56 md:h-72 lg:h-[360px] mb-6"
-    )}>
-      {/* Banner Image with optimized loading */}
+    <div className="relative w-full rounded-xl overflow-hidden bg-muted group aspect-[3/1]">
+      {/* Banner Image */}
       <img
         src={banners[currentIndex].image_url}
         alt={`Banner ${currentIndex + 1}`}
         loading="lazy"
-        className={`w-full h-full object-cover transition-opacity duration-500 ${
-          imageLoaded ? 'opacity-100' : 'opacity-0'
-        }`}
+        className={`w-full h-full object-cover transition-opacity duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
         onLoad={() => setImageLoaded(true)}
         onClick={() => handleBannerClick(banners[currentIndex])}
         style={{ cursor: banners[currentIndex].link_content_id ? 'pointer' : 'default' }}
@@ -125,13 +117,13 @@ export const BannerCarousel = ({ compact = false }: BannerCarouselProps) => {
         <div className="absolute inset-0 bg-muted animate-pulse" />
       )}
 
-      {/* Navigation Arrows */}
+      {/* Navigation Arrows -- desktop only */}
       {banners.length > 1 && (
         <>
           <Button
             variant="ghost"
             size="icon"
-            className="absolute left-2 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background/90 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+            className="absolute left-2 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background/90 hidden md:flex opacity-0 group-hover:opacity-100 transition-opacity"
             onClick={goToPrevious}
           >
             <ChevronLeft className="w-6 h-6" />
@@ -139,20 +131,20 @@ export const BannerCarousel = ({ compact = false }: BannerCarouselProps) => {
           <Button
             variant="ghost"
             size="icon"
-            className="absolute right-2 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background/90 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+            className="absolute right-2 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background/90 hidden md:flex opacity-0 group-hover:opacity-100 transition-opacity"
             onClick={goToNext}
           >
             <ChevronRight className="w-6 h-6" />
           </Button>
 
           {/* Dots Indicator */}
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
             {banners.map((_, index) => (
               <button
                 key={index}
-                className={`w-2 h-2 rounded-full transition-all ${
+                className={`w-1.5 h-1.5 rounded-full transition-all ${
                   index === currentIndex
-                    ? "bg-white w-8"
+                    ? "bg-white w-5"
                     : "bg-white/50 hover:bg-white/75"
                 }`}
                 onClick={() => setCurrentIndex(index)}

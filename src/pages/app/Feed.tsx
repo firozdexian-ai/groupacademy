@@ -170,7 +170,7 @@ export default function Feed() {
 
   return (
     <div
-      className="max-w-7xl mx-auto px-4 py-6 min-h-screen"
+      className="max-w-7xl mx-auto px-2 md:px-4 py-2 md:py-6 min-h-screen"
       ref={containerRef}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
@@ -198,11 +198,12 @@ export default function Feed() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* ================= LEFT COLUMN (MAIN FEED) ================= */}
-        <div className="lg:col-span-8 space-y-4">
+        <div className="lg:col-span-8 space-y-2 md:space-y-4">
           {/* Header */}
           <FeedHeader
             talentName={talent?.fullName}
             talentPhoto={talent?.profilePhotoUrl}
+            talentProfession={talent?.customProfession}
             onRefresh={() => refresh()}
             isRefreshing={isRefreshing}
           />
@@ -263,7 +264,7 @@ export default function Feed() {
             </Card>
           ) : (
             // Feed Items List
-            <div className="space-y-4 pb-20">
+            <div className="space-y-2 md:space-y-4 pb-20">
               {items.map((item, index) => (
                 <div
                   key={item.id}

@@ -182,20 +182,20 @@ export const BannerManager = () => {
         <CardHeader>
           <CardTitle>Create New Banner</CardTitle>
           <CardDescription>
-            Upload a 1200x400px image (3:1 aspect ratio) for the course catalog carousel
+            Upload a 1536×512px image (3:1 aspect ratio) for banners
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleCreateBanner} className="space-y-4">
             <div className="space-y-2">
-              <Label>Banner Image (1200x400px recommended) *</Label>
+              <Label>Banner Image (1536×512px recommended) *</Label>
               <ImageUpload
                 value={newBanner.image_url}
                 onUpload={(url) => setNewBanner({ ...newBanner, image_url: url })}
                 onRemove={() => setNewBanner({ ...newBanner, image_url: "" })}
                 bucket="course-covers"
               />
-              <p className="text-xs text-muted-foreground">Recommended: 1200×400px (3:1 ratio). Used for both Hero and Carousel banners.</p>
+              <p className="text-xs text-muted-foreground">Recommended: 1536×512px (3:1 ratio). Used for both Hero and Carousel banners.</p>
             </div>
 
             <div className="space-y-2">
