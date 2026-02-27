@@ -269,7 +269,7 @@ export default function AppJobDetail() {
   const renderActionButton = () => {
     if (deadlinePassed) {
       return (
-        <Button size="lg" className="w-full mb-6" disabled>
+        <Button size="lg" className="w-full mb-3" disabled>
           Application Closed
         </Button>
       );
@@ -278,7 +278,7 @@ export default function AppJobDetail() {
     if (existingApp) {
       if (job?.ai_assessment_enabled && existingApp.assessment_status === "pending" && existingApp.assessment_id) {
         return (
-          <div className="mb-6 space-y-3">
+          <div className="mb-3 space-y-2">
             <div className="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
               <div>
@@ -302,7 +302,7 @@ export default function AppJobDetail() {
 
       if (job?.ai_assessment_enabled && existingApp.assessment_status === "completed") {
         return (
-          <div className="mb-6 space-y-3">
+          <div className="mb-3 space-y-2">
             <div className="p-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg flex items-center gap-3">
               <CheckCircle className="w-5 h-5 text-green-600" />
               <div>
@@ -325,7 +325,7 @@ export default function AppJobDetail() {
       }
 
       return (
-        <div className="mb-6">
+        <div className="mb-3">
           <Button size="lg" className="w-full bg-green-600 hover:bg-green-700 text-white" disabled>
             <CheckCircle className="w-4 h-4 mr-2" />
             Applied on {format(new Date(existingApp.created_at), "MMM d, yyyy")}
@@ -337,7 +337,7 @@ export default function AppJobDetail() {
     return (
       <Button
         size="lg"
-        className="w-full mb-6 text-base h-12 shadow-lg hover:shadow-xl transition-all"
+        className="w-full mb-3 text-base h-12 shadow-lg hover:shadow-xl transition-all"
         onClick={handleApply}
       >
         {job?.application_type === "link" ? (
@@ -394,29 +394,29 @@ export default function AppJobDetail() {
         variant="ghost"
         size="sm"
         onClick={() => navigate(-1)}
-        className="mb-4 -ml-2 text-muted-foreground hover:text-foreground"
+        className="mb-2 text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="w-4 h-4 mr-2" /> Back
       </Button>
 
       {/* Header Section */}
-      <div className="flex gap-4 items-start mb-4">
+      <div className="flex gap-3 items-start mb-2">
         <div className="shrink-0">
           {job.company_logo_url ? (
             <img
               src={job.company_logo_url}
               alt={job.company_name}
-              className="w-16 h-16 rounded-xl object-cover border bg-white"
+              className="w-12 h-12 rounded-xl object-cover border bg-white"
             />
           ) : company?.logo_url ? (
             <img
               src={company.logo_url}
               alt={company.name}
-              className="w-16 h-16 rounded-xl object-cover border bg-white"
+              className="w-12 h-12 rounded-xl object-cover border bg-white"
             />
           ) : (
-            <div className="w-16 h-16 rounded-xl bg-primary/10 flex items-center justify-center border">
-              <Building2 className="w-8 h-8 text-primary" />
+            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center border">
+              <Building2 className="w-6 h-6 text-primary" />
             </div>
           )}
         </div>
@@ -447,15 +447,15 @@ export default function AppJobDetail() {
               </Badge>
             )}
           </div>
-          <h1 className="text-xl md:text-2xl font-bold leading-tight mb-1">{job.title}</h1>
-          <p className="text-muted-foreground font-medium">{job.company_name}</p>
+          <h1 className="text-lg md:text-xl font-bold leading-tight mb-0.5">{job.title}</h1>
+          <p className="text-sm text-muted-foreground font-medium">{job.company_name}</p>
         </div>
 
         {/* FIX 4: Use handleSaveToggle which uses hook logic */}
         <Button
           variant={isSaved ? "default" : "outline"}
-          size="lg"
-          className="gap-2 shrink-0"
+          size="sm"
+          className="gap-1.5 shrink-0"
           onClick={handleSaveToggle}
           disabled={saveLoading}
         >
@@ -465,23 +465,23 @@ export default function AppJobDetail() {
       </div>
 
       {/* Info Badges */}
-      <div className="flex flex-wrap gap-2 mb-4">
-        <Badge variant="secondary" className="gap-1.5 py-1.5 px-3">
+      <div className="flex flex-wrap gap-1.5 mb-2">
+        <Badge variant="secondary" className="gap-1 py-1 px-2 text-xs">
           <Clock className="w-3.5 h-3.5 opacity-70" />
           {getJobTypeLabel(job.job_type)}
         </Badge>
-        <Badge variant="secondary" className="gap-1.5 py-1.5 px-3">
+        <Badge variant="secondary" className="gap-1 py-1 px-2 text-xs">
           <Briefcase className="w-3.5 h-3.5 opacity-70" />
           {getExperienceLevelLabel(job.experience_level)}
         </Badge>
         {job.location && (
-          <Badge variant="secondary" className="gap-1.5 py-1.5 px-3">
+          <Badge variant="secondary" className="gap-1 py-1 px-2 text-xs">
             <MapPin className="w-3.5 h-3.5 opacity-70" />
             {job.location}
           </Badge>
         )}
         {formatSalary(job.salary_range_min, job.salary_range_max) && (
-          <Badge variant="outline" className="gap-1.5 py-1.5 px-3 border-primary/20 bg-primary/5 text-primary">
+          <Badge variant="outline" className="gap-1 py-1 px-2 text-xs border-primary/20 bg-primary/5 text-primary">
             <DollarSign className="w-3.5 h-3.5" />
             {formatSalary(job.salary_range_min, job.salary_range_max)}
           </Badge>
@@ -490,7 +490,7 @@ export default function AppJobDetail() {
 
       {/* AI Insights Section */}
       {talent?.id && !existingApp && !deadlinePassed && (
-        <div className="mb-6">
+        <div className="mb-3">
           <AIJobInsights jobId={job.id} talentId={talent.id} />
         </div>
       )}
@@ -499,18 +499,18 @@ export default function AppJobDetail() {
       {renderActionButton()}
 
       {/* Share Button */}
-      <div className="flex justify-end mb-4">
+      <div className="flex justify-end mb-2">
         <Button variant="ghost" size="sm" onClick={handleShare} className="gap-2">
           <Share2 className="w-4 h-4" /> Share
         </Button>
       </div>
 
       {/* Main Content */}
-      <div className="space-y-4">
+      <div className="space-y-2">
         {/* Description */}
         <Card>
-          <CardContent className="p-6">
-            <h3 className="text-base font-semibold mb-4">About the Role</h3>
+          <CardContent className="p-4">
+            <h3 className="text-base font-semibold mb-2">About the Role</h3>
             {/<[a-z][\s\S]*>/i.test(displayDescription || "") ? (
               <div className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground" dangerouslySetInnerHTML={{ __html: displayDescription || "" }} />
             ) : (
@@ -524,9 +524,9 @@ export default function AppJobDetail() {
         {/* Requirements */}
         {Array.isArray(job.requirements) && job.requirements.length > 0 && (
           <Card>
-            <CardContent className="p-6">
-              <h3 className="text-base font-semibold mb-4">Requirements</h3>
-              <ul className="space-y-3">
+          <CardContent className="p-4">
+              <h3 className="text-base font-semibold mb-2">Requirements</h3>
+              <ul className="space-y-2">
                 {job.requirements.map((req: string, i: number) => (
                   <li key={i} className="flex items-start gap-3 text-sm text-muted-foreground">
                     <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2 shrink-0" />
@@ -541,8 +541,8 @@ export default function AppJobDetail() {
         {/* About the Company */}
         {company && (
           <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-3 mb-4">
+          <CardContent className="p-4">
+              <div className="flex items-center gap-3 mb-2">
                 {company.logo_url && (
                   <img
                     src={company.logo_url}
@@ -565,7 +565,7 @@ export default function AppJobDetail() {
                   </h3>
                 </div>
               </div>
-              <div className="space-y-3 text-sm">
+              <div className="space-y-2 text-sm">
                 {company.industry && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Industry</span>
@@ -603,9 +603,9 @@ export default function AppJobDetail() {
 
         {/* Job Overview */}
         <Card>
-          <CardContent className="p-6">
-            <h3 className="text-base font-semibold mb-4">Job Overview</h3>
-            <div className="grid grid-cols-2 gap-y-4 gap-x-8 text-sm">
+          <CardContent className="p-4">
+            <h3 className="text-base font-semibold mb-2">Job Overview</h3>
+            <div className="grid grid-cols-2 gap-y-3 gap-x-8 text-sm">
               <div>
                 <p className="text-muted-foreground mb-1">Date Posted</p>
                 <p className="font-medium">{format(new Date(job.created_at), "MMM d, yyyy")}</p>
@@ -636,7 +636,7 @@ export default function AppJobDetail() {
         {/* Original Source Image */}
         {job.source_image_url && (
           <Card className="overflow-hidden">
-            <div className="p-4 border-b bg-muted/30">
+            <div className="p-3 border-b bg-muted/30">
               <h3 className="text-sm font-medium">Original Job Post</h3>
             </div>
             <img src={job.source_image_url} alt="Original job post" className="w-full h-auto" />
