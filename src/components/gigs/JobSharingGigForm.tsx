@@ -7,7 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { JOB_TYPES, type JobType } from "@/lib/constants/jobTypes";
 import {
   Loader2,
   Search,
@@ -22,6 +24,7 @@ import {
   Send,
   ExternalLink,
   Sparkles,
+  Globe,
 } from "lucide-react";
 
 interface JobSharingGigFormProps {
@@ -30,12 +33,53 @@ interface JobSharingGigFormProps {
   onSubmitted: () => void;
 }
 
-const LOCATION_FILTERS = [
-  { key: "all", label: "All" },
-  { key: "bangladesh", label: "Bangladesh" },
-  { key: "remote", label: "Remote" },
-  { key: "international", label: "International" },
-] as const;
+// Country alias map for detecting country from location strings
+const COUNTRY_ALIASES: Record<string, string[]> = {
+  "Bangladesh": ["bangladesh", "dhaka", "chattogram", "chittagong", "sylhet", "rajshahi", "khulna", "rangpur", "barishal", "comilla", "gazipur", "narayanganj", "banani", "gulshan", "dhanmondi", "uttara", "mirpur", "motijheel"],
+  "UAE": ["uae", "united arab emirates", "dubai", "abu dhabi", "sharjah", "ajman"],
+  "Saudi Arabia": ["saudi", "saudi arabia", "riyadh", "jeddah", "dammam", "ksa"],
+  "Qatar": ["qatar", "doha"],
+  "Kuwait": ["kuwait"],
+  "Bahrain": ["bahrain", "manama"],
+  "Oman": ["oman", "muscat"],
+  "India": ["india", "mumbai", "delhi", "bangalore", "bengaluru", "hyderabad", "chennai", "kolkata", "pune", "noida", "gurgaon", "gurugram"],
+  "Pakistan": ["pakistan", "karachi", "lahore", "islamabad"],
+  "Singapore": ["singapore"],
+  "Malaysia": ["malaysia", "kuala lumpur"],
+  "UK": ["uk", "united kingdom", "london", "manchester", "birmingham", "england", "scotland"],
+  "USA": ["usa", "united states", "new york", "san francisco", "los angeles", "chicago", "texas", "california", "boston", "seattle", "washington"],
+  "Canada": ["canada", "toronto", "vancouver", "montreal", "ottawa"],
+  "Australia": ["australia", "sydney", "melbourne", "brisbane", "perth"],
+  "Germany": ["germany", "berlin", "munich", "frankfurt", "hamburg"],
+  "Netherlands": ["netherlands", "amsterdam", "rotterdam"],
+  "Ireland": ["ireland", "dublin"],
+  "Japan": ["japan", "tokyo", "osaka"],
+  "South Korea": ["south korea", "korea", "seoul"],
+  "China": ["china", "beijing", "shanghai", "shenzhen", "guangzhou"],
+  "Turkey": ["turkey", "istanbul", "ankara"],
+  "Egypt": ["egypt", "cairo"],
+  "Nigeria": ["nigeria", "lagos", "abuja"],
+  "Kenya": ["kenya", "nairobi"],
+  "South Africa": ["south africa", "johannesburg", "cape town"],
+  "Philippines": ["philippines", "manila"],
+  "Indonesia": ["indonesia", "jakarta"],
+  "Vietnam": ["vietnam", "ho chi minh", "hanoi"],
+  "Thailand": ["thailand", "bangkok"],
+  "Sri Lanka": ["sri lanka", "colombo"],
+  "Nepal": ["nepal", "kathmandu"],
+  "Remote": ["remote", "anywhere", "worldwide", "work from home", "wfh"],
+};
+
+function detectCountry(location: string | null): string {
+  if (!location) return "Unknown";
+  const loc = location.toLowerCase().trim();
+  for (const [country, aliases] of Object.entries(COUNTRY_ALIASES)) {
+    for (const alias of aliases) {
+      if (loc.includes(alias)) return country;
+    }
+  }
+  return "Other";
+}
 
 const CHANNELS = [
   { key: "linkedin", label: "LinkedIn", icon: Linkedin, color: "text-blue-600" },
@@ -44,17 +88,7 @@ const CHANNELS = [
   { key: "telegram", label: "Telegram", icon: Send, color: "text-sky-500" },
 ] as const;
 
-type LocationFilter = (typeof LOCATION_FILTERS)[number]["key"];
 type Channel = (typeof CHANNELS)[number]["key"];
-
-function matchesLocation(location: string | null, filter: LocationFilter): boolean {
-  if (filter === "all") return true;
-  const loc = (location || "").toLowerCase();
-  if (filter === "bangladesh") return loc.includes("bangladesh") || loc.includes("dhaka") || loc.includes("chattogram") || loc.includes("sylhet");
-  if (filter === "remote") return loc.includes("remote");
-  // international = not bangladesh and not remote-only
-  return !loc.includes("bangladesh") && !loc.includes("dhaka") && !loc.includes("chattogram") && !loc.includes("sylhet");
-}
 
 function isNew(createdAt: string) {
   return Date.now() - new Date(createdAt).getTime() < 48 * 60 * 60 * 1000;
@@ -63,7 +97,8 @@ function isNew(createdAt: string) {
 export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigFormProps) {
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [locationFilter, setLocationFilter] = useState<LocationFilter>("all");
+  const [countryFilter, setCountryFilter] = useState("all");
+  const [jobTypeFilter, setJobTypeFilter] = useState("all");
 
   const [activeChannel, setActiveChannel] = useState<Channel>("linkedin");
   const [captions, setCaptions] = useState<Record<string, string>>({});
@@ -88,27 +123,74 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
   const { data: jobs, isLoading } = useQuery({
     queryKey: ["active-jobs-for-sharing"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("jobs")
-        .select("id, title, company_name, location, job_type, created_at, is_featured, requirements")
-        .eq("is_active", true)
-        .gte("deadline", new Date().toISOString())
-        .order("is_featured", { ascending: false })
-        .order("created_at", { ascending: false })
-        .limit(100);
-      if (error) throw error;
-      return data;
+      // Fetch all active jobs (no limit) - paginate to get past 1000 row default
+      let allJobs: any[] = [];
+      let from = 0;
+      const batchSize = 1000;
+      while (true) {
+        const { data, error } = await supabase
+          .from("jobs")
+          .select("id, title, company_name, location, job_type, created_at, is_featured, requirements")
+          .eq("is_active", true)
+          .gte("deadline", new Date().toISOString())
+          .order("is_featured", { ascending: false })
+          .order("created_at", { ascending: false })
+          .range(from, from + batchSize - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        allJobs = allJobs.concat(data);
+        if (data.length < batchSize) break;
+        from += batchSize;
+      }
+      return allJobs;
     },
   });
+
+  // Build dynamic country list with counts
+  const countryOptions = useMemo(() => {
+    if (!jobs) return [];
+    const counts: Record<string, number> = {};
+    for (const job of jobs) {
+      const country = detectCountry(job.location);
+      counts[country] = (counts[country] || 0) + 1;
+    }
+    // Sort by count descending, but keep Bangladesh and Remote at top
+    const entries = Object.entries(counts).sort((a, b) => {
+      if (a[0] === "Bangladesh") return -1;
+      if (b[0] === "Bangladesh") return 1;
+      if (a[0] === "Remote") return -1;
+      if (b[0] === "Remote") return 1;
+      return b[1] - a[1];
+    });
+    return entries;
+  }, [jobs]);
 
   const filteredJobs = useMemo(() => {
     if (!jobs) return [];
     return jobs.filter((j: any) => {
       const term = searchTerm.toLowerCase();
       const matchesSearch = !term || j.title.toLowerCase().includes(term) || (j.company_name || "").toLowerCase().includes(term);
-      return matchesSearch && matchesLocation(j.location, locationFilter);
+      
+      // Country filter
+      let matchesCountry = true;
+      if (countryFilter !== "all") {
+        if (countryFilter === "international") {
+          const country = detectCountry(j.location);
+          matchesCountry = country !== "Bangladesh";
+        } else {
+          matchesCountry = detectCountry(j.location) === countryFilter;
+        }
+      }
+
+      // Job type filter
+      let matchesType = true;
+      if (jobTypeFilter !== "all") {
+        matchesType = (j.job_type || "").toLowerCase() === jobTypeFilter;
+      }
+
+      return matchesSearch && matchesCountry && matchesType;
     });
-  }, [jobs, searchTerm, locationFilter]);
+  }, [jobs, searchTerm, countryFilter, jobTypeFilter]);
 
   const selectedJob = jobs?.find((j: any) => j.id === selectedJobId);
   const shareUrl = selectedJob
@@ -155,7 +237,6 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
     setSelectedJobId(jobId);
     setCaptions({});
     setSharedChannels([]);
-    // Auto-generate caption for default channel
     setTimeout(() => {
       const job = jobs?.find((j: any) => j.id === jobId);
       if (job) generateCaption("linkedin");
@@ -227,6 +308,11 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
     }
   };
 
+  const jobTypeOptions = [
+    { key: "all", label: "All Types" },
+    ...Object.entries(JOB_TYPES).map(([key, val]) => ({ key, label: val.shortLabel })),
+  ];
+
   return (
     <div className="space-y-4">
       {/* ── Step 1: Search & Filter ── */}
@@ -241,21 +327,48 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
             className="pl-9 h-9 text-sm"
           />
         </div>
-        <div className="flex gap-1.5 flex-wrap">
-          {LOCATION_FILTERS.map((f) => (
-            <button
-              key={f.key}
-              onClick={() => setLocationFilter(f.key)}
-              className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                locationFilter === f.key
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80"
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
+
+        {/* Country dropdown + Job type chips */}
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Select value={countryFilter} onValueChange={setCountryFilter}>
+            <SelectTrigger className="h-8 text-xs w-full sm:w-[200px]">
+              <Globe className="h-3.5 w-3.5 mr-1.5 text-muted-foreground" />
+              <SelectValue placeholder="All Countries" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Countries ({jobs?.length || 0})</SelectItem>
+              <SelectItem value="international">🌍 International (non-BD)</SelectItem>
+              {countryOptions.map(([country, count]) => (
+                <SelectItem key={country} value={country}>
+                  {country} ({count})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <div className="flex gap-1 flex-wrap flex-1">
+            {jobTypeOptions.map((opt) => (
+              <button
+                key={opt.key}
+                onClick={() => setJobTypeFilter(opt.key)}
+                className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors whitespace-nowrap ${
+                  jobTypeFilter === opt.key
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </div>
+
+        {/* Results count */}
+        {jobs && (
+          <p className="text-[10px] text-muted-foreground">
+            {filteredJobs.length} of {jobs.length} jobs
+          </p>
+        )}
       </div>
 
       {/* ── Step 2: Job List ── */}
@@ -265,9 +378,9 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
             <Loader2 className="h-4 w-4 animate-spin" /> Loading jobs...
           </div>
         ) : !filteredJobs.length ? (
-          <p className="text-sm text-muted-foreground py-6 text-center">No jobs match your search.</p>
+          <p className="text-sm text-muted-foreground py-6 text-center">No jobs match your filters.</p>
         ) : (
-          filteredJobs.map((job: any) => (
+          filteredJobs.slice(0, 200).map((job: any) => (
             <button
               key={job.id}
               onClick={() => handleSelectJob(job.id)}
@@ -316,7 +429,6 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
       {/* ── Step 3: AI Caption & Share ── */}
       {selectedJob && (
         <div className="space-y-3 border-t pt-3">
-          {/* Channel Tabs */}
           <Label className="text-sm font-semibold flex items-center gap-1.5">
             <Sparkles className="h-3.5 w-3.5 text-amber-500" /> AI Caption
           </Label>
@@ -337,7 +449,6 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
             ))}
           </div>
 
-          {/* Caption Area */}
           {loadingCaption && !captions[activeChannel] ? (
             <div className="space-y-2">
               <Skeleton className="h-4 w-full" />
@@ -357,7 +468,6 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
             </p>
           )}
 
-          {/* Action Buttons */}
           <div className="flex gap-2">
             <Button
               variant="outline"
@@ -388,7 +498,6 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
             </Button>
           </div>
 
-          {/* Shared Channels Summary */}
           {sharedChannels.length > 0 && (
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <CheckCircle className="h-3.5 w-3.5 text-green-600" />
@@ -396,7 +505,6 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
             </div>
           )}
 
-          {/* Submit */}
           <Button
             onClick={handleSubmit}
             disabled={isSubmitting || sharedChannels.length === 0}
