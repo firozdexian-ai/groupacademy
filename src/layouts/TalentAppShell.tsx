@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useTalent } from "@/hooks/useTalent";
+import { getCountryFlag } from "@/lib/constants/countries";
 import { supabase } from "@/integrations/supabase/client";
 import { Home, Briefcase, GraduationCap, Gift, Bot, User, Bell, LogOut, Coins, Sun, Moon, HelpCircle, Sparkles, ArrowLeft, Edit2, Receipt, Wallet, Bookmark, BookOpen, FileText, Download, ShieldCheck, Info, Share2, Globe, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -134,7 +135,10 @@ export function TalentAppShell() {
                       </Avatar>
                       <div className="flex-1 min-w-0">
                         <p className="font-bold text-base truncate">{talent?.fullName || "User"}</p>
-                        <p className="text-xs text-muted-foreground truncate">{talent?.phone || ""}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {talent?.countryCode && <span className="mr-1">{getCountryFlag(talent.countryCode)}</span>}
+                          {talent?.phone || ""}
+                        </p>
                         <p className="text-xs text-muted-foreground truncate">{talent?.email || ""}</p>
                       </div>
                       <button
