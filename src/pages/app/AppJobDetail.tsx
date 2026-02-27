@@ -29,6 +29,7 @@ import {
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { AIJobInsights } from "@/components/jobs/AIJobInsights";
+import { RelatedJobs } from "@/components/jobs/RelatedJobs";
 import { getJobTypeLabel, getExperienceLevelLabel, isDeadlineUrgent, isDeadlinePassed } from "@/lib/constants/jobTypes";
 
 interface Job {
@@ -619,6 +620,14 @@ export default function AppJobDetail() {
             <img src={job.source_image_url} alt="Original job post" className="w-full h-auto" />
           </Card>
         )}
+
+        {/* Related Jobs */}
+        <RelatedJobs
+          currentJobId={job.id}
+          companyName={job.company_name}
+          location={job.location}
+          linkPrefix="/app/jobs"
+        />
       </div>
 
       {/* Sticky Bottom CTA Bar - Mobile Only */}

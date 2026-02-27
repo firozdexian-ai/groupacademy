@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { RelatedJobs } from "@/components/jobs/RelatedJobs";
 
 interface Job {
   id: string;
@@ -360,8 +361,16 @@ export default function PublicJobDetail() {
           </CardContent>
         </Card>
 
+        {/* Related Jobs */}
+        <RelatedJobs
+          currentJobId={job.id}
+          companyName={job.company_name}
+          location={job.location}
+          linkPrefix="/jobs"
+        />
+
         {/* Bottom CTA */}
-        <div className="text-center">
+        <div className="text-center mt-8">
           <Button size="lg" onClick={handleSignUpToApply} disabled={isDeadlinePassed}>
             <UserPlus className="w-4 h-4 mr-2" />
             Sign Up to Apply
