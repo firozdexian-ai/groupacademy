@@ -53,7 +53,7 @@ export function GigSubmissionForm({ gig, open, onOpenChange }: GigSubmissionForm
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
+      <DialogContent className={`${gig.category === "job_sharing" ? "max-w-lg" : "max-w-md"} max-h-[85vh] overflow-y-auto`}>
         <DialogHeader>
           <DialogTitle>{gig.title}</DialogTitle>
           <DialogDescription className="flex items-center gap-1">
