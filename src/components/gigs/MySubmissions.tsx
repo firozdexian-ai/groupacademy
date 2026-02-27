@@ -85,14 +85,32 @@ export function MySubmissions({ talentId }: MySubmissionsProps) {
         const clicks = isJobSharing && jobId && clickCounts ? (clickCounts[jobId] || 0) : null;
         const CLICK_THRESHOLD = 10;
 
+        const submissionData = sub.submission_data as any;
+        const jobTitle = isJobSharing ? submissionData?.job_title : null;
+        const companyName = isJobSharing ? submissionData?.company : null;
+        const channelsShared = isJobSharing ? submissionData?.channels_shared : null;
+        const displayTitle = jobTitle
+          ? `${companyName ? companyName + " — " : ""}${jobTitle}`
+          : sub.gigs?.title;
+
         return (
           <div key={sub.id} className="bg-card rounded-xl p-4 border border-border shadow-sm">
             <div className="flex items-center justify-between">
               <div className="flex-1 min-w-0">
-                <h4 className="font-medium text-sm truncate">{sub.gigs?.title}</h4>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {format(new Date(sub.created_at), "MMM d, yyyy")}
-                </p>
+                <h4 className="font-medium text-sm truncate">{displayTitle}</h4>
+                {isJobSharing && jobTitle && (
+                  <p className="text-[11px] text-muted-foreground mt-0.5">{sub.gigs?.title}</p>
+                )}
+                <div className="flex items-center gap-2 mt-0.5">
+                  <p className="text-xs text-muted-foreground">
+                    {format(new Date(sub.created_at), "MMM d, yyyy")}
+                  </p>
+                  {channelsShared && Array.isArray(channelsShared) && (
+                    <span className="text-xs text-muted-foreground">
+                      · {channelsShared.length} channel{channelsShared.length !== 1 ? "s" : ""}
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 {sub.status === "approved" && (

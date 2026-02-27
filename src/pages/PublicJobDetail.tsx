@@ -100,6 +100,10 @@ export default function PublicJobDetail() {
           p_job_id: id,
           p_ref_code: ref,
         });
+        const newParams = new URLSearchParams(searchParams);
+        newParams.delete("ref");
+        const remaining = newParams.toString();
+        window.history.replaceState({}, "", window.location.pathname + (remaining ? `?${remaining}` : ""));
       } catch (err) {
         console.error("Failed to track shared job click", err);
       }

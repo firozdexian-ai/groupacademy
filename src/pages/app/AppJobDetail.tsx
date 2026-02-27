@@ -100,6 +100,7 @@ export default function AppJobDetail() {
   useEffect(() => {
     if (id) {
       trackSource();
+      trackRefClick();
       loadJobAndApplication();
     }
   }, [id, talent?.id]);
@@ -112,9 +113,30 @@ export default function AppJobDetail() {
           p_job_id: id,
           p_source: source,
         });
-        window.history.replaceState({}, "", window.location.pathname);
+        const newParams = new URLSearchParams(searchParams);
+        newParams.delete("source");
+        const remaining = newParams.toString();
+        window.history.replaceState({}, "", window.location.pathname + (remaining ? `?${remaining}` : ""));
       } catch (err) {
         console.error("Failed to track job click", err);
+      }
+    }
+  };
+
+  const trackRefClick = async () => {
+    const ref = searchParams.get("ref");
+    if (ref && id) {
+      try {
+        await supabase.rpc("track_shared_job_click", {
+          p_job_id: id,
+          p_ref_code: ref,
+        });
+        const newParams = new URLSearchParams(searchParams);
+        newParams.delete("ref");
+        const remaining = newParams.toString();
+        window.history.replaceState({}, "", window.location.pathname + (remaining ? `?${remaining}` : ""));
+      } catch (err) {
+        console.error("Failed to track shared job click", err);
       }
     }
   };
