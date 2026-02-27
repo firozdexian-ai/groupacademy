@@ -1,60 +1,72 @@
 
+# Wire Up "Get AI Recommendations" to Show Top Matching Jobs
 
-# Fix: LinkedIn JSON Upload Freezing on Large Files
+## Current Problem
 
-## Root Cause
+The "Get AI Recommendations" button (10 credits) deducts credits and navigates to `/app/jobs/all?ai=true`, but the `AppJobs` page completely ignores the `ai` query parameter. Users pay 10 credits and see the same generic "All Jobs" list.
 
-When you upload a JSON file, `handleFileUpload` runs two dedup passes:
-1. A single `IN` query on `source_url` (fast)
-2. Individual `ilike` queries per unique title+company pair -- one DB call per pair (lines 337-349)
+## Solution
 
-For a file with 100 jobs from 80 companies, that's ~80 sequential network requests before anything appears on screen. There's no loading state during this phase, so the dialog appears frozen.
+Create a new edge function that uses AI to rank jobs against the talent's profile, and display the results inline on the Jobs Hub page (no navigation away) in a dedicated "AI Recommended" section that appears after clicking the button.
 
-## Fix
+## Changes
 
-### 1. Add a "processing" loading state during file parsing
+### 1. New Edge Function: `suggest-jobs-for-talent`
 
-Show a spinner immediately after the file is selected, before the dedup queries run. This gives instant visual feedback.
+A new backend function that:
+- Fetches the talent's skills, experience, education, CV text, and profession
+- Fetches up to 50 active jobs (title, company, requirements, preferred_skills, job_type, location, experience_level)
+- Sends both to the AI gateway (gemini-2.5-flash) asking it to return the top 10 most relevant job IDs with match scores and a one-line reason
+- Returns a ranked list: `[{ job_id, match_score, reason }]`
 
-### 2. Replace individual dedup queries with a single bulk query
+This approach uses AI to do intelligent matching (understanding transferable skills, context, seniority fit) rather than simple keyword overlap.
 
-Instead of querying each title+company pair one by one, fetch all existing jobs' `title` and `company_name` in a single query filtered by the company names present in the upload. Then do the comparison in-memory.
+### 2. Update `JobsHub.tsx` -- Show Results Inline
 
-```text
-Before: 80 sequential queries (one per pair)
-After:  1 query fetching existing jobs by company names, then in-memory Set comparison
-```
+Instead of navigating away to `/app/jobs/all?ai=true`:
+- After credit deduction, call the new edge function
+- Display results in a new "AI Recommended for You" section that appears right below the button
+- Show up to 10 job cards (compact variant) with match score badges and the AI's one-line reason
+- Each card is clickable and navigates to the job detail page
+- Add a loading skeleton state while AI processes
 
-### 3. Add error handling for the parsing phase
+Remove the navigation to `/app/jobs/all?ai=true` entirely.
 
-Wrap the dedup logic in try/catch so any network failure during parsing surfaces a toast error instead of silently hanging.
+### 3. Update `JobCard.tsx` -- Optional Match Info
 
-## Files Changed
-
-| File | Change |
-|------|--------|
-| `src/components/dashboard/BatchLinkedInJobUpload.tsx` | Add loading state for file processing; replace per-pair dedup queries with single bulk query; add error handling |
+Add an optional `matchInfo` prop to `JobCard`:
+- Displays a small match percentage badge and the AI reason line below the job title
+- Only shown when the prop is passed (no visual change for regular job cards)
 
 ## Technical Detail
 
-Replace lines 333-349 with:
+### Edge Function Prompt Strategy
 
-```typescript
-// Secondary dedup: bulk fetch existing jobs by company names, compare in-memory
-const companyNamesForDedup = [...new Set(mapped.map(j => j.company_name))];
-const existingJobPairs = new Set<string>();
+```text
+System: You are a job matching expert. Given a candidate profile and a list of jobs,
+return the top 10 most relevant jobs ranked by fit.
 
-for (let i = 0; i < companyNamesForDedup.length; i += 20) {
-  const batch = companyNamesForDedup.slice(i, i + 20);
-  const { data: existingJobs } = await supabase
-    .from("jobs")
-    .select("title, company_name")
-    .in("company_name", batch);
-  existingJobs?.forEach(j => {
-    existingJobPairs.add(`${j.title.toLowerCase().trim()}|||${j.company_name.toLowerCase().trim()}`);
-  });
-}
+Return JSON array: [{ job_id: string, match_score: number (0-100), reason: string }]
+
+Consider: skill overlap, experience level fit, industry relevance, transferable skills.
+Be selective -- only include genuinely relevant jobs.
 ```
 
-This reduces ~80 queries down to ~4-5 batch queries (20 company names each), making the upload respond in seconds instead of hanging.
+The function sends job data as a compact summary (id + title + company + requirements) to stay within token limits. Uses `google/gemini-2.5-flash` for speed and cost efficiency.
 
+### UI Flow
+
+1. User taps "Get AI Recommendations" (10 credits)
+2. Button shows loading spinner
+3. Edge function runs (~3-5 seconds)
+4. A new "AI Recommended for You" section slides in below the button with up to 10 compact job cards
+5. Each card shows: job title, company, match score badge (e.g., "92% match"), and a one-line AI reason
+6. Section persists until page reload
+
+### Files Changed
+
+| File | Change |
+|------|--------|
+| `supabase/functions/suggest-jobs-for-talent/index.ts` | **New** -- AI-powered job ranking edge function |
+| `src/pages/app/JobsHub.tsx` | Replace navigation with inline edge function call; render AI results section |
+| `src/components/jobs/JobCard.tsx` | Add optional `matchInfo` prop for score badge + reason text |
