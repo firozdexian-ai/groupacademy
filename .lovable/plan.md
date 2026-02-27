@@ -1,56 +1,42 @@
 
 
-# Optimize Job Details Page -- Compact Layout & Font Consistency
+# Add Progress Animation for Job Match & Market Insight
 
-## Overview
+## Problem
+When users click "Show Match Details" (10 credits) or "Job & Applicant Insight" (15 credits), they see generic skeleton placeholders with no progress feedback. These AI calls take 10-20 seconds, leaving users uncertain about what's happening.
 
-Tighten spacing, reduce font sizes, and eliminate unnecessary whitespace throughout the Job Details page to match the compact mobile-first UI standard used across Feed, Jobs Hub, and other pages.
+## Solution
+Replace the skeleton loading states in `AIJobInsights` with inline progress animations using the same `ProcessingCard` component pattern -- a spinning percentage circle, a progress bar, and stage-based messages.
 
-## Changes (single file: `src/pages/app/AppJobDetail.tsx`)
+## Changes (single file: `src/components/jobs/AIJobInsights.tsx`)
 
-### 1. Back Button
-- Reduce `mb-4` to `mb-2` below the back button
-- Remove the negative margin trick (`-ml-2`), keep it inline
+### 1. Import ProcessingCard
+Import `ProcessingCard` and `ProcessingStage` from `@/components/ui/processing-card`.
 
-### 2. Header Section (logo + title + save)
-- Shrink company logo from `w-16 h-16` to `w-12 h-12` (matching JobCard compact style)
-- Reduce `mb-4` below header to `mb-2`
-- Title: `text-xl md:text-2xl` down to `text-lg md:text-xl`
-- Company name: add `text-sm` to reduce size
-- Save button: change from `size="lg"` to `size="sm"` to be less dominant
+### 2. Define stage messages for each feature
 
-### 3. Info Badges Row
-- Reduce badge padding from `py-1.5 px-3` to `py-1 px-2` and text to `text-xs`
-- Reduce `mb-4` to `mb-2`
+**Match Details stages:**
+- 0%: "Analyzing your profile..."
+- 25%: "Comparing skills and experience..."
+- 55%: "Evaluating education fit..."
+- 80%: "Generating recommendations..."
 
-### 4. AI Insights Section
-- Reduce wrapper `mb-6` to `mb-3`
+**Market Insight stages:**
+- 0%: "Gathering market data..."
+- 25%: "Estimating competition level..."
+- 55%: "Analyzing salary benchmarks..."
+- 80%: "Compiling insights..."
 
-### 5. Action Button Area
-- Reduce all `mb-6` on action buttons/divs to `mb-3`
+### 3. Replace skeleton loading blocks
+Replace the two `animate-pulse` skeleton `<div>` blocks (lines 137-154 for match, lines 258-271 for market) with `ProcessingCard` components configured with:
+- Relevant title ("Analyzing Match" / "Analyzing Market")
+- Stage arrays defined above
+- Duration of ~18 seconds (typical edge function response time for these)
+- No outer Card wrapper needed -- just drop the ProcessingCard inline
 
-### 6. Share Button
-- Reduce `mb-4` to `mb-2`
-
-### 7. Card Content Sections (Description, Requirements, Company, Overview)
-- Reduce all card `p-6` to `p-4` for tighter internal padding
-- Section headings: reduce `mb-4` to `mb-2`
-- Requirements list: reduce `space-y-3` to `space-y-2`
-- Company info: reduce `space-y-3` to `space-y-2` and `mb-4` to `mb-2`
-- Job Overview grid: reduce `gap-y-4` to `gap-y-3`
-- Description sub-label spacing: reduce `mb-1` labels consistent
-
-### 8. Outer Container
-- Change `space-y-4` to `space-y-2` on the main content wrapper so cards are closer together
-- Top padding `py-4` stays, bottom padding `pb-28` stays for sticky bar clearance
-
-### 9. Source Image Card
-- Reduce header padding from `p-4` to `p-3`
-
-### 10. Sticky Bottom Bar
-- Already compact at `p-3` -- no change needed
+### 4. Remove Loader2 import
+The `Loader2` icon import is no longer needed since we're replacing all loading states.
 
 ## Result
-
-All spacing, font sizes, and padding will match the compact `py-2` / `space-y-2` / `text-sm` standard used in Feed and Jobs Hub pages, eliminating the "poster-style" feel of oversized elements and excessive gaps.
+Users will see a smooth animated progress bar with contextual messages like "Comparing skills and experience..." while waiting for AI results, matching the same pattern used in the Jobs Hub recommendations flow.
 
