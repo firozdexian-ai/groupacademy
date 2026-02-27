@@ -2,16 +2,20 @@ import { useState, useEffect } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useTalent } from "@/hooks/useTalent";
 import { supabase } from "@/integrations/supabase/client";
-import { Home, Briefcase, GraduationCap, Gift, Bot, User, Bell, Menu, Search, LogOut, Coins, Sun, Moon, HelpCircle, Sparkles } from "lucide-react";
+import { Home, Briefcase, GraduationCap, Gift, Bot, User, Bell, LogOut, Coins, Sun, Moon, HelpCircle, Sparkles, ArrowLeft, Edit2, Receipt, Wallet, Bookmark, BookOpen, FileText, Download, ShieldCheck, Info, Share2, Globe, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Switch } from "@/components/ui/switch";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useCredits } from "@/hooks/useCredits";
 import { useTheme } from "next-themes";
 import { getWhatsAppLink } from "@/lib/constants/support";
+import { downloadFile } from "@/lib/downloadFile";
+import { toast } from "sonner";
 import logoIcon from "@/assets/logo-icon.png";
 
 interface NavItem {
@@ -108,54 +112,100 @@ export function TalentAppShell() {
                   </Avatar>
                 </button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-[300px] sm:w-[400px] p-0">
-                <div className="flex flex-col h-full bg-[#F3F2EF] dark:bg-background">
-                  <div className="p-4 bg-white dark:bg-card border-b">
-                    <div className="flex items-center gap-3 mb-4">
-                      <Avatar className="h-12 w-12 border">
-                        <AvatarImage src={talent?.profilePhotoUrl || ""} />
-                        <AvatarFallback>ME</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-bold text-lg">{talent?.fullName}</p>
-                        <p className="text-sm text-muted-foreground line-clamp-1">{talent?.email}</p>
-                      </div>
+              <SheetContent side="left" className="w-[300px] sm:w-[360px] p-0">
+                <div className="flex flex-col h-full bg-muted/30 dark:bg-background">
+                  {/* Header */}
+                  <div className="flex items-center justify-between px-4 py-3 bg-card border-b">
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => setSidebarOpen(false)}>
+                        <ArrowLeft className="h-5 w-5 text-foreground" />
+                      </button>
+                      <span className="font-semibold text-base">Profile & Settings</span>
                     </div>
-                    <Button onClick={() => { navigate("/app/profile"); setSidebarOpen(false); }} variant="outline" className="w-full rounded-full border-primary text-primary hover:bg-primary/5">
-                      View Profile
-                    </Button>
+                    <img src={logoIcon} alt="Logo" className="h-7 w-7 rounded" />
                   </div>
-                  <div className="flex-1 overflow-y-auto py-2">
-                    <div className="px-4 py-2">
-                      <h3 className="font-semibold text-sm mb-2 px-2">Credits Balance</h3>
-                      <div className="flex items-center gap-2 p-3 bg-white dark:bg-muted/30 rounded-lg border shadow-sm">
-                        <Coins className="h-5 w-5 text-amber-500" />
-                        <span className="font-bold text-lg">{balance}</span>
-                        <span className="text-xs text-muted-foreground ml-auto">Valid until next month</span>
+
+                  {/* Profile Card */}
+                  <div className="px-4 py-4 bg-card border-b">
+                    <div className="flex items-start gap-3">
+                      <Avatar className="h-14 w-14 border-2 border-primary/20">
+                        <AvatarImage src={talent?.profilePhotoUrl || ""} />
+                        <AvatarFallback className="text-sm"><User className="h-6 w-6" /></AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-base truncate">{talent?.fullName || "User"}</p>
+                        <p className="text-xs text-muted-foreground truncate">{talent?.phone || ""}</p>
+                        <p className="text-xs text-muted-foreground truncate">{talent?.email || ""}</p>
                       </div>
+                      <button
+                        onClick={() => { navigate("/app/profile/edit"); setSidebarOpen(false); }}
+                        className="p-2 rounded-full hover:bg-muted transition-colors"
+                      >
+                        <Edit2 className="h-4 w-4 text-muted-foreground" />
+                      </button>
                     </div>
-                    <div className="h-px bg-border my-2 mx-4" />
-                    <nav className="space-y-1 px-2">
-                      {desktopNavItems.map(item => (
-                        <button key={item.path} onClick={() => { navigate(item.path); setSidebarOpen(false); }} className={`w-full flex items-center gap-4 px-4 py-3 text-sm font-medium rounded-md transition-colors ${isActive(item.path) ? "bg-white dark:bg-muted shadow-sm text-foreground" : "text-muted-foreground hover:bg-white/50 dark:hover:bg-muted/50"}`}>
-                          <item.icon className="h-5 w-5" />
-                          {item.label}
+                  </div>
+
+                  {/* Menu Items */}
+                  <ScrollArea className="flex-1">
+                    <div className="py-2 space-y-0.5">
+                      {[
+                        { icon: Receipt, label: "Transactions", action: () => navigate("/app/profile") },
+                        { icon: Wallet, label: "Disbursement Account", action: () => navigate("/app/profile") },
+                        { icon: Bookmark, label: "Saved Jobs", action: () => navigate("/app/saved") },
+                        { icon: BookOpen, label: "My Learning", action: () => navigate("/app/learning/my-courses") },
+                        { icon: FileText, label: "Applications", action: () => navigate("/app/applications") },
+                        { icon: Download, label: "Download CV", action: () => {
+                          if (talent?.cvUrl) {
+                            downloadFile(talent.cvUrl, `${talent.fullName || 'cv'}-resume.pdf`);
+                          } else {
+                            toast.info("No CV uploaded yet. Upload one from your profile.");
+                          }
+                        }},
+                        { icon: ShieldCheck, label: "Profile Verification", action: () => navigate("/app/profile/edit") },
+                        { icon: HelpCircle, label: "Customer Service", action: () => window.open(getWhatsAppLink("Hi! I need help with the app"), "_blank") },
+                        { icon: Info, label: "Learn About Academy", action: () => window.open("/", "_blank") },
+                        { icon: Share2, label: "Refer App", action: async () => {
+                          const shareData = { title: "GroUp Academy", text: "Check out GroUp Academy – your career companion!", url: window.location.origin };
+                          if (navigator.share) {
+                            try { await navigator.share(shareData); } catch {}
+                          } else {
+                            await navigator.clipboard.writeText(shareData.url);
+                            toast.success("Link copied to clipboard!");
+                          }
+                        }},
+                        { icon: Globe, label: "Language", suffix: "English" },
+                      ].map(({ icon: Icon, label, action, suffix }) => (
+                        <button
+                          key={label}
+                          onClick={() => { action?.(); if (action && label !== "Download CV" && label !== "Customer Service" && label !== "Refer App" && label !== "Learn About Academy") setSidebarOpen(false); }}
+                          className="w-full flex items-center gap-3 px-5 py-3 text-sm font-medium text-foreground hover:bg-muted/60 dark:hover:bg-muted/40 transition-colors"
+                        >
+                          <Icon className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                          <span className="flex-1 text-left">{label}</span>
+                          {suffix ? (
+                            <span className="text-xs text-muted-foreground">{suffix}</span>
+                          ) : (
+                            <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
+                          )}
                         </button>
                       ))}
-                    </nav>
-                    <div className="h-px bg-border my-2 mx-4" />
-                    <div className="px-2 space-y-1">
-                      <button onClick={() => { window.open(getWhatsAppLink("Hi! I need help with the app"), "_blank"); }} className="w-full flex items-center gap-4 px-4 py-3 text-sm font-medium rounded-md text-muted-foreground hover:bg-white/50 dark:hover:bg-muted/50">
-                        <HelpCircle className="h-5 w-5" /> Help Center
-                      </button>
-                      <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="w-full flex items-center gap-4 px-4 py-3 text-sm font-medium rounded-md text-muted-foreground hover:bg-white/50 dark:hover:bg-muted/50">
-                        {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-                        {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
-                      </button>
+
+                      {/* Theme toggle row */}
+                      <div className="flex items-center gap-3 px-5 py-3">
+                        {theme === 'dark' ? <Moon className="h-5 w-5 text-muted-foreground" /> : <Sun className="h-5 w-5 text-muted-foreground" />}
+                        <span className="flex-1 text-sm font-medium">Theme</span>
+                        <Switch
+                          checked={theme === 'dark'}
+                          onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
+                        />
+                      </div>
                     </div>
-                  </div>
-                  <div className="p-4 border-t bg-white dark:bg-card">
-                    <Button variant="ghost" className="w-full justify-start text-muted-foreground" onClick={handleSignOut}>
+                  </ScrollArea>
+
+                  {/* Footer */}
+                  <div className="p-4 border-t bg-card">
+                    <Button variant="ghost" className="w-full justify-center text-destructive hover:text-destructive hover:bg-destructive/10 font-medium" onClick={() => { handleSignOut(); setSidebarOpen(false); }}>
                       <LogOut className="h-4 w-4 mr-2" /> Sign Out
                     </Button>
                   </div>
