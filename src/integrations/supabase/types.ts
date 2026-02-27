@@ -4251,6 +4251,7 @@ export type Database = {
           batch_upload_id: string | null
           country: string | null
           country_code: string | null
+          cover_image_url: string | null
           created_at: string | null
           current_status: string | null
           custom_profession: string | null
@@ -4289,6 +4290,7 @@ export type Database = {
           batch_upload_id?: string | null
           country?: string | null
           country_code?: string | null
+          cover_image_url?: string | null
           created_at?: string | null
           current_status?: string | null
           custom_profession?: string | null
@@ -4327,6 +4329,7 @@ export type Database = {
           batch_upload_id?: string | null
           country?: string | null
           country_code?: string | null
+          cover_image_url?: string | null
           created_at?: string | null
           current_status?: string | null
           custom_profession?: string | null

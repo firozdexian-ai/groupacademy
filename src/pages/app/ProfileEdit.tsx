@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { ProfilePhotoUpload } from "@/components/profile/ProfilePhotoUpload";
 import { SkillsEditor } from "@/components/profile/SkillsEditor";
+import { CoverImageUpload } from "@/components/profile/CoverImageUpload";
 import { ExperienceEditor, ExperienceEntry } from "@/components/profile/ExperienceEditor";
 import { EducationEditor, EducationEntry } from "@/components/profile/EducationEditor";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,6 +39,7 @@ export default function ProfileEdit() {
   const [isDirty, setIsDirty] = useState(false);
 
   const [profilePhotoUrl, setProfilePhotoUrl] = useState("");
+  const [coverImageUrl, setCoverImageUrl] = useState("");
   const [cvUrl, setCvUrl] = useState("");
 
   // Section refs for hash-based scrolling
@@ -78,6 +80,7 @@ export default function ProfileEdit() {
         portfolioUrl: talent.portfolioUrl || "",
       });
       setProfilePhotoUrl(talent.profilePhotoUrl || "");
+      setCoverImageUrl(talent.coverImageUrl || "");
       setCvUrl(talent.cvUrl || "");
 
       const safeSkills = Array.isArray(talent.skills)
@@ -150,6 +153,11 @@ export default function ProfileEdit() {
 
   const handlePhotoChange = (url: string | null) => {
     setProfilePhotoUrl(url || "");
+    setIsDirty(true);
+  };
+
+  const handleCoverImageChange = (url: string | null) => {
+    setCoverImageUrl(url || "");
     setIsDirty(true);
   };
 
@@ -351,6 +359,7 @@ export default function ProfileEdit() {
         linkedinUrl: formData.linkedinUrl,
         portfolioUrl: formData.portfolioUrl,
         profilePhotoUrl: profilePhotoUrl || undefined,
+        coverImageUrl: coverImageUrl || undefined,
         cvUrl: cvUrl || undefined,
         skills: skills as any,
         experience: experience as any,
@@ -405,6 +414,19 @@ export default function ProfileEdit() {
               currentPhotoUrl={profilePhotoUrl}
               fullName={formData.fullName}
               onPhotoChange={handlePhotoChange}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Cover Image */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Cover Banner</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <CoverImageUpload
+              currentUrl={coverImageUrl}
+              onImageChange={handleCoverImageChange}
             />
           </CardContent>
         </Card>

@@ -27,6 +27,7 @@ export interface TalentProfile {
   linkedinUrl: string | null;
   portfolioUrl: string | null;
   profilePhotoUrl: string | null;
+  coverImageUrl: string | null;
   servicesUsed: string[];
   isFeatured: boolean;
   learnerStatus: string;
@@ -92,6 +93,7 @@ function mapRowToTalent(row: any): TalentProfile {
     linkedinUrl: row.linkedin_url,
     portfolioUrl: row.portfolio_url,
     profilePhotoUrl: row.profile_photo_url,
+    coverImageUrl: row.cover_image_url || null,
     servicesUsed: Array.isArray(row.services_used) ? row.services_used : [],
     isFeatured: row.is_featured || false,
     learnerStatus: row.learner_status || "free_learner",
@@ -205,6 +207,7 @@ export function TalentProvider({ children }: { children: React.ReactNode }) {
         mapField("linkedinUrl", "linkedin_url");
         mapField("portfolioUrl", "portfolio_url");
         mapField("profilePhotoUrl", "profile_photo_url");
+        mapField("coverImageUrl", "cover_image_url");
         mapField("onboardingCompletedAt", "onboarding_completed_at");
         mapField("onboardingStep", "onboarding_step");
         mapField("country", "country");

@@ -1,0 +1,1 @@
+ALTER TABLE public.talents ADD COLUMN cover_image_url text;
