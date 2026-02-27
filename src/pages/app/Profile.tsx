@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Mail,
@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ProfileCompletionMeter } from "@/components/profile/ProfileCompletionMeter";
+import { ProfileSectionEditor } from "@/components/profile/ProfileSectionEditor";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,6 +32,17 @@ export default function Profile() {
   const { talent, updateTalent, refreshTalent, isLoading: isTalentLoading } = useTalent();
   const [showEnhanceDialog, setShowEnhanceDialog] = useState(false);
   const [isEnhancing, setIsEnhancing] = useState(false);
+  const [editingSection, setEditingSection] = useState<"about" | "experience" | "education" | "skills" | "achievements" | "languages" | null>(null);
+
+  const handleSectionSave = useCallback(async (_section: string | null, data: any) => {
+    try {
+      await updateTalent(data);
+      await refreshTalent();
+      toast.success("Section saved successfully");
+    } catch {
+      toast.error("Failed to save changes");
+    }
+  }, [updateTalent, refreshTalent]);
 
   if (isTalentLoading) {
     return (
@@ -125,10 +137,10 @@ export default function Profile() {
             <Sparkles className="h-4 w-4" />
           </Button>
         )}
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigateEdit(section)}>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingSection(section as any)}>
           <Plus className="h-4 w-4" />
         </Button>
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigateEdit(section)}>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingSection(section as any)}>
           <Edit2 className="h-3.5 w-3.5" />
         </Button>
       </div>
@@ -413,6 +425,14 @@ export default function Profile() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Inline Section Editor */}
+      <ProfileSectionEditor
+        section={editingSection}
+        onClose={() => setEditingSection(null)}
+        onSave={handleSectionSave}
+        talent={talent}
+      />
     </div>
   );
 }
