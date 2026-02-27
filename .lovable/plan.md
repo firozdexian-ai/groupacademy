@@ -1,68 +1,49 @@
 
 
-# Add "Related Jobs" Section to Job Detail Pages
+# Fix: Allow Multiple Gig Submissions When Pending Exists
 
-## Goal
-Reduce the 75-80% bounce rate on job detail pages by showing related jobs at the bottom, keeping visitors engaged and browsing more listings.
+## Problem
+When a seeker submits a job sharing gig, the "Start" button is replaced with a "Pending review" badge, preventing them from submitting more -- even though the gig allows up to 50 submissions. This blocks the entire job sharing workflow after the first submission.
 
-## Approach
+## Root Cause
+In `GigCard.tsx` (line 66), the rendering logic is:
 
-Create a shared `RelatedJobs` component that fetches and displays up to 6 related jobs, prioritizing:
-1. Jobs from the **same company** (if any exist)
-2. Jobs from the **same country/location** (extracted from the location string)
-3. Fallback to **recent featured jobs** if neither yields enough results
+```text
+if isMaxed       -> show "Completed" badge
+else if hasPending -> show "Pending review" badge  <-- THIS BLOCKS EVERYTHING
+else             -> show "Start" button
+```
 
-Add this component to both `PublicJobDetail.tsx` (public visitors) and `AppJobDetail.tsx` (logged-in users).
+The `hasPending` check hides the Start button whenever **any** submission is pending. This makes sense for one-time gigs (like CV upload) but is wrong for repeatable gigs like job sharing (max 50).
+
+## Solution
+Change the logic so that `hasPending` only blocks the button when the gig is a single-completion gig (i.e., `max_completions_per_user` is 1 or null). For multi-submission gigs, show both the pending count info **and** the Start button.
 
 ## Changes
 
-### 1. New Component: `src/components/jobs/RelatedJobs.tsx`
+### File: `src/components/gigs/GigCard.tsx`
 
-A reusable component that accepts the current job's `id`, `company_name`, and `location`.
+Update the button rendering logic (lines 62-78):
 
-**Logic:**
-- Query up to 3 active jobs with matching `company_name` (excluding current job)
-- Query up to 6 active jobs with matching location country (e.g., `ilike "%Canada%"`) excluding current job and any already fetched
-- Combine and cap at 6 total
-- If fewer than 3, backfill with recent featured jobs
-- Display in a responsive grid (2 cols on mobile, 3 on desktop) using the existing `JobCard` component in compact variant
-- Section header: "More from [Company]" if company jobs exist, otherwise "More Jobs in [Country]", with a fallback "You Might Also Like"
-
-**Country extraction:** Simple last-segment parsing from location string (e.g., "Toronto, Canada" -> "Canada"), matching against known patterns.
-
-### 2. Update `src/pages/PublicJobDetail.tsx`
-
-Insert `<RelatedJobs>` between the "Bottom CTA" and the end of the page (after line 375). Jobs link to `/jobs/{id}` (public route).
-
-### 3. Update `src/pages/app/AppJobDetail.tsx`
-
-Insert `<RelatedJobs>` after the source image card and before the sticky bottom bar (after line 621). Jobs link to `/app/jobs/{id}` (app route). Pass the `navigate` function for in-app navigation.
-
-## Technical Details
-
-```text
-Component Props:
-  currentJobId: string
-  companyName: string
-  location: string | null
-  linkPrefix: "/jobs" | "/app/jobs"  (determines public vs app routing)
-
-Query Strategy:
-  1. Company query:  .ilike("company_name", companyName).neq("id", currentJobId).eq("is_active", true).limit(3)
-  2. Location query:  .ilike("location", `%${extractedCountry}%`).not("id", "in", `(${excludeIds})`).eq("is_active", true).limit(6)
-  3. Featured fallback: .eq("is_featured", true).eq("is_active", true).order("created_at", { ascending: false }).limit(6)
-
-Country Extraction:
-  - Split location by comma, take last segment, trim
-  - e.g., "Dhaka, Bangladesh" -> "Bangladesh"
-  - "Remote" -> skip location query
+**Before:**
+```
+isMaxed -> "Completed"
+hasPending -> "Pending review" (no button)
+else -> "Start" button
 ```
 
-## Files Changed
+**After:**
+```
+isMaxed -> "Completed"
+hasPending AND max_completions_per_user is 1 or null -> "Pending review" (no button)
+else -> Show "Start" button (with pending count badge alongside if applicable)
+```
+
+Specifically:
+- If `gig.max_completions_per_user > 1` (repeatable gig), always show the Start button unless maxed out
+- Show a small "X pending" indicator next to the button so the user knows prior submissions are being reviewed
+- Keep the current blocking behavior for single-use gigs where it makes sense to wait for approval
 
 | File | Change |
 |------|--------|
-| `src/components/jobs/RelatedJobs.tsx` | **New** -- Shared component with related jobs grid |
-| `src/pages/PublicJobDetail.tsx` | Add RelatedJobs before the bottom CTA section |
-| `src/pages/app/AppJobDetail.tsx` | Add RelatedJobs after source image card, before sticky bar |
-
+| `src/components/gigs/GigCard.tsx` | Update conditional rendering to allow new submissions on repeatable gigs even when prior submissions are pending |
