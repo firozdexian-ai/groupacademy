@@ -353,7 +353,7 @@ export default function JobsHub() {
             <div className="w-16 h-16 bg-background rounded-full flex items-center justify-center mx-auto mb-4 border border-destructive/20">
               <AlertCircle className="h-8 w-8 text-destructive" />
             </div>
-            <h3 className="font-semibold text-lg mb-2">Unable to load jobs</h3>
+            <h3 className="font-semibold text-base mb-2">Unable to load jobs</h3>
             <p className="text-muted-foreground mb-6 max-w-md mx-auto">{error}</p>
             <Button onClick={loadAllData} className="gap-2">
               <RefreshCw className="h-4 w-4" /> Try Again
@@ -365,7 +365,7 @@ export default function JobsHub() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-4 space-y-5">
+    <div className="max-w-4xl mx-auto px-4 py-2 space-y-2">
       {/* Tab Navigation */}
       <nav className="flex items-stretch border-b border-border">
         {TABS.map((tab) => {
@@ -374,7 +374,7 @@ export default function JobsHub() {
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`flex-1 flex flex-col items-center gap-1 py-3 transition-colors relative ${
+              className={`flex-1 flex flex-col items-center gap-0.5 py-2 transition-colors relative ${
                 isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -395,9 +395,9 @@ export default function JobsHub() {
           <section>
             <SectionHeader icon={Sparkles} title="Featured Jobs" viewAllPath="/app/jobs/all" />
             {loading ? (
-              <div className="flex gap-4 overflow-hidden pb-2">
+              <div className="flex gap-3 overflow-hidden pb-2">
                 {[1, 2, 3].map((i) => (
-                  <Card key={i} className="w-[260px] shrink-0">
+                  <Card key={i} className="w-[240px] shrink-0">
                     <CardContent className="p-4 space-y-3">
                       <div className="flex gap-3">
                         <Skeleton className="h-12 w-12 rounded-xl shrink-0" />
@@ -423,11 +423,11 @@ export default function JobsHub() {
             ) : (
               <div className="relative">
                 <ScrollArea className="w-full">
-                  <div className="flex gap-4 pb-4">
+                  <div className="flex gap-3 pb-3">
                     {topPicks.map((job, index) => (
                       <div
                         key={job.id}
-                        className="w-[260px] shrink-0 animate-in fade-in slide-in-from-right-4"
+                        className="w-[240px] shrink-0 animate-in fade-in slide-in-from-right-4"
                         style={{ animationDelay: `${index * 50}ms` }}
                       >
                         <div onClick={() => navigate(`/app/jobs/${job.id}`)} className="cursor-pointer">
@@ -452,7 +452,7 @@ export default function JobsHub() {
 
             {/* AI Recommendations Button */}
             {topPicks.length > 0 && aiSuggestions.length === 0 && (
-              <Button variant="outline" className="w-full mt-2 gap-2 h-11" onClick={handleShowAllAI} disabled={loadingAI}>
+              <Button variant="outline" className="w-full mt-2 gap-2 h-9" onClick={handleShowAllAI} disabled={loadingAI}>
                 {loadingAI ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
@@ -472,7 +472,7 @@ export default function JobsHub() {
             <section className="space-y-3">
               <div className="flex items-center gap-2">
                 <Brain className="h-5 w-5 text-primary animate-pulse" />
-                <h2 className="font-semibold text-base">Finding your best matches...</h2>
+                <h2 className="font-semibold text-sm">Finding your best matches...</h2>
               </div>
               {[1, 2, 3].map((i) => (
                 <Card key={i}>
@@ -553,11 +553,11 @@ export default function JobsHub() {
               <SectionHeader icon={Flame} title="Promoted / Expiring Soon" viewAllPath="/app/jobs/all" />
               <div className="relative">
                 <ScrollArea className="w-full">
-                  <div className="flex gap-4 pb-4">
+                  <div className="flex gap-3 pb-3">
                     {promotedJobs.map((job, index) => (
                       <div
                         key={job.id}
-                        className="w-[260px] shrink-0 animate-in fade-in slide-in-from-right-4"
+                        className="w-[240px] shrink-0 animate-in fade-in slide-in-from-right-4"
                         style={{ animationDelay: `${index * 50}ms` }}
                       >
                         <div onClick={() => navigate(`/app/jobs/${job.id}`)} className="cursor-pointer">
@@ -668,8 +668,8 @@ export default function JobsHub() {
                 className="cursor-pointer hover:border-primary/50 hover:shadow-md transition-all group"
                 onClick={() => navigate(`/app/jobs/all?type=${collection.filter}`)}
               >
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
+                <CardContent className="p-3 flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
                     <collection.icon className="h-5 w-5 text-primary" />
                   </div>
                   <span className="text-sm font-medium group-hover:text-primary transition-colors">
@@ -690,8 +690,8 @@ export default function JobsHub() {
             <div className="grid grid-cols-3 gap-3">
               {[1, 2, 3, 4, 5, 6].map((i) => (
                 <Card key={i}>
-                  <CardContent className="p-4 flex flex-col items-center gap-2">
-                    <Skeleton className="h-14 w-14 rounded-full" />
+                  <CardContent className="p-3 flex flex-col items-center gap-2">
+                    <Skeleton className="h-11 w-11 rounded-full" />
                     <Skeleton className="h-4 w-16" />
                     <Skeleton className="h-3 w-10" />
                   </CardContent>
@@ -714,8 +714,8 @@ export default function JobsHub() {
                   style={{ animationDelay: `${index * 30}ms` }}
                   onClick={() => navigate(`/app/jobs/all?company=${encodeURIComponent(company.name)}`)}
                 >
-                  <CardContent className="p-4 flex flex-col items-center gap-2">
-                    <Avatar className="h-14 w-14 border-2 border-border group-hover:border-primary transition-colors">
+                  <CardContent className="p-3 flex flex-col items-center gap-2">
+                    <Avatar className="h-11 w-11 border-2 border-border group-hover:border-primary transition-colors">
                       {company.logo_url ? (
                         <AvatarImage src={company.logo_url} alt={company.name} className="object-cover" />
                       ) : null}
