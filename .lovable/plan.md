@@ -1,49 +1,37 @@
 
+# Fix Job Posting Approval Error in Admin Panel
 
-# Fix and Improve the Job Posting Gig
+## Root Cause
 
-## Root Cause of the Error
+When clicking "Approve & Create Job" in the admin panel, the job insert fails because:
+1. The `application_type` column defaults to `'email'`
+2. A database trigger (`enforce_job_application_email`) requires `application_email` to be present when `application_type` is `'email'`
+3. The insert in `GigSubmissionsManager.tsx` does not set `application_type` or `application_email`, triggering the validation error
 
-The frontend sends `{ rawText: jobText }` but the edge function reads `{ jobPostText }` -- a **field name mismatch**. This means the edge function always receives `undefined` for the job text and returns a 400 error ("Please provide job post text").
+## Fix
 
-## Changes
+**File:** `src/components/dashboard/GigSubmissionsManager.tsx`
 
-### 1. Fix the field name mismatch (edge function)
-**File:** `supabase/functions/parse-job-post/index.ts`
+In the `approveAndCreateJobMutation` (around line 287), update the job insert to set `application_type: 'internal'` instead of relying on the default `'email'`. This bypasses the email validation trigger since gig-submitted jobs are managed internally. Also include `profession_category_id` from the parsed data if available.
 
-Change line 238 to accept both field names for backward compatibility:
+```typescript
+const { error: jobError } = await supabase.from("jobs").insert({
+  title: job?.title || "Untitled Position",
+  company_name: job?.company_name || "Unknown Company",
+  location: job?.location || null,
+  job_type: job?.job_type || "full_time",
+  experience_level: job?.experience_level || "entry",
+  description: job?.description || sd?.raw_text || "",
+  source_image_url: sd?.source_image_url || null,
+  source_platform: "other",
+  application_type: "internal",    // <-- prevents trigger error
+  profession_category_id: job?.profession_category_id || null,
+  is_active: true,
+});
 ```
-const { jobPostText, rawText } = await req.json();
-const text = jobPostText || rawText;
-```
-Then use `text` for the rest of the function. This ensures both the gig form and any other callers (like the admin dashboard) continue to work.
 
-### 2. Add ability to edit parsed fields before submitting
-**File:** `src/components/gigs/JobPostingGigForm.tsx`
-
-Currently the parsed preview is read-only. If the AI parses something incorrectly, the seeker is stuck. Add inline editing:
-- Make the Title, Company, Location, and Job Type fields editable `Input` fields instead of plain text
-- Pre-fill them from the parsed data
-- Allow the seeker to correct mistakes before submitting
-- Add a "Re-parse" button so they can try again with edited text
-
-### 3. Better error handling and UX feedback
-**File:** `src/components/gigs/JobPostingGigForm.tsx`
-
-- Show a clear error state when parsing fails (not just a toast that disappears)
-- Add a character count indicator near the textarea so seekers know the 20-char minimum
-- Disable the submit button if required parsed fields (title, company) are empty/dashes
-
-### 4. Show job posting details in MySubmissions
-**File:** `src/components/gigs/MySubmissions.tsx`
-
-For `job_posting` category submissions (not just `job_sharing`), display the parsed job title and company from `submission_data.parsed_job` so seekers can identify which job they submitted.
-
-## Technical Details
+## Files Changed
 
 | File | Change |
 |------|--------|
-| `supabase/functions/parse-job-post/index.ts` | Accept both `rawText` and `jobPostText` field names |
-| `src/components/gigs/JobPostingGigForm.tsx` | Editable parsed fields, re-parse button, better error states, char count |
-| `src/components/gigs/MySubmissions.tsx` | Show parsed job title/company for `job_posting` submissions |
-
+| `src/components/dashboard/GigSubmissionsManager.tsx` | Add `application_type: "internal"` and `profession_category_id` to job insert |
