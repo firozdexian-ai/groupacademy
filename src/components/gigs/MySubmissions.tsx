@@ -1,10 +1,13 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
-import { Coins, Clock, CheckCircle2, XCircle, FileText, MousePointerClick } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Coins, Clock, CheckCircle2, XCircle, FileText, MousePointerClick, Copy, Check, Link2 } from "lucide-react";
 import { format } from "date-fns";
+import { toast } from "sonner";
 
 interface MySubmissionsProps {
   talentId?: string;
@@ -17,6 +20,8 @@ const statusConfig = {
 };
 
 export function MySubmissions({ talentId }: MySubmissionsProps) {
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
   const { data: submissions, isLoading } = useQuery({
     queryKey: ["my-gig-submissions", talentId],
     enabled: !!talentId,
@@ -28,6 +33,20 @@ export function MySubmissions({ talentId }: MySubmissionsProps) {
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
+    },
+  });
+
+  const { data: talentRefCode } = useQuery({
+    queryKey: ["talent-ref-code", talentId],
+    enabled: !!talentId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("talents")
+        .select("ref_code")
+        .eq("id", talentId!)
+        .single();
+      if (error) throw error;
+      return data?.ref_code as string;
     },
   });
 
@@ -139,6 +158,30 @@ export function MySubmissions({ talentId }: MySubmissionsProps) {
                   </span>
                 </div>
                 <Progress value={Math.min((clicks / CLICK_THRESHOLD) * 100, 100)} className="h-1.5" />
+              </div>
+            )}
+
+            {/* Share link for pending job sharing submissions */}
+            {isJobSharing && sub.status === "pending" && jobId && talentRefCode && (
+              <div className="mt-2 flex items-center gap-2 bg-muted/50 rounded-lg px-3 py-2">
+                <Link2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                <code className="text-[11px] text-muted-foreground truncate flex-1">
+                  {`${window.location.origin}/jobs/${jobId}?ref=${talentRefCode}`}
+                </code>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 shrink-0"
+                  onClick={() => {
+                    const url = `${window.location.origin}/jobs/${jobId}?ref=${talentRefCode}`;
+                    navigator.clipboard.writeText(url);
+                    setCopiedId(sub.id);
+                    toast.success("Share link copied!");
+                    setTimeout(() => setCopiedId(null), 2000);
+                  }}
+                >
+                  {copiedId === sub.id ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
+                </Button>
               </div>
             )}
 
