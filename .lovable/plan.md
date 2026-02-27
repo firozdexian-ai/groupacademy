@@ -1,47 +1,83 @@
 
-# Improve AI-Generated Share Caption Formatting
+
+# Replace "International" Blob with Per-Country Filter
 
 ## Problem
-The AI captions come out as a single unstructured paragraph — no line breaks, no visual separation between the hook, job details, and call-to-action. This makes them hard to read and unattractive when pasted into social media.
+The current location filter has only 3 options: Bangladesh, Remote, International. "International" dumps 2,000+ jobs from 15+ countries into one list, making it impossible to share jobs for a specific country like UAE, India, or Canada.
 
 ## Solution
-Update the prompt in the `generate-job-share-caption` edge function to instruct the AI to produce **structured, multi-line captions** with clear visual sections. Also increase the character limit to allow breathing room.
+Replace the location filter dropdown with a searchable list of actual countries derived from job data, plus keep "Bangladesh", "Remote", and "All" as top-level options.
 
-## Changes
+## How It Works
 
-### 1. Update `supabase/functions/generate-job-share-caption/index.ts`
+### 1. Dynamic Country Extraction
+On component load, run a query that extracts unique countries from the `location` column using pattern matching against the known countries list (from `src/lib/constants/countries.ts`). This produces a list like:
 
-Rewrite the prompt rules to enforce a structured format:
+- India (488 jobs)
+- UAE (459)
+- Bangladesh (442)
+- United States (155)
+- United Kingdom (93)
+- Australia (90)
+- Canada (87)
+- Germany (84)
+- Japan (83)
+- Singapore (76)
+- Ireland (72)
+- New Zealand (57)
+- France, Saudi Arabia, Netherlands (40-50 each)
+- ...and more
 
-**New prompt structure instructions:**
-- Line 1: A creative hook or attention-grabbing opening (question, bold statement)
-- Blank line
-- Job details block: Role title, company, location, type -- each on its own line with relevant emojis
-- Blank line
-- 1-2 lines about key requirements or what makes this role exciting
-- Blank line
-- Call-to-action + apply link
-- Optional: relevant hashtags (2-3 max)
+### 2. Updated Filter Dropdown
+Replace the current 4-option Select with a wider, scrollable dropdown:
 
-**Key prompt changes:**
-- Remove the tight character limit (500 chars forces a blob). Replace with "under 800 characters" for LinkedIn/Facebook/WhatsApp, keep Telegram at 280.
-- Add explicit instruction: "Use line breaks to separate sections. Do NOT write a single paragraph."
-- Add: "Format the job details clearly -- one detail per line"
-- Add channel-specific formatting hints (e.g., WhatsApp supports bold with asterisks, LinkedIn supports line breaks well)
+```
+All Locations
+---
+Bangladesh
+Remote
+All International (non-Bangladesh)
+---
+India (488)
+UAE (459)
+United States (155)
+United Kingdom (93)
+Australia (90)
+Canada (87)
+...
+```
 
-**Channel-specific formatting guidance:**
-- LinkedIn: Use line breaks generously. Professional structure.
-- Facebook: Community tone. Encourage tagging. Separate hook from details.
-- WhatsApp: Use *bold* for job title and company. Short paragraphs with blank lines between.
-- Telegram: Keep concise but still use 2-3 lines instead of one blob.
+- Top section: Quick presets (Bangladesh, Remote, All International)
+- Bottom section: Individual countries sorted by job count (descending)
+- Each country shows its job count as a badge for quick context
+- The dropdown uses a Command/Combobox pattern with search so you can type "Canada" to jump to it
 
-### 2. Update Textarea display in `JobsManager.tsx`
+### 3. Filter Query Logic
+When a specific country is selected (e.g., "Canada"):
+```
+query.ilike("location", "%Canada%")
+```
 
-Increase the textarea rows from 6 to 10 to better display the multi-line formatted captions without scrolling.
+This matches "Toronto, Canada", "Alberta, Canada", etc. -- works with the existing location format.
+
+### 4. Country Detection Approach
+Rather than a complex DB function, we do a simple client-side extraction:
+- Fetch distinct locations from jobs table
+- Match each against the COUNTRIES list from `countries.ts`
+- Count occurrences per country
+- Sort by count descending
+
+This is done once on mount and cached in state.
 
 ## Files Changed
 
 | File | Change |
 |------|--------|
-| `supabase/functions/generate-job-share-caption/index.ts` | Rewrite prompt to enforce structured multi-line formatting with sections; increase char limits |
-| `src/components/dashboard/JobsManager.tsx` | Increase textarea rows from 6 to 10 |
+| `src/components/dashboard/JobsManager.tsx` | Replace location filter Select with a searchable Combobox/Command showing individual countries with counts; update filter logic to support per-country filtering |
+
+## Technical Notes
+
+- Uses the existing `cmdk` (Command) component already installed for the searchable dropdown
+- Country list is derived dynamically from actual job data, so it automatically reflects whatever countries exist
+- Falls back to the COUNTRIES constant for display names and flag emojis
+- No database changes needed -- purely a frontend filter improvement
