@@ -1,117 +1,80 @@
 
 
-# Transactions Page -- Credit Ledger with Monthly Statements
+# Jobs Hub Enhancement -- New Browsing Sections
 
 ## Overview
 
-Create a new `/app/transactions` page with two tabs: **Transaction History** (scrollable ledger) and **Monthly Statement** (summary view). Follows the bKash-style wireframe with wallet summary at top and detailed transaction list below.
+Extend the existing Jobs Hub page with four new sections matching the wireframe: **Job by Company**, **Job by Country**, **Promoted/Expiring Soon carousel**, and improved **Job Collection navigation**. No database changes needed -- all data derives from existing `jobs` table columns (`company_name`, `company_logo_url`, `location`, `deadline`, `is_featured`).
 
-## Layout
+## Layout (Section Order)
 
 ```text
-Tab 1: Transaction History
 +---------------------------------------+
-| <-  Transaction History    [Settings] |
+| Search Bar (existing)                 |
+| Quick Access Pills (existing)         |
+| Featured Jobs Carousel (existing)     |
+| AI Recommendations (existing)         |
+| Browse by Type (existing)             |
 +---------------------------------------+
-| Wallet Summary Card                   |
-| Total: 250 | Earned: 90 | Free: 160  |
+| NEW: Job by Company (horizontal)      |
+| [logo+name] [logo+name] [logo+name]  |
 +---------------------------------------+
-| Statement Request              >      |
+| NEW: Job by Country (horizontal)      |
+| [flag+name] [flag+name] [flag+name]   |
 +---------------------------------------+
-| Transactions from last 90 days        |
+| Recommended for You (existing)        |
 +---------------------------------------+
-| [icon] Job Application       -25      |
-|        Job #xyz              Feb 25   |
-|        10:30 AM        [Details >]    |
+| NEW: Promoted / Expiring Soon         |
+| horizontal carousel of JobCards       |
 +---------------------------------------+
-| [icon] AI Agent Chat         -10      |
-|        Career Coach          Feb 24   |
-|        2:15 PM         [Details >]    |
-+---------------------------------------+
-| [icon] Welcome Bonus         +250     |
-|        Sign-up reward        Feb 20   |
-|        9:00 AM          [Details >]   |
-+---------------------------------------+
-
-Tab 2: Monthly Statement
-+---------------------------------------+
-| <-  Transaction History    [Settings] |
-+---------------------------------------+
-| Wallet Summary Card                   |
-+---------------------------------------+
-| [Month Picker: < February 2026 >]    |
-+---------------------------------------+
-| Last update: 10:30 AM, Feb 27        |
-+---------------------------------------+
-| Start Balance    |    End Balance     |
-|     500          |       250          |
-+---------------------------------------+
-| Service-wise Breakdown                |
-+---------------------------------------+
-| Job Application          -150         |
-| AI Agent Chat             -60         |
-| Job Share (earned)        +90         |
-| Welcome Bonus            +250         |
-+---------------------------------------+
-| Net Change: +130                      |
+| Recent Applications (existing)        |
 +---------------------------------------+
 ```
-
-## No Database Changes Required
-
-All data comes from the existing `credit_transactions` table which already has: `amount`, `service_type`, `transaction_type`, `balance_after`, `created_at`, `description`, `is_earned`.
 
 ## File Changes
 
-### 1. New File: `src/pages/app/Transactions.tsx`
+### 1. Update `src/pages/app/JobsHub.tsx`
 
-The main page with two tabs:
+Add three new sections and one new data fetch. All inserted between existing sections.
 
-**Tab 1 -- History:**
-- Wallet summary card at top (reuses CreditBalance `full` variant)
-- "Statement Request" link (switches to Tab 2)
-- Fetches last 90 days of transactions from `credit_transactions` ordered by `created_at desc`
-- Each row shows: service icon (mapped from `service_type`), service label, description/source, signed amount (+/-) color-coded (green for positive, red for negative), date, time
-- "Details" expand button per row showing: balance after, reference ID, transaction type
-- Pagination or infinite scroll (load 20, then "Load more")
+**New state:**
+- `companies`: top 8 companies with logo and job count (aggregated via a single query using `company_name, company_logo_url`)
+- `countries`: top 8 distinct locations with job count
+- `promotedJobs`: jobs that are featured OR have deadline within 7 days, ordered by deadline ascending (most urgent first), limit 8
 
-**Tab 2 -- Monthly Statement:**
-- Month picker (previous/next arrows with month-year label)
-- "Last update" timestamp from most recent transaction in that month
-- Start Balance (balance_after of last transaction from previous month) and End Balance (balance_after of last transaction in selected month)
-- Service-wise breakdown: group transactions by `service_type`, sum amounts per type
-- Net change for the month
+**New data fetching (inside `loadAllData`):**
+- `fetchTopCompanies()`: Query `jobs` table with group-by logic. Since Supabase JS doesn't support GROUP BY, we'll fetch active jobs selecting `company_name, company_logo_url` and aggregate in JS (using a Map to count + dedupe). Take top 8 by count.
+- `fetchTopCountries()`: Similar approach -- fetch `location` column from active jobs, extract country part (after last comma or full string), aggregate in JS. Take top 8.
+- `fetchPromotedJobs()`: Query featured jobs UNION jobs with deadline within next 7 days, ordered by deadline asc, limit 8. Uses the existing `JobCardData` type.
 
-**Service icon mapping** (reuses existing icon patterns):
-- `JOB_APPLICATION` -> Briefcase
-- `AI_AGENT_CHAT` -> Bot
-- `CAREER_ASSESSMENT` -> ClipboardCheck
-- `MOCK_INTERVIEW` -> Mic
-- `SALARY_ANALYSIS` -> DollarSign
-- `welcome_bonus` / `purchase` -> Gift / CreditCard
-- `IELTS_MOCK` -> BookOpen
-- Default -> Coins
+**New UI sections:**
 
-### 2. Update: `src/lib/routes.ts`
+**(a) Job by Company** -- Horizontal scroll of circular logo avatars with company name and job count underneath. Clicking navigates to `/app/jobs/all?company=CompanyName`.
 
-Add the transactions route:
-```
-transactions: '/app/transactions',
+```text
+[ (logo)   ]  [ (logo)   ]  [ (logo)   ]
+  Hilton       PwC India     Canonical
+  21 jobs      41 jobs       27 jobs
 ```
 
-### 3. Update: `src/App.tsx`
+**(b) Job by Country** -- Horizontal scroll of rounded-rectangle cards showing country/city name with job count. Clicking navigates to `/app/jobs/all?location=LocationName`.
 
-Add route entry for `/app/transactions` -> `Transactions` page (lazy loaded).
+```text
+[ Dhaka, BD    ]  [ Dubai, UAE   ]  [ Singapore   ]
+  351 jobs          284 jobs          76 jobs
+```
 
-### 4. Update: `src/layouts/TalentAppShell.tsx`
+**(c) Promoted / Expiring Soon** -- Horizontal carousel using existing `JobCard` with `default` variant at 260px width (same pattern as Featured Jobs). Section header shows a flame/fire icon. Jobs with urgent deadlines get the existing red "Closing soon" badge automatically from `JobCard`.
 
-Change the sidebar "Transactions" link from `/app/profile` to `/app/transactions`.
+### 2. No other file changes needed
+
+All new sections use existing components (`SectionHeader`, `JobCard`, `ScrollArea`, `Card`, `Badge`) and existing navigation patterns (`/app/jobs/all?param=value`). The `/app/jobs/all` page already handles `search`, `type` query params -- we'll pass `company` and `location` params that the AppJobs page will need to handle (noted as future work or handled if the page already supports filtering).
 
 ## Technical Notes
 
-- Transaction history query fetches from `credit_transactions` with `talent_id` filter, last 90 days default, ordered by `created_at desc`
-- Monthly statement aggregates using JS grouping (no new DB functions needed) -- group by `service_type` and sum `amount`
-- Start/End balance calculation: query first and last transaction of the month for `balance_after`
-- Color coding: positive amounts in green (`text-emerald-600`), negative in red (`text-destructive`)
-- Follows mobile-first compact design with `space-y-2` and `gap-2` patterns per existing standards
+- Company aggregation: Fetch up to 500 active jobs selecting only `company_name, company_logo_url`, then use a JS `Map` to aggregate counts. This avoids needing a database function.
+- Country extraction: Parse the `location` string (e.g., "Dubai, United Arab Emirates") -- use full location string for filtering, display truncated for UI.
+- Promoted jobs query: `is_featured = true OR (deadline between NOW and NOW+7days)`, active only, limit 8.
+- All new fetches run in parallel with existing ones via `Promise.all`.
+- Icons: `Building2` for companies, `Globe` for countries, `Flame` for promoted section.
 
