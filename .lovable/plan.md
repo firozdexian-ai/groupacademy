@@ -1,47 +1,54 @@
 
-# Fix: Render HTML Job Descriptions Properly
+# Jobs Hygiene Cleanup + External Apply Tracking
 
-## Problem
+## Problem 1: Duplicate Jobs (393 duplicates found)
 
-LinkedIn-imported jobs store rich HTML in `ai_enhanced_description` (with `<p>`, `<b>`, `<ul>`, `<li>` tags). Both job detail pages render this as plain text using `{displayDescription}`, causing raw HTML tags to show on screen (as seen in your screenshot).
+**Root cause**: The dedup check uses `source_url` (LinkedIn URL), but LinkedIn creates multiple URLs for the same job posting. Same role at the same company gets imported multiple times with different LinkedIn URLs.
 
-## Solution
+**Fix -- two parts**:
 
-Use `dangerouslySetInnerHTML` when the description contains HTML tags, and fall back to plain text rendering otherwise. This is a simple conditional check.
+### A. Clean up existing duplicates (one-time database cleanup)
+- Write a migration that keeps only the newest row per `title + company_name` combo, deleting older duplicates
+- This will remove ~393 duplicate rows safely
+- Only deletes jobs that have no associated applications
 
-## Changes
+### B. Strengthen dedup in future imports
+- In `BatchLinkedInJobUpload.tsx`, add a secondary dedup check: besides `source_url`, also check for existing jobs with the same `title + company_name` (case-insensitive)
+- Mark these as duplicates in the preview table so admins can see them before importing
 
-### 1. `src/pages/app/AppJobDetail.tsx` (line ~481)
+## Problem 2: Zero Tracking on "Apply Externally" Clicks
 
-Replace:
-```jsx
-{displayDescription}
+**Current state**: 2,640 jobs use external links. When users click "Apply Externally", `window.open()` fires with no tracking. You have zero visibility on application intent for these jobs.
+
+**Solution -- Create an "External Apply Click" tracking system**:
+
+### A. New database table: `job_apply_clicks`
+```text
+id (uuid), job_id (uuid), talent_id (uuid nullable), clicked_at (timestamp), source (text)
 ```
+This captures every "Apply Externally" click, tied to the job and optionally the logged-in user.
 
-With a conditional that detects HTML and renders it properly:
-```jsx
-{isHtml
-  ? <div dangerouslySetInnerHTML={{ __html: displayDescription }} />
-  : displayDescription}
-```
+### B. Track clicks in `AppJobDetail.tsx` and `PublicJobDetail.tsx`
+- Before calling `window.open()`, insert a row into `job_apply_clicks`
+- For logged-in users: capture `talent_id`
+- For public page: anonymous click (talent_id = null)
 
-### 2. `src/pages/PublicJobDetail.tsx` (line ~299)
+### C. Show apply click counts in admin dashboard
+- In `JobsManager.tsx`, add an "Apply Clicks" column next to the existing "Shared" column
+- Query `job_apply_clicks` grouped by `job_id` alongside the share logs fetch
+- Display the count per job so admins can see engagement
 
-Same fix -- detect HTML and use `dangerouslySetInnerHTML` when present.
+### D. Add to KPI Dashboard
+- In `JobsKPIDashboard.tsx`, add a "Total Apply Clicks" KPI card showing total external apply clicks (last 30 days)
+- This gives a quick pulse on how many people are actually trying to apply
 
-### Detection Logic
+## Technical Summary
 
-A simple regex check determines if the content contains HTML:
-```typescript
-const isHtml = /<[a-z][\s\S]*>/i.test(displayDescription || "");
-```
-
-This ensures:
-- LinkedIn-imported jobs with HTML descriptions render formatted content (bold, lists, paragraphs)
-- Manually entered plain-text descriptions continue to render normally with `whitespace-pre-wrap`
-- No changes to existing data or database needed
-
-| File | Change |
-|------|--------|
-| `src/pages/app/AppJobDetail.tsx` | Conditionally render HTML descriptions |
-| `src/pages/PublicJobDetail.tsx` | Same fix |
+| File / Area | Change |
+|---|---|
+| Database migration | Create `job_apply_clicks` table with RLS; deduplicate existing jobs |
+| `BatchLinkedInJobUpload.tsx` | Add title+company dedup check alongside source_url check |
+| `AppJobDetail.tsx` | Track click before `window.open()` in `handleApply` |
+| `PublicJobDetail.tsx` | Same tracking for public job page |
+| `JobsManager.tsx` | Add "Apply Clicks" column fetched per page |
+| `JobsKPIDashboard.tsx` | Add "Apply Clicks" KPI card |
