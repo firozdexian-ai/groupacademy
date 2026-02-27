@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,6 +29,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Send,
+  Briefcase,
 } from "lucide-react";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
@@ -77,6 +79,7 @@ const emptyCompany = {
 const ITEMS_PER_PAGE = 10;
 
 export function CompaniesManager() {
+  const [, setSearchParams] = useSearchParams();
   // Data State
   const [companies, setCompanies] = useState<Company[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -540,6 +543,14 @@ export function CompaniesManager() {
                               </TooltipProvider>
                             )}
                             
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setSearchParams({ tab: "jobs", company: company.id })}
+                              title="View jobs for this company"
+                            >
+                              <Briefcase className="w-4 h-4" />
+                            </Button>
                             <Button variant="ghost" size="sm" onClick={() => handleOpenDialog(company)}>
                               <Edit className="w-4 h-4" />
                             </Button>

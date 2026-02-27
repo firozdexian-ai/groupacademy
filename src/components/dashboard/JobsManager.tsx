@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Plus,
   Search,
@@ -37,7 +39,9 @@ import {
   Star,
   Brain,
   Mic,
-  Clock, // Added icon
+  Clock,
+  MapPin,
+  RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format, endOfMonth } from "date-fns";
@@ -198,18 +202,25 @@ const emptyJob = {
   vacancies: 1,
 };
 
-// ... (ShareJobDialog component omitted for brevity, it remains unchanged) ...
-// Keeping it simple since we just need the main export JobsManager and JobForm logic changed.
-// I will include the ShareJobDialog to ensure the file is complete and copy-pasteable.
-
 const ShareJobDialog = ({ job, isOpen, onClose }: { job: Job | null; isOpen: boolean; onClose: () => void }) => {
   const [activeTab, setActiveTab] = useState("linkedin");
   const [shareLogs, setShareLogs] = useState<ShareLog[]>([]);
   const [customChannel, setCustomChannel] = useState("");
+  const [aiCaptions, setAiCaptions] = useState<Record<string, string>>({});
+  const [loadingCaption, setLoadingCaption] = useState(false);
 
   useEffect(() => {
-    if (job && isOpen) loadShareLogs();
+    if (job && isOpen) {
+      loadShareLogs();
+      setAiCaptions({});
+    }
   }, [job, isOpen]);
+
+  useEffect(() => {
+    if (job && isOpen && ["linkedin", "facebook", "whatsapp", "telegram"].includes(activeTab) && !aiCaptions[activeTab]) {
+      generateCaption(activeTab);
+    }
+  }, [activeTab, job, isOpen]);
 
   const loadShareLogs = async () => {
     if (!job) return;
@@ -219,18 +230,46 @@ const ShareJobDialog = ({ job, isOpen, onClose }: { job: Job | null; isOpen: boo
 
   const isShared = (channel: string) => shareLogs.some((log) => log.channel === channel);
 
+  const generateCaption = async (channel: string) => {
+    if (!job) return;
+    setLoadingCaption(true);
+    try {
+      const jobUrl = `${window.location.origin}/jobs/${job.id}?source=${channel}`;
+      const { data, error } = await supabase.functions.invoke("generate-job-share-caption", {
+        body: {
+          title: job.title,
+          company: job.company_name,
+          location: job.location,
+          job_type: job.job_type,
+          requirements: job.requirements,
+          apply_link: jobUrl,
+          channel,
+        },
+      });
+      if (error) throw error;
+      if (data?.caption) {
+        setAiCaptions((prev) => ({ ...prev, [channel]: data.caption }));
+      }
+    } catch (err) {
+      console.error("Caption generation failed:", err);
+      const jobUrl = `${window.location.origin}/jobs/${job.id}?source=${channel}`;
+      setAiCaptions((prev) => ({
+        ...prev,
+        [channel]: `🚀 ${job.title} at ${job.company_name}\n📍 ${job.location}\n\nApply: ${jobUrl}`,
+      }));
+    } finally {
+      setLoadingCaption(false);
+    }
+  };
+
   const recordShare = async (channel: string) => {
     if (!job) return;
     setShareLogs((prev) => [...prev, { channel, shared_at: new Date().toISOString() }]);
-
     const { error } = await supabase.from("job_share_logs").insert({
-      job_id: job.id,
-      channel: channel,
-      shared_at: new Date().toISOString(),
+      job_id: job.id, channel, shared_at: new Date().toISOString(),
     });
-
     if (error) {
-      setShareLogs((prev) => prev.filter((l) => l.channel !== channel)); // Revert if failed
+      setShareLogs((prev) => prev.filter((l) => l.channel !== channel));
       toast.error("Failed to save progress");
     } else {
       toast.success(`Marked as shared on ${channel}`);
@@ -249,36 +288,25 @@ const ShareJobDialog = ({ job, isOpen, onClose }: { job: Job | null; isOpen: boo
   const handleSocialShare = (platform: "linkedin" | "facebook" | "whatsapp" | "telegram") => {
     const link = getShareLink(platform);
     recordShare(platform);
+    const caption = aiCaptions[platform] || `Check out this job: ${job.title} at ${job.company_name}\n${link}`;
     let url = "";
-    const caption = `Check out this job: ${job.title} at ${job.company_name}\n${link}`;
     switch (platform) {
-      case "linkedin":
-        url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(link)}`;
-        break;
-      case "facebook":
-        url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}`;
-        break;
-      case "whatsapp":
-        url = `https://wa.me/?text=${encodeURIComponent(caption)}`;
-        break;
-      case "telegram":
-        url = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(`Job: ${job.title}`)}`;
-        break;
+      case "linkedin": url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(link)}`; break;
+      case "facebook": url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}`; break;
+      case "whatsapp": url = `https://wa.me/?text=${encodeURIComponent(caption)}`; break;
+      case "telegram": url = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(caption)}`; break;
     }
     window.open(url, "_blank", "width=600,height=600");
   };
 
-  const templates = {
-    english: `🚀 Hiring: ${job.title}\n🏢 ${job.company_name}\n📍 ${job.location}\n\nApply: ${getShareLink(activeTab)}\n\n#hiring #jobsearch`,
-    bangla: `📢 চাকরির সুযোগ: ${job.title}\n🏢 ${job.company_name}\n📍 ${job.location}\n\nআবেদন: ${getShareLink(activeTab)}\n\n#bdjobs`,
-  };
+  const currentCaption = aiCaptions[activeTab] || "";
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Promote: {job.title}</DialogTitle>
-          <DialogDescription>Share across channels.</DialogDescription>
+          <DialogDescription>Share across channels with AI-generated captions.</DialogDescription>
         </DialogHeader>
         <div className="flex gap-6 mt-4">
           <div className="w-1/3 border-r pr-6 space-y-4">
@@ -305,94 +333,72 @@ const ShareJobDialog = ({ job, isOpen, onClose }: { job: Job | null; isOpen: boo
                 className={`w-full flex items-center justify-between p-3 rounded-lg text-sm ${activeTab === "custom" ? "bg-primary/10 ring-1 ring-primary" : "hover:bg-muted"}`}
               >
                 <div className="flex items-center gap-3">
-                  <LinkIcon className="w-4 h-4" />
-                  <span>Custom Link</span>
+                  <LinkIcon className="w-4 h-4" /> <span>Custom Link</span>
                 </div>
               </button>
             </div>
           </div>
-          <div className="flex-1 space-y-6">
-            {(activeTab === "linkedin" || activeTab === "facebook") && (
+          <div className="flex-1 space-y-4">
+            {["linkedin", "facebook", "whatsapp", "telegram"].includes(activeTab) && (
               <div className="space-y-4">
-                <div className="bg-blue-50 p-3 rounded-md text-sm text-blue-800">
-                  Use this template for best results.
+                <div className="flex items-center justify-between">
+                  <Badge variant="outline" className="text-xs gap-1">
+                    <Sparkles className="w-3 h-3" /> AI Caption
+                  </Badge>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setAiCaptions((prev) => ({ ...prev, [activeTab]: "" }));
+                      generateCaption(activeTab);
+                    }}
+                    disabled={loadingCaption}
+                  >
+                    <RefreshCw className={`w-3 h-3 mr-1 ${loadingCaption ? "animate-spin" : ""}`} />
+                    Regenerate
+                  </Button>
                 </div>
-                <Textarea
-                  value={activeTab === "linkedin" ? templates.english : templates.bangla}
-                  readOnly
-                  rows={5}
-                  className="text-xs bg-muted/30"
-                />
+                {loadingCaption && !currentCaption ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-4 w-1/2" />
+                  </div>
+                ) : (
+                  <Textarea
+                    value={currentCaption}
+                    onChange={(e) => setAiCaptions((prev) => ({ ...prev, [activeTab]: e.target.value }))}
+                    rows={6}
+                    className="text-xs"
+                  />
+                )}
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => copyToClipboard(activeTab === "linkedin" ? templates.english : templates.bangla)}
+                  onClick={() => { copyToClipboard(currentCaption); toast.success("Caption copied!"); }}
                   className="w-full"
+                  disabled={!currentCaption}
                 >
                   <Copy className="w-3 h-3 mr-2" /> Copy Caption
                 </Button>
-                <Button
-                  className="w-full bg-blue-600 hover:bg-blue-700"
-                  onClick={() => handleSocialShare(activeTab as any)}
-                >
-                  <Share2 className="w-4 h-4 mr-2" /> Share Direct
+                <Button className="w-full" onClick={() => handleSocialShare(activeTab as any)}>
+                  <Share2 className="w-4 h-4 mr-2" /> Share on {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
                 </Button>
-              </div>
-            )}
-            {(activeTab === "whatsapp" || activeTab === "telegram") && (
-              <div className="space-y-4">
-                <Button
-                  className="w-full bg-green-600 hover:bg-green-700"
-                  onClick={() => handleSocialShare(activeTab as any)}
-                >
-                  Open App
-                </Button>
-                <div className="flex gap-2">
-                  <Input readOnly value={getShareLink(activeTab)} className="bg-muted text-xs" />
-                  <Button variant="outline" onClick={() => copyLink(activeTab)}>
-                    <Copy className="w-4 h-4" />
+                {!isShared(activeTab) && (
+                  <Button variant="secondary" className="w-full" onClick={() => recordShare(activeTab)}>
+                    Mark as Done Manually
                   </Button>
-                </div>
-                <Button
-                  variant="secondary"
-                  className="w-full"
-                  onClick={() => {
-                    recordShare(activeTab);
-                    toast.success("Marked!");
-                  }}
-                  disabled={isShared(activeTab)}
-                >
-                  {isShared(activeTab) ? (
-                    <>
-                      <Check className="w-4 h-4 mr-2" /> Done
-                    </>
-                  ) : (
-                    "Mark as Done Manually"
-                  )}
-                </Button>
+                )}
               </div>
             )}
             {activeTab === "custom" && (
               <div className="space-y-4">
-                <Input
-                  placeholder="Channel Name (e.g. newsletter)"
-                  value={customChannel}
-                  onChange={(e) => setCustomChannel(e.target.value)}
-                />
+                <Input placeholder="Channel Name (e.g. newsletter)" value={customChannel} onChange={(e) => setCustomChannel(e.target.value)} />
                 <div className="flex gap-2">
                   <Input readOnly value={getShareLink(customChannel || "custom")} className="bg-muted" />
-                  <Button onClick={() => copyLink(customChannel || "custom")}>
-                    <Copy className="w-4 h-4" />
-                  </Button>
+                  <Button onClick={() => copyLink(customChannel || "custom")}><Copy className="w-4 h-4" /></Button>
                 </div>
-                <Button
-                  variant="secondary"
-                  className="w-full"
-                  onClick={() => {
-                    recordShare(customChannel || "custom");
-                    toast.success("Marked!");
-                  }}
-                >
+                <Button variant="secondary" className="w-full" onClick={() => { recordShare(customChannel || "custom"); toast.success("Marked!"); }}>
                   <Check className="w-4 h-4 mr-2" /> Mark as Done
                 </Button>
               </div>
@@ -953,6 +959,7 @@ const JobForm = ({
 
 // --- 3. MAIN MANAGER COMPONENT ---
 export function JobsManager() {
+  const [searchParams] = useSearchParams();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -961,6 +968,9 @@ export function JobsManager() {
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearch = useDebounce(searchQuery, 500);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [locationFilter, setLocationFilter] = useState<string>("all");
+  const [companyFilter, setCompanyFilter] = useState<string>(searchParams.get("company") || "all");
+  const [companiesList, setCompaniesList] = useState<{ id: string; name: string }[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingJob, setEditingJob] = useState<Job | null>(null);
   const [saving, setSaving] = useState(false);
@@ -979,7 +989,12 @@ export function JobsManager() {
       const { data } = await supabase.from("profession_categories").select("id, name").order("name");
       setCategories(data || []);
     };
+    const loadCompanies = async () => {
+      const { data } = await supabase.from("companies").select("id, name").order("name");
+      setCompaniesList(data || []);
+    };
     loadCategories();
+    loadCompanies();
   }, []);
 
   const loadJobs = useCallback(async () => {
@@ -996,6 +1011,26 @@ export function JobsManager() {
           statusFilter === "featured"
             ? query.eq("is_featured", true)
             : query.eq("is_active", statusFilter === "active");
+
+      // Location filter
+      if (locationFilter === "bangladesh") {
+        query = query.ilike("location", "%Bangladesh%");
+      } else if (locationFilter === "remote") {
+        query = query.ilike("location", "%remote%");
+      } else if (locationFilter === "abroad") {
+        query = query.not("location", "ilike", "%Bangladesh%");
+      } else if (locationFilter !== "all") {
+        query = query.ilike("location", `%${locationFilter}%`);
+      }
+
+      // Company filter
+      if (companyFilter !== "all") {
+        const selectedCompany = companiesList.find((c) => c.id === companyFilter);
+        if (selectedCompany) {
+          query = query.ilike("company_name", `%${selectedCompany.name}%`);
+        }
+      }
+
       const from = (page - 1) * ITEMS_PER_PAGE;
       query = query.range(from, from + ITEMS_PER_PAGE - 1);
       const result = await withTimeout(Promise.resolve(query), TIMEOUTS.DEFAULT, "Timeout");
@@ -1040,7 +1075,7 @@ export function JobsManager() {
     } finally {
       setLoading(false);
     }
-  }, [page, debouncedSearch, statusFilter]);
+  }, [page, debouncedSearch, statusFilter, locationFilter, companyFilter, companiesList]);
 
   useEffect(() => {
     loadJobs();
@@ -1172,8 +1207,8 @@ export function JobsManager() {
               </Button>
             </div>
           </div>
-          <div className="flex gap-4 mt-4">
-            <div className="relative flex-1">
+          <div className="flex flex-wrap gap-3 mt-4">
+            <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted" />
               <Input
                 className="pl-9"
@@ -1189,13 +1224,49 @@ export function JobsManager() {
                 setPage(1);
               }}
             >
-              <SelectTrigger className="w-[150px]">
+              <SelectTrigger className="w-[130px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
                 <SelectItem value="inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select
+              value={locationFilter}
+              onValueChange={(v) => {
+                setLocationFilter(v);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger className="w-[160px]">
+                <MapPin className="w-3 h-3 mr-1" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Locations</SelectItem>
+                <SelectItem value="bangladesh">Bangladesh</SelectItem>
+                <SelectItem value="remote">Remote</SelectItem>
+                <SelectItem value="abroad">International</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select
+              value={companyFilter}
+              onValueChange={(v) => {
+                setCompanyFilter(v);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger className="w-[180px]">
+                <Building2 className="w-3 h-3 mr-1" />
+                <SelectValue placeholder="All Companies" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Companies</SelectItem>
+                {companiesList.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
