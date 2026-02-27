@@ -64,6 +64,7 @@ export const ROUTES = {
     // AI Agents
     agents: '/app/agents',
     agentChat: (agentKey: string) => `/app/agents/${agentKey}`,
+    aiGeneral: '/app/ai-general',
     
     // Profile
     profile: '/app/profile',

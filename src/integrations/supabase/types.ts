@@ -170,6 +170,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           is_featured: boolean | null
+          monthly_target: number | null
           name: string
           personality_traits: Json | null
           sample_conversations: Json | null
@@ -197,6 +198,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_featured?: boolean | null
+          monthly_target?: number | null
           name: string
           personality_traits?: Json | null
           sample_conversations?: Json | null
@@ -224,6 +226,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_featured?: boolean | null
+          monthly_target?: number | null
           name?: string
           personality_traits?: Json | null
           sample_conversations?: Json | null

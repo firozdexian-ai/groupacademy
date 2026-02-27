@@ -79,7 +79,8 @@ export function TalentAppShell() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      navigate(`/app/jobs/all?search=${encodeURIComponent(searchQuery)}`);
+      navigate(`/app/ai-general?q=${encodeURIComponent(searchQuery)}`);
+      setSearchQuery("");
     }
   };
 
@@ -166,7 +167,7 @@ export function TalentAppShell() {
             <form onSubmit={handleSearch} className="flex-1 relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search jobs, courses..."
+                placeholder="Ask AI General anything..."
                 className="h-9 pl-9 bg-[#EEF3F8] dark:bg-muted/50 border-none focus-visible:ring-1 focus-visible:ring-primary/20 text-sm"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
@@ -191,7 +192,7 @@ export function TalentAppShell() {
             </div>
             <form onSubmit={handleSearch} className="relative w-full max-w-xs">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Search" className="h-9 pl-9 bg-[#EEF3F8] dark:bg-muted/50 border-none focus-visible:ring-1 focus-visible:ring-primary/20 transition-all w-64 focus:w-80 placeholder:text-muted-foreground" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+              <Input placeholder="Ask AI General anything..." className="h-9 pl-9 bg-[#EEF3F8] dark:bg-muted/50 border-none focus-visible:ring-1 focus-visible:ring-primary/20 transition-all w-64 focus:w-80 placeholder:text-muted-foreground" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
             </form>
           </div>
 

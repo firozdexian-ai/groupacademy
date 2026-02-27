@@ -7,6 +7,7 @@ import {
   Lightbulb,
   GraduationCap,
   Heart,
+  Sparkles,
   LucideIcon,
 } from "lucide-react";
 
@@ -23,6 +24,17 @@ export interface AIAgent {
 }
 
 export const AI_AGENTS: AIAgent[] = [
+  {
+    id: "ai-general",
+    name: "AI General",
+    shortName: "General",
+    description: "Your ultimate platform guide",
+    icon: Sparkles,
+    bgColor: "bg-gradient-to-r from-blue-500/10 to-purple-500/10",
+    iconColor: "text-blue-600",
+    expertise: ["Platform Guide", "Feature Discovery", "Agent Routing"],
+    context: "You are AI General, the platform concierge. Guide users to features, agents, and content.",
+  },
   {
     id: "career-consultant",
     name: "Career Consultant",

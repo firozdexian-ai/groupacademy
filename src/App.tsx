@@ -52,6 +52,7 @@ import JobsHub from "./pages/app/JobsHub";
 import CareerAbroad from "./pages/app/CareerAbroad";
 import AIAgents from "./pages/app/AIAgents";
 import AgentChat from "./pages/app/AgentChat";
+import AIGeneral from "./pages/app/AIGeneral";
 import Profile from "./pages/app/Profile";
 import ProfileEdit from "./pages/app/ProfileEdit";
 import Notifications from "./pages/app/Notifications";
@@ -386,6 +387,7 @@ export default function App() {
                     <Route path="notifications" element={<Notifications />} />
                     <Route path="profile/edit" element={<ProfileEdit />} />
                     <Route path="agents/:agentKey" element={<AgentChat />} />
+                    <Route path="ai-general" element={<AIGeneral />} />
 
                     {/* Study Abroad - Specific Routes First */}
                     <Route path="abroad/study" element={<StudyAbroad />} />
