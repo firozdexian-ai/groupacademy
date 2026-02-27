@@ -61,7 +61,7 @@ export function TalentAppShell() {
         } = await supabase.from("notifications" as any).select("id", {
           count: "exact",
           head: true
-        }).eq("user_id", talent.id).eq("is_read", false);
+        }).eq("talent_id", talent.id).eq("is_read", false);
         setUnreadCount(count || 0);
       } catch (err) {
         console.error("Error fetching notifications", err);
