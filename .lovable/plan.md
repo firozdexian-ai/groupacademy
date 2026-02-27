@@ -1,86 +1,39 @@
 
 
-# Auto-Approve Job Sharing Gigs via Unique Share Links and Click Tracking
+# Fix MySubmissions Display and Improve Click Tracking
 
-## How It Works (Summary)
+## Problems Found
 
-Each seeker gets a **unique share link** per job (e.g., `groupacademy.lovable.app/jobs/abc123?ref=talent456`). When anyone clicks that link, the click is tracked and attributed to the seeker. Once the link reaches **10+ clicks**, the gig submission is **automatically approved** and the seeker earns **credits** -- no manual review needed.
+**1. "Spread the Word" instead of job name**
+The MySubmissions component shows `sub.gigs?.title` (the gig template name like "Spread the Word") instead of the actual job title. The job title IS already saved in `submission_data.job_title` -- it just isn't displayed.
 
-## Current State
-
-- Share URL is generic: `/jobs/{jobId}` with no per-user tracking
-- `job_analytics` table tracks clicks by `source` (e.g., "facebook", "linkedin") but has no talent attribution
-- `track_job_click` RPC inserts into `job_analytics` with `(job_id, source)` only
-- Gig submissions require manual admin approval via `award_gig_credits` RPC
+**2. Click tracking only works on the public job page**
+The `ref` param tracking is only implemented in `PublicJobDetail.tsx` (`/jobs/:id`). If someone clicks the share link and is already logged in, they may land on `AppJobDetail.tsx` (`/app/jobs/:id`) where no tracking happens. Also need to add tracking to the in-app job detail page so clicks from logged-in users also count.
 
 ## Changes
 
-### 1. Database: Add talent-attributed click tracking
+### 1. `src/components/gigs/MySubmissions.tsx` -- Show job details for job sharing submissions
 
-**New table: `job_share_clicks`**
-- `id` (UUID, PK)
-- `job_id` (UUID, FK to jobs)
-- `talent_id` (UUID, FK to talents) -- who shared it
-- `ref_code` (text) -- the unique ref param (talent's short ID or hash)
-- `clicked_at` (timestamptz, default now)
-- `ip_hash` (text, nullable) -- optional dedup per IP
+- For job_sharing submissions, display the job title and company from `submission_data` instead of the generic gig title
+- Show format: **"Company Name -- Job Title"** as the card heading
+- Keep the gig title ("Spread the Word") as a small secondary label so it's clear which gig type it is
+- Show the number of channels shared on (from `submission_data.channels_shared`)
 
-This table is separate from `job_analytics` because it tracks clicks attributed to a specific seeker's share link, while `job_analytics` tracks general traffic sources.
+### 2. `src/pages/app/AppJobDetail.tsx` -- Add ref click tracking
 
-**New RPC: `track_shared_job_click(p_job_id, p_ref_code)`**
-- SECURITY DEFINER, public access (anonymous visitors click these links)
-- Looks up the talent_id from the ref_code
-- Inserts a click record into `job_share_clicks`
-- Checks if total clicks for this (talent_id, job_id) pair >= 10
-- If threshold met, finds the matching pending `gig_submission` and auto-approves it by calling the credit-awarding logic inline (same as `award_gig_credits` but system-triggered)
+- Read the `ref` search param on page load
+- Call `track_shared_job_click` RPC just like `PublicJobDetail.tsx` does
+- This ensures clicks from logged-in users also count toward the 10-click threshold
 
-**Add `ref_code` column to `talents` table**
-- A short, unique, URL-safe identifier per talent (e.g., first 8 chars of their UUID)
-- Generated via a trigger on insert, or backfilled for existing talents
+### 3. `src/pages/PublicJobDetail.tsx` -- Minor fix
 
-### 2. Frontend: Unique share links
-
-**File: `src/components/gigs/JobSharingGigForm.tsx`**
-- Change share URL from `/jobs/{jobId}` to `/jobs/{jobId}?ref={talentRefCode}`
-- The `ref` param makes every seeker's link unique and trackable
-- Fetch the talent's `ref_code` alongside the form data
-
-### 3. Frontend: Track clicks on public job page
-
-**File: `src/pages/PublicJobDetail.tsx`**
-- When a `ref` query param is present, call the new `track_shared_job_click` RPC
-- Keep existing `source` tracking as-is (they serve different purposes)
-
-### 4. Auto-approval logic (inside the new RPC)
-
-When the click count for a (talent_id, job_id) pair crosses 10:
-1. Find the pending `gig_submission` where `submission_data->>'job_id'` matches and `talent_id` matches
-2. Update status to `approved`, set `credits_awarded` to the gig's `credit_reward`
-3. Credit the talent's balance and earned_balance in `talent_credits`
-4. Record in `credit_transactions` with `transaction_type = 'gig_reward'`
-5. Increment the gig's `total_completed` counter
-
-This all happens atomically inside the RPC -- no cron job or edge function needed.
-
-### 5. Frontend: Show click progress to seeker
-
-**File: `src/components/gigs/MySubmissions.tsx`**
-- For job sharing submissions that are still pending, show a progress indicator: "7/10 clicks"
-- Query `job_share_clicks` count for that talent + job combo
-- Once auto-approved, it shows "Approved" as usual
+- Clean up the `ref` param from the URL after tracking (like it already does for `source`) to prevent duplicate tracking on page refresh
 
 ## Files Changed
 
 | File | Change |
 |------|--------|
-| Database migration | Create `job_share_clicks` table, add `ref_code` to talents, create `track_shared_job_click` RPC with auto-approve logic |
-| `src/components/gigs/JobSharingGigForm.tsx` | Use `/jobs/{jobId}?ref={refCode}` as the share URL |
-| `src/pages/PublicJobDetail.tsx` | Detect `ref` param and call `track_shared_job_click` RPC |
-| `src/components/gigs/MySubmissions.tsx` | Show click progress (e.g., "7/10 clicks") for pending job sharing submissions |
-
-## Security Considerations
-
-- `job_share_clicks` has RLS: anon can INSERT (for tracking), authenticated users can SELECT their own clicks
-- The auto-approve RPC is SECURITY DEFINER so it can update credits/submissions regardless of caller
-- Optional IP-hash dedup prevents a single person from spam-clicking to inflate counts
+| `src/components/gigs/MySubmissions.tsx` | Show job title/company from submission_data for job sharing gigs |
+| `src/pages/app/AppJobDetail.tsx` | Add `ref` param detection and `track_shared_job_click` call |
+| `src/pages/PublicJobDetail.tsx` | Clean `ref` param from URL after tracking |
 
