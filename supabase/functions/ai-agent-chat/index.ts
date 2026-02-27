@@ -100,10 +100,11 @@ serve(async (req) => {
     });
 
     // 2. SECURITY: Verify the User
+    const token = authHeader.replace("Bearer ", "");
     const {
       data: { user },
       error: authError,
-    } = await supabaseClient.auth.getUser();
+    } = await supabaseClient.auth.getUser(token);
 
     if (authError || !user) {
       console.error("Auth error:", authError);
