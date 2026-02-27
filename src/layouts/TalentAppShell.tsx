@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useTalent } from "@/hooks/useTalent";
 import { supabase } from "@/integrations/supabase/client";
-import { Home, Briefcase, GraduationCap, Gift, Bot, User, Bell, Menu, Search, LogOut, Coins, Sun, Moon, HelpCircle } from "lucide-react";
+import { Home, Briefcase, GraduationCap, Gift, Bot, User, Bell, Menu, Search, LogOut, Coins, Sun, Moon, HelpCircle, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -165,10 +165,10 @@ export function TalentAppShell() {
 
             {/* Center: Always-visible search bar */}
             <form onSubmit={handleSearch} className="flex-1 relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Sparkles className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-500 animate-pulse" />
               <Input
                 placeholder="Ask AI General anything..."
-                className="h-9 pl-9 bg-[#EEF3F8] dark:bg-muted/50 border-none focus-visible:ring-1 focus-visible:ring-primary/20 text-sm"
+                className="h-9 pl-9 pr-3 bg-[#EEF3F8] dark:bg-muted/50 border-none focus-visible:ring-1 focus-visible:ring-blue-400/40 text-sm"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
               />
@@ -191,8 +191,8 @@ export function TalentAppShell() {
               <img alt="Logo" className="w-8 h-8 rounded" src="/lovable-uploads/9c7f3b64-8763-474e-951b-6420b7c33965.png" />
             </div>
             <form onSubmit={handleSearch} className="relative w-full max-w-xs">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Ask AI General anything..." className="h-9 pl-9 bg-[#EEF3F8] dark:bg-muted/50 border-none focus-visible:ring-1 focus-visible:ring-primary/20 transition-all w-64 focus:w-80 placeholder:text-muted-foreground" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+              <Sparkles className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-blue-500 animate-pulse" />
+              <Input placeholder="Ask AI General anything..." className="h-9 pl-9 bg-[#EEF3F8] dark:bg-muted/50 border-none focus-visible:ring-1 focus-visible:ring-blue-400/40 transition-all w-64 focus:w-80 placeholder:text-muted-foreground" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
             </form>
           </div>
 
