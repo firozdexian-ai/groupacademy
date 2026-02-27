@@ -1,13 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Search,
   Briefcase,
   Sparkles,
-  ChevronRight,
   FileText,
-  Bookmark,
-  Settings,
   Coins,
   Clock,
   CheckCircle2,
@@ -20,6 +16,8 @@ import {
   Building2,
   Globe,
   Flame,
+  Layers,
+  FileCode,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTalent } from "@/hooks/useTalent";
@@ -27,12 +25,11 @@ import { useSavedItems } from "@/hooks/useSavedItems";
 import { useCredits } from "@/hooks/useCredits";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { JobPreferencesSheet } from "@/components/jobs/JobPreferencesSheet";
-import { JobCard, type JobCardData, type JobMatchInfo } from "@/components/jobs/JobCard";
+import { JobCard, type JobCardData } from "@/components/jobs/JobCard";
 import { JOB_COLLECTIONS, APPLICATION_STATUS_CONFIG } from "@/lib/constants/jobTypes";
 import { toast } from "sonner";
 import { SectionHeader } from "@/components/ui/section-header";
@@ -77,17 +74,25 @@ interface JobApplication {
   };
 }
 
+type TabKey = "for-you" | "collection" | "company" | "country";
+
+const TABS: { key: TabKey; label: string; icon: typeof Sparkles }[] = [
+  { key: "for-you", label: "For You", icon: Sparkles },
+  { key: "collection", label: "Collection", icon: Layers },
+  { key: "company", label: "By Company", icon: Building2 },
+  { key: "country", label: "By Country", icon: Globe },
+];
+
 export default function JobsHub() {
   const navigate = useNavigate();
   const { talent } = useTalent();
   const { savedItems, isSaved, toggleSave } = useSavedItems();
   const { canAfford, deductCredits } = useCredits();
 
-  const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState<TabKey>("for-you");
   const [topPicks, setTopPicks] = useState<JobCardData[]>([]);
   const [personalizedJobs, setPersonalizedJobs] = useState<JobCardData[]>([]);
   const [applications, setApplications] = useState<JobApplication[]>([]);
-  const [applicationsCount, setApplicationsCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(true);
@@ -97,13 +102,9 @@ export default function JobsHub() {
   const [loadingAI, setLoadingAI] = useState(false);
   const [aiSuggestions, setAiSuggestions] = useState<AISuggestion[]>([]);
 
-  // New state for browse sections
   const [topCompanies, setTopCompanies] = useState<TopCompany[]>([]);
   const [topCountries, setTopCountries] = useState<TopCountry[]>([]);
   const [promotedJobs, setPromotedJobs] = useState<JobCardData[]>([]);
-
-  // Count saved jobs from hook
-  const savedJobsCount = savedItems.filter((item) => item.item_type === "job").length;
 
   useEffect(() => {
     loadAllData();
@@ -116,11 +117,11 @@ export default function JobsHub() {
     setError(null);
 
     try {
-      const [topPicksResult, personalizedResult, applicationsResult, countResult, companiesResult, countriesResult, promotedResult] = await Promise.all([
+      const [topPicksResult, personalizedResult, applicationsResult, , companiesResult, countriesResult, promotedResult] = await Promise.all([
         fetchTopPicks(),
         talent?.id ? fetchPersonalizedJobs() : Promise.resolve([]),
         talent?.id ? fetchApplications() : Promise.resolve([]),
-        talent?.id ? fetchApplicationsCount() : Promise.resolve(0),
+        Promise.resolve(0),
         fetchTopCompanies(),
         fetchTopCountries(),
         fetchPromotedJobs(),
@@ -129,7 +130,6 @@ export default function JobsHub() {
       setTopPicks(topPicksResult);
       setPersonalizedJobs(personalizedResult);
       setApplications(applicationsResult);
-      setApplicationsCount(countResult);
       setTopCompanies(companiesResult);
       setTopCountries(countriesResult);
       setPromotedJobs(promotedResult);
@@ -185,7 +185,7 @@ export default function JobsHub() {
     return Array.from(map.entries())
       .map(([name, info]) => ({ name, logo_url: info.logo_url, count: info.count }))
       .sort((a, b) => b.count - a.count)
-      .slice(0, 8);
+      .slice(0, 20);
   }
 
   async function fetchTopCountries(): Promise<TopCountry[]> {
@@ -210,7 +210,7 @@ export default function JobsHub() {
     return Array.from(map.entries())
       .map(([location, count]) => ({ location, count }))
       .sort((a, b) => b.count - a.count)
-      .slice(0, 8);
+      .slice(0, 20);
   }
 
   async function fetchPromotedJobs(): Promise<JobCardData[]> {
@@ -292,21 +292,6 @@ export default function JobsHub() {
     return (data as unknown as JobApplication[]) || [];
   }
 
-  async function fetchApplicationsCount(): Promise<number> {
-    const { count, error } = await supabase
-      .from("job_applications")
-      .select("id", { count: "exact", head: true })
-      .eq("talent_id", talent!.id);
-
-    if (error) return 0;
-    return count || 0;
-  }
-
-  function handleSearch(e: React.FormEvent) {
-    e.preventDefault();
-    navigate(`/app/jobs/all?search=${encodeURIComponent(searchQuery)}`);
-  }
-
   function getApplicationStatus(app: JobApplication) {
     const status = app.application_status || app.delivery_status || "pending";
     return APPLICATION_STATUS_CONFIG[status] || APPLICATION_STATUS_CONFIG.pending;
@@ -353,7 +338,7 @@ export default function JobsHub() {
       sent: Send,
       delivered: CheckCircle2,
       viewed: Eye,
-      rejected: FileText,
+      rejected: FileCode,
       accepted: CheckCircle2,
     };
     const Icon = icons[status] || Clock;
@@ -380,235 +365,356 @@ export default function JobsHub() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6 space-y-5">
-      {/* Search Section */}
-      <section className="bg-gradient-to-br from-primary/10 via-primary/5 to-transparent rounded-2xl p-4">
-        <h1 className="text-xl font-bold mb-1">Find Your Dream Job</h1>
-        <p className="text-sm text-muted-foreground mb-4">Discover opportunities tailored to your skills</p>
+    <div className="max-w-4xl mx-auto px-4 py-4 space-y-5">
+      {/* Tab Navigation */}
+      <nav className="flex items-stretch border-b border-border">
+        {TABS.map((tab) => {
+          const isActive = activeTab === tab.key;
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`flex-1 flex flex-col items-center gap-1 py-3 transition-colors relative ${
+                isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <tab.icon className="h-5 w-5" />
+              <span className="text-[11px] font-medium leading-tight">{tab.label}</span>
+              {isActive && (
+                <span className="absolute bottom-0 left-2 right-2 h-0.5 bg-primary rounded-full" />
+              )}
+            </button>
+          );
+        })}
+      </nav>
 
-        <form onSubmit={handleSearch}>
-          <div className="relative">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search jobs, companies..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-24 h-12 text-sm rounded-xl border-2 focus:border-primary bg-background"
-            />
-            <Button type="submit" size="sm" className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-lg h-9 px-4">
-              Search
-            </Button>
-          </div>
-        </form>
-      </section>
-
-      {/* Quick Access Pills */}
-      <section className="flex gap-2 overflow-x-auto pb-1 scrollbar-none -mx-4 px-4">
-        <Button
-          variant="outline"
-          size="sm"
-          className="shrink-0 gap-1.5 h-9 rounded-full bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-400 hover:bg-amber-500/20"
-          onClick={() => navigate("/app/saved?tab=jobs")}
-        >
-          <Bookmark className="h-4 w-4" />
-          Saved
-          {savedJobsCount > 0 && (
-            <Badge variant="secondary" className="ml-0.5 h-5 px-1.5 text-xs rounded-full">
-              {savedJobsCount}
-            </Badge>
-          )}
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="shrink-0 gap-1.5 h-9 rounded-full bg-blue-500/10 border-blue-500/30 text-blue-700 dark:text-blue-400 hover:bg-blue-500/20"
-          onClick={() => navigate("/app/applications")}
-        >
-          <FileText className="h-4 w-4" />
-          Applied
-          {applicationsCount > 0 && (
-            <Badge variant="secondary" className="ml-0.5 h-5 px-1.5 text-xs rounded-full">
-              {applicationsCount > 99 ? "99+" : applicationsCount}
-            </Badge>
-          )}
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="shrink-0 gap-1.5 h-9 rounded-full bg-muted/60 hover:bg-muted"
-          onClick={() => setPreferencesOpen(true)}
-        >
-          <Settings className="h-4 w-4" />
-          Preferences
-        </Button>
-      </section>
-
-      {/* Featured Jobs - Horizontal Scroll */}
-      <section>
-        <SectionHeader
-          icon={Sparkles}
-          title="Featured Jobs"
-          viewAllPath="/app/jobs/all"
-        />
-
-        {loading ? (
-          <div className="flex gap-4 overflow-hidden pb-2">
-            {[1, 2, 3].map((i) => (
-              <Card key={i} className="w-[260px] shrink-0">
-                <CardContent className="p-4 space-y-3">
-                  <div className="flex gap-3">
-                    <Skeleton className="h-12 w-12 rounded-xl shrink-0" />
-                    <div className="flex-1 space-y-2">
-                      <Skeleton className="h-5 w-3/4" />
-                      <Skeleton className="h-4 w-1/2" />
-                    </div>
+      {/* ===== Tab: For You ===== */}
+      {activeTab === "for-you" && (
+        <>
+          {/* Featured Jobs */}
+          <section>
+            <SectionHeader icon={Sparkles} title="Featured Jobs" viewAllPath="/app/jobs/all" />
+            {loading ? (
+              <div className="flex gap-4 overflow-hidden pb-2">
+                {[1, 2, 3].map((i) => (
+                  <Card key={i} className="w-[260px] shrink-0">
+                    <CardContent className="p-4 space-y-3">
+                      <div className="flex gap-3">
+                        <Skeleton className="h-12 w-12 rounded-xl shrink-0" />
+                        <div className="flex-1 space-y-2">
+                          <Skeleton className="h-5 w-3/4" />
+                          <Skeleton className="h-4 w-1/2" />
+                        </div>
+                      </div>
+                      <Skeleton className="h-6 w-24" />
+                      <Skeleton className="h-4 w-full" />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : topPicks.length === 0 ? (
+              <Card className="border-dashed bg-muted/50">
+                <CardContent className="p-8 text-center">
+                  <Briefcase className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
+                  <p className="text-muted-foreground">No job openings available right now.</p>
+                  <p className="text-sm text-muted-foreground/70">Check back soon!</p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="relative">
+                <ScrollArea className="w-full">
+                  <div className="flex gap-4 pb-4">
+                    {topPicks.map((job, index) => (
+                      <div
+                        key={job.id}
+                        className="w-[260px] shrink-0 animate-in fade-in slide-in-from-right-4"
+                        style={{ animationDelay: `${index * 50}ms` }}
+                      >
+                        <div onClick={() => navigate(`/app/jobs/${job.id}`)} className="cursor-pointer">
+                          <JobCard
+                            job={job}
+                            variant="default"
+                            isSaved={isSaved(job.id, "job")}
+                            onSaveToggle={() => toggleSave(job.id, "job")}
+                            onClick={() => navigate(`/app/jobs/${job.id}`)}
+                          />
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <Skeleton className="h-6 w-24" />
-                  <Skeleton className="h-4 w-full" />
+                  <ScrollBar orientation="horizontal" />
+                </ScrollArea>
+                {topPicks.length > 1 && (
+                  <div className="absolute right-0 top-0 bottom-4 w-12 bg-gradient-to-l from-background to-transparent pointer-events-none" />
+                )}
+              </div>
+            )}
+
+            {/* AI Recommendations Button */}
+            {topPicks.length > 0 && aiSuggestions.length === 0 && (
+              <Button variant="outline" className="w-full mt-2 gap-2 h-11" onClick={handleShowAllAI} disabled={loadingAI}>
+                {loadingAI ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Sparkles className="h-4 w-4 text-primary" />
+                )}
+                {loadingAI ? "Analyzing your profile..." : "Get AI Recommendations"}
+                <Badge variant="secondary" className="gap-1 ml-auto">
+                  <Coins className="h-3 w-3 text-amber-500" />
+                  10 credits
+                </Badge>
+              </Button>
+            )}
+          </section>
+
+          {/* AI Loading Skeleton */}
+          {loadingAI && (
+            <section className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Brain className="h-5 w-5 text-primary animate-pulse" />
+                <h2 className="font-semibold text-base">Finding your best matches...</h2>
+              </div>
+              {[1, 2, 3].map((i) => (
+                <Card key={i}>
+                  <CardContent className="p-3">
+                    <div className="flex items-center gap-3">
+                      <Skeleton className="h-10 w-10 rounded-lg" />
+                      <div className="flex-1 space-y-1.5">
+                        <Skeleton className="h-4 w-3/4" />
+                        <Skeleton className="h-3 w-1/2" />
+                        <Skeleton className="h-3 w-2/3" />
+                      </div>
+                      <Skeleton className="h-5 w-20 rounded-full" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </section>
+          )}
+
+          {/* AI Recommended Jobs */}
+          {aiSuggestions.length > 0 && (
+            <section>
+              <SectionHeader icon={Brain} title="AI Recommended for You" />
+              <div className="space-y-2">
+                {aiSuggestions.map((suggestion, index) => (
+                  <div
+                    key={suggestion.job_id}
+                    className="animate-in fade-in slide-in-from-bottom-2"
+                    style={{ animationDelay: `${index * 50}ms` }}
+                  >
+                    <JobCard
+                      job={suggestion.job}
+                      variant="compact"
+                      matchInfo={{ match_score: suggestion.match_score, reason: suggestion.reason }}
+                      onClick={() => navigate(`/app/jobs/${suggestion.job_id}`)}
+                    />
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Recommended for You */}
+          {personalizedJobs.length > 0 && (
+            <section>
+              <SectionHeader icon={Briefcase} title="Recommended for You" />
+              {personalizedLoading ? (
+                <div className="space-y-3">
+                  {[1, 2].map((i) => (
+                    <Card key={i}>
+                      <CardContent className="p-3">
+                        <div className="flex items-center gap-3">
+                          <Skeleton className="h-10 w-10 rounded-lg" />
+                          <div className="flex-1 space-y-1.5">
+                            <Skeleton className="h-4 w-3/4" />
+                            <Skeleton className="h-3 w-1/2" />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {personalizedJobs.slice(0, 4).map((job) => (
+                    <div key={job.id} onClick={() => navigate(`/app/jobs/${job.id}`)} className="cursor-pointer">
+                      <JobCard job={job} variant="compact" onClick={() => navigate(`/app/jobs/${job.id}`)} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* Promoted / Expiring Soon */}
+          {!loading && promotedJobs.length > 0 && (
+            <section>
+              <SectionHeader icon={Flame} title="Promoted / Expiring Soon" viewAllPath="/app/jobs/all" />
+              <div className="relative">
+                <ScrollArea className="w-full">
+                  <div className="flex gap-4 pb-4">
+                    {promotedJobs.map((job, index) => (
+                      <div
+                        key={job.id}
+                        className="w-[260px] shrink-0 animate-in fade-in slide-in-from-right-4"
+                        style={{ animationDelay: `${index * 50}ms` }}
+                      >
+                        <div onClick={() => navigate(`/app/jobs/${job.id}`)} className="cursor-pointer">
+                          <JobCard
+                            job={job}
+                            variant="default"
+                            isSaved={isSaved(job.id, "job")}
+                            onSaveToggle={() => toggleSave(job.id, "job")}
+                            onClick={() => navigate(`/app/jobs/${job.id}`)}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <ScrollBar orientation="horizontal" />
+                </ScrollArea>
+                {promotedJobs.length > 1 && (
+                  <div className="absolute right-0 top-0 bottom-4 w-12 bg-gradient-to-l from-background to-transparent pointer-events-none" />
+                )}
+              </div>
+            </section>
+          )}
+
+          {/* Recent Applications */}
+          <section>
+            <SectionHeader
+              icon={FileText}
+              title="Recent Applications"
+              viewAllPath={applications.length > 0 ? "/app/applications" : undefined}
+            />
+            {applicationsLoading ? (
+              <div className="space-y-2">
+                {[1, 2].map((i) => (
+                  <Card key={i}>
+                    <CardContent className="p-3">
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="h-10 w-10 rounded-lg" />
+                        <div className="flex-1 space-y-1.5">
+                          <Skeleton className="h-4 w-3/4" />
+                          <Skeleton className="h-3 w-1/2" />
+                        </div>
+                        <Skeleton className="h-6 w-16 rounded-full" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : applications.length === 0 ? (
+              <Card className="border-dashed bg-muted/30">
+                <CardContent className="p-6 text-center">
+                  <FileText className="h-8 w-8 text-muted-foreground/50 mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground mb-3">No applications yet</p>
+                  <Button size="sm" onClick={() => navigate("/app/jobs/all")}>
+                    Browse Jobs
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-2">
+                {applications.map((app) => {
+                  const status = getApplicationStatus(app);
+                  return (
+                    <Card
+                      key={app.id}
+                      className="cursor-pointer hover:shadow-md transition-all hover:border-primary/30"
+                      onClick={() => navigate(`/app/jobs/${app.jobs.id}`)}
+                    >
+                      <CardContent className="p-3">
+                        <div className="flex items-center gap-3">
+                          {app.jobs.company_logo_url ? (
+                            <img
+                              src={app.jobs.company_logo_url}
+                              alt={app.jobs.company_name}
+                              className="w-10 h-10 rounded-lg object-cover bg-muted border"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20">
+                              <Briefcase className="w-4 h-4 text-primary" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-sm line-clamp-1">{app.jobs.title}</h3>
+                            <p className="text-xs text-muted-foreground">{app.jobs.company_name}</p>
+                          </div>
+                          <Badge className={`text-xs shrink-0 ${status.color} border-0`}>
+                            <StatusIcon status={app.application_status || app.delivery_status || "pending"} />
+                            {status.label}
+                          </Badge>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        </>
+      )}
+
+      {/* ===== Tab: Job Collection ===== */}
+      {activeTab === "collection" && (
+        <section>
+          <SectionHeader icon={Layers} title="Browse by Type" />
+          <div className="grid grid-cols-2 gap-3">
+            {JOB_COLLECTIONS.map((collection) => (
+              <Card
+                key={collection.filter}
+                className="cursor-pointer hover:border-primary/50 hover:shadow-md transition-all group"
+                onClick={() => navigate(`/app/jobs/all?type=${collection.filter}`)}
+              >
+                <CardContent className="p-4 flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
+                    <collection.icon className="h-5 w-5 text-primary" />
+                  </div>
+                  <span className="text-sm font-medium group-hover:text-primary transition-colors">
+                    {collection.label}
+                  </span>
                 </CardContent>
               </Card>
             ))}
           </div>
-        ) : topPicks.length === 0 ? (
-          <Card className="border-dashed bg-muted/50">
-            <CardContent className="p-8 text-center">
-              <Briefcase className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
-              <p className="text-muted-foreground">No job openings available right now.</p>
-              <p className="text-sm text-muted-foreground/70">Check back soon!</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="relative">
-            <ScrollArea className="w-full">
-              <div className="flex gap-4 pb-4">
-                {topPicks.map((job, index) => (
-                  <div
-                    key={job.id}
-                    className="w-[260px] shrink-0 animate-in fade-in slide-in-from-right-4"
-                    style={{ animationDelay: `${index * 50}ms` }}
-                  >
-                    <div onClick={() => navigate(`/app/jobs/${job.id}`)} className="cursor-pointer">
-                      <JobCard
-                        job={job}
-                        variant="default"
-                        isSaved={isSaved(job.id, "job")}
-                        onSaveToggle={() => toggleSave(job.id, "job")}
-                        onClick={() => navigate(`/app/jobs/${job.id}`)}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <ScrollBar orientation="horizontal" />
-            </ScrollArea>
-            {topPicks.length > 1 && (
-              <div className="absolute right-0 top-0 bottom-4 w-12 bg-gradient-to-l from-background to-transparent pointer-events-none" />
-            )}
-          </div>
-        )}
+        </section>
+      )}
 
-        {/* AI Recommendations Button */}
-        {topPicks.length > 0 && aiSuggestions.length === 0 && (
-          <Button variant="outline" className="w-full mt-2 gap-2 h-11" onClick={handleShowAllAI} disabled={loadingAI}>
-            {loadingAI ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Sparkles className="h-4 w-4 text-primary" />
-            )}
-            {loadingAI ? "Analyzing your profile..." : "Get AI Recommendations"}
-            <Badge variant="secondary" className="gap-1 ml-auto">
-              <Coins className="h-3 w-3 text-amber-500" />
-              10 credits
-            </Badge>
-          </Button>
-        )}
-      </section>
-
-      {/* AI Loading Skeleton */}
-      {loadingAI && (
-        <section className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Brain className="h-5 w-5 text-primary animate-pulse" />
-            <h2 className="font-semibold text-base">Finding your best matches...</h2>
-          </div>
-          {[1, 2, 3].map((i) => (
-            <Card key={i}>
-              <CardContent className="p-3">
-                <div className="flex items-center gap-3">
-                  <Skeleton className="h-10 w-10 rounded-lg" />
-                  <div className="flex-1 space-y-1.5">
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-3 w-1/2" />
-                    <Skeleton className="h-3 w-2/3" />
-                  </div>
-                  <Skeleton className="h-5 w-20 rounded-full" />
-                </div>
+      {/* ===== Tab: By Company ===== */}
+      {activeTab === "company" && (
+        <section>
+          <SectionHeader icon={Building2} title="Job by Company" />
+          {loading ? (
+            <div className="grid grid-cols-3 gap-3">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <Card key={i}>
+                  <CardContent className="p-4 flex flex-col items-center gap-2">
+                    <Skeleton className="h-14 w-14 rounded-full" />
+                    <Skeleton className="h-4 w-16" />
+                    <Skeleton className="h-3 w-10" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : topCompanies.length === 0 ? (
+            <Card className="border-dashed bg-muted/30">
+              <CardContent className="p-8 text-center">
+                <Building2 className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
+                <p className="text-muted-foreground">No company data available yet.</p>
               </CardContent>
             </Card>
-          ))}
-        </section>
-      )}
-
-      {/* AI Recommended Jobs */}
-      {aiSuggestions.length > 0 && (
-        <section>
-          <SectionHeader icon={Brain} title="AI Recommended for You" />
-          <div className="space-y-2">
-            {aiSuggestions.map((suggestion, index) => (
-              <div
-                key={suggestion.job_id}
-                className="animate-in fade-in slide-in-from-bottom-2"
-                style={{ animationDelay: `${index * 50}ms` }}
-              >
-                <JobCard
-                  job={suggestion.job}
-                  variant="compact"
-                  matchInfo={{ match_score: suggestion.match_score, reason: suggestion.reason }}
-                  onClick={() => navigate(`/app/jobs/${suggestion.job_id}`)}
-                />
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Browse by Type - Horizontal Pills */}
-      <section>
-        <SectionHeader icon={Briefcase} title="Browse by Type" />
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none -mx-4 px-4">
-          {JOB_COLLECTIONS.map((collection) => (
-            <Button
-              key={collection.filter}
-              variant="outline"
-              size="sm"
-              className="shrink-0 gap-2 h-10 rounded-full px-4 hover:bg-primary/10 hover:border-primary/50"
-              onClick={() => navigate(`/app/jobs/all?type=${collection.filter}`)}
-            >
-              <collection.icon className="h-4 w-4 text-primary" />
-              {collection.label}
-            </Button>
-          ))}
-        </div>
-      </section>
-
-      {/* NEW: Job by Company */}
-      {!loading && topCompanies.length > 0 && (
-        <section>
-          <SectionHeader
-            icon={Building2}
-            title="Job by Company"
-            viewAllPath="/app/jobs/all"
-          />
-          <div className="relative">
-            <ScrollArea className="w-full">
-              <div className="flex gap-4 pb-4">
-                {topCompanies.map((company, index) => (
-                  <button
-                    key={company.name}
-                    className="flex flex-col items-center gap-2 shrink-0 w-20 group cursor-pointer animate-in fade-in slide-in-from-right-4"
-                    style={{ animationDelay: `${index * 40}ms` }}
-                    onClick={() => navigate(`/app/jobs/all?company=${encodeURIComponent(company.name)}`)}
-                  >
+          ) : (
+            <div className="grid grid-cols-3 gap-3">
+              {topCompanies.map((company, index) => (
+                <Card
+                  key={company.name}
+                  className="cursor-pointer hover:border-primary/50 hover:shadow-md transition-all group animate-in fade-in"
+                  style={{ animationDelay: `${index * 30}ms` }}
+                  onClick={() => navigate(`/app/jobs/all?company=${encodeURIComponent(company.name)}`)}
+                >
+                  <CardContent className="p-4 flex flex-col items-center gap-2">
                     <Avatar className="h-14 w-14 border-2 border-border group-hover:border-primary transition-colors">
                       {company.logo_url ? (
                         <AvatarImage src={company.logo_url} alt={company.name} className="object-cover" />
@@ -625,213 +731,67 @@ export default function JobsHub() {
                         {company.count} {company.count === 1 ? "job" : "jobs"}
                       </p>
                     </div>
-                  </button>
-                ))}
-              </div>
-              <ScrollBar orientation="horizontal" />
-            </ScrollArea>
-            {topCompanies.length > 4 && (
-              <div className="absolute right-0 top-0 bottom-4 w-12 bg-gradient-to-l from-background to-transparent pointer-events-none" />
-            )}
-          </div>
-        </section>
-      )}
-
-      {/* NEW: Job by Country */}
-      {!loading && topCountries.length > 0 && (
-        <section>
-          <SectionHeader
-            icon={Globe}
-            title="Job by Location"
-            viewAllPath="/app/jobs/all"
-          />
-          <div className="relative">
-            <ScrollArea className="w-full">
-              <div className="flex gap-3 pb-4">
-                {topCountries.map((country, index) => (
-                  <Card
-                    key={country.location}
-                    className="shrink-0 cursor-pointer hover:border-primary/50 hover:shadow-md transition-all group animate-in fade-in slide-in-from-right-4"
-                    style={{ animationDelay: `${index * 40}ms` }}
-                    onClick={() => navigate(`/app/jobs/all?location=${encodeURIComponent(country.location)}`)}
-                  >
-                    <CardContent className="p-3 px-4 flex items-center gap-3">
-                      <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                        <Globe className="h-4 w-4 text-primary" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium whitespace-nowrap group-hover:text-primary transition-colors">
-                          {country.location}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {country.count} {country.count === 1 ? "job" : "jobs"}
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-              <ScrollBar orientation="horizontal" />
-            </ScrollArea>
-            {topCountries.length > 3 && (
-              <div className="absolute right-0 top-0 bottom-4 w-12 bg-gradient-to-l from-background to-transparent pointer-events-none" />
-            )}
-          </div>
-        </section>
-      )}
-
-      {/* Recommended for You */}
-      {personalizedJobs.length > 0 && (
-        <section>
-          <SectionHeader
-            icon={Briefcase}
-            title="Recommended for You"
-          />
-
-          {personalizedLoading ? (
-            <div className="space-y-3">
-              {[1, 2].map((i) => (
-                <Card key={i}>
-                  <CardContent className="p-3">
-                    <div className="flex items-center gap-3">
-                      <Skeleton className="h-10 w-10 rounded-lg" />
-                      <div className="flex-1 space-y-1.5">
-                        <Skeleton className="h-4 w-3/4" />
-                        <Skeleton className="h-3 w-1/2" />
-                      </div>
-                    </div>
                   </CardContent>
                 </Card>
-              ))}
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {personalizedJobs.slice(0, 4).map((job) => (
-                <div key={job.id} onClick={() => navigate(`/app/jobs/${job.id}`)} className="cursor-pointer">
-                  <JobCard
-                    job={job}
-                    variant="compact"
-                    onClick={() => navigate(`/app/jobs/${job.id}`)}
-                  />
-                </div>
               ))}
             </div>
           )}
         </section>
       )}
 
-      {/* NEW: Promoted / Expiring Soon */}
-      {!loading && promotedJobs.length > 0 && (
+      {/* ===== Tab: By Country ===== */}
+      {activeTab === "country" && (
         <section>
-          <SectionHeader
-            icon={Flame}
-            title="Promoted / Expiring Soon"
-            viewAllPath="/app/jobs/all"
-          />
-          <div className="relative">
-            <ScrollArea className="w-full">
-              <div className="flex gap-4 pb-4">
-                {promotedJobs.map((job, index) => (
-                  <div
-                    key={job.id}
-                    className="w-[260px] shrink-0 animate-in fade-in slide-in-from-right-4"
-                    style={{ animationDelay: `${index * 50}ms` }}
-                  >
-                    <div onClick={() => navigate(`/app/jobs/${job.id}`)} className="cursor-pointer">
-                      <JobCard
-                        job={job}
-                        variant="default"
-                        isSaved={isSaved(job.id, "job")}
-                        onSaveToggle={() => toggleSave(job.id, "job")}
-                        onClick={() => navigate(`/app/jobs/${job.id}`)}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <ScrollBar orientation="horizontal" />
-            </ScrollArea>
-            {promotedJobs.length > 1 && (
-              <div className="absolute right-0 top-0 bottom-4 w-12 bg-gradient-to-l from-background to-transparent pointer-events-none" />
-            )}
-          </div>
-        </section>
-      )}
-
-      {/* Recent Applications */}
-      <section>
-        <SectionHeader
-          icon={FileText}
-          title="Recent Applications"
-          viewAllPath={applications.length > 0 ? "/app/applications" : undefined}
-        />
-
-        {applicationsLoading ? (
-          <div className="space-y-2">
-            {[1, 2].map((i) => (
-              <Card key={i}>
-                <CardContent className="p-3">
-                  <div className="flex items-center gap-3">
-                    <Skeleton className="h-10 w-10 rounded-lg" />
-                    <div className="flex-1 space-y-1.5">
-                      <Skeleton className="h-4 w-3/4" />
-                      <Skeleton className="h-3 w-1/2" />
-                    </div>
-                    <Skeleton className="h-6 w-16 rounded-full" />
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : applications.length === 0 ? (
-          <Card className="border-dashed bg-muted/30">
-            <CardContent className="p-6 text-center">
-              <FileText className="h-8 w-8 text-muted-foreground/50 mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground mb-3">No applications yet</p>
-              <Button size="sm" onClick={() => navigate("/app/jobs/all")}>
-                Browse Jobs
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-2">
-            {applications.map((app) => {
-              const status = getApplicationStatus(app);
-              return (
-                <Card
-                  key={app.id}
-                  className="cursor-pointer hover:shadow-md transition-all hover:border-primary/30"
-                  onClick={() => navigate(`/app/jobs/${app.jobs.id}`)}
-                >
-                  <CardContent className="p-3">
-                    <div className="flex items-center gap-3">
-                      {app.jobs.company_logo_url ? (
-                        <img
-                          src={app.jobs.company_logo_url}
-                          alt={app.jobs.company_name}
-                          className="w-10 h-10 rounded-lg object-cover bg-muted border"
-                        />
-                      ) : (
-                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20">
-                          <Briefcase className="w-4 h-4 text-primary" />
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-sm line-clamp-1">{app.jobs.title}</h3>
-                        <p className="text-xs text-muted-foreground">{app.jobs.company_name}</p>
-                      </div>
-                      <Badge className={`text-xs shrink-0 ${status.color} border-0`}>
-                        <StatusIcon status={app.application_status || app.delivery_status || "pending"} />
-                        {status.label}
-                      </Badge>
+          <SectionHeader icon={Globe} title="Job by Location" />
+          {loading ? (
+            <div className="grid grid-cols-2 gap-3">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <Card key={i}>
+                  <CardContent className="p-4 flex items-center gap-3">
+                    <Skeleton className="h-9 w-9 rounded-lg" />
+                    <div className="space-y-1.5">
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-3 w-14" />
                     </div>
                   </CardContent>
                 </Card>
-              );
-            })}
-          </div>
-        )}
-      </section>
+              ))}
+            </div>
+          ) : topCountries.length === 0 ? (
+            <Card className="border-dashed bg-muted/30">
+              <CardContent className="p-8 text-center">
+                <Globe className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
+                <p className="text-muted-foreground">No location data available yet.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              {topCountries.map((country, index) => (
+                <Card
+                  key={country.location}
+                  className="cursor-pointer hover:border-primary/50 hover:shadow-md transition-all group animate-in fade-in"
+                  style={{ animationDelay: `${index * 30}ms` }}
+                  onClick={() => navigate(`/app/jobs/all?location=${encodeURIComponent(country.location)}`)}
+                >
+                  <CardContent className="p-3 px-4 flex items-center gap-3">
+                    <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
+                      <Globe className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium line-clamp-1 group-hover:text-primary transition-colors">
+                        {country.location}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {country.count} {country.count === 1 ? "job" : "jobs"}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       {/* Job Preferences Sheet */}
       <JobPreferencesSheet open={preferencesOpen} onOpenChange={setPreferencesOpen} />
