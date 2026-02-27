@@ -55,39 +55,40 @@ export function FeedHeader({
         }
       />
 
-      {/* Dark Overlay */}
-      <div className="absolute inset-0 bg-black/50 z-0" />
+      {/* Subtle Gradient Overlay */}
+      <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-black/30 to-transparent z-0" />
 
-      {/* Content - Center Aligned */}
+      {/* Content - Left-Aligned Horizontal */}
       <div
-        className="relative z-10 flex flex-col items-center justify-center h-full text-white cursor-pointer"
+        className="relative z-10 flex items-center h-full text-white cursor-pointer px-5 gap-4"
         onClick={() => setShowCredits(prev => !prev)}
       >
         <Avatar
-          className="h-16 w-16 ring-2 ring-white/30 shadow-md cursor-pointer"
+          className="h-20 w-20 ring-4 ring-white/40 shadow-lg cursor-pointer shrink-0"
           onClick={(e) => {
             e.stopPropagation();
             navigate('/app/profile');
           }}
         >
           <AvatarImage src={talentPhoto} alt={talentName || 'User'} />
-          <AvatarFallback className="bg-white/20 text-white font-bold text-lg">
+          <AvatarFallback className="bg-white/20 text-white font-bold text-xl">
             {initials}
           </AvatarFallback>
         </Avatar>
 
-        <h1 className="font-bold text-sm leading-tight mt-1.5 truncate max-w-[80%]">
-          {talentName || 'Welcome'}
-        </h1>
-
-        {talentProfession && (
-          <p className="text-white/70 text-[11px] leading-tight truncate max-w-[70%]">
-            {talentProfession}
-          </p>
-        )}
+        <div className="flex flex-col min-w-0">
+          <h1 className="font-bold text-lg leading-tight truncate">
+            {talentName || 'Welcome'}
+          </h1>
+          {talentProfession && (
+            <p className="text-white/70 text-xs leading-tight truncate">
+              {talentProfession}
+            </p>
+          )}
+        </div>
 
         {showCredits && (
-          <Badge className="gap-1 bg-white/20 backdrop-blur-sm text-white border-white/30 text-[10px] h-5 mt-1 animate-fade-in">
+          <Badge className="gap-1 bg-white/20 backdrop-blur-sm text-white border-white/30 text-[10px] h-5 ml-auto shrink-0 animate-fade-in">
             <Coins className="h-3 w-3" />
             <span className="font-bold">{balance}</span>
           </Badge>
