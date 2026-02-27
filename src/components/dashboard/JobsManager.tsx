@@ -368,8 +368,8 @@ const ShareJobDialog = ({ job, isOpen, onClose }: { job: Job | null; isOpen: boo
                   <Textarea
                     value={currentCaption}
                     onChange={(e) => setAiCaptions((prev) => ({ ...prev, [activeTab]: e.target.value }))}
-                    rows={6}
-                    className="text-xs"
+                     rows={10}
+                     className="text-xs whitespace-pre-wrap"
                   />
                 )}
                 <Button
