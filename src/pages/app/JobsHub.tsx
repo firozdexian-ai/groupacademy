@@ -3,12 +3,8 @@ import { useNavigate } from "react-router-dom";
 import {
   Briefcase,
   Sparkles,
-  FileText,
   Coins,
   Clock,
-  CheckCircle2,
-  Send,
-  Eye,
   AlertCircle,
   RefreshCw,
   Loader2,
@@ -17,7 +13,10 @@ import {
   Globe,
   Flame,
   Layers,
-  FileCode,
+  AlertTriangle,
+  TrendingUp,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTalent } from "@/hooks/useTalent";
@@ -27,21 +26,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { JobPreferencesSheet } from "@/components/jobs/JobPreferencesSheet";
 import { JobCard, type JobCardData } from "@/components/jobs/JobCard";
-import { JOB_COLLECTIONS, APPLICATION_STATUS_CONFIG } from "@/lib/constants/jobTypes";
+import { JOB_COLLECTIONS } from "@/lib/constants/jobTypes";
 import { toast } from "sonner";
 import { SectionHeader } from "@/components/ui/section-header";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-
-interface JobPreferences {
-  preferred_job_types?: string[];
-  preferred_locations?: string[];
-  salary_min?: number | null;
-  salary_max?: number | null;
-  industries?: string[];
-}
 
 interface AISuggestion {
   job_id: string;
@@ -61,19 +51,6 @@ interface TopCountry {
   count: number;
 }
 
-interface JobApplication {
-  id: string;
-  created_at: string;
-  application_status: string | null;
-  delivery_status: string | null;
-  jobs: {
-    id: string;
-    title: string;
-    company_name: string;
-    company_logo_url: string | null;
-  };
-}
-
 type TabKey = "for-you" | "collection" | "company" | "country";
 
 const TABS: { key: TabKey; label: string; icon: typeof Sparkles }[] = [
@@ -83,6 +60,8 @@ const TABS: { key: TabKey; label: string; icon: typeof Sparkles }[] = [
   { key: "country", label: "By Country", icon: Globe },
 ];
 
+const INITIAL_SHOW = 3;
+
 export default function JobsHub() {
   const navigate = useNavigate();
   const { talent } = useTalent();
@@ -90,21 +69,29 @@ export default function JobsHub() {
   const { canAfford, deductCredits } = useCredits();
 
   const [activeTab, setActiveTab] = useState<TabKey>("for-you");
-  const [topPicks, setTopPicks] = useState<JobCardData[]>([]);
-  const [personalizedJobs, setPersonalizedJobs] = useState<JobCardData[]>([]);
-  const [applications, setApplications] = useState<JobApplication[]>([]);
   const [error, setError] = useState<string | null>(null);
-
   const [loading, setLoading] = useState(true);
-  const [applicationsLoading, setApplicationsLoading] = useState(true);
-  const [personalizedLoading, setPersonalizedLoading] = useState(false);
   const [preferencesOpen, setPreferencesOpen] = useState(false);
-  const [loadingAI, setLoadingAI] = useState(false);
-  const [aiSuggestions, setAiSuggestions] = useState<AISuggestion[]>([]);
 
+  // For You section states
+  const [recommendations, setRecommendations] = useState<AISuggestion[]>([]);
+  const [recommendationsGeneratedAt, setRecommendationsGeneratedAt] = useState<string | null>(null);
+  const [featuredJobs, setFeaturedJobs] = useState<JobCardData[]>([]);
+  const [expiringJobs, setExpiringJobs] = useState<JobCardData[]>([]);
+  const [hotJobs, setHotJobs] = useState<JobCardData[]>([]);
+  const [loadingAI, setLoadingAI] = useState(false);
+
+  // Show more toggles
+  const [showMore, setShowMore] = useState({
+    recommended: false,
+    featured: false,
+    expiring: false,
+    hot: false,
+  });
+
+  // Other tab states
   const [topCompanies, setTopCompanies] = useState<TopCompany[]>([]);
   const [topCountries, setTopCountries] = useState<TopCountry[]>([]);
-  const [promotedJobs, setPromotedJobs] = useState<JobCardData[]>([]);
 
   useEffect(() => {
     loadAllData();
@@ -112,51 +99,156 @@ export default function JobsHub() {
 
   async function loadAllData() {
     setLoading(true);
-    setApplicationsLoading(true);
-    setPersonalizedLoading(true);
     setError(null);
-
     try {
-      const [topPicksResult, personalizedResult, applicationsResult, , companiesResult, countriesResult, promotedResult] = await Promise.all([
-        fetchTopPicks(),
-        talent?.id ? fetchPersonalizedJobs() : Promise.resolve([]),
-        talent?.id ? fetchApplications() : Promise.resolve([]),
-        Promise.resolve(0),
+      const [featuredResult, expiringResult, hotResult, companiesResult, countriesResult] = await Promise.all([
+        fetchFeaturedJobs(),
+        fetchExpiringJobs(),
+        fetchHotJobs(),
         fetchTopCompanies(),
         fetchTopCountries(),
-        fetchPromotedJobs(),
       ]);
 
-      setTopPicks(topPicksResult);
-      setPersonalizedJobs(personalizedResult);
-      setApplications(applicationsResult);
+      setFeaturedJobs(featuredResult);
+      setExpiringJobs(expiringResult);
+      setHotJobs(hotResult);
       setTopCompanies(companiesResult);
       setTopCountries(countriesResult);
-      setPromotedJobs(promotedResult);
+
+      if (talent?.id) {
+        await fetchRecommendations();
+      }
     } catch (error: any) {
       console.error("Error loading data:", error);
       setError(error.message || "Failed to load jobs data");
     } finally {
       setLoading(false);
-      setApplicationsLoading(false);
-      setPersonalizedLoading(false);
     }
   }
 
-  async function fetchTopPicks(): Promise<JobCardData[]> {
+  async function fetchRecommendations() {
+    if (!talent?.id) return;
+    const { data, error } = await supabase
+      .from("ai_job_recommendations")
+      .select("job_id, match_score, reason, generated_at")
+      .eq("talent_id", talent.id)
+      .order("match_score", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching recommendations:", error);
+      return;
+    }
+    if (!data || data.length === 0) {
+      setRecommendations([]);
+      setRecommendationsGeneratedAt(null);
+      return;
+    }
+
+    setRecommendationsGeneratedAt(data[0].generated_at);
+
+    // Fetch job details for all recommended job IDs
+    const jobIds = data.map((r) => r.job_id);
+    const { data: jobsData, error: jobsError } = await supabase
+      .from("jobs")
+      .select("id, title, company_name, company_logo_url, location, job_type, experience_level, is_featured, created_at, deadline, salary_range_min, salary_range_max")
+      .in("id", jobIds)
+      .eq("is_active", true);
+
+    if (jobsError) {
+      console.error("Error fetching recommendation jobs:", jobsError);
+      return;
+    }
+
+    const jobMap = new Map((jobsData || []).map((j) => [j.id, j]));
+    const suggestions: AISuggestion[] = data
+      .filter((r) => jobMap.has(r.job_id))
+      .map((r) => ({
+        job_id: r.job_id,
+        match_score: r.match_score,
+        reason: r.reason || "",
+        job: jobMap.get(r.job_id) as JobCardData,
+      }));
+
+    setRecommendations(suggestions);
+  }
+
+  async function fetchFeaturedJobs(): Promise<JobCardData[]> {
     const { data, error } = await supabase
       .from("jobs")
-      .select(
-        "id, title, company_name, company_logo_url, location, job_type, experience_level, is_featured, created_at, deadline",
-      )
+      .select("id, title, company_name, company_logo_url, location, job_type, experience_level, is_featured, created_at, deadline, salary_range_min, salary_range_max")
       .eq("is_active", true)
+      .eq("is_featured", true)
       .or("deadline.is.null,deadline.gte.now()")
-      .order("is_featured", { ascending: false })
       .order("created_at", { ascending: false })
-      .limit(5);
-
+      .limit(10);
     if (error) throw error;
     return (data as JobCardData[]) || [];
+  }
+
+  async function fetchExpiringJobs(): Promise<JobCardData[]> {
+    const sevenDaysFromNow = new Date();
+    sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+    const { data, error } = await supabase
+      .from("jobs")
+      .select("id, title, company_name, company_logo_url, location, job_type, experience_level, is_featured, created_at, deadline, salary_range_min, salary_range_max")
+      .eq("is_active", true)
+      .not("deadline", "is", null)
+      .gte("deadline", new Date().toISOString())
+      .lte("deadline", sevenDaysFromNow.toISOString())
+      .order("deadline", { ascending: true })
+      .limit(10);
+    if (error) throw error;
+    return (data as JobCardData[]) || [];
+  }
+
+  async function fetchHotJobs(): Promise<JobCardData[]> {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const since = thirtyDaysAgo.toISOString();
+
+    // Fetch click counts and application counts in parallel
+    const [clicksResult, appsResult] = await Promise.all([
+      supabase
+        .from("job_analytics")
+        .select("job_id")
+        .gte("clicked_at", since),
+      supabase
+        .from("job_applications")
+        .select("job_id")
+        .gte("created_at", since),
+    ]);
+
+    // Aggregate counts
+    const engagementMap = new Map<string, number>();
+    for (const row of clicksResult.data || []) {
+      engagementMap.set(row.job_id, (engagementMap.get(row.job_id) || 0) + 1);
+    }
+    for (const row of appsResult.data || []) {
+      if (row.job_id) {
+        engagementMap.set(row.job_id, (engagementMap.get(row.job_id) || 0) + 2); // applications weigh more
+      }
+    }
+
+    if (engagementMap.size === 0) return [];
+
+    // Sort by engagement, take top 10
+    const topJobIds = Array.from(engagementMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([id]) => id);
+
+    const { data, error } = await supabase
+      .from("jobs")
+      .select("id, title, company_name, company_logo_url, location, job_type, experience_level, is_featured, created_at, deadline, salary_range_min, salary_range_max")
+      .in("id", topJobIds)
+      .eq("is_active", true);
+
+    if (error) throw error;
+
+    // Re-sort by engagement score
+    const result = (data as JobCardData[]) || [];
+    result.sort((a, b) => (engagementMap.get(b.id) || 0) - (engagementMap.get(a.id) || 0));
+    return result;
   }
 
   async function fetchTopCompanies(): Promise<TopCompany[]> {
@@ -166,10 +258,8 @@ export default function JobsHub() {
       .eq("is_active", true)
       .or("deadline.is.null,deadline.gte.now()")
       .limit(500);
-
     if (error) throw error;
     if (!data) return [];
-
     const map = new Map<string, { logo_url: string | null; count: number }>();
     for (const job of data) {
       if (!job.company_name) continue;
@@ -181,7 +271,6 @@ export default function JobsHub() {
         map.set(job.company_name, { logo_url: job.company_logo_url, count: 1 });
       }
     }
-
     return Array.from(map.entries())
       .map(([name, info]) => ({ name, logo_url: info.logo_url, count: info.count }))
       .sort((a, b) => b.count - a.count)
@@ -196,108 +285,21 @@ export default function JobsHub() {
       .or("deadline.is.null,deadline.gte.now()")
       .not("location", "is", null)
       .limit(500);
-
     if (error) throw error;
     if (!data) return [];
-
     const map = new Map<string, number>();
     for (const job of data) {
       const loc = job.location?.trim();
       if (!loc) continue;
       map.set(loc, (map.get(loc) || 0) + 1);
     }
-
     return Array.from(map.entries())
       .map(([location, count]) => ({ location, count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 20);
   }
 
-  async function fetchPromotedJobs(): Promise<JobCardData[]> {
-    const sevenDaysFromNow = new Date();
-    sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
-    const deadlineStr = sevenDaysFromNow.toISOString();
-
-    const { data, error } = await supabase
-      .from("jobs")
-      .select(
-        "id, title, company_name, company_logo_url, location, job_type, experience_level, is_featured, created_at, deadline",
-      )
-      .eq("is_active", true)
-      .or("deadline.is.null,deadline.gte.now()")
-      .or(`is_featured.eq.true,deadline.lte.${deadlineStr}`)
-      .order("deadline", { ascending: true, nullsFirst: false })
-      .limit(8);
-
-    if (error) throw error;
-    return (data as JobCardData[]) || [];
-  }
-
-  async function fetchPersonalizedJobs(): Promise<JobCardData[]> {
-    if (!talent?.id) return [];
-
-    const { data: talentData } = await supabase
-      .from("talents")
-      .select("job_preferences, profession_category_id")
-      .eq("id", talent.id)
-      .single();
-
-    const preferences = talentData?.job_preferences as unknown as JobPreferences | null;
-
-    let query = supabase
-      .from("jobs")
-      .select(
-        "id, title, company_name, company_logo_url, location, job_type, experience_level, is_featured, created_at, deadline, salary_range_min, salary_range_max",
-      )
-      .eq("is_active", true)
-      .or("deadline.is.null,deadline.gte.now()");
-
-    if (preferences?.preferred_job_types?.length) {
-      query = query.in("job_type", preferences.preferred_job_types as any);
-    }
-
-    if (preferences?.preferred_locations?.length) {
-      const locationFilters = preferences.preferred_locations.map((loc) => `location.ilike.%${loc}%`).join(",");
-      query = query.or(locationFilters);
-    }
-
-    if (preferences?.salary_min) {
-      query = query.gte("salary_range_max", preferences.salary_min);
-    }
-
-    if (!preferences && talentData?.profession_category_id) {
-      query = query.eq("profession_category_id", talentData.profession_category_id);
-    }
-
-    const { data, error } = await query.order("created_at", { ascending: false }).limit(6);
-
-    if (error) throw error;
-    return (data as JobCardData[]) || [];
-  }
-
-  async function fetchApplications(): Promise<JobApplication[]> {
-    const { data, error } = await supabase
-      .from("job_applications")
-      .select(
-        `
-        id, created_at, application_status, delivery_status,
-        jobs:job_id (id, title, company_name, company_logo_url)
-      `,
-      )
-      .eq("talent_id", talent!.id)
-      .order("created_at", { ascending: false })
-      .limit(3);
-
-    if (error) throw error;
-    return (data as unknown as JobApplication[]) || [];
-  }
-
-  function getApplicationStatus(app: JobApplication) {
-    const status = app.application_status || app.delivery_status || "pending";
-    return APPLICATION_STATUS_CONFIG[status] || APPLICATION_STATUS_CONFIG.pending;
-  }
-
-  async function handleShowAllAI() {
+  async function handleGetAIRecommendations() {
     if (!canAfford("SUGGESTED_JOBS")) {
       toast.error("Insufficient credits. You need 10 credits for AI recommendations.");
       return;
@@ -312,18 +314,37 @@ export default function JobsHub() {
       }
 
       const { data, error: fnError } = await supabase.functions.invoke("suggest-jobs-for-talent");
-
       if (fnError) throw fnError;
       if (data?.error) throw new Error(data.error);
 
       const suggestions = data?.suggestions || [];
-      setAiSuggestions(suggestions);
 
       if (suggestions.length === 0) {
         toast.info("No strong matches found. Try updating your profile with more skills.");
-      } else {
-        toast.success(`Found ${suggestions.length} recommended jobs for you!`);
+        setLoadingAI(false);
+        return;
       }
+
+      // Persist to database: delete old, insert new
+      if (talent?.id) {
+        await supabase
+          .from("ai_job_recommendations")
+          .delete()
+          .eq("talent_id", talent.id);
+
+        const rows = suggestions.map((s: AISuggestion) => ({
+          talent_id: talent.id,
+          job_id: s.job_id,
+          match_score: s.match_score,
+          reason: s.reason,
+        }));
+
+        await supabase.from("ai_job_recommendations").insert(rows);
+      }
+
+      // Reload from DB
+      await fetchRecommendations();
+      toast.success(`Found ${suggestions.length} recommended jobs for you!`);
     } catch (error) {
       console.error("Error getting AI recommendations:", error);
       toast.error("Failed to get AI recommendations. Please try again.");
@@ -332,18 +353,51 @@ export default function JobsHub() {
     }
   }
 
-  const StatusIcon = ({ status }: { status: string }) => {
-    const icons: Record<string, typeof Clock> = {
-      pending: Clock,
-      sent: Send,
-      delivered: CheckCircle2,
-      viewed: Eye,
-      rejected: FileCode,
-      accepted: CheckCircle2,
-    };
-    const Icon = icons[status] || Clock;
-    return <Icon className="h-3 w-3 mr-1" />;
+  const toggleShowMore = (key: keyof typeof showMore) => {
+    setShowMore((prev) => ({ ...prev, [key]: !prev[key] }));
   };
+
+  // -- Reusable vertical job list section --
+  function renderJobSection(
+    jobs: JobCardData[],
+    sectionKey: keyof typeof showMore,
+    maxExpanded = 12,
+  ) {
+    const isExpanded = showMore[sectionKey];
+    const visibleJobs = isExpanded ? jobs.slice(0, maxExpanded) : jobs.slice(0, INITIAL_SHOW);
+    const hasMore = jobs.length > INITIAL_SHOW;
+
+    return (
+      <>
+        <div className="space-y-2">
+          {visibleJobs.map((job) => (
+            <JobCard
+              key={job.id}
+              job={job}
+              variant="compact"
+              isSaved={isSaved(job.id, "job")}
+              onSaveToggle={() => toggleSave(job.id, "job")}
+              onClick={() => navigate(`/app/jobs/${job.id}`)}
+            />
+          ))}
+        </div>
+        {hasMore && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full mt-1 gap-1 text-xs text-muted-foreground"
+            onClick={() => toggleShowMore(sectionKey)}
+          >
+            {isExpanded ? (
+              <>Show Less <ChevronUp className="h-3 w-3" /></>
+            ) : (
+              <>Show More ({jobs.length - INITIAL_SHOW} more) <ChevronDown className="h-3 w-3" /></>
+            )}
+          </Button>
+        )}
+      </>
+    );
+  }
 
   if (error && !loading) {
     return (
@@ -391,206 +445,41 @@ export default function JobsHub() {
       {/* ===== Tab: For You ===== */}
       {activeTab === "for-you" && (
         <>
-          {/* Featured Jobs */}
-          <section>
-            <SectionHeader icon={Sparkles} title="Featured Jobs" viewAllPath="/app/jobs/all" />
-            {loading ? (
-              <div className="flex gap-3 overflow-hidden pb-2">
-                {[1, 2, 3].map((i) => (
-                  <Card key={i} className="w-[240px] shrink-0">
-                    <CardContent className="p-4 space-y-3">
-                      <div className="flex gap-3">
-                        <Skeleton className="h-12 w-12 rounded-xl shrink-0" />
-                        <div className="flex-1 space-y-2">
-                          <Skeleton className="h-5 w-3/4" />
-                          <Skeleton className="h-4 w-1/2" />
-                        </div>
-                      </div>
-                      <Skeleton className="h-6 w-24" />
-                      <Skeleton className="h-4 w-full" />
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            ) : topPicks.length === 0 ? (
-              <Card className="border-dashed bg-muted/50">
-                <CardContent className="p-8 text-center">
-                  <Briefcase className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
-                  <p className="text-muted-foreground">No job openings available right now.</p>
-                  <p className="text-sm text-muted-foreground/70">Check back soon!</p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="relative">
-                <ScrollArea className="w-full">
-                  <div className="flex gap-3 pb-3">
-                    {topPicks.map((job, index) => (
-                      <div
-                        key={job.id}
-                        className="w-[240px] shrink-0 animate-in fade-in slide-in-from-right-4"
-                        style={{ animationDelay: `${index * 50}ms` }}
-                      >
-                        <div onClick={() => navigate(`/app/jobs/${job.id}`)} className="cursor-pointer">
-                          <JobCard
-                            job={job}
-                            variant="default"
-                            isSaved={isSaved(job.id, "job")}
-                            onSaveToggle={() => toggleSave(job.id, "job")}
-                            onClick={() => navigate(`/app/jobs/${job.id}`)}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <ScrollBar orientation="horizontal" />
-                </ScrollArea>
-                {topPicks.length > 1 && (
-                  <div className="absolute right-0 top-0 bottom-4 w-12 bg-gradient-to-l from-background to-transparent pointer-events-none" />
-                )}
-              </div>
-            )}
+          {/* Section 1: Recommended for You (AI-powered) */}
+          <section className="space-y-2">
+            <SectionHeader icon={Brain} title="Recommended for You" />
 
-            {/* AI Recommendations Button */}
-            {topPicks.length > 0 && aiSuggestions.length === 0 && (
-              <Button variant="outline" className="w-full mt-2 gap-2 h-9" onClick={handleShowAllAI} disabled={loadingAI}>
-                {loadingAI ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Sparkles className="h-4 w-4 text-primary" />
-                )}
-                {loadingAI ? "Analyzing your profile..." : "Get AI Recommendations"}
-                <Badge variant="secondary" className="gap-1 ml-auto">
-                  <Coins className="h-3 w-3 text-amber-500" />
-                  10 credits
-                </Badge>
-              </Button>
-            )}
-          </section>
-
-          {/* AI Loading Skeleton */}
-          {loadingAI && (
-            <section className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Brain className="h-5 w-5 text-primary animate-pulse" />
-                <h2 className="font-semibold text-sm">Finding your best matches...</h2>
-              </div>
-              {[1, 2, 3].map((i) => (
-                <Card key={i}>
-                  <CardContent className="p-3">
-                    <div className="flex items-center gap-3">
-                      <Skeleton className="h-10 w-10 rounded-lg" />
-                      <div className="flex-1 space-y-1.5">
-                        <Skeleton className="h-4 w-3/4" />
-                        <Skeleton className="h-3 w-1/2" />
-                        <Skeleton className="h-3 w-2/3" />
-                      </div>
-                      <Skeleton className="h-5 w-20 rounded-full" />
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </section>
-          )}
-
-          {/* AI Recommended Jobs */}
-          {aiSuggestions.length > 0 && (
-            <section>
-              <SectionHeader icon={Brain} title="AI Recommended for You" />
-              <div className="space-y-2">
-                {aiSuggestions.map((suggestion, index) => (
-                  <div
-                    key={suggestion.job_id}
-                    className="animate-in fade-in slide-in-from-bottom-2"
-                    style={{ animationDelay: `${index * 50}ms` }}
-                  >
-                    <JobCard
-                      job={suggestion.job}
-                      variant="compact"
-                      matchInfo={{ match_score: suggestion.match_score, reason: suggestion.reason }}
-                      onClick={() => navigate(`/app/jobs/${suggestion.job_id}`)}
-                    />
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Recommended for You */}
-          {personalizedJobs.length > 0 && (
-            <section>
-              <SectionHeader icon={Briefcase} title="Recommended for You" />
-              {personalizedLoading ? (
-                <div className="space-y-3">
-                  {[1, 2].map((i) => (
-                    <Card key={i}>
-                      <CardContent className="p-3">
-                        <div className="flex items-center gap-3">
-                          <Skeleton className="h-10 w-10 rounded-lg" />
-                          <div className="flex-1 space-y-1.5">
-                            <Skeleton className="h-4 w-3/4" />
-                            <Skeleton className="h-3 w-1/2" />
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+            {/* AI Recommendation Button */}
+            <Button
+              variant="outline"
+              className="w-full gap-2 h-9"
+              onClick={handleGetAIRecommendations}
+              disabled={loadingAI}
+            >
+              {loadingAI ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <div className="space-y-2">
-                  {personalizedJobs.slice(0, 4).map((job) => (
-                    <div key={job.id} onClick={() => navigate(`/app/jobs/${job.id}`)} className="cursor-pointer">
-                      <JobCard job={job} variant="compact" onClick={() => navigate(`/app/jobs/${job.id}`)} />
-                    </div>
-                  ))}
-                </div>
+                <Sparkles className="h-4 w-4 text-primary" />
               )}
-            </section>
-          )}
+              {loadingAI
+                ? "Analyzing your profile..."
+                : recommendations.length > 0
+                  ? "Refresh Recommendations"
+                  : "Get AI Recommendations"}
+              <Badge variant="secondary" className="gap-1 ml-auto">
+                <Coins className="h-3 w-3 text-amber-500" />
+                10 credits
+              </Badge>
+            </Button>
 
-          {/* Promoted / Expiring Soon */}
-          {!loading && promotedJobs.length > 0 && (
-            <section>
-              <SectionHeader icon={Flame} title="Promoted / Expiring Soon" viewAllPath="/app/jobs/all" />
-              <div className="relative">
-                <ScrollArea className="w-full">
-                  <div className="flex gap-3 pb-3">
-                    {promotedJobs.map((job, index) => (
-                      <div
-                        key={job.id}
-                        className="w-[240px] shrink-0 animate-in fade-in slide-in-from-right-4"
-                        style={{ animationDelay: `${index * 50}ms` }}
-                      >
-                        <div onClick={() => navigate(`/app/jobs/${job.id}`)} className="cursor-pointer">
-                          <JobCard
-                            job={job}
-                            variant="default"
-                            isSaved={isSaved(job.id, "job")}
-                            onSaveToggle={() => toggleSave(job.id, "job")}
-                            onClick={() => navigate(`/app/jobs/${job.id}`)}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <ScrollBar orientation="horizontal" />
-                </ScrollArea>
-                {promotedJobs.length > 1 && (
-                  <div className="absolute right-0 top-0 bottom-4 w-12 bg-gradient-to-l from-background to-transparent pointer-events-none" />
-                )}
-              </div>
-            </section>
-          )}
-
-          {/* Recent Applications */}
-          <section>
-            <SectionHeader
-              icon={FileText}
-              title="Recent Applications"
-              viewAllPath={applications.length > 0 ? "/app/applications" : undefined}
-            />
-            {applicationsLoading ? (
+            {/* AI Loading Skeleton */}
+            {loadingAI && (
               <div className="space-y-2">
-                {[1, 2].map((i) => (
+                <div className="flex items-center gap-2">
+                  <Brain className="h-4 w-4 text-primary animate-pulse" />
+                  <span className="text-xs text-muted-foreground">Finding your best matches...</span>
+                </div>
+                {[1, 2, 3].map((i) => (
                   <Card key={i}>
                     <CardContent className="p-3">
                       <div className="flex items-center gap-3">
@@ -599,61 +488,108 @@ export default function JobsHub() {
                           <Skeleton className="h-4 w-3/4" />
                           <Skeleton className="h-3 w-1/2" />
                         </div>
-                        <Skeleton className="h-6 w-16 rounded-full" />
+                        <Skeleton className="h-5 w-20 rounded-full" />
                       </div>
                     </CardContent>
                   </Card>
                 ))}
               </div>
-            ) : applications.length === 0 ? (
+            )}
+
+            {/* Timestamp */}
+            {recommendationsGeneratedAt && !loadingAI && (
+              <p className="text-[10px] text-muted-foreground">
+                Last updated: {new Date(recommendationsGeneratedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+              </p>
+            )}
+
+            {/* Recommendation Results */}
+            {!loadingAI && recommendations.length > 0 && (
+              <>
+                <div className="space-y-2">
+                  {(showMore.recommended ? recommendations.slice(0, 12) : recommendations.slice(0, INITIAL_SHOW)).map((suggestion) => (
+                    <JobCard
+                      key={suggestion.job_id}
+                      job={suggestion.job}
+                      variant="compact"
+                      matchInfo={{ match_score: suggestion.match_score, reason: suggestion.reason }}
+                      onClick={() => navigate(`/app/jobs/${suggestion.job_id}`)}
+                    />
+                  ))}
+                </div>
+                {recommendations.length > INITIAL_SHOW && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full mt-1 gap-1 text-xs text-muted-foreground"
+                    onClick={() => toggleShowMore("recommended")}
+                  >
+                    {showMore.recommended ? (
+                      <>Show Less <ChevronUp className="h-3 w-3" /></>
+                    ) : (
+                      <>Show More ({recommendations.length - INITIAL_SHOW} more) <ChevronDown className="h-3 w-3" /></>
+                    )}
+                  </Button>
+                )}
+              </>
+            )}
+
+            {/* Empty state for first-time users */}
+            {!loadingAI && recommendations.length === 0 && !loading && (
               <Card className="border-dashed bg-muted/30">
                 <CardContent className="p-6 text-center">
-                  <FileText className="h-8 w-8 text-muted-foreground/50 mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground mb-3">No applications yet</p>
-                  <Button size="sm" onClick={() => navigate("/app/jobs/all")}>
-                    Browse Jobs
-                  </Button>
+                  <Brain className="h-8 w-8 text-muted-foreground/50 mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    Tap "Get AI Recommendations" to discover jobs matched to your profile.
+                  </p>
                 </CardContent>
               </Card>
-            ) : (
-              <div className="space-y-2">
-                {applications.map((app) => {
-                  const status = getApplicationStatus(app);
-                  return (
-                    <Card
-                      key={app.id}
-                      className="cursor-pointer hover:shadow-md transition-all hover:border-primary/30"
-                      onClick={() => navigate(`/app/jobs/${app.jobs.id}`)}
-                    >
-                      <CardContent className="p-3">
-                        <div className="flex items-center gap-3">
-                          {app.jobs.company_logo_url ? (
-                            <img
-                              src={app.jobs.company_logo_url}
-                              alt={app.jobs.company_name}
-                              className="w-10 h-10 rounded-lg object-cover bg-muted border"
-                            />
-                          ) : (
-                            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20">
-                              <Briefcase className="w-4 h-4 text-primary" />
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-sm line-clamp-1">{app.jobs.title}</h3>
-                            <p className="text-xs text-muted-foreground">{app.jobs.company_name}</p>
-                          </div>
-                          <Badge className={`text-xs shrink-0 ${status.color} border-0`}>
-                            <StatusIcon status={app.application_status || app.delivery_status || "pending"} />
-                            {status.label}
-                          </Badge>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
             )}
           </section>
+
+          {/* Section 2: Featured / Promoted Jobs */}
+          {!loading && featuredJobs.length > 0 && (
+            <section className="space-y-2">
+              <SectionHeader icon={Sparkles} title="Featured Jobs" viewAllPath="/app/jobs/all" />
+              {renderJobSection(featuredJobs, "featured", 10)}
+            </section>
+          )}
+
+          {/* Section 3: Expiring Soon */}
+          {!loading && expiringJobs.length > 0 && (
+            <section className="space-y-2">
+              <SectionHeader icon={AlertTriangle} title="Expiring Soon" />
+              {renderJobSection(expiringJobs, "expiring", 10)}
+            </section>
+          )}
+
+          {/* Section 4: Hot Jobs (Most Popular) */}
+          {!loading && hotJobs.length > 0 && (
+            <section className="space-y-2">
+              <SectionHeader icon={TrendingUp} title="Hot Jobs" />
+              {renderJobSection(hotJobs, "hot", 10)}
+            </section>
+          )}
+
+          {/* Loading skeleton for all sections */}
+          {loading && (
+            <div className="space-y-3">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Card key={i}>
+                  <CardContent className="p-3">
+                    <div className="flex items-center gap-3">
+                      <Skeleton className="h-10 w-10 rounded-lg" />
+                      <div className="flex-1 space-y-1.5">
+                        <Skeleton className="h-4 w-3/4" />
+                        <Skeleton className="h-3 w-1/2" />
+                      </div>
+                      <Skeleton className="h-6 w-16 rounded-full" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </>
       )}
 

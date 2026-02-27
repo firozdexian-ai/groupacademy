@@ -336,6 +336,48 @@ export type Database = {
           },
         ]
       }
+      ai_job_recommendations: {
+        Row: {
+          generated_at: string
+          id: string
+          job_id: string
+          match_score: number
+          reason: string | null
+          talent_id: string
+        }
+        Insert: {
+          generated_at?: string
+          id?: string
+          job_id: string
+          match_score?: number
+          reason?: string | null
+          talent_id: string
+        }
+        Update: {
+          generated_at?: string
+          id?: string
+          job_id?: string
+          match_score?: number
+          reason?: string | null
+          talent_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_job_recommendations_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_job_recommendations_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_recommendations: {
         Row: {
           career_insights: Json | null
