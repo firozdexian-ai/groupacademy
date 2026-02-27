@@ -63,18 +63,25 @@ export function GigCard({ gig, userSubmissions }: GigCardProps) {
                 <Badge variant="outline" className="text-xs gap-1">
                   <CheckCircle2 className="h-3 w-3" /> Completed
                 </Badge>
-              ) : hasPending ? (
+              ) : hasPending && (gig.max_completions_per_user ?? 1) <= 1 ? (
                 <Badge variant="outline" className="text-xs">
                   Pending review
                 </Badge>
               ) : (
-                <Button
-                  size="sm"
-                  className="h-8 text-xs gap-1"
-                  onClick={() => setShowForm(true)}
-                >
-                  Start <ChevronRight className="h-3.5 w-3.5" />
-                </Button>
+                <div className="flex items-center gap-2">
+                  {hasPending && (
+                    <Badge variant="outline" className="text-xs">
+                      {userSubmissions!.pending} pending
+                    </Badge>
+                  )}
+                  <Button
+                    size="sm"
+                    className="h-8 text-xs gap-1"
+                    onClick={() => setShowForm(true)}
+                  >
+                    Start <ChevronRight className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
               )}
             </div>
           </div>
