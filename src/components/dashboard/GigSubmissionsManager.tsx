@@ -293,6 +293,8 @@ export function GigSubmissionsManager() {
         description: job?.description || sd?.raw_text || "",
         source_image_url: sd?.source_image_url || null,
         source_platform: "other" as any,
+        application_type: "internal" as any,
+        profession_category_id: job?.profession_category_id || null,
         is_active: true,
       });
       if (jobError) throw jobError;
