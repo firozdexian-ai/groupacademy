@@ -1,47 +1,75 @@
 
 
-# Fix: "Apply with AI" Failing with 401 Unauthorized
+# Fix: "Apply with AI" Stuck at 99% — Replace supabase.functions.invoke with Direct Fetch
 
-## Root Cause
+## Root Cause (Confirmed)
 
-The edge function analytics show every request to `prepare-external-application` returns **HTTP 401** with ~1.3s execution time. The function boots but never processes the request.
+The edge function `prepare-external-application` **works correctly** — verified by 2 direct calls that returned 200 with valid data and properly deducted credits.
 
-The cause: the function is not listed in `supabase/config.toml`. Without an explicit `verify_jwt = false` entry, the gateway uses its default JWT verification (signing-keys system), which rejects the token before the function code runs. Every other edge function in the project has `verify_jwt = false` and handles auth internally -- this one was missed during creation.
+The issue is in the frontend: `supabase.functions.invoke()` is silently failing to deliver the response back to the component. This is a known issue with the Supabase JS client in certain environments where the response parsing or error handling doesn't behave as expected, causing the `await` to hang or the returned `data` to be null/unparseable.
 
-## Why It Gets Stuck at 99%
+Meanwhile, the `ProcessingCard` animation runs to 99% and stays there because no state transition ever happens.
 
-1. `supabase.functions.invoke()` receives the 401 response
-2. But the Supabase JS client wraps non-2xx responses differently -- `fnError` may not be set for 401s in all cases, and `data` may contain the error body
-3. The catch block fires but the error message may not propagate clearly to the UI
-4. Meanwhile the ProcessingCard animation reaches 99% and stays there
+## Fix: Replace `supabase.functions.invoke` with Direct `fetch`
 
-## Fix (1 change)
+This gives us full control over request/response handling, explicit error codes, and proper timeout via `AbortController`.
 
-### `supabase/config.toml` -- Add the missing function entry
+### Changes to `src/components/jobs/ExternalApplicationPrep.tsx`
 
-Add this block alongside the other function entries:
+**1. Replace `startScrape` function** with direct `fetch` using:
+- `AbortController` for clean 90-second timeout (instead of `setTimeout` race condition)
+- Direct URL construction using `VITE_SUPABASE_URL`
+- Explicit `Authorization` header from `supabase.auth.getSession()`
+- Proper JSON response parsing with error handling for non-2xx status codes
 
-```toml
-[functions.prepare-external-application]
-verify_jwt = false
+**2. Replace `submitScreenshots` function** with the same direct `fetch` pattern.
+
+**3. Key improvements:**
+- `AbortController.abort()` cleanly cancels the network request on timeout (no race condition)
+- Explicit status code checking (402 for credits, 401 for auth, 500 for server errors)
+- Response body is always consumed and parsed, preventing silent failures
+- Cleanup of abort controller in both success and error paths
+
+### Technical Detail
+
+```typescript
+// Before (unreliable):
+const { data, error: fnError } = await supabase.functions.invoke("prepare-external-application", { body: {...} });
+
+// After (reliable):
+const { data: { session } } = await supabase.auth.getSession();
+const controller = new AbortController();
+const timeoutId = setTimeout(() => controller.abort(), 90000);
+
+const response = await fetch(
+  `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/prepare-external-application`,
+  {
+    method: "POST",
+    signal: controller.signal,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session?.access_token}`,
+      apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+    },
+    body: JSON.stringify({...}),
+  }
+);
+clearTimeout(timeoutId);
+
+if (!response.ok) {
+  const errBody = await response.json().catch(() => ({}));
+  throw new Error(errBody.error || `Request failed (${response.status})`);
+}
+const data = await response.json();
 ```
-
-This lets the request pass through the gateway to the function code, where auth is handled properly via `getUser(token)`.
-
-### Secondary Fix: Improve error handling in `ExternalApplicationPrep.tsx`
-
-The timeout mechanism has a race condition -- `setTimeout` sets the error state, but the still-running `invoke()` call can overwrite it when it resolves. Add an `AbortController` or a guard flag to prevent this.
-
-Also, the `supabase.functions.invoke` error for 401 may come as `fnError` with a `FunctionsHttpError` type. We should ensure the catch path handles this clearly.
 
 ## Files to Change
 
 | File | Change |
 |------|--------|
-| `supabase/config.toml` | Add `[functions.prepare-external-application] verify_jwt = false` |
-| `src/components/jobs/ExternalApplicationPrep.tsx` | Fix timeout race condition with abort guard |
+| `src/components/jobs/ExternalApplicationPrep.tsx` | Replace `supabase.functions.invoke` with direct `fetch` + `AbortController` in both `startScrape` and `submitScreenshots` |
 
 ## Expected Outcome
 
-After this fix, the function will receive the request, process Firecrawl scraping and AI generation, and return results to the frontend. The 99% stuck state will be resolved.
+The function will be called directly via `fetch`, bypassing any silent failures in `supabase.functions.invoke`. The response will be properly parsed, timeout will cleanly abort the request, and the UI will transition from loading to results (or error) correctly.
 
