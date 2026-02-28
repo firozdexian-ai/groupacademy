@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -202,17 +202,20 @@ export function ExternalApplicationPrep({
     setScreenshots((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // Start scraping when dialog opens
-  const handleOpenChange = (open: boolean) => {
+  // Trigger scrape when dialog opens via useEffect (onOpenChange doesn't fire on programmatic open)
+  useEffect(() => {
     if (open) {
-      setPhase("loading");
       setAnswers([]);
       setGeneralSummary("");
       setScreenshots([]);
       setError(null);
+      setPhase("loading");
       startScrape();
     }
-    onOpenChange(open);
+  }, [open]);
+
+  const handleOpenChange = (newOpen: boolean) => {
+    onOpenChange(newOpen);
   };
 
   return (
