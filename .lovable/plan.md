@@ -1,63 +1,49 @@
 
 
-# Fix: Edge Function Timeout Causing 99% Hang and Lost Credits
+# Fix: "Apply with AI" Never Starts — startScrape Not Called
 
-## Root Cause (Confirmed with Data)
+## Root Cause (Confirmed via Browser Testing)
 
-- **3 credit deductions found** (50 credits each) -- the function runs and deducts credits successfully
-- **0 cached questions** -- the function crashes/times out BEFORE completing the work
-- The function chains 4+ sequential API calls (Firecrawl scrape -> AI question extraction -> AI answer generation -> AI summary generation), easily exceeding the edge function runtime limit
-- Credits are deducted BEFORE any work begins, so users lose credits on every failed attempt
+I tested the feature live in the browser and confirmed:
+- The dialog opens and shows the ProcessingCard animation counting to 99%
+- **Zero network requests** to `prepare-external-application` are made
+- **Zero `[ApplyAI]` console logs** appear
 
-## Fix Strategy
+The issue is that `startScrape()` is called inside `handleOpenChange`, but Radix Dialog's `onOpenChange` callback only fires on **user-initiated close events** (clicking the X, pressing Escape, clicking the backdrop). When the parent component sets `open={true}`, `handleOpenChange` is **never triggered**, so the scrape never starts. The animation runs to 99% with no actual work happening behind it.
 
-Two changes: make the edge function faster and more resilient, and protect credits.
+The edge function itself works perfectly (confirmed by direct API test -- returns 200 with valid data in seconds).
 
-### 1. Edge Function (`supabase/functions/prepare-external-application/index.ts`)
+## Fix
 
-**A. Add timeout to Firecrawl call (10 seconds max)**
-- Wrap the Firecrawl fetch in an AbortController with a 10-second timeout
-- If Firecrawl hangs, fail fast to the screenshot fallback path instead of blocking the entire function
+### File: `src/components/jobs/ExternalApplicationPrep.tsx`
 
-**B. Move credit deduction AFTER successful processing**
-- Only deduct credits when we have results to return
-- This prevents users from losing credits on timeouts/failures
-- If the function fails, credits remain untouched
+**1. Add a `useEffect` to trigger scrape when dialog opens:**
+```typescript
+useEffect(() => {
+  if (open) {
+    setAnswers([]);
+    setGeneralSummary("");
+    setScreenshots([]);
+    setError(null);
+    setPhase("loading");
+    startScrape();
+  }
+}, [open]);
+```
 
-**C. Add AbortController timeouts to all AI gateway calls (25 seconds each)**
-- Prevent any single AI call from hanging indefinitely
-- If one AI call fails, return partial results rather than nothing
+**2. Simplify `handleOpenChange`** to just pass through to `onOpenChange` (no longer needs to trigger scrape logic):
+```typescript
+const handleOpenChange = (newOpen: boolean) => {
+  onOpenChange(newOpen);
+};
+```
 
-**D. Reduce AI calls from 4 to 3 max**
-- When scrape fails: only generate summary (1 AI call), no credit deduction (free fallback)
-- When scrape succeeds: extract questions (1 AI call) + answers + summary in parallel (2 AI calls) = 3 total
+That is the entire fix. One `useEffect` addition, one simplification.
 
-### 2. Frontend (`src/components/jobs/ExternalApplicationPrep.tsx`)
+## Why Previous Fixes Didn't Work
 
-**A. Reduce fetch timeout from 90s to 60s**
-- Align with edge function runtime limits
-
-**B. Add a "credits will be deducted only on success" note**
-- Reassure users they won't lose credits if it fails
-
-## Files to Change
-
-| File | Change |
-|------|--------|
-| `supabase/functions/prepare-external-application/index.ts` | Move credit deduction after processing; add timeouts to Firecrawl and AI calls; fail fast on scrape failure without charging |
-| `src/components/jobs/ExternalApplicationPrep.tsx` | Reduce timeout to 60s; minor UI messaging update |
-
-## Question Caching (Already Built)
-
-The caching system in `external_application_questions` table is already coded correctly. Once the function stops timing out, it will:
-- Cache questions by `application_url` on first successful scrape
-- Serve cached questions on subsequent requests for the same URL (skipping Firecrawl entirely)
-- This makes repeat applications to the same URL instant
+All previous changes (switching from `supabase.functions.invoke` to `fetch`, adding `useCallback`, adding timeouts, restructuring the edge function) were solving the wrong problem. The network call was never being made in the first place. The ProcessingCard was purely animating with no work behind it.
 
 ## Expected Outcome
 
-- Function completes within the runtime limit by using timeouts on all external calls
-- Users only pay credits when they receive results
-- Cached questions make subsequent applications to the same URL much faster
-- Frontend reliably shows results or a clear error (never stuck at 99%)
-
+When the dialog opens, the `useEffect` fires, `startScrape` runs, the edge function is called, and results appear (or the fallback UI shows) within seconds.
