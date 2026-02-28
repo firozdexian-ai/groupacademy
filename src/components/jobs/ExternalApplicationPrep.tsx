@@ -74,30 +74,56 @@ export function ExternalApplicationPrep({
     setTimeout(() => setSummaryCopied(false), 2000);
   };
 
+  const callEdgeFunction = async (payload: Record<string, unknown>) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error("Please sign in to continue.");
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 90000);
+
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/prepare-external-application`,
+        {
+          method: "POST",
+          signal: controller.signal,
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        let errBody: any = {};
+        try { errBody = await response.json(); } catch {}
+        throw new Error(errBody.error || `Request failed (${response.status})`);
+      }
+
+      return await response.json();
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+      if (err.name === "AbortError") {
+        throw new Error("Request timed out. The application page may be too complex. Try uploading screenshots instead.");
+      }
+      throw err;
+    }
+  };
+
   const startScrape = useCallback(async () => {
     setPhase("loading");
     setError(null);
     setIsScreenshotMode(false);
 
-    let timedOut = false;
-    const timeoutId = setTimeout(() => {
-      timedOut = true;
-      setError("Request timed out. The application page may be too complex. Try uploading screenshots instead.");
-    }, 90000);
-
     try {
-      const { data, error: fnError } = await supabase.functions.invoke(
-        "prepare-external-application",
-        {
-          body: { job_id: jobId, application_url: applicationUrl, mode: "scrape" },
-        }
-      );
-
-      clearTimeout(timeoutId);
-      if (timedOut) return; // Timeout already fired, ignore late response
-
-      if (fnError) throw new Error(fnError.message);
-      if (data?.error) throw new Error(data.error);
+      const data = await callEdgeFunction({
+        job_id: jobId,
+        application_url: applicationUrl,
+        mode: "scrape",
+      });
 
       if (data?.scrape_failed) {
         setGeneralSummary(data.general_summary || "");
@@ -108,8 +134,6 @@ export function ExternalApplicationPrep({
         setPhase("results");
       }
     } catch (err: any) {
-      clearTimeout(timeoutId);
-      if (timedOut) return; // Timeout already fired, ignore late error
       console.error("Scrape error:", err);
       if (err.message?.includes("Insufficient credits")) {
         setError("You don't have enough credits. You need 50 credits for this service.");
@@ -130,20 +154,12 @@ export function ExternalApplicationPrep({
     setError(null);
 
     try {
-      const { data, error: fnError } = await supabase.functions.invoke(
-        "prepare-external-application",
-        {
-          body: {
-            job_id: jobId,
-            application_url: applicationUrl,
-            mode: "screenshot",
-            screenshots,
-          },
-        }
-      );
-
-      if (fnError) throw new Error(fnError.message);
-      if (data?.error) throw new Error(data.error);
+      const data = await callEdgeFunction({
+        job_id: jobId,
+        application_url: applicationUrl,
+        mode: "screenshot",
+        screenshots,
+      });
 
       setAnswers(data?.answers || []);
       setGeneralSummary(data?.general_summary || "");
