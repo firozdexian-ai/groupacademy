@@ -1,44 +1,47 @@
 
-# Fix "Apply with AI" Stuck at 99%
+
+# Fix: "Apply with AI" Failing with 401 Unauthorized
 
 ## Root Cause
 
-Two issues are causing the stuck state:
+The edge function analytics show every request to `prepare-external-application` returns **HTTP 401** with ~1.3s execution time. The function boots but never processes the request.
 
-1. **ProcessingCard timer is too short**: The animation duration is set to 30 seconds, but the edge function performs 3-4 sequential API calls (Firecrawl scrape + AI question extraction + profile/job fetch + AI answer generation + AI summary generation). This can easily take 45-60+ seconds. The ProcessingCard reaches 99% at ~30s and stays there.
+The cause: the function is not listed in `supabase/config.toml`. Without an explicit `verify_jwt = false` entry, the gateway uses its default JWT verification (signing-keys system), which rejects the token before the function code runs. Every other edge function in the project has `verify_jwt = false` and handles auth internally -- this one was missed during creation.
 
-2. **No timeout handling**: If the edge function takes too long or fails silently, the frontend has no timeout -- it waits indefinitely with the progress stuck at 99%.
+## Why It Gets Stuck at 99%
 
-3. **Error state not shown when caught**: When the `startScrape` catch block sets `setError(...)`, the component still shows the loading ProcessingCard because the `phase` remains `"loading"` and the error check (`{error && ...}`) is rendered below the loading check (`{phase === "loading" && !error && ...}`). Actually this part is correct since `!error` guards the loading state. BUT the `setPhase` is never changed to something else on error, so the component shows the error block correctly. The real issue is just the duration.
+1. `supabase.functions.invoke()` receives the 401 response
+2. But the Supabase JS client wraps non-2xx responses differently -- `fnError` may not be set for 401s in all cases, and `data` may contain the error body
+3. The catch block fires but the error message may not propagate clearly to the UI
+4. Meanwhile the ProcessingCard animation reaches 99% and stays there
 
-## Fix
+## Fix (1 change)
 
-### 1. Increase ProcessingCard duration to 60 seconds
-Change the `duration` prop from `30000` to `60000` for the scrape path. This better reflects the actual operation time (Firecrawl ~5s + AI extraction ~10s + AI answers ~15-20s + AI summary ~10-15s).
+### `supabase/config.toml` -- Add the missing function entry
 
-### 2. Add a frontend timeout (90 seconds)
-Add an AbortController or setTimeout that sets an error state if the function doesn't respond within 90 seconds, preventing infinite waiting.
+Add this block alongside the other function entries:
 
-### 3. Update the processing stages timing
-Redistribute stage messages to match the longer timeline so users see steady progress throughout.
+```toml
+[functions.prepare-external-application]
+verify_jwt = false
+```
 
-## Changes
+This lets the request pass through the gateway to the function code, where auth is handled properly via `getUser(token)`.
+
+### Secondary Fix: Improve error handling in `ExternalApplicationPrep.tsx`
+
+The timeout mechanism has a race condition -- `setTimeout` sets the error state, but the still-running `invoke()` call can overwrite it when it resolves. Add an `AbortController` or a guard flag to prevent this.
+
+Also, the `supabase.functions.invoke` error for 401 may come as `fnError` with a `FunctionsHttpError` type. We should ensure the catch path handles this clearly.
+
+## Files to Change
 
 | File | Change |
 |------|--------|
-| `src/components/jobs/ExternalApplicationPrep.tsx` | Increase duration to 60s, add 90s timeout, update stage percentages |
+| `supabase/config.toml` | Add `[functions.prepare-external-application] verify_jwt = false` |
+| `src/components/jobs/ExternalApplicationPrep.tsx` | Fix timeout race condition with abort guard |
 
-## Technical Details
+## Expected Outcome
 
-In `ExternalApplicationPrep.tsx`:
+After this fix, the function will receive the request, process Firecrawl scraping and AI generation, and return results to the frontend. The 99% stuck state will be resolved.
 
-- Change `duration={30000}` to `duration={60000}` for scrape mode and `duration={45000}` for screenshot mode
-- Add a `setTimeout` of 90 seconds inside `startScrape` that calls `setError("Request timed out...")` if no response received
-- Add more granular stage messages to fill the longer timeline:
-  - 0%: "Connecting to application page..."
-  - 15%: "Scraping application page..."
-  - 30%: "Detecting form questions..."
-  - 45%: "Analyzing your profile..."
-  - 60%: "Generating personalized answers..."
-  - 80%: "Writing tailored responses..."
-  - 92%: "Preparing your prep sheet..."
