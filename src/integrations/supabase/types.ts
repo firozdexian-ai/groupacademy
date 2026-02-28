@@ -1559,6 +1559,44 @@ export type Database = {
           },
         ]
       }
+      external_application_questions: {
+        Row: {
+          application_url: string
+          created_at: string
+          extraction_method: string
+          id: string
+          job_id: string | null
+          questions: Json
+          updated_at: string
+        }
+        Insert: {
+          application_url: string
+          created_at?: string
+          extraction_method?: string
+          id?: string
+          job_id?: string | null
+          questions?: Json
+          updated_at?: string
+        }
+        Update: {
+          application_url?: string
+          created_at?: string
+          extraction_method?: string
+          id?: string
+          job_id?: string | null
+          questions?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_application_questions_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       feed_interactions: {
         Row: {
           created_at: string | null

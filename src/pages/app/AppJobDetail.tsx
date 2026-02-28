@@ -25,10 +25,14 @@ import {
   Globe,
   Linkedin,
   AlertTriangle,
+  Sparkles,
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { AIJobInsights } from "@/components/jobs/AIJobInsights";
+import { ExternalApplicationPrep } from "@/components/jobs/ExternalApplicationPrep";
+import { useCredits } from "@/hooks/useCredits";
+import { CREDIT_CONFIG } from "@/lib/creditPricing";
 import { RelatedJobs } from "@/components/jobs/RelatedJobs";
 import { getJobTypeLabel, getExperienceLevelLabel, isDeadlineUrgent, isDeadlinePassed } from "@/lib/constants/jobTypes";
 
@@ -90,6 +94,8 @@ export default function AppJobDetail() {
   const [existingApp, setExistingApp] = useState<ExistingApplication | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [showApplyAI, setShowApplyAI] = useState(false);
+  const { balance } = useCredits();
 
   // FIX 2: Ensure ID exists before checking save status
   const isSaved = id ? checkIsSaved(id, "job") : false;
@@ -244,7 +250,7 @@ export default function AppJobDetail() {
 
   const handleApply = async () => {
     if (job?.application_type === "link" && job.application_url) {
-      // Track external apply click before opening
+      // Track external apply click
       try {
         await supabase.rpc("track_job_apply_click", {
           p_job_id: job.id,
@@ -254,13 +260,15 @@ export default function AppJobDetail() {
       } catch (err) {
         console.error("Failed to track apply click", err);
       }
-      // Validate URL before opening to handle misconfigured jobs gracefully
-      try {
-        new URL(job.application_url);
-        window.open(job.application_url, "_blank");
-      } catch {
-        toast.error("This job has an invalid application link. Please contact support.");
+
+      // Check credits before opening AI dialog
+      const cost = CREDIT_CONFIG.SERVICES.EXTERNAL_APPLICATION.cost;
+      if ((balance ?? 0) < cost) {
+        toast.error(`You need ${cost} credits for AI Application Assistant. Your balance: ${balance ?? 0}`);
+        return;
       }
+
+      setShowApplyAI(true);
     } else {
       navigate(`/app/jobs/${id}/apply`);
     }
@@ -342,7 +350,9 @@ export default function AppJobDetail() {
       >
         {job?.application_type === "link" ? (
           <>
-            Apply Externally <ExternalLink className="w-4 h-4 ml-2" />
+            <Sparkles className="w-4 h-4 mr-2" />
+            Apply with AI
+            <Badge variant="secondary" className="ml-2 text-[10px] h-5 px-1.5">50 credits</Badge>
           </>
         ) : (
           "Apply Now"
@@ -676,13 +686,25 @@ export default function AppJobDetail() {
         ) : (
           <Button size="lg" className="flex-1" onClick={handleApply}>
             {job?.application_type === "link" ? (
-              <>Apply Externally <ExternalLink className="w-4 h-4 ml-2" /></>
+              <><Sparkles className="w-4 h-4 mr-2" /> Apply with AI</>
             ) : (
               "Apply Now"
             )}
           </Button>
         )}
       </div>
+
+      {/* Apply with AI Dialog */}
+      {job?.application_type === "link" && job.application_url && (
+        <ExternalApplicationPrep
+          open={showApplyAI}
+          onOpenChange={setShowApplyAI}
+          jobId={job.id}
+          applicationUrl={job.application_url}
+          jobTitle={job.title}
+          companyName={job.company_name}
+        />
+      )}
     </div>
   );
 }

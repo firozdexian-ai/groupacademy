@@ -63,6 +63,11 @@ export const CREDIT_CONFIG = {
       name: 'AI Study Abroad Roadmap',
       cost: 100,
       description: 'Personalized 12-month application plan with university recommendations'
+    },
+    EXTERNAL_APPLICATION: {
+      name: 'AI Application Assistant',
+      cost: 50,
+      description: 'AI-powered answers for external job applications'
     }
   },
   
