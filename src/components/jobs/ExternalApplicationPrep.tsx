@@ -80,7 +80,7 @@ export function ExternalApplicationPrep({
     if (!session) throw new Error("Please sign in to continue.");
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 90000);
+    const timeoutId = setTimeout(() => controller.abort(), 60000);
 
     try {
       console.log("[ApplyAI] Fetching edge function...");

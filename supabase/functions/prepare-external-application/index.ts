@@ -6,6 +6,18 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+/** Fetch with an AbortController timeout */
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { ...init, signal: controller.signal });
+    return res;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -51,29 +63,34 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Deduct credits
-    const { data: creditResult, error: creditError } = await supabaseUser.rpc("deduct_credits", {
-      p_amount: 50,
-      p_service_type: "EXTERNAL_APPLICATION",
-      p_reference_id: job_id || null,
-      p_description: "AI Application Assistant",
-    });
+    // *** Credits are NOT deducted here anymore — moved AFTER successful processing ***
 
-    if (creditError || !creditResult?.success) {
-      const errMsg = creditResult?.error || creditError?.message || "Failed to deduct credits";
-      return new Response(JSON.stringify({ error: errMsg }), {
-        status: 402,
+    // Check credit balance upfront (without deducting) so we can fail fast
+    const { data: talentRow } = await supabaseAdmin
+      .from("talents")
+      .select("id")
+      .eq("user_id", userId)
+      .single();
+
+    if (!talentRow) {
+      return new Response(JSON.stringify({ error: "User profile not found" }), {
+        status: 404,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Track service usage
-    try {
-      await supabaseAdmin.rpc("add_talent_service", {
-        p_talent_id: (await supabaseAdmin.from("talents").select("id").eq("user_id", userId).single()).data?.id,
-        p_service: "EXTERNAL_APPLICATION",
-      });
-    } catch (_) { /* non-critical */ }
+    const { data: creditRow } = await supabaseAdmin
+      .from("talent_credits")
+      .select("balance")
+      .eq("talent_id", talentRow.id)
+      .single();
+
+    if (!creditRow || creditRow.balance < 50) {
+      return new Response(
+        JSON.stringify({ error: "Insufficient credits", required: 50, available: creditRow?.balance ?? 0 }),
+        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Step 1: Check cache
     let questions: Array<{ question_text: string; field_type: string }> = [];
@@ -108,7 +125,7 @@ Deno.serve(async (req) => {
         );
       }
     } else {
-      // Step 2a: Try Firecrawl scrape
+      // Step 2a: Try Firecrawl scrape (with 10s timeout)
       console.log("Scraping", application_url);
       const firecrawlResult = await scrapeWithFirecrawl(application_url);
 
@@ -128,7 +145,6 @@ Deno.serve(async (req) => {
         );
       } else {
         // Firecrawl failed - return scrape_failed so frontend shows screenshot fallback
-        // But still generate a general summary using profile data
         console.log("Firecrawl failed or no questions found");
         extractionMethod = "scrape_failed";
       }
@@ -168,7 +184,7 @@ Deno.serve(async (req) => {
     let generalSummary = "";
 
     if (extractionMethod === "scrape_failed") {
-      // Only generate general summary
+      // Only generate general summary — NO credit charge for fallback
       generalSummary = await generateGeneralSummary(LOVABLE_API_KEY, profileSummary, jobSummary);
       return new Response(
         JSON.stringify({
@@ -183,7 +199,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Generate answers for each question + general summary
+    // Generate answers + summary in parallel (2 AI calls max)
     const [answers, summary] = await Promise.all([
       generateAnswers(LOVABLE_API_KEY, questions, profileSummary, jobSummary),
       generateGeneralSummary(LOVABLE_API_KEY, profileSummary, jobSummary),
@@ -193,6 +209,27 @@ Deno.serve(async (req) => {
       question: q.question_text,
       answer: answers[i] || "Unable to generate answer for this question.",
     }));
+
+    // *** Deduct credits ONLY after successful processing ***
+    const { data: creditResult, error: creditError } = await supabaseUser.rpc("deduct_credits", {
+      p_amount: 50,
+      p_service_type: "EXTERNAL_APPLICATION",
+      p_reference_id: job_id || null,
+      p_description: "AI Application Assistant",
+    });
+
+    if (creditError || !creditResult?.success) {
+      console.error("Credit deduction failed after processing:", creditError, creditResult);
+      // Still return results — user already got value, log the issue
+    }
+
+    // Track service usage (non-critical)
+    try {
+      await supabaseAdmin.rpc("add_talent_service", {
+        p_talent_id: talentRow.id,
+        p_service: "EXTERNAL_APPLICATION",
+      });
+    } catch (_) { /* non-critical */ }
 
     return new Response(
       JSON.stringify({
@@ -224,7 +261,8 @@ async function scrapeWithFirecrawl(url: string): Promise<{ success: boolean; que
   }
 
   try {
-    const response = await fetch("https://api.firecrawl.dev/v1/scrape", {
+    // 10-second timeout for Firecrawl
+    const response = await fetchWithTimeout("https://api.firecrawl.dev/v1/scrape", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -236,7 +274,7 @@ async function scrapeWithFirecrawl(url: string): Promise<{ success: boolean; que
         onlyMainContent: false,
         waitFor: 3000,
       }),
-    });
+    }, 10000);
 
     if (!response.ok) {
       console.error("Firecrawl error:", response.status);
@@ -250,7 +288,7 @@ async function scrapeWithFirecrawl(url: string): Promise<{ success: boolean; que
       return { success: false, questions: [] };
     }
 
-    // Use AI to extract questions from the markdown
+    // Use AI to extract questions from the markdown (25s timeout)
     const questions = await extractQuestionsFromMarkdown(markdown);
     return { success: true, questions };
   } catch (error) {
@@ -265,18 +303,19 @@ async function extractQuestionsFromMarkdown(
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) return [];
 
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${LOVABLE_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
-      messages: [
-        {
-          role: "system",
-          content: `You are an expert at analyzing job application forms. Extract ONLY the open-ended or essay-type questions from the page content. Ignore simple fields like name, email, phone, file upload, etc. Focus on questions that require thoughtful written answers, such as:
+  try {
+    const response = await fetchWithTimeout("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          {
+            role: "system",
+            content: `You are an expert at analyzing job application forms. Extract ONLY the open-ended or essay-type questions from the page content. Ignore simple fields like name, email, phone, file upload, etc. Focus on questions that require thoughtful written answers, such as:
 - "Why do you want to work here?"
 - "Describe your experience with X"
 - "What makes you a good fit?"
@@ -284,25 +323,25 @@ async function extractQuestionsFromMarkdown(
 - Any free-text question fields
 
 Return a JSON array of objects with "question_text" and "field_type" (one of: "essay", "short_answer", "cover_letter"). Return an empty array if no such questions are found. Return ONLY valid JSON, no markdown.`,
-        },
-        {
-          role: "user",
-          content: `Extract application questions from this page content:\n\n${markdown.slice(0, 8000)}`,
-        },
-      ],
-    }),
-  });
+          },
+          {
+            role: "user",
+            content: `Extract application questions from this page content:\n\n${markdown.slice(0, 8000)}`,
+          },
+        ],
+      }),
+    }, 25000);
 
-  if (!response.ok) return [];
+    if (!response.ok) return [];
 
-  const data = await response.json();
-  const content = data.choices?.[0]?.message?.content || "[]";
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || "[]";
 
-  try {
     const cleaned = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
     const parsed = JSON.parse(cleaned);
     return Array.isArray(parsed) ? parsed : [];
-  } catch {
+  } catch (err) {
+    console.error("extractQuestionsFromMarkdown error:", err);
     return [];
   }
 }
@@ -320,42 +359,43 @@ async function extractQuestionsFromScreenshots(
     },
   }));
 
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${LOVABLE_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
-      messages: [
-        {
-          role: "system",
-          content: `You are an expert at reading job application form screenshots. Extract ONLY the open-ended or essay-type questions visible in the screenshots. Ignore simple fields like name, email, phone, dropdowns, checkboxes, and file uploads. Focus on text input fields that require thoughtful written answers.
+  try {
+    const response = await fetchWithTimeout("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          {
+            role: "system",
+            content: `You are an expert at reading job application form screenshots. Extract ONLY the open-ended or essay-type questions visible in the screenshots. Ignore simple fields like name, email, phone, dropdowns, checkboxes, and file uploads. Focus on text input fields that require thoughtful written answers.
 
 Return a JSON array of objects with "question_text" and "field_type" (one of: "essay", "short_answer", "cover_letter"). Return an empty array if no such questions are found. Return ONLY valid JSON.`,
-        },
-        {
-          role: "user",
-          content: [
-            { type: "text", text: "Extract the application form questions from these screenshots:" },
-            ...imageContents,
-          ],
-        },
-      ],
-    }),
-  });
+          },
+          {
+            role: "user",
+            content: [
+              { type: "text", text: "Extract the application form questions from these screenshots:" },
+              ...imageContents,
+            ],
+          },
+        ],
+      }),
+    }, 25000);
 
-  if (!response.ok) return [];
+    if (!response.ok) return [];
 
-  const data = await response.json();
-  const content = data.choices?.[0]?.message?.content || "[]";
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || "[]";
 
-  try {
     const cleaned = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
     const parsed = JSON.parse(cleaned);
     return Array.isArray(parsed) ? parsed : [];
-  } catch {
+  } catch (err) {
+    console.error("extractQuestionsFromScreenshots error:", err);
     return [];
   }
 }
@@ -415,18 +455,19 @@ async function generateAnswers(
     .map((q, i) => `${i + 1}. [${q.field_type}] ${q.question_text}`)
     .join("\n");
 
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
-      messages: [
-        {
-          role: "system",
-          content: `You are an expert career coach helping a candidate prepare personalized answers for a job application. Write compelling, specific, and professional answers based on the candidate's actual profile and the job description. 
+  try {
+    const response = await fetchWithTimeout("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          {
+            role: "system",
+            content: `You are an expert career coach helping a candidate prepare personalized answers for a job application. Write compelling, specific, and professional answers based on the candidate's actual profile and the job description. 
 
 Rules:
 - Use first person ("I", "My")
@@ -439,28 +480,28 @@ Rules:
 - If profile data is limited, write the best possible answer with what's available
 
 Return a JSON array of strings, one answer per question, in the same order. Return ONLY valid JSON.`,
-        },
-        {
-          role: "user",
-          content: `## Candidate Profile\n${profileSummary}\n\n## Job Details\n${jobSummary}\n\n## Questions to Answer\n${questionList}`,
-        },
-      ],
-    }),
-  });
+          },
+          {
+            role: "user",
+            content: `## Candidate Profile\n${profileSummary}\n\n## Job Details\n${jobSummary}\n\n## Questions to Answer\n${questionList}`,
+          },
+        ],
+      }),
+    }, 25000);
 
-  if (!response.ok) {
-    console.error("AI answer generation failed:", response.status);
-    return questions.map(() => "Unable to generate answer.");
-  }
+    if (!response.ok) {
+      console.error("AI answer generation failed:", response.status);
+      return questions.map(() => "Unable to generate answer.");
+    }
 
-  const data = await response.json();
-  const content = data.choices?.[0]?.message?.content || "[]";
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || "[]";
 
-  try {
     const cleaned = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
     const parsed = JSON.parse(cleaned);
     return Array.isArray(parsed) ? parsed : questions.map(() => "Unable to generate answer.");
-  } catch {
+  } catch (err) {
+    console.error("generateAnswers error:", err);
     return questions.map(() => "Unable to generate answer.");
   }
 }
@@ -470,34 +511,39 @@ async function generateGeneralSummary(
   profileSummary: string,
   jobSummary: string
 ): Promise<string> {
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
-      messages: [
-        {
-          role: "system",
-          content: `You are a career coach. Generate a brief application summary the candidate can use when applying. Include:
+  try {
+    const response = await fetchWithTimeout("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          {
+            role: "system",
+            content: `You are a career coach. Generate a brief application summary the candidate can use when applying. Include:
 1. A 2-3 sentence elevator pitch tailored to this specific role
 2. 3-5 key strengths that match the job requirements
 3. A brief "Why I'm a great fit" paragraph
 
 Write in first person. Be specific to the candidate's actual background. Keep it concise and ready to copy-paste.`,
-        },
-        {
-          role: "user",
-          content: `## Candidate Profile\n${profileSummary}\n\n## Job Details\n${jobSummary}`,
-        },
-      ],
-    }),
-  });
+          },
+          {
+            role: "user",
+            content: `## Candidate Profile\n${profileSummary}\n\n## Job Details\n${jobSummary}`,
+          },
+        ],
+      }),
+    }, 25000);
 
-  if (!response.ok) return "Unable to generate summary.";
+    if (!response.ok) return "Unable to generate summary.";
 
-  const data = await response.json();
-  return data.choices?.[0]?.message?.content || "Unable to generate summary.";
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content || "Unable to generate summary.";
+  } catch (err) {
+    console.error("generateGeneralSummary error:", err);
+    return "Unable to generate summary.";
+  }
 }
