@@ -79,7 +79,9 @@ export function ExternalApplicationPrep({
     setError(null);
     setIsScreenshotMode(false);
 
+    let timedOut = false;
     const timeoutId = setTimeout(() => {
+      timedOut = true;
       setError("Request timed out. The application page may be too complex. Try uploading screenshots instead.");
     }, 90000);
 
@@ -92,6 +94,7 @@ export function ExternalApplicationPrep({
       );
 
       clearTimeout(timeoutId);
+      if (timedOut) return; // Timeout already fired, ignore late response
 
       if (fnError) throw new Error(fnError.message);
       if (data?.error) throw new Error(data.error);
@@ -106,11 +109,12 @@ export function ExternalApplicationPrep({
       }
     } catch (err: any) {
       clearTimeout(timeoutId);
+      if (timedOut) return; // Timeout already fired, ignore late error
       console.error("Scrape error:", err);
       if (err.message?.includes("Insufficient credits")) {
         setError("You don't have enough credits. You need 50 credits for this service.");
       } else {
-        setError(err.message || "Something went wrong");
+        setError(err.message || "Something went wrong. Please try again.");
       }
     }
   }, [jobId, applicationUrl]);
