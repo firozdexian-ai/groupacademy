@@ -1,33 +1,63 @@
 
 
-# Fix: Frontend Not Processing Edge Function Response
+# Fix: Edge Function Timeout Causing 99% Hang and Lost Credits
 
-## Problem
-The backend function works correctly (confirmed: returns 200 with valid data in ~3.7 seconds). The UI stays stuck at 99% because the frontend fails to process the response and transition out of the "loading" phase.
+## Root Cause (Confirmed with Data)
 
-## Root Cause
-Two issues in `ExternalApplicationPrep.tsx`:
+- **3 credit deductions found** (50 credits each) -- the function runs and deducts credits successfully
+- **0 cached questions** -- the function crashes/times out BEFORE completing the work
+- The function chains 4+ sequential API calls (Firecrawl scrape -> AI question extraction -> AI answer generation -> AI summary generation), easily exceeding the edge function runtime limit
+- Credits are deducted BEFORE any work begins, so users lose credits on every failed attempt
 
-1. **Stale closure**: `callEdgeFunction` is a plain function, but `startScrape` is wrapped in `useCallback([jobId, applicationUrl])`. When `startScrape` calls `callEdgeFunction`, it may reference a stale version that captures outdated state (e.g., old session).
+## Fix Strategy
 
-2. **Silent failure**: If `response.json()` fails for any reason (malformed body, network hiccup), the error is caught but the `phase` stays as `"loading"` because the catch block doesn't explicitly set a fallback phase.
+Two changes: make the edge function faster and more resilient, and protect credits.
 
-## Fix (1 file)
+### 1. Edge Function (`supabase/functions/prepare-external-application/index.ts`)
 
-### `src/components/jobs/ExternalApplicationPrep.tsx`
+**A. Add timeout to Firecrawl call (10 seconds max)**
+- Wrap the Firecrawl fetch in an AbortController with a 10-second timeout
+- If Firecrawl hangs, fail fast to the screenshot fallback path instead of blocking the entire function
 
-1. **Wrap `callEdgeFunction` in `useCallback`** so `startScrape` always references the latest version
-2. **Add comprehensive console logging** to trace the exact point of failure
-3. **Move `clearTimeout` after `response.json()`** so the timeout can still fire if body parsing hangs
-4. **Add explicit phase fallback in catch** -- if an error occurs but `error` state doesn't get set, force phase to show the error UI
-5. **Add a `finally` block** to guarantee the loading state resolves even on unexpected failures
+**B. Move credit deduction AFTER successful processing**
+- Only deduct credits when we have results to return
+- This prevents users from losing credits on timeouts/failures
+- If the function fails, credits remain untouched
 
-Key code changes:
-- Add `console.log` before/after the fetch call, after response parsing, and in the catch block
-- Move `clearTimeout(timeoutId)` to after `const data = await response.json()` 
-- In `startScrape`'s catch block, always call `setPhase("scrape_failed")` as a safety net so the UI never stays stuck on "loading"
-- Include `callEdgeFunction` in `startScrape`'s dependency array
+**C. Add AbortController timeouts to all AI gateway calls (25 seconds each)**
+- Prevent any single AI call from hanging indefinitely
+- If one AI call fails, return partial results rather than nothing
+
+**D. Reduce AI calls from 4 to 3 max**
+- When scrape fails: only generate summary (1 AI call), no credit deduction (free fallback)
+- When scrape succeeds: extract questions (1 AI call) + answers + summary in parallel (2 AI calls) = 3 total
+
+### 2. Frontend (`src/components/jobs/ExternalApplicationPrep.tsx`)
+
+**A. Reduce fetch timeout from 90s to 60s**
+- Align with edge function runtime limits
+
+**B. Add a "credits will be deducted only on success" note**
+- Reassure users they won't lose credits if it fails
+
+## Files to Change
+
+| File | Change |
+|------|--------|
+| `supabase/functions/prepare-external-application/index.ts` | Move credit deduction after processing; add timeouts to Firecrawl and AI calls; fail fast on scrape failure without charging |
+| `src/components/jobs/ExternalApplicationPrep.tsx` | Reduce timeout to 60s; minor UI messaging update |
+
+## Question Caching (Already Built)
+
+The caching system in `external_application_questions` table is already coded correctly. Once the function stops timing out, it will:
+- Cache questions by `application_url` on first successful scrape
+- Serve cached questions on subsequent requests for the same URL (skipping Firecrawl entirely)
+- This makes repeat applications to the same URL instant
 
 ## Expected Outcome
-The UI will either show results (on success) or the error/fallback state (on failure) -- it will never stay stuck at 99%.
+
+- Function completes within the runtime limit by using timeouts on all external calls
+- Users only pay credits when they receive results
+- Cached questions make subsequent applications to the same URL much faster
+- Frontend reliably shows results or a clear error (never stuck at 99%)
 
