@@ -1,104 +1,85 @@
 
 
-# In-Course Player: Complete UX Overhaul
+# All Courses & Events Tab Redesign
 
-## Problems Identified
+## Overview
 
-1. **Duplicate "Start Learning" buttons** -- AppCourseDetail.tsx shows both an inline CTA (line 383-390) and a sticky bottom bar CTA (line 426-454) on mobile, both saying "Start Learning"
-2. **Module list slides in from the side as a Sheet** -- On mobile, the module list opens as a left-sliding sidebar (Sheet), which feels clunky and breaks the vertical-only design principle
-3. **Stage navigation scrolls horizontally** -- StageNavigation uses `overflow-x-auto` (line 43), violating the no-horizontal-scroll rule
-4. **Discuss stage uses a 2-column grid on mobile** -- `lg:grid-cols-2` on DiscussStage puts audio and AI chat side by side, but on mobile the AI chat card is a fixed 500px height which is awkward
-5. **Orientation stage uses a 2-column grid** -- `md:grid-cols-2` for video + infographic can cause horizontal layout issues on smaller tablets
-6. **Overall layout is desktop-first** -- The header, sidebar, and content area use a `flex` horizontal layout that wastes space on mobile
-7. **Course detail page shows inline CTA that's redundant with sticky bar**
+Replace the horizontal scrolling tab strips in both **All Courses** and **Events** tabs with an **icon-based category selector** (matching the Learning Hub's icon strip pattern). Also integrate **Competitions** into the Events tab as a new category.
 
----
+## Visual Layout
+
+Both tabs will use the same pattern -- a grid of circular icon buttons for filtering:
+
+```text
+ALL COURSES TAB:
++-----------------------------------------------+
+| [All]  [Courses]  [Webinars]  [Classes]       |
+|  grid    book      calendar    users           |
++-----------------------------------------------+
+|  Course cards (filtered)                       |
++-----------------------------------------------+
+
+EVENTS TAB:
++-----------------------------------------------+
+| [All]  [Webinars]  [In-Person]  [Competitions]|
+|  grid    video      map-pin      trophy        |
++-----------------------------------------------+
+|  Today / Upcoming / Past sections              |
+|  + Competition cards when that filter is on    |
++-----------------------------------------------+
+```
 
 ## Changes
 
-### 1. Fix duplicate "Start Learning" on Course Detail (`src/pages/app/AppCourseDetail.tsx`)
+### 1. CoursesTab -- Icon category selector (`src/components/learning/CoursesTab.tsx`)
 
-- Hide the inline "Start Learning" / "Enroll Now" button on mobile (add `hidden md:block` to the wrapper div at line 381)
-- The sticky bottom bar already handles mobile -- no need for two CTAs
+- Remove the `Tabs` / `TabsList` / `TabsTrigger` components
+- Replace with a row of circular icon buttons matching the Learning Hub's icon strip style
+- Categories: **All** (LayoutGrid), **Courses** (BookOpen), **Webinars** (Calendar), **Classes** (Users)
+- Remove "Videos" and "Seminar" from the filters (free videos are excluded from this tab; seminars go under Events)
+- Active icon gets `bg-primary text-primary-foreground`; inactive gets `bg-primary/10 text-primary`
+- Each button shows icon + label text below (same pattern as LearningHub tab selector)
 
-### 2. Replace side-sliding Sheet with inline collapsible module list (`src/pages/ImmersiveCoursePlayer.tsx`)
+### 2. EventsTab -- Icon category selector + Competitions (`src/components/learning/EventsTab.tsx`)
 
-- Remove the `Sheet` / `SheetContent` approach for mobile module navigation
-- Replace with an inline `Collapsible` (Radix) section at the top of the content area that expands/collapses vertically
-- Default to collapsed, showing current module name and a chevron
-- When expanded, shows the full `ImmersiveModuleList` in a vertically scrollable container (max-height with overflow)
-- This keeps everything vertical -- no sideways drawer
+- Remove the `Tabs` / `TabsList` / `TabsTrigger` components
+- Replace with the same icon strip pattern
+- Categories: **All** (LayoutGrid), **Webinars** (Video), **In-Person** (MapPin), **Competitions** (Trophy)
+- When "Competitions" is selected, fetch from the `competitions` table instead of `content`, and render competition cards (reuse the card design from `Competitions.tsx` -- featured image, status badge, prize info, dates)
+- When "All" is selected, show both events and competitions together, with competitions in their own section
+- Make the event image use `h-32` instead of `aspect-video` to match the compact course card style
 
-### 3. Redesign StageNavigation for vertical-first (`src/components/player/StageNavigation.tsx`)
+### 3. Extract competition card for reuse
 
-- Replace the horizontal scrollable pill strip with a **vertical step indicator** on mobile
-- Use a compact vertical layout: small circles connected by vertical lines, with the current stage expanded to show the name
-- On desktop (sm+), keep the horizontal layout but remove `overflow-x-auto`
-- Alternatively: use a 3x2 grid of stage icons (fits in 2 rows, no scrolling)
-
-**Chosen approach**: Convert to a 3-column grid (2 rows) on mobile, horizontal strip on sm+:
-```text
-Mobile:
-[Orientation] [Learn]    [Discuss]
-[Practice]    [Assess]   [Progress]
-```
-
-### 4. Make Discuss stage fully vertical (`src/components/player/stages/DiscussStage.tsx`)
-
-- Change `lg:grid-cols-2` to always stack vertically
-- Audio section first, then AI chat below
-- AI chat height: change from fixed `h-[500px]` to `h-[400px]` for a better mobile fit
-- Remove the grid entirely, use simple `space-y-6` stacking
-
-### 5. Make Orientation stage vertical on mobile (`src/components/player/stages/OrientationStage.tsx`)
-
-- Remove `md:grid-cols-2` -- always stack video above infographic vertically
-- This prevents side-by-side layout on smaller screens
-
-### 6. Simplify the player header (`src/pages/ImmersiveCoursePlayer.tsx`)
-
-- Make the header more compact on mobile
-- Show a slim progress bar directly below the header (always visible, not just on sm+)
-- Remove `hidden sm:block` from the progress section so mobile users see their progress
-
-### 7. Remove desktop sidebar, use collapsible everywhere (`src/pages/ImmersiveCoursePlayer.tsx`)
-
-- Remove the `aside` desktop sidebar (lines 357-367)
-- Use the same collapsible module list for all screen sizes (above the stage content)
-- This simplifies the layout to a single-column flow and removes the horizontal `flex` split
-
----
+- Extract the competition card markup from `src/pages/app/Competitions.tsx` into a small inline component within EventsTab (or a shared `CompetitionCard`) to avoid duplicating the full page logic
+- The card shows: featured image, title, status badge (active/upcoming/completed), prize summary, deadline, and navigates to `/app/learning/competitions/{slug}` on click
 
 ## Technical Details
 
-### Files Modified
+### File: `src/components/learning/CoursesTab.tsx`
 
-**`src/pages/app/AppCourseDetail.tsx`**
-- Line 381: Add `hidden md:block` to the inline CTA wrapper div
+- Remove `Tabs`, `TabsList`, `TabsTrigger` imports
+- Add `LayoutGrid` import from lucide-react
+- Define filter options array: `[{ key: "all", icon: LayoutGrid, label: "All" }, { key: "recorded_course", icon: BookOpen, label: "Courses" }, { key: "live_webinar", icon: Calendar, label: "Webinars" }, { key: "batch_class", icon: Users, label: "Classes" }]`
+- Replace the Tabs block with a `div` using `flex gap-4 justify-start` containing circular icon buttons
+- Each button: `div` with `h-10 w-10 rounded-full flex items-center justify-center` + label `span` below
+- Default filter remains "all", which excludes `free_video` (current behavior preserved)
 
-**`src/pages/ImmersiveCoursePlayer.tsx`**
-- Remove `Sheet`, `SheetContent`, `SheetHeader`, `SheetTitle`, `SheetTrigger` imports
-- Add `Collapsible`, `CollapsibleContent`, `CollapsibleTrigger` imports
-- Remove the `<aside>` desktop sidebar block (lines 357-367)
-- Remove the mobile Sheet block (lines 373-397)
-- Replace with a `Collapsible` above `StageNavigation`:
-  - Trigger: a button showing "Module X: [title]" with a ChevronDown icon
-  - Content: `ImmersiveModuleList` wrapped in a `max-h-[50vh] overflow-y-auto` container
-- Change main layout from `flex flex-1 overflow-hidden` to a simple single-column layout
-- Remove `hidden sm:block` from progress bar so it's always visible
-- Make progress bar span full width below the header
+### File: `src/components/learning/EventsTab.tsx`
 
-**`src/components/player/StageNavigation.tsx`**
-- Change container from `flex items-center gap-1 overflow-x-auto` to `grid grid-cols-3 gap-2 sm:flex sm:items-center sm:gap-1`
-- Remove the connector line div between stages on mobile (keep on sm+)
-- Make each stage button more compact on mobile: icon + abbreviated name below
+- Remove `Tabs`, `TabsList`, `TabsTrigger` imports
+- Add `Trophy`, `LayoutGrid` imports from lucide-react
+- Add a new state value `'competitions'` to the event type
+- Add a separate `useQuery` for competitions (from `competitions` table) that only runs when the filter is "all" or "competitions"
+- Replace the Tabs block with the icon strip (4 icons in a grid/flex row)
+- When filter is "competitions": show only competition cards
+- When filter is "all": show events sections (Today, Upcoming, Past) plus a "Competitions" section
+- Reduce event card image from `aspect-video` to `h-32`
+- Competition card: featured image (`h-32`), title, status badge, prize count, deadline -- navigates to detail page on click
 
-**`src/components/player/stages/DiscussStage.tsx`**
-- Line 70: Change `grid gap-6 lg:grid-cols-2` to `space-y-6`
-- Line 126: Change AI chat card height from `h-[500px]` to `h-[400px]`
+### File: `src/pages/app/Competitions.tsx`
 
-**`src/components/player/stages/OrientationStage.tsx`**
-- Line 67: Change `grid gap-6 md:grid-cols-2` to `space-y-6`
+- No changes needed; standalone page continues to work for direct URL access
 
 ### No database changes required
 ### No new dependencies required
