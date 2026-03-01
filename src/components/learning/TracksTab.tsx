@@ -5,13 +5,11 @@ import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/c
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getIcon } from "@/lib/iconMap";
-import { BookOpen, Building2, Laptop, Rocket, ArrowRight, Bot, RefreshCw, AlertCircle, GraduationCap } from "lucide-react";
+import { BookOpen, Building2, Laptop, Rocket, ArrowRight, RefreshCw, AlertCircle, GraduationCap, ChevronRight } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
 interface Academy { id: string; name: string; slug: string; academy_type: string; description: string; }
 interface School { id: string; name: string; slug: string; description: string; academy_id: string; }
-interface ProfessionLine { id: string; name: string; slug: string; description: string; icon: string; career_outcome: string; school_id: string; ai_instructors: { name: string }[] | { name: string } | null; }
 interface Enrollment { id: string; progress: number; status: string; content: { title: string; profession_line_id: string | null } | null; }
 
 type Category = "my-program" | "executive" | "freelancing" | "entrepreneurship";
@@ -34,7 +32,6 @@ export function TracksTab() {
   const [selectedCategory, setSelectedCategory] = useState<Category>("my-program");
   const [academies, setAcademies] = useState<Academy[]>([]);
   const [schools, setSchools] = useState<School[]>([]);
-  const [professionLines, setProfessionLines] = useState<ProfessionLine[]>([]);
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadingError, setLoadingError] = useState<string | null>(null);
@@ -47,21 +44,17 @@ export function TracksTab() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
 
-      const [academiesResult, schoolsResult, professionsResult] = await Promise.all([
+      const [academiesResult, schoolsResult] = await Promise.all([
         supabase.from("academies").select("*").eq("is_active", true).order("display_order"),
         supabase.from("schools").select("*").eq("is_active", true).order("display_order"),
-        supabase.from("profession_categories").select(`*, ai_instructors(name)`).eq("is_active", true).not("school_id", "is", null).order("display_order"),
       ]);
 
       if (academiesResult.error) throw academiesResult.error;
       if (schoolsResult.error) throw schoolsResult.error;
-      if (professionsResult.error) throw professionsResult.error;
 
       setAcademies(academiesResult.data || []);
       setSchools(schoolsResult.data || []);
-      setProfessionLines((professionsResult.data as ProfessionLine[]) || []);
 
-      // Load enrollments for My Program
       if (user) {
         const { data: talent } = await supabase
           .from("talents")
@@ -88,7 +81,6 @@ export function TracksTab() {
   };
 
   const getSchoolsForAcademy = (academyId: string) => schools.filter((s) => s.academy_id === academyId);
-  const getProfessionLinesForSchool = (schoolId: string) => professionLines.filter((p) => p.school_id === schoolId);
   const getAcademyForCategory = (cat: Category) => academies.find((a) => academyTypeMap[a.academy_type] === cat);
 
   if (isLoading) {
@@ -98,7 +90,7 @@ export function TracksTab() {
           {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-20 rounded-lg" />)}
         </div>
         <div className="grid gap-4 md:grid-cols-2">
-          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-40 rounded-lg" />)}
+          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-28 rounded-lg" />)}
         </div>
       </div>
     );
@@ -196,38 +188,29 @@ export function TracksTab() {
     const academySchools = getSchoolsForAcademy(academy.id);
 
     return (
-      <div className="space-y-8">
-        {academySchools.map((school) => (
-          <div key={school.id}>
-            <h3 className="text-lg font-semibold mb-3">{school.name}</h3>
-            <p className="text-sm text-muted-foreground mb-4">{school.description}</p>
-            <div className="grid gap-4 md:grid-cols-2">
-              {getProfessionLinesForSchool(school.id).map((profession) => {
-                const IconComponent = getIcon(profession.icon);
-                const aiInstructors = profession.ai_instructors;
-                const hasAIInstructor = aiInstructors && (Array.isArray(aiInstructors) ? aiInstructors.length > 0 : true);
-                return (
-                  <Card key={profession.id} className="cursor-pointer hover:shadow-md hover:border-primary/50 transition-all" onClick={() => navigate(`/app/learning/tracks/${profession.slug}`)}>
-                    <CardContent className="pt-4">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                          <IconComponent className="h-5 w-5 text-primary" />
-                        </div>
-                        {hasAIInstructor && <Badge variant="secondary" className="gap-1 text-xs"><Bot className="h-3 w-3" /> AI</Badge>}
-                      </div>
-                      <CardTitle className="text-base mb-1">{profession.name}</CardTitle>
-                      <CardDescription className="line-clamp-2 text-sm">{profession.description}</CardDescription>
-                      <Button variant="ghost" size="sm" className="mt-3 -ml-2 text-xs">Explore <ArrowRight className="h-3 w-3 ml-1" /></Button>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-              {getProfessionLinesForSchool(school.id).length === 0 && (
-                <Card className="col-span-full border-dashed"><CardContent className="py-8 text-center text-muted-foreground">Coming soon</CardContent></Card>
-              )}
-            </div>
-          </div>
-        ))}
+      <div className="space-y-3">
+        {academy.description && (
+          <p className="text-sm text-muted-foreground">{academy.description}</p>
+        )}
+        <div className="grid gap-3 md:grid-cols-2">
+          {academySchools.map((school) => (
+            <Card
+              key={school.id}
+              className="cursor-pointer hover:shadow-md hover:border-primary/50 transition-all"
+              onClick={() => navigate(`/app/learning/tracks/school/${school.slug}`)}
+            >
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <CardTitle className="text-base mb-1">{school.name}</CardTitle>
+                    <CardDescription className="line-clamp-2 text-sm">{school.description}</CardDescription>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0 ml-2" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
         {academySchools.length === 0 && (
           <Card className="border-dashed">
             <CardContent className="py-8 text-center text-muted-foreground">Schools coming soon</CardContent>

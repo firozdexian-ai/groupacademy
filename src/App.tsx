@@ -71,6 +71,7 @@ import AppCourseDetail from "./pages/app/AppCourseDetail";
 import AppMyLearning from "./pages/app/AppMyLearning";
 import AppProfessions from "./pages/app/AppProfessions";
 import AppProfessionDetail from "./pages/app/AppProfessionDetail";
+import SchoolDetail from "./pages/app/SchoolDetail";
 import AppEvents from "./pages/app/AppEvents";
 import ImmersiveCoursePlayer from "./pages/ImmersiveCoursePlayer";
 import Quiz from "./pages/Quiz";
@@ -362,6 +363,7 @@ export default function App() {
 
                     {/* Learning Routes */}
                     <Route path="learning/tracks" element={<AppProfessions />} />
+                    <Route path="learning/tracks/school/:slug" element={<SchoolDetail />} />
                     <Route path="learning/tracks/:slug" element={<AppProfessionDetail />} />
                     <Route path="learning/courses" element={<AppCourses />} />
                     <Route path="learning/courses/:slug" element={<AppCourseDetail />} />

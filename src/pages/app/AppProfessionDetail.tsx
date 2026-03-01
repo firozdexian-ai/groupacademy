@@ -244,13 +244,13 @@ export default function AppProfessionDetail() {
       <Tabs defaultValue="foundation" className="space-y-4">
         <TabsList className="w-full justify-start">
           <TabsTrigger value="foundation" className="gap-1 text-sm">
-            <GraduationCap className="h-3 w-3" /> Foundation
+            <GraduationCap className="h-3 w-3" /> Level 1
           </TabsTrigger>
           <TabsTrigger value="intermediate" className="gap-1 text-sm" disabled={!coursesByLevel.intermediate?.length}>
-            <Briefcase className="h-3 w-3" /> Intermediate
+            <Briefcase className="h-3 w-3" /> Level 2
           </TabsTrigger>
           <TabsTrigger value="executive" className="gap-1 text-sm" disabled={!coursesByLevel.executive?.length}>
-            <Target className="h-3 w-3" /> Executive
+            <Target className="h-3 w-3" /> Level 3
           </TabsTrigger>
         </TabsList>
 
@@ -291,7 +291,7 @@ export default function AppProfessionDetail() {
             ) : (
               <Card className="border-dashed">
                 <CardContent className="py-8 text-center text-muted-foreground">
-                  {level.charAt(0).toUpperCase() + level.slice(1)} courses coming soon
+                  {level === 'foundation' ? 'Level 1' : level === 'intermediate' ? 'Level 2' : 'Level 3'} courses coming soon
                 </CardContent>
               </Card>
             )}

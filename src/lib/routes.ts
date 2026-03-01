@@ -39,6 +39,7 @@ export const ROUTES = {
     learning: '/app/learning',
     learningTracks: '/app/learning/tracks',
     learningTrackDetail: (slug: string) => `/app/learning/tracks/${slug}`,
+    learningSchoolDetail: (slug: string) => `/app/learning/tracks/school/${slug}`,
     learningCourses: '/app/learning/courses',
     learningCourseDetail: (slug: string) => `/app/learning/courses/${slug}`,
     learningMyCourses: '/app/learning/my-courses',
