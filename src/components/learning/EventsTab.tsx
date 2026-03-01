@@ -27,7 +27,11 @@ const STATUS_CONFIG: Record<string, { label: string; variant: 'default' | 'secon
   cancelled: { label: 'Cancelled', variant: 'destructive' },
 };
 
-export function EventsTab() {
+interface EventsTabProps {
+  onOpenCompetition?: (slug: string) => void;
+}
+
+export function EventsTab({ onOpenCompetition }: EventsTabProps) {
   const navigate = useNavigate();
   const [eventType, setEventType] = useState<EventFilter>('all');
 
@@ -138,7 +142,7 @@ export function EventsTab() {
     return (
       <Card
         className={cn("hover:shadow-md transition-all cursor-pointer overflow-hidden", competition.is_featured && "ring-2 ring-primary/50")}
-        onClick={() => navigate(`/app/learning/competitions/${competition.slug}`)}
+        onClick={() => onOpenCompetition ? onOpenCompetition(competition.slug) : navigate(`/app/learning/competitions/${competition.slug}`)}
       >
         {competition.featured_image && (
           <div className="h-32 overflow-hidden">
@@ -203,7 +207,7 @@ export function EventsTab() {
   return (
     <div className="space-y-4">
       {/* Icon category selector */}
-      <div className="flex gap-4">
+      <div className="grid grid-cols-4 gap-2">
         {filterOptions.map(({ key, icon: Icon, label }) => (
           <button
             key={key}

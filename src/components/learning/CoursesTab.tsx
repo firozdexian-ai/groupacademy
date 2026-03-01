@@ -33,7 +33,11 @@ const filterOptions: { key: FilterKey; icon: typeof LayoutGrid; label: string }[
   { key: "batch_class", icon: Users, label: "Classes" },
 ];
 
-export function CoursesTab() {
+interface CoursesTabProps {
+  onOpenCourse?: (slug: string) => void;
+}
+
+export function CoursesTab({ onOpenCourse }: CoursesTabProps) {
   const navigate = useNavigate();
   const [selectedType, setSelectedType] = useState<FilterKey>("all");
 
@@ -105,7 +109,7 @@ export function CoursesTab() {
             const config = contentTypeConfig[course.content_type];
             const Icon = config.icon;
             return (
-              <Card key={course.id} className="cursor-pointer hover:shadow-md hover:border-primary/50 transition-all overflow-hidden" onClick={() => navigate(`/app/learning/courses/${course.slug}`)}>
+              <Card key={course.id} className="cursor-pointer hover:shadow-md hover:border-primary/50 transition-all overflow-hidden" onClick={() => onOpenCourse ? onOpenCourse(course.slug) : navigate(`/app/learning/courses/${course.slug}`)}>
                 {course.cover_image_url ? (
                   <div className="h-32 overflow-hidden"><img src={course.cover_image_url} alt={course.title} className="w-full h-full object-cover" loading="lazy" /></div>
                 ) : (

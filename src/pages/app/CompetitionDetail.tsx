@@ -24,14 +24,22 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   cancelled: { label: 'Cancelled', color: 'bg-red-500' },
 };
 
-export default function CompetitionDetail() {
-  const { slug } = useParams();
+interface CompetitionDetailProps {
+  inlineSlug?: string;
+  onBack?: () => void;
+}
+
+export default function CompetitionDetail({ inlineSlug, onBack }: CompetitionDetailProps) {
+  const params = useParams();
+  const slug = inlineSlug || params.slug;
   const navigate = useNavigate();
   const { talent } = useTalent();
   const queryClient = useQueryClient();
   const [submissionUrl, setSubmissionUrl] = useState('');
   const [submissionDescription, setSubmissionDescription] = useState('');
   const [isSubmitDialogOpen, setIsSubmitDialogOpen] = useState(false);
+  const isInline = !!inlineSlug;
+  const handleBack = onBack || (() => navigate('/app/learning/competitions'));
 
   const { data: competition, isLoading } = useQuery({
     queryKey: ['competition', slug],
@@ -103,9 +111,9 @@ export default function CompetitionDetail() {
       <div className="max-w-4xl mx-auto px-4 py-12 text-center">
         <Trophy className="h-10 w-10 mx-auto text-muted-foreground mb-4" />
         <h2 className="text-xl font-semibold mb-2">Competition Not Found</h2>
-        <Button onClick={() => navigate('/app/learning/competitions')}>
+        <Button onClick={handleBack}>
           <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Competitions
+          Back
         </Button>
       </div>
     );
@@ -119,10 +127,10 @@ export default function CompetitionDetail() {
     : null;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6 pb-28 sm:pb-6">
+    <div className={isInline ? "pb-28 sm:pb-6" : "max-w-4xl mx-auto px-4 py-6 pb-28 sm:pb-6"}>
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/app/learning/competitions')}>
+        <Button variant="ghost" size="icon" onClick={handleBack}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="flex-1">
@@ -283,7 +291,7 @@ export default function CompetitionDetail() {
           {canSubmit && (
             <Dialog open={isSubmitDialogOpen} onOpenChange={setIsSubmitDialogOpen}>
               <DialogTrigger asChild>
-                <Button className="w-full" size="lg">
+                <Button className="w-full hidden sm:flex" size="lg">
                   <Upload className="h-4 w-4 mr-2" />
                   Submit Entry
                 </Button>

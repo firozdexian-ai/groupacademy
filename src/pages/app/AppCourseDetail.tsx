@@ -51,9 +51,17 @@ const CONTENT_TYPE_CONFIG: Record<ContentType, { icon: any; label: string; color
   offline_seminar: { icon: MapPin, label: "Offline Seminar", color: "bg-red-100 text-red-800" },
 };
 
-export default function AppCourseDetail() {
-  const { slug } = useParams();
+interface AppCourseDetailProps {
+  inlineSlug?: string;
+  onBack?: () => void;
+}
+
+export default function AppCourseDetail({ inlineSlug, onBack }: AppCourseDetailProps) {
+  const params = useParams();
+  const slug = inlineSlug || params.slug;
   const navigate = useNavigate();
+  const isInline = !!inlineSlug;
+  const handleBack = onBack || (() => navigate("/app/learning/courses"));
   const [searchParams, setSearchParams] = useSearchParams();
   const { talent } = useTalent();
   const { balance, deductCustomAmount, refreshBalance } = useCredits();
@@ -280,14 +288,14 @@ export default function AppCourseDetail() {
   const embedUrl = getYouTubeEmbedUrl(course.youtube_url);
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-4 pb-28 md:pb-6">
+    <div className={isInline ? "pb-28 md:pb-6" : "max-w-4xl mx-auto px-4 py-4 pb-28 md:pb-6"}>
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => navigate("/app/learning/courses")}
+        onClick={handleBack}
         className="mb-4 -ml-2 hover:bg-muted"
       >
-        <ArrowLeft className="w-4 h-4 mr-2" /> Back to Courses
+        <ArrowLeft className="w-4 h-4 mr-2" /> Back
       </Button>
 
       {/* Media Player / Cover */}
