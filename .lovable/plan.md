@@ -1,62 +1,97 @@
 
 
-# All Courses Tab -- Alignment & Detail View Cleanup
+# Career Tracks Redesign -- Academy Tabs with Icon Strip + Current Enrollment
 
-## Problems
+## Overview
 
-1. **Icon strip not aligned** -- CoursesTab uses `flex gap-4` which left-clusters the icons instead of distributing them evenly. EventsTab already uses `grid grid-cols-4` which looks correct.
-2. **Course detail view is bloated** -- AppCourseDetail has oversized elements compared to the compact CompetitionDetail we just redesigned:
-   - Title is `text-2xl md:text-3xl` (too large for inline view)
-   - `mb-8` gaps between sections create excessive whitespace
-   - Description wrapped in a full `Card > CardHeader > CardContent` (should be flat)
-   - Stats grid uses `mb-8` spacing
-   - Instructor line has unnecessary avatar circle
+Restructure the Tracks tab to use the standardized icon-strip navigation (matching All Courses and Events tabs) with 4 categories: **My Program**, **Executive Academy**, **Freelancing Academy**, and **Entrepreneurship Academy**. The existing Technical Academy will be renamed/replaced with Freelancing Academy, and a new Entrepreneurship Academy will be added.
 
-## Changes
+## Database Changes
 
-### 1. Fix icon alignment in CoursesTab (`src/components/learning/CoursesTab.tsx`)
+### 1. Update existing "Technical Academy" to "Freelancing Academy"
+- Rename the existing Technical Academy record (keeping its ID to preserve school relationships)
+- Update slug to `freelancing-academy`
+- Update description to focus on freelancing, gig economy, and Fiverr-type skills
 
-- Change `flex gap-4` (line 81) to `grid grid-cols-4 gap-2` to match EventsTab's even distribution
+### 2. Create new "Entrepreneurship Academy"
+- Insert a new academy with `academy_type: 'entrepreneurship'`, display_order 3
+- Create starter schools under it (e.g., "School of Startup & Venture", "School of E-Commerce", "School of Social Enterprise")
 
-### 2. Flatten AppCourseDetail layout (`src/pages/app/AppCourseDetail.tsx`)
+### 3. Update schools under Freelancing Academy
+- Rename existing Technical Academy schools to reflect freelancing focus (e.g., "School of Digital Freelancing", "School of Creative Services", "School of Technical Services")
 
-Apply the same compact treatment we did for CompetitionDetail:
+## Frontend Changes
 
-- **Media section**: Reduce `mb-6` to `mb-4` on the video/cover container
-- **Header**: Reduce `mb-8` to `mb-3`, title from `text-2xl md:text-3xl` to `text-lg font-bold`, remove the instructor avatar circle (just show name as text)
-- **Stats grid**: Reduce `mb-8` to `mb-4`, tighten to `gap-3`
-- **Description**: Remove `Card > CardHeader > CardContent` wrapper, replace with flat section: `h3 text-base font-semibold mb-2` heading "Course Overview" + `p text-sm text-muted-foreground` text
-- **Desktop CTA**: Reduce `mb-8` to `mb-4`
+### File: `src/components/learning/TracksTab.tsx`
+
+**Replace the Radix TabsList/TabsTrigger with the icon-strip pattern** used in CoursesTab and EventsTab:
+
+- 4-icon `grid grid-cols-4 gap-2` strip at the top
+- Icons: `BookOpen` (My Program), `Building2` (Executive), `Laptop` (Freelancing), `Rocket` (Entrepreneurship)
+- State-based filtering instead of Radix Tabs
+- "My Program" is the first/default tab
+
+**My Program tab content:**
+- Query the user's enrollments joined with profession_categories to show which career track they are enrolled in
+- Show an "Active" card with progress if enrolled
+- Show a "Completed" section if any tracks are fully completed
+- If not enrolled, show an empty state prompting them to browse academies
+
+**Academy tabs (Executive, Freelancing, Entrepreneurship):**
+- Filter academies by `academy_type` or slug
+- Display schools and profession lines exactly as they do now (the card grid is good)
+- Keep the same profession card design with AI instructor badge
+
+### No changes to other files
+
+The icon-strip pattern replaces the horizontal TabsList that was misaligned. This brings Tracks in line with the visual style of All Courses and Events tabs.
 
 ## Technical Details
 
-### File: `src/components/learning/CoursesTab.tsx`
+### Database Migration
 
-Line 81: Change `<div className="flex gap-4">` to `<div className="grid grid-cols-4 gap-2">`
+```sql
+-- Rename Technical Academy to Freelancing Academy
+UPDATE academies 
+SET name = 'Freelancing Academy', 
+    slug = 'freelancing-academy', 
+    academy_type = 'freelancing',
+    description = 'Build marketable skills for freelancing platforms like Fiverr, Upwork, and the gig economy.'
+WHERE slug = 'technical-academy';
 
-### File: `src/pages/app/AppCourseDetail.tsx`
+-- Insert Entrepreneurship Academy
+INSERT INTO academies (name, slug, academy_type, description, display_order, is_active)
+VALUES ('Entrepreneurship Academy', 'entrepreneurship-academy', 'entrepreneurship', 
+        'Launch and grow your own business with practical entrepreneurship skills.', 3, true);
 
-**Media (line 302)**: `mb-6` to `mb-4`
+-- Rename schools under Freelancing Academy to match new focus
+UPDATE schools SET name = 'School of Digital Freelancing', slug = 'school-of-digital-freelancing' 
+WHERE slug = 'school-of-skilled-trades-engineering';
+-- (similar updates for other Technical Academy schools)
 
-**Header (lines 323-349)**:
-- `mb-8` to `mb-3`
-- Title: `text-2xl md:text-3xl font-bold mb-2` to `text-lg font-bold mb-1`
-- Instructor: Remove the avatar circle div, keep as simple `text-sm text-muted-foreground`
-
-**Stats grid (line 352)**: `gap-4 mb-8` to `gap-3 mb-4`
-
-**Desktop CTA (line 389)**: `mb-8` to `mb-4`
-
-**Description (lines 422-431)**: Replace Card/CardHeader/CardContent with:
+-- Create starter schools for Entrepreneurship Academy
+INSERT INTO schools (name, slug, academy_id, description, display_order, is_active)
+VALUES 
+  ('School of Startup & Venture', 'school-of-startup-venture', 
+   (SELECT id FROM academies WHERE slug = 'entrepreneurship-academy'),
+   'From idea validation to funding and scaling.', 1, true),
+  ('School of E-Commerce', 'school-of-ecommerce',
+   (SELECT id FROM academies WHERE slug = 'entrepreneurship-academy'),
+   'Build and grow online businesses and digital stores.', 2, true),
+  ('School of Social Enterprise', 'school-of-social-enterprise',
+   (SELECT id FROM academies WHERE slug = 'entrepreneurship-academy'),
+   'Create businesses that drive social impact.', 3, true);
 ```
-<div>
-  <h3 className="text-base font-semibold mb-2">Course Overview</h3>
-  <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
-    {course.description}
-  </p>
-</div>
-```
 
-### No database changes
-### No new dependencies
+### File: `src/components/learning/TracksTab.tsx`
+
+- Remove Radix `Tabs`, `TabsList`, `TabsTrigger`, `TabsContent` imports
+- Add icon-strip navigation with `grid grid-cols-4 gap-2`
+- Add state: `selectedCategory` with values `'my-program' | 'executive' | 'freelancing' | 'entrepreneurship'`
+- Default to `'my-program'`
+- For "My Program": fetch user's talent_id from auth, query enrollments joined with content (profession_categories) to show active/completed tracks
+- For academy tabs: filter the existing `academies` data by `academy_type` and render schools + professions as before
+- Use `BookOpen`, `Building2`, `Laptop`, `Rocket` icons from lucide-react
+
+### No new dependencies needed
 
