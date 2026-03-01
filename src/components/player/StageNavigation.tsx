@@ -40,7 +40,7 @@ export function StageNavigation({
   }));
 
   return (
-    <div className={cn("flex items-center gap-1 overflow-x-auto pb-2", className)}>
+    <div className={cn("grid grid-cols-3 gap-2 sm:flex sm:items-center sm:gap-1", className)}>
       {stages.map((stage, index) => {
         const Icon = stage.icon;
         const isClickable = !stage.isLocked;
@@ -51,7 +51,7 @@ export function StageNavigation({
               onClick={() => isClickable && onStageSelect(stage.number)}
               disabled={stage.isLocked}
               className={cn(
-                "flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-sm font-medium whitespace-nowrap",
+                "flex items-center gap-1.5 px-2.5 py-2 rounded-lg transition-all text-xs sm:text-sm font-medium whitespace-nowrap w-full sm:w-auto justify-center sm:justify-start",
                 stage.isCurrent && "bg-primary text-primary-foreground shadow-md",
                 stage.isCompleted && !stage.isCurrent && "bg-green-500/10 text-green-600 dark:text-green-400",
                 stage.isLocked && "bg-muted text-muted-foreground cursor-not-allowed opacity-50",
@@ -59,19 +59,18 @@ export function StageNavigation({
               )}
             >
               {stage.isLocked ? (
-                <Lock className="h-4 w-4" />
+                <Lock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               ) : stage.isCompleted ? (
-                <Check className="h-4 w-4" />
+                <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               ) : (
-                <Icon className="h-4 w-4" />
+                <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               )}
-              <span className="hidden sm:inline">{stage.name}</span>
-              <span className="sm:hidden">{stage.number}</span>
+              <span className="text-xs sm:text-sm">{stage.name}</span>
             </button>
             
             {index < stages.length - 1 && (
               <div className={cn(
-                "w-4 h-0.5 mx-1",
+                "hidden sm:block w-4 h-0.5 mx-1",
                 completedStages.includes(stage.number) ? "bg-green-500" : "bg-border"
               )} />
             )}

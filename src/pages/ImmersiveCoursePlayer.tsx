@@ -7,8 +7,8 @@ import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { ArrowLeft, Loader2, AlertCircle, RefreshCw, Menu } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ArrowLeft, Loader2, AlertCircle, RefreshCw, ChevronDown } from "lucide-react";
 import { StageNavigation } from "@/components/player/StageNavigation";
 import { ImmersiveModuleList } from "@/components/player/ImmersiveModuleList";
 import { OrientationStage } from "@/components/player/stages/OrientationStage";
@@ -324,7 +324,7 @@ export default function ImmersiveCoursePlayer() {
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b px-4 py-3">
-        <div className="flex items-center justify-between max-w-7xl mx-auto w-full">
+        <div className="flex items-center justify-between max-w-4xl mx-auto w-full">
           <div className="flex items-center gap-4 min-w-0">
             <Button variant="ghost" size="sm" asChild className="shrink-0">
               <Link to="/app/learning/my-courses">
@@ -333,159 +333,129 @@ export default function ImmersiveCoursePlayer() {
             </Button>
             <div className="min-w-0">
               <h1 className="font-semibold text-sm sm:text-base truncate">{content.title}</h1>
-              <p className="text-xs text-muted-foreground truncate">
-                Module {currentModuleIndex + 1}: {currentModule?.title}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4 shrink-0">
-            <div className="hidden sm:block w-32 md:w-48">
-              <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                <span>Progress</span>
-                <span>{Math.round(overallProgress)}%</span>
-              </div>
-              <Progress value={overallProgress} className="h-2" />
             </div>
           </div>
         </div>
+        {/* Progress bar - always visible */}
+        <div className="max-w-4xl mx-auto mt-2">
+          <div className="flex justify-between text-xs text-muted-foreground mb-1">
+            <span>Progress</span>
+            <span>{Math.round(overallProgress)}%</span>
+          </div>
+          <Progress value={overallProgress} className="h-2" />
+        </div>
       </header>
 
-      {/* Main Layout */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar (Desktop) */}
-        <aside className="hidden lg:block w-80 border-r bg-muted/10 overflow-y-auto">
-          <div className="p-4">
-            <h3 className="font-semibold mb-4 px-2">Course Modules</h3>
-            <ImmersiveModuleList
-              modules={modules}
-              currentModuleId={currentModuleId}
-              moduleProgress={moduleProgress}
-              onModuleSelect={handleModuleSelect}
-            />
-          </div>
-        </aside>
+      {/* Single-column content */}
+      <main className="flex-1 overflow-y-auto bg-background">
+        <div className="max-w-4xl mx-auto p-4 sm:p-6">
+          {/* Collapsible Module Navigator */}
+          <Collapsible className="mb-4">
+            <CollapsibleTrigger asChild>
+              <Button variant="outline" size="sm" className="w-full justify-between gap-2">
+                <span className="truncate text-left">Module {currentModuleIndex + 1}: {currentModule?.title}</span>
+                <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200 [[data-state=open]_&]:rotate-180" />
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-2">
+              <div className="max-h-[50vh] overflow-y-auto rounded-lg border bg-muted/10 p-4">
+                <ImmersiveModuleList
+                  modules={modules}
+                  currentModuleId={currentModuleId}
+                  moduleProgress={moduleProgress}
+                  onModuleSelect={handleModuleSelect}
+                />
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
 
-        {/* Content Area */}
-        <main className="flex-1 overflow-y-auto bg-background">
-          <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
-            {/* Mobile Module Nav */}
-            <div className="lg:hidden mb-4">
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button variant="outline" size="sm" className="w-full justify-start gap-2">
-                    <Menu className="h-4 w-4" />
-                    <span className="truncate">Module {currentModuleIndex + 1}: {currentModule?.title}</span>
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="left" className="w-80 p-0">
-                  <SheetHeader className="p-4 border-b">
-                    <SheetTitle>Course Modules</SheetTitle>
-                  </SheetHeader>
-                  <div className="p-4 overflow-y-auto max-h-[calc(100vh-80px)]">
-                    <ImmersiveModuleList
-                      modules={modules}
-                      currentModuleId={currentModuleId}
-                      moduleProgress={moduleProgress}
-                      onModuleSelect={(moduleId) => {
-                        handleModuleSelect(moduleId);
-                      }}
-                    />
+          <StageNavigation
+            currentStage={currentStage}
+            completedStages={completedStages}
+            onStageSelect={goToStage}
+            className="mb-8"
+          />
+
+          {/* Stage Content */}
+          <div className="min-h-[400px]">
+            {!hasAnyResources && !fallbackVideoUrl && (
+              <Card className="mb-6 border-dashed border-2 bg-muted/50">
+                <CardContent className="p-12 text-center">
+                  <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
+                    <RefreshCw className="h-8 w-8 text-muted-foreground animate-spin-slow" />
                   </div>
-                </SheetContent>
-              </Sheet>
-            </div>
+                  <h3 className="font-semibold text-lg mb-2">Preparing Content</h3>
+                  <p className="text-muted-foreground text-sm max-w-sm mx-auto">
+                    We are generating the immersive materials for this stage. Please check back shortly.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
 
-            <StageNavigation
-              currentStage={currentStage}
-              completedStages={completedStages}
-              onStageSelect={goToStage}
-              className="mb-8"
-            />
+            {currentStage === 1 && (
+              <OrientationStage
+                resources={currentResources}
+                onComplete={() => handleStageComplete(1)}
+                isCompleted={completedStages.includes(1)}
+                fallbackVideoUrl={fallbackVideoUrl}
+              />
+            )}
 
-            {/* Stage Content */}
-            <div className="min-h-[400px]">
-              {/* Content Placeholder */}
-              {!hasAnyResources && !fallbackVideoUrl && (
-                <Card className="mb-6 border-dashed border-2 bg-muted/50">
-                  <CardContent className="p-12 text-center">
-                    <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
-                      <RefreshCw className="h-8 w-8 text-muted-foreground animate-spin-slow" />
-                    </div>
-                    <h3 className="font-semibold text-lg mb-2">Preparing Content</h3>
-                    <p className="text-muted-foreground text-sm max-w-sm mx-auto">
-                      We are generating the immersive materials for this stage. Please check back shortly.
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
+            {currentStage === 2 && (
+              <LearnStage
+                resources={currentResources}
+                onComplete={() => handleStageComplete(2)}
+                isCompleted={completedStages.includes(2)}
+              />
+            )}
 
-              {/* Dynamic Stages */}
-              {currentStage === 1 && (
-                <OrientationStage
-                  resources={currentResources}
-                  onComplete={() => handleStageComplete(1)}
-                  isCompleted={completedStages.includes(1)}
-                  fallbackVideoUrl={fallbackVideoUrl}
-                />
-              )}
+            {currentStage === 3 && (
+              <DiscussStage
+                resources={currentResources}
+                onComplete={() => handleStageComplete(3)}
+                isCompleted={completedStages.includes(3)}
+                professionLineId={content.profession_line_id || ""}
+                moduleId={currentModuleId || ""}
+                instructorName={aiInstructor?.name}
+              />
+            )}
 
-              {currentStage === 2 && (
-                <LearnStage
-                  resources={currentResources}
-                  onComplete={() => handleStageComplete(2)}
-                  isCompleted={completedStages.includes(2)}
-                />
-              )}
+            {currentStage === 4 && (
+              <PracticeStage
+                resources={currentResources}
+                onComplete={() => handleStageComplete(4)}
+                isCompleted={completedStages.includes(4)}
+                professionLineId={content.profession_line_id || ""}
+              />
+            )}
 
-              {currentStage === 3 && (
-                <DiscussStage
-                  resources={currentResources}
-                  onComplete={() => handleStageComplete(3)}
-                  isCompleted={completedStages.includes(3)}
-                  professionLineId={content.profession_line_id || ""}
-                  moduleId={currentModuleId || ""}
-                  instructorName={aiInstructor?.name}
-                />
-              )}
+            {currentStage === 5 && (
+              <AssessStage
+                contentId={content.id}
+                moduleId={currentModuleId || ""}
+                studentId={student?.id}
+                enrollmentId={enrollment.id}
+                passThreshold={content.pass_threshold || 70}
+                onComplete={handleQuizComplete}
+                isCompleted={completedStages.includes(5)}
+              />
+            )}
 
-              {currentStage === 4 && (
-                <PracticeStage
-                  resources={currentResources}
-                  onComplete={() => handleStageComplete(4)}
-                  isCompleted={completedStages.includes(4)}
-                  professionLineId={content.profession_line_id || ""}
-                />
-              )}
-
-              {currentStage === 5 && (
-                <AssessStage
-                  contentId={content.id}
-                  moduleId={currentModuleId || ""}
-                  studentId={student?.id}
-                  enrollmentId={enrollment.id}
-                  passThreshold={content.pass_threshold || 70}
-                  onComplete={handleQuizComplete}
-                  isCompleted={completedStages.includes(5)}
-                />
-              )}
-
-              {currentStage === 6 && (
-                <ProgressStage
-                  moduleName={currentModule?.title || ""}
-                  moduleIndex={currentModuleIndex}
-                  totalModules={modules.length}
-                  completedStages={completedStages}
-                  onNextModule={handleNextModule}
-                  onComplete={() => handleStageComplete(6)}
-                  isCompleted={completedStages.includes(6)}
-                  hasNextModule={hasNextModule}
-                />
-              )}
-            </div>
+            {currentStage === 6 && (
+              <ProgressStage
+                moduleName={currentModule?.title || ""}
+                moduleIndex={currentModuleIndex}
+                totalModules={modules.length}
+                completedStages={completedStages}
+                onNextModule={handleNextModule}
+                onComplete={() => handleStageComplete(6)}
+                isCompleted={completedStages.includes(6)}
+                hasNextModule={hasNextModule}
+              />
+            )}
           </div>
-        </main>
-      </div>
+        </div>
+      </main>
     </div>
   );
 }

@@ -64,7 +64,7 @@ export function OrientationStage({ resources, onComplete, isCompleted, fallbackV
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="space-y-6">
           {/* Video Section - from resources or fallback */}
           {(videoResource || fallbackVideoUrl) && (
             <Card className={!infographicResource && !videoResource ? "md:col-span-2" : ""}>

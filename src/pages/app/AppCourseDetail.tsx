@@ -377,8 +377,8 @@ export default function AppCourseDetail() {
         )}
       </div>
 
-      {/* Primary Action */}
-      <div className="mb-8">
+      {/* Primary Action - hidden on mobile since sticky bar handles it */}
+      <div className="mb-8 hidden md:block">
         {isEnrolled ? (
           <Button
             size="lg"

@@ -67,7 +67,7 @@ export function DiscussStage({
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="space-y-6">
           {/* Audio Podcast Section */}
           <div className="space-y-4">
             {audioResource ? (
@@ -123,7 +123,7 @@ export function DiscussStage({
           </div>
 
           {/* AI Chat Section */}
-          <Card className="h-[500px] flex flex-col">
+          <Card className="h-[400px] flex flex-col">
             <CardHeader className="pb-3 shrink-0">
               <CardTitle className="text-base flex items-center gap-2">
                 <Bot className="h-4 w-4" />
