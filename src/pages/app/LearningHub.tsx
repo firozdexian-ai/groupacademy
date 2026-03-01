@@ -62,7 +62,7 @@ export default function LearningHub() {
       </div>
 
       {/* Tab Content */}
-      {activeTab === "my-courses" && <MyCoursesTab />}
+      {activeTab === "my-courses" && <MyCoursesTab onBrowseCatalog={() => setActiveTab("courses")} />}
       {activeTab === "tracks" && <TracksTab />}
       {activeTab === "courses" && <CoursesTab />}
       {activeTab === "events" && <EventsTab />}

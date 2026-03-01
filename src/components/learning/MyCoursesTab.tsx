@@ -3,12 +3,12 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useTalent } from "@/hooks/useTalent";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
-import { BookOpen, CheckCircle, Clock, PlayCircle, MessageCircle } from "lucide-react";
+import { BookOpen, CheckCircle, Clock, MessageCircle } from "lucide-react";
 
 interface EnrollmentContent {
   id: string;
@@ -41,34 +41,29 @@ const LearningCard = ({ enrollment }: { enrollment: Enrollment }) => {
       className="cursor-pointer hover:shadow-lg transition-all group overflow-hidden border-border/50 h-full flex flex-col"
       onClick={() => navigate(`/app/learning/courses/${content.slug}`)}
     >
-      <div className="aspect-video bg-muted relative overflow-hidden shrink-0">
+      <div className="h-24 bg-muted relative overflow-hidden shrink-0">
         {imageSrc ? (
-          <img src={imageSrc} alt={content.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+          <img src={imageSrc} alt={content.title} className="w-full h-full object-cover" loading="lazy" />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-primary/5">
-            <BookOpen className="h-10 w-10 text-primary/20" />
+            <BookOpen className="h-8 w-8 text-primary/20" />
           </div>
         )}
-        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-          <div className="bg-white/20 backdrop-blur-sm text-white px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2">
-            <PlayCircle className="w-4 h-4" /> Resume
-          </div>
-        </div>
       </div>
-      <CardContent className="p-4 flex flex-col flex-1">
+      <CardContent className="p-3 flex flex-col flex-1">
         <div className="flex-1">
-          <div className="flex items-start justify-between gap-2 mb-2">
+          <div className="flex items-start justify-between gap-2 mb-1.5">
             <Badge variant="outline" className="capitalize text-[10px] h-5 px-1.5">{content.content_type.replace(/_/g, " ")}</Badge>
             <Badge variant={status === "active" ? "default" : "secondary"} className="text-[10px] h-5 px-1.5">
               {status === "pending_payment" ? "Payment Pending" : status}
             </Badge>
           </div>
-          <h3 className="font-semibold text-sm line-clamp-2 mb-1 group-hover:text-primary transition-colors">{content.title}</h3>
-          {content.instructor_name && <p className="text-xs text-muted-foreground mb-3 line-clamp-1">By {content.instructor_name}</p>}
+          <h3 className="font-semibold text-sm line-clamp-2 mb-1">{content.title}</h3>
+          {content.instructor_name && <p className="text-xs text-muted-foreground line-clamp-1">By {content.instructor_name}</p>}
         </div>
-        <div className="space-y-3 mt-auto pt-2">
+        <div className="space-y-2 mt-auto pt-2">
           {status === "active" && (
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span>Progress</span>
                 <span className="font-medium text-foreground">{progress || 0}%</span>
@@ -96,7 +91,11 @@ const LearningCard = ({ enrollment }: { enrollment: Enrollment }) => {
   );
 };
 
-export function MyCoursesTab() {
+interface MyCoursesTabProps {
+  onBrowseCatalog?: () => void;
+}
+
+export function MyCoursesTab({ onBrowseCatalog }: MyCoursesTabProps) {
   const navigate = useNavigate();
   const { talent } = useTalent();
 
@@ -109,7 +108,7 @@ export function MyCoursesTab() {
         .eq("talent_id", talent!.id)
         .order("last_accessed_at", { ascending: false });
       if (error) throw error;
-      return data as unknown as Enrollment[];
+      return (data as unknown as Enrollment[]).filter(e => e.content.content_type !== "free_video");
     },
     enabled: !!talent?.id,
   });
@@ -119,12 +118,10 @@ export function MyCoursesTab() {
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <div className="grid grid-cols-3 gap-4">
-          {[1, 2, 3].map((i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          {[1, 2].map((i) => <Skeleton key={i} className="h-72 rounded-xl" />)}
+      <div className="space-y-3">
+        <Skeleton className="h-10 rounded-lg w-48" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {[1, 2].map((i) => <Skeleton key={i} className="h-48 rounded-xl" />)}
         </div>
       </div>
     );
@@ -141,35 +138,30 @@ export function MyCoursesTab() {
     );
   }
 
+  const handleBrowse = () => {
+    if (onBrowseCatalog) {
+      onBrowseCatalog();
+    } else {
+      navigate("/app/learning/courses");
+    }
+  };
+
   return (
-    <div className="space-y-4">
-      {/* Quick Stats */}
-      <div className="grid grid-cols-3 gap-4">
-        <Card className="bg-primary/5 border-primary/10">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-primary">Active</CardTitle>
-            <Clock className="h-4 w-4 text-primary/60" />
-          </CardHeader>
-          <CardContent><div className="text-2xl font-bold text-primary">{activeEnrollments.length}</div></CardContent>
-        </Card>
-        <Card className="bg-green-50 dark:bg-green-950/20 border-green-100 dark:border-green-900">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-green-700 dark:text-green-400">Completed</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600/60 dark:text-green-400/60" />
-          </CardHeader>
-          <CardContent><div className="text-2xl font-bold text-green-700 dark:text-green-400">{completedEnrollments.length}</div></CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium">Total</CardTitle>
-            <BookOpen className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent><div className="text-2xl font-bold">{enrollments.length}</div></CardContent>
-        </Card>
+    <div className="space-y-3">
+      {/* Compact Stats Pills */}
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5 bg-primary/10 text-primary rounded-full px-3 py-1.5 text-sm font-medium">
+          <Clock className="h-3.5 w-3.5" />
+          <span>{activeEnrollments.length} Active</span>
+        </div>
+        <div className="flex items-center gap-1.5 bg-green-100 dark:bg-green-950/30 text-green-700 dark:text-green-400 rounded-full px-3 py-1.5 text-sm font-medium">
+          <CheckCircle className="h-3.5 w-3.5" />
+          <span>{completedEnrollments.length} Completed</span>
+        </div>
       </div>
 
       {/* Enrollments Tabs */}
-      <Tabs defaultValue="active" className="space-y-4">
+      <Tabs defaultValue="active" className="space-y-3">
         <TabsList className="w-full grid grid-cols-2 lg:w-[400px]">
           <TabsTrigger value="active">Active ({activeEnrollments.length})</TabsTrigger>
           <TabsTrigger value="completed">Completed ({completedEnrollments.length})</TabsTrigger>
@@ -178,14 +170,14 @@ export function MyCoursesTab() {
           {activeEnrollments.length === 0 ? (
             <Card className="border-dashed">
               <CardContent className="py-8 text-center">
-                <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-                <h3 className="font-semibold mb-1">No active courses</h3>
-                <p className="text-muted-foreground text-sm mb-4">Start a new course to see it here</p>
-                <Button onClick={() => navigate("/app/learning/courses")}>Browse Catalog</Button>
+                <BookOpen className="w-10 h-10 text-muted-foreground mx-auto mb-3 opacity-50" />
+                <h3 className="font-semibold mb-1 text-sm">No active courses</h3>
+                <p className="text-muted-foreground text-xs mb-4">Start a new course to see it here</p>
+                <Button size="sm" onClick={handleBrowse}>Browse Catalog</Button>
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {activeEnrollments.map((enrollment) => <LearningCard key={enrollment.id} enrollment={enrollment} />)}
             </div>
           )}
@@ -194,13 +186,13 @@ export function MyCoursesTab() {
           {completedEnrollments.length === 0 ? (
             <Card className="border-dashed">
               <CardContent className="py-8 text-center">
-                <CheckCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-                <h3 className="font-semibold mb-1">No completed courses</h3>
-                <p className="text-muted-foreground text-sm">Finish a course to earn your certificate</p>
+                <CheckCircle className="w-10 h-10 text-muted-foreground mx-auto mb-3 opacity-50" />
+                <h3 className="font-semibold mb-1 text-sm">No completed courses</h3>
+                <p className="text-muted-foreground text-xs">Finish a course to earn your certificate</p>
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {completedEnrollments.map((enrollment) => <LearningCard key={enrollment.id} enrollment={enrollment} />)}
             </div>
           )}
