@@ -1,63 +1,105 @@
 
 
-# My Courses Tab Optimization
+# In-Course Player: Complete UX Overhaul
 
 ## Problems Identified
 
-1. **Stats cards too large** -- The 3 stat blocks (Active, Completed, Total) are oversized with excessive padding and take up too much vertical space
-2. **"Total" stat is redundant** -- Active + Completed = Total; it adds no value
-3. **Free videos showing in enrollments** -- Free videos are not real courses; they should only appear in the feed for inline viewing (YouTube promotion)
-4. **Course cards too tall** -- The `aspect-video` image ratio + padding makes each card occupy excessive space on mobile
-5. **"Browse Catalog" button in empty state navigates away** -- Should switch to the "All Courses" tab instead
+1. **Duplicate "Start Learning" buttons** -- AppCourseDetail.tsx shows both an inline CTA (line 383-390) and a sticky bottom bar CTA (line 426-454) on mobile, both saying "Start Learning"
+2. **Module list slides in from the side as a Sheet** -- On mobile, the module list opens as a left-sliding sidebar (Sheet), which feels clunky and breaks the vertical-only design principle
+3. **Stage navigation scrolls horizontally** -- StageNavigation uses `overflow-x-auto` (line 43), violating the no-horizontal-scroll rule
+4. **Discuss stage uses a 2-column grid on mobile** -- `lg:grid-cols-2` on DiscussStage puts audio and AI chat side by side, but on mobile the AI chat card is a fixed 500px height which is awkward
+5. **Orientation stage uses a 2-column grid** -- `md:grid-cols-2` for video + infographic can cause horizontal layout issues on smaller tablets
+6. **Overall layout is desktop-first** -- The header, sidebar, and content area use a `flex` horizontal layout that wastes space on mobile
+7. **Course detail page shows inline CTA that's redundant with sticky bar**
+
+---
 
 ## Changes
 
-### 1. Compact the stats row
+### 1. Fix duplicate "Start Learning" on Course Detail (`src/pages/app/AppCourseDetail.tsx`)
 
-Replace the 3 large cards with a slim inline summary bar -- two small pill-style indicators side by side:
+- Hide the inline "Start Learning" / "Enroll Now" button on mobile (add `hidden md:block` to the wrapper div at line 381)
+- The sticky bottom bar already handles mobile -- no need for two CTAs
 
+### 2. Replace side-sliding Sheet with inline collapsible module list (`src/pages/ImmersiveCoursePlayer.tsx`)
+
+- Remove the `Sheet` / `SheetContent` approach for mobile module navigation
+- Replace with an inline `Collapsible` (Radix) section at the top of the content area that expands/collapses vertically
+- Default to collapsed, showing current module name and a chevron
+- When expanded, shows the full `ImmersiveModuleList` in a vertically scrollable container (max-height with overflow)
+- This keeps everything vertical -- no sideways drawer
+
+### 3. Redesign StageNavigation for vertical-first (`src/components/player/StageNavigation.tsx`)
+
+- Replace the horizontal scrollable pill strip with a **vertical step indicator** on mobile
+- Use a compact vertical layout: small circles connected by vertical lines, with the current stage expanded to show the name
+- On desktop (sm+), keep the horizontal layout but remove `overflow-x-auto`
+- Alternatively: use a 3x2 grid of stage icons (fits in 2 rows, no scrolling)
+
+**Chosen approach**: Convert to a 3-column grid (2 rows) on mobile, horizontal strip on sm+:
 ```text
-[ clock icon  2 Active ]  [ check icon  1 Completed ]
+Mobile:
+[Orientation] [Learn]    [Discuss]
+[Practice]    [Assess]   [Progress]
 ```
 
-- Remove the "Total" stat entirely
-- Use a single-row flex layout with small rounded pills instead of full Card components
-- Much less vertical space consumed
+### 4. Make Discuss stage fully vertical (`src/components/player/stages/DiscussStage.tsx`)
 
-### 2. Filter out free_video enrollments
+- Change `lg:grid-cols-2` to always stack vertically
+- Audio section first, then AI chat below
+- AI chat height: change from fixed `h-[500px]` to `h-[400px]` for a better mobile fit
+- Remove the grid entirely, use simple `space-y-6` stacking
 
-In the query or the filter logic, exclude enrollments where `content.content_type === "free_video"`. This ensures free videos never appear in My Courses.
+### 5. Make Orientation stage vertical on mobile (`src/components/player/stages/OrientationStage.tsx`)
 
-### 3. Make course cards more compact
+- Remove `md:grid-cols-2` -- always stack video above infographic vertically
+- This prevents side-by-side layout on smaller screens
 
-- Change image from `aspect-video` (16:9) to a fixed `h-24` (96px) height
-- Reduce card padding from `p-4` to `p-3`
-- Remove the hover overlay with "Resume" text (unnecessary on mobile)
-- Keep progress bar, WhatsApp group, and certificate buttons but tighten spacing
+### 6. Simplify the player header (`src/pages/ImmersiveCoursePlayer.tsx`)
 
-### 4. Fix empty-state navigation
+- Make the header more compact on mobile
+- Show a slim progress bar directly below the header (always visible, not just on sm+)
+- Remove `hidden sm:block` from the progress section so mobile users see their progress
 
-Change the "Browse Catalog" button in the empty active-courses state to not navigate away but instead inform the user to check the "All Courses" tab (or accept an optional callback prop from LearningHub to switch tabs).
+### 7. Remove desktop sidebar, use collapsible everywhere (`src/pages/ImmersiveCoursePlayer.tsx`)
+
+- Remove the `aside` desktop sidebar (lines 357-367)
+- Use the same collapsible module list for all screen sizes (above the stage content)
+- This simplifies the layout to a single-column flow and removes the horizontal `flex` split
+
+---
 
 ## Technical Details
 
-### File: `src/components/learning/MyCoursesTab.tsx`
+### Files Modified
 
-**Stats section (lines 147-169):** Replace the 3-card grid with a compact flex row of two styled pills using simple div elements with inline flex layout.
+**`src/pages/app/AppCourseDetail.tsx`**
+- Line 381: Add `hidden md:block` to the inline CTA wrapper div
 
-**Enrollment filter (lines 117-118):** Add `.filter(e => e.content.content_type !== "free_video")` to exclude free videos from both active and completed lists.
+**`src/pages/ImmersiveCoursePlayer.tsx`**
+- Remove `Sheet`, `SheetContent`, `SheetHeader`, `SheetTitle`, `SheetTrigger` imports
+- Add `Collapsible`, `CollapsibleContent`, `CollapsibleTrigger` imports
+- Remove the `<aside>` desktop sidebar block (lines 357-367)
+- Remove the mobile Sheet block (lines 373-397)
+- Replace with a `Collapsible` above `StageNavigation`:
+  - Trigger: a button showing "Module X: [title]" with a ChevronDown icon
+  - Content: `ImmersiveModuleList` wrapped in a `max-h-[50vh] overflow-y-auto` container
+- Change main layout from `flex flex-1 overflow-hidden` to a simple single-column layout
+- Remove `hidden sm:block` from progress bar so it's always visible
+- Make progress bar span full width below the header
 
-**LearningCard component (lines 34-97):**
-- Line 44: Change `aspect-video` to `h-24` for a shorter image area
-- Lines 52-56: Remove the hover overlay div
-- Line 58: Reduce padding from `p-4` to `p-3`
-- Line 69: Tighten spacing from `space-y-3` to `space-y-2`
+**`src/components/player/StageNavigation.tsx`**
+- Change container from `flex items-center gap-1 overflow-x-auto` to `grid grid-cols-3 gap-2 sm:flex sm:items-center sm:gap-1`
+- Remove the connector line div between stages on mobile (keep on sm+)
+- Make each stage button more compact on mobile: icon + abbreviated name below
 
-**Empty state (line 184):** Update "Browse Catalog" to use an `onBrowse` callback prop so LearningHub can pass tab-switching logic.
+**`src/components/player/stages/DiscussStage.tsx`**
+- Line 70: Change `grid gap-6 lg:grid-cols-2` to `space-y-6`
+- Line 126: Change AI chat card height from `h-[500px]` to `h-[400px]`
 
-**Props:** Add optional `onBrowseCatalog?: () => void` prop to `MyCoursesTab` so the parent (LearningHub) can pass `() => setActiveTab("courses")`.
+**`src/components/player/stages/OrientationStage.tsx`**
+- Line 67: Change `grid gap-6 md:grid-cols-2` to `space-y-6`
 
-### File: `src/pages/app/LearningHub.tsx`
-
-Pass `onBrowseCatalog={() => setActiveTab("courses")}` to `<MyCoursesTab />`.
+### No database changes required
+### No new dependencies required
 
