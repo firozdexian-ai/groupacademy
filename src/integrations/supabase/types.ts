@@ -4574,7 +4574,11 @@ export type Database = {
       }
     }
     Enums: {
-      academy_type: "executive" | "technical"
+      academy_type:
+        | "executive"
+        | "technical"
+        | "freelancing"
+        | "entrepreneurship"
       app_role: "admin" | "student" | "talent_exec"
       application_status:
         | "submitted"
@@ -4761,7 +4765,12 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      academy_type: ["executive", "technical"],
+      academy_type: [
+        "executive",
+        "technical",
+        "freelancing",
+        "entrepreneurship",
+      ],
       app_role: ["admin", "student", "talent_exec"],
       application_status: [
         "submitted",

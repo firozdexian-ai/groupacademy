@@ -22,7 +22,7 @@ interface Academy {
   name: string;
   slug: string;
   description: string | null;
-  academy_type: "executive" | "technical";
+  academy_type: "executive" | "technical" | "freelancing" | "entrepreneurship";
   icon: string | null;
   primary_language: string;
   is_active: boolean | null;
@@ -135,7 +135,7 @@ export function ProfessionsManager() {
       name: formData.get("name") as string,
       slug: formData.get("slug") as string,
       description: formData.get("description") as string || null,
-      academy_type: formData.get("academy_type") as "executive" | "technical",
+      academy_type: formData.get("academy_type") as "executive" | "technical" | "freelancing" | "entrepreneurship",
       icon: formData.get("icon") as string || "graduation-cap",
       primary_language: formData.get("primary_language") as string,
       is_active: formData.get("is_active") === "true",
