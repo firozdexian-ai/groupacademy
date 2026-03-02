@@ -1,103 +1,133 @@
 
-# Sales & Distribution -- Complete Curriculum Build-Out
+# Marketing & Brand Management -- Full Curriculum + AI Instructor
 
-## Current State
-- **Program ID**: `cd947727-350e-4fd3-813b-0034d4cf208e`
-- **Existing**: 3 Foundation courses with 12 modules already populated
-- **AI Instructor**: Sarah Rahman (already active)
-- **Missing**: 2 more Foundation courses + 5 Intermediate + 4 Executive courses
+## Step 1: Rename the Program
+Update `profession_categories` to rename "Sales & Marketing" to **"Marketing & Brand Management"** with slug `marketing-brand-management` and updated description.
 
-## New Courses to Add
+## Step 2: Remove Placeholder Courses
+Delete the 2 existing courses (no modules, no enrollments):
+- Digital Marketing Strategy for Corporates
+- B2B Sales Mastery
 
-### Foundation Level (2 additional courses, total becomes 5)
+## Step 3: Insert Full Curriculum (14 courses, ~62 modules)
 
-4. **Negotiation & Closing Techniques** (4 modules)
-   - Understanding Buyer Psychology in Bangladesh Markets
-   - Objection Handling Frameworks for B2B and B2C
-   - Closing Strategies: From Trial Close to Final Agreement
-   - Post-Sale Follow-Up and Relationship Building
+### Foundation Level (5 courses)
 
-5. **Introduction to Trade Marketing** (4 modules)
-   - What is Trade Marketing vs Consumer Marketing
-   - Point-of-Sale Materials & In-Store Promotions
-   - Trade Schemes, Discounts & Incentive Structures
-   - Measuring Trade Promotion Effectiveness (ROI)
+1. **Introduction to Marketing Principles** (4 modules)
+   - What is Marketing: Core Concepts, the 4Ps & the Marketing Mix
+   - Understanding Consumer Behavior & Buying Decisions
+   - Market Segmentation, Targeting & Positioning (STP)
+   - Introduction to Marketing Research & Data Collection
+
+2. **Brand Fundamentals** (4 modules)
+   - What is a Brand: Identity, Image & Equity
+   - Brand Architecture: Master Brand, Sub-Brands & Endorsed Brands
+   - Crafting Brand Story & Messaging Frameworks
+   - Visual Identity: Logo, Color, Typography & Brand Guidelines
+
+3. **Digital Marketing Essentials** (4 modules)
+   - Overview of Digital Channels: SEO, SEM, Social, Email, Content
+   - Social Media Marketing: Platform Selection & Content Strategy
+   - Introduction to Google Ads & Facebook/Meta Ads
+   - Email Marketing: List Building, Campaigns & Automation Basics
+
+4. **Content Marketing & Copywriting** (4 modules)
+   - Content Strategy: Planning, Calendars & Content Pillars
+   - Writing for the Web: Headlines, CTAs & Persuasive Copy
+   - Visual Content: Infographics, Short-Form Video & Reels
+   - Blogging, SEO Content & Thought Leadership
+
+5. **Marketing Communications & PR** (4 modules)
+   - Integrated Marketing Communications (IMC) Framework
+   - Press Releases, Media Relations & Earned Media
+   - Event Marketing & Experiential Campaigns
+   - Crisis Communication & Reputation Management Basics
 
 ### Intermediate Level (5 courses)
 
-1. **Advanced Distribution Network Design** (5 modules)
-   - Mapping Distribution Tiers: Super Stockist, Distributor, Sub-Distributor, Retailer
-   - Urban vs Rural Distribution Strategy in Bangladesh
-   - Warehouse & Hub Location Planning
-   - Last-Mile Delivery Challenges & Solutions
-   - Distribution Cost Analysis & Margin Optimization
+1. **Brand Strategy & Management** (5 modules)
+   - Brand Positioning Frameworks: Perceptual Maps & Competitive Analysis
+   - Brand Health Tracking: Awareness, Recall, NPS & Sentiment
+   - Brand Extension & Portfolio Strategy
+   - Rebranding: When, Why & How to Execute
+   - Building Brand Communities & Advocacy Programs
 
-2. **Key Account Management** (4 modules)
-   - Identifying and Segmenting Key Accounts
-   - Building Strategic Account Plans
-   - Joint Business Planning with Retailers & Distributors
-   - Managing Multi-Stakeholder Relationships
+2. **Digital Marketing Strategy** (5 modules)
+   - Building a Full-Funnel Digital Strategy (TOFU, MOFU, BOFU)
+   - Performance Marketing: Google Ads, Meta Ads & Campaign Optimization
+   - SEO Strategy: Technical SEO, On-Page & Link Building
+   - Marketing Automation & CRM Integration (HubSpot, Mailchimp)
+   - Conversion Rate Optimization & Landing Page Strategy
 
-3. **Sales Team Leadership & Coaching** (5 modules)
-   - Recruiting and Onboarding Sales Executives
-   - Setting Targets: Top-Down vs Bottom-Up Approaches
-   - Field Coaching: Structured Market Visits with Your Team
-   - Motivating Sales Teams: Incentives, Recognition & Culture
-   - Handling Underperformance: PIPs and Difficult Conversations
+3. **Market Research & Consumer Insights** (4 modules)
+   - Qualitative Research: Focus Groups, Interviews & Ethnography
+   - Quantitative Research: Surveys, Conjoint Analysis & Statistical Methods
+   - Competitive Intelligence & Market Sizing
+   - Turning Insights into Actionable Marketing Strategies
 
-4. **Modern Trade & E-Commerce Sales** (4 modules)
-   - Understanding Modern Trade Formats (Supermarkets, Chain Stores) in Bangladesh
-   - Category Management & Planogram Negotiation
-   - E-Commerce Channel Strategy: Marketplace vs D2C
-   - Omnichannel Sales Integration & Fulfillment
+4. **Social Media & Influencer Marketing** (4 modules)
+   - Platform-Specific Strategies: Facebook, Instagram, LinkedIn, TikTok
+   - Influencer Marketing: Selection, Contracts & ROI Measurement
+   - Community Management & Social Listening Tools
+   - Social Commerce & Shoppable Content Strategies
 
-5. **Sales Analytics & Forecasting** (5 modules)
-   - Building Sales Dashboards: Key Metrics That Matter
-   - Demand Forecasting Methods: Moving Average, Regression, Judgmental
-   - SKU-Level Analysis & Product Portfolio Optimization
-   - Territory Performance Benchmarking & Gap Analysis
-   - Using Data to Drive Route-to-Market Decisions
+5. **Marketing Analytics & ROI** (5 modules)
+   - Marketing Metrics That Matter: CAC, LTV, ROAS, CPL
+   - Google Analytics & Attribution Modeling
+   - Dashboard Building & Reporting for Stakeholders
+   - A/B Testing & Experimentation Frameworks
+   - Budget Allocation & Media Mix Modeling
 
 ### Executive Level (4 courses)
 
-1. **Strategic Sales Management** (4 modules)
-   - Designing Go-to-Market Strategy for New Products
-   - Sales Organization Design: Geography vs Product vs Channel
-   - Revenue Growth Frameworks: Ansoff Matrix in Sales Context
-   - Sales Budget Planning & P&L Ownership
+1. **Strategic Marketing Leadership** (4 modules)
+   - Developing Annual Marketing Plans & Budget Ownership
+   - Go-to-Market Strategy for Product Launches
+   - Marketing Organization Design & Team Structure
+   - Aligning Marketing with Business Strategy & Revenue Goals
 
-2. **National Distribution & Expansion Strategy** (5 modules)
-   - Assessing Market Potential Across Bangladesh Divisions
-   - Distributor Appointment, Evaluation & Termination
-   - Building a National Coverage Model: Numeric & Weighted Distribution
-   - Channel Conflict Resolution & Multi-Channel Governance
-   - Scaling Distribution for New Categories (FMCG, Pharma, Consumer Electronics)
+2. **Brand Building at Scale** (5 modules)
+   - Building Iconic Brands: Case Studies (Unilever, Grameenphone, bKash)
+   - Global vs Local Brand Strategy: Glocalization in Bangladesh Context
+   - Employer Branding & Internal Brand Culture
+   - Luxury & Premium Brand Management
+   - Measuring Brand Equity & Long-Term Brand Valuation
 
-3. **Trade & Shopper Marketing Strategy** (4 modules)
-   - Shopper Behavior Research & In-Store Decision Making
-   - Designing Annual Trade Marketing Calendars
-   - Category Captainship & Retailer Partnership Models
-   - Measuring ROI on Trade Spend & Below-the-Line Activities
+3. **Growth Marketing & Innovation** (4 modules)
+   - Growth Hacking Frameworks: AARRR Pirate Metrics
+   - Product-Led Growth & Viral Loop Design
+   - AI & Martech: Using AI Tools for Personalization & Predictive Marketing
+   - Innovation in Marketing: AR/VR, Metaverse & Web3 Applications
 
-4. **Sales Leadership & Business Development** (4 modules)
-   - Building a Sales Culture: Vision, Values & Accountability
-   - Cross-Functional Leadership: Sales + Marketing + Supply Chain Alignment
-   - Developing New Business Channels & Strategic Partnerships
-   - Future of Sales: AI Tools, CRM Automation & Data-Driven Selling
+4. **Marketing Leadership & Business Impact** (4 modules)
+   - CMO Mindset: From Campaign Manager to Business Leader
+   - Cross-Functional Leadership: Marketing + Sales + Product Alignment
+   - Agency Management: Briefing, Evaluation & Partnership Models
+   - Future of Marketing: Privacy, First-Party Data & Ethical Marketing
+
+## Step 4: Create AI Instructor
+
+**Name**: Nadia Chowdhury
+**Persona**: A seasoned marketing strategist with 15+ years in brand management and digital marketing across leading FMCG, telecom, and fintech companies in Bangladesh. Former Head of Marketing at a top consumer brand, now focused on developing the next generation of marketing leaders. Uses real examples from brands like Grameenphone, bKash, Walton, PRAN, and international brands operating in Bangladesh.
+
+**Expertise areas**: Brand Strategy, Digital Marketing, Consumer Insights, Content Marketing, Performance Marketing, Social Media, Marketing Analytics, Go-to-Market Strategy, Brand Building, Marketing Leadership
 
 ## Technical Details
 
 ### Database Operations
-- **Delete**: 0 records (keep all existing Foundation courses and modules)
-- **Insert**: 16 new courses into `content` table with correct `profession_line_id` and `profession_level_id`
-- **Insert**: ~62 new modules into `course_modules` with talking-point descriptions
+- **UPDATE**: Rename profession_categories record (name, slug, description)
+- **DELETE**: 2 placeholder courses from content table
+- **INSERT**: 14 courses into `content` table with correct `profession_line_id` and `profession_level_id`
+- **INSERT**: ~62 modules into `course_modules` with talking-point descriptions
+- **INSERT**: 1 AI instructor record into `ai_instructors`
 - All courses: `content_type = 'recorded_course'`, `is_published = true`
 
-### Level IDs
+### IDs
+- Program: `5ee052f8-2aaf-45b5-8f90-731c23097fef`
 - Foundation: `9578ed0c-dfc6-4e62-a1b6-0a96161cc4fe`
 - Intermediate: `7e997803-47f3-423e-9790-da9612328cf5`
 - Executive: `b7976d18-957b-4dc4-8a95-bbfd44877225`
 
 ### No Code Changes Needed
-- The existing pages dynamically load courses from the database
-- Sarah Rahman (AI Instructor) will automatically pick up all new modules via the enhanced knowledge base loader we just built
+- Pages dynamically load from database
+- AI instructor chat edge function already has the curriculum knowledge base loader built in
