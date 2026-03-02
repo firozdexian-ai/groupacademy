@@ -30,10 +30,11 @@ serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
 
+    const token = authHeader.replace("Bearer ", "");
     const {
       data: { user },
       error: authError,
-    } = await supabaseAuth.auth.getUser();
+    } = await supabaseAuth.auth.getUser(token);
 
     if (authError || !user) {
       console.error("Auth error:", authError);
@@ -59,9 +60,10 @@ serve(async (req) => {
 
     // Fetch AI Instructor details
     let systemPrompt = "You are a helpful career and learning assistant for GroUp Academy.";
+    let instructor: any = null;
 
     if (professionLineId) {
-      const { data: instructor } = await supabaseAdmin
+      const { data: instructorData } = await supabaseAdmin
         .from("ai_instructors")
         .select(
           `
@@ -75,6 +77,8 @@ serve(async (req) => {
         )
         .eq("profession_line_id", professionLineId)
         .single();
+
+      instructor = instructorData;
 
       if (instructor) {
         const professionLine = instructor.profession_categories;
