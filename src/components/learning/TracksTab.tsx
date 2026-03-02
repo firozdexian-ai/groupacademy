@@ -5,26 +5,38 @@ import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/c
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BookOpen, Building2, Laptop, Rocket, ArrowRight, RefreshCw, AlertCircle, GraduationCap, ChevronRight } from "lucide-react";
+import { BookOpen, Building2, Laptop, Rocket, Megaphone, ArrowRight, RefreshCw, AlertCircle, GraduationCap, ChevronRight } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { getIcon } from "@/lib/iconMap";
 
 interface Academy { id: string; name: string; slug: string; academy_type: string; description: string; }
-interface School { id: string; name: string; slug: string; description: string; academy_id: string; }
+interface School { id: string; name: string; slug: string; description: string; academy_id: string; icon: string | null; }
 interface Enrollment { id: string; progress: number; status: string; content: { title: string; profession_line_id: string | null } | null; }
 
-type Category = "my-program" | "executive" | "freelancing" | "entrepreneurship";
+type Category = "my-program" | "executive" | "freelancing" | "entrepreneurship" | "influencing";
 
 const categories: { key: Category; icon: typeof BookOpen; label: string }[] = [
   { key: "my-program", icon: BookOpen, label: "My Program" },
   { key: "executive", icon: Building2, label: "Executive" },
   { key: "freelancing", icon: Laptop, label: "Freelancing" },
-  { key: "entrepreneurship", icon: Rocket, label: "Entrepreneurship" },
+  { key: "entrepreneurship", icon: Rocket, label: "Startup" },
+  { key: "influencing", icon: Megaphone, label: "Influencing" },
 ];
 
 const academyTypeMap: Record<string, Category> = {
   executive: "executive",
   freelancing: "freelancing",
   entrepreneurship: "entrepreneurship",
+  influencing: "influencing",
+};
+
+// Distinct color themes per academy for visual differentiation
+const academyColors: Record<Category, { bg: string; icon: string; border: string }> = {
+  "my-program": { bg: "bg-primary/10", icon: "text-primary", border: "hover:border-primary/50" },
+  executive: { bg: "bg-blue-500/10", icon: "text-blue-600 dark:text-blue-400", border: "hover:border-blue-500/50" },
+  freelancing: { bg: "bg-emerald-500/10", icon: "text-emerald-600 dark:text-emerald-400", border: "hover:border-emerald-500/50" },
+  entrepreneurship: { bg: "bg-orange-500/10", icon: "text-orange-600 dark:text-orange-400", border: "hover:border-orange-500/50" },
+  influencing: { bg: "bg-pink-500/10", icon: "text-pink-600 dark:text-pink-400", border: "hover:border-pink-500/50" },
 };
 
 export function TracksTab() {
@@ -86,8 +98,8 @@ export function TracksTab() {
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <div className="grid grid-cols-4 gap-2">
-          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-20 rounded-lg" />)}
+        <div className="grid grid-cols-5 gap-2">
+          {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-20 rounded-lg" />)}
         </div>
         <div className="grid gap-4 md:grid-cols-2">
           {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-28 rounded-lg" />)}
@@ -186,6 +198,7 @@ export function TracksTab() {
     }
 
     const academySchools = getSchoolsForAcademy(academy.id);
+    const colors = academyColors[category];
 
     return (
       <div className="space-y-3">
@@ -193,23 +206,29 @@ export function TracksTab() {
           <p className="text-sm text-muted-foreground">{academy.description}</p>
         )}
         <div className="grid gap-3 md:grid-cols-2">
-          {academySchools.map((school) => (
-            <Card
-              key={school.id}
-              className="cursor-pointer hover:shadow-md hover:border-primary/50 transition-all"
-              onClick={() => navigate(`/app/learning/tracks/school/${school.slug}`)}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1 min-w-0">
-                    <CardTitle className="text-base mb-1">{school.name}</CardTitle>
-                    <CardDescription className="line-clamp-2 text-sm">{school.description}</CardDescription>
+          {academySchools.map((school) => {
+            const SchoolIcon = getIcon(school.icon);
+            return (
+              <Card
+                key={school.id}
+                className={`cursor-pointer hover:shadow-md ${colors.border} transition-all group`}
+                onClick={() => navigate(`/app/learning/tracks/school/${school.slug}`)}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    <div className={`h-10 w-10 rounded-lg ${colors.bg} flex items-center justify-center shrink-0 transition-transform group-hover:scale-110`}>
+                      <SchoolIcon className={`h-5 w-5 ${colors.icon}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-base mb-1">{school.name}</CardTitle>
+                      <CardDescription className="line-clamp-2 text-sm">{school.description}</CardDescription>
+                    </div>
+                    <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0 mt-1 transition-transform group-hover:translate-x-0.5" />
                   </div>
-                  <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0 ml-2" />
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
         {academySchools.length === 0 && (
           <Card className="border-dashed">
@@ -223,7 +242,7 @@ export function TracksTab() {
   return (
     <div className="space-y-4">
       {/* Icon strip navigation */}
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-5 gap-2">
         {categories.map(({ key, icon: Icon, label }) => (
           <button
             key={key}
