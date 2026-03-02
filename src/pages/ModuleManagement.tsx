@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Plus, Trash2, GripVertical, Settings } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, GripVertical, Settings, Sparkles, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
@@ -32,6 +32,38 @@ export default function ModuleManagement() {
   const [saving, setSaving] = useState(false);
   const [course, setCourse] = useState<any>(null);
   const [modules, setModules] = useState<Module[]>([]);
+  const [generatingIndex, setGeneratingIndex] = useState<number | null>(null);
+
+  const generateGuide = async (index: number) => {
+    const module = modules[index];
+    if (!module.title) {
+      toast.error("Please enter a module title first");
+      return;
+    }
+    setGeneratingIndex(index);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-module-guide", {
+        body: {
+          courseTitle: course?.title || "",
+          moduleTitle: module.title,
+          programName: "Banking & Finance",
+          levelName: "",
+        },
+      });
+      if (error) throw error;
+      if (data?.guide) {
+        updateModule(index, "description", data.guide);
+        toast.success("Guide generated!");
+      } else if (data?.error) {
+        toast.error(data.error);
+      }
+    } catch (err: any) {
+      console.error("Guide generation error:", err);
+      toast.error("Failed to generate guide");
+    } finally {
+      setGeneratingIndex(null);
+    }
+  };
 
   useEffect(() => {
     loadModules();
@@ -265,12 +297,28 @@ export default function ModuleManagement() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Description</Label>
+                  <div className="flex items-center justify-between">
+                    <Label>Description / Talking Points</Label>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => generateGuide(index)}
+                      disabled={generatingIndex !== null}
+                      className="gap-1.5 text-xs"
+                    >
+                      {generatingIndex === index ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Sparkles className="h-3.5 w-3.5" />
+                      )}
+                      AI Generate Guide
+                    </Button>
+                  </div>
                   <Textarea
                     value={module.description}
                     onChange={(e) => updateModule(index, "description", e.target.value)}
-                    placeholder="Brief description of this module"
-                    rows={2}
+                    placeholder="Brief description or talking points for this module"
+                    rows={4}
                   />
                 </div>
 
