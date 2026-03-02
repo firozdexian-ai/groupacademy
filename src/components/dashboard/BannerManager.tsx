@@ -39,7 +39,7 @@ export const BannerManager = () => {
     image_url: "",
     link_content_id: "none",
     display_order: 0,
-    placement: "carousel" as "carousel" | "hero",
+    placement: "carousel" as "carousel" | "hero" | "learning",
   });
 
   useEffect(() => {
@@ -224,7 +224,7 @@ export const BannerManager = () => {
               <Label>Placement</Label>
               <Select
                 value={newBanner.placement}
-                onValueChange={(value: "carousel" | "hero") =>
+                onValueChange={(value: "carousel" | "hero" | "learning") =>
                   setNewBanner({ ...newBanner, placement: value })
                 }
               >
@@ -232,12 +232,13 @@ export const BannerManager = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="carousel">Carousel</SelectItem>
+                  <SelectItem value="carousel">Carousel (Feed)</SelectItem>
                   <SelectItem value="hero">Hero (Feed Header)</SelectItem>
+                  <SelectItem value="learning">Learning Hub</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Hero banners appear as the feed header background. Only one hero banner should be active at a time.
+                Hero banners appear as the feed header background. Learning banners appear in the Learning Hub carousel.
               </p>
             </div>
 
@@ -299,8 +300,8 @@ export const BannerManager = () => {
                       <p className="font-medium">
                         {banner.content?.title || "No linked course"}
                       </p>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${(banner as any).placement === 'hero' ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
-                        {(banner as any).placement === 'hero' ? 'Hero' : 'Carousel'}
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${(banner as any).placement === 'hero' ? 'bg-primary/10 text-primary' : (banner as any).placement === 'learning' ? 'bg-accent text-accent-foreground' : 'bg-muted text-muted-foreground'}`}>
+                        {(banner as any).placement === 'hero' ? 'Hero' : (banner as any).placement === 'learning' ? 'Learning' : 'Carousel'}
                       </span>
                     </div>
                     <p className="text-sm text-muted-foreground">
