@@ -1,39 +1,61 @@
 
 
-# School of Technology: Program Structure Fix
+# Program 1: Data Science & Analytics — Full Curriculum Build
 
-## What We're Doing
-Two changes to set up the School of Technology with 5 globally-relevant programs before we start building curricula.
+## Overview
+Build out the **Data Science & Analytics** program with 14 globally-relevant courses (replacing 2 placeholders), ~60 modules, and 1 AI Instructor. This follows the same pattern as the School of Business programs.
 
-## Change 1: Rename "Technology & IT" to "Software Engineering"
-- Update name from "Technology & IT" to "Software Engineering"
-- Update slug from "technology-it" to "software-engineering"
-- Update icon from "laptop" to "code" (more fitting)
-- Program ID: `1e71843c-d202-4d96-834e-04fa6c784f16`
+## Step 1: Update Program Metadata
+- Update `career_outcome` for Data Science & Analytics (currently null)
+- Career outcome: "Data Analyst, Business Intelligence Analyst, Data Scientist, Analytics Engineer"
 
-## Change 2: Add "AI & Machine Learning" as a new program
-- Insert a new program into `profession_categories`
-- Name: AI & Machine Learning
-- Slug: ai-machine-learning
-- Icon: brain
-- School ID: `bc8f17f4-6a5a-4a6d-92ab-52d245d16998` (School of Technology)
-- Description: Master artificial intelligence, machine learning, deep learning, NLP, and MLOps to build intelligent systems and drive innovation.
-- Career outcome: AI/ML Engineer, Data Scientist (ML), Research Engineer
-- Display order: 5
+## Step 2: Delete 2 Placeholder Courses
+Remove the existing placeholders:
+- "SQL & Data Visualization for Business"
+- "Business Intelligence with Power BI"
 
-## Final Program Lineup (School of Technology)
+## Step 3: Insert 14 Courses (3 levels)
 
-| Order | Program | Icon | Status |
-|-------|---------|------|--------|
-| 2 | Data Science & Analytics | bar-chart-2 | Existing (unchanged) |
-| 3 | Software Engineering | code | Renamed from "Technology & IT" |
-| 3 | Cybersecurity | shield | Existing (unchanged) |
-| 4 | Cloud & DevOps | cloud | Existing (unchanged) |
-| 5 | AI & Machine Learning | brain | New |
+### Foundation (5 courses)
+| # | Title | Modules |
+|---|-------|---------|
+| 1 | Introduction to Data Science & Analytics | 4 |
+| 2 | Statistics & Probability for Data Analysis | 5 |
+| 3 | SQL for Data Professionals | 4 |
+| 4 | Data Visualization Fundamentals | 4 |
+| 5 | Excel & Spreadsheets for Analytics | 4 |
 
-## Technical Details
-- **UPDATE** `profession_categories` for the rename (name, slug, icon)
-- **INSERT** 1 new row into `profession_categories` for AI & ML
-- **No code changes** needed -- pages load dynamically from the database
-- After this, we proceed program-by-program with curriculum + AI instructor build-out
+### Intermediate (5 courses)
+| # | Title | Modules |
+|---|-------|---------|
+| 1 | Python for Data Analysis | 5 |
+| 2 | Exploratory Data Analysis & Feature Engineering | 4 |
+| 3 | Business Intelligence & Dashboard Design | 4 |
+| 4 | Statistical Modeling & Hypothesis Testing | 4 |
+| 5 | Data Wrangling & ETL Pipelines | 4 |
 
+### Executive (4 courses)
+| # | Title | Modules |
+|---|-------|---------|
+| 1 | Advanced Machine Learning for Analytics | 5 |
+| 2 | Big Data Technologies & Cloud Analytics | 4 |
+| 3 | Data Strategy & Analytics Leadership | 4 |
+| 4 | Real-World Capstone: End-to-End Analytics Project | 4 |
+
+**Total: 14 courses, 61 modules**
+
+## Step 4: Create AI Instructor
+
+- **Name**: Dr. Elena Vasquez
+- **Persona**: A globally experienced data scientist with 12+ years across fintech, healthcare, and e-commerce. Former lead analyst at a Fortune 500 company. Known for making complex statistical concepts intuitive through real-world datasets and business scenarios.
+- **Expertise**: Data Analysis, Python, SQL, Machine Learning, Statistical Modeling, Data Visualization, BI Tools, Big Data, Cloud Analytics
+- **Teaching style**: Methodical and curious; encourages learners to think critically about data before jumping to conclusions. Uses industry case studies (Netflix, Airbnb, Spotify) and emphasizes reproducibility and storytelling with data.
+
+## Execution Order
+1. Update program career_outcome
+2. Delete 2 placeholder courses
+3. Insert 14 courses with levels
+4. Insert ~61 modules across all courses
+5. Insert AI Instructor (Dr. Elena Vasquez)
+
+All done via database insert/update operations — no code changes needed.
