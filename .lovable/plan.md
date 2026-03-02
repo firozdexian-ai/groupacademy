@@ -1,61 +1,63 @@
 
 
-# Program 1: Data Science & Analytics — Full Curriculum Build
+# Program 2: Software Engineering — Full Curriculum Build
 
-## Overview
-Build out the **Data Science & Analytics** program with 14 globally-relevant courses (replacing 2 placeholders), ~60 modules, and 1 AI Instructor. This follows the same pattern as the School of Business programs.
+## Current State
+- **Program ID**: `1e71843c-d202-4d96-834e-04fa6c784f16`
+- **Career outcome**: Already set ("Software Engineer, Full-Stack Developer, Backend Engineer")
+- **Courses**: 2 placeholders (no levels, no modules)
+- **AI Instructor**: None
 
-## Step 1: Update Program Metadata
-- Update `career_outcome` for Data Science & Analytics (currently null)
-- Career outcome: "Data Analyst, Business Intelligence Analyst, Data Scientist, Analytics Engineer"
+## Step 1: Delete 2 Placeholder Courses
+Remove:
+- "IT Infrastructure & Networking Essentials"
+- "Enterprise Software & Systems Management"
 
-## Step 2: Delete 2 Placeholder Courses
-Remove the existing placeholders:
-- "SQL & Data Visualization for Business"
-- "Business Intelligence with Power BI"
-
-## Step 3: Insert 14 Courses (3 levels)
+## Step 2: Insert 14 Courses (3 levels)
 
 ### Foundation (5 courses)
 | # | Title | Modules |
 |---|-------|---------|
-| 1 | Introduction to Data Science & Analytics | 4 |
-| 2 | Statistics & Probability for Data Analysis | 5 |
-| 3 | SQL for Data Professionals | 4 |
-| 4 | Data Visualization Fundamentals | 4 |
-| 5 | Excel & Spreadsheets for Analytics | 4 |
+| 1 | Introduction to Programming & Computational Thinking | 4 |
+| 2 | Web Development Fundamentals (HTML, CSS, JavaScript) | 5 |
+| 3 | Version Control with Git & GitHub | 4 |
+| 4 | Data Structures & Algorithms Essentials | 5 |
+| 5 | Databases & SQL Fundamentals | 4 |
 
 ### Intermediate (5 courses)
 | # | Title | Modules |
 |---|-------|---------|
-| 1 | Python for Data Analysis | 5 |
-| 2 | Exploratory Data Analysis & Feature Engineering | 4 |
-| 3 | Business Intelligence & Dashboard Design | 4 |
-| 4 | Statistical Modeling & Hypothesis Testing | 4 |
-| 5 | Data Wrangling & ETL Pipelines | 4 |
+| 1 | Backend Development with Node.js & APIs | 5 |
+| 2 | Frontend Frameworks: React & Modern UI Development | 5 |
+| 3 | Software Testing & Quality Assurance | 4 |
+| 4 | Object-Oriented Programming & Design Patterns | 4 |
+| 5 | DevOps Essentials for Software Engineers | 4 |
 
 ### Executive (4 courses)
 | # | Title | Modules |
 |---|-------|---------|
-| 1 | Advanced Machine Learning for Analytics | 5 |
-| 2 | Big Data Technologies & Cloud Analytics | 4 |
-| 3 | Data Strategy & Analytics Leadership | 4 |
-| 4 | Real-World Capstone: End-to-End Analytics Project | 4 |
+| 1 | System Design & Scalable Architecture | 5 |
+| 2 | Advanced Full-Stack Project Development | 4 |
+| 3 | Software Engineering Leadership & Agile Practices | 4 |
+| 4 | Capstone: Build & Ship a Production Application | 4 |
 
-**Total: 14 courses, 61 modules**
+**Total: 14 courses, 66 modules**
 
-## Step 4: Create AI Instructor
+## Step 3: Create AI Instructor
 
-- **Name**: Dr. Elena Vasquez
-- **Persona**: A globally experienced data scientist with 12+ years across fintech, healthcare, and e-commerce. Former lead analyst at a Fortune 500 company. Known for making complex statistical concepts intuitive through real-world datasets and business scenarios.
-- **Expertise**: Data Analysis, Python, SQL, Machine Learning, Statistical Modeling, Data Visualization, BI Tools, Big Data, Cloud Analytics
-- **Teaching style**: Methodical and curious; encourages learners to think critically about data before jumping to conclusions. Uses industry case studies (Netflix, Airbnb, Spotify) and emphasizes reproducibility and storytelling with data.
+- **Name**: Marcus Chen
+- **Persona**: A senior software engineer with 15+ years building products at startups and Fortune 500 companies. Former tech lead at a major SaaS platform. Passionate about clean code, pragmatic architecture, and mentoring junior developers. Known for breaking down complex system design problems into digestible steps.
+- **Expertise**: Full-Stack Development, JavaScript/TypeScript, Python, System Design, APIs, React, Node.js, Software Architecture, Testing, Agile
+- **Teaching style**: Practical and hands-on; always ties theory to real codebases and production scenarios. Encourages "build first, refine later" thinking while maintaining engineering rigor. Uses examples from open-source projects and real product engineering challenges.
 
 ## Execution Order
-1. Update program career_outcome
-2. Delete 2 placeholder courses
-3. Insert 14 courses with levels
-4. Insert ~61 modules across all courses
-5. Insert AI Instructor (Dr. Elena Vasquez)
+1. Delete 2 placeholder courses
+2. Insert 14 courses with correct level IDs
+3. Insert 66 modules across all courses
+4. Insert AI Instructor (Marcus Chen)
 
-All done via database insert/update operations — no code changes needed.
+## Technical Details
+- **Profession Level IDs**: Foundation (`9578ed0c-...`), Intermediate (`7e997803-...`), Executive (`b7976d18-...`)
+- All operations are data inserts/updates/deletes — no code changes needed
+- Courses use type `recorded_course`, status `published`, `is_active = true`
+
