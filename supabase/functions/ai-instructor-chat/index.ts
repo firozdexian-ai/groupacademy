@@ -109,6 +109,52 @@ IMPORTANT GUIDELINES:
       }
     }
 
+    // Fetch FULL curriculum knowledge base for the program
+    if (instructor?.profession_line_id) {
+      const { data: allCourses } = await supabaseAdmin
+        .from("content")
+        .select("id, title, description")
+        .eq("profession_line_id", instructor.profession_line_id)
+        .eq("is_published", true)
+        .order("display_order");
+
+      if (allCourses && allCourses.length > 0) {
+        // Fetch all modules for these courses in one query
+        const courseIds = allCourses.map((c: any) => c.id);
+        const { data: allModules } = await supabaseAdmin
+          .from("course_modules")
+          .select("content_id, title, description, display_order")
+          .in("content_id", courseIds)
+          .order("display_order");
+
+        let curriculumKB = "\n\nFULL CURRICULUM KNOWLEDGE BASE:";
+        for (const course of allCourses) {
+          curriculumKB += `\n\n## ${course.title}`;
+          if (course.description) {
+            curriculumKB += `\n${course.description.substring(0, 200)}`;
+          }
+          const courseModules = (allModules || [])
+            .filter((m: any) => m.content_id === course.id)
+            .sort((a: any, b: any) => (a.display_order || 0) - (b.display_order || 0));
+          for (const mod of courseModules) {
+            curriculumKB += `\n- ${mod.title}`;
+            if (mod.description) {
+              // Cap each module description to prevent token overflow
+              curriculumKB += `: ${mod.description.substring(0, 300)}`;
+            }
+          }
+        }
+
+        // Cap total KB size to ~12000 chars to prevent token overflow
+        if (curriculumKB.length > 12000) {
+          curriculumKB = curriculumKB.substring(0, 12000) + "\n... (additional modules available)";
+        }
+
+        systemPrompt += curriculumKB;
+        systemPrompt += "\n\nUse this curriculum knowledge to answer questions about any topic in the program, even if the student is not currently viewing that specific module.";
+      }
+    }
+
     // If context is a specific course or module, add that context
     if (contextType === "course" && contextId) {
       const { data: course } = await supabaseAdmin
