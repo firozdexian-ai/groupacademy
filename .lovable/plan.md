@@ -1,60 +1,47 @@
 
 
-# School of Finance & Accounting — Full Build Plan
+# Auditing & Compliance — Full Program Build
 
 ## Current State
-**School**: School of Finance & Accounting (Executive Academy)
-**4 Programs** — all have only 2 placeholder courses each, 0 modules, 0 AI instructors, no career outcomes set.
+- **Program ID**: `b052dd43-09b7-4f45-8500-131f5440f49f`
+- **Placeholder courses to delete**: `22918d75` (Internal Audit & Risk Assessment), `c47f95d6` (Regulatory Compliance Frameworks)
+- **Career outcome**: Not set
+- **AI Instructor**: None
 
-| Program | Placeholders to Delete |
-|---------|----------------------|
-| Financial Analysis | Financial Modeling & Valuation, Corporate Finance Essentials |
-| Auditing & Compliance | Internal Audit & Risk Assessment, Regulatory Compliance Frameworks |
-| Tax & Advisory | Corporate Tax Planning & Strategy, Advisory Services & Business Consulting |
-| Investment Management | Portfolio Management & Analysis, Equity Research & Valuation |
+## Actions
 
-## Execution Plan
+### 1. Set Career Outcome
+Update `profession_categories` with: Internal Auditor, Compliance Officer, Risk Manager, Forensic Accountant, Chief Compliance Officer, Audit Director
 
-Since this is a full school (4 programs x 14 courses x ~60 modules each = **56 courses, ~240 modules**), we should build one program at a time to stay within execution limits.
+### 2. Create AI Instructor
+**Elena Vasquez** — CIA- and CISA-certified audit professional with 19+ years in internal audit, regulatory compliance, and enterprise risk management across financial services, healthcare, and technology sectors. Former Director of Internal Audit at a Fortune 100 financial institution and VP of Compliance at a global pharmaceutical company. MBA from London Business School with a specialization in governance and risk. Expert in SOX compliance, IFRS/GAAP assurance, anti-money laundering (AML), and data privacy frameworks (GDPR, SOC 2). Known for making complex regulatory topics practical and accessible.
 
-### Program 1: Financial Analysis
-**Career outcome**: Financial Analyst, FP&A Manager, Valuation Specialist, Corporate Finance Director, CFO Track, Investment Banking Analyst
+### 3. Delete 2 Placeholder Courses
 
-**AI Instructor**: Marcus Chen — CFA charterholder with 18+ years in investment banking, corporate finance, and financial advisory across New York, London, and Singapore. Former VP of Corporate Finance at a global investment bank and Head of FP&A at a Fortune 200 technology company. MBA from Wharton. Expert in financial modeling, valuation, and capital markets strategy.
-
-**14 Courses (62 modules)**:
+### 4. Insert 14 Courses & 62 Modules
 
 **Foundation (5)**
-1. Foundations of Financial Analysis (4 modules)
-2. Financial Statements & Reporting Standards (5 modules)
-3. Quantitative Methods for Finance (4 modules)
-4. Corporate Finance Principles (5 modules)
-5. Introduction to Financial Modeling (4 modules)
+1. Foundations of Auditing & Assurance (4 modules)
+2. Internal Controls & Governance Frameworks (5 modules)
+3. Risk Assessment & Management Fundamentals (4 modules)
+4. Regulatory Environment & Compliance Basics (5 modules)
+5. Audit Evidence, Sampling & Documentation (4 modules)
 
 **Intermediate (5)**
-1. Advanced Financial Modeling & Valuation (5 modules)
-2. Capital Markets & Investment Analysis (5 modules)
-3. Mergers, Acquisitions & Deal Structuring (4 modules)
-4. Financial Planning & Analysis (FP&A) (5 modules)
-5. Risk Management & Derivatives (4 modules)
+1. Advanced Internal Audit Techniques (5 modules)
+2. IT Audit & Cybersecurity Compliance (5 modules)
+3. Financial Statement Auditing & Assurance (4 modules)
+4. Anti-Money Laundering & Financial Crime Compliance (5 modules)
+5. SOX Compliance & Corporate Governance (4 modules)
 
 **Executive (4)**
-1. Strategic Corporate Finance & Capital Allocation (5 modules)
-2. Private Equity, Venture Capital & Alternative Investments (4 modules)
-3. CFO Leadership & Financial Strategy (4 modules)
-4. Capstone: Financial Analysis Portfolio & Case Study (4 modules)
-
-### Remaining 3 Programs
-Will be built sequentially in follow-up messages:
-- **Auditing & Compliance** — global audit standards, SOX, IFRS compliance, forensic accounting
-- **Tax & Advisory** — international tax frameworks, transfer pricing, advisory consulting
-- **Investment Management** — portfolio theory, asset allocation, wealth management, fintech
-
-Each following the same pattern: delete 2 placeholders, insert 14 courses + ~62 modules + 1 globally-positioned AI instructor.
+1. Enterprise Risk Management & Strategic Audit (5 modules)
+2. Forensic Accounting & Fraud Investigation (4 modules)
+3. Chief Audit Executive Leadership & Board Communication (4 modules)
+4. Capstone: Audit & Compliance Simulation (4 modules)
 
 ## Technical Details
-- **Level IDs**: Foundation (`9578ed0c`), Intermediate (`7e997803`), Executive (`b7976d18`)
-- All instructors follow the global product standard (no region-specific references)
-- No code changes needed — data operations only
-- Start with Financial Analysis in this execution pass
+- Level IDs: Foundation `9578ed0c`, Intermediate `7e997803`, Executive `b7976d18`
+- Global persona — no region-specific references
+- Data operations only, no code changes
 
