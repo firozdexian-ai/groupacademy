@@ -1,55 +1,33 @@
 
 
-# Admin Content Management — Filters, Readiness Indicators & AI Status
+# Correction: Global Product — Not Bangladesh-Specific
 
-## Problem
-The admin ContentList currently only supports:
-- A single content_type filter (passed as prop)
-- Text search
-- Newest-first ordering
+## What Changed
+You've clarified that this is a **global product**. All curriculum, AI instructors, and content should be internationally relevant — not anchored to Bangladesh.
 
-Missing capabilities:
-1. **No AI content status** — no way to see which courses have AI-generated module descriptions/talking points
-2. **No course readiness/completion indicator** — no way to see at a glance which courses have modules, descriptions, videos, etc.
-3. **No filtering by program, level, or readiness** — hard to find courses that need work
+## Impact on Previous & Current Work
 
-## Plan
+**AI Instructors already created with Bangladesh focus:**
+1. **Nazmul Karim** (Executive Leadership) — MBA from IBA Dhaka, Bangladeshi industrial group references
+2. **Tasneem Akhter** (Human Resources) — University of Dhaka MBA, South Asian employment context
 
-### 1. Enhance the ContentList query to include readiness data
-Modify the `loadContent` function to fetch additional computed fields:
-- Join with `course_modules` to get `module_count`, `modules_with_descriptions`, `modules_with_video`
-- Include `profession_line_id` and `profession_level_id` in the selected fields
+**Pending OD program instructor:**
+3. **Ariful Islam Chowdhury** — University of Dhaka, South Asian financial group
 
-Since Supabase JS client can't do aggregated subqueries easily, we'll use a **database view** (or just fetch module stats separately in a second query grouped by content_id for the current page of results).
+## Proposed Fix
 
-**Approach**: After fetching the page of content, run a second query to get module stats for those content IDs. This avoids schema changes and keeps it simple.
+### 1. Update the global curriculum standard (memory)
+Save the rule: **All curriculum and AI instructor personas must be globally positioned** — no region-specific universities, companies, or cultural references. Instructors should have international credentials and diverse global experience.
 
-### 2. Add filter controls to ContentList
-Add a filter bar above the content grid with:
-- **Program filter** — dropdown of `profession_categories` (fetched once)
-- **Level filter** — dropdown of `profession_levels` (Foundation/Intermediate/Executive)
-- **Readiness filter** — dropdown: All, No Modules, Has Modules, Has Descriptions, Has Videos, Complete
-- **Sort** — dropdown: Newest, Oldest, Title A-Z, Title Z-A
+### 2. Update the 2 existing AI instructors
+- **Nazmul Karim**: Change background to international MBA, global consulting/corporate experience
+- **Tasneem Akhter**: Change background to international HR credentials, global corporate experience
 
-### 3. Add readiness indicator to each content card
-On each card, show a small **readiness meter**:
-- A progress bar or badge strip showing: Modules (count), Descriptions (%), Videos (%)
-- Color-coded: red (0%), yellow (partial), green (100%)
-- A small "AI" badge if all module descriptions are populated (indicating AI-generated talking points exist)
+### 3. Revise the OD program plan
+Before executing the OD build, update **Ariful Islam Chowdhury's** persona to have global credentials (e.g., Columbia/INSEAD, multinational OD experience, global certifications).
 
-### 4. Update the Content interface
-Extend the local `Content` interface with:
-```
-module_count: number;
-modules_with_desc: number;
-modules_with_video: number;
-profession_line_id: string | null;
-profession_level_id: string | null;
-```
+### 4. Execute the revised OD program build
+Same 14 courses, 62 modules (content is already global) — only the instructor persona changes.
 
-### Files to modify
-- `src/components/dashboard/ContentList.tsx` — main changes (filters, readiness badges, enriched query)
-
-### No database changes needed
-All data already exists in `content` and `course_modules` tables. We just need to query it properly.
+All four steps in one execution pass.
 
