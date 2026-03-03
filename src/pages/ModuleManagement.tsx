@@ -7,9 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Plus, Trash2, GripVertical, Settings, Sparkles, Loader2 } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, GripVertical, Settings, Sparkles, Loader2, BookOpen } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
+import ResearchPromptDialog from "@/components/modules/ResearchPromptDialog";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { ErrorState } from "@/components/ui/error-state";
@@ -33,6 +34,11 @@ export default function ModuleManagement() {
   const [course, setCourse] = useState<any>(null);
   const [modules, setModules] = useState<Module[]>([]);
   const [generatingIndex, setGeneratingIndex] = useState<number | null>(null);
+  const [researchPromptIndex, setResearchPromptIndex] = useState<number | null>(null);
+  const [courseContext, setCourseContext] = useState<{
+    levelName: string; programName: string; schoolName: string; academyName: string;
+    courseIndex: number; totalCourses: number;
+  }>({ levelName: "", programName: "", schoolName: "", academyName: "Executive Academy", courseIndex: 1, totalCourses: 1 });
 
   const generateGuide = async (index: number) => {
     const module = modules[index];
@@ -85,6 +91,36 @@ export default function ModuleManagement() {
         return;
       }
       setCourse(courseResult.data);
+
+      // Load hierarchy context for research prompt
+      const c = courseResult.data;
+      let levelName = "", programName = "", schoolName = "";
+      if (c.profession_level_id) {
+        const { data: level } = await supabase.from("profession_levels").select("name").eq("id", c.profession_level_id).single();
+        if (level) levelName = level.name || "";
+      }
+      if (c.profession_line_id) {
+        const { data: program } = await supabase.from("profession_categories").select("name, school_id").eq("id", c.profession_line_id).single();
+        if (program) {
+          programName = program.name || "";
+          if (program.school_id) {
+            const { data: school } = await supabase.from("schools").select("name").eq("id", program.school_id).single();
+            if (school) schoolName = school.name || "";
+          }
+        }
+      }
+
+      // Count sibling courses at same level
+      let totalCourses = 1, courseIndex = 1;
+      if (c.profession_level_id) {
+        const { data: siblings } = await supabase.from("content").select("id").eq("profession_level_id", c.profession_level_id).order("display_order");
+        if (siblings) {
+          totalCourses = siblings.length;
+          courseIndex = siblings.findIndex((s: any) => s.id === c.id) + 1 || 1;
+        }
+      }
+
+      setCourseContext({ levelName, programName, schoolName, academyName: "Executive Academy", courseIndex, totalCourses });
 
       const modulesResult = await withTimeout(
         Promise.resolve(supabase.from("course_modules").select("*").eq("content_id", contentId).order("display_order")),
@@ -299,20 +335,31 @@ export default function ModuleManagement() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label>Description / Talking Points</Label>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => generateGuide(index)}
-                      disabled={generatingIndex !== null}
-                      className="gap-1.5 text-xs"
-                    >
-                      {generatingIndex === index ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <Sparkles className="h-3.5 w-3.5" />
-                      )}
-                      AI Generate Guide
-                    </Button>
+                    <div className="flex gap-1.5">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setResearchPromptIndex(index)}
+                        className="gap-1.5 text-xs"
+                      >
+                        <BookOpen className="h-3.5 w-3.5" />
+                        Research Prompt
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => generateGuide(index)}
+                        disabled={generatingIndex !== null}
+                        className="gap-1.5 text-xs"
+                      >
+                        {generatingIndex === index ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Sparkles className="h-3.5 w-3.5" />
+                        )}
+                        AI Generate Guide
+                      </Button>
+                    </div>
                   </div>
                   <Textarea
                     value={module.description}
@@ -368,6 +415,24 @@ export default function ModuleManagement() {
           </div>
         </div>
       </div>
+
+      {researchPromptIndex !== null && (
+        <ResearchPromptDialog
+          open={true}
+          onOpenChange={(open) => { if (!open) setResearchPromptIndex(null); }}
+          moduleTitle={modules[researchPromptIndex]?.title || ""}
+          moduleDescription={modules[researchPromptIndex]?.description || ""}
+          moduleIndex={researchPromptIndex + 1}
+          totalModules={modules.length}
+          courseTitle={course?.title || ""}
+          courseIndex={courseContext.courseIndex}
+          totalCourses={courseContext.totalCourses}
+          levelName={courseContext.levelName}
+          programName={courseContext.programName}
+          schoolName={courseContext.schoolName}
+          academyName={courseContext.academyName}
+        />
+      )}
     </div>
   );
 }
