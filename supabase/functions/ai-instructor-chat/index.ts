@@ -105,7 +105,7 @@ PERSONA: ${instructor.persona}
 
 IMPORTANT GUIDELINES:
 1. Always be encouraging and supportive while being honest about areas for improvement
-2. Relate concepts to real-world Bangladesh market context when relevant
+2. Relate concepts to real-world global market contexts, using diverse international examples
 3. For enrolled students asking about course content, provide detailed explanations
 4. For general users, provide career guidance and recommend relevant courses
 5. Use practical examples from ${professionLine?.name || "the profession"}
