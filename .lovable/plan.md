@@ -1,146 +1,146 @@
 
 
-# Entrepreneurship Academy — School of Startup & Venture (4 Programs)
+# School of E-Commerce — Full Build (4 Programs)
 
-First school in the Entrepreneurship Academy. All 4 programs are empty — no courses, no instructors, no career outcomes.
+Second school in the Entrepreneurship Academy. All 4 programs are completely empty — no courses, no instructors, no career outcomes.
 
 ## Programs
 
 | Program | ID | Status |
 |---|---|---|
-| Idea Validation & MVP | `cd7ea515` | Empty |
-| Fundraising & Pitching | `841a98c2` | Empty |
-| Product-Market Fit | `2842fc87` | Empty |
-| Scaling & Growth | `cc1996a8` | Empty |
+| Shopify Store Management | `cc34128b` | Empty |
+| Amazon & Marketplace Selling | `677e1fed` | Empty |
+| Dropshipping & Fulfillment | `c4998ef8` | Empty |
+| Digital Products & SaaS | `793066ec` | Empty |
 
 ---
 
-## Program 1: Idea Validation & MVP
+## Program 1: Shopify Store Management
 
-**Career Outcome:** Startup Founder, Product Manager, Innovation Lead, Venture Studio Associate, Entrepreneur-in-Residence, Head of New Ventures
+**Career Outcome:** Shopify Store Owner, E-Commerce Manager, DTC Brand Founder, E-Commerce Operations Manager, Shopify Consultant, Head of Online Retail
 
-**AI Instructor — Alex Reeves** — Serial entrepreneur and startup advisor with 16+ years launching and scaling ventures across SaaS, marketplace, and deep-tech sectors in San Francisco, London, and Berlin. Former Entrepreneur-in-Residence at a top-tier VC firm and co-founder of two venture-backed startups (one acquired). MBA from Stanford GSB. Expert in lean startup methodology, customer discovery, rapid prototyping, MVP strategy, and early-stage product decisions. Known for helping founders move from idea to first revenue with speed and clarity.
+**AI Instructor — Priya Sharma** — E-commerce strategist and Shopify expert with 14+ years building and scaling online stores across fashion, beauty, home goods, and wellness in New York, London, and Mumbai. Former Head of E-Commerce at a DTC beauty brand (scaled to $20M ARR) and Shopify Plus Partner Agency founder. MBA from NYU Stern. Expert in Shopify store setup, theme customization, conversion rate optimization, email marketing automation, and omnichannel retail strategy. Known for helping first-time store owners reach profitability within 90 days.
 
 **Courses (14 courses, 62 modules):**
 
 **Foundation (5)**
-1. The Entrepreneurial Mindset & Startup Landscape (4 modules)
-2. Identifying Problems Worth Solving (5 modules)
-3. Customer Discovery & Market Research (4 modules)
-4. Business Model Design & the Lean Canvas (5 modules)
-5. Introduction to MVP Strategy (4 modules)
+1. Introduction to E-Commerce & the Shopify Ecosystem (4 modules)
+2. Setting Up Your Shopify Store — From Zero to Launch (5 modules)
+3. Product Sourcing, Pricing & Catalog Management (4 modules)
+4. Shopify Themes, Design & Brand Identity (5 modules)
+5. Payment, Shipping & Order Fulfillment Basics (4 modules)
 
 **Intermediate (5)**
-1. Building Your First MVP — Tools, Methods & Frameworks (5 modules)
-2. User Testing & Experiment Design (5 modules)
-3. Landing Pages, Prototypes & No-Code MVPs (4 modules)
-4. Metrics That Matter — Measuring Early Traction (5 modules)
-5. Pivoting, Iterating & Kill Decisions (4 modules)
+1. Conversion Rate Optimization & Store Analytics (5 modules)
+2. Email Marketing, SMS & Customer Retention (5 modules)
+3. Shopify Apps, Integrations & Automation (4 modules)
+4. Facebook, Instagram & TikTok Ads for Shopify Stores (5 modules)
+5. SEO, Content Marketing & Organic Traffic (4 modules)
 
 **Executive (4)**
-1. From MVP to Product — Transitioning to Scale (5 modules)
-2. Building Your Founding Team & Culture (4 modules)
-3. Legal, IP & Incorporation Essentials for Startups (4 modules)
-4. Capstone: Idea-to-MVP Sprint Simulation (4 modules)
+1. Scaling Your Shopify Business — Operations & Team Building (5 modules)
+2. Omnichannel Retail — Online, Offline & Marketplace Integration (4 modules)
+3. Financial Management & Profitability for E-Commerce (4 modules)
+4. Capstone: Shopify Store Launch & Growth Plan (4 modules)
 
 ---
 
-## Program 2: Fundraising & Pitching
+## Program 2: Amazon & Marketplace Selling
 
-**Career Outcome:** Startup Founder (Fundraising), Investor Relations Manager, Venture Capital Analyst, Pitch Coach, Head of Corporate Development, Business Development Director
+**Career Outcome:** Amazon Seller, Marketplace Manager, E-Commerce Brand Owner, Amazon Advertising Specialist, Marketplace Operations Director, Private Label Brand Founder
 
-**AI Instructor — Diana Flores** — Venture capital professional and fundraising strategist with 14+ years across early-stage investing, startup advisory, and corporate venture capital in New York, Singapore, and São Paulo. Former Principal at a leading seed-stage VC fund and Head of Fundraising Advisory at a global startup accelerator. MBA from Columbia Business School. Expert in pitch deck design, financial modeling for startups, term sheet negotiation, investor relations, and alternative funding strategies. Known for helping founders tell compelling stories backed by solid unit economics.
+**AI Instructor — Daniel Okoro** — Amazon and marketplace selling strategist with 13+ years in private label, wholesale, and arbitrage selling across Amazon US, UK, EU, and UAE. Former Head of Marketplace Strategy at a global e-commerce aggregator. BSc in Business from the University of Toronto. Expert in Amazon FBA, product research, listing optimization, PPC advertising, brand registry, and multi-marketplace expansion. Known for building seven-figure Amazon brands from scratch and training over 500 sellers worldwide.
 
 **Courses (14 courses, 62 modules):**
 
 **Foundation (5)**
-1. Introduction to Startup Fundraising (4 modules)
-2. Understanding Investors — Angels, VCs & Beyond (5 modules)
-3. Financial Fundamentals for Founders (4 modules)
-4. Crafting Your Startup Narrative & Value Proposition (5 modules)
-5. The Anatomy of a Great Pitch Deck (4 modules)
+1. Introduction to Amazon & Online Marketplaces (4 modules)
+2. Product Research & Niche Selection (5 modules)
+3. Creating Your Seller Account & First Listing (4 modules)
+4. Amazon FBA — Fulfillment, Logistics & Inventory (5 modules)
+5. Marketplace Policies, Compliance & Account Health (4 modules)
 
 **Intermediate (5)**
-1. Financial Modeling & Unit Economics for Fundraising (5 modules)
-2. Term Sheets, Valuation & Deal Structure (5 modules)
-3. Pitching Mastery — Delivery, Q&A & Storytelling (4 modules)
-4. Building & Managing Investor Pipelines (5 modules)
-5. Alternative Funding — Grants, Crowdfunding & Revenue-Based Finance (4 modules)
+1. Listing Optimization — SEO, Images & A+ Content (5 modules)
+2. Amazon PPC Advertising & Sponsored Products (5 modules)
+3. Private Label Branding & Product Differentiation (4 modules)
+4. Reviews, Ratings & Customer Service Excellence (5 modules)
+5. Multi-Marketplace Expansion — eBay, Walmart & International (4 modules)
 
 **Executive (4)**
-1. Series A & Beyond — Scaling Your Fundraise (5 modules)
-2. Investor Relations & Board Management (4 modules)
-3. Strategic Exits — M&A, IPO & Secondary Sales (4 modules)
-4. Capstone: Live Pitch Simulation & Investor Feedback (4 modules)
+1. Scaling to Seven Figures — Operations, Teams & Automation (5 modules)
+2. Amazon Brand Registry, IP Protection & Brand Building (4 modules)
+3. Financial Planning, Cash Flow & Exit Strategy for Sellers (4 modules)
+4. Capstone: Amazon Product Launch Simulation (4 modules)
 
 ---
 
-## Program 3: Product-Market Fit
+## Program 3: Dropshipping & Fulfillment
 
-**Career Outcome:** Product Strategist, Growth Product Manager, Head of Product, Chief Product Officer, Startup Founder (Growth Stage), Product-Market Fit Consultant
+**Career Outcome:** Dropshipping Store Owner, E-Commerce Fulfillment Manager, Supply Chain Coordinator, 3PL Operations Manager, E-Commerce Logistics Consultant, DTC Fulfillment Strategist
 
-**AI Instructor — Tomás Eriksson** — Product strategist and growth advisor with 15+ years helping startups and scale-ups find and sustain product-market fit across SaaS, fintech, and consumer tech in Stockholm, San Francisco, and Lagos. Former VP of Product at a Series C fintech and Head of Growth at a Y Combinator-backed startup. MSc in Engineering & Management from KTH Royal Institute of Technology. Expert in growth loops, retention analysis, cohort metrics, pricing strategy, and product positioning. Known for data-driven frameworks that help teams stop guessing and start measuring fit.
+**AI Instructor — Lena Johansson** — Dropshipping and e-commerce fulfillment specialist with 12+ years in online retail logistics, supplier management, and DTC operations across Europe, North America, and Asia. Former Director of Fulfillment at a high-volume dropshipping company and logistics consultant for Shopify Plus brands. MSc in Supply Chain Management from Rotterdam School of Management. Expert in supplier sourcing, AliExpress/CJ Dropshipping workflows, 3PL integration, inventory-free models, and fulfillment automation. Known for helping entrepreneurs build lean, profitable stores with minimal upfront investment.
 
 **Courses (14 courses, 62 modules):**
 
 **Foundation (5)**
-1. What Is Product-Market Fit? — Concepts & Frameworks (4 modules)
-2. Deep Customer Segmentation & Persona Development (5 modules)
-3. Value Proposition Design & Positioning (4 modules)
-4. Measuring Product-Market Fit — Signals & Metrics (5 modules)
-5. Competitive Analysis & Market Mapping (4 modules)
+1. Introduction to Dropshipping — Business Model & Opportunity (4 modules)
+2. Finding Winning Products & Reliable Suppliers (5 modules)
+3. Setting Up Your Dropshipping Store (4 modules)
+4. Order Processing, Shipping & Customer Communication (5 modules)
+5. Legal, Tax & Compliance for Dropshipping Businesses (4 modules)
 
 **Intermediate (5)**
-1. Retention, Engagement & the PMF Scorecard (5 modules)
-2. Pricing Strategy & Willingness-to-Pay Research (5 modules)
-3. Growth Loops & Viral Mechanics (4 modules)
-4. Channel-Market Fit & Distribution Strategy (5 modules)
-5. Product Positioning & Category Design (4 modules)
+1. Facebook & TikTok Ads for Dropshipping (5 modules)
+2. Conversion Optimization & Landing Page Design (5 modules)
+3. Supplier Negotiation, Quality Control & Returns Management (4 modules)
+4. Scaling with Automation — Tools, Apps & Workflows (5 modules)
+5. Transitioning from Dropshipping to Branded Fulfillment (4 modules)
 
 **Executive (4)**
-1. Sustaining PMF Through Scaling — Avoiding the Growth Trap (5 modules)
-2. Multi-Product Strategy & Platform Expansion (4 modules)
-3. PMF for Enterprise & B2B Products (4 modules)
-4. Capstone: Product-Market Fit Audit & Strategy (4 modules)
+1. Building a Fulfillment Infrastructure — 3PL, Warehousing & Logistics (5 modules)
+2. Multi-Store & Multi-Niche Portfolio Strategy (4 modules)
+3. Financial Modeling & Profitability Optimization (4 modules)
+4. Capstone: Dropshipping Business Launch & Scale Plan (4 modules)
 
 ---
 
-## Program 4: Scaling & Growth
+## Program 4: Digital Products & SaaS
 
-**Career Outcome:** Head of Growth, VP of Operations (Startup), Chief Operating Officer, Growth Marketing Director, Startup Founder (Scale Stage), General Manager
+**Career Outcome:** Digital Product Creator, SaaS Founder, Online Course Creator, Digital Marketplace Seller, Subscription Business Owner, Head of Digital Products
 
-**AI Instructor — Rachel Okonkwo** — Growth operator and startup scaling expert with 17+ years in high-growth companies across e-commerce, fintech, and marketplace businesses in Lagos, London, and Dubai. Former COO at a Series B e-commerce startup and VP of Growth at a pan-African fintech platform. MBA from London Business School. Expert in growth strategy, operational scaling, people management at speed, internationalization, unit economics optimization, and building scalable processes. Known for helping founders transition from scrappy startup to structured scale-up without losing speed.
+**AI Instructor — Marcus Webb** — Digital products entrepreneur and SaaS strategist with 15+ years building and monetizing digital businesses across education, productivity, and creative tools in Austin, Berlin, and Cape Town. Former founder of two bootstrapped SaaS companies (combined $5M ARR) and digital products advisor at a global startup accelerator. MBA from the University of Chicago Booth. Expert in digital product creation, subscription business models, SaaS metrics, community-led growth, and no-code/low-code product building. Known for helping creators turn expertise into scalable digital income streams.
 
 **Courses (14 courses, 62 modules):**
 
 **Foundation (5)**
-1. Foundations of Startup Growth (4 modules)
-2. Growth Metrics, KPIs & Dashboards (5 modules)
-3. Customer Acquisition Channels & Strategies (4 modules)
-4. Building Scalable Operations & Processes (5 modules)
-5. Hiring & Team Building for Growth (4 modules)
+1. Introduction to Digital Products & the Creator Economy (4 modules)
+2. Identifying Your Digital Product Idea & Market Fit (5 modules)
+3. Creating E-Books, Templates & Digital Downloads (4 modules)
+4. Online Course Creation — Design, Record & Publish (5 modules)
+5. Pricing, Packaging & Launching Your First Digital Product (4 modules)
 
 **Intermediate (5)**
-1. Growth Marketing — Paid, Organic & Content-Led Strategies (5 modules)
-2. Sales-Led vs Product-Led Growth Models (5 modules)
-3. International Expansion & Market Entry (4 modules)
-4. Financial Management & Cash Flow at Scale (5 modules)
-5. Technology Infrastructure for Scaling (4 modules)
+1. Building a SaaS Product — MVP to Market (5 modules)
+2. Subscription Models, Memberships & Recurring Revenue (5 modules)
+3. Marketing & Selling Digital Products — Funnels & Automation (4 modules)
+4. Community Building & Customer Engagement (5 modules)
+5. Platforms & Tools — Gumroad, Teachable, Substack & No-Code (4 modules)
 
 **Executive (4)**
-1. Leadership at Scale — Managing Through Hypergrowth (5 modules)
-2. Strategic Partnerships & Ecosystem Development (4 modules)
-3. Preparing for Exit — M&A Readiness & IPO Planning (4 modules)
-4. Capstone: Growth Strategy & Scaling Roadmap (4 modules)
+1. Scaling Digital Products — Systems, Teams & Operations (5 modules)
+2. SaaS Metrics, Churn Reduction & Growth Strategy (4 modules)
+3. Licensing, IP & Legal Frameworks for Digital Businesses (4 modules)
+4. Capstone: Digital Product Business Plan & Launch (4 modules)
 
 ---
 
 ## Execution Plan
 
 1. Set career outcomes for all 4 programs
-2. Create 4 AI instructors (Alex Reeves, Diana Flores, Tomás Eriksson, Rachel Okonkwo)
+2. Create 4 AI instructors (Priya Sharma, Daniel Okoro, Lena Johansson, Marcus Webb)
 3. Insert 56 courses (14 × 4) and 248 modules (62 × 4)
 4. Verify all counts
 
-No placeholders to delete — these programs are completely empty.
+No placeholders to delete — all programs are completely empty.
 
