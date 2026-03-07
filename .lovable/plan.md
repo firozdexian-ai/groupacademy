@@ -8,6 +8,6 @@
 |---|---|---|---|---|
 | Social Media | 4 | 56 | 252 | ✅ |
 | Personal Branding | 4 | 56 | 249 | ✅ |
-| Content Creation | 4 | 0 | 0 | ⬜ Next |
+| Content Creation | 4 | 56 | 248 | ✅ |
 
-**Next: School of Content Creation (4 programs, ~56 courses, ~248 modules)**
+**Influencing Academy: 100% COMPLETE ✅**
