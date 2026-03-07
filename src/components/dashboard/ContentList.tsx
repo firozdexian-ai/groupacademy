@@ -107,7 +107,7 @@ const ContentList = ({ filter }: ContentListProps) => {
         map[row.content_id] = { module_count: 0, modules_with_desc: 0, modules_with_video: 0 };
       }
       map[row.content_id].module_count++;
-      if (row.description && row.description.trim().length > 0) map[row.content_id].modules_with_desc++;
+      if (row.description && row.description.trim().length > 200) map[row.content_id].modules_with_desc++;
       if (row.video_url && row.video_url.trim().length > 0) map[row.content_id].modules_with_video++;
     }
     setModuleStatsMap(map);
@@ -156,7 +156,7 @@ const ContentList = ({ filter }: ContentListProps) => {
         for (const row of (moduleData || [])) {
           if (!statsMap[row.content_id]) statsMap[row.content_id] = { module_count: 0, modules_with_desc: 0, modules_with_video: 0 };
           statsMap[row.content_id].module_count++;
-          if (row.description?.trim()) statsMap[row.content_id].modules_with_desc++;
+          if (row.description?.trim() && row.description.trim().length > 200) statsMap[row.content_id].modules_with_desc++;
           if (row.video_url?.trim()) statsMap[row.content_id].modules_with_video++;
         }
 

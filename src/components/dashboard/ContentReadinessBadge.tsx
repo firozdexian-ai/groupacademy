@@ -39,8 +39,8 @@ const ContentReadinessBadge = ({ stats }: ContentReadinessBadgeProps) => {
       </div>
       <div className="flex items-center gap-3 text-[11px]">
         <span className="text-muted-foreground">{stats.module_count} modules</span>
-        <span className={`flex items-center gap-0.5 ${colorClass(descPct)}`}>
-          <FileText className="w-3 h-3" /> {descPct}%
+        <span className={`flex items-center gap-0.5 ${colorClass(descPct)}`} title="AI-generated descriptions (>200 chars)">
+          <FileText className="w-3 h-3" /> {descPct}% desc
         </span>
         <span className={`flex items-center gap-0.5 ${colorClass(videoPct)}`}>
           <Video className="w-3 h-3" /> {videoPct}%
