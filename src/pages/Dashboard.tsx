@@ -68,6 +68,7 @@ const tabAccessMap: Record<string, AppRole[]> = {
   webinars: ["admin"],
   enrollments: ["admin"],
   "learner-progress": ["admin"],
+  "ai-descriptions": ["admin"],
   
   // Talent & Leads - Both roles
   leads: ["admin", "talent_exec"],
@@ -263,8 +264,10 @@ const Dashboard = () => {
         return <SalaryAnalysisLeadsManager />;
       case "enrollments":
         return <EnrollmentsManager />;
-      case "learner-progress": // 👈 Added Case
+      case "learner-progress":
         return <LearnerProgressManager />;
+      case "ai-descriptions":
+        return <BatchDescriptionGenerator />;
       case "professions":
         return <ProfessionsManager />;
       case "jobs-kpis":
@@ -371,6 +374,7 @@ const Dashboard = () => {
       "content-outreach": "Content Outreach",
       "service-outreach": "Service Outreach",
       "learner-progress": "Learner Progress",
+      "ai-descriptions": "AI Description Generator",
       enrollments: "Enrollments",
       analytics: "Marketing Analytics",
       "ir-dashboard": "Investor Relations",
