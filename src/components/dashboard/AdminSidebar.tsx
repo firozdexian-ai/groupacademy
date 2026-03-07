@@ -102,6 +102,7 @@ const navGroups: NavGroup[] = [
       { title: "All Content", icon: BookOpen, value: "all" },
       { title: "Enrollments", icon: Users, value: "enrollments" },
       { title: "Learner Progress", icon: BarChart, value: "learner-progress" },
+      { title: "AI Descriptions", icon: Sparkles, value: "ai-descriptions" },
       { title: "Free Videos", icon: Video, value: "videos" },
       { title: "Recorded Courses", icon: Tv, value: "courses" },
       { title: "Live Sessions", icon: Calendar, value: "webinars" },
