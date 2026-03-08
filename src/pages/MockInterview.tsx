@@ -54,7 +54,7 @@ export default function MockInterview() {
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
               <p className="text-sm text-muted-foreground mt-4">
-                First interview FREE • Retakes BDT 100
+                First interview FREE • Retakes 50 Credits
               </p>
             </div>
           </div>
