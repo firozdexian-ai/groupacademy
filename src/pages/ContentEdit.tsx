@@ -299,7 +299,7 @@ export default function ContentEdit() {
                   onChange={(e) =>
                     setFormData({ ...formData, currency: e.target.value })
                   }
-                  placeholder="BDT"
+                  placeholder="USD"
                 />
               </div>
             </div>
