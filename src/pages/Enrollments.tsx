@@ -222,7 +222,7 @@ export default function Enrollments() {
                           {enrollment.payment_amount && (
                             <div className="flex items-center gap-2">
                               <DollarSign className="h-4 w-4 text-muted-foreground" />
-                              <span>BDT {enrollment.payment_amount}</span>
+                              <span>${enrollment.payment_amount}</span>
                             </div>
                           )}
                           {enrollment.content.max_capacity && (

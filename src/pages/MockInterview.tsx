@@ -179,7 +179,7 @@ export default function MockInterview() {
                     <h3 className="font-semibold text-lg">Additional Interviews</h3>
                     <p className="text-sm text-muted-foreground">After 30-day cooldown</p>
                   </div>
-                  <Badge variant="outline" className="text-lg px-4 py-1">BDT 100</Badge>
+                  <Badge variant="outline" className="text-lg px-4 py-1">50 Credits</Badge>
                 </div>
               </CardContent>
             </Card>

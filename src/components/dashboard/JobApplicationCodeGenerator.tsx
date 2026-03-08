@@ -101,7 +101,7 @@ export function JobApplicationCodeGenerator() {
           Job Application Access Codes
         </CardTitle>
         <CardDescription>
-          Generate access codes for paid job applications (BDT 50 each after 5 free/month)
+          Generate access codes for paid job applications (25 Credits each after 5 free/month)
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

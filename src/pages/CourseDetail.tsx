@@ -917,7 +917,7 @@ const CourseDetail = () => {
                   <>
                     {course.price > 0 && (
                       <div className="mb-4 p-4 bg-muted rounded-lg">
-                        <p className="text-sm font-medium mb-2">Paid Course - BDT {course.price}</p>
+                        <p className="text-sm font-medium mb-2">Paid Course - ${course.price}</p>
                         <p className="text-sm text-muted-foreground">
                           Sign up first, then contact admin via WhatsApp to get your access code
                         </p>

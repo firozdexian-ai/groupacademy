@@ -125,10 +125,10 @@ export function creditsToUsd(credits: number): number {
 }
 
 /**
- * Convert BDT to USD
+ * Legacy BDT conversion (deprecated - platform now uses USD globally)
  */
 export function bdtToUsd(bdt: number): number {
-  return bdt * IR_CONFIG.BDT_TO_USD;
+  return bdt * 0.0083;
 }
 
 /**

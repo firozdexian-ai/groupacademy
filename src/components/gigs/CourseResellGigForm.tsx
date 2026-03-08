@@ -102,7 +102,7 @@ export function CourseResellGigForm({ gig, talentId, onSubmitted }: CourseResell
                   <div className="min-w-0">
                     <p className="font-medium text-sm truncate">{course.title}</p>
                     <p className="text-xs text-muted-foreground">
-                      {course.price ? `৳${course.price}` : "Free"}
+                      {course.price ? `$${course.price}` : "Free"}
                     </p>
                   </div>
                 </div>
