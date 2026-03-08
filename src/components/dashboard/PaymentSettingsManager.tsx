@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CreditCard, MessageCircle, Shield, Loader2, Save, CheckCircle2, AlertCircle, Key, ExternalLink } from 'lucide-react';
+import { CreditCard, MessageCircle, Shield, Loader2, Save, CheckCircle2, AlertCircle, Key } from 'lucide-react';
 
 type GatewayOption = 'whatsapp' | 'stripe' | 'both';
 
@@ -34,7 +34,6 @@ export function PaymentSettingsManager() {
     },
   });
 
-  // Check if Stripe secrets are configured in edge functions
   const { data: stripeSecretStatus } = useQuery({
     queryKey: ['stripe-secret-status'],
     queryFn: async () => {
@@ -57,9 +56,11 @@ export function PaymentSettingsManager() {
   const [currency, setCurrency] = useState('USD');
   const [whatsappEnabled, setWhatsappEnabled] = useState(true);
 
-  // Secret key validation
-  const [testKey, setTestKey] = useState('');
-  const [validating, setValidating] = useState(false);
+  // Secret key & webhook inputs
+  const [secretKey, setSecretKey] = useState('');
+  const [webhookSecret, setWebhookSecret] = useState('');
+  const [savingSecret, setSavingSecret] = useState(false);
+  const [savingWebhook, setSavingWebhook] = useState(false);
 
   useEffect(() => {
     if (settings) {
@@ -97,32 +98,55 @@ export function PaymentSettingsManager() {
     onError: () => toast.error('Failed to save settings'),
   });
 
-  const handleValidateKey = async () => {
-    if (!testKey.startsWith('sk_')) {
+  const handleSaveSecretKey = async () => {
+    if (!secretKey.startsWith('sk_')) {
       toast.error('Key must start with sk_test_ or sk_live_');
       return;
     }
-    setValidating(true);
+    setSavingSecret(true);
     try {
       const { data, error } = await supabase.functions.invoke('update-stripe-secret', {
-        body: { action: 'validate-key', stripeSecretKey: testKey },
+        body: { action: 'save-key', stripeSecretKey: secretKey },
       });
-      if (error || !data?.valid) {
-        toast.error(data?.error || 'Invalid Stripe key');
+      if (error || !data?.saved) {
+        toast.error(data?.error || 'Failed to save Stripe key');
       } else {
-        toast.success('Key validated! Store it as STRIPE_SECRET_KEY in your project secrets.');
-        setTestKey('');
+        toast.success('Stripe secret key validated & saved!');
+        setSecretKey('');
         queryClient.invalidateQueries({ queryKey: ['stripe-secret-status'] });
       }
     } catch {
-      toast.error('Failed to validate key');
+      toast.error('Failed to save key');
     } finally {
-      setValidating(false);
+      setSavingSecret(false);
+    }
+  };
+
+  const handleSaveWebhookSecret = async () => {
+    if (!webhookSecret.startsWith('whsec_')) {
+      toast.error('Webhook secret must start with whsec_');
+      return;
+    }
+    setSavingWebhook(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('update-stripe-secret', {
+        body: { action: 'save-webhook', stripeWebhookSecret: webhookSecret },
+      });
+      if (error || !data?.saved) {
+        toast.error(data?.error || 'Failed to save webhook secret');
+      } else {
+        toast.success('Webhook secret saved!');
+        setWebhookSecret('');
+        queryClient.invalidateQueries({ queryKey: ['stripe-secret-status'] });
+      }
+    } catch {
+      toast.error('Failed to save webhook secret');
+    } finally {
+      setSavingWebhook(false);
     }
   };
 
   const stripeUsed = gateway === 'stripe' || gateway === 'both';
-  const stripeConfigured = !!stripeKey;
   const secretKeyConfigured = stripeSecretStatus?.hasSecretKey ?? false;
   const webhookConfigured = stripeSecretStatus?.hasWebhookSecret ?? false;
 
@@ -295,7 +319,7 @@ export function PaymentSettingsManager() {
             <div>
               <CardTitle className="text-base">Stripe Secret Key</CardTitle>
               <CardDescription>
-                Required for processing payments. Stored securely as a backend secret.
+                Required for processing payments. Validated and stored securely in the backend.
               </CardDescription>
             </div>
           </div>
@@ -305,54 +329,101 @@ export function PaymentSettingsManager() {
             {secretKeyConfigured ? (
               <>
                 <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
-                <p className="text-sm">STRIPE_SECRET_KEY is configured ✓</p>
+                <p className="text-sm">Stripe secret key is configured ✓</p>
               </>
             ) : (
               <>
-                <AlertCircle className="h-4 w-4 text-warning shrink-0" />
-                <p className="text-sm">STRIPE_SECRET_KEY is not set. Stripe payments won't work until configured.</p>
+                <AlertCircle className="h-4 w-4 text-orange-500 shrink-0" />
+                <p className="text-sm">Stripe secret key is not set. Payments won't work until configured.</p>
               </>
             )}
           </div>
 
           <div className="space-y-2">
-            <Label>Validate a Key</Label>
+            <Label>{secretKeyConfigured ? 'Replace Secret Key' : 'Add Secret Key'}</Label>
             <div className="flex gap-2">
               <Input
                 type="password"
                 placeholder="sk_test_... or sk_live_..."
-                value={testKey}
-                onChange={(e) => setTestKey(e.target.value)}
-                disabled={!stripeUsed || validating}
+                value={secretKey}
+                onChange={(e) => setSecretKey(e.target.value)}
+                disabled={!stripeUsed || savingSecret}
               />
               <Button
-                onClick={handleValidateKey}
-                disabled={!stripeUsed || !testKey || validating}
+                onClick={handleSaveSecretKey}
+                disabled={!stripeUsed || !secretKey || savingSecret}
                 size="default"
               >
-                {validating ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Validate'}
+                {savingSecret ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Validate & Save'}
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              Paste your Stripe secret key to verify it works. You'll then need to store it as a project secret named <code className="bg-muted px-1 rounded">STRIPE_SECRET_KEY</code>.
+              Your key will be validated against Stripe's API before being securely saved.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Webhook Secret */}
+      <Card className={!stripeUsed ? 'opacity-60' : ''}>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Shield className="h-5 w-5 text-primary" />
+            <div>
+              <CardTitle className="text-base">Stripe Webhook Secret</CardTitle>
+              <CardDescription>
+                Required to verify incoming Stripe webhook events.
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
+            {webhookConfigured ? (
+              <>
+                <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+                <p className="text-sm">Webhook secret is configured ✓</p>
+              </>
+            ) : (
+              <>
+                <AlertCircle className="h-4 w-4 text-orange-500 shrink-0" />
+                <p className="text-sm">Webhook secret is not set.</p>
+              </>
+            )}
+          </div>
+
+          <div className="p-3 bg-muted/50 rounded-lg space-y-2">
+            <p className="text-sm font-medium">Webhook Endpoint URL:</p>
+            <code className="block text-xs bg-background p-2 rounded border break-all">
+              {`https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/stripe-webhook`}
+            </code>
+            <p className="text-xs text-muted-foreground">
+              In your Stripe Dashboard → Developers → Webhooks, add this URL and listen for <code className="bg-background px-1 rounded">checkout.session.completed</code>.
             </p>
           </div>
 
-          {!webhookConfigured && stripeUsed && (
-            <div className="space-y-2">
-              <Label>Webhook Setup</Label>
-              <div className="p-3 bg-muted rounded-lg space-y-2">
-                <p className="text-sm">Set up a Stripe webhook pointing to:</p>
-                <code className="block text-xs bg-background p-2 rounded border break-all">
-                  {`https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/stripe-webhook`}
-                </code>
-                <p className="text-xs text-muted-foreground">
-                  Event: <code className="bg-background px-1 rounded">checkout.session.completed</code>.
-                  Then store the webhook signing secret as <code className="bg-muted px-1 rounded">STRIPE_WEBHOOK_SECRET</code>.
-                </p>
-              </div>
+          <div className="space-y-2">
+            <Label>{webhookConfigured ? 'Replace Webhook Secret' : 'Add Webhook Secret'}</Label>
+            <div className="flex gap-2">
+              <Input
+                type="password"
+                placeholder="whsec_..."
+                value={webhookSecret}
+                onChange={(e) => setWebhookSecret(e.target.value)}
+                disabled={!stripeUsed || savingWebhook}
+              />
+              <Button
+                onClick={handleSaveWebhookSecret}
+                disabled={!stripeUsed || !webhookSecret || savingWebhook}
+                size="default"
+              >
+                {savingWebhook ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save'}
+              </Button>
             </div>
-          )}
+            <p className="text-xs text-muted-foreground">
+              Copy the signing secret from your Stripe webhook settings (starts with whsec_).
+            </p>
+          </div>
         </CardContent>
       </Card>
 

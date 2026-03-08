@@ -6,6 +6,21 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, stripe-signature",
 };
 
+async function getWebhookSecret(adminClient: any): Promise<string | null> {
+  // Try env var first
+  const envSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
+  if (envSecret) return envSecret;
+
+  // Fallback: read from platform_settings
+  const { data } = await adminClient
+    .from("platform_settings")
+    .select("value")
+    .eq("key", "stripe_webhook_secret")
+    .single();
+
+  return data?.value || null;
+}
+
 async function verifyStripeSignature(
   payload: string,
   sigHeader: string,
@@ -48,7 +63,11 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabase = createClient(supabaseUrl, serviceKey);
+
+    const webhookSecret = await getWebhookSecret(supabase);
     if (!webhookSecret) {
       console.error("STRIPE_WEBHOOK_SECRET not configured");
       return new Response("Webhook secret not configured", { status: 500 });
@@ -84,10 +103,6 @@ Deno.serve(async (req) => {
       console.error("Missing metadata in checkout session:", session.id);
       return new Response("Missing metadata", { status: 400 });
     }
-
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, serviceKey);
 
     // Get current balance
     const { data: creditRecord } = await supabase

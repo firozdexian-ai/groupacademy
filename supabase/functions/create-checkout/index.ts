@@ -13,6 +13,21 @@ const BUNDLES = [
   { credits: 2500, price: 3750 },  // $37.50
 ];
 
+async function getStripeSecretKey(adminClient: any): Promise<string | null> {
+  // Try env var first
+  const envKey = Deno.env.get("STRIPE_SECRET_KEY");
+  if (envKey) return envKey;
+
+  // Fallback: read from platform_settings
+  const { data } = await adminClient
+    .from("platform_settings")
+    .select("value")
+    .eq("key", "stripe_secret_key")
+    .single();
+
+  return data?.value || null;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -29,11 +44,14 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
+
+    const adminClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
+    const stripeSecretKey = await getStripeSecretKey(adminClient);
 
     if (!stripeSecretKey) {
       return new Response(
-        JSON.stringify({ error: "Stripe is not configured. Please add your Stripe secret key." }),
+        JSON.stringify({ error: "Stripe is not configured. Please add your Stripe secret key in Payment Settings." }),
         { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -43,22 +61,21 @@ Deno.serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user }, error: userError } = await supabase.auth.getUser(
+      authHeader.replace("Bearer ", "")
+    );
+    if (userError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const userId = claimsData.claims.sub;
-
     // Get talent_id
     const { data: talent, error: talentErr } = await supabase
       .from("talents")
       .select("id, email, full_name")
-      .eq("user_id", userId)
+      .eq("user_id", user.id)
       .single();
 
     if (talentErr || !talent) {
@@ -80,7 +97,6 @@ Deno.serve(async (req) => {
     }
 
     // Read stripe mode from platform_settings
-    const adminClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const { data: modeSetting } = await adminClient
       .from("platform_settings")
       .select("value")
@@ -108,7 +124,7 @@ Deno.serve(async (req) => {
         "customer_email": talent.email,
         "metadata[talent_id]": talent.id,
         "metadata[credits]": String(credits),
-        "metadata[user_id]": userId,
+        "metadata[user_id]": user.id,
       }),
     });
 

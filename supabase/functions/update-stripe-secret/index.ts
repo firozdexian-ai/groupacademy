@@ -29,23 +29,23 @@ Deno.serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user }, error: userError } = await supabase.auth.getUser(
+      authHeader.replace("Bearer ", "")
+    );
+    if (userError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const userId = claimsData.claims.sub;
+    const adminClient = createClient(supabaseUrl, serviceKey);
 
     // Check admin role
-    const adminClient = createClient(supabaseUrl, serviceKey);
     const { data: roleCheck } = await adminClient
       .from("user_roles")
       .select("role")
-      .eq("user_id", userId)
+      .eq("user_id", user.id)
       .in("role", ["admin", "talent_exec"])
       .limit(1);
 
@@ -59,20 +59,83 @@ Deno.serve(async (req) => {
     const { action, stripeSecretKey, stripeWebhookSecret } = await req.json();
 
     if (action === "check") {
-      // Check if keys are configured (without exposing them)
-      const hasSecretKey = !!Deno.env.get("STRIPE_SECRET_KEY");
-      const hasWebhookSecret = !!Deno.env.get("STRIPE_WEBHOOK_SECRET");
+      // Check env vars first, then fall back to DB
+      let hasSecretKey = !!Deno.env.get("STRIPE_SECRET_KEY");
+      let hasWebhookSecret = !!Deno.env.get("STRIPE_WEBHOOK_SECRET");
+
+      if (!hasSecretKey || !hasWebhookSecret) {
+        const { data: dbKeys } = await adminClient
+          .from("platform_settings")
+          .select("key, value")
+          .in("key", ["stripe_secret_key", "stripe_webhook_secret"]);
+
+        const map = new Map(dbKeys?.map((r: any) => [r.key, r.value]) || []);
+        if (!hasSecretKey) hasSecretKey = !!map.get("stripe_secret_key");
+        if (!hasWebhookSecret) hasWebhookSecret = !!map.get("stripe_webhook_secret");
+      }
+
       return new Response(
         JSON.stringify({ hasSecretKey, hasWebhookSecret }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // For security, this function only checks status.
-    // Actual secret storage must be done via Supabase secrets management (CLI/dashboard).
-    // We store a masked indicator in platform_settings so the UI knows if it's set.
+    if (action === "save-key") {
+      if (!stripeSecretKey?.startsWith("sk_")) {
+        return new Response(
+          JSON.stringify({ error: "Invalid key format. Must start with sk_test_ or sk_live_" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Validate against Stripe API
+      const testRes = await fetch("https://api.stripe.com/v1/balance", {
+        headers: { Authorization: `Bearer ${stripeSecretKey}` },
+      });
+
+      if (!testRes.ok) {
+        return new Response(
+          JSON.stringify({ error: "Invalid Stripe key — could not authenticate with Stripe" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Save to platform_settings
+      await adminClient
+        .from("platform_settings")
+        .upsert(
+          { key: "stripe_secret_key", value: stripeSecretKey, updated_at: new Date().toISOString() },
+          { onConflict: "key" }
+        );
+
+      return new Response(
+        JSON.stringify({ valid: true, saved: true, message: "Stripe secret key validated and saved." }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (action === "save-webhook") {
+      if (!stripeWebhookSecret?.startsWith("whsec_")) {
+        return new Response(
+          JSON.stringify({ error: "Invalid format. Webhook secret must start with whsec_" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      await adminClient
+        .from("platform_settings")
+        .upsert(
+          { key: "stripe_webhook_secret", value: stripeWebhookSecret, updated_at: new Date().toISOString() },
+          { onConflict: "key" }
+        );
+
+      return new Response(
+        JSON.stringify({ saved: true, message: "Webhook secret saved." }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     if (action === "validate-key") {
-      // Test the provided key against Stripe API
       if (!stripeSecretKey?.startsWith("sk_")) {
         return new Response(
           JSON.stringify({ error: "Invalid key format. Must start with sk_test_ or sk_live_" }),
@@ -92,7 +155,7 @@ Deno.serve(async (req) => {
       }
 
       return new Response(
-        JSON.stringify({ valid: true, message: "Stripe key is valid. Please store it as a secret via your project settings." }),
+        JSON.stringify({ valid: true }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
