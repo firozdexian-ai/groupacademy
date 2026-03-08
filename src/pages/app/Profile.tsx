@@ -301,11 +301,11 @@ export default function Profile() {
                       <GraduationCap className="h-4 w-4 text-muted-foreground" />
                     </div>
                     <div>
-                      <p className="font-semibold text-sm">{edu.degree || (edu as any).field}</p>
+                      <p className="font-semibold text-sm">{edu.degree || edu.fieldOfStudy}</p>
                       <p className="text-xs text-muted-foreground">{edu.institution}</p>
-                      {((edu as any).startYear || (edu as any).endYear) && (
+                      {(edu.startYear || edu.endYear) && (
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          {(edu as any).startYear} — {(edu as any).endYear || "Present"}
+                          {edu.startYear} — {edu.endYear || "Present"}
                         </p>
                       )}
                     </div>
