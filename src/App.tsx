@@ -213,9 +213,7 @@ export default function App() {
 
                   {/* Redirects */}
                   <Route path="/jobs" element={<Navigate to="/auth?returnTo=/app/jobs" replace />} />
-                  <Route path="/courses" element={<Navigate to="/auth?returnTo=/app/learning/courses" replace />} />
                   <Route path="/professions" element={<Navigate to="/auth?returnTo=/app/learning/tracks" replace />} />
-                  <Route path="/career-services" element={<PublicServiceLanding />} />
                   <Route path="/my-profile" element={<Navigate to="/app/profile" replace />} />
                   <Route path="/admin" element={<Navigate to="/dashboard" replace />} />
                   <Route path="/my-learning" element={<Navigate to="/app/learning/my-courses" replace />} />
