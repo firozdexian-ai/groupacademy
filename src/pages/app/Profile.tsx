@@ -200,7 +200,7 @@ export default function Profile() {
             {latestEducation && (
               <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
                 <GraduationCap className="h-3 w-3" />
-                {latestEducation.degree || (latestEducation as any).field} · {latestEducation.institution}
+                {latestEducation.degree || latestEducation.fieldOfStudy} · {latestEducation.institution}
               </p>
             )}
 
