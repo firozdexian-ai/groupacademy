@@ -132,6 +132,7 @@ export function useFeedRecommendations(): UseFeedRecommendationsResult {
         .from("feed_posts")
         .select("*")
         .eq("is_active", true)
+        .eq("status", "published")
         .order("is_pinned", { ascending: false })
         .order("created_at", { ascending: false })
         .limit(30);
