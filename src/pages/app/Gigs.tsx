@@ -71,9 +71,14 @@ export default function Gigs() {
             Complete gigs to earn credits you can use or withdraw
           </p>
         </div>
-        <Button variant="outline" size="sm" className="gap-1 shrink-0" onClick={() => navigate("/app/marketplace")}>
-          Marketplace <ArrowRight className="h-3.5 w-3.5" />
-        </Button>
+        <div className="flex gap-2 shrink-0">
+          <Button variant="outline" size="sm" className="gap-1" onClick={() => navigate("/app/my-gigs")}>
+            My Gigs
+          </Button>
+          <Button variant="outline" size="sm" className="gap-1" onClick={() => navigate("/app/marketplace")}>
+            Marketplace <ArrowRight className="h-3.5 w-3.5" />
+          </Button>
+        </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>

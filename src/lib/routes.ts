@@ -84,6 +84,7 @@ export const ROUTES = {
     gigs: '/app/gigs',
     marketplace: '/app/marketplace',
     marketplaceDetail: (id: string) => `/app/marketplace/${id}`,
+    myGigs: '/app/my-gigs',
     transactions: '/app/transactions',
   },
 

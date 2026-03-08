@@ -355,6 +355,7 @@ export default function App() {
                     <Route path="gigs" element={<Gigs />} />
                     <Route path="marketplace" element={<Marketplace />} />
                     <Route path="marketplace/:id" element={<MarketplaceGigDetail />} />
+                    <Route path="my-gigs" element={<MyGigs />} />
                     <Route path="profile" element={<Profile />} />
 
                     {/* Job Routes - Specific Routes First */}
