@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useTalent } from "@/hooks/useTalent";
 import { CREDIT_CONFIG, ServiceType, getServiceCost } from "@/lib/creditPricing";
 import { useToast } from "@/hooks/use-toast";
+import { emailNotifications } from "@/lib/emailNotifications";
 
 export interface CreditTransaction {
   id: string;
@@ -294,6 +295,11 @@ export function useCredits(): UseCreditsReturn {
             title: "Welcome Bonus! 🎉",
             description: `You've received ${amount} credits!`,
           });
+        }
+
+        // Fire-and-forget email receipt for purchases and refunds
+        if ((type === "purchase" || type === "refund") && talent.id) {
+          emailNotifications.creditReceipt(talent.id, amount, newBalance, type);
         }
 
         return true;

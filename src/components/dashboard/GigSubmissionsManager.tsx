@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { CheckCircle2, XCircle, Eye, Coins, User, Briefcase, MapPin, Phone, FileText, Share2, BookOpen, ExternalLink, Image, UserPlus, BriefcaseBusiness } from "lucide-react";
 import { format } from "date-fns";
 import { useState } from "react";
+import { emailNotifications } from "@/lib/emailNotifications";
 
 function SubmissionPreview({ submission }: { submission: any }) {
   const data = submission.submission_data as any;
@@ -197,8 +198,13 @@ export function GigSubmissionsManager() {
       if (!result?.success) throw new Error(result?.error || "Failed to approve");
       return result;
     },
-    onSuccess: (data) => {
+    onSuccess: (data, submissionId) => {
       toast.success(`Approved! ${data.credits_awarded} credits awarded.`);
+      // Send bid accepted email
+      const sub = submissions?.find((s: any) => s.id === submissionId);
+      if (sub?.talents?.full_name) {
+        emailNotifications.bidAccepted(sub.talent_id, sub.gigs?.title || "Gig", data.credits_awarded);
+      }
       queryClient.invalidateQueries({ queryKey: ["admin-gig-submissions"] });
       setSelectedSubmission(null);
       setAdminNotes("");
@@ -260,8 +266,11 @@ export function GigSubmissionsManager() {
 
       return award;
     },
-    onSuccess: (data) => {
+    onSuccess: (data, submission) => {
       toast.success(`Approved! ${data.credits_awarded} credits awarded & talent record created.`);
+      if (submission?.talent_id) {
+        emailNotifications.bidAccepted(submission.talent_id, submission.gigs?.title || "Gig", data.credits_awarded);
+      }
       queryClient.invalidateQueries({ queryKey: ["admin-gig-submissions"] });
       setSelectedSubmission(null);
       setAdminNotes("");
@@ -301,8 +310,11 @@ export function GigSubmissionsManager() {
 
       return award;
     },
-    onSuccess: (data) => {
+    onSuccess: (data, submission) => {
       toast.success(`Approved! ${data.credits_awarded} credits awarded & job listing created.`);
+      if (submission?.talent_id) {
+        emailNotifications.bidAccepted(submission.talent_id, submission.gigs?.title || "Gig", data.credits_awarded);
+      }
       queryClient.invalidateQueries({ queryKey: ["admin-gig-submissions"] });
       setSelectedSubmission(null);
       setAdminNotes("");

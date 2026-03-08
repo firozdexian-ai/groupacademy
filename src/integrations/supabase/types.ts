@@ -1431,6 +1431,50 @@ export type Database = {
           },
         ]
       }
+      email_notifications_log: {
+        Row: {
+          created_at: string
+          email_type: string
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          recipient_email: string
+          resend_id: string | null
+          status: string
+          talent_id: string
+        }
+        Insert: {
+          created_at?: string
+          email_type: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          recipient_email: string
+          resend_id?: string | null
+          status?: string
+          talent_id: string
+        }
+        Update: {
+          created_at?: string
+          email_type?: string
+          error_message?: string | null
+          id?: string
+          metadata?: Json | null
+          recipient_email?: string
+          resend_id?: string | null
+          status?: string
+          talent_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_notifications_log_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       enrollment_stage_progress: {
         Row: {
           completed_stages: number[] | null
