@@ -9,7 +9,7 @@ export const IR_CONFIG = {
   // Currency conversion (platform standard)
   USD_TO_CREDITS: 50,           // $1 USD = 50 credits
   CREDITS_TO_USD: 0.02,         // 1 credit = $0.02 USD
-  BDT_TO_USD: 0.0083,           // ~120 BDT = 1 USD (approximate)
+  // BDT_TO_USD removed - platform now uses USD globally
   
   // Service costs in credits (from creditPricing)
   SERVICE_COSTS: {
