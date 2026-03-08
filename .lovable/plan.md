@@ -19,3 +19,11 @@
 - `/verify/:code` - public verification page
 - Auto-issue on quiz pass from ReportCard page
 - Copy shareable verification link
+
+## Public SEO & OpenGraph
+
+- `/blog` - Public blog index with JSON-LD Blog schema, category filters, search
+- `/blog/:slug` - Public blog post with Article JSON-LD, dynamic OG meta tags
+- `/courses/:slug` - Course JSON-LD structured data + dynamic OG meta tags
+- `/courses` - Public courses listing with JSON-LD ItemList schema
+- Dynamic `og:title`, `og:description`, `og:image`, `twitter:*` tags on all public pages

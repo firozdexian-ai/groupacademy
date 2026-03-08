@@ -11,6 +11,8 @@ export const ROUTES = {
     resetPassword: '/reset-password',
     courses: '/courses',
     courseDetail: (slug: string) => `/courses/${slug}`,
+    blog: '/blog',
+    blogPost: (slug: string) => `/blog/${slug}`,
     professions: '/professions',
     professionDetail: (slug: string) => `/professions/${slug}`,
     jobs: '/jobs',
