@@ -116,37 +116,8 @@ export default function ServiceLanding() {
   const { serviceSlug } = useParams<{ serviceSlug: string }>();
   const service = serviceSlug ? SERVICES[serviceSlug] : null;
 
-  if (!service) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
-        <div className="max-w-4xl mx-auto px-4 py-20 text-center">
-          <h1 className="text-2xl font-bold text-foreground mb-4">Service Not Found</h1>
-          <p className="text-muted-foreground mb-6">The service you're looking for doesn't exist.</p>
-          <Link to="/services">
-            <Button>View All Services</Button>
-          </Link>
-        </div>
-        <Footer />
-      </div>
-    );
-  }
-
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": service.jsonLdType,
-    name: service.title,
-    description: service.description,
-    provider: {
-      "@type": "EducationalOrganization",
-      name: "GroUp Academy",
-      url: "https://groupacademy.lovable.app",
-    },
-    areaServed: { "@type": "Country", name: "Bangladesh" },
-    serviceType: "Career Development",
-  };
-
   useEffect(() => {
+    if (!service) return;
     document.title = `${service.title} | GroUp Academy`;
     const setMeta = (name: string, content: string, prop?: string) => {
       const attr = prop ? "property" : "name";
@@ -159,13 +130,34 @@ export default function ServiceLanding() {
     setMeta("og:title", `${service.title} | GroUp Academy`, "og:title");
     setMeta("og:description", service.metaDescription, "og:description");
 
-    // JSON-LD
+    const jsonLd = {
+      "@context": "https://schema.org",
+      "@type": service.jsonLdType,
+      name: service.title,
+      description: service.description,
+      provider: { "@type": "EducationalOrganization", name: "GroUp Academy", url: "https://groupacademy.lovable.app" },
+      areaServed: { "@type": "Country", name: "Bangladesh" },
+      serviceType: "Career Development",
+    };
     let script = document.querySelector('script[data-service-ld]') as HTMLScriptElement | null;
     if (!script) { script = document.createElement("script"); script.type = "application/ld+json"; script.setAttribute("data-service-ld", "true"); document.head.appendChild(script); }
     script.textContent = JSON.stringify(jsonLd);
-
     return () => { script?.remove(); };
-  }, [serviceSlug]);
+  }, [serviceSlug, service]);
+
+  if (!service) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="max-w-4xl mx-auto px-4 py-20 text-center">
+          <h1 className="text-2xl font-bold text-foreground mb-4">Service Not Found</h1>
+          <p className="text-muted-foreground mb-6">The service you're looking for doesn't exist.</p>
+          <Link to="/services"><Button>View All Services</Button></Link>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
