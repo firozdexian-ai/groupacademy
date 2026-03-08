@@ -64,11 +64,16 @@ export default function Gigs() {
 
   return (
     <div className="px-4 md:px-0 space-y-4">
-      <div>
-        <h1 className="text-2xl font-bold">Earn Credits</h1>
-        <p className="text-muted-foreground text-sm">
-          Complete gigs to earn credits you can use or withdraw
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Earn Credits</h1>
+          <p className="text-muted-foreground text-sm">
+            Complete gigs to earn credits you can use or withdraw
+          </p>
+        </div>
+        <Button variant="outline" size="sm" className="gap-1 shrink-0" onClick={() => navigate("/app/marketplace")}>
+          Marketplace <ArrowRight className="h-3.5 w-3.5" />
+        </Button>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
