@@ -145,6 +145,7 @@ export function BatchDescriptionGenerator() {
               school_id: selectedSchool,
               batch_size: 3,
               regenerate_all: regenerateAll,
+              offset: regenerateAll ? totalProcessed : 0,
             }),
           }
         );
@@ -180,7 +181,6 @@ export function BatchDescriptionGenerator() {
         remaining = result.remaining;
         setProcessed(totalProcessed);
         setSkippedTotal(totalSkipped);
-        setTotalPending(totalProcessed + remaining);
         consecutiveErrors = 0;
 
         const skippedNote = result.skipped > 0 ? ` (${result.skipped} skipped - too short)` : "";

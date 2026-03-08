@@ -9,6 +9,128 @@ const corsHeaders = {
 
 const MIN_DESCRIPTION_LENGTH = 500;
 
+async function generateAndSave(
+  modules: any[],
+  courseMap: Record<string, { title: string; programId: string }>,
+  programMap: Record<string, string>,
+  supabase: any
+): Promise<{ updated: number; skipped: number }> {
+  const moduleList = modules.map((m: any, i: number) => {
+    const course = courseMap[m.content_id] || { title: "Unknown", programId: "" };
+    const programName = programMap[course.programId] || "Unknown Program";
+    return `${i + 1}. Module ID: ${m.id}\n   Course: "${course.title}"\n   Program: "${programName}"\n   Module Title: "${m.title}"`;
+  }).join("\n\n");
+
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 55000);
+
+  const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${LOVABLE_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    signal: controller.signal,
+    body: JSON.stringify({
+      model: "google/gemini-3-flash-preview",
+      messages: [
+        {
+          role: "system",
+          content: `You are a curriculum designer for an online career academy. For each module, generate a rich content guide consisting of 5-7 bullet points. Each bullet point should be a detailed sentence or two that describes a specific concept, framework, technique, or skill the learner will master in this module. 
+
+Format each description as bullet points starting with "• " (bullet character + space). Each bullet should:
+- Start with an action verb or topic focus
+- Be specific and practical (not generic filler)
+- Cover a distinct aspect of the module topic
+- Be 1-2 sentences long
+
+The total description should be 500-1500 characters. Focus on what the learner will understand, analyze, apply, or create.
+
+Example format:
+• Explain the psychology of visual perception in finance, focusing on how the human brain processes imagery faster than numerical data to establish an immediate emotional connection.
+• Identify the core elements of a visual narrative—including setting, protagonist, conflict, and resolution—and how to apply these roles to financial subjects like retirement planning or market volatility.
+• Detail the use of composition techniques, such as the Rule of Thirds and leading lines, to direct a viewer's eye toward the most critical data points or calls to action within an image.
+• Analyze the symbolic power of metaphors in banking imagery, illustrating how concepts like "liquidity," "growth," and "security" can be represented without relying on literal or cliché stock photos.
+• Demonstrate how to select and pair high-quality photography with financial typography to ensure the visual message reinforces the brand's credibility and professionalism.`,
+        },
+        {
+          role: "user",
+          content: `Generate rich content guide descriptions for these ${modules.length} course modules:\n\n${moduleList}`,
+        },
+      ],
+      tools: [
+        {
+          type: "function",
+          function: {
+            name: "save_descriptions",
+            description: "Save generated content guide descriptions for course modules",
+            parameters: {
+              type: "object",
+              properties: {
+                descriptions: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      module_id: { type: "string", description: "The UUID of the module" },
+                      description: { type: "string", description: "Rich 5-7 bullet point content guide, 500-1500 characters" },
+                    },
+                    required: ["module_id", "description"],
+                    additionalProperties: false,
+                  },
+                },
+              },
+              required: ["descriptions"],
+              additionalProperties: false,
+            },
+          },
+        },
+      ],
+      tool_choice: { type: "function", function: { name: "save_descriptions" } },
+    }),
+  });
+
+  clearTimeout(timeout);
+
+  if (!aiResponse.ok) {
+    const status = aiResponse.status;
+    const text = await aiResponse.text();
+    if (status === 429) throw Object.assign(new Error("Rate limited"), { status: 429 });
+    if (status === 402) throw Object.assign(new Error("AI credits exhausted"), { status: 402 });
+    console.error("AI error:", status, text);
+    throw new Error(`AI gateway error: ${status}`);
+  }
+
+  const aiData = await aiResponse.json();
+  const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+  if (!toolCall) throw new Error("No tool call in AI response");
+
+  const { descriptions } = JSON.parse(toolCall.function.arguments);
+
+  let updated = 0;
+  let skipped = 0;
+
+  for (const item of descriptions) {
+    if (!item.module_id || !item.description) { skipped++; continue; }
+    if (item.description.length < MIN_DESCRIPTION_LENGTH) {
+      console.warn(`Skipped module ${item.module_id}: ${item.description.length} chars < ${MIN_DESCRIPTION_LENGTH}`);
+      skipped++;
+      continue;
+    }
+    const { error } = await supabase
+      .from("course_modules")
+      .update({ description: item.description })
+      .eq("id", item.module_id);
+    if (!error) updated++;
+    else skipped++;
+  }
+
+  return { updated, skipped };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -36,7 +158,6 @@ serve(async (req) => {
     const { school_id, batch_size = 3, regenerate_all = false, offset = 0 } = await req.json();
     if (!school_id) throw new Error("school_id required");
 
-    // Get programs under this school
     const { data: programs } = await supabase
       .from("profession_categories")
       .select("id, name")
@@ -44,7 +165,7 @@ serve(async (req) => {
 
     if (!programs || programs.length === 0) {
       return new Response(
-        JSON.stringify({ processed: 0, skipped: 0, remaining: 0, message: "No programs found for this school" }),
+        JSON.stringify({ processed: 0, skipped: 0, remaining: 0, total: 0 }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -52,7 +173,6 @@ serve(async (req) => {
     const programIds = programs.map((p: any) => p.id);
     const programMap = Object.fromEntries(programs.map((p: any) => [p.id, p.name]));
 
-    // Get courses for these programs
     const { data: courses } = await supabase
       .from("content")
       .select("id, title, profession_line_id")
@@ -60,7 +180,7 @@ serve(async (req) => {
 
     if (!courses || courses.length === 0) {
       return new Response(
-        JSON.stringify({ processed: 0, skipped: 0, remaining: 0, message: "No courses found" }),
+        JSON.stringify({ processed: 0, skipped: 0, remaining: 0, total: 0 }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -68,7 +188,6 @@ serve(async (req) => {
     const courseIds = courses.map((c: any) => c.id);
     const courseMap = Object.fromEntries(courses.map((c: any) => [c.id, { title: c.title, programId: c.profession_line_id }]));
 
-    // Fetch modules
     const { data: allModules } = await supabase
       .from("course_modules")
       .select("id, title, description, content_id")
@@ -76,44 +195,39 @@ serve(async (req) => {
       .order("created_at", { ascending: true })
       .limit(1000);
 
-    if (regenerate_all) {
-      // In regenerate mode, use offset to skip already-processed modules
-      const sortedModules = allModules || [];
-      const shortModules = sortedModules.slice(offset, offset + batch_size);
-      const totalAll = sortedModules.length;
+    const totalAll = (allModules || []).length;
 
-      if (shortModules.length === 0) {
+    if (regenerate_all) {
+      const batch = (allModules || []).slice(offset, offset + batch_size);
+      if (batch.length === 0) {
         return new Response(
-          JSON.stringify({ processed: 0, skipped: 0, remaining: 0, total: totalAll, message: "All modules processed" }),
+          JSON.stringify({ processed: 0, skipped: 0, remaining: 0, total: totalAll }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-
-      // Process this batch (reuse the shared generation logic below)
-      const result = await generateAndSave(shortModules, courseMap, programMap, supabase);
-      const newRemaining = totalAll - offset - result.updated;
+      const result = await generateAndSave(batch, courseMap, programMap, supabase);
       return new Response(
-        JSON.stringify({ processed: result.updated, skipped: result.skipped, remaining: newRemaining, total: totalAll }),
+        JSON.stringify({ processed: result.updated, skipped: result.skipped, remaining: totalAll - offset - result.updated, total: totalAll }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Normal mode: filter to only modules needing descriptions
+    // Normal mode
     const pendingModules = (allModules || []).filter(
       (m: any) => (m.description || "").length < MIN_DESCRIPTION_LENGTH
     );
-    const shortModules = pendingModules.slice(0, batch_size);
+    const batch = pendingModules.slice(0, batch_size);
 
-    if (shortModules.length === 0) {
+    if (batch.length === 0) {
       return new Response(
-        JSON.stringify({ processed: 0, skipped: 0, remaining: 0, total: (allModules || []).length, message: "All modules have rich descriptions" }),
+        JSON.stringify({ processed: 0, skipped: 0, remaining: 0, total: totalAll }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const result = await generateAndSave(shortModules, courseMap, programMap, supabase);
+    const result = await generateAndSave(batch, courseMap, programMap, supabase);
 
-    // Re-query for accurate remaining count
+    // Fresh remaining count after updates
     const { data: freshModules } = await supabase
       .from("course_modules")
       .select("id, description")
@@ -124,150 +238,18 @@ serve(async (req) => {
     ).length;
 
     return new Response(
-      JSON.stringify({ processed: result.updated, skipped: result.skipped, remaining: freshRemaining, total: (allModules || []).length }),
+      JSON.stringify({ processed: result.updated, skipped: result.skipped, remaining: freshRemaining, total: totalAll }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-
-    // Build prompt
-    const moduleList = shortModules.map((m: any, i: number) => {
-      const course = courseMap[m.content_id] || { title: "Unknown", programId: "" };
-      const programName = programMap[course.programId] || "Unknown Program";
-      return `${i + 1}. Module ID: ${m.id}\n   Course: "${course.title}"\n   Program: "${programName}"\n   Module Title: "${m.title}"`;
-    }).join("\n\n");
-
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 55000);
-
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      signal: controller.signal,
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          {
-            role: "system",
-            content: `You are a curriculum designer for an online career academy. For each module, generate a rich content guide consisting of 5-7 bullet points. Each bullet point should be a detailed sentence or two that describes a specific concept, framework, technique, or skill the learner will master in this module. 
-
-Format each description as bullet points starting with "• " (bullet character + space). Each bullet should:
-- Start with an action verb or topic focus
-- Be specific and practical (not generic filler)
-- Cover a distinct aspect of the module topic
-- Be 1-2 sentences long
-
-The total description should be 500-1500 characters. Focus on what the learner will understand, analyze, apply, or create.
-
-Example format:
-• Explain the psychology of visual perception in finance, focusing on how the human brain processes imagery faster than numerical data to establish an immediate emotional connection.
-• Identify the core elements of a visual narrative—including setting, protagonist, conflict, and resolution—and how to apply these roles to financial subjects like retirement planning or market volatility.
-• Detail the use of composition techniques, such as the Rule of Thirds and leading lines, to direct a viewer's eye toward the most critical data points or calls to action within an image.
-• Analyze the symbolic power of metaphors in banking imagery, illustrating how concepts like "liquidity," "growth," and "security" can be represented without relying on literal or cliché stock photos.
-• Demonstrate how to select and pair high-quality photography with financial typography to ensure the visual message reinforces the brand's credibility and professionalism.`,
-          },
-          {
-            role: "user",
-            content: `Generate rich content guide descriptions for these ${shortModules.length} course modules:\n\n${moduleList}`,
-          },
-        ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "save_descriptions",
-              description: "Save generated content guide descriptions for course modules",
-              parameters: {
-                type: "object",
-                properties: {
-                  descriptions: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        module_id: { type: "string", description: "The UUID of the module" },
-                        description: { type: "string", description: "Rich 5-7 bullet point content guide, 500-1500 characters" },
-                      },
-                      required: ["module_id", "description"],
-                      additionalProperties: false,
-                    },
-                  },
-                },
-                required: ["descriptions"],
-                additionalProperties: false,
-              },
-            },
-          },
-        ],
-        tool_choice: { type: "function", function: { name: "save_descriptions" } },
-      }),
-    });
-
-    clearTimeout(timeout);
-
-    if (!aiResponse.ok) {
-      const status = aiResponse.status;
-      const text = await aiResponse.text();
-      if (status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Rate limited. Please wait and try again.", code: 429 }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      if (status === 402) {
-        return new Response(
-          JSON.stringify({ error: "AI credits exhausted. Please top up.", code: 402 }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      console.error("AI error:", status, text);
-      throw new Error(`AI gateway error: ${status}`);
-    }
-
-    const aiData = await aiResponse.json();
-    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall) throw new Error("No tool call in AI response");
-
-    const { descriptions } = JSON.parse(toolCall.function.arguments);
-
-    let updated = 0;
-    let skipped = 0;
-
-    for (const item of descriptions) {
-      if (!item.module_id || !item.description) {
-        skipped++;
-        continue;
-      }
-
-      // Validation gate: reject descriptions that are too short
-      if (item.description.length < MIN_DESCRIPTION_LENGTH) {
-        console.warn(`Skipped module ${item.module_id}: description only ${item.description.length} chars (min ${MIN_DESCRIPTION_LENGTH})`);
-        skipped++;
-        continue;
-      }
-
-      const { error: updateError } = await supabase
-        .from("course_modules")
-        .update({ description: item.description })
-        .eq("id", item.module_id);
-      if (!updateError) updated++;
-      else skipped++;
-    }
-
-    return new Response(
-      JSON.stringify({
-        processed: updated,
-        skipped,
-        remaining: totalRemaining - updated,
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
-  } catch (e) {
+  } catch (e: any) {
     console.error("batch-generate-descriptions error:", e);
+    const status = e?.status || 500;
+    if (status === 429 || status === 402) {
+      return new Response(
+        JSON.stringify({ error: e.message, code: status }),
+        { status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
