@@ -266,8 +266,11 @@ export function GigSubmissionsManager() {
 
       return award;
     },
-    onSuccess: (data) => {
+    onSuccess: (data, submission) => {
       toast.success(`Approved! ${data.credits_awarded} credits awarded & talent record created.`);
+      if (submission?.talent_id) {
+        emailNotifications.bidAccepted(submission.talent_id, submission.gigs?.title || "Gig", data.credits_awarded);
+      }
       queryClient.invalidateQueries({ queryKey: ["admin-gig-submissions"] });
       setSelectedSubmission(null);
       setAdminNotes("");
