@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Coins, MessageCircle, Check, Sparkles, CreditCard, Loader2 } from 'lucide-react';
 import {
   Sheet,
@@ -9,10 +10,12 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { CREDIT_CONFIG, creditsToUSD } from '@/lib/creditPricing';
+import { CREDIT_CONFIG } from '@/lib/creditPricing';
 import { cn } from '@/lib/utils';
 import { SUPPORT_CONFIG, getCreditPurchaseMessage } from '@/lib/constants/support';
 import { usePaymentConfig } from '@/hooks/usePaymentConfig';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface CreditPurchaseSheetProps {
   isOpen: boolean;
@@ -25,11 +28,52 @@ export function CreditPurchaseSheet({
   onClose,
   currentBalance,
 }: CreditPurchaseSheetProps) {
-  const { showWhatsApp, showStripe, isStripeConfigured, isLoading: configLoading } = usePaymentConfig();
+  const { showWhatsApp, showStripe, isStripeConfigured } = usePaymentConfig();
+  const [checkoutLoading, setCheckoutLoading] = useState<number | null>(null);
 
-  const handlePurchase = (credits: number, price: number) => {
+  const handleWhatsAppPurchase = (credits: number, price: number) => {
     const message = getCreditPurchaseMessage(credits, price, currentBalance);
     window.open(`${SUPPORT_CONFIG.WHATSAPP_LINK}?text=${encodeURIComponent(message)}`, '_blank');
+  };
+
+  const handleStripeCheckout = async (credits: number, price: number) => {
+    setCheckoutLoading(credits);
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.access_token) {
+        toast.error('Please sign in to purchase credits');
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: {
+          credits,
+          priceInCents: Math.round(price * 100),
+          successUrl: `${window.location.origin}/app/feed?checkout=success`,
+          cancelUrl: `${window.location.origin}/app/feed?checkout=cancelled`,
+        },
+      });
+
+      if (error || !data?.url) {
+        toast.error(data?.error || 'Failed to create checkout session');
+        return;
+      }
+
+      window.location.href = data.url;
+    } catch (err) {
+      console.error('Stripe checkout error:', err);
+      toast.error('Something went wrong. Please try again.');
+    } finally {
+      setCheckoutLoading(null);
+    }
+  };
+
+  const handleBundleClick = (credits: number, price: number) => {
+    if (showStripe && isStripeConfigured) {
+      handleStripeCheckout(credits, price);
+    } else if (showWhatsApp) {
+      handleWhatsAppPurchase(credits, price);
+    }
   };
 
   return (
@@ -41,7 +85,10 @@ export function CreditPurchaseSheet({
             Buy Credits
           </SheetTitle>
           <SheetDescription>
-            Choose a credit bundle. Secure online payment via WhatsApp.
+            Choose a credit bundle.{' '}
+            {showStripe && isStripeConfigured
+              ? 'Secure online payment via Stripe.'
+              : 'Secure online payment via WhatsApp.'}
           </SheetDescription>
         </SheetHeader>
 
@@ -59,15 +106,17 @@ export function CreditPurchaseSheet({
           {/* Bundles Grid */}
           <div className="grid gap-3 sm:grid-cols-2">
             {CREDIT_CONFIG.BUNDLES.map((bundle, index) => {
-              const isPopular = index === 2; // 1000 credits bundle
+              const isPopular = index === 2;
+              const isLoading = checkoutLoading === bundle.credits;
               return (
                 <Card
                   key={bundle.credits}
                   className={cn(
-                    "relative cursor-pointer transition-all hover:shadow-md hover:border-primary/50",
-                    isPopular && "border-primary ring-2 ring-primary/20"
+                    'relative cursor-pointer transition-all hover:shadow-md hover:border-primary/50',
+                    isPopular && 'border-primary ring-2 ring-primary/20',
+                    isLoading && 'opacity-70 pointer-events-none'
                   )}
-                  onClick={() => handlePurchase(bundle.credits, bundle.price)}
+                  onClick={() => handleBundleClick(bundle.credits, bundle.price)}
                 >
                   {isPopular && (
                     <Badge className="absolute -top-2 left-1/2 -translate-x-1/2 bg-primary">
@@ -78,7 +127,11 @@ export function CreditPurchaseSheet({
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        <Coins className="h-5 w-5 text-warning" />
+                        {isLoading ? (
+                          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                        ) : (
+                          <Coins className="h-5 w-5 text-warning" />
+                        )}
                         <span className="text-xl font-bold">{bundle.credits}</span>
                       </div>
                       {bundle.savings > 0 && (
@@ -110,7 +163,12 @@ export function CreditPurchaseSheet({
           {/* Payment CTAs */}
           <div className="space-y-2">
             {showWhatsApp && (
-              <Button className="w-full" size="lg" onClick={() => handlePurchase(500, 900)}>
+              <Button
+                className="w-full"
+                size="lg"
+                variant={showStripe && isStripeConfigured ? 'outline' : 'default'}
+                onClick={() => handleWhatsAppPurchase(500, 9)}
+              >
                 <MessageCircle className="mr-2 h-5 w-5" />
                 Purchase on WhatsApp
               </Button>
@@ -120,19 +178,26 @@ export function CreditPurchaseSheet({
               <Button
                 className="w-full"
                 size="lg"
-                variant={showWhatsApp ? 'outline' : 'default'}
-                disabled={!isStripeConfigured}
+                variant={showWhatsApp ? (isStripeConfigured ? 'default' : 'outline') : 'default'}
+                disabled={!isStripeConfigured || checkoutLoading !== null}
+                onClick={() => handleStripeCheckout(500, 9)}
               >
-                <CreditCard className="mr-2 h-5 w-5" />
+                {checkoutLoading !== null ? (
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                ) : (
+                  <CreditCard className="mr-2 h-5 w-5" />
+                )}
                 {isStripeConfigured ? 'Pay with Card' : 'Card Payments Coming Soon'}
               </Button>
             )}
           </div>
 
           <p className="text-xs text-center text-muted-foreground">
-            {showWhatsApp
-              ? 'Secure payment via card, bank transfer, or mobile wallet. Credits added within 30 minutes.'
-              : 'Secure checkout powered by Stripe.'}
+            {showStripe && isStripeConfigured
+              ? 'Secure checkout powered by Stripe. Credits added instantly.'
+              : showWhatsApp
+                ? 'Secure payment via card, bank transfer, or mobile wallet. Credits added within 30 minutes.'
+                : 'Secure checkout powered by Stripe.'}
           </p>
         </div>
       </SheetContent>
