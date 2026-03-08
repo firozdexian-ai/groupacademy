@@ -387,6 +387,7 @@ const Dashboard = () => {
       "service-outreach": "Service Outreach",
       "learner-progress": "Learner Progress",
       "ai-descriptions": "AI Description Generator",
+      "ai-content-tools": "AI Content Tools",
       enrollments: "Enrollments",
       analytics: "Marketing Analytics",
       "ir-dashboard": "Investor Relations",
