@@ -267,11 +267,11 @@ export default function Profile() {
                       <Briefcase className="h-4 w-4 text-muted-foreground" />
                     </div>
                     <div className="flex-1">
-                      <p className="font-semibold text-sm">{exp.title || (exp as any).position}</p>
+                      <p className="font-semibold text-sm">{exp.title}</p>
                       <p className="text-xs text-muted-foreground">{exp.company}</p>
-                      {(exp as any).startDate && (
+                      {exp.startDate && (
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          {(exp as any).startDate} — {(exp as any).endDate || "Present"}
+                          {exp.startDate} — {exp.endDate || "Present"}
                         </p>
                       )}
                       {exp.description && (
