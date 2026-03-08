@@ -1,30 +1,38 @@
 
 
-# GroUp Academy — Build Progress
+# Fix Batch Description Generator — Rich Content Guides
 
-## Schools
+## Problem
+The AI generates short 100-200 char descriptions that never clear the 200-char "pending" threshold, so counts never decrease. Additionally, you want much richer descriptions — multi-bullet content guides like the example you shared (5-7 detailed bullet points, ~800-1500 chars each).
 
-| School | Programs | Courses | Modules | Status |
-|---|---|---|---|---|
-| Social Media | 4 | 56 | 252 | ✅ |
-| Personal Branding | 4 | 56 | 249 | ✅ |
-| Content Creation | 4 | 56 | 248 | ✅ |
+## Solution: Overhaul the Format Entirely
 
-**Influencing Academy: 100% COMPLETE ✅**
+### 1. Edge Function (`batch-generate-descriptions/index.ts`)
 
-## Certificates
+**New prompt**: Instead of "200-300 character descriptions," instruct the AI to generate **5-7 bullet-point content guides** per module (matching your example format). Each bullet should be 1-2 sentences covering a specific concept, framework, or skill.
 
-- `certificates` table with unique verify codes, RLS policies
-- `CertificatePDFTemplate` - branded landscape PDF with verification URL
-- `/verify/:code` - public verification page
-- Auto-issue on quiz pass from ReportCard page
-- Copy shareable verification link
-- **Email notification on certificate issuance** ✅
+**New threshold**: Change the "pending" filter from `< 200` chars to `< 500` chars — this ensures only modules without rich guides get re-processed.
 
-## Public SEO & OpenGraph
+**Validation gate**: Before saving, reject any description under 500 chars to prevent the infinite loop.
 
-- `/blog` - Public blog index with JSON-LD Blog schema, category filters, search
-- `/blog/:slug` - Public blog post with Article JSON-LD, dynamic OG meta tags
-- `/courses/:slug` - Course JSON-LD structured data + dynamic OG meta tags
-- `/courses` - Public courses listing with JSON-LD ItemList schema
-- `/services/:slug` - Service landing pages with OG meta, Twitter cards, JSON-LD Service schema ✅
+**Reduce batch size**: Since each description is now much larger, process **3 modules per batch** instead of 5 to stay within token limits.
+
+**Upgrade model**: Switch from `gemini-2.5-flash-lite` to `gemini-3-flash-preview` for higher quality output on longer-form content.
+
+### 2. Frontend (`BatchDescriptionGenerator.tsx`)
+
+- Update the pending threshold from `< 200` to `< 500` to match
+- Show skipped count in logs when descriptions fail validation
+- Add option to "regenerate all" (treat all existing as pending) via a toggle
+
+### 3. ContentReadinessBadge + ContentList
+
+- Update the 200-char threshold references to 500 chars for consistency
+
+### Files to Edit
+- `supabase/functions/batch-generate-descriptions/index.ts` — new prompt, threshold, validation, model
+- `src/components/dashboard/BatchDescriptionGenerator.tsx` — threshold + UI updates
+- `src/components/dashboard/ContentReadinessBadge.tsx` — threshold update
+
+This will generate descriptions matching your ideal format and fix the "numbers not reducing" bug.
+
