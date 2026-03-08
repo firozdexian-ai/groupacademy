@@ -57,7 +57,7 @@ export function TalentAppShell() {
     if (!talent?.id) return;
     const fetchNotifications = async () => {
       try {
-        const { count } = await supabase.from("notifications" as any).select("id", {
+        const { count } = await supabase.from("notifications").select("id", {
           count: "exact",
           head: true
         }).eq("talent_id", talent.id).eq("is_read", false);
