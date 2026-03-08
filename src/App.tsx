@@ -175,6 +175,7 @@ export default function App() {
               <TooltipProvider>
                 <Toaster />
                 <Sonner />
+                <PWAInstallPrompt />
 
                 <Routes>
                   {/* ================= PUBLIC ROUTES ================= */}
