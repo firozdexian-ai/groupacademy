@@ -319,7 +319,7 @@ export default function ContentEdit() {
                 placeholder="Auto-calculated from price if empty"
               />
               <p className="text-xs text-muted-foreground">
-                Leave empty to auto-calculate from price (1 credit = ৳2). 
+                Leave empty to auto-calculate from price (1 credit = $0.02). 
                 {formData.price && !formData.credit_cost && (
                   <span className="font-medium text-foreground ml-1">
                     Auto: {Math.ceil(parseFloat(formData.price) / 2)} credits
