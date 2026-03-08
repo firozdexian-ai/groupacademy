@@ -73,7 +73,7 @@ export default function ContentEdit() {
         description: data.description || "",
         content_type: data.content_type,
         price: data.price?.toString() || "",
-        currency: data.currency || "BDT",
+        currency: data.currency || "USD",
         credit_cost: data.credit_cost ?? null,
         duration_hours: data.duration_hours?.toString() || "",
         modules_count: data.modules_count?.toString() || "",
