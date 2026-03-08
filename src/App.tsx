@@ -186,7 +186,9 @@ export default function App() {
 
                   {/* Public Content */}
                   <Route path="/courses/:slug" element={<CourseDetail />} />
-                  <Route path="/services" element={<PublicServiceLanding />} />
+                  <Route path="/courses" element={<PublicCourses />} />
+                  <Route path="/services" element={<PublicServices />} />
+                  <Route path="/career-services" element={<PublicServices />} />
                   <Route path="/blog" element={<Blog />} />
                   <Route path="/blog/:slug" element={<BlogPost />} />
 
