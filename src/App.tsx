@@ -28,6 +28,8 @@ import CourseDetail from "./pages/CourseDetail";
 import PublicServiceLanding from "./pages/PublicServiceLanding";
 import PublicServices from "./pages/PublicServices";
 import PublicCourses from "./pages/PublicCourses";
+import ServiceLanding from "./pages/ServiceLanding";
+import { PWAInstallPrompt } from "./components/PWAInstallPrompt";
 
 // Admin Pages
 import Dashboard from "./pages/Dashboard";

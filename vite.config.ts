@@ -56,7 +56,8 @@ export default defineConfig(({ mode }) => ({
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MiB
         globPatterns: ["**/*.{js,css,html,ico,png,jpg,svg,woff2}"],
         navigateFallback: "/index.html",
-        navigateFallbackDenylist: [/^\/api/, /^\/auth/, /^\/\.well-known/],
+        navigateFallbackDenylist: [/^\/api/, /^\/auth/, /^\/\.well-known/, /^\/~oauth/],
+        offlineGoogleAnalytics: false,
         runtimeCaching: [
           {
             // API calls should always go to network first
