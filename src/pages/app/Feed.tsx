@@ -268,7 +268,7 @@ export default function Feed() {
             </Card>
           ) : (
             // Feed Items List
-            <div className="space-y-2 md:space-y-4 pb-20">
+            <div className="space-y-2 md:space-y-4 pb-20 md:pb-4">
               {items.map((item, index) => (
                 <div
                   key={item.id}
@@ -325,7 +325,7 @@ export default function Feed() {
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-primary" /> Your Feed Stats
+                  <TrendingUp className="h-4 w-4 text-primary" /> In Your Feed
                 </CardTitle>
               </CardHeader>
               <CardContent>

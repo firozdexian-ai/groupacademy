@@ -57,7 +57,7 @@ export function TalentAppShell() {
     if (!talent?.id) return;
     const fetchNotifications = async () => {
       try {
-        const { count } = await supabase.from("notifications" as any).select("id", {
+        const { count } = await supabase.from("notifications").select("id", {
           count: "exact",
           head: true
         }).eq("talent_id", talent.id).eq("is_read", false);
@@ -333,7 +333,7 @@ export function TalentAppShell() {
       </main>
 
       {/* --- MOBILE BOTTOM TAB BAR --- */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-background border-t border-border h-[60px] px-2 flex items-center justify-around z-50 pb-safe shadow-[0_-2px_8px_rgba(0,0,0,0.08)]">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-background border-t border-border px-2 flex items-center justify-around z-50 shadow-[0_-2px_8px_rgba(0,0,0,0.08)]" style={{ height: 'calc(60px + env(safe-area-inset-bottom, 0px))', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         {mobileNavItems.map(item => (
           <button key={item.path} onClick={() => navigate(item.path)} className={`flex flex-col items-center justify-center w-full h-full transition-colors ${isActive(item.path) ? "text-primary" : "text-gray-500 dark:text-gray-400"}`}>
             <item.icon className={`h-5 w-5 mb-0.5 ${isActive(item.path) ? "fill-current" : ""}`} />

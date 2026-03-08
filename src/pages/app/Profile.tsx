@@ -8,7 +8,7 @@ import {
   Edit2,
   Sparkles,
   Loader2,
-  Plus,
+  
   Settings,
   MapPin,
   Award,
@@ -138,9 +138,6 @@ export default function Profile() {
           </Button>
         )}
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingSection(section as any)}>
-          <Plus className="h-4 w-4" />
-        </Button>
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingSection(section as any)}>
           <Edit2 className="h-3.5 w-3.5" />
         </Button>
       </div>
@@ -165,11 +162,13 @@ export default function Profile() {
       {/* Cover Banner + Profile Card */}
       <div className="relative mb-5 animate-bounce-in">
         {/* Cover */}
-        {talent.coverImageUrl ? (
-          <img src={talent.coverImageUrl} alt="Cover" className="h-28 w-full object-cover rounded-t-3xl mx-4" />
-        ) : (
-          <div className="h-28 bg-gradient-primary rounded-t-3xl mx-4" />
-        )}
+        <div className="mx-4 rounded-t-3xl overflow-hidden">
+          {talent.coverImageUrl ? (
+            <img src={talent.coverImageUrl} alt="Cover" className="h-28 w-full object-cover" />
+          ) : (
+            <div className="h-28 bg-gradient-primary" />
+          )}
+        </div>
 
         {/* Profile Info - overlapping the banner */}
         <div className="mx-4 -mt-12 relative">
@@ -195,13 +194,13 @@ export default function Profile() {
             {latestExperience && (
               <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
                 <Briefcase className="h-3 w-3" />
-                {latestExperience.title || (latestExperience as any).position} at {latestExperience.company}
+                {latestExperience.title} at {latestExperience.company}
               </p>
             )}
             {latestEducation && (
               <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
                 <GraduationCap className="h-3 w-3" />
-                {latestEducation.degree || (latestEducation as any).field} · {latestEducation.institution}
+                {latestEducation.degree || latestEducation.fieldOfStudy} · {latestEducation.institution}
               </p>
             )}
 
@@ -268,11 +267,11 @@ export default function Profile() {
                       <Briefcase className="h-4 w-4 text-muted-foreground" />
                     </div>
                     <div className="flex-1">
-                      <p className="font-semibold text-sm">{exp.title || (exp as any).position}</p>
+                      <p className="font-semibold text-sm">{exp.title}</p>
                       <p className="text-xs text-muted-foreground">{exp.company}</p>
-                      {(exp as any).startDate && (
+                      {exp.startDate && (
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          {(exp as any).startDate} — {(exp as any).endDate || "Present"}
+                          {exp.startDate} — {exp.endDate || "Present"}
                         </p>
                       )}
                       {exp.description && (
@@ -302,11 +301,11 @@ export default function Profile() {
                       <GraduationCap className="h-4 w-4 text-muted-foreground" />
                     </div>
                     <div>
-                      <p className="font-semibold text-sm">{edu.degree || (edu as any).field}</p>
+                      <p className="font-semibold text-sm">{edu.degree || edu.fieldOfStudy}</p>
                       <p className="text-xs text-muted-foreground">{edu.institution}</p>
-                      {((edu as any).startYear || (edu as any).endYear) && (
+                      {(edu.startYear || edu.endYear) && (
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          {(edu as any).startYear} — {(edu as any).endYear || "Present"}
+                          {edu.startYear} — {edu.endYear || "Present"}
                         </p>
                       )}
                     </div>
