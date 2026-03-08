@@ -426,6 +426,26 @@ const CourseDetail = () => {
     return videoIdMatch ? `https://www.youtube.com/embed/${videoIdMatch[1]}` : null;
   };
 
+  // Dynamic SEO meta tags — must be before early returns
+  useEffect(() => {
+    if (!course) return;
+    document.title = `${course.title} - GroUp Academy`;
+    const setMeta = (prop: string, content: string, attr = "property") => {
+      let el = document.querySelector(`meta[${attr}="${prop}"]`);
+      if (!el) { el = document.createElement("meta"); el.setAttribute(attr, prop); document.head.appendChild(el); }
+      el.setAttribute("content", content);
+    };
+    const url = `https://groupacademy.lovable.app/courses/${course.slug}`;
+    setMeta("og:title", course.title);
+    setMeta("og:description", course.description || `Enroll in ${course.title} at GroUp Academy`);
+    setMeta("og:url", url);
+    setMeta("og:type", "website");
+    if (course.cover_image_url) setMeta("og:image", course.cover_image_url);
+    setMeta("twitter:title", course.title, "name");
+    setMeta("twitter:description", course.description || course.title, "name");
+    setMeta("description", course.description || `Enroll in ${course.title} at GroUp Academy`, "name");
+  }, [course]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
@@ -505,25 +525,6 @@ const CourseDetail = () => {
   const spotsRemaining = course.max_capacity ? course.max_capacity - course.current_enrollment : null;
   const currentUrl = window.location.href;
   const embedUrl = getYouTubeEmbedUrl(course.youtube_url);
-
-  // Dynamic SEO meta tags
-  useEffect(() => {
-    document.title = `${course.title} - GroUp Academy`;
-    const setMeta = (prop: string, content: string, attr = "property") => {
-      let el = document.querySelector(`meta[${attr}="${prop}"]`);
-      if (!el) { el = document.createElement("meta"); el.setAttribute(attr, prop); document.head.appendChild(el); }
-      el.setAttribute("content", content);
-    };
-    const url = `https://groupacademy.lovable.app/courses/${course.slug}`;
-    setMeta("og:title", course.title);
-    setMeta("og:description", course.description || `Enroll in ${course.title} at GroUp Academy`);
-    setMeta("og:url", url);
-    setMeta("og:type", "website");
-    if (course.cover_image_url) setMeta("og:image", course.cover_image_url);
-    setMeta("twitter:title", course.title, "name");
-    setMeta("twitter:description", course.description || course.title, "name");
-    setMeta("description", course.description || `Enroll in ${course.title} at GroUp Academy`, "name");
-  }, [course]);
 
   const courseJsonLd = {
     "@context": "https://schema.org",
