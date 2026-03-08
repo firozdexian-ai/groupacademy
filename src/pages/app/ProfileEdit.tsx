@@ -70,8 +70,8 @@ export default function ProfileEdit() {
       setFormData({
         fullName: talent.fullName || "",
         phone: talent.phone || "",
-        countryCode: (talent as any).country_code || "+880",
-        country: (talent as any).country || "BD",
+        countryCode: talent.countryCode || "+880",
+        country: talent.country || "BD",
         customProfession: talent.customProfession || "",
         currentStatus: talent.currentStatus || "",
         institution: talent.institution || "",

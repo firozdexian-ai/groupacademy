@@ -8,7 +8,7 @@ import {
   Edit2,
   Sparkles,
   Loader2,
-  Plus,
+  
   Settings,
   MapPin,
   Award,
