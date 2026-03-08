@@ -1,9 +1,9 @@
+import { useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Helmet } from "react-helmet-async";
-import { ArrowRight, CheckCircle2, Star, Zap, Clock, Users, Target, TrendingUp, FileText, Mic, DollarSign, Briefcase } from "lucide-react";
+import { ArrowRight, CheckCircle2, Target, Mic, DollarSign, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import Footer from "@/components/Footer";
-import Navbar from "@/components/Navbar";
+import { Footer } from "@/components/Footer";
+import { Navbar } from "@/components/Navbar";
 
 const SERVICES: Record<string, {
   title: string;
