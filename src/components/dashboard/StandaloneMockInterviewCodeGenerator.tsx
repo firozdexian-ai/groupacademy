@@ -100,7 +100,7 @@ export function StandaloneMockInterviewCodeGenerator() {
           Mock Interview Codes
         </CardTitle>
         <CardDescription>
-          Generate access codes for AI Mock Interview retakes (BDT 100 each)
+          Generate access codes for AI Mock Interview retakes (50 Credits each)
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

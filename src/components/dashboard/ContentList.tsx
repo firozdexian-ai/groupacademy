@@ -301,7 +301,7 @@ const ContentList = ({ filter }: ContentListProps) => {
 
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">{typeConfig.label}</span>
-                      {item.price > 0 && <span className="font-semibold text-primary">BDT {item.price}</span>}
+                      {item.price > 0 && <span className="font-semibold text-primary">${item.price}</span>}
                     </div>
 
                     {item.instructor_name && (

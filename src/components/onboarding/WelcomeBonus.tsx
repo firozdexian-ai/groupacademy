@@ -67,7 +67,7 @@ export function WelcomeBonus({ onContinue }: WelcomeBonusProps) {
           {displayedCredits}
         </div>
         <p className="text-lg text-foreground font-medium">Credits</p>
-        <p className="text-sm text-muted-foreground mt-1">Worth ৳500</p>
+        <p className="text-sm text-muted-foreground mt-1">Worth $5</p>
       </div>
 
       {/* What are credits expandable */}

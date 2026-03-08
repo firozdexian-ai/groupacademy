@@ -138,7 +138,7 @@ const SalaryAnalysisProcessing = () => {
                 </div>
                 <div className="text-xs text-muted-foreground">
                   <p>• Comparing your skills to market requirements</p>
-                  <p>• Calculating salary benchmarks for Bangladesh</p>
+                  <p>• Calculating salary benchmarks for your market</p>
                   <p>• Generating personalized negotiation tips</p>
                 </div>
               </>

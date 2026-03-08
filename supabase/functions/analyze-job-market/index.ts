@@ -106,7 +106,7 @@ Company: ${job.company_name}
 Type: ${job.job_type}
 Experience Level: ${job.experience_level}
 Location: ${job.location || "Not specified"}
-Salary Range: ${job.salary_range_min && job.salary_range_max ? `BDT ${job.salary_range_min.toLocaleString()} - ${job.salary_range_max.toLocaleString()}` : "Not disclosed"}
+Salary Range: ${job.salary_range_min && job.salary_range_max ? `$${job.salary_range_min.toLocaleString()} - $${job.salary_range_max.toLocaleString()}` : "Not disclosed"}
 Posted: ${new Date(job.created_at).toLocaleDateString()}
 Deadline: ${job.deadline ? new Date(job.deadline).toLocaleDateString() : "Not specified"}
 Description: ${job.description?.substring(0, 800) || "Not specified"}

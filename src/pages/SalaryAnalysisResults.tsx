@@ -262,7 +262,7 @@ const SalaryAnalysisResults = () => {
               </div>
               <div className="p-4 bg-muted/50 rounded-lg">
                 <p className="text-sm text-muted-foreground">Maximum</p>
-                <p className="text-2xl font-bold">৳{formatSalary(salaryRange?.max_monthly)}</p>
+                <p className="text-2xl font-bold">${formatSalary(salaryRange?.max_monthly)}</p>
                 <p className="text-xs text-muted-foreground">/month</p>
               </div>
             </div>

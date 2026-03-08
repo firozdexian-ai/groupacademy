@@ -180,7 +180,7 @@ export function SalaryAnalysisPDFTemplate({ analysis }: Props) {
           </div>
           <div style={{ flex: 1, backgroundColor: BRAND.background, padding: "16px", borderRadius: "12px", textAlign: "center" }}>
             <p style={{ fontSize: "12px", color: BRAND.muted, margin: "0 0 4px 0" }}>Maximum</p>
-            <p style={{ fontSize: "20px", fontWeight: "bold", margin: 0 }}>৳{formatSalary(salaryRange.max_monthly)}</p>
+            <p style={{ fontSize: "20px", fontWeight: "bold", margin: 0 }}>${formatSalary(salaryRange.max_monthly)}</p>
             <p style={{ fontSize: "11px", color: BRAND.muted, margin: 0 }}>/month</p>
           </div>
         </div>

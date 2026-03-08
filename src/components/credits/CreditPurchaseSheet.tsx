@@ -111,7 +111,7 @@ export function CreditPurchaseSheet({
           </Button>
 
           <p className="text-xs text-center text-muted-foreground">
-            Payment via bKash, Nagad, or bank transfer. Credits added within 30 minutes.
+            Secure payment via card, bank transfer, or mobile wallet. Credits added within 30 minutes.
           </p>
         </div>
       </SheetContent>

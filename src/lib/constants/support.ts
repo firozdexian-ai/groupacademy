@@ -31,7 +31,7 @@ export function getExpediteMessage(jobTitle: string, companyName: string): strin
  * Generate credit purchase message for WhatsApp
  */
 export function getCreditPurchaseMessage(credits: number, price: number, currentBalance: number): string {
-  return `Hi, I want to purchase ${credits} credits for BDT ${price}. My current balance is ${currentBalance} credits.`;
+  return `Hi, I want to purchase ${credits} credits for $${price} USD. My current balance is ${currentBalance} credits.`;
 }
 
 /**

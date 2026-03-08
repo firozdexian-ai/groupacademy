@@ -322,7 +322,7 @@ export default function ContentEdit() {
                 Leave empty to auto-calculate from price (1 credit = $0.02). 
                 {formData.price && !formData.credit_cost && (
                   <span className="font-medium text-foreground ml-1">
-                    Auto: {Math.ceil(parseFloat(formData.price) / 2)} credits
+                    Auto: {Math.ceil(parseFloat(formData.price) / 0.02)} credits
                   </span>
                 )}
               </p>

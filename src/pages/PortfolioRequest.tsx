@@ -913,9 +913,9 @@ function PortfolioRequestContent() {
                   </div>
 
                   <div className="bg-primary/10 p-4 rounded-lg">
-                    <h4 className="font-semibold mb-2">Service Fee: BDT 100</h4>
+                    <h4 className="font-semibold mb-2">Service Fee: 500 Credits</h4>
                     <p className="text-sm text-muted-foreground">
-                      Payment will be collected via WhatsApp after our team contacts you.
+                      Credits will be deducted from your balance upon confirmation.
                     </p>
                   </div>
                 </div>

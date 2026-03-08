@@ -185,7 +185,7 @@ const ContentNew = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="price">Price (BDT)</Label>
+                    <Label htmlFor="price">Price (USD)</Label>
                     <Input
                       id="price"
                       type="number"

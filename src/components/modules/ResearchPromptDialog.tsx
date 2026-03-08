@@ -45,7 +45,7 @@ ${talkingPoints}
 Provide comprehensive, actionable research covering:
 1. Key concepts, definitions, and frameworks
 2. Industry best practices and standards
-3. Real-world examples and case studies (preferably from Bangladesh/South Asia context)
+3. Real-world examples and case studies from global contexts
 4. Common mistakes and misconceptions
 5. Tools, templates, or resources relevant to this topic
 6. Assessment-worthy questions and discussion points

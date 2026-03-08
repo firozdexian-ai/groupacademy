@@ -135,7 +135,7 @@ const InstructorNew = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="hourly_rate">Hourly Rate (BDT)</Label>
+                  <Label htmlFor="hourly_rate">Hourly Rate (USD)</Label>
                   <Input
                     id="hourly_rate"
                     type="number"

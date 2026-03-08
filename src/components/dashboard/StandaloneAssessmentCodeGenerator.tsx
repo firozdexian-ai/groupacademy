@@ -100,7 +100,7 @@ export function StandaloneAssessmentCodeGenerator() {
           Assessment Retake Codes
         </CardTitle>
         <CardDescription>
-          Generate access codes for Career Readiness Scorecard retakes (BDT 100 each)
+          Generate access codes for Career Readiness Scorecard retakes (50 Credits each)
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

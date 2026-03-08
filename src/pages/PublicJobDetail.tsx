@@ -129,9 +129,9 @@ export default function PublicJobDetail() {
 
   const formatSalary = (min: number | null, max: number | null) => {
     if (!min && !max) return null;
-    if (min && max) return `BDT ${min.toLocaleString()} - ${max.toLocaleString()}`;
-    if (min) return `BDT ${min.toLocaleString()}+`;
-    if (max) return `Up to BDT ${max.toLocaleString()}`;
+    if (min && max) return `$${min.toLocaleString()} - $${max.toLocaleString()}`;
+    if (min) return `$${min.toLocaleString()}+`;
+    if (max) return `Up to $${max.toLocaleString()}`;
     return null;
   };
 

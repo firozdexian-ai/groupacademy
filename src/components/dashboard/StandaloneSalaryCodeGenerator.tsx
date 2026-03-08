@@ -100,7 +100,7 @@ export function StandaloneSalaryCodeGenerator() {
           Salary Analysis Codes
         </CardTitle>
         <CardDescription>
-          Generate access codes for AI Salary Analysis retakes (BDT 100 each)
+          Generate access codes for AI Salary Analysis retakes (50 Credits each)
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

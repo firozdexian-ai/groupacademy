@@ -378,7 +378,7 @@ const SalaryAnalysisSetupContent = () => {
               </CardTitle>
               <CardDescription>
                 You have {daysRemaining} day(s) remaining before your next free analysis. 
-                Use an access code (BDT 100) to analyze now.
+                Use an access code (50 Credits) to analyze now.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">

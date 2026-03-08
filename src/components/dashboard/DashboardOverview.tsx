@@ -262,7 +262,7 @@ export function DashboardOverview() {
         <StatsCard title="Total Talents" value={stats.totalTalents} icon={Users} trendLabel="Registered users" />
         <StatsCard
           title="Total Revenue"
-          value={`BDT ${stats.revenue.toLocaleString()}`}
+          value={`$${stats.revenue.toLocaleString()}`}
           icon={DollarSign}
           variant="success"
           trendLabel="Lifetime revenue"

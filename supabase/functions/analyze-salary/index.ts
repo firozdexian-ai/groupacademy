@@ -116,7 +116,7 @@ Please provide a detailed analysis in the following JSON format:
     "max_monthly": <number>,
     "median_monthly": <number>,
     "experience_level": "entry|mid|senior|executive",
-    "market_context": "Brief explanation of how this range was determined for Bangladesh market"
+    "market_context": "Brief explanation of how this range was determined for the target market"
   },
   "skills_analysis": {
     "matching_skills": ["skill1", "skill2"],

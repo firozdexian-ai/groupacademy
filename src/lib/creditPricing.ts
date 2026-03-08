@@ -1,12 +1,12 @@
 /**
  * GroUp Academy Credit System Configuration
- * 1 credit = 2 taka
+ * 1 credit = $0.02 USD
  */
 
 export const CREDIT_CONFIG = {
   WELCOME_BONUS: 250,
   WHATSAPP_CONNECT_BONUS: 10,
-  CREDIT_TO_TAKA: 2, // 1 credit = 2 taka
+  CREDIT_TO_USD: 0.02, // 1 credit = $0.02 USD
   
   SERVICES: {
     CAREER_ASSESSMENT: {
@@ -72,10 +72,10 @@ export const CREDIT_CONFIG = {
   },
   
   BUNDLES: [
-    { credits: 100, price: 200, savings: 0 },
-    { credits: 500, price: 900, savings: 100 },
-    { credits: 1000, price: 1600, savings: 400 },
-    { credits: 2500, price: 3750, savings: 1250 }
+    { credits: 100, price: 2, savings: 0 },
+    { credits: 500, price: 9, savings: 1 },
+    { credits: 1000, price: 16, savings: 4 },
+    { credits: 2500, price: 37.5, savings: 12.5 }
   ]
 } as const;
 
@@ -89,28 +89,28 @@ export function getServiceCost(service: ServiceType): number {
 }
 
 /**
- * Convert credits to taka
+ * Convert credits to USD
  */
-export function creditsToTaka(credits: number): number {
-  return credits * CREDIT_CONFIG.CREDIT_TO_TAKA;
+export function creditsToUSD(credits: number): number {
+  return credits * CREDIT_CONFIG.CREDIT_TO_USD;
 }
 
 /**
- * Convert taka to credits
+ * Convert USD to credits
  */
-export function takaToCredits(taka: number): number {
-  return Math.floor(taka / CREDIT_CONFIG.CREDIT_TO_TAKA);
+export function usdToCredits(usd: number): number {
+  return Math.floor(usd / CREDIT_CONFIG.CREDIT_TO_USD);
 }
 
 /**
  * Get the credit cost for a course
- * Uses direct credit_cost if set, otherwise calculates from BDT price
+ * Uses direct credit_cost if set, otherwise calculates from USD price
  */
-export function getCourseCredits(priceTaka: number, creditCost?: number | null): number {
+export function getCourseCredits(priceUSD: number, creditCost?: number | null): number {
   // Direct credit cost takes precedence
   if (creditCost !== undefined && creditCost !== null) {
     return creditCost;
   }
   // Fallback to price calculation
-  return Math.ceil(priceTaka / CREDIT_CONFIG.CREDIT_TO_TAKA);
+  return Math.ceil(priceUSD / CREDIT_CONFIG.CREDIT_TO_USD);
 }

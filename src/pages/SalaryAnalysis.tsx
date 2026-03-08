@@ -71,7 +71,7 @@ const SalaryAnalysis = () => {
               </Link>
             </Button>
             <p className="text-sm text-muted-foreground mt-4">
-              First analysis FREE • Retakes BDT 100
+              First analysis FREE • Retakes 50 Credits
             </p>
           </div>
         </div>

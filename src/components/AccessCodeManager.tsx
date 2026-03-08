@@ -228,7 +228,7 @@ export const AccessCodeManager = () => {
                   <SelectContent>
                     {paidContent.map((content) => (
                       <SelectItem key={content.id} value={content.id}>
-                        {content.title} - BDT {content.price}
+                        {content.title} - ${content.price}
                       </SelectItem>
                     ))}
                   </SelectContent>

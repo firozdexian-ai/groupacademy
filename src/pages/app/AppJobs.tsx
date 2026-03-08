@@ -337,7 +337,7 @@ export default function AppJobs() {
           ))}
           {salaryRange[0] > 0 && (
             <Badge variant="secondary" className="gap-1">
-              Min ৳{salaryRange[0]}k
+              Min ${salaryRange[0]}k
               <X className="w-3 h-3 cursor-pointer" onClick={() => setSalaryRange([0])} />
             </Badge>
           )}
