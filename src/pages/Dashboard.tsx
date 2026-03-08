@@ -105,6 +105,7 @@ const tabAccessMap: Record<string, AppRole[]> = {
   "company-agents": ["admin"],
   "agent-sessions": ["admin"],
   gigs: ["admin"],
+  "marketplace-gigs": ["admin"],
   "gig-submissions": ["admin"],
   credits: ["admin"],
   notifications: ["admin"],
