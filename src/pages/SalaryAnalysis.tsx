@@ -56,7 +56,7 @@ const SalaryAnalysis = () => {
             </div>
             <Badge className="mb-4 gap-2 border-primary/30 text-primary" variant="outline">
               <Sparkles className="w-3 h-3" />
-              First Analysis Free • Retakes BDT 100
+              First Analysis Free • Retakes 50 Credits
             </Badge>
             <h1 className="text-4xl md:text-5xl font-heading font-bold mb-6">
               AI Salary Analysis
