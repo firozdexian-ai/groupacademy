@@ -129,6 +129,13 @@ export default function ServiceLanding() {
     setMeta("description", service.metaDescription);
     setMeta("og:title", `${service.title} | GroUp Academy`, "og:title");
     setMeta("og:description", service.metaDescription, "og:description");
+    setMeta("og:type", "website", "og:type");
+    setMeta("og:url", `https://groupacademy.lovable.app/services/${serviceSlug}`, "og:url");
+    setMeta("og:image", "https://groupacademy.lovable.app/og-image.png", "og:image");
+    setMeta("twitter:card", "summary_large_image", "twitter:card");
+    setMeta("twitter:title", `${service.title} | GroUp Academy`, "twitter:title");
+    setMeta("twitter:description", service.metaDescription, "twitter:description");
+    setMeta("twitter:image", "https://groupacademy.lovable.app/og-image.png", "twitter:image");
 
     const jsonLd = {
       "@context": "https://schema.org",
