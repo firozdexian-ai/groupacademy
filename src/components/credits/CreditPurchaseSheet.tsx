@@ -9,7 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { CREDIT_CONFIG, creditsToTaka } from '@/lib/creditPricing';
+import { CREDIT_CONFIG, creditsToUSD } from '@/lib/creditPricing';
 import { cn } from '@/lib/utils';
 import { SUPPORT_CONFIG, getCreditPurchaseMessage } from '@/lib/constants/support';
 
