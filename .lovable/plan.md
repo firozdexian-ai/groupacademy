@@ -1,29 +1,82 @@
 
 
-# GroUp Academy — Build Progress
+# GroUp Academy — Vision Progress Report
 
-## Schools
+## Completed Since Last Check
 
-| School | Programs | Courses | Modules | Status |
-|---|---|---|---|---|
-| Social Media | 4 | 56 | 252 | ✅ |
-| Personal Branding | 4 | 56 | 249 | ✅ |
-| Content Creation | 4 | 56 | 248 | ✅ |
+- **Public Blog System**: `/blog` index with search, category filters, JSON-LD Blog schema; `/blog/:slug` posts with Article JSON-LD and dynamic OG meta tags.
+- **Course OpenGraph**: Dynamic `og:title`, `og:image`, `twitter:card` meta tags on `/courses/:slug` pages with Course JSON-LD structured data.
+- **Public Courses SEO**: `/courses` listing with JSON-LD ItemList schema.
 
-**Influencing Academy: 100% COMPLETE ✅**
+## Current Completion
 
-## Certificates
+| Domain | % | Change |
+|---|---|---|
+| Academy Content (7 Academies) | 95% | — |
+| Career Services (6 services) | 90% | — |
+| Jobs Platform | 85% | — |
+| AI Layer (29+ edge functions) | 90% | — |
+| Gig Marketplace | 75% | — |
+| Credits & Monetization | 70% | — |
+| Feed & Engagement | 80% | — |
+| Admin Dashboard | 92% | — |
+| Auth & Onboarding | 85% | — |
+| Global Readiness | 85% | — |
+| Payments (Stripe) | 15% | Blocked on API key |
+| Notifications (email/push) | 78% | — |
+| **Public Discovery / SEO** | **80%** | **↑25** (blog + OG + course pages) |
+| PWA Polish | 65% | — |
+| Certificates | 80% | — |
+| Employer Self-Service | 0% | — |
+| In-App Messaging | 0% | — |
+| Learner Analytics Dashboard | 0% | — |
+| i18n / Multi-language | 0% | — |
 
-- `certificates` table with unique verify codes, RLS policies
-- `CertificatePDFTemplate` - branded landscape PDF with verification URL
-- `/verify/:code` - public verification page
-- Auto-issue on quiz pass from ReportCard page
-- Copy shareable verification link
+```text
+Overall Platform:          ███████████████████████░░░░░  ~75%  (was ~73%)
+Launch-Ready:              ███████████████████░░░░░░░░░  ~66%  (was ~63%)
+Market Leader:             ██████████░░░░░░░░░░░░░░░░░░  ~37%
+```
 
-## Public SEO & OpenGraph
+## Course of Action — Priority Order
 
-- `/blog` - Public blog index with JSON-LD Blog schema, category filters, search
-- `/blog/:slug` - Public blog post with Article JSON-LD, dynamic OG meta tags
-- `/courses/:slug` - Course JSON-LD structured data + dynamic OG meta tags
-- `/courses` - Public courses listing with JSON-LD ItemList schema
-- Dynamic `og:title`, `og:description`, `og:image`, `twitter:*` tags on all public pages
+### Phase A: Launch-Ready (immediate)
+
+| # | Item | Status | Impact |
+|---|------|--------|--------|
+| 1 | **Stripe Payment** — Provide API key, flip toggle | Blocked on key | Critical |
+| 2 | **PWA: Push notifications** — Web push registration + delivery | Not started | Medium |
+| 3 | **Public SEO: Service landing OG tags** — OpenGraph meta for `/service/:slug` pages | Not started | Low |
+
+### Phase B: Trust & Retention
+
+| # | Item | Status |
+|---|------|--------|
+| 4 | Certificates: Email notification on issuance | Not started |
+| 5 | Employer Self-Service Portal | Not started |
+| 6 | Learner Analytics Dashboard | Not started |
+| 7 | In-App Messaging | Not started |
+
+### Phase C: Growth & Scale
+
+| # | Item |
+|---|------|
+| 8 | Public Talent Directory |
+| 9 | Referral & Affiliate System |
+| 10 | Multi-Language (i18n) |
+| 11 | Mobile Push Notifications |
+| 12 | Employer Dashboard & Analytics |
+
+### Phase D: Dominance
+
+| # | Item |
+|---|------|
+| 13 | AI Career Coach (persistent) |
+| 14 | Enterprise Tier |
+| 15 | API & Integrations |
+| 16 | Community Features |
+
+## Recommended Next Step
+
+**Item #2 — PWA Push Notifications** is the next high-impact buildable item. Adding web push registration and delivery would close the engagement loop — users get notified about new courses, job matches, and certificate completions even when not on the platform. This pairs well with the existing email notification system. Alternatively, **Item #6 — Learner Analytics Dashboard** would give students visibility into their progress across courses, assessments, and certificates. Stripe remains blocked on your API key.
+
