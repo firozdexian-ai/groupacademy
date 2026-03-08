@@ -80,7 +80,7 @@ export function CreditPurchaseSheet({
                       </div>
                       {bundle.savings > 0 && (
                         <Badge variant="secondary" className="text-accent">
-                          Save ৳{bundle.savings}
+                          Save ${bundle.savings}
                         </Badge>
                       )}
                     </div>
