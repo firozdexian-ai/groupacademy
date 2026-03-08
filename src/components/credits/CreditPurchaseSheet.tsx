@@ -1,4 +1,4 @@
-import { Coins, MessageCircle, Check, Sparkles } from 'lucide-react';
+import { Coins, MessageCircle, Check, Sparkles, CreditCard, Loader2 } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -12,6 +12,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { CREDIT_CONFIG, creditsToUSD } from '@/lib/creditPricing';
 import { cn } from '@/lib/utils';
 import { SUPPORT_CONFIG, getCreditPurchaseMessage } from '@/lib/constants/support';
+import { usePaymentConfig } from '@/hooks/usePaymentConfig';
 
 interface CreditPurchaseSheetProps {
   isOpen: boolean;
@@ -24,6 +25,8 @@ export function CreditPurchaseSheet({
   onClose,
   currentBalance,
 }: CreditPurchaseSheetProps) {
+  const { showWhatsApp, showStripe, isStripeConfigured, isLoading: configLoading } = usePaymentConfig();
+
   const handlePurchase = (credits: number, price: number) => {
     const message = getCreditPurchaseMessage(credits, price, currentBalance);
     window.open(`${SUPPORT_CONFIG.WHATSAPP_LINK}?text=${encodeURIComponent(message)}`, '_blank');
@@ -104,14 +107,32 @@ export function CreditPurchaseSheet({
             </p>
           </div>
 
-          {/* WhatsApp CTA */}
-          <Button className="w-full" size="lg" onClick={() => handlePurchase(500, 900)}>
-            <MessageCircle className="mr-2 h-5 w-5" />
-            Purchase on WhatsApp
-          </Button>
+          {/* Payment CTAs */}
+          <div className="space-y-2">
+            {showWhatsApp && (
+              <Button className="w-full" size="lg" onClick={() => handlePurchase(500, 900)}>
+                <MessageCircle className="mr-2 h-5 w-5" />
+                Purchase on WhatsApp
+              </Button>
+            )}
+
+            {showStripe && (
+              <Button
+                className="w-full"
+                size="lg"
+                variant={showWhatsApp ? 'outline' : 'default'}
+                disabled={!isStripeConfigured}
+              >
+                <CreditCard className="mr-2 h-5 w-5" />
+                {isStripeConfigured ? 'Pay with Card' : 'Card Payments Coming Soon'}
+              </Button>
+            )}
+          </div>
 
           <p className="text-xs text-center text-muted-foreground">
-            Secure payment via card, bank transfer, or mobile wallet. Credits added within 30 minutes.
+            {showWhatsApp
+              ? 'Secure payment via card, bank transfer, or mobile wallet. Credits added within 30 minutes.'
+              : 'Secure checkout powered by Stripe.'}
           </p>
         </div>
       </SheetContent>

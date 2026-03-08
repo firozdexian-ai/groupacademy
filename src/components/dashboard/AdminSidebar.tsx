@@ -35,6 +35,7 @@ import {
   Target,
   Landmark,
   Mail,
+  CreditCard,
 } from "lucide-react";
 import {
   Sidebar,
@@ -168,6 +169,7 @@ const navGroups: NavGroup[] = [
       { title: "Banners", icon: ImageIcon, value: "banners" },
       { title: "Professions", icon: GraduationCap, value: "professions" },
       { title: "Team Members", icon: UserCog, value: "team" },
+      { title: "Payments", icon: CreditCard, value: "payments" },
     ],
   },
 ];

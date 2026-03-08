@@ -47,6 +47,7 @@ import { BatchDescriptionGenerator } from "@/components/dashboard/BatchDescripti
 import { VCFirmsManager } from "@/components/dashboard/ir/VCFirmsManager";
 import { InvestorsManager } from "@/components/dashboard/ir/InvestorsManager";
 import { EmailComposer } from "@/components/dashboard/ir/EmailComposer";
+import { PaymentSettingsManager } from "@/components/dashboard/PaymentSettingsManager";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -122,6 +123,7 @@ const tabAccessMap: Record<string, AppRole[]> = {
   banners: ["admin"],
   professions: ["admin"],
   team: ["admin"],
+  payments: ["admin"],
 };
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -334,6 +336,8 @@ const Dashboard = () => {
         return <InvestorsManager />;
       case "ir-emails":
         return <EmailComposer />;
+      case "payments":
+        return <PaymentSettingsManager />;
       default:
         return userRole === "talent_exec" ? <CVOutreachGenerator /> : <DashboardOverview />;
     }
@@ -387,6 +391,7 @@ const Dashboard = () => {
       "ir-vcs": "VC Firms",
       "ir-investors": "Investors",
       "ir-emails": "Email Updates",
+      payments: "Payment Settings",
     };
     return titles[activeTab] || "Dashboard";
   };
