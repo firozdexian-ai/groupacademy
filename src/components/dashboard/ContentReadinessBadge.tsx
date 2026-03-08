@@ -22,7 +22,7 @@ const ContentReadinessBadge = ({ stats }: ContentReadinessBadgeProps) => {
   const descPct = Math.round((stats.modules_with_desc / stats.module_count) * 100);
   const videoPct = Math.round((stats.modules_with_video / stats.module_count) * 100);
   const overallPct = Math.round(((descPct + videoPct) / 2));
-  const hasAI = descPct === 100;
+  const hasAI = descPct === 100; // Note: modules_with_desc counts descriptions >= 500 chars
 
   const colorClass = (pct: number) =>
     pct === 100 ? "text-emerald-600" : pct > 0 ? "text-amber-500" : "text-destructive";

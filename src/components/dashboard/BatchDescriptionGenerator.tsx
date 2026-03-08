@@ -5,8 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Play, Square, Loader2, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Play, Square, Loader2, CheckCircle2, AlertTriangle, RotateCcw } from "lucide-react";
+
+const MIN_DESCRIPTION_LENGTH = 500;
 
 interface SchoolInfo {
   id: string;
@@ -21,14 +25,15 @@ export function BatchDescriptionGenerator() {
   const [isRunning, setIsRunning] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [processed, setProcessed] = useState(0);
+  const [skippedTotal, setSkippedTotal] = useState(0);
   const [totalPending, setTotalPending] = useState(0);
   const [batchLog, setBatchLog] = useState<string[]>([]);
+  const [regenerateAll, setRegenerateAll] = useState(false);
   const stopRef = useRef(false);
 
   const fetchSchools = useCallback(async () => {
     setIsLoading(true);
     try {
-      // Get all schools
       const { data: schoolsData } = await supabase
         .from("schools")
         .select("id, name")
@@ -38,7 +43,6 @@ export function BatchDescriptionGenerator() {
 
       const schoolInfos: SchoolInfo[] = [];
       for (const school of schoolsData) {
-        // Get programs under this school
         const { data: programs } = await supabase
           .from("profession_categories")
           .select("id")
@@ -47,7 +51,6 @@ export function BatchDescriptionGenerator() {
         if (!programs || programs.length === 0) continue;
         const programIds = programs.map((p) => p.id);
 
-        // Get content for these programs
         const { data: contents } = await supabase
           .from("content")
           .select("id")
@@ -56,20 +59,18 @@ export function BatchDescriptionGenerator() {
         if (!contents || contents.length === 0) continue;
         const contentIds = contents.map((c) => c.id);
 
-        // Count total modules
         const { count: totalCount } = await supabase
           .from("course_modules")
           .select("id", { count: "exact", head: true })
           .in("content_id", contentIds);
 
-        // Get modules to check description length
         const { data: allModules } = await supabase
           .from("course_modules")
           .select("id, description")
           .in("content_id", contentIds);
 
         const pendingCount = (allModules || []).filter(
-          (m) => (m.description || "").length < 200
+          (m) => (m.description || "").length < MIN_DESCRIPTION_LENGTH
         ).length;
 
         if (totalCount && totalCount > 0) {
@@ -111,9 +112,11 @@ export function BatchDescriptionGenerator() {
     setIsRunning(true);
     stopRef.current = false;
     setProcessed(0);
-    setTotalPending(school.pending);
+    setSkippedTotal(0);
+    const startPending = regenerateAll ? school.total : school.pending;
+    setTotalPending(startPending);
     setBatchLog([]);
-    addLog(`Starting batch generation for "${school.name}" (${school.pending} modules pending)`);
+    addLog(`Starting batch generation for "${school.name}" (${startPending} modules ${regenerateAll ? "total - regenerating all" : "pending"})`);
 
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
@@ -123,7 +126,8 @@ export function BatchDescriptionGenerator() {
     }
 
     let totalProcessed = 0;
-    let remaining = school.pending;
+    let totalSkipped = 0;
+    let remaining = startPending;
     let consecutiveErrors = 0;
 
     while (remaining > 0 && !stopRef.current) {
@@ -137,7 +141,11 @@ export function BatchDescriptionGenerator() {
               Authorization: `Bearer ${session.access_token}`,
               apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
             },
-            body: JSON.stringify({ school_id: selectedSchool, batch_size: 5 }),
+            body: JSON.stringify({
+              school_id: selectedSchool,
+              batch_size: 3,
+              regenerate_all: regenerateAll,
+            }),
           }
         );
 
@@ -161,23 +169,26 @@ export function BatchDescriptionGenerator() {
 
         const result = await response.json();
 
-        if (result.processed === 0) {
-          addLog("✅ All modules in this school now have descriptions!");
+        if (result.processed === 0 && (result.skipped || 0) === 0) {
+          addLog("✅ All modules in this school now have rich descriptions!");
           remaining = 0;
           break;
         }
 
         totalProcessed += result.processed;
+        totalSkipped += result.skipped || 0;
         remaining = result.remaining;
         setProcessed(totalProcessed);
+        setSkippedTotal(totalSkipped);
         setTotalPending(totalProcessed + remaining);
         consecutiveErrors = 0;
 
-        addLog(`✓ Generated ${result.processed} descriptions (${remaining} remaining)`);
+        const skippedNote = result.skipped > 0 ? ` (${result.skipped} skipped - too short)` : "";
+        addLog(`✓ Generated ${result.processed} descriptions${skippedNote} (${remaining} remaining)`);
 
-        // Wait 2s between batches
+        // Wait 3s between batches (longer for richer content)
         if (remaining > 0 && !stopRef.current) {
-          await new Promise((r) => setTimeout(r, 2000));
+          await new Promise((r) => setTimeout(r, 3000));
         }
       } catch (err: unknown) {
         consecutiveErrors++;
@@ -195,9 +206,9 @@ export function BatchDescriptionGenerator() {
     }
 
     if (stopRef.current) {
-      addLog(`⏹ Stopped by user. Processed ${totalProcessed} modules total.`);
+      addLog(`⏹ Stopped by user. Processed ${totalProcessed} modules total.${totalSkipped > 0 ? ` ${totalSkipped} skipped.` : ""}`);
     } else {
-      addLog(`🎉 Done! Processed ${totalProcessed} modules total.`);
+      addLog(`🎉 Done! Processed ${totalProcessed} modules total.${totalSkipped > 0 ? ` ${totalSkipped} skipped (too short).` : ""}`);
     }
 
     setIsRunning(false);
@@ -225,7 +236,7 @@ export function BatchDescriptionGenerator() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Modules Needing Descriptions</CardDescription>
+            <CardDescription>Modules Needing Rich Descriptions</CardDescription>
             <CardTitle className="text-2xl text-destructive">{totalGlobalPending.toLocaleString()}</CardTitle>
           </CardHeader>
         </Card>
@@ -242,10 +253,10 @@ export function BatchDescriptionGenerator() {
       {/* Controls */}
       <Card>
         <CardHeader>
-          <CardTitle>Batch AI Description Generator</CardTitle>
+          <CardTitle>Batch AI Content Guide Generator</CardTitle>
           <CardDescription>
-            Select a school and generate AI descriptions for all modules with placeholder descriptions (&lt;200 chars).
-            Processes 5 modules per batch with automatic pacing.
+            Generates rich 5-7 bullet point content guides for modules with short descriptions (&lt;{MIN_DESCRIPTION_LENGTH} chars).
+            Processes 3 modules per batch with automatic pacing.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -275,7 +286,7 @@ export function BatchDescriptionGenerator() {
             {!isRunning ? (
               <Button
                 onClick={runBatch}
-                disabled={!selectedSchool || isLoading || (selectedSchoolInfo?.pending === 0)}
+                disabled={!selectedSchool || isLoading || (!regenerateAll && selectedSchoolInfo?.pending === 0)}
                 className="gap-2"
               >
                 <Play className="w-4 h-4" />
@@ -289,6 +300,25 @@ export function BatchDescriptionGenerator() {
             )}
           </div>
 
+          {/* Regenerate All Toggle */}
+          <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+            <RotateCcw className="w-4 h-4 text-muted-foreground" />
+            <div className="flex-1">
+              <Label htmlFor="regenerate-all" className="text-sm font-medium cursor-pointer">
+                Regenerate All
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Overwrite existing descriptions with new rich content guides
+              </p>
+            </div>
+            <Switch
+              id="regenerate-all"
+              checked={regenerateAll}
+              onCheckedChange={setRegenerateAll}
+              disabled={isRunning}
+            />
+          </div>
+
           {/* Progress */}
           {(isRunning || processed > 0) && (
             <div className="space-y-2">
@@ -300,6 +330,11 @@ export function BatchDescriptionGenerator() {
                 </span>
                 <span className="text-muted-foreground">
                   {processed} / {totalPending} ({progressPct}%)
+                  {skippedTotal > 0 && (
+                    <span className="text-destructive ml-2">
+                      {skippedTotal} skipped
+                    </span>
+                  )}
                 </span>
               </div>
               <Progress value={progressPct} className="h-2" />
