@@ -215,6 +215,9 @@ export default function Feed() {
           {/* Banner Carousel */}
           <BannerCarousel compact />
 
+          {/* Compose Post */}
+          <ComposePost onPostCreated={() => refresh()} />
+
           {/* Filters */}
           <FeedFilters filters={filters} onChange={setFilters} counts={counts} />
 
