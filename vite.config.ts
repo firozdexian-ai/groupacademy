@@ -44,37 +44,56 @@ export default defineConfig(({ mode }) => ({
     react(),
     mode === "development" && componentTagger(),
     VitePWA({
-      registerType: "autoUpdate",
+      registerType: "prompt",
       includeAssets: [
         "favicon.png",
         "apple-touch-icon.png",
         "icons/*.png",
-        "screenshots/*.jpg"
+        "screenshots/*.jpg",
+        "offline.html",
       ],
       manifest: false, // Use external manifest.json
       workbox: {
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MiB
-        globPatterns: ["**/*.{js,css,html,ico,png,jpg,svg,woff2}"],
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
         navigateFallback: "/index.html",
         navigateFallbackDenylist: [/^\/api/, /^\/auth/, /^\/\.well-known/, /^\/~oauth/],
         offlineGoogleAnalytics: false,
+        cleanupOutdatedCaches: true,
+        skipWaiting: false,
+        clientsClaim: true,
         runtimeCaching: [
           {
-            // API calls should always go to network first
+            // Supabase API — network first with offline fallback
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
             handler: "NetworkFirst",
             options: {
               cacheName: "supabase-api-cache",
               expiration: {
-                maxEntries: 50,
+                maxEntries: 100,
                 maxAgeSeconds: 60 * 5, // 5 minutes
               },
               networkTimeoutSeconds: 10,
+              cacheableResponse: { statuses: [0, 200] },
             },
           },
           {
+            // JS/CSS chunks — stale while revalidate for fast loads
+            urlPattern: /\/assets\/.*\.(?:js|css)$/i,
+            handler: "StaleWhileRevalidate",
+            options: {
+              cacheName: "app-shell-cache",
+              expiration: {
+                maxEntries: 60,
+                maxAgeSeconds: 60 * 60 * 24 * 7, // 7 days
+              },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            // Google Fonts stylesheets
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-            handler: "CacheFirst",
+            handler: "StaleWhileRevalidate",
             options: {
               cacheName: "google-fonts-cache",
               expiration: {
@@ -84,6 +103,7 @@ export default defineConfig(({ mode }) => ({
             },
           },
           {
+            // Google Fonts files
             urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
             handler: "CacheFirst",
             options: {
@@ -92,18 +112,46 @@ export default defineConfig(({ mode }) => ({
                 maxEntries: 10,
                 maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
               },
+              cacheableResponse: { statuses: [0, 200] },
             },
           },
           {
-            // Static assets can be cached
+            // Supabase storage — cache first for uploaded images
+            urlPattern: /^https:\/\/.*\.supabase\.co\/storage\/.*/i,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "supabase-storage-cache",
+              expiration: {
+                maxEntries: 200,
+                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+              },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            // External images (GCS uploads, etc.)
+            urlPattern: /^https:\/\/storage\.googleapis\.com\/.*/i,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "external-images-cache",
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+              },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
+            // Local static assets
             urlPattern: /\.(?:png|jpg|jpeg|svg|gif|webp|ico)$/i,
             handler: "CacheFirst",
             options: {
               cacheName: "images-cache",
               expiration: {
-                maxEntries: 100,
+                maxEntries: 150,
                 maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
               },
+              cacheableResponse: { statuses: [0, 200] },
             },
           },
         ],
