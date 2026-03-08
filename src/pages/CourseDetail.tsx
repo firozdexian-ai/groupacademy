@@ -544,7 +544,7 @@ const CourseDetail = () => {
                     <Badge className="bg-success text-success-foreground border-0">Free</Badge>
                   ) : (
                     <Badge className="bg-black/40 text-white border-0 backdrop-blur-sm">
-                      BDT {course.price}
+                      ${course.price}
                     </Badge>
                   )}
                 </div>
