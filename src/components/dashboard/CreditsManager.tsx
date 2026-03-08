@@ -353,7 +353,7 @@ export function CreditsManager() {
                     <p className="text-sm text-muted-foreground">Total Consumed</p>
                   </div>
                   <p className="text-2xl font-bold text-destructive">{consumptionStats.totalConsumed.toLocaleString()}</p>
-                  <p className="text-xs text-muted-foreground">≈ ৳{(consumptionStats.totalConsumed * 2).toLocaleString()} revenue</p>
+                  <p className="text-xs text-muted-foreground">≈ ${(consumptionStats.totalConsumed * 0.02).toLocaleString()} USD revenue</p>
                 </CardContent>
               </Card>
               <Card>
