@@ -25,6 +25,8 @@ export function CreditPurchaseSheet({
   onClose,
   currentBalance,
 }: CreditPurchaseSheetProps) {
+  const { showWhatsApp, showStripe, isStripeConfigured, isLoading: configLoading } = usePaymentConfig();
+
   const handlePurchase = (credits: number, price: number) => {
     const message = getCreditPurchaseMessage(credits, price, currentBalance);
     window.open(`${SUPPORT_CONFIG.WHATSAPP_LINK}?text=${encodeURIComponent(message)}`, '_blank');
