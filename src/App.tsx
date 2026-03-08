@@ -191,6 +191,7 @@ export default function App() {
                   <Route path="/courses" element={<PublicCourses />} />
                   <Route path="/services" element={<PublicServices />} />
                   <Route path="/career-services" element={<PublicServices />} />
+                  <Route path="/service/:serviceSlug" element={<ServiceLanding />} />
                   <Route path="/blog" element={<Blog />} />
                   <Route path="/blog/:slug" element={<BlogPost />} />
 
