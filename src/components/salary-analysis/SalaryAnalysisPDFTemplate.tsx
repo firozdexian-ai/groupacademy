@@ -62,7 +62,7 @@ const BRAND = {
 };
 
 const formatSalary = (amount: number) => {
-  return new Intl.NumberFormat('en-BD').format(amount);
+  return new Intl.NumberFormat('en-US').format(amount);
 };
 
 const getPositionLabel = (positioning: string) => {
