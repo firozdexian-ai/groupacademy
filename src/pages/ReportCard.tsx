@@ -161,7 +161,23 @@ export default function ReportCard() {
         .select("id, verify_code, holder_name, course_title, percentage, score, total_questions, issued_at")
         .eq("id", result.id)
         .single();
-      if (cert) setCertificate(cert as CertificateInfo);
+      if (cert) {
+        setCertificate(cert as CertificateInfo);
+        // Send certificate notification email (fire-and-forget)
+        try {
+          const { sendTransactionalEmail } = await import("@/lib/emailNotifications");
+          sendTransactionalEmail({
+            type: "service_complete",
+            talentId: reportData.enrollment.talent_id,
+            data: {
+              service_name: "Certificate",
+              summary: `Congratulations! Your certificate for "${reportData.content.title}" has been issued. Verify at: ${window.location.origin}/verify/${cert.verify_code}`,
+            },
+          });
+        } catch (e) {
+          console.warn("[Cert] Email notification failed:", e);
+        }
+      }
     }
   };
 
