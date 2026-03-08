@@ -365,6 +365,7 @@ const Dashboard = () => {
       "company-agents": "Company Agents",
       "agent-sessions": "Agent Sessions",
       gigs: "Manage Gigs",
+      "marketplace-gigs": "Marketplace Gigs",
       "gig-submissions": "Gig Submissions",
       credits: "Credits Manager",
       notifications: "Notifications",
