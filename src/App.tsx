@@ -29,6 +29,7 @@ import PublicServiceLanding from "./pages/PublicServiceLanding";
 import PublicServices from "./pages/PublicServices";
 import PublicCourses from "./pages/PublicCourses";
 import ServiceLanding from "./pages/ServiceLanding";
+import VerifyCertificate from "./pages/VerifyCertificate";
 import { PWAInstallPrompt } from "./components/PWAInstallPrompt";
 
 // Admin Pages
@@ -195,6 +196,7 @@ export default function App() {
                   <Route path="/service/:serviceSlug" element={<ServiceLanding />} />
                   <Route path="/blog" element={<Blog />} />
                   <Route path="/blog/:slug" element={<BlogPost />} />
+                  <Route path="/verify/:code" element={<VerifyCertificate />} />
 
                   {/* Public Services */}
                   <Route path="/career-assessment" element={<CareerAssessment />} />

@@ -28,6 +28,7 @@ export const ROUTES = {
     salaryAnalysisResults: (id: string) => `/salary-analysis/results/${id}`,
     portfolioRequest: '/portfolio-request',
     portfolioStatus: '/portfolio-status',
+    verifyCertificate: (code: string) => `/verify/${code}`,
   },
 
   // Authenticated app routes (talent/seeker)

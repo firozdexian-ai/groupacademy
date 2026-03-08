@@ -716,6 +716,73 @@ export type Database = {
           },
         ]
       }
+      certificates: {
+        Row: {
+          content_id: string
+          course_title: string
+          created_at: string
+          enrollment_id: string
+          holder_name: string
+          id: string
+          issued_at: string
+          percentage: number | null
+          score: number | null
+          talent_id: string
+          total_questions: number | null
+          verify_code: string
+        }
+        Insert: {
+          content_id: string
+          course_title: string
+          created_at?: string
+          enrollment_id: string
+          holder_name: string
+          id?: string
+          issued_at?: string
+          percentage?: number | null
+          score?: number | null
+          talent_id: string
+          total_questions?: number | null
+          verify_code?: string
+        }
+        Update: {
+          content_id?: string
+          course_title?: string
+          created_at?: string
+          enrollment_id?: string
+          holder_name?: string
+          id?: string
+          issued_at?: string
+          percentage?: number | null
+          score?: number | null
+          talent_id?: string
+          total_questions?: number | null
+          verify_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "certificates_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certificates_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: true
+            referencedRelation: "enrollments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certificates_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           address: string | null
