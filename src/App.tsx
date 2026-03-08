@@ -26,6 +26,8 @@ import PortfolioRequest from "./pages/PortfolioRequest";
 import PortfolioStatus from "./pages/PortfolioStatus";
 import CourseDetail from "./pages/CourseDetail";
 import PublicServiceLanding from "./pages/PublicServiceLanding";
+import PublicServices from "./pages/PublicServices";
+import PublicCourses from "./pages/PublicCourses";
 
 // Admin Pages
 import Dashboard from "./pages/Dashboard";
