@@ -28,6 +28,8 @@ import CourseDetail from "./pages/CourseDetail";
 import PublicServiceLanding from "./pages/PublicServiceLanding";
 import PublicServices from "./pages/PublicServices";
 import PublicCourses from "./pages/PublicCourses";
+import ServiceLanding from "./pages/ServiceLanding";
+import { PWAInstallPrompt } from "./components/PWAInstallPrompt";
 
 // Admin Pages
 import Dashboard from "./pages/Dashboard";
@@ -173,6 +175,7 @@ export default function App() {
               <TooltipProvider>
                 <Toaster />
                 <Sonner />
+                <PWAInstallPrompt />
 
                 <Routes>
                   {/* ================= PUBLIC ROUTES ================= */}
@@ -189,6 +192,7 @@ export default function App() {
                   <Route path="/courses" element={<PublicCourses />} />
                   <Route path="/services" element={<PublicServices />} />
                   <Route path="/career-services" element={<PublicServices />} />
+                  <Route path="/service/:serviceSlug" element={<ServiceLanding />} />
                   <Route path="/blog" element={<Blog />} />
                   <Route path="/blog/:slug" element={<BlogPost />} />
 
