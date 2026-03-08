@@ -276,6 +276,16 @@ Respond ONLY with valid JSON in this exact format:
       throw new Error("Database update failed");
     }
 
+    // Fire-and-forget: send service completion email
+    if (interview.talent_id) {
+      const summary = `Selection: ${analysis.selectionPercentage}% — ${analysis.performanceLevel}. ${(analysis.strengths || []).slice(0, 2).join(", ")}`;
+      fetch(`${supabaseUrl}/functions/v1/send-transactional-email`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${supabaseServiceKey}` },
+        body: JSON.stringify({ type: "service_complete", talent_id: interview.talent_id, data: { service_name: "Mock Interview", summary } }),
+      }).catch((e) => console.warn("Email trigger failed:", e.message));
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
