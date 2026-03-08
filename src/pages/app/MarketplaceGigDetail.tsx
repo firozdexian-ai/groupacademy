@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MARKETPLACE_SCHOOL_MAP } from "@/lib/constants/marketplaceCategories";
 import { toast } from "sonner";
-import { ArrowLeft, Briefcase, Clock, Coins, Send, Users, Loader2, CheckCircle } from "lucide-react";
+import { ArrowLeft, Briefcase, Clock, Coins, Send, Users, Loader2, CheckCircle, Star } from "lucide-react";
 import { format } from "date-fns";
 
 export default function MarketplaceGigDetail() {
@@ -39,7 +39,6 @@ export default function MarketplaceGigDetail() {
     enabled: !!id,
   });
 
-  // Check if user already bid
   const { data: existingBid } = useQuery({
     queryKey: ["my-marketplace-bid", id],
     queryFn: async () => {
@@ -53,6 +52,26 @@ export default function MarketplaceGigDetail() {
       return data;
     },
     enabled: !!id && !!talent?.id,
+  });
+
+  // Reviews for this gig's contracts
+  const { data: reviews } = useQuery({
+    queryKey: ["marketplace-gig-reviews", id],
+    queryFn: async () => {
+      const { data: contracts } = await supabase
+        .from("marketplace_contracts")
+        .select("id")
+        .eq("gig_id", id!);
+      if (!contracts?.length) return [];
+      const contractIds = contracts.map((c: any) => c.id);
+      const { data } = await supabase
+        .from("marketplace_reviews")
+        .select("*")
+        .in("contract_id", contractIds)
+        .order("created_at", { ascending: false });
+      return data || [];
+    },
+    enabled: !!id,
   });
 
   const submitBid = useMutation({
@@ -98,10 +117,12 @@ export default function MarketplaceGigDetail() {
 
   const hasBid = !!existingBid;
   const isFixed = gig.pricing_type === "fixed";
+  const avgRating = reviews?.length
+    ? (reviews.reduce((sum: number, r: any) => sum + r.rating, 0) / reviews.length).toFixed(1)
+    : null;
 
   return (
     <div className="space-y-4 pb-24 max-w-2xl mx-auto">
-      {/* Back */}
       <Button variant="ghost" size="sm" className="gap-1" onClick={() => navigate("/app/marketplace")}>
         <ArrowLeft className="h-4 w-4" /> Marketplace
       </Button>
@@ -119,6 +140,11 @@ export default function MarketplaceGigDetail() {
             <Badge variant={isFixed ? "default" : "secondary"}>
               {isFixed ? "Fixed Price" : "Open to Bids"}
             </Badge>
+            {avgRating && (
+              <Badge variant="outline" className="gap-1 text-xs">
+                <Star className="h-3 w-3 fill-amber-400 text-amber-400" /> {avgRating}
+              </Badge>
+            )}
           </div>
           <CardTitle className="text-lg">{gig.title}</CardTitle>
           {gig.employer_name && (
@@ -195,7 +221,7 @@ export default function MarketplaceGigDetail() {
             <div className="space-y-1.5">
               <Label>Cover Letter / Proposal</Label>
               <Textarea
-                placeholder="Explain why you're the right person for this gig. Mention relevant skills, experience, and how you'd approach the project."
+                placeholder="Explain why you're the right person for this gig."
                 rows={4}
                 value={coverLetter}
                 onChange={(e) => setCoverLetter(e.target.value)}
@@ -213,17 +239,40 @@ export default function MarketplaceGigDetail() {
             <Button
               className="w-full"
               onClick={() => submitBid.mutate()}
-              disabled={
-                !coverLetter.trim() ||
-                (!isFixed && !bidAmount) ||
-                submitBid.isPending
-              }
+              disabled={!coverLetter.trim() || (!isFixed && !bidAmount) || submitBid.isPending}
             >
-              {submitBid.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : null}
+              {submitBid.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               {isFixed ? `Accept & Apply (${gig.budget_amount} credits)` : "Submit Bid"}
             </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Reviews Section */}
+      {reviews && reviews.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Star className="h-4 w-4" /> Reviews ({reviews.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {reviews.map((review: any) => (
+              <div key={review.id} className="border-b last:border-0 pb-3 last:pb-0">
+                <div className="flex items-center gap-1 mb-1">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <Star
+                      key={n}
+                      className={`h-3.5 w-3.5 ${n <= review.rating ? "fill-amber-400 text-amber-400" : "text-muted-foreground/20"}`}
+                    />
+                  ))}
+                  <span className="text-xs text-muted-foreground ml-2">
+                    {format(new Date(review.created_at), "MMM d, yyyy")}
+                  </span>
+                </div>
+                {review.comment && <p className="text-sm">{review.comment}</p>}
+              </div>
+            ))}
           </CardContent>
         </Card>
       )}

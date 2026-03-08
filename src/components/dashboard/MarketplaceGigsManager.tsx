@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Pencil, Coins, Eye } from "lucide-react";
+import { Plus, Pencil, Coins, Eye, Check, X, FileText, CheckCircle2, Loader2 } from "lucide-react";
 import { MARKETPLACE_SCHOOLS } from "@/lib/constants/marketplaceCategories";
 import { format } from "date-fns";
 
@@ -51,6 +51,7 @@ export function MarketplaceGigsManager() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<GigForm>(defaultForm);
   const [viewBidsId, setViewBidsId] = useState<string | null>(null);
+  const [viewContractId, setViewContractId] = useState<string | null>(null);
 
   const { data: gigs, isLoading } = useQuery({
     queryKey: ["admin-marketplace-gigs"],
@@ -79,6 +80,26 @@ export function MarketplaceGigsManager() {
     enabled: !!viewBidsId,
   });
 
+  const { data: contractData } = useQuery({
+    queryKey: ["admin-marketplace-contract", viewContractId],
+    queryFn: async () => {
+      if (!viewContractId) return null;
+      const { data: contract } = await supabase
+        .from("marketplace_contracts")
+        .select("*, talents(full_name, email)")
+        .eq("gig_id", viewContractId)
+        .maybeSingle();
+      if (!contract) return null;
+      const { data: deliverables } = await supabase
+        .from("marketplace_deliverables")
+        .select("*")
+        .eq("contract_id", contract.id)
+        .order("created_at", { ascending: false });
+      return { contract, deliverables: deliverables || [] };
+    },
+    enabled: !!viewContractId,
+  });
+
   const saveMutation = useMutation({
     mutationFn: async () => {
       const payload = {
@@ -100,6 +121,121 @@ export function MarketplaceGigsManager() {
       setDialogOpen(false);
       setEditingId(null);
       setForm(defaultForm);
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  const acceptBidMutation = useMutation({
+    mutationFn: async (bid: any) => {
+      // Create contract
+      const { error: contractErr } = await supabase.from("marketplace_contracts").insert({
+        gig_id: bid.gig_id,
+        bid_id: bid.id,
+        freelancer_id: bid.talent_id,
+        employer_name: gigs?.find((g: any) => g.id === bid.gig_id)?.employer_name || "",
+        agreed_amount: bid.bid_amount,
+      });
+      if (contractErr) throw contractErr;
+
+      // Update accepted bid
+      const { error: bidErr } = await supabase
+        .from("marketplace_bids")
+        .update({ status: "accepted" })
+        .eq("id", bid.id);
+      if (bidErr) throw bidErr;
+
+      // Reject other bids
+      await supabase
+        .from("marketplace_bids")
+        .update({ status: "rejected" })
+        .eq("gig_id", bid.gig_id)
+        .neq("id", bid.id);
+
+      // Update gig
+      const { error: gigErr } = await supabase
+        .from("marketplace_gigs")
+        .update({ selected_bid_id: bid.id, status: "in_progress" })
+        .eq("id", bid.gig_id);
+      if (gigErr) throw gigErr;
+    },
+    onSuccess: () => {
+      toast.success("Bid accepted & contract created!");
+      queryClient.invalidateQueries({ queryKey: ["admin-marketplace-bids"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-marketplace-gigs"] });
+      setViewBidsId(null);
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  const updateDeliverableMutation = useMutation({
+    mutationFn: async ({ id, status, notes }: { id: string; status: string; notes?: string }) => {
+      const { error } = await supabase
+        .from("marketplace_deliverables")
+        .update({ status, admin_notes: notes || null, reviewed_at: new Date().toISOString() })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Deliverable updated");
+      queryClient.invalidateQueries({ queryKey: ["admin-marketplace-contract"] });
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  const completeContractMutation = useMutation({
+    mutationFn: async (contract: any) => {
+      // Mark contract complete
+      const { error: cErr } = await supabase
+        .from("marketplace_contracts")
+        .update({ status: "completed", completed_at: new Date().toISOString() })
+        .eq("id", contract.id);
+      if (cErr) throw cErr;
+
+      // Mark gig completed
+      await supabase
+        .from("marketplace_gigs")
+        .update({ status: "completed" })
+        .eq("id", contract.gig_id);
+
+      // Award credits to freelancer (earned)
+      if (contract.agreed_amount > 0) {
+        const { data: result, error: credErr } = await supabase.rpc("add_credits", {
+          p_talent_id: contract.freelancer_id,
+          p_amount: contract.agreed_amount,
+          p_transaction_type: "marketplace_earning",
+          p_description: `Marketplace gig payment - ${contract.agreed_amount} credits`,
+        });
+        if (credErr) throw credErr;
+
+        // Also update earned_balance
+        await supabase.rpc("add_credits", { // We'll handle earned separately below
+          p_talent_id: contract.freelancer_id,
+          p_amount: 0,
+          p_transaction_type: "marketplace_earning",
+          p_description: "earned_balance_update",
+        }).then(() => {
+          // Update earned_balance directly
+          supabase
+            .from("talent_credits")
+            .select("earned_balance")
+            .eq("talent_id", contract.freelancer_id)
+            .single()
+            .then(({ data }) => {
+              if (data) {
+                supabase
+                  .from("talent_credits")
+                  .update({ earned_balance: (data.earned_balance || 0) + contract.agreed_amount })
+                  .eq("talent_id", contract.freelancer_id);
+              }
+            });
+        });
+      }
+    },
+    onSuccess: () => {
+      toast.success("Contract completed & credits awarded!");
+      queryClient.invalidateQueries({ queryKey: ["admin-marketplace-contract"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-marketplace-gigs"] });
+      setViewContractId(null);
     },
     onError: (err: any) => toast.error(err.message),
   });
@@ -126,10 +262,13 @@ export function MarketplaceGigsManager() {
   const selectedSchool = MARKETPLACE_SCHOOLS.find((s) => s.value === form.skill_category);
 
   const statusColor = (s: string) => {
-    if (s === "active" || s === "approved") return "default";
-    if (s === "completed") return "secondary";
-    return "outline";
+    if (s === "active" || s === "approved") return "default" as const;
+    if (s === "completed") return "secondary" as const;
+    if (s === "in_progress") return "default" as const;
+    return "outline" as const;
   };
+
+  const gigHasContract = (gig: any) => ["in_progress", "completed"].includes(gig.status);
 
   return (
     <div className="space-y-4">
@@ -177,6 +316,11 @@ export function MarketplaceGigsManager() {
                   <TableCell><Badge variant={statusColor(gig.status)}>{gig.status}</Badge></TableCell>
                   <TableCell>
                     <div className="flex gap-1">
+                      {gigHasContract(gig) && (
+                        <Button variant="ghost" size="icon" onClick={() => setViewContractId(gig.id)} title="View Contract">
+                          <FileText className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button variant="ghost" size="icon" onClick={() => setViewBidsId(gig.id)}>
                         <Eye className="h-4 w-4" />
                       </Button>
@@ -321,8 +465,115 @@ export function MarketplaceGigsManager() {
                     <p className="text-xs text-muted-foreground">Est. delivery: {bid.estimated_days} days</p>
                   )}
                   <p className="text-xs text-muted-foreground">{format(new Date(bid.created_at), "MMM d, yyyy")}</p>
+                  {bid.status === "pending" && (
+                    <Button
+                      size="sm"
+                      className="gap-1"
+                      onClick={() => acceptBidMutation.mutate(bid)}
+                      disabled={acceptBidMutation.isPending}
+                    >
+                      {acceptBidMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+                      Accept Bid
+                    </Button>
+                  )}
                 </div>
               ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* View Contract Dialog */}
+      <Dialog open={!!viewContractId} onOpenChange={(o) => !o && setViewContractId(null)}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Contract Details</DialogTitle>
+          </DialogHeader>
+          {!contractData?.contract ? (
+            <p className="text-sm text-muted-foreground text-center py-8">No contract found</p>
+          ) : (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <p className="text-muted-foreground text-xs">Freelancer</p>
+                  <p className="font-medium">{(contractData.contract as any).talents?.full_name}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs">Amount</p>
+                  <p className="font-medium flex items-center gap-1">
+                    <Coins className="h-3.5 w-3.5 text-amber-500" />{contractData.contract.agreed_amount}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs">Status</p>
+                  <Badge variant={contractData.contract.status === "completed" ? "secondary" : "default"}>
+                    {contractData.contract.status}
+                  </Badge>
+                </div>
+                <div>
+                  <p className="text-muted-foreground text-xs">Started</p>
+                  <p>{format(new Date(contractData.contract.started_at!), "MMM d, yyyy")}</p>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="font-medium text-sm mb-2">Deliverables ({contractData.deliverables.length})</h4>
+                {!contractData.deliverables.length ? (
+                  <p className="text-xs text-muted-foreground">No deliverables submitted yet</p>
+                ) : (
+                  <div className="space-y-2">
+                    {contractData.deliverables.map((d: any) => (
+                      <div key={d.id} className="border rounded-lg p-2.5 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <p className="font-medium text-sm">{d.title}</p>
+                          <Badge variant="outline" className="text-[10px]">{d.status}</Badge>
+                        </div>
+                        {d.description && <p className="text-xs text-muted-foreground">{d.description}</p>}
+                        {d.file_url && (
+                          <a href={d.file_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline">
+                            View File
+                          </a>
+                        )}
+                        {d.status === "submitted" && (
+                          <div className="flex gap-2 pt-1">
+                            <Button
+                              size="sm"
+                              variant="default"
+                              className="gap-1 h-7 text-xs"
+                              onClick={() => updateDeliverableMutation.mutate({ id: d.id, status: "approved" })}
+                            >
+                              <Check className="h-3 w-3" /> Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-1 h-7 text-xs"
+                              onClick={() => updateDeliverableMutation.mutate({ id: d.id, status: "revision_requested", notes: "Please revise" })}
+                            >
+                              <X className="h-3 w-3" /> Request Revision
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {contractData.contract.status === "active" && (
+                <Button
+                  className="w-full gap-2"
+                  onClick={() => completeContractMutation.mutate(contractData.contract)}
+                  disabled={completeContractMutation.isPending}
+                >
+                  {completeContractMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="h-4 w-4" />
+                  )}
+                  Mark Complete & Award {contractData.contract.agreed_amount} Credits
+                </Button>
+              )}
             </div>
           )}
         </DialogContent>

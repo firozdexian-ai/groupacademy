@@ -2993,6 +2993,114 @@ export type Database = {
           },
         ]
       }
+      marketplace_contracts: {
+        Row: {
+          agreed_amount: number
+          bid_id: string
+          completed_at: string | null
+          created_at: string | null
+          employer_name: string | null
+          freelancer_id: string
+          gig_id: string
+          id: string
+          started_at: string | null
+          status: string
+        }
+        Insert: {
+          agreed_amount?: number
+          bid_id: string
+          completed_at?: string | null
+          created_at?: string | null
+          employer_name?: string | null
+          freelancer_id: string
+          gig_id: string
+          id?: string
+          started_at?: string | null
+          status?: string
+        }
+        Update: {
+          agreed_amount?: number
+          bid_id?: string
+          completed_at?: string | null
+          created_at?: string | null
+          employer_name?: string | null
+          freelancer_id?: string
+          gig_id?: string
+          id?: string
+          started_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_contracts_bid_id_fkey"
+            columns: ["bid_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_bids"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_contracts_freelancer_id_fkey"
+            columns: ["freelancer_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_contracts_gig_id_fkey"
+            columns: ["gig_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_gigs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_deliverables: {
+        Row: {
+          admin_notes: string | null
+          contract_id: string
+          created_at: string | null
+          description: string | null
+          file_url: string | null
+          id: string
+          reviewed_at: string | null
+          status: string
+          submitted_at: string | null
+          title: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          contract_id: string
+          created_at?: string | null
+          description?: string | null
+          file_url?: string | null
+          id?: string
+          reviewed_at?: string | null
+          status?: string
+          submitted_at?: string | null
+          title: string
+        }
+        Update: {
+          admin_notes?: string | null
+          contract_id?: string
+          created_at?: string | null
+          description?: string | null
+          file_url?: string | null
+          id?: string
+          reviewed_at?: string | null
+          status?: string
+          submitted_at?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_deliverables_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketplace_gigs: {
         Row: {
           attachments: Json | null
@@ -3061,6 +3169,41 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      marketplace_reviews: {
+        Row: {
+          comment: string | null
+          contract_id: string
+          created_at: string | null
+          id: string
+          rating: number
+          reviewer_type: string
+        }
+        Insert: {
+          comment?: string | null
+          contract_id: string
+          created_at?: string | null
+          id?: string
+          rating: number
+          reviewer_type?: string
+        }
+        Update: {
+          comment?: string | null
+          contract_id?: string
+          created_at?: string | null
+          id?: string
+          rating?: number
+          reviewer_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_reviews_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       mock_interview_access_codes: {
         Row: {
