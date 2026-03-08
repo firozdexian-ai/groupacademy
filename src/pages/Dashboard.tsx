@@ -123,6 +123,7 @@ const tabAccessMap: Record<string, AppRole[]> = {
   banners: ["admin"],
   professions: ["admin"],
   team: ["admin"],
+  payments: ["admin"],
 };
 const Dashboard = () => {
   const navigate = useNavigate();
