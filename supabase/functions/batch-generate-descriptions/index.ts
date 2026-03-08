@@ -33,7 +33,7 @@ serve(async (req) => {
       .maybeSingle();
     if (!roleData) throw new Error("Admin access required");
 
-    const { school_id, batch_size = 3, regenerate_all = false } = await req.json();
+    const { school_id, batch_size = 3, regenerate_all = false, offset = 0 } = await req.json();
     if (!school_id) throw new Error("school_id required");
 
     // Get programs under this school
@@ -76,13 +76,11 @@ serve(async (req) => {
       .order("created_at", { ascending: true })
       .limit(1000);
 
-    // Filter based on threshold (or all if regenerate_all)
-    const pendingModules = (allModules || []).filter(
-      (m: any) => regenerate_all || (m.description || "").length < MIN_DESCRIPTION_LENGTH
-    );
-
-    const shortModules = pendingModules.slice(0, batch_size);
-    const totalRemaining = pendingModules.length;
+    if (regenerate_all) {
+      // In regenerate mode, use offset to skip already-processed modules
+      const sortedModules = allModules || [];
+      const shortModules = sortedModules.slice(offset, offset + batch_size);
+      const totalAll = sortedModules.length;
 
     if (shortModules.length === 0) {
       return new Response(
