@@ -243,6 +243,17 @@ Focus on the Bangladesh job market context. Be realistic and practical with sala
       throw new Error("Failed to save analysis results");
     }
 
+    // Fire-and-forget: send service completion email
+    if (analysis.talent_id) {
+      const range = parsedAnalysis.market_salary_range;
+      const summary = `Market range: $${range?.min_monthly || "?"}–$${range?.max_monthly || "?"}/mo. Readiness: ${parsedAnalysis.overall_readiness_score || "N/A"}%`;
+      fetch(`${supabaseUrl}/functions/v1/send-transactional-email`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${supabaseServiceKey}` },
+        body: JSON.stringify({ type: "service_complete", talent_id: analysis.talent_id, data: { service_name: "Salary Analysis", summary } }),
+      }).catch((e) => console.warn("Email trigger failed:", e.message));
+    }
+
     console.log("Salary analysis completed successfully");
 
     return new Response(JSON.stringify({ success: true, analysis: parsedAnalysis }), {

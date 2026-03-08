@@ -208,6 +208,21 @@ serve(async (req) => {
 
     if (updateError) throw updateError;
 
+    // Fire-and-forget: send service completion email
+    // @ts-ignore
+    if (assessment.talents?.user_id) {
+      const talentId = assessment.talent_id;
+      if (talentId) {
+        // @ts-ignore
+        const summary = `Score: ${overallScore}% — ${finalAnalysis.recommendation}. Role: ${assessment.jobs?.title || "N/A"}`;
+        fetch(`${supabaseUrl}/functions/v1/send-transactional-email`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${supabaseServiceKey}` },
+          body: JSON.stringify({ type: "service_complete", talent_id: talentId, data: { service_name: "Job Assessment", summary } }),
+        }).catch((e) => console.warn("Email trigger failed:", e.message));
+      }
+    }
+
     return new Response(JSON.stringify({ success: true, score: overallScore }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
