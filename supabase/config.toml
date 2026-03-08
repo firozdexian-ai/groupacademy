@@ -92,3 +92,27 @@ verify_jwt = false
 
 [functions.update-stripe-secret]
 verify_jwt = false
+
+[functions.batch-generate-quizzes]
+verify_jwt = false
+
+[functions.batch-generate-flashcards]
+verify_jwt = false
+
+[functions.batch-generate-scenarios]
+verify_jwt = false
+
+[functions.batch-generate-course-metadata]
+verify_jwt = false
+
+[functions.batch-generate-blog-posts]
+verify_jwt = false
+
+[functions.batch-generate-feed-posts]
+verify_jwt = false
+
+[functions.generate-module-guide]
+verify_jwt = false
+
+[functions.batch-generate-descriptions]
+verify_jwt = false
