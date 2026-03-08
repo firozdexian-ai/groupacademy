@@ -1,30 +1,31 @@
 
 
-# GroUp Academy — Build Progress
+# Fix Batch Description Generator — Two Math Bugs
 
-## Schools
+## Root Cause Analysis
 
-| School | Programs | Courses | Modules | Status |
-|---|---|---|---|---|
-| Social Media | 4 | 56 | 252 | ✅ |
-| Personal Branding | 4 | 56 | 249 | ✅ |
-| Content Creation | 4 | 56 | 248 | ✅ |
+**Bug 1 — "remaining" stays at 245:**
+The edge function (line 85) computes `totalRemaining = pendingModules.length` BEFORE processing. With `regenerate_all=true`, ALL modules match the filter every time (line 80: `regenerate_all || ...`). So each call fetches the same 248 modules, processes 3, returns `remaining: 248 - 3 = 245`. Next call: same 248 modules (including the 3 already updated), same `remaining: 245`.
 
-**Influencing Academy: 100% COMPLETE ✅**
+**Bug 2 — Total keeps increasing (248→251→254):**
+Frontend line 183: `setTotalPending(totalProcessed + remaining)`. Since remaining=245 every call, total = `3+245=248, 6+245=251, 9+245=254...` — it grows by 3 every batch.
 
-## Certificates
+## Fix
 
-- `certificates` table with unique verify codes, RLS policies
-- `CertificatePDFTemplate` - branded landscape PDF with verification URL
-- `/verify/:code` - public verification page
-- Auto-issue on quiz pass from ReportCard page
-- Copy shareable verification link
-- **Email notification on certificate issuance** ✅
+### Edge Function (`batch-generate-descriptions/index.ts`)
 
-## Public SEO & OpenGraph
+**Normal mode** (`regenerate_all=false`): After processing, re-query DB for fresh count of modules with `<500` chars. Modules we just updated are now `>500`, so they drop out. Remaining naturally decreases.
 
-- `/blog` - Public blog index with JSON-LD Blog schema, category filters, search
-- `/blog/:slug` - Public blog post with Article JSON-LD, dynamic OG meta tags
-- `/courses/:slug` - Course JSON-LD structured data + dynamic OG meta tags
-- `/courses` - Public courses listing with JSON-LD ItemList schema
-- `/services/:slug` - Service landing pages with OG meta, Twitter cards, JSON-LD Service schema ✅
+**Regenerate mode** (`regenerate_all=true`): Accept an `offset` param from the client. Fetch all modules sorted by `created_at`, skip first `offset`, take `batch_size`. Return `remaining = totalModules - offset - processed`.
+
+### Frontend (`BatchDescriptionGenerator.tsx`)
+
+- Pass `offset: totalProcessed` in the request body
+- Set `totalPending` once at start, never update it
+- Use `remaining` from server for the loop condition only
+- Progress = `totalProcessed / totalPending`
+
+### Files to Edit
+- `supabase/functions/batch-generate-descriptions/index.ts` — offset support + fresh remaining count
+- `src/components/dashboard/BatchDescriptionGenerator.tsx` — fix progress math
+
