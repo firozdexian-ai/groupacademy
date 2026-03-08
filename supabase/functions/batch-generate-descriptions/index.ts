@@ -82,12 +82,51 @@ serve(async (req) => {
       const shortModules = sortedModules.slice(offset, offset + batch_size);
       const totalAll = sortedModules.length;
 
-    if (shortModules.length === 0) {
+      if (shortModules.length === 0) {
+        return new Response(
+          JSON.stringify({ processed: 0, skipped: 0, remaining: 0, total: totalAll, message: "All modules processed" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Process this batch (reuse the shared generation logic below)
+      const result = await generateAndSave(shortModules, courseMap, programMap, supabase);
+      const newRemaining = totalAll - offset - result.updated;
       return new Response(
-        JSON.stringify({ processed: 0, skipped: 0, remaining: 0, message: "All modules have rich descriptions" }),
+        JSON.stringify({ processed: result.updated, skipped: result.skipped, remaining: newRemaining, total: totalAll }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Normal mode: filter to only modules needing descriptions
+    const pendingModules = (allModules || []).filter(
+      (m: any) => (m.description || "").length < MIN_DESCRIPTION_LENGTH
+    );
+    const shortModules = pendingModules.slice(0, batch_size);
+
+    if (shortModules.length === 0) {
+      return new Response(
+        JSON.stringify({ processed: 0, skipped: 0, remaining: 0, total: (allModules || []).length, message: "All modules have rich descriptions" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const result = await generateAndSave(shortModules, courseMap, programMap, supabase);
+
+    // Re-query for accurate remaining count
+    const { data: freshModules } = await supabase
+      .from("course_modules")
+      .select("id, description")
+      .in("content_id", courseIds)
+      .limit(1000);
+    const freshRemaining = (freshModules || []).filter(
+      (m: any) => (m.description || "").length < MIN_DESCRIPTION_LENGTH
+    ).length;
+
+    return new Response(
+      JSON.stringify({ processed: result.updated, skipped: result.skipped, remaining: freshRemaining, total: (allModules || []).length }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
 
     // Build prompt
     const moduleList = shortModules.map((m: any, i: number) => {
