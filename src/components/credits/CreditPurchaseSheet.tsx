@@ -107,14 +107,32 @@ export function CreditPurchaseSheet({
             </p>
           </div>
 
-          {/* WhatsApp CTA */}
-          <Button className="w-full" size="lg" onClick={() => handlePurchase(500, 900)}>
-            <MessageCircle className="mr-2 h-5 w-5" />
-            Purchase on WhatsApp
-          </Button>
+          {/* Payment CTAs */}
+          <div className="space-y-2">
+            {showWhatsApp && (
+              <Button className="w-full" size="lg" onClick={() => handlePurchase(500, 900)}>
+                <MessageCircle className="mr-2 h-5 w-5" />
+                Purchase on WhatsApp
+              </Button>
+            )}
+
+            {showStripe && (
+              <Button
+                className="w-full"
+                size="lg"
+                variant={showWhatsApp ? 'outline' : 'default'}
+                disabled={!isStripeConfigured}
+              >
+                <CreditCard className="mr-2 h-5 w-5" />
+                {isStripeConfigured ? 'Pay with Card' : 'Card Payments Coming Soon'}
+              </Button>
+            )}
+          </div>
 
           <p className="text-xs text-center text-muted-foreground">
-            Secure payment via card, bank transfer, or mobile wallet. Credits added within 30 minutes.
+            {showWhatsApp
+              ? 'Secure payment via card, bank transfer, or mobile wallet. Credits added within 30 minutes.'
+              : 'Secure checkout powered by Stripe.'}
           </p>
         </div>
       </SheetContent>

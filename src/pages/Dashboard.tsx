@@ -391,6 +391,7 @@ const Dashboard = () => {
       "ir-vcs": "VC Firms",
       "ir-investors": "Investors",
       "ir-emails": "Email Updates",
+      payments: "Payment Settings",
     };
     return titles[activeTab] || "Dashboard";
   };
