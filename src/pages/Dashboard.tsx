@@ -44,6 +44,7 @@ import { MarketplaceGigsManager } from "@/components/dashboard/MarketplaceGigsMa
 import { IRDashboard } from "@/components/dashboard/ir/IRDashboard";
 import { MRRTargetManager } from "@/components/dashboard/ir/MRRTargetManager";
 import { BatchDescriptionGenerator } from "@/components/dashboard/BatchDescriptionGenerator";
+import { BatchContentGenerator } from "@/components/dashboard/BatchContentGenerator";
 import { VCFirmsManager } from "@/components/dashboard/ir/VCFirmsManager";
 import { InvestorsManager } from "@/components/dashboard/ir/InvestorsManager";
 import { EmailComposer } from "@/components/dashboard/ir/EmailComposer";
@@ -272,6 +273,8 @@ const Dashboard = () => {
         return <LearnerProgressManager />;
       case "ai-descriptions":
         return <BatchDescriptionGenerator />;
+      case "ai-content-tools":
+        return <BatchContentGenerator />;
       case "professions":
         return <ProfessionsManager />;
       case "jobs-kpis":
@@ -384,6 +387,7 @@ const Dashboard = () => {
       "service-outreach": "Service Outreach",
       "learner-progress": "Learner Progress",
       "ai-descriptions": "AI Description Generator",
+      "ai-content-tools": "AI Content Tools",
       enrollments: "Enrollments",
       analytics: "Marketing Analytics",
       "ir-dashboard": "Investor Relations",
