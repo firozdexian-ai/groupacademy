@@ -336,6 +336,8 @@ const Dashboard = () => {
         return <InvestorsManager />;
       case "ir-emails":
         return <EmailComposer />;
+      case "payments":
+        return <PaymentSettingsManager />;
       default:
         return userRole === "talent_exec" ? <CVOutreachGenerator /> : <DashboardOverview />;
     }
