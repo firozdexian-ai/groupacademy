@@ -1,47 +1,48 @@
 
-# GroUp Academy — Vision Plan
 
-## Current Completion: ~88%
+# Career Abroad (Group 6) — Audit Plan
 
-| # | Module | Status | % | Next Action |
-|---|--------|--------|---|-------------|
-| 1 | Academy / LMS | ✅ | 95% | Batch video linking |
-| 2 | AI Module Descriptions | 🔧 | 70% | Run batch generator (4,504 pending) |
-| 3 | AI Agents / Chat | ✅ | 90% | Conversation export |
-| 4 | Jobs Hub | ✅ | 90% | Saved job alerts |
-| 5 | Career Services | ✅ | 85% | Result sharing UX |
-| 6 | Feed / Social | ✅ | 95% | Done ✅ |
-| 7 | Study Abroad | ✅ | 80% | Application tracker |
-| 8 | Profile & Onboarding | ✅ | 85% | Profile visibility settings |
-| 9 | Credits & Payments (Stripe) | 🔧 | 75% | Keys infra built ✅ — need keys + test checkout |
-| 10 | Admin Dashboard | ✅ | 90% | Bulk actions |
-| 11 | Notifications | ✅ | 85% | Push notifications |
-| 12 | Public SEO / Marketing | ✅ | 85% | Landing page optimization |
-| 13 | Gigs / Marketplace | ✅ | 80% | Payment for completions |
-| 14 | PWA / Mobile | ✅ | 90% | Done ✅ |
-| 15 | Auth & Security | ✅ | 95% | Done ✅ |
+## Components & Issues Found
 
-## Priority Queue
+| Component | Lines | Issues |
+|-----------|-------|--------|
+| **StudyAbroadManager.tsx** | 657 | No mobile card fallback for 7-column table; `overflow-x-auto` allows horizontal scroll; form grids use `grid-cols-2` without responsive prefix; "Add Program" button needs icon-only on mobile; country filter `w-[180px]` needs responsive width; pagination text not hidden on mobile; delete uses `confirm()` instead of AlertDialog |
+| **IELTSResourcesManager.tsx** | 532 | No mobile card fallback for 7-column table; `overflow-x-auto` allows horizontal scroll; form grid `grid-cols-2` (line 410) needs responsive prefix; "Add Resource" button needs icon-only on mobile; section filter `w-[180px]` needs responsive width; delete uses `confirm()` instead of AlertDialog |
+| **StudyAbroadRoadmapLeadsManager.tsx** | 438 | KPI cards use `p-4` + `text-2xl` instead of compact `p-3` + `text-lg`; no mobile card fallback for 7-column table; detail dialog grids use fixed `grid-cols-2`/`grid-cols-3` without responsive prefix; status filter `w-[180px]` needs responsive width; "Export" button needs icon-only on mobile |
 
-| # | Task | Current → Target | Effort |
-|---|------|------------------|--------|
-| 1 | Run AI Descriptions | 70% → 100% | Low |
-| 2 | Test Stripe Checkout | 75% → 90% | Low |
-| 3 | Push Notifications | 85% → 95% | Medium |
-| 4 | Result Sharing UX | 85% → 95% | Low |
-| 5 | Study Abroad Tracker | 80% → 90% | Medium |
-| 6 | Landing Page Polish | 85% → 95% | Low-Med |
+---
 
-## Milestones
+## Fix Details
 
-- AI Descriptions + Stripe + Push → **~93%**
-- Result Sharing + Study Abroad Tracker → **~95%**
-- Final polish → **~98%**
+### 1. StudyAbroadManager.tsx
+- **Table**: Add mobile card fallback showing program name, university, country flag, degree badge, status badges, and action buttons
+- **Form grids**: All `grid-cols-2` (lines 479, 531, 549) → `grid-cols-1 sm:grid-cols-2`
+- **"Add Program" button**: Icon-only on mobile
+- **Country filter**: `w-[180px]` → `w-full sm:w-[180px]`
+- **Pagination**: Hide "Previous"/"Next" text on mobile
+- **Delete**: Replace `confirm()` with AlertDialog
 
-## Completed Infrastructure
+### 2. IELTSResourcesManager.tsx
+- **Table**: Add mobile card fallback showing section icon, title, type badge, difficulty badge, status, and action buttons
+- **Form grid**: `grid-cols-2` (line 410) → `grid-cols-1 sm:grid-cols-2`
+- **"Add Resource" button**: Icon-only on mobile
+- **Section filter**: `w-[180px]` → `w-full sm:w-[180px]`
+- **Delete**: Replace `confirm()` with AlertDialog
 
-- Certificates with PDF + verification ✅
-- Public SEO (Blog, Courses, Services with JSON-LD) ✅
-- Stripe self-service key config from admin panel ✅
-- Influencing Academy (3 schools, 12 programs, 168 courses, 749 modules) ✅
-- Email notifications (welcome, certificate) ✅
+### 3. StudyAbroadRoadmapLeadsManager.tsx
+- **KPI cards**: `p-4` → `p-3`, `text-2xl` → `text-lg`
+- **Table**: Add mobile card fallback showing name, email, country badges, intake, degree, status badge, view button
+- **Detail dialog grids**: `grid-cols-2` → `grid-cols-1 sm:grid-cols-2`, `grid-cols-3` → `grid-cols-2 sm:grid-cols-3`
+- **Status filter**: `w-[180px]` → `w-full sm:w-[180px]`
+- **"Export" button**: Icon-only on mobile
+
+## Files to Change
+
+| File | Effort |
+|------|--------|
+| `StudyAbroadManager.tsx` | Medium (~60 lines — mobile cards + form grids + AlertDialog) |
+| `IELTSResourcesManager.tsx` | Medium (~50 lines — mobile cards + form grid + AlertDialog) |
+| `StudyAbroadRoadmapLeadsManager.tsx` | Medium (~40 lines — KPIs + mobile cards + dialog grids) |
+
+No database changes needed.
+
