@@ -262,8 +262,8 @@ export function FeedPostsManager() {
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={handleOpenCreate}>
-              <Plus className="h-4 w-4 mr-2" /> Create Post
+            <Button onClick={handleOpenCreate} size="sm">
+              <Plus className="h-4 w-4 sm:mr-2" /> <span className="hidden sm:inline">Create Post</span>
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
