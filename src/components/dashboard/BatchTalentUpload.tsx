@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,8 +6,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Upload, FileText, Link as LinkIcon, Loader2, CheckCircle, XCircle, AlertCircle, RefreshCw } from "lucide-react";
+import { Upload, FileText, Link as LinkIcon, Loader2, CheckCircle, XCircle, AlertCircle, RefreshCw, FileUp } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -27,18 +28,147 @@ interface BatchTalentUploadProps {
   onComplete?: () => void;
 }
 
+const MAX_FILES = 20;
+const MAX_FILE_SIZE_MB = 10;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+
 export function BatchTalentUpload({ onComplete }: BatchTalentUploadProps) {
   const [urlsInput, setUrlsInput] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [currentBatch, setCurrentBatch] = useState<BatchUpload | null>(null);
   const [showProgress, setShowProgress] = useState(false);
   const [showErrorLog, setShowErrorLog] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [uploadingFiles, setUploadingFiles] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const parseCvUrls = (input: string): string[] => {
     return input
       .split('\n')
       .map(line => line.trim())
       .filter(line => line.length > 0 && (line.startsWith('http://') || line.startsWith('https://')));
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const validFiles: File[] = [];
+    const errors: string[] = [];
+
+    files.forEach(file => {
+      if (!file.name.toLowerCase().endsWith('.pdf')) {
+        errors.push(`${file.name}: Not a PDF file`);
+      } else if (file.size > MAX_FILE_SIZE_BYTES) {
+        errors.push(`${file.name}: Exceeds ${MAX_FILE_SIZE_MB}MB limit`);
+      } else {
+        validFiles.push(file);
+      }
+    });
+
+    if (validFiles.length > MAX_FILES) {
+      toast.error(`Maximum ${MAX_FILES} files per batch`);
+      setSelectedFiles(validFiles.slice(0, MAX_FILES));
+    } else {
+      setSelectedFiles(validFiles);
+    }
+
+    if (errors.length > 0) {
+      errors.forEach(err => toast.error(err));
+    }
+  };
+
+  const removeFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const uploadFilesAndProcess = async () => {
+    if (selectedFiles.length === 0) {
+      toast.error('Please select PDF files to upload');
+      return;
+    }
+
+    setUploadingFiles(true);
+    setIsUploading(true);
+    setShowProgress(true);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('Please log in to upload CVs');
+        setIsUploading(false);
+        setUploadingFiles(false);
+        return;
+      }
+
+      // Upload files to storage and collect public URLs
+      const urls: string[] = [];
+      const uploadErrors: string[] = [];
+
+      for (const file of selectedFiles) {
+        const timestamp = Date.now();
+        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const filePath = `${user.id}/${timestamp}-${safeName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('talent-cvs')
+          .upload(filePath, file, { contentType: 'application/pdf' });
+
+        if (uploadError) {
+          uploadErrors.push(`${file.name}: ${uploadError.message}`);
+          continue;
+        }
+
+        const { data: publicUrlData } = supabase.storage
+          .from('talent-cvs')
+          .getPublicUrl(filePath);
+
+        urls.push(publicUrlData.publicUrl);
+      }
+
+      if (uploadErrors.length > 0) {
+        uploadErrors.forEach(err => toast.error(err));
+      }
+
+      if (urls.length === 0) {
+        toast.error('No files were uploaded successfully');
+        setIsUploading(false);
+        setUploadingFiles(false);
+        setShowProgress(false);
+        return;
+      }
+
+      setUploadingFiles(false);
+
+      // Create batch record and invoke edge function
+      const { data: batch, error: batchError } = await supabase
+        .from('batch_uploads')
+        .insert({
+          uploaded_by: user.id,
+          file_count: urls.length,
+          status: 'pending'
+        })
+        .select()
+        .single();
+
+      if (batchError) throw batchError;
+
+      setCurrentBatch(batch as BatchUpload);
+
+      const { error: invokeError } = await supabase.functions.invoke('batch-parse-cvs', {
+        body: { cvUrls: urls, batchId: batch.id }
+      });
+
+      if (invokeError) throw invokeError;
+
+      toast.success(`Started processing ${urls.length} CVs from uploaded files`);
+      pollBatchProgress(batch.id);
+
+    } catch (error: any) {
+      console.error('File upload error:', error);
+      toast.error(error.message || 'Failed to upload files');
+      setIsUploading(false);
+      setUploadingFiles(false);
+      setShowProgress(false);
+    }
   };
 
   const startBatchUpload = async () => {
@@ -58,7 +188,6 @@ export function BatchTalentUpload({ onComplete }: BatchTalentUploadProps) {
     setShowProgress(true);
 
     try {
-      // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         toast.error('Please log in to upload CVs');
@@ -66,7 +195,6 @@ export function BatchTalentUpload({ onComplete }: BatchTalentUploadProps) {
         return;
       }
 
-      // Create batch record
       const { data: batch, error: batchError } = await supabase
         .from('batch_uploads')
         .insert({
@@ -81,7 +209,6 @@ export function BatchTalentUpload({ onComplete }: BatchTalentUploadProps) {
 
       setCurrentBatch(batch as BatchUpload);
 
-      // Start batch processing
       const { error: invokeError } = await supabase.functions.invoke('batch-parse-cvs', {
         body: { cvUrls: urls, batchId: batch.id }
       });
@@ -89,8 +216,6 @@ export function BatchTalentUpload({ onComplete }: BatchTalentUploadProps) {
       if (invokeError) throw invokeError;
 
       toast.success(`Started processing ${urls.length} CVs`);
-      
-      // Start polling for progress
       pollBatchProgress(batch.id);
 
     } catch (error: any) {
@@ -124,6 +249,7 @@ export function BatchTalentUpload({ onComplete }: BatchTalentUploadProps) {
           if (batch.status === 'completed') {
             toast.success(`Batch completed: ${batch.processed_count} processed, ${batch.skipped_count} skipped, ${batch.failed_count} failed`);
             setUrlsInput('');
+            setSelectedFiles([]);
             onComplete?.();
           } else {
             toast.error('Batch processing failed');
@@ -134,7 +260,6 @@ export function BatchTalentUpload({ onComplete }: BatchTalentUploadProps) {
       }
     }, 3000);
 
-    // Stop polling after 10 minutes
     setTimeout(() => clearInterval(pollInterval), 600000);
   }, [onComplete]);
 
@@ -146,6 +271,13 @@ export function BatchTalentUpload({ onComplete }: BatchTalentUploadProps) {
 
   const urlCount = parseCvUrls(urlsInput).length;
 
+  const resetBatch = () => {
+    setShowProgress(false);
+    setCurrentBatch(null);
+    setSelectedFiles([]);
+    setUrlsInput('');
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -154,31 +286,116 @@ export function BatchTalentUpload({ onComplete }: BatchTalentUploadProps) {
           Batch CV Upload
         </CardTitle>
         <CardDescription>
-          Upload multiple CVs at once. Paste public URLs (one per line). CVs parsed within 90 days will be skipped.
+          Upload multiple CVs at once via links or PDF files. Duplicates are automatically skipped (matched by email).
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div>
-          <Label htmlFor="cv-urls">CV URLs (one per line)</Label>
-          <Textarea
-            id="cv-urls"
-            placeholder="https://example.com/cv1.pdf
-https://example.com/cv2.pdf
-https://storage.supabase.co/..."
-            value={urlsInput}
-            onChange={(e) => setUrlsInput(e.target.value)}
-            rows={6}
-            disabled={isUploading}
-            className="font-mono text-sm"
-          />
-          <div className="flex items-center justify-between mt-2">
-            <p className="text-sm text-muted-foreground">
-              <LinkIcon className="w-3 h-3 inline mr-1" />
-              {urlCount} valid URL{urlCount !== 1 ? 's' : ''} detected
-            </p>
-            <p className="text-xs text-muted-foreground">Max 100 per batch</p>
-          </div>
-        </div>
+        <Tabs defaultValue="links" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="links" disabled={isUploading}>
+              <LinkIcon className="w-4 h-4 mr-2" />
+              Paste Links
+            </TabsTrigger>
+            <TabsTrigger value="files" disabled={isUploading}>
+              <FileUp className="w-4 h-4 mr-2" />
+              Upload Files
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="links" className="space-y-4">
+            <div>
+              <Label htmlFor="cv-urls">CV URLs (one per line)</Label>
+              <Textarea
+                id="cv-urls"
+                placeholder={"https://example.com/cv1.pdf\nhttps://example.com/cv2.pdf\nhttps://storage.supabase.co/..."}
+                value={urlsInput}
+                onChange={(e) => setUrlsInput(e.target.value)}
+                rows={6}
+                disabled={isUploading}
+                className="font-mono text-sm"
+              />
+              <div className="flex items-center justify-between mt-2">
+                <p className="text-sm text-muted-foreground">
+                  <LinkIcon className="w-3 h-3 inline mr-1" />
+                  {urlCount} valid URL{urlCount !== 1 ? 's' : ''} detected
+                </p>
+                <p className="text-xs text-muted-foreground">Max 100 per batch</p>
+              </div>
+            </div>
+            <Button
+              onClick={startBatchUpload}
+              disabled={isUploading || urlCount === 0}
+              className="w-full"
+            >
+              {isUploading ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Processing...</>
+              ) : (
+                <><Upload className="w-4 h-4 mr-2" />Upload {urlCount} CV{urlCount !== 1 ? 's' : ''}</>
+              )}
+            </Button>
+          </TabsContent>
+
+          <TabsContent value="files" className="space-y-4">
+            <div>
+              <Label>PDF Files (max {MAX_FILES} files, {MAX_FILE_SIZE_MB}MB each)</Label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf"
+                multiple
+                onChange={handleFileSelect}
+                className="hidden"
+                disabled={isUploading}
+              />
+              <div
+                onClick={() => !isUploading && fileInputRef.current?.click()}
+                className="mt-2 border-2 border-dashed rounded-xl p-6 text-center cursor-pointer hover:bg-muted/50 transition-colors"
+              >
+                <FileUp className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                <p className="text-sm font-medium">Click to select PDF files</p>
+                <p className="text-xs text-muted-foreground mt-1">or drag and drop</p>
+              </div>
+
+              {selectedFiles.length > 0 && (
+                <div className="mt-3 space-y-1.5 max-h-40 overflow-y-auto">
+                  {selectedFiles.map((file, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-2 bg-muted/30 rounded-lg text-sm">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+                        <span className="truncate">{file.name}</span>
+                        <span className="text-xs text-muted-foreground shrink-0">
+                          {(file.size / (1024 * 1024)).toFixed(1)}MB
+                        </span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 shrink-0"
+                        onClick={() => removeFile(idx)}
+                        disabled={isUploading}
+                      >
+                        <XCircle className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <Button
+              onClick={uploadFilesAndProcess}
+              disabled={isUploading || selectedFiles.length === 0}
+              className="w-full"
+            >
+              {uploadingFiles ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Uploading files...</>
+              ) : isUploading ? (
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Processing...</>
+              ) : (
+                <><Upload className="w-4 h-4 mr-2" />Upload {selectedFiles.length} PDF{selectedFiles.length !== 1 ? 's' : ''}</>
+              )}
+            </Button>
+          </TabsContent>
+        </Tabs>
 
         {showProgress && currentBatch && (
           <div className="p-4 border rounded-lg space-y-3 bg-muted/30">
@@ -214,50 +431,21 @@ https://storage.supabase.co/..."
               </div>
             </div>
 
-            {currentBatch.status === 'completed' && currentBatch.failed_count > 0 && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => setShowErrorLog(true)}
-              >
-                View Error Log
-              </Button>
+            {currentBatch.status === 'completed' && (
+              <div className="flex gap-2">
+                {currentBatch.failed_count > 0 && (
+                  <Button variant="outline" size="sm" onClick={() => setShowErrorLog(true)}>
+                    View Error Log
+                  </Button>
+                )}
+                <Button variant="outline" size="sm" onClick={resetBatch}>
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  New Batch
+                </Button>
+              </div>
             )}
           </div>
         )}
-
-        <div className="flex gap-2">
-          <Button 
-            onClick={startBatchUpload} 
-            disabled={isUploading || urlCount === 0}
-            className="flex-1"
-          >
-            {isUploading ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Processing...
-              </>
-            ) : (
-              <>
-                <Upload className="w-4 h-4 mr-2" />
-                Upload {urlCount} CV{urlCount !== 1 ? 's' : ''}
-              </>
-            )}
-          </Button>
-          
-          {showProgress && currentBatch?.status === 'completed' && (
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                setShowProgress(false);
-                setCurrentBatch(null);
-              }}
-            >
-              <RefreshCw className="w-4 h-4 mr-2" />
-              New Batch
-            </Button>
-          )}
-        </div>
       </CardContent>
 
       {/* Error Log Dialog */}

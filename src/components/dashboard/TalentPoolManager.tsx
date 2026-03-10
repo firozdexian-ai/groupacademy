@@ -12,11 +12,12 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { toast } from "sonner";
 import {
   Search, Users, MessageSquare, Download, RefreshCw, Eye, Loader2, Briefcase,
   ChevronLeft, ChevronRight, Hand, Check, Mic, Banknote, ClipboardCheck,
-  Globe, Filter, MoreHorizontal, FileText, Phone, UserPlus,
+  Globe, Filter, MoreHorizontal, FileText, Phone, UserPlus, Mail,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { BatchTalentUpload } from "./BatchTalentUpload";
@@ -53,6 +54,7 @@ interface Talent {
   welcome_sent_at: string | null;
   country: string | null;
   country_code: string | null;
+  user_id: string | null;
 }
 
 interface OutreachRecord {
@@ -66,6 +68,8 @@ interface ProfessionCategory {
   id: string;
   name: string;
 }
+
+type SourceFilter = "all" | "registered" | "uploaded";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -87,7 +91,7 @@ export function TalentPoolManager() {
   const [error, setError] = useState<string | null>(null);
 
   // KPI State
-  const [kpiStats, setKpiStats] = useState({ total: 0, newThisWeek: 0, withCV: 0, withoutPhone: 0 });
+  const [kpiStats, setKpiStats] = useState({ total: 0, newThisWeek: 0, withCV: 0, withoutPhone: 0, registered: 0, uploaded: 0 });
 
   // Pagination & Search & Filters
   const [page, setPage] = useState(1);
@@ -95,6 +99,7 @@ export function TalentPoolManager() {
   const [searchQuery, setSearchQuery] = useState("");
   const [countryFilter, setCountryFilter] = useState<string>("all");
   const [outreachFilter, setOutreachFilter] = useState<string>("all");
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
   const debouncedSearch = useDebounce(searchQuery, 500);
 
   // UI State
@@ -112,17 +117,21 @@ export function TalentPoolManager() {
       const oneWeekAgo = new Date();
       oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
-      const [totalRes, newRes, cvRes, noPhoneRes] = await Promise.all([
+      const [totalRes, newRes, cvRes, noPhoneRes, registeredRes, uploadedRes] = await Promise.all([
         supabase.from("talents").select("*", { count: "exact", head: true }),
         supabase.from("talents").select("*", { count: "exact", head: true }).gte("created_at", oneWeekAgo.toISOString()),
         supabase.from("talents").select("*", { count: "exact", head: true }).not("cv_url", "is", null),
         supabase.from("talents").select("*", { count: "exact", head: true }).is("phone", null),
+        supabase.from("talents").select("*", { count: "exact", head: true }).not("user_id", "is", null),
+        supabase.from("talents").select("*", { count: "exact", head: true }).is("user_id", null),
       ]);
       setKpiStats({
         total: totalRes.count || 0,
         newThisWeek: newRes.count || 0,
         withCV: cvRes.count || 0,
         withoutPhone: noPhoneRes.count || 0,
+        registered: registeredRes.count || 0,
+        uploaded: uploadedRes.count || 0,
       });
     } catch (err) {
       console.error("Error loading KPI stats:", err);
@@ -144,6 +153,13 @@ export function TalentPoolManager() {
 
       if (countryFilter && countryFilter !== "all") {
         query = query.eq("country", countryFilter);
+      }
+
+      // Server-side source filter
+      if (sourceFilter === "registered") {
+        query = query.not("user_id", "is", null);
+      } else if (sourceFilter === "uploaded") {
+        query = query.is("user_id", null);
       }
 
       // Server-side outreach filters
@@ -168,7 +184,7 @@ export function TalentPoolManager() {
     } finally {
       setIsLoading(false);
     }
-  }, [page, debouncedSearch, countryFilter, outreachFilter]);
+  }, [page, debouncedSearch, countryFilter, outreachFilter, sourceFilter]);
 
   const loadProfessionCategories = useCallback(async () => {
     try {
@@ -248,6 +264,18 @@ export function TalentPoolManager() {
     return `https://wa.me/${cleaned}?text=${message}`;
   };
 
+  const formatInviteWhatsAppLink = (phone: string | null, name: string) => {
+    if (!phone) return null;
+    let cleaned = phone.replace(/[\s\-\(\)\+]/g, "");
+    if (cleaned.startsWith("0")) cleaned = `880${cleaned.slice(1)}`;
+    else if (cleaned.length === 10) cleaned = `880${cleaned}`;
+
+    const message = encodeURIComponent(
+      `Hi ${name}! 👋\n\nWe found your profile and think you'd be a great fit for GroUp Academy — an AI-powered career platform with personalized job matching, career assessments, and upskilling courses.\n\nSign up here to unlock your full profile:\nhttps://groupacademy.lovable.app/auth\n\nLooking forward to having you on board! 🚀\n\nBest regards,\nGroUp Academy Team`,
+    );
+    return `https://wa.me/${cleaned}?text=${message}`;
+  };
+
   useEffect(() => {
     loadTalents();
     loadProfessionCategories();
@@ -262,7 +290,7 @@ export function TalentPoolManager() {
 
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, countryFilter, outreachFilter]);
+  }, [debouncedSearch, countryFilter, outreachFilter, sourceFilter]);
 
   const getProfessionName = (categoryId: string | null, customProfession: string | null) => {
     if (customProfession) return customProfession;
@@ -308,7 +336,7 @@ export function TalentPoolManager() {
 
   const exportToCSV = async (exportAll = false) => {
     let rows: string[][] = [];
-    const headers = ["Name", "Email", "Phone", "Category", "Country", "Services Used", "Created At"];
+    const headers = ["Name", "Email", "Phone", "Category", "Country", "Source", "Services Used", "Created At"];
 
     if (exportAll) {
       setExportingAll(true);
@@ -323,6 +351,8 @@ export function TalentPoolManager() {
           }
           if (countryFilter !== "all") query = query.eq("country", countryFilter);
           if (outreachFilter === "no_welcome") query = query.is("welcome_sent_at", null);
+          if (sourceFilter === "registered") query = query.not("user_id", "is", null);
+          else if (sourceFilter === "uploaded") query = query.is("user_id", null);
 
           const { data } = await query;
           if (!data || data.length === 0) break;
@@ -332,7 +362,7 @@ export function TalentPoolManager() {
         }
         rows = allTalents.map((t) => [
           t.full_name, t.email, t.phone || "", getProfessionName(t.profession_category_id, t.custom_profession),
-          t.country || "", t.services_used?.join("; ") || "", new Date(t.created_at).toLocaleDateString(),
+          t.country || "", t.user_id ? "Registered" : "Uploaded", t.services_used?.join("; ") || "", new Date(t.created_at).toLocaleDateString(),
         ]);
       } catch (err) {
         toast.error("Export failed");
@@ -344,7 +374,7 @@ export function TalentPoolManager() {
     } else {
       rows = talents.map((t) => [
         t.full_name, t.email, t.phone || "", getProfessionName(t.profession_category_id, t.custom_profession),
-        t.country || "", t.services_used?.join("; ") || "", new Date(t.created_at).toLocaleDateString(),
+        t.country || "", t.user_id ? "Registered" : "Uploaded", t.services_used?.join("; ") || "", new Date(t.created_at).toLocaleDateString(),
       ]);
     }
 
@@ -375,9 +405,18 @@ export function TalentPoolManager() {
 
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
+  // Source badge renderer
+  const renderSourceBadge = (talent: Talent) => {
+    if (talent.user_id) {
+      return <Badge className="text-[10px] px-1.5 py-0 bg-green-600/10 text-green-700 border-green-200">Registered</Badge>;
+    }
+    return <Badge className="text-[10px] px-1.5 py-0 bg-amber-600/10 text-amber-700 border-amber-200">Uploaded</Badge>;
+  };
+
   // Renders the actions dropdown for a talent row
   const renderActionsDropdown = (talent: Talent) => {
     const hasPhone = !!talent.phone;
+    const isRegistered = !!talent.user_id;
     return (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -398,36 +437,42 @@ export function TalentPoolManager() {
             <FileText className="w-4 h-4 mr-2 text-purple-600" /> Create Portfolio
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          {/* Welcome */}
+          {/* Welcome / Invite */}
           {hasPhone && (
             talent.welcome_sent_at ? (
               <DropdownMenuItem disabled>
-                <Check className="w-4 h-4 mr-2 text-green-600" /> Welcome Sent
+                <Check className="w-4 h-4 mr-2 text-green-600" /> {isRegistered ? "Welcome Sent" : "Invite Sent"}
               </DropdownMenuItem>
             ) : (
               <DropdownMenuItem onClick={async () => {
                 const { error } = await supabase.from("talents").update({ welcome_sent_at: new Date().toISOString() }).eq("id", talent.id);
                 if (!error) {
-                  const link = formatWelcomeWhatsAppLink(talent.phone, extractFirstName(talent.full_name));
+                  const link = isRegistered
+                    ? formatWelcomeWhatsAppLink(talent.phone, extractFirstName(talent.full_name))
+                    : formatInviteWhatsAppLink(talent.phone, extractFirstName(talent.full_name));
                   if (link) window.open(link, "_blank");
                   loadTalents();
                 }
               }}>
-                <Hand className="w-4 h-4 mr-2 text-blue-600" /> Send Welcome
+                {isRegistered ? (
+                  <><Hand className="w-4 h-4 mr-2 text-blue-600" /> Send Welcome</>
+                ) : (
+                  <><Mail className="w-4 h-4 mr-2 text-orange-600" /> Send Invite</>
+                )}
               </DropdownMenuItem>
             )
           )}
           {/* Product outreach actions */}
           {hasPhone && OUTREACH_ACTIONS.map(({ product, icon: Icon, label, colorClass }) => {
             const sentAt = getOutreachSentAt(talent.id, product);
-            const isLoading = sendingOutreach === `${talent.id}-${product}`;
+            const isLoadingOutreach = sendingOutreach === `${talent.id}-${product}`;
             return sentAt ? (
               <DropdownMenuItem key={product} disabled>
                 <Check className={`w-4 h-4 mr-2 ${colorClass}`} /> {label.replace("Pitch ", "")} Sent
               </DropdownMenuItem>
             ) : (
-              <DropdownMenuItem key={product} disabled={isLoading} onClick={() => sendProductOutreach(talent, product)}>
-                {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Icon className={`w-4 h-4 mr-2 ${colorClass}`} />}
+              <DropdownMenuItem key={product} disabled={isLoadingOutreach} onClick={() => sendProductOutreach(talent, product)}>
+                {isLoadingOutreach ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Icon className={`w-4 h-4 mr-2 ${colorClass}`} />}
                 {label}
               </DropdownMenuItem>
             );
@@ -442,7 +487,10 @@ export function TalentPoolManager() {
     <div key={talent.id} className="p-4 border rounded-xl space-y-3">
       <div className="flex items-start justify-between">
         <div className="min-w-0 flex-1">
-          <p className="font-medium truncate">{talent.full_name}</p>
+          <div className="flex items-center gap-2">
+            <p className="font-medium truncate">{talent.full_name}</p>
+            {renderSourceBadge(talent)}
+          </div>
           <p className="text-xs text-muted-foreground truncate">{talent.email}</p>
           {talent.phone && <p className="text-xs text-muted-foreground flex items-center gap-1"><Phone className="h-3 w-3" />{talent.phone}</p>}
         </div>
@@ -465,7 +513,7 @@ export function TalentPoolManager() {
       <BatchTalentUpload onComplete={() => { loadTalents(); loadKpiStats(); }} />
 
       {/* KPI Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         <Card className="p-3">
           <div className="flex items-center gap-2">
             <Users className="h-4 w-4 text-primary" />
@@ -481,6 +529,24 @@ export function TalentPoolManager() {
             <div>
               <p className="text-xl font-bold">{kpiStats.newThisWeek}</p>
               <p className="text-xs text-muted-foreground">New This Week</p>
+            </div>
+          </div>
+        </Card>
+        <Card className="p-3">
+          <div className="flex items-center gap-2">
+            <Check className="h-4 w-4 text-green-600" />
+            <div>
+              <p className="text-xl font-bold">{kpiStats.registered}</p>
+              <p className="text-xs text-muted-foreground">Registered</p>
+            </div>
+          </div>
+        </Card>
+        <Card className="p-3">
+          <div className="flex items-center gap-2">
+            <Upload className="h-4 w-4 text-amber-600" />
+            <div>
+              <p className="text-xl font-bold">{kpiStats.uploaded}</p>
+              <p className="text-xs text-muted-foreground">Uploaded</p>
             </div>
           </div>
         </Card>
@@ -513,7 +579,11 @@ export function TalentPoolManager() {
                 Talent Pool
               </CardTitle>
               <CardDescription>
-                {outreachFilter !== "all" ? `${totalCount} talents match criteria` : `${totalCount} talents in the database`}
+                {sourceFilter !== "all"
+                  ? `${totalCount} ${sourceFilter} talents`
+                  : outreachFilter !== "all"
+                    ? `${totalCount} talents match criteria`
+                    : `${totalCount} talents in the database`}
               </CardDescription>
             </div>
             <div className="flex gap-2">
@@ -537,6 +607,19 @@ export function TalentPoolManager() {
           </div>
         </CardHeader>
         <CardContent>
+          {/* Source Filter Toggle */}
+          <div className="mb-4">
+            <ToggleGroup type="single" value={sourceFilter} onValueChange={(v) => { if (v) setSourceFilter(v as SourceFilter); }} className="justify-start">
+              <ToggleGroupItem value="all" className="text-xs px-3">All</ToggleGroupItem>
+              <ToggleGroupItem value="registered" className="text-xs px-3">
+                <Check className="w-3 h-3 mr-1" /> Registered
+              </ToggleGroupItem>
+              <ToggleGroupItem value="uploaded" className="text-xs px-3">
+                <Upload className="w-3 h-3 mr-1" /> Uploaded
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </div>
+
           {/* Filters Row */}
           <div className="mb-4 grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
             <div>
@@ -579,8 +662,8 @@ export function TalentPoolManager() {
                   </SelectContent>
                 </Select>
               </div>
-              {(countryFilter !== "all" || outreachFilter !== "all") && (
-                <Button variant="ghost" size="sm" onClick={() => { setCountryFilter("all"); setOutreachFilter("all"); }} className="text-muted-foreground shrink-0">
+              {(countryFilter !== "all" || outreachFilter !== "all" || sourceFilter !== "all") && (
+                <Button variant="ghost" size="sm" onClick={() => { setCountryFilter("all"); setOutreachFilter("all"); setSourceFilter("all"); }} className="text-muted-foreground shrink-0">
                   Clear
                 </Button>
               )}
@@ -599,7 +682,7 @@ export function TalentPoolManager() {
               ) : (
                 <>
                   <p>No talents match the current filters</p>
-                  <Button variant="link" onClick={() => { setCountryFilter("all"); setOutreachFilter("all"); }} className="mt-2">Clear filters</Button>
+                  <Button variant="link" onClick={() => { setCountryFilter("all"); setOutreachFilter("all"); setSourceFilter("all"); }} className="mt-2">Clear filters</Button>
                 </>
               )}
             </div>
@@ -620,6 +703,7 @@ export function TalentPoolManager() {
                         <TableHead>Contact</TableHead>
                         <TableHead>Country</TableHead>
                         <TableHead>Profession</TableHead>
+                        <TableHead>Source</TableHead>
                         <TableHead>Updated</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
@@ -640,6 +724,7 @@ export function TalentPoolManager() {
                             ) : <span className="text-xs text-muted-foreground">—</span>}
                           </TableCell>
                           <TableCell><Badge variant="secondary">{getProfessionName(talent.profession_category_id, talent.custom_profession)}</Badge></TableCell>
+                          <TableCell>{renderSourceBadge(talent)}</TableCell>
                           <TableCell className="text-sm text-muted-foreground">{new Date(talent.updated_at).toLocaleDateString()}</TableCell>
                           <TableCell className="text-right">{renderActionsDropdown(talent)}</TableCell>
                         </TableRow>
