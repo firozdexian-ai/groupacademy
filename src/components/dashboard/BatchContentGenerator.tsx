@@ -669,20 +669,20 @@ export function BatchContentGenerator() {
                                   </div>
                                 </div>
                               ) : (
-                                <div className="bg-muted/30 rounded-md p-3 max-h-64 overflow-y-auto text-sm prose prose-sm dark:prose-invert max-w-none">
-                                  {key === "blog-posts" ? (
-                                    <ReactMarkdown>{draft.content || ""}</ReactMarkdown>
-                                  ) : (
-                                    <p className="whitespace-pre-wrap">{draft.text_content}</p>
+                                <>
+                                  <div className="bg-muted/30 rounded-md p-3 max-h-64 overflow-y-auto text-sm prose prose-sm dark:prose-invert max-w-none">
+                                    {key === "blog-posts" ? (
+                                      <ReactMarkdown>{draft.content || ""}</ReactMarkdown>
+                                    ) : (
+                                      <p className="whitespace-pre-wrap">{draft.text_content}</p>
+                                    )}
+                                  </div>
+                                  {key === "feed-posts" && draft.text_content && (
+                                    <p className="text-[10px] text-muted-foreground">
+                                      {draft.text_content.trim().split(/\s+/).length} words
+                                    </p>
                                   )}
-                                </div>
-                                {/* Word count for feed posts */}
-                                {key === "feed-posts" && draft.text_content && (
-                                  <p className="text-[10px] text-muted-foreground">
-                                    {draft.text_content.trim().split(/\s+/).length} words
-                                  </p>
-                                )}
-                              </div>
+                                </>
                               )}
 
                               {draft.tags && draft.tags.length > 0 && (
