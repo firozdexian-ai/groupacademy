@@ -704,9 +704,3 @@ export function TalentPoolManager() {
     </div>
   );
 }
-
-// Lazy wrapper to avoid circular imports - uses the same component
-function TalentDetailDialogLazy(props: { open: boolean; onOpenChange: (open: boolean) => void; talentEmail: string; talentName: string }) {
-  const { TalentDetailDialog } = require("./TalentDetailDialog");
-  return <TalentDetailDialog {...props} />;
-}
