@@ -1,47 +1,44 @@
 
-# GroUp Academy — Vision Plan
 
-## Current Completion: ~88%
+# Jobs KPI Dashboard — Mobile/Web UI Compatibility Fix
 
-| # | Module | Status | % | Next Action |
-|---|--------|--------|---|-------------|
-| 1 | Academy / LMS | ✅ | 95% | Batch video linking |
-| 2 | AI Module Descriptions | 🔧 | 70% | Run batch generator (4,504 pending) |
-| 3 | AI Agents / Chat | ✅ | 90% | Conversation export |
-| 4 | Jobs Hub | ✅ | 90% | Saved job alerts |
-| 5 | Career Services | ✅ | 85% | Result sharing UX |
-| 6 | Feed / Social | ✅ | 95% | Done ✅ |
-| 7 | Study Abroad | ✅ | 80% | Application tracker |
-| 8 | Profile & Onboarding | ✅ | 85% | Profile visibility settings |
-| 9 | Credits & Payments (Stripe) | 🔧 | 75% | Keys infra built ✅ — need keys + test checkout |
-| 10 | Admin Dashboard | ✅ | 90% | Bulk actions |
-| 11 | Notifications | ✅ | 85% | Push notifications |
-| 12 | Public SEO / Marketing | ✅ | 85% | Landing page optimization |
-| 13 | Gigs / Marketplace | ✅ | 80% | Payment for completions |
-| 14 | PWA / Mobile | ✅ | 90% | Done ✅ |
-| 15 | Auth & Security | ✅ | 95% | Done ✅ |
+## Issues at 391px viewport
 
-## Priority Queue
+After reviewing the code against the 391px mobile viewport:
 
-| # | Task | Current → Target | Effort |
-|---|------|------------------|--------|
-| 1 | Run AI Descriptions | 70% → 100% | Low |
-| 2 | Test Stripe Checkout | 75% → 90% | Low |
-| 3 | Push Notifications | 85% → 95% | Medium |
-| 4 | Result Sharing UX | 85% → 95% | Low |
-| 5 | Study Abroad Tracker | 80% → 90% | Medium |
-| 6 | Landing Page Polish | 85% → 95% | Low-Med |
+### 1. Hero Card — Too Tall on Mobile
+The circular progress (w-28 h-28) centers above the full stats block. Combined with the title, edit button, progress bar, and 3 stat boxes stacking to `grid-cols-1`, this creates a very long vertical scroll before reaching any other content. On mobile, the hero section should be more compact.
 
-## Milestones
+**Fix**: On mobile, use a horizontal layout for the hero — small circle on the left, key stats on the right. Change `flex-col lg:flex-row` to `flex-row` always, but shrink the circle further on mobile (`w-20 h-20`). Change the 3-stat grid from `grid-cols-1 sm:grid-cols-3` to `grid-cols-3` always (they're small number cards).
 
-- AI Descriptions + Stripe + Push → **~93%**
-- Result Sharing + Study Abroad Tracker → **~95%**
-- Final polish → **~98%**
+### 2. StatMiniCard Grid — Orphan Cards
+9 potential cards in `grid-cols-2` = one card alone on the last row. The icon + text layout inside each card wastes horizontal space on mobile.
 
-## Completed Infrastructure
+**Fix**: Make icon smaller on mobile (`w-3 h-3` / `p-1.5`), reduce font size for value (`text-lg` on mobile), and tighten padding (`pt-3 pb-2 px-3`).
 
-- Certificates with PDF + verification ✅
-- Public SEO (Blog, Courses, Services with JSON-LD) ✅
-- Stripe self-service key config from admin panel ✅
-- Influencing Academy (3 schools, 12 programs, 168 courses, 749 modules) ✅
-- Email notifications (welcome, certificate) ✅
+### 3. Bar Chart X-Axis — 30+ Labels Cramped
+On mobile at 391px, 30 day labels on the XAxis overlap and become unreadable.
+
+**Fix**: Add `interval` prop to XAxis to show every 5th label on mobile. Use `useIsMobile` hook.
+
+### 4. Recent Jobs — Date Badge Wrapping
+The vacancies/applications/date row uses `flex items-center gap-4` which can overflow on narrow screens.
+
+**Fix**: Reduce gap to `gap-2` and use `text-xs` for the stat values on mobile.
+
+### 5. Header Title + Button Spacing
+"Jobs Analytics" title and "Refresh" button are fine, but "Monthly Jobs Target" + "Edit Target" button stack awkwardly. The edit input row (w-24 input + 2 buttons) can also overflow.
+
+**Fix**: Make the edit input `w-20` on mobile.
+
+---
+
+## Files to Change
+
+| File | Change |
+|------|--------|
+| `src/components/dashboard/JobsKPIDashboard.tsx` | All 5 mobile fixes above |
+| `src/components/dashboard/CircularProgress.tsx` | Add smaller mobile size (`w-20 h-20`) |
+
+No database changes needed.
+
