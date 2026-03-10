@@ -10,6 +10,16 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
@@ -30,6 +40,8 @@ import {
   ChevronRight,
   Send,
   Briefcase,
+  ShieldCheck,
+  PhoneOff,
 } from "lucide-react";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
@@ -37,7 +49,7 @@ import { DashboardTableSkeleton, DashboardErrorState } from "./DashboardSkeleton
 import { BatchCompanyUpload } from "./BatchCompanyUpload";
 import { getDexianEmailLink, EMAIL_TEMPLATE_OPTIONS, DexianEmailTemplate } from "@/lib/companyOutreachTemplates";
 
-// --- Internal Hook for Debounce (No new file needed) ---
+// --- Internal Hook for Debounce ---
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
   useEffect(() => {
@@ -54,7 +66,7 @@ interface Company {
   industry: string | null;
   website: string | null;
   primary_email: string | null;
-  secondary_emails: string[]; // Fixed type from any
+  secondary_emails: string[];
   linkedin_url: string | null;
   facebook_url: string | null;
   notes: string | null;
@@ -103,28 +115,32 @@ export function CompaniesManager() {
   const [showBatchUpload, setShowBatchUpload] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<DexianEmailTemplate>('discovery');
 
-  // Fetch Data (Refactored for Server-Side Pagination)
+  // Delete AlertDialog state
+  const [deleteTarget, setDeleteTarget] = useState<Company | null>(null);
+
+  // KPI State
+  const [kpiVerified, setKpiVerified] = useState(0);
+  const [kpiNeverContacted, setKpiNeverContacted] = useState(0);
+
+  // Fetch Data
   const loadCompanies = useCallback(async () => {
     setIsLoading(true);
     setLoadError(null);
     try {
       let query = supabase.from("companies").select("*", { count: "exact" }).order("name");
 
-      // Apply Search
       if (debouncedSearch) {
         query = query.or(
           `name.ilike.%${debouncedSearch}%,industry.ilike.%${debouncedSearch}%,primary_email.ilike.%${debouncedSearch}%`,
         );
       }
 
-      // Apply Industry Filter
       if (industryFilter === "none") {
         query = query.is("industry", null);
       } else if (industryFilter !== "all") {
         query = query.eq("industry", industryFilter);
       }
 
-      // Apply Pagination
       const from = (page - 1) * ITEMS_PER_PAGE;
       const to = from + ITEMS_PER_PAGE - 1;
       query = query.range(from, to);
@@ -133,11 +149,10 @@ export function CompaniesManager() {
 
       if (result.error) throw result.error;
 
-      // Map data to ensure secondary_emails is always a string array
       const mappedCompanies: Company[] = (result.data || []).map((company) => ({
         ...company,
-        secondary_emails: Array.isArray(company.secondary_emails) 
-          ? (company.secondary_emails as string[]) 
+        secondary_emails: Array.isArray(company.secondary_emails)
+          ? (company.secondary_emails as string[])
           : [],
       }));
       setCompanies(mappedCompanies);
@@ -151,17 +166,34 @@ export function CompaniesManager() {
     }
   }, [page, debouncedSearch, industryFilter]);
 
+  // Load KPI counts once
+  useEffect(() => {
+    const loadKPIs = async () => {
+      const [verifiedRes, outreachRes] = await Promise.all([
+        supabase.from("companies").select("id", { count: "exact", head: true }).eq("is_verified", true),
+        supabase.from("contact_outreach").select("company_id"),
+      ]);
+      setKpiVerified(verifiedRes.count || 0);
+      const contactedIds = new Set((outreachRes.data || []).map((r: any) => r.company_id).filter(Boolean));
+      // We'll compute never contacted from totalCount minus contacted
+      // But totalCount changes with filters, so use a separate total query
+      const totalRes = await supabase.from("companies").select("id", { count: "exact", head: true });
+      setKpiNeverContacted((totalRes.count || 0) - contactedIds.size);
+    };
+    loadKPIs();
+  }, []);
+
   // Load outreach history for displayed companies
   const loadOutreachHistory = useCallback(async (companyIds: string[]) => {
     if (companyIds.length === 0) return;
-    
+
     try {
       const { data } = await supabase
         .from("contact_outreach")
         .select("company_id, sent_at, message_type")
         .in("company_id", companyIds)
         .order("sent_at", { ascending: false });
-      
+
       const historyMap: Record<string, { last_sent: string; template: string } | null> = {};
       data?.forEach((record) => {
         if (record.company_id && !historyMap[record.company_id]) {
@@ -177,19 +209,16 @@ export function CompaniesManager() {
     }
   }, []);
 
-  // Trigger load on change
   useEffect(() => {
     loadCompanies();
   }, [loadCompanies]);
 
-  // Load outreach history when companies change
   useEffect(() => {
     if (companies.length > 0) {
       loadOutreachHistory(companies.map((c) => c.id));
     }
   }, [companies, loadOutreachHistory]);
 
-  // Reset page when searching
   useEffect(() => {
     setPage(1);
   }, [debouncedSearch, industryFilter]);
@@ -295,12 +324,12 @@ export function CompaniesManager() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    const companyToDelete = companies.find(c => c.id === id);
-    if (!confirm(`Delete "${companyToDelete?.name}"?\n\nAny jobs linked to this company will be unlinked first.`)) return;
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    const id = deleteTarget.id;
+    setDeleteTarget(null);
 
     try {
-      // First, unlink any jobs from this company to avoid FK constraint issues
       const { error: unlinkError } = await withTimeout(
         Promise.resolve(supabase.from("jobs").update({ company_id: null }).eq("company_id", id)),
         TIMEOUTS.DEFAULT,
@@ -308,10 +337,8 @@ export function CompaniesManager() {
       );
       if (unlinkError) {
         console.warn("Could not unlink jobs:", unlinkError);
-        // Continue anyway - FK might not be strict
       }
 
-      // Then delete the company
       const { error } = await withTimeout(
         Promise.resolve(supabase.from("companies").delete().eq("id", id)),
         TIMEOUTS.DEFAULT,
@@ -320,7 +347,6 @@ export function CompaniesManager() {
       if (error) throw error;
       toast.success("Company deleted successfully");
 
-      // Handle pagination logic after delete
       if (companies.length === 1 && page > 1) {
         setPage((prev) => prev - 1);
       } else {
@@ -328,9 +354,8 @@ export function CompaniesManager() {
       }
     } catch (error: any) {
       console.error("Error deleting company:", error);
-      // Provide specific guidance for common errors
       if (error.message?.includes("foreign key") || error.message?.includes("violates")) {
-        toast.error("Cannot delete: This company has linked records that couldn't be unlinked. Please contact support.");
+        toast.error("Cannot delete: This company has linked records. Please contact support.");
       } else if (error.message?.includes("timed out")) {
         toast.error("Request timed out. Please try again.");
       } else {
@@ -339,18 +364,15 @@ export function CompaniesManager() {
     }
   };
 
-  // Handle email outreach with tracking
   const handleEmailOutreach = async (company: Company, template: DexianEmailTemplate) => {
     if (!company.primary_email) {
       toast.error("No email address available");
       return;
     }
 
-    // Open email client first
     const mailtoLink = getDexianEmailLink(company.primary_email, template, company.name);
     window.open(mailtoLink, '_blank');
 
-    // Log outreach to database
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
@@ -362,13 +384,12 @@ export function CompaniesManager() {
           message_content: `Dexian ${templateLabel} email to ${company.name}`,
           sent_by: user.id,
         });
-        
-        // Update local outreach history
+
         setOutreachHistory((prev) => ({
           ...prev,
           [company.id]: { last_sent: new Date().toISOString(), template },
         }));
-        
+
         toast.success("Email opened & outreach logged");
       } else {
         toast.success("Email client opened");
@@ -379,49 +400,168 @@ export function CompaniesManager() {
     }
   };
 
-  // Helper to format relative time
   const getRelativeTime = (dateStr: string) => {
     const date = new Date(dateStr);
     const now = new Date();
     const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
     if (diffDays === 0) return "Today";
     if (diffDays === 1) return "Yesterday";
-    if (diffDays < 7) return `${diffDays} days ago`;
-    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
-    return `${Math.floor(diffDays / 30)} months ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
+    return `${Math.floor(diffDays / 30)}mo ago`;
   };
 
+  // Render a single company as a mobile card
+  const renderCompanyCard = (company: Company) => (
+    <div key={company.id} className="border rounded-lg p-3 space-y-2">
+      {/* Row 1: Logo + Name + Industry */}
+      <div className="flex items-center gap-3">
+        {company.logo_url ? (
+          <img src={company.logo_url} alt={company.name} className="w-8 h-8 rounded object-cover flex-shrink-0" />
+        ) : (
+          <div className="w-8 h-8 rounded bg-muted flex items-center justify-center flex-shrink-0">
+            <Building2 className="w-4 h-4 text-muted-foreground" />
+          </div>
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="font-medium text-sm truncate">{company.name}</p>
+          <Badge variant="outline" className="text-[10px] mt-0.5">{company.industry || "N/A"}</Badge>
+        </div>
+        {company.is_verified && (
+          <Badge className="bg-green-100 text-green-700 hover:bg-green-100 text-[10px] flex-shrink-0">
+            <CheckCircle className="w-3 h-3 mr-0.5" /> Verified
+          </Badge>
+        )}
+      </div>
+
+      {/* Row 2: Email + Outreach */}
+      <div className="flex items-center justify-between gap-2 text-xs">
+        {company.primary_email ? (
+          <a href={`mailto:${company.primary_email}`} className="text-primary hover:underline flex items-center gap-1 truncate min-w-0">
+            <Mail className="w-3 h-3 flex-shrink-0" />
+            <span className="truncate">{company.primary_email}</span>
+          </a>
+        ) : (
+          <span className="text-muted-foreground">No email</span>
+        )}
+        {outreachHistory[company.id] ? (
+          <Badge className="bg-green-100 text-green-700 hover:bg-green-100 text-[10px] flex-shrink-0">
+            {getRelativeTime(outreachHistory[company.id]!.last_sent)}
+          </Badge>
+        ) : (
+          <Badge variant="outline" className="text-muted-foreground text-[10px] flex-shrink-0">Never</Badge>
+        )}
+      </div>
+
+      {/* Row 3: Action icons */}
+      <div className="flex items-center gap-1 pt-1 border-t">
+        <Select
+          value={selectedTemplate}
+          onValueChange={(val) => {
+            setSelectedTemplate(val as DexianEmailTemplate);
+            handleEmailOutreach(company, val as DexianEmailTemplate);
+          }}
+        >
+          <SelectTrigger className="w-auto h-7 gap-1 text-blue-600 border-blue-200 hover:bg-blue-50 text-xs" disabled={!company.primary_email}>
+            <Send className="w-3 h-3" />
+          </SelectTrigger>
+          <SelectContent>
+            {EMAIL_TEMPLATE_OPTIONS.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                <span className="flex items-center gap-2">
+                  <span>{opt.icon}</span>
+                  <span>{opt.label}</span>
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {company.website && (
+          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" asChild>
+            <a href={company.website} target="_blank" rel="noopener noreferrer"><Globe className="w-3.5 h-3.5" /></a>
+          </Button>
+        )}
+        {company.linkedin_url && (
+          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" asChild>
+            <a href={company.linkedin_url} target="_blank" rel="noopener noreferrer"><Linkedin className="w-3.5 h-3.5" /></a>
+          </Button>
+        )}
+        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setSearchParams({ tab: "jobs", company: company.id })}>
+          <Briefcase className="w-3.5 h-3.5" />
+        </Button>
+        <div className="flex-1" />
+        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => handleOpenDialog(company)}>
+          <Edit className="w-3.5 h-3.5" />
+        </Button>
+        <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive hover:text-destructive" onClick={() => setDeleteTarget(company)}>
+          <Trash2 className="w-3.5 h-3.5" />
+        </Button>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between flex-wrap gap-4">
+    <div className="space-y-4">
+      {/* KPI Cards */}
+      <div className="grid grid-cols-3 gap-3">
+        <Card className="p-3">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-md bg-primary/10"><Building2 className="w-4 h-4 text-primary" /></div>
             <div>
-              <CardTitle className="flex items-center gap-2">
+              <p className="text-xs text-muted-foreground">Total</p>
+              <p className="text-lg font-bold">{totalCount}</p>
+            </div>
+          </div>
+        </Card>
+        <Card className="p-3">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-md bg-green-100"><ShieldCheck className="w-4 h-4 text-green-600" /></div>
+            <div>
+              <p className="text-xs text-muted-foreground">Verified</p>
+              <p className="text-lg font-bold">{kpiVerified}</p>
+            </div>
+          </div>
+        </Card>
+        <Card className="p-3">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-md bg-orange-100"><PhoneOff className="w-4 h-4 text-orange-600" /></div>
+            <div>
+              <p className="text-xs text-muted-foreground">No Outreach</p>
+              <p className="text-lg font-bold">{kpiNeverContacted}</p>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <CardTitle className="flex items-center gap-2 text-lg">
                 <Building2 className="w-5 h-5" />
                 Companies
               </CardTitle>
               <CardDescription>{totalCount} total companies found</CardDescription>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={loadCompanies} disabled={isLoading}>
-                <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
-                Refresh
+              <Button variant="outline" size="sm" onClick={loadCompanies} disabled={isLoading}>
+                <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
+                <span className="hidden sm:inline ml-2">Refresh</span>
               </Button>
-              <Button variant="outline" onClick={() => setShowBatchUpload(true)}>
-                <Upload className="w-4 h-4 mr-2" />
-                Batch Import
+              <Button variant="outline" size="sm" onClick={() => setShowBatchUpload(true)}>
+                <Upload className="w-4 h-4" />
+                <span className="hidden sm:inline ml-2">Batch Import</span>
               </Button>
-              <Button onClick={() => handleOpenDialog()}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add Company
+              <Button size="sm" onClick={() => handleOpenDialog()}>
+                <Plus className="w-4 h-4" />
+                <span className="hidden sm:inline ml-2">Add Company</span>
               </Button>
             </div>
           </div>
         </CardHeader>
         <CardContent>
           <div className="mb-4 flex flex-col sm:flex-row gap-3">
-            <div className="relative max-w-sm flex-1">
+            <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="Search by name, industry, or email..."
@@ -455,7 +595,13 @@ export function CompaniesManager() {
             </div>
           ) : (
             <>
-              <div className="rounded-md border">
+              {/* Mobile Cards */}
+              <div className="sm:hidden space-y-3">
+                {companies.map(renderCompanyCard)}
+              </div>
+
+              {/* Desktop Table */}
+              <div className="hidden sm:block rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -521,7 +667,6 @@ export function CompaniesManager() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
-                            {/* Email Template Dropdown */}
                             <Select
                               value={selectedTemplate}
                               onValueChange={(val) => {
@@ -531,7 +676,7 @@ export function CompaniesManager() {
                             >
                               <SelectTrigger className="w-auto h-8 gap-1 text-blue-600 border-blue-200 hover:bg-blue-50" disabled={!company.primary_email}>
                                 <Send className="w-3 h-3" />
-                                <span className="hidden sm:inline text-xs">Email</span>
+                                <span className="text-xs">Email</span>
                               </SelectTrigger>
                               <SelectContent>
                                 {EMAIL_TEMPLATE_OPTIONS.map((opt) => (
@@ -544,8 +689,7 @@ export function CompaniesManager() {
                                 ))}
                               </SelectContent>
                             </Select>
-                            
-                            {/* Website & LinkedIn links */}
+
                             {company.website && (
                               <TooltipProvider>
                                 <Tooltip>
@@ -574,7 +718,7 @@ export function CompaniesManager() {
                                 </Tooltip>
                               </TooltipProvider>
                             )}
-                            
+
                             <Button
                               variant="ghost"
                               size="sm"
@@ -589,7 +733,7 @@ export function CompaniesManager() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleDelete(company.id)}
+                              onClick={() => setDeleteTarget(company)}
                               className="text-destructive hover:text-destructive"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -602,7 +746,7 @@ export function CompaniesManager() {
                 </Table>
               </div>
 
-              {/* Pagination Controls */}
+              {/* Pagination */}
               {totalPages > 1 && (
                 <div className="flex items-center justify-end space-x-2 py-4">
                   <Button
@@ -611,11 +755,11 @@ export function CompaniesManager() {
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                     disabled={page === 1 || isLoading}
                   >
-                    <ChevronLeft className="h-4 w-4 mr-2" />
-                    Previous
+                    <ChevronLeft className="h-4 w-4" />
+                    <span className="hidden sm:inline ml-1">Previous</span>
                   </Button>
                   <span className="text-sm text-muted-foreground">
-                    Page {page} of {totalPages}
+                    {page}/{totalPages}
                   </span>
                   <Button
                     variant="outline"
@@ -623,8 +767,8 @@ export function CompaniesManager() {
                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                     disabled={page === totalPages || isLoading}
                   >
-                    Next
-                    <ChevronRight className="h-4 w-4 ml-2" />
+                    <span className="hidden sm:inline mr-1">Next</span>
+                    <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
               )}
@@ -641,7 +785,7 @@ export function CompaniesManager() {
           </DialogHeader>
 
           <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Company Name *</Label>
                 <Input
@@ -662,7 +806,7 @@ export function CompaniesManager() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="website">Website</Label>
                 <Input
@@ -685,7 +829,7 @@ export function CompaniesManager() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="linkedin_url">LinkedIn URL</Label>
                 <Input
@@ -780,6 +924,24 @@ export function CompaniesManager() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete AlertDialog */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete "{deleteTarget?.name}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Any jobs linked to this company will be unlinked first. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Batch Import Dialog */}
       <BatchCompanyUpload open={showBatchUpload} onOpenChange={setShowBatchUpload} onComplete={loadCompanies} />
