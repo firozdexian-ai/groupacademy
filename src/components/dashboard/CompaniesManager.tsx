@@ -117,6 +117,13 @@ export function CompaniesManager() {
         );
       }
 
+      // Apply Industry Filter
+      if (industryFilter === "none") {
+        query = query.is("industry", null);
+      } else if (industryFilter !== "all") {
+        query = query.eq("industry", industryFilter);
+      }
+
       // Apply Pagination
       const from = (page - 1) * ITEMS_PER_PAGE;
       const to = from + ITEMS_PER_PAGE - 1;
