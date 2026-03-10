@@ -11,31 +11,20 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import {
-  Search,
-  Users,
-  MessageSquare,
-  Download,
-  RefreshCw,
-  Eye,
-  Loader2,
-  Briefcase,
-  ChevronLeft,
-  ChevronRight,
-  Hand,
-  Check,
-  Mic,
-  Banknote,
-  ClipboardCheck,
-  Globe,
-  Filter,
+  Search, Users, MessageSquare, Download, RefreshCw, Eye, Loader2, Briefcase,
+  ChevronLeft, ChevronRight, Hand, Check, Mic, Banknote, ClipboardCheck,
+  Globe, Filter, MoreHorizontal, FileText, Phone, UserPlus,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { BatchTalentUpload } from "./BatchTalentUpload";
+import { TalentDetailDialog } from "./TalentDetailDialog";
 import { OUTREACH_TEMPLATES, getOutreachWhatsAppLink, OutreachProduct } from "@/lib/outreachTemplates";
 import { COUNTRIES_WITH_PHONE, getCountryFlag } from "@/lib/constants/countries";
+import { formatWhatsAppLink, extractFirstName } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // --- Internal Hook for Debounce ---
 function useDebounce<T>(value: T, delay: number): T {
@@ -80,13 +69,25 @@ interface ProfessionCategory {
 
 const ITEMS_PER_PAGE = 10;
 
+// Outreach action config for DRY rendering
+const OUTREACH_ACTIONS: { product: OutreachProduct; icon: typeof Briefcase; label: string; colorClass: string }[] = [
+  { product: "portfolio", icon: Briefcase, label: "Pitch Portfolio", colorClass: "text-purple-600" },
+  { product: "mock_interview", icon: Mic, label: "Pitch Mock Interview", colorClass: "text-green-600" },
+  { product: "salary_analysis", icon: Banknote, label: "Pitch Salary Analysis", colorClass: "text-amber-600" },
+  { product: "career_scorecard", icon: ClipboardCheck, label: "Pitch Career Scorecard", colorClass: "text-teal-600" },
+];
+
 export function TalentPoolManager() {
+  const isMobile = useIsMobile();
   // Data State
   const [talents, setTalents] = useState<Talent[]>([]);
   const [professionCategories, setProfessionCategories] = useState<ProfessionCategory[]>([]);
   const [outreachRecords, setOutreachRecords] = useState<OutreachRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // KPI State
+  const [kpiStats, setKpiStats] = useState({ total: 0, newThisWeek: 0, withCV: 0, withoutPhone: 0 });
 
   // Pagination & Search & Filters
   const [page, setPage] = useState(1);
@@ -103,6 +104,30 @@ export function TalentPoolManager() {
   const [creatingPortfolio, setCreatingPortfolio] = useState(false);
   const [portfolioTalent, setPortfolioTalent] = useState<Talent | null>(null);
   const [sendingOutreach, setSendingOutreach] = useState<string | null>(null);
+  const [exportingAll, setExportingAll] = useState(false);
+
+  // Load KPI stats
+  const loadKpiStats = useCallback(async () => {
+    try {
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+      const [totalRes, newRes, cvRes, noPhoneRes] = await Promise.all([
+        supabase.from("talents").select("*", { count: "exact", head: true }),
+        supabase.from("talents").select("*", { count: "exact", head: true }).gte("created_at", oneWeekAgo.toISOString()),
+        supabase.from("talents").select("*", { count: "exact", head: true }).not("cv_url", "is", null),
+        supabase.from("talents").select("*", { count: "exact", head: true }).is("phone", null),
+      ]);
+      setKpiStats({
+        total: totalRes.count || 0,
+        newThisWeek: newRes.count || 0,
+        withCV: cvRes.count || 0,
+        withoutPhone: noPhoneRes.count || 0,
+      });
+    } catch (err) {
+      console.error("Error loading KPI stats:", err);
+    }
+  }, []);
 
   // Fetch Data (Paginated)
   const loadTalents = useCallback(async () => {
@@ -111,25 +136,21 @@ export function TalentPoolManager() {
     try {
       let query = supabase.from("talents").select("*", { count: "exact" }).order("updated_at", { ascending: false });
 
-      // 1. Search Logic
       if (debouncedSearch) {
         query = query.or(
           `full_name.ilike.%${debouncedSearch}%,email.ilike.%${debouncedSearch}%,phone.ilike.%${debouncedSearch}%,custom_profession.ilike.%${debouncedSearch}%`,
         );
       }
 
-      // 2. Country Filter
       if (countryFilter && countryFilter !== "all") {
         query = query.eq("country", countryFilter);
       }
 
-      // 3. Outreach Filter (Server-Side)
-      // We apply the most common filter (Welcome Not Sent) at the DB level to fix pagination issues.
+      // Server-side outreach filters
       if (outreachFilter === "no_welcome") {
         query = query.is("welcome_sent_at", null);
       }
 
-      // Pagination
       const from = (page - 1) * ITEMS_PER_PAGE;
       const to = from + ITEMS_PER_PAGE - 1;
       query = query.range(from, to);
@@ -147,12 +168,11 @@ export function TalentPoolManager() {
     } finally {
       setIsLoading(false);
     }
-  }, [page, debouncedSearch, countryFilter, outreachFilter]); // Added outreachFilter dependency
+  }, [page, debouncedSearch, countryFilter, outreachFilter]);
 
   const loadProfessionCategories = useCallback(async () => {
     try {
       const { data, error } = await supabase.from("profession_categories").select("id, name").eq("is_active", true);
-
       if (error) throw error;
       setProfessionCategories(data || []);
     } catch (err: any) {
@@ -160,7 +180,6 @@ export function TalentPoolManager() {
     }
   }, []);
 
-  // Load outreach records for current talent IDs
   const loadOutreachRecords = useCallback(async (talentIds: string[]) => {
     if (talentIds.length === 0) return;
     try {
@@ -174,40 +193,11 @@ export function TalentPoolManager() {
     }
   }, []);
 
-  // Helper to check if product outreach was sent
   const getOutreachSentAt = (talentId: string, product: OutreachProduct): string | null => {
     const record = outreachRecords.find((r) => r.talent_id === talentId && r.product === product);
     return record?.sent_at || null;
   };
 
-  // Helper to extract actual first name
-  const getFirstName = (fullName: string): string => {
-    const prefixes = [
-      "md.",
-      "md",
-      "mst.",
-      "mst",
-      "dr.",
-      "dr",
-      "engr.",
-      "engr",
-      "prof.",
-      "prof",
-      "mr.",
-      "mr",
-      "mrs.",
-      "mrs",
-      "ms.",
-      "ms",
-    ];
-    const parts = fullName.trim().split(/\s+/);
-    if (parts.length > 1 && prefixes.includes(parts[0].toLowerCase())) {
-      return parts[1];
-    }
-    return parts[0];
-  };
-
-  // Send product outreach
   const sendProductOutreach = async (talent: Talent, product: OutreachProduct) => {
     if (!talent.phone) {
       toast.error("No phone number available");
@@ -218,10 +208,9 @@ export function TalentPoolManager() {
     setSendingOutreach(outreachKey);
 
     try {
-      const firstName = getFirstName(talent.full_name);
+      const firstName = extractFirstName(talent.full_name);
       const link = getOutreachWhatsAppLink(talent.phone, product, firstName);
 
-      // Record in database
       const { error } = await supabase.from("outreach_messages").insert({
         talent_id: talent.id,
         product,
@@ -247,19 +236,30 @@ export function TalentPoolManager() {
     }
   };
 
+  const formatWelcomeWhatsAppLink = (phone: string | null, name: string) => {
+    if (!phone) return null;
+    let cleaned = phone.replace(/[\s\-\(\)\+]/g, "");
+    if (cleaned.startsWith("0")) cleaned = `880${cleaned.slice(1)}`;
+    else if (cleaned.length === 10) cleaned = `880${cleaned}`;
+
+    const message = encodeURIComponent(
+      `Hi ${name}! 👋\n\nWe're so glad to see you sign up with GroUp Academy!\n\nWe're building an AI-powered career platform designed specifically for Bangladesh's job market — and you're now part of it.\n\nFeel free to knock us if you face any difficulties or have questions.\n\nBest regards,\nGroUp Academy Team`,
+    );
+    return `https://wa.me/${cleaned}?text=${message}`;
+  };
+
   useEffect(() => {
     loadTalents();
     loadProfessionCategories();
-  }, [loadTalents, loadProfessionCategories]);
+    loadKpiStats();
+  }, [loadTalents, loadProfessionCategories, loadKpiStats]);
 
-  // Load outreach records when talents change
   useEffect(() => {
     if (talents.length > 0) {
       loadOutreachRecords(talents.map((t) => t.id));
     }
   }, [talents, loadOutreachRecords]);
 
-  // Reset page on search or filter change
   useEffect(() => {
     setPage(1);
   }, [debouncedSearch, countryFilter, outreachFilter]);
@@ -273,7 +273,6 @@ export function TalentPoolManager() {
 
   const handleCreatePortfolioRequest = async () => {
     if (!portfolioTalent) return;
-
     setCreatingPortfolio(true);
     try {
       const { error } = await withTimeout(
@@ -291,19 +290,11 @@ export function TalentPoolManager() {
         TIMEOUTS.DEFAULT,
         "Insert timed out",
       );
-
       if (error) throw error;
-
       toast.success("Portfolio request created!", {
         description: "View it in the Portfolio Requests tab.",
-        action: {
-          label: "View",
-          onClick: () => {
-            window.location.href = "/dashboard?tab=portfolios";
-          },
-        },
+        action: { label: "View", onClick: () => { window.location.href = "/dashboard?tab=portfolios"; } },
       });
-
       setPortfolioDialogOpen(false);
       setPortfolioNotes("");
       setPortfolioTalent(null);
@@ -315,52 +306,47 @@ export function TalentPoolManager() {
     }
   };
 
-  const formatWhatsAppLink = (phone: string | null) => {
-    if (!phone) return null;
-    let cleaned = phone.replace(/[\s\-\(\)\+]/g, "");
-    if (cleaned.startsWith("880")) {
-      return `https://wa.me/${cleaned}`;
-    } else if (cleaned.startsWith("0")) {
-      return `https://wa.me/880${cleaned.slice(1)}`;
-    } else if (cleaned.length === 10) {
-      return `https://wa.me/880${cleaned}`;
+  const exportToCSV = async (exportAll = false) => {
+    let rows: string[][] = [];
+    const headers = ["Name", "Email", "Phone", "Category", "Country", "Services Used", "Created At"];
+
+    if (exportAll) {
+      setExportingAll(true);
+      try {
+        let allTalents: Talent[] = [];
+        let offset = 0;
+        const batchSize = 1000;
+        while (true) {
+          let query = supabase.from("talents").select("*").order("updated_at", { ascending: false }).range(offset, offset + batchSize - 1);
+          if (debouncedSearch) {
+            query = query.or(`full_name.ilike.%${debouncedSearch}%,email.ilike.%${debouncedSearch}%,phone.ilike.%${debouncedSearch}%`);
+          }
+          if (countryFilter !== "all") query = query.eq("country", countryFilter);
+          if (outreachFilter === "no_welcome") query = query.is("welcome_sent_at", null);
+
+          const { data } = await query;
+          if (!data || data.length === 0) break;
+          allTalents = [...allTalents, ...(data as unknown as Talent[])];
+          if (data.length < batchSize) break;
+          offset += batchSize;
+        }
+        rows = allTalents.map((t) => [
+          t.full_name, t.email, t.phone || "", getProfessionName(t.profession_category_id, t.custom_profession),
+          t.country || "", t.services_used?.join("; ") || "", new Date(t.created_at).toLocaleDateString(),
+        ]);
+      } catch (err) {
+        toast.error("Export failed");
+        setExportingAll(false);
+        return;
+      } finally {
+        setExportingAll(false);
+      }
+    } else {
+      rows = talents.map((t) => [
+        t.full_name, t.email, t.phone || "", getProfessionName(t.profession_category_id, t.custom_profession),
+        t.country || "", t.services_used?.join("; ") || "", new Date(t.created_at).toLocaleDateString(),
+      ]);
     }
-    return `https://wa.me/${cleaned}`;
-  };
-
-  const formatWelcomeWhatsAppLink = (phone: string | null, name: string) => {
-    if (!phone) return null;
-    let cleaned = phone.replace(/[\s\-\(\)\+]/g, "");
-    if (cleaned.startsWith("880")) {
-      // already formatted
-    } else if (cleaned.startsWith("0")) {
-      cleaned = `880${cleaned.slice(1)}`;
-    } else if (cleaned.length === 10) {
-      cleaned = `880${cleaned}`;
-    }
-
-    const message = encodeURIComponent(
-      `Hi ${name}! 👋\n\n` +
-        `We're so glad to see you sign up with GroUp Academy!\n\n` +
-        `We're building an AI-powered career platform designed specifically for Bangladesh's job market — and you're now part of it.\n\n` +
-        `Feel free to knock us if you face any difficulties or have questions.\n\n` +
-        `Best regards,\n` +
-        `GroUp Academy Team`,
-    );
-
-    return `https://wa.me/${cleaned}?text=${message}`;
-  };
-
-  const exportToCSV = () => {
-    const headers = ["Name", "Email", "Phone", "Category", "Services Used", "Created At"];
-    const rows = talents.map((t) => [
-      t.full_name,
-      t.email,
-      t.phone || "",
-      getProfessionName(t.profession_category_id, t.custom_profession),
-      t.services_used?.join("; ") || "",
-      new Date(t.created_at).toLocaleDateString(),
-    ]);
 
     const csvContent = [headers, ...rows].map((row) => row.map((cell) => `"${cell}"`).join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv" });
@@ -370,173 +356,235 @@ export function TalentPoolManager() {
     a.download = `talent-pool-${new Date().toISOString().split("T")[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success("CSV exported successfully (Current Page)");
+    toast.success(`CSV exported (${exportAll ? "All Filtered" : "Current Page"} — ${rows.length} rows)`);
   };
 
-  // Client-side filtering for complex relations (legacy support for other filters)
-  // Note: "no_welcome" is now handled server-side, but we keep the logic here as a fallback
-  // for the other filters (no_portfolio, etc) which still suffer from pagination limits
-  // until we add backend support for them.
+  // Client-side filtering for outreach products (no_portfolio, no_mock, etc.)
   const filteredTalents = talents.filter((talent) => {
-    if (outreachFilter === "all") return true;
-    if (outreachFilter === "no_welcome") return true; // Handled by Server Query now
-
+    if (outreachFilter === "all" || outreachFilter === "no_welcome") return true;
     const talentOutreach = outreachRecords.filter((r) => r.talent_id === talent.id);
     const hasOutreachFor = (product: string) => talentOutreach.some((r) => r.product === product);
-
     switch (outreachFilter) {
-      case "no_portfolio":
-        return !hasOutreachFor("portfolio");
-      case "no_mock":
-        return !hasOutreachFor("mock_interview");
-      case "no_salary":
-        return !hasOutreachFor("salary_analysis");
-      case "no_scorecard":
-        return !hasOutreachFor("career_scorecard");
-      default:
-        return true;
+      case "no_portfolio": return !hasOutreachFor("portfolio");
+      case "no_mock": return !hasOutreachFor("mock_interview");
+      case "no_salary": return !hasOutreachFor("salary_analysis");
+      case "no_scorecard": return !hasOutreachFor("career_scorecard");
+      default: return true;
     }
   });
 
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
+  // Renders the actions dropdown for a talent row
+  const renderActionsDropdown = (talent: Talent) => {
+    const hasPhone = !!talent.phone;
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-8 w-8">
+            <MoreHorizontal className="w-4 h-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-52">
+          <DropdownMenuItem onClick={() => setSelectedTalent(talent)}>
+            <Eye className="w-4 h-4 mr-2" /> View Details
+          </DropdownMenuItem>
+          {hasPhone && (
+            <DropdownMenuItem onClick={() => window.open(formatWhatsAppLink(talent.phone), "_blank")}>
+              <MessageSquare className="w-4 h-4 mr-2 text-green-600" /> Open WhatsApp
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuItem onClick={() => { setPortfolioTalent(talent); setPortfolioDialogOpen(true); }}>
+            <FileText className="w-4 h-4 mr-2 text-purple-600" /> Create Portfolio
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          {/* Welcome */}
+          {hasPhone && (
+            talent.welcome_sent_at ? (
+              <DropdownMenuItem disabled>
+                <Check className="w-4 h-4 mr-2 text-green-600" /> Welcome Sent
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem onClick={async () => {
+                const { error } = await supabase.from("talents").update({ welcome_sent_at: new Date().toISOString() }).eq("id", talent.id);
+                if (!error) {
+                  const link = formatWelcomeWhatsAppLink(talent.phone, extractFirstName(talent.full_name));
+                  if (link) window.open(link, "_blank");
+                  loadTalents();
+                }
+              }}>
+                <Hand className="w-4 h-4 mr-2 text-blue-600" /> Send Welcome
+              </DropdownMenuItem>
+            )
+          )}
+          {/* Product outreach actions */}
+          {hasPhone && OUTREACH_ACTIONS.map(({ product, icon: Icon, label, colorClass }) => {
+            const sentAt = getOutreachSentAt(talent.id, product);
+            const isLoading = sendingOutreach === `${talent.id}-${product}`;
+            return sentAt ? (
+              <DropdownMenuItem key={product} disabled>
+                <Check className={`w-4 h-4 mr-2 ${colorClass}`} /> {label.replace("Pitch ", "")} Sent
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem key={product} disabled={isLoading} onClick={() => sendProductOutreach(talent, product)}>
+                {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Icon className={`w-4 h-4 mr-2 ${colorClass}`} />}
+                {label}
+              </DropdownMenuItem>
+            );
+          })}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  };
+
+  // Mobile card layout for a talent
+  const renderTalentCard = (talent: Talent) => (
+    <div key={talent.id} className="p-4 border rounded-xl space-y-3">
+      <div className="flex items-start justify-between">
+        <div className="min-w-0 flex-1">
+          <p className="font-medium truncate">{talent.full_name}</p>
+          <p className="text-xs text-muted-foreground truncate">{talent.email}</p>
+          {talent.phone && <p className="text-xs text-muted-foreground flex items-center gap-1"><Phone className="h-3 w-3" />{talent.phone}</p>}
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          {talent.country && <span className="text-sm">{getCountryFlag(talent.country)}</span>}
+          {renderActionsDropdown(talent)}
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        <Badge variant="secondary" className="text-xs">{getProfessionName(talent.profession_category_id, talent.custom_profession)}</Badge>
+        {talent.cv_url && <Badge variant="outline" className="text-xs">Has CV</Badge>}
+        {talent.welcome_sent_at && <Badge className="text-xs bg-green-600/10 text-green-700 border-green-200">Welcome ✓</Badge>}
+      </div>
+      <p className="text-xs text-muted-foreground">Updated {new Date(talent.updated_at).toLocaleDateString()}</p>
+    </div>
+  );
+
   return (
-    <div className="space-y-6">
-      <BatchTalentUpload onComplete={loadTalents} />
+    <div className="space-y-4">
+      <BatchTalentUpload onComplete={() => { loadTalents(); loadKpiStats(); }} />
+
+      {/* KPI Summary Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card className="p-3">
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-primary" />
+            <div>
+              <p className="text-xl font-bold">{kpiStats.total}</p>
+              <p className="text-xs text-muted-foreground">Total Talents</p>
+            </div>
+          </div>
+        </Card>
+        <Card className="p-3">
+          <div className="flex items-center gap-2">
+            <UserPlus className="h-4 w-4 text-green-600" />
+            <div>
+              <p className="text-xl font-bold">{kpiStats.newThisWeek}</p>
+              <p className="text-xs text-muted-foreground">New This Week</p>
+            </div>
+          </div>
+        </Card>
+        <Card className="p-3">
+          <div className="flex items-center gap-2">
+            <FileText className="h-4 w-4 text-blue-600" />
+            <div>
+              <p className="text-xl font-bold">{kpiStats.withCV}</p>
+              <p className="text-xs text-muted-foreground">With CV</p>
+            </div>
+          </div>
+        </Card>
+        <Card className="p-3">
+          <div className="flex items-center gap-2">
+            <Phone className="h-4 w-4 text-destructive" />
+            <div>
+              <p className="text-xl font-bold">{kpiStats.withoutPhone}</p>
+              <p className="text-xs text-muted-foreground">No Phone</p>
+            </div>
+          </div>
+        </Card>
+      </div>
 
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between flex-wrap gap-4">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between flex-wrap gap-3">
             <div>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-lg">
                 <Users className="w-5 h-5" />
                 Talent Pool
               </CardTitle>
               <CardDescription>
-                {outreachFilter !== "all" ? (
-                  <span>{totalCount} talents match criteria</span>
-                ) : (
-                  <span>{totalCount} talents in the database</span>
-                )}
+                {outreachFilter !== "all" ? `${totalCount} talents match criteria` : `${totalCount} talents in the database`}
               </CardDescription>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={loadTalents} disabled={isLoading}>
-                <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
-                Refresh
+              <Button variant="outline" size="sm" onClick={() => loadTalents()} disabled={isLoading}>
+                <RefreshCw className={`w-4 h-4 mr-1 ${isLoading ? "animate-spin" : ""}`} />
+                {!isMobile && "Refresh"}
               </Button>
-              <Button variant="outline" onClick={exportToCSV}>
-                <Download className="w-4 h-4 mr-2" />
-                Export CSV
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" disabled={exportingAll}>
+                    {exportingAll ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Download className="w-4 h-4 mr-1" />}
+                    {!isMobile && "Export"}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => exportToCSV(false)}>Export Current Page</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => exportToCSV(true)}>Export All Filtered</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </CardHeader>
         <CardContent>
           {/* Filters Row */}
-          <div className="mb-4 flex flex-wrap gap-3 items-end">
-            {/* Search */}
-            <div className="flex-1 min-w-[200px] max-w-sm">
+          <div className="mb-4 grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+            <div>
               <Label className="text-xs text-muted-foreground mb-1 block">Search</Label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Name, email, phone..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
+                <Input placeholder="Name, email, phone..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-9" />
               </div>
             </div>
-
-            {/* Country Filter */}
-            <div className="w-[160px]">
+            <div>
               <Label className="text-xs text-muted-foreground mb-1 block">Country</Label>
               <Select value={countryFilter} onValueChange={setCountryFilter}>
                 <SelectTrigger className="bg-background">
                   <SelectValue placeholder="All Countries" />
                 </SelectTrigger>
-                <SelectContent className="bg-popover z-50">
-                  <SelectItem value="all">
-                    <div className="flex items-center gap-2">
-                      <Globe className="h-4 w-4" />
-                      All Countries
-                    </div>
-                  </SelectItem>
-                  {COUNTRIES_WITH_PHONE.slice(0, 15).map((country) => (
+                <SelectContent className="bg-popover z-50 max-h-60">
+                  <SelectItem value="all"><div className="flex items-center gap-2"><Globe className="h-4 w-4" />All Countries</div></SelectItem>
+                  {COUNTRIES_WITH_PHONE.map((country) => (
                     <SelectItem key={country.code} value={country.code}>
-                      <div className="flex items-center gap-2">
-                        <span>{country.flag}</span>
-                        {country.name}
-                      </div>
+                      <div className="flex items-center gap-2"><span>{country.flag}</span>{country.name}</div>
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-
-            {/* Outreach Filter */}
-            <div className="w-[180px]">
-              <Label className="text-xs text-muted-foreground mb-1 block">Outreach Status</Label>
-              <Select value={outreachFilter} onValueChange={setOutreachFilter}>
-                <SelectTrigger className="bg-background">
-                  <SelectValue placeholder="All" />
-                </SelectTrigger>
-                <SelectContent className="bg-popover z-50">
-                  <SelectItem value="all">
-                    <div className="flex items-center gap-2">
-                      <Filter className="h-4 w-4" />
-                      All Talents
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="no_welcome">
-                    <div className="flex items-center gap-2">
-                      <Hand className="h-4 w-4 text-blue-500" />
-                      No Welcome Sent
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="no_portfolio">
-                    <div className="flex items-center gap-2">
-                      <Briefcase className="h-4 w-4 text-purple-500" />
-                      No Portfolio Pitch
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="no_mock">
-                    <div className="flex items-center gap-2">
-                      <Mic className="h-4 w-4 text-green-500" />
-                      No Mock Interview Pitch
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="no_salary">
-                    <div className="flex items-center gap-2">
-                      <Banknote className="h-4 w-4 text-amber-500" />
-                      No Salary Pitch
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="no_scorecard">
-                    <div className="flex items-center gap-2">
-                      <ClipboardCheck className="h-4 w-4 text-teal-500" />
-                      No Scorecard Pitch
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="flex gap-2 items-end">
+              <div className="flex-1">
+                <Label className="text-xs text-muted-foreground mb-1 block">Outreach Status</Label>
+                <Select value={outreachFilter} onValueChange={setOutreachFilter}>
+                  <SelectTrigger className="bg-background">
+                    <SelectValue placeholder="All" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover z-50">
+                    <SelectItem value="all"><div className="flex items-center gap-2"><Filter className="h-4 w-4" />All Talents</div></SelectItem>
+                    <SelectItem value="no_welcome"><div className="flex items-center gap-2"><Hand className="h-4 w-4 text-blue-500" />No Welcome Sent</div></SelectItem>
+                    <SelectItem value="no_portfolio"><div className="flex items-center gap-2"><Briefcase className="h-4 w-4 text-purple-500" />No Portfolio Pitch</div></SelectItem>
+                    <SelectItem value="no_mock"><div className="flex items-center gap-2"><Mic className="h-4 w-4 text-green-500" />No Mock Interview Pitch</div></SelectItem>
+                    <SelectItem value="no_salary"><div className="flex items-center gap-2"><Banknote className="h-4 w-4 text-amber-500" />No Salary Pitch</div></SelectItem>
+                    <SelectItem value="no_scorecard"><div className="flex items-center gap-2"><ClipboardCheck className="h-4 w-4 text-teal-500" />No Scorecard Pitch</div></SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {(countryFilter !== "all" || outreachFilter !== "all") && (
+                <Button variant="ghost" size="sm" onClick={() => { setCountryFilter("all"); setOutreachFilter("all"); }} className="text-muted-foreground shrink-0">
+                  Clear
+                </Button>
+              )}
             </div>
-
-            {/* Active Filters Summary */}
-            {(countryFilter !== "all" || outreachFilter !== "all") && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setCountryFilter("all");
-                  setOutreachFilter("all");
-                }}
-                className="text-muted-foreground"
-              >
-                Clear Filters
-              </Button>
-            )}
           </div>
 
           {isLoading ? (
@@ -551,297 +599,65 @@ export function TalentPoolManager() {
               ) : (
                 <>
                   <p>No talents match the current filters</p>
-                  <Button
-                    variant="link"
-                    onClick={() => {
-                      setCountryFilter("all");
-                      setOutreachFilter("all");
-                    }}
-                    className="mt-2"
-                  >
-                    Clear filters
-                  </Button>
+                  <Button variant="link" onClick={() => { setCountryFilter("all"); setOutreachFilter("all"); }} className="mt-2">Clear filters</Button>
                 </>
               )}
             </div>
           ) : (
             <>
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Contact</TableHead>
-                      <TableHead>Country</TableHead>
-                      <TableHead>Profession</TableHead>
-                      <TableHead>Updated</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredTalents.map((talent) => (
-                      <TableRow key={talent.id}>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium">{talent.full_name}</p>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm">
-                            <p>{talent.email}</p>
-                            <p className="text-muted-foreground">{talent.phone || "No phone"}</p>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {talent.country ? (
-                            <Badge variant="outline" className="gap-1">
-                              <span>{getCountryFlag(talent.country)}</span>
-                              {talent.country}
-                            </Badge>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">—</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">
-                            {getProfessionName(talent.profession_category_id, talent.custom_profession)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {new Date(talent.updated_at).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <TooltipProvider>
-                            <div className="flex justify-end gap-1">
-                              {/* WhatsApp Direct */}
-                              {talent.phone && (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-8 w-8 text-green-600 hover:text-green-700"
-                                      onClick={() => window.open(formatWhatsAppLink(talent.phone), "_blank")}
-                                    >
-                                      <MessageSquare className="w-4 h-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>Open WhatsApp</TooltipContent>
-                                </Tooltip>
-                              )}
-
-                              {/* Welcome Message */}
-                              {talent.phone && (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    {talent.welcome_sent_at ? (
-                                      <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
-                                        <Check className="w-4 h-4 text-green-600" />
-                                      </Button>
-                                    ) : (
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-8 w-8 text-blue-600 hover:text-blue-700"
-                                        onClick={async () => {
-                                          const { error } = await supabase
-                                            .from("talents")
-                                            .update({ welcome_sent_at: new Date().toISOString() })
-                                            .eq("id", talent.id);
-                                          if (!error) {
-                                            const link = formatWelcomeWhatsAppLink(
-                                              talent.phone,
-                                              getFirstName(talent.full_name),
-                                            );
-                                            if (link) window.open(link, "_blank");
-                                            loadTalents();
-                                          }
-                                        }}
-                                      >
-                                        <Hand className="w-4 h-4" />
-                                      </Button>
-                                    )}
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    {talent.welcome_sent_at
-                                      ? `Welcome sent ${new Date(talent.welcome_sent_at).toLocaleDateString()}`
-                                      : "Send Welcome"}
-                                  </TooltipContent>
-                                </Tooltip>
-                              )}
-
-                              {/* Portfolio Pitch */}
-                              {talent.phone && (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    {getOutreachSentAt(talent.id, "portfolio") ? (
-                                      <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
-                                        <Check className="w-4 h-4 text-purple-600" />
-                                      </Button>
-                                    ) : (
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-8 w-8 text-purple-600 hover:text-purple-700"
-                                        disabled={sendingOutreach === `${talent.id}-portfolio`}
-                                        onClick={() => sendProductOutreach(talent, "portfolio")}
-                                      >
-                                        {sendingOutreach === `${talent.id}-portfolio` ? (
-                                          <Loader2 className="w-4 h-4 animate-spin" />
-                                        ) : (
-                                          <Briefcase className="w-4 h-4" />
-                                        )}
-                                      </Button>
-                                    )}
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    {getOutreachSentAt(talent.id, "portfolio")
-                                      ? `Portfolio sent ${new Date(getOutreachSentAt(talent.id, "portfolio")!).toLocaleDateString()}`
-                                      : "Pitch Portfolio"}
-                                  </TooltipContent>
-                                </Tooltip>
-                              )}
-
-                              {/* Mock Interview Pitch */}
-                              {talent.phone && (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    {getOutreachSentAt(talent.id, "mock_interview") ? (
-                                      <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
-                                        <Check className="w-4 h-4 text-green-600" />
-                                      </Button>
-                                    ) : (
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-8 w-8 text-green-600 hover:text-green-700"
-                                        disabled={sendingOutreach === `${talent.id}-mock_interview`}
-                                        onClick={() => sendProductOutreach(talent, "mock_interview")}
-                                      >
-                                        {sendingOutreach === `${talent.id}-mock_interview` ? (
-                                          <Loader2 className="w-4 h-4 animate-spin" />
-                                        ) : (
-                                          <Mic className="w-4 h-4" />
-                                        )}
-                                      </Button>
-                                    )}
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    {getOutreachSentAt(talent.id, "mock_interview")
-                                      ? `Mock Interview sent ${new Date(getOutreachSentAt(talent.id, "mock_interview")!).toLocaleDateString()}`
-                                      : "Pitch Mock Interview"}
-                                  </TooltipContent>
-                                </Tooltip>
-                              )}
-
-                              {/* Salary Analysis Pitch */}
-                              {talent.phone && (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    {getOutreachSentAt(talent.id, "salary_analysis") ? (
-                                      <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
-                                        <Check className="w-4 h-4 text-amber-600" />
-                                      </Button>
-                                    ) : (
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-8 w-8 text-amber-600 hover:text-amber-700"
-                                        disabled={sendingOutreach === `${talent.id}-salary_analysis`}
-                                        onClick={() => sendProductOutreach(talent, "salary_analysis")}
-                                      >
-                                        {sendingOutreach === `${talent.id}-salary_analysis` ? (
-                                          <Loader2 className="w-4 h-4 animate-spin" />
-                                        ) : (
-                                          <Banknote className="w-4 h-4" />
-                                        )}
-                                      </Button>
-                                    )}
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    {getOutreachSentAt(talent.id, "salary_analysis")
-                                      ? `Salary Analysis sent ${new Date(getOutreachSentAt(talent.id, "salary_analysis")!).toLocaleDateString()}`
-                                      : "Pitch Salary Analysis"}
-                                  </TooltipContent>
-                                </Tooltip>
-                              )}
-
-                              {/* Career Scorecard Pitch */}
-                              {talent.phone && (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    {getOutreachSentAt(talent.id, "career_scorecard") ? (
-                                      <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
-                                        <Check className="w-4 h-4 text-teal-600" />
-                                      </Button>
-                                    ) : (
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-8 w-8 text-teal-600 hover:text-teal-700"
-                                        disabled={sendingOutreach === `${talent.id}-career_scorecard`}
-                                        onClick={() => sendProductOutreach(talent, "career_scorecard")}
-                                      >
-                                        {sendingOutreach === `${talent.id}-career_scorecard` ? (
-                                          <Loader2 className="w-4 h-4 animate-spin" />
-                                        ) : (
-                                          <ClipboardCheck className="w-4 h-4" />
-                                        )}
-                                      </Button>
-                                    )}
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    {getOutreachSentAt(talent.id, "career_scorecard")
-                                      ? `Scorecard sent ${new Date(getOutreachSentAt(talent.id, "career_scorecard")!).toLocaleDateString()}`
-                                      : "Pitch Career Scorecard"}
-                                  </TooltipContent>
-                                </Tooltip>
-                              )}
-
-                              {/* View Details */}
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8"
-                                    onClick={() => setSelectedTalent(talent)}
-                                  >
-                                    <Eye className="w-4 h-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>View Details</TooltipContent>
-                              </Tooltip>
-                            </div>
-                          </TooltipProvider>
-                        </TableCell>
+              {/* Mobile: Card Layout */}
+              {isMobile ? (
+                <div className="space-y-3">
+                  {filteredTalents.map(renderTalentCard)}
+                </div>
+              ) : (
+                /* Desktop: Table Layout */
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Contact</TableHead>
+                        <TableHead>Country</TableHead>
+                        <TableHead>Profession</TableHead>
+                        <TableHead>Updated</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredTalents.map((talent) => (
+                        <TableRow key={talent.id}>
+                          <TableCell><p className="font-medium">{talent.full_name}</p></TableCell>
+                          <TableCell>
+                            <div className="text-sm">
+                              <p>{talent.email}</p>
+                              <p className="text-muted-foreground">{talent.phone || "No phone"}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {talent.country ? (
+                              <Badge variant="outline" className="gap-1"><span>{getCountryFlag(talent.country)}</span>{talent.country}</Badge>
+                            ) : <span className="text-xs text-muted-foreground">—</span>}
+                          </TableCell>
+                          <TableCell><Badge variant="secondary">{getProfessionName(talent.profession_category_id, talent.custom_profession)}</Badge></TableCell>
+                          <TableCell className="text-sm text-muted-foreground">{new Date(talent.updated_at).toLocaleDateString()}</TableCell>
+                          <TableCell className="text-right">{renderActionsDropdown(talent)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
 
               {/* Pagination Controls */}
               {totalPages > 1 && (
                 <div className="flex items-center justify-end space-x-2 py-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    disabled={page === 1}
-                  >
-                    <ChevronLeft className="h-4 w-4 mr-2" /> Previous
+                  <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>
+                    <ChevronLeft className="h-4 w-4 mr-1" /> Prev
                   </Button>
-                  <span className="text-sm text-muted-foreground">
-                    Page {page} of {totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={page === totalPages}
-                  >
-                    Next <ChevronRight className="h-4 w-4 ml-2" />
+                  <span className="text-sm text-muted-foreground">Page {page} of {totalPages}</span>
+                  <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>
+                    Next <ChevronRight className="h-4 w-4 ml-1" />
                   </Button>
                 </div>
               )}
@@ -850,50 +666,37 @@ export function TalentPoolManager() {
         </CardContent>
       </Card>
 
+      {/* Talent Detail Dialog */}
+      {selectedTalent && (
+        <TalentDetailDialog
+          open={!!selectedTalent}
+          onOpenChange={() => setSelectedTalent(null)}
+          talentEmail={selectedTalent.email}
+          talentName={selectedTalent.full_name}
+        />
+      )}
+
       {/* Portfolio Request Dialog */}
       <Dialog open={portfolioDialogOpen} onOpenChange={setPortfolioDialogOpen}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create Portfolio Request</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Create Portfolio Request</DialogTitle></DialogHeader>
           <div className="space-y-4">
             {portfolioTalent && (
               <div className="bg-muted p-3 rounded-lg text-sm">
-                <p>
-                  <strong>Name:</strong> {portfolioTalent.full_name}
-                </p>
-                <p>
-                  <strong>Email:</strong> {portfolioTalent.email}
-                </p>
-                <p>
-                  <strong>Phone:</strong> {portfolioTalent.phone || "N/A"}
-                </p>
+                <p><strong>Name:</strong> {portfolioTalent.full_name}</p>
+                <p><strong>Email:</strong> {portfolioTalent.email}</p>
+                <p><strong>Phone:</strong> {portfolioTalent.phone || "N/A"}</p>
               </div>
             )}
             <div>
               <Label htmlFor="notes">Notes (Optional)</Label>
-              <Textarea
-                id="notes"
-                value={portfolioNotes}
-                onChange={(e) => setPortfolioNotes(e.target.value)}
-                placeholder="Add any notes for this portfolio request..."
-                rows={3}
-              />
+              <Textarea id="notes" value={portfolioNotes} onChange={(e) => setPortfolioNotes(e.target.value)} placeholder="Add any notes for this portfolio request..." rows={3} />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPortfolioDialogOpen(false)}>
-              Cancel
-            </Button>
+            <Button variant="outline" onClick={() => setPortfolioDialogOpen(false)}>Cancel</Button>
             <Button onClick={handleCreatePortfolioRequest} disabled={creatingPortfolio}>
-              {creatingPortfolio ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Creating...
-                </>
-              ) : (
-                "Create Request"
-              )}
+              {creatingPortfolio ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Creating...</> : "Create Request"}
             </Button>
           </DialogFooter>
         </DialogContent>
