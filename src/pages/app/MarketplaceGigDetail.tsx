@@ -108,8 +108,8 @@ export default function MarketplaceGigDetail() {
     return (
       <div className="text-center py-16">
         <p className="text-muted-foreground">Gig not found</p>
-        <Button variant="link" onClick={() => navigate("/app/marketplace")}>
-          Back to Marketplace
+        <Button variant="link" onClick={() => navigate("/app/gigs?tab=projects")}>
+          Back to Projects
         </Button>
       </div>
     );
@@ -123,8 +123,8 @@ export default function MarketplaceGigDetail() {
 
   return (
     <div className="space-y-4 pb-24 max-w-2xl mx-auto">
-      <Button variant="ghost" size="sm" className="gap-1" onClick={() => navigate("/app/marketplace")}>
-        <ArrowLeft className="h-4 w-4" /> Marketplace
+      <Button variant="ghost" size="sm" className="gap-1" onClick={() => navigate("/app/gigs?tab=projects")}>
+        <ArrowLeft className="h-4 w-4" /> Back to Projects
       </Button>
 
       {/* Gig Details */}

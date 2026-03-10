@@ -85,9 +85,9 @@ export const ROUTES = {
     
     // Gigs & Marketplace
     gigs: '/app/gigs',
-    marketplace: '/app/marketplace',
-    marketplaceDetail: (id: string) => `/app/marketplace/${id}`,
-    myGigs: '/app/my-gigs',
+    gigsProjects: '/app/gigs?tab=projects',
+    gigsActivity: '/app/gigs?tab=activity',
+    projectDetail: (id: string) => `/app/marketplace/${id}`,
     transactions: '/app/transactions',
   },
 

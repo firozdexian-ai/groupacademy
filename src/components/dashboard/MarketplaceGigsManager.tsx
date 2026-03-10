@@ -39,7 +39,7 @@ const defaultForm: GigForm = {
   budget_amount: null,
   deadline: "",
   requirements: "",
-  employer_name: "",
+  employer_name: "GroUp Academy",
   employer_email: "",
   status: "approved",
   is_featured: false,
