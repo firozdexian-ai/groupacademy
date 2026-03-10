@@ -168,7 +168,6 @@ const navGroups: NavGroup[] = [
     items: [
       { title: "Access Codes", icon: Key, value: "codes" },
       { title: "Banners", icon: ImageIcon, value: "banners" },
-      { title: "Professions", icon: GraduationCap, value: "professions" },
       { title: "Team Members", icon: UserCog, value: "team" },
       { title: "Payments", icon: CreditCard, value: "payments" },
     ],
