@@ -1482,9 +1482,10 @@ export function JobsManager() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
+                <SelectItem value="all">All Status{statusCounts.all ? ` (${statusCounts.all})` : ""}</SelectItem>
+                <SelectItem value="active">Active{statusCounts.active ? ` (${statusCounts.active})` : ""}</SelectItem>
+                <SelectItem value="inactive">Inactive{statusCounts.inactive ? ` (${statusCounts.inactive})` : ""}</SelectItem>
+                <SelectItem value="featured">Featured{statusCounts.featured ? ` (${statusCounts.featured})` : ""}</SelectItem>
               </SelectContent>
             </Select>
             <Popover open={locationOpen} onOpenChange={setLocationOpen}>
