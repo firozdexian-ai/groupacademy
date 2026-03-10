@@ -88,6 +88,13 @@ const navGroups: NavGroup[] = [
       { title: "Jobs KPIs", icon: TrendingUp, value: "jobs-kpis" },
       { title: "Manage Jobs", icon: Building2, value: "jobs" },
       { title: "Applications", icon: FileCheck, value: "applications" },
+    ],
+  },
+  {
+    title: "Companies & Contacts",
+    icon: Building2,
+    roles: ["admin", "talent_exec"],
+    items: [
       { title: "Companies", icon: Building2, value: "companies" },
       { title: "Contacts", icon: Users, value: "contacts" },
     ],
