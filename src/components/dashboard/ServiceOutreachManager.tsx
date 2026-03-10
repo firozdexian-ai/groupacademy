@@ -240,8 +240,8 @@ export function ServiceOutreachManager() {
                           {sharedCount} shares
                         </Badge>
                       )}
-                      <Button size="sm" variant="outline" className="gap-1">
-                        <Share2 className="h-3 w-3" /> Promote
+                       <Button size="sm" variant="outline" className="gap-1">
+                        <Share2 className="h-3 w-3" /> <span className="hidden sm:inline">Promote</span>
                       </Button>
                     </div>
                   </CardContent>
