@@ -192,7 +192,18 @@ export function CompaniesManager() {
   // Reset page when searching
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch]);
+  }, [debouncedSearch, industryFilter]);
+
+  // Load industry options once
+  useEffect(() => {
+    const loadIndustryOptions = async () => {
+      const { data } = await supabase.from("companies").select("industry");
+      const unique = [...new Set((data || []).map((c: any) => c.industry?.trim()).filter(Boolean))] as string[];
+      unique.sort((a, b) => a.localeCompare(b));
+      setIndustryOptions(unique);
+    };
+    loadIndustryOptions();
+  }, []);
 
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
