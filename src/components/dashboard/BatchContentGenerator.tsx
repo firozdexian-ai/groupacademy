@@ -40,7 +40,7 @@ interface DraftPost {
   author_name?: string;
 }
 
-type GeneratorType = "quizzes" | "flashcards" | "scenarios" | "course-metadata" | "blog-posts" | "feed-posts";
+type GeneratorType = "quizzes" | "flashcards" | "scenarios" | "course-metadata" | "descriptions" | "blog-posts" | "feed-posts";
 
 const GENERATORS: Record<GeneratorType, { label: string; icon: React.ElementType; description: string; endpoint: string; batchSize: number; needsSchool: boolean; countLabel: string }> = {
   "quizzes": {
@@ -78,6 +78,15 @@ const GENERATORS: Record<GeneratorType, { label: string; icon: React.ElementType
     batchSize: 5,
     needsSchool: true,
     countLabel: "courses",
+  },
+  "descriptions": {
+    label: "Module Descriptions",
+    icon: FileText,
+    description: "Generate rich 5-7 bullet content guides for modules with short descriptions (<500 chars)",
+    endpoint: "batch-generate-descriptions",
+    batchSize: 3,
+    needsSchool: true,
+    countLabel: "descriptions",
   },
   "blog-posts": {
     label: "Blog Posts",
@@ -178,6 +187,12 @@ export function BatchContentGenerator() {
         } else if (activeTab === "course-metadata") {
           pending = contents.filter(
             (c: any) => !c.description || !c.learning_objectives || !c.estimated_hours
+          ).length;
+        } else if (activeTab === "descriptions") {
+          const { data: allModules } = await supabase
+            .from("course_modules").select("id, description").in("content_id", contentIds);
+          pending = (allModules || []).filter(
+            (m: any) => (m.description || "").length < 500
           ).length;
         }
 
@@ -429,7 +444,7 @@ export function BatchContentGenerator() {
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={(v) => { if (!isRunning) setActiveTab(v as GeneratorType); }}>
-        <TabsList className="grid grid-cols-3 lg:grid-cols-6 h-auto">
+        <TabsList className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 h-auto">
           {(Object.entries(GENERATORS) as [GeneratorType, typeof GENERATORS[GeneratorType]][]).map(([key, gen]) => (
             <TabsTrigger key={key} value={key} disabled={isRunning} className="text-xs gap-1 py-2 relative">
               <gen.icon className="w-3.5 h-3.5" />

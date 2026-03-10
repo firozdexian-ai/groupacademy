@@ -43,7 +43,6 @@ import { GigSubmissionsManager } from "@/components/dashboard/GigSubmissionsMana
 import { MarketplaceGigsManager } from "@/components/dashboard/MarketplaceGigsManager";
 import { IRDashboard } from "@/components/dashboard/ir/IRDashboard";
 import { MRRTargetManager } from "@/components/dashboard/ir/MRRTargetManager";
-import { BatchDescriptionGenerator } from "@/components/dashboard/BatchDescriptionGenerator";
 import { BatchContentGenerator } from "@/components/dashboard/BatchContentGenerator";
 import { VCFirmsManager } from "@/components/dashboard/ir/VCFirmsManager";
 import { InvestorsManager } from "@/components/dashboard/ir/InvestorsManager";
@@ -71,7 +70,7 @@ const tabAccessMap: Record<string, AppRole[]> = {
   webinars: ["admin"],
   enrollments: ["admin"],
   "learner-progress": ["admin"],
-  "ai-descriptions": ["admin"],
+  
   
   // Talent & Leads - Both roles
   leads: ["admin", "talent_exec"],
@@ -271,8 +270,6 @@ const Dashboard = () => {
         return <EnrollmentsManager />;
       case "learner-progress":
         return <LearnerProgressManager />;
-      case "ai-descriptions":
-        return <BatchDescriptionGenerator />;
       case "ai-content-tools":
         return <BatchContentGenerator />;
       case "professions":
@@ -386,7 +383,6 @@ const Dashboard = () => {
       "content-outreach": "Content Outreach",
       "service-outreach": "Service Outreach",
       "learner-progress": "Learner Progress",
-      "ai-descriptions": "AI Description Generator",
       "ai-content-tools": "AI Content Tools",
       enrollments: "Enrollments",
       analytics: "Marketing Analytics",
