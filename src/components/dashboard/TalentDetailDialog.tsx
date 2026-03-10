@@ -15,6 +15,7 @@ import {
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import { OUTREACH_TEMPLATES, OutreachProduct } from "@/lib/outreachTemplates";
+import { formatWhatsAppLink } from "@/lib/utils";
 
 interface TalentDetailDialogProps {
   open: boolean;
@@ -105,17 +106,14 @@ export function TalentDetailDialog({
   const loadTalentData = async () => {
     setLoading(true);
     try {
-      // Load talent profile
       const { data: talentData } = await supabase
         .from('talents')
         .select('*, profession_category:profession_categories(name)')
-        .ilike('email', talentEmail)
+        .eq('email', talentEmail.toLowerCase())
         .single();
 
       if (talentData) {
         setTalent(talentData as TalentProfile);
-
-        // Load additional data with talent ID
         const talentId = talentData.id;
         
         const [creditRes, txRes, sessionsRes, notifsRes, outreachRes, assessments, interviews, salaryAnalyses, portfolios] = await Promise.all([
@@ -124,10 +122,10 @@ export function TalentDetailDialog({
           supabase.from('agent_chat_sessions').select('id, agent_key, created_at, messages, credits_charged').eq('talent_id', talentId).order('created_at', { ascending: false }).limit(5),
           supabase.from('notifications').select('id, title, message, type, is_read, created_at').eq('talent_id', talentId).order('created_at', { ascending: false }).limit(10),
           supabase.from('outreach_messages').select('id, product, sent_at').eq('talent_id', talentId).order('sent_at', { ascending: false }),
-          supabase.from('career_assessments').select('id, created_at, percentage, readiness_level').ilike('email', talentEmail).order('created_at', { ascending: false }),
-          supabase.from('mock_interviews').select('id, created_at, selection_percentage, status, job_title').ilike('email', talentEmail).order('created_at', { ascending: false }),
-          supabase.from('salary_analyses').select('id, created_at, status, job_title').ilike('email', talentEmail).order('created_at', { ascending: false }),
-          supabase.from('portfolio_requests').select('id, created_at, status').ilike('email', talentEmail).order('created_at', { ascending: false })
+          supabase.from('career_assessments').eq('email', talentEmail.toLowerCase()).select('id, created_at, percentage, readiness_level').order('created_at', { ascending: false }),
+          supabase.from('mock_interviews').select('id, created_at, selection_percentage, status, job_title').eq('email', talentEmail.toLowerCase()).order('created_at', { ascending: false }),
+          supabase.from('salary_analyses').select('id, created_at, status, job_title').eq('email', talentEmail.toLowerCase()).order('created_at', { ascending: false }),
+          supabase.from('portfolio_requests').select('id, created_at, status').eq('email', talentEmail.toLowerCase()).order('created_at', { ascending: false })
         ]);
 
         setCreditBalance(creditRes.data?.balance || 0);
@@ -136,7 +134,6 @@ export function TalentDetailDialog({
         setNotifications(notifsRes.data || []);
         setOutreachRecords(outreachRes.data || []);
 
-        // Build activities
         const allActivities: TalentActivity[] = [];
         assessments.data?.forEach(a => allActivities.push({ type: 'assessment', id: a.id, date: a.created_at, score: a.percentage, status: a.readiness_level }));
         interviews.data?.forEach(i => allActivities.push({ type: 'mock_interview', id: i.id, date: i.created_at, score: i.selection_percentage, status: i.status, title: i.job_title }));
@@ -152,13 +149,11 @@ export function TalentDetailDialog({
     }
   };
 
-  // Get outreach status for a product
   const getOutreachSentAt = (product: OutreachProduct): string | null => {
     const record = outreachRecords.find(r => r.product === product);
     return record?.sent_at || null;
   };
 
-  // Products to track
   const TRACKED_PRODUCTS: OutreachProduct[] = ['welcome', 'portfolio', 'mock_interview', 'salary_analysis', 'career_scorecard'];
 
   const getActivityIcon = (type: string) => {
@@ -196,14 +191,6 @@ export function TalentDetailDialog({
     onOpenChange(false);
   };
 
-  const formatWhatsAppLink = (phone: string | null) => {
-    if (!phone) return null;
-    let cleaned = phone.replace(/[\s\-\(\)\+]/g, '');
-    if (cleaned.startsWith('880')) return `https://wa.me/${cleaned}`;
-    if (cleaned.startsWith('0')) return `https://wa.me/880${cleaned.slice(1)}`;
-    return `https://wa.me/${cleaned}`;
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[85vh]">
@@ -221,13 +208,13 @@ export function TalentDetailDialog({
           </div>
         ) : talent ? (
           <Tabs defaultValue="profile" className="w-full">
-            <TabsList className="grid w-full grid-cols-6 text-xs">
-              <TabsTrigger value="profile">Profile</TabsTrigger>
-              <TabsTrigger value="outreach">Outreach</TabsTrigger>
-              <TabsTrigger value="activities">Activities</TabsTrigger>
-              <TabsTrigger value="credits">Credits</TabsTrigger>
-              <TabsTrigger value="sessions">AI Chats</TabsTrigger>
-              <TabsTrigger value="notifications">Notifs</TabsTrigger>
+            <TabsList className="w-full overflow-x-auto flex justify-start gap-0 md:grid md:grid-cols-6 text-xs">
+              <TabsTrigger value="profile" className="shrink-0">Profile</TabsTrigger>
+              <TabsTrigger value="outreach" className="shrink-0">Outreach</TabsTrigger>
+              <TabsTrigger value="activities" className="shrink-0">Activities</TabsTrigger>
+              <TabsTrigger value="credits" className="shrink-0">Credits</TabsTrigger>
+              <TabsTrigger value="sessions" className="shrink-0">AI Chats</TabsTrigger>
+              <TabsTrigger value="notifications" className="shrink-0">Notifs</TabsTrigger>
             </TabsList>
 
             <TabsContent value="profile" className="mt-4">
@@ -238,11 +225,11 @@ export function TalentDetailDialog({
                       <img src={talent.profile_photo_url} alt={talent.full_name} className="w-20 h-20 rounded-full object-cover border-2 border-border" />
                     </div>
                   )}
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div className="flex items-center gap-2"><Mail className="h-4 w-4 text-muted-foreground" />{talent.email}</div>
-                    <div className="flex items-center gap-2"><Phone className="h-4 w-4 text-muted-foreground" />{talent.phone || 'No phone'}</div>
-                    <div className="flex items-center gap-2"><Briefcase className="h-4 w-4 text-muted-foreground" />{talent.custom_profession || talent.profession_category?.name || 'Not set'}</div>
-                    <div className="flex items-center gap-2"><Calendar className="h-4 w-4 text-muted-foreground" />Joined {format(new Date(talent.created_at), 'MMM d, yyyy')}</div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                    <div className="flex items-center gap-2"><Mail className="h-4 w-4 text-muted-foreground shrink-0" /><span className="truncate">{talent.email}</span></div>
+                    <div className="flex items-center gap-2"><Phone className="h-4 w-4 text-muted-foreground shrink-0" />{talent.phone || 'No phone'}</div>
+                    <div className="flex items-center gap-2"><Briefcase className="h-4 w-4 text-muted-foreground shrink-0" />{talent.custom_profession || talent.profession_category?.name || 'Not set'}</div>
+                    <div className="flex items-center gap-2"><Calendar className="h-4 w-4 text-muted-foreground shrink-0" />Joined {format(new Date(talent.created_at), 'MMM d, yyyy')}</div>
                   </div>
                   <Separator />
                   <div>
@@ -264,68 +251,39 @@ export function TalentDetailDialog({
             <TabsContent value="outreach" className="mt-4">
               <ScrollArea className="h-[350px] pr-4">
                 <div className="space-y-3">
-                  <h4 className="text-sm font-medium flex items-center gap-2">
-                    <Send className="h-4 w-4" />
-                    Outreach History
-                  </h4>
+                  <h4 className="text-sm font-medium flex items-center gap-2"><Send className="h-4 w-4" />Outreach History</h4>
                   <div className="space-y-2">
-                    {/* Welcome message - check welcome_sent_at on talent */}
                     <div className="flex items-center justify-between p-3 rounded-lg border">
                       <div className="flex items-center gap-3">
-                        {talent.welcome_sent_at ? (
-                          <Check className="h-5 w-5 text-green-600" />
-                        ) : (
-                          <Circle className="h-5 w-5 text-muted-foreground" />
-                        )}
+                        {talent.welcome_sent_at ? <Check className="h-5 w-5 text-green-600" /> : <Circle className="h-5 w-5 text-muted-foreground" />}
                         <div>
                           <p className="font-medium text-sm">Welcome Message</p>
-                          <p className="text-xs text-muted-foreground">
-                            {talent.welcome_sent_at 
-                              ? `Sent on ${format(new Date(talent.welcome_sent_at), 'MMM d, yyyy')}`
-                              : 'Not sent'}
-                          </p>
+                          <p className="text-xs text-muted-foreground">{talent.welcome_sent_at ? `Sent on ${format(new Date(talent.welcome_sent_at), 'MMM d, yyyy')}` : 'Not sent'}</p>
                         </div>
                       </div>
-                      <Badge variant={talent.welcome_sent_at ? 'default' : 'secondary'} className="text-xs">
-                        {talent.welcome_sent_at ? 'Sent' : 'Pending'}
-                      </Badge>
+                      <Badge variant={talent.welcome_sent_at ? 'default' : 'secondary'} className="text-xs">{talent.welcome_sent_at ? 'Sent' : 'Pending'}</Badge>
                     </div>
-
-                    {/* Product outreach from outreach_messages table */}
                     {TRACKED_PRODUCTS.filter(p => p !== 'welcome').map((product) => {
                       const sentAt = getOutreachSentAt(product);
                       const template = OUTREACH_TEMPLATES[product];
                       return (
                         <div key={product} className="flex items-center justify-between p-3 rounded-lg border">
                           <div className="flex items-center gap-3">
-                            {sentAt ? (
-                              <Check className="h-5 w-5 text-green-600" />
-                            ) : (
-                              <Circle className="h-5 w-5 text-muted-foreground" />
-                            )}
+                            {sentAt ? <Check className="h-5 w-5 text-green-600" /> : <Circle className="h-5 w-5 text-muted-foreground" />}
                             <div>
                               <p className="font-medium text-sm">{template.name}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {sentAt
-                                  ? `Sent on ${format(new Date(sentAt), 'MMM d, yyyy')}`
-                                  : 'Not pitched yet'}
-                              </p>
+                              <p className="text-xs text-muted-foreground">{sentAt ? `Sent on ${format(new Date(sentAt), 'MMM d, yyyy')}` : 'Not pitched yet'}</p>
                             </div>
                           </div>
-                          <Badge variant={sentAt ? 'default' : 'secondary'} className="text-xs">
-                            {sentAt ? 'Sent' : 'Pending'}
-                          </Badge>
+                          <Badge variant={sentAt ? 'default' : 'secondary'} className="text-xs">{sentAt ? 'Sent' : 'Pending'}</Badge>
                         </div>
                       );
                     })}
                   </div>
-
-                  {/* Summary */}
                   <Separator className="my-4" />
                   <div className="p-3 rounded-lg bg-muted/50">
                     <p className="text-sm text-muted-foreground">
-                      <strong>{outreachRecords.length + (talent.welcome_sent_at ? 1 : 0)}</strong> of{' '}
-                      <strong>{TRACKED_PRODUCTS.length}</strong> outreach messages sent
+                      <strong>{outreachRecords.length + (talent.welcome_sent_at ? 1 : 0)}</strong> of <strong>{TRACKED_PRODUCTS.length}</strong> outreach messages sent
                     </p>
                   </div>
                 </div>
