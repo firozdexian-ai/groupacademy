@@ -270,8 +270,6 @@ const Dashboard = () => {
         return <EnrollmentsManager />;
       case "learner-progress":
         return <LearnerProgressManager />;
-      case "ai-descriptions":
-        return <BatchDescriptionGenerator />;
       case "ai-content-tools":
         return <BatchContentGenerator />;
       case "professions":
