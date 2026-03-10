@@ -1,47 +1,38 @@
 
-# GroUp Academy — Vision Plan
 
-## Current Completion: ~88%
+# Industries Manager — Audit Report
 
-| # | Module | Status | % | Next Action |
-|---|--------|--------|---|-------------|
-| 1 | Academy / LMS | ✅ | 95% | Batch video linking |
-| 2 | AI Module Descriptions | 🔧 | 70% | Run batch generator (4,504 pending) |
-| 3 | AI Agents / Chat | ✅ | 90% | Conversation export |
-| 4 | Jobs Hub | ✅ | 90% | Saved job alerts |
-| 5 | Career Services | ✅ | 85% | Result sharing UX |
-| 6 | Feed / Social | ✅ | 95% | Done ✅ |
-| 7 | Study Abroad | ✅ | 80% | Application tracker |
-| 8 | Profile & Onboarding | ✅ | 85% | Profile visibility settings |
-| 9 | Credits & Payments (Stripe) | 🔧 | 75% | Keys infra built ✅ — need keys + test checkout |
-| 10 | Admin Dashboard | ✅ | 90% | Bulk actions |
-| 11 | Notifications | ✅ | 85% | Push notifications |
-| 12 | Public SEO / Marketing | ✅ | 85% | Landing page optimization |
-| 13 | Gigs / Marketplace | ✅ | 80% | Payment for completions |
-| 14 | PWA / Mobile | ✅ | 90% | Done ✅ |
-| 15 | Auth & Security | ✅ | 95% | Done ✅ |
+## Current State
+493 lines. Already has mobile card layout and desktop table split (`md:hidden` / `hidden md:block`). Functionally solid with merge and rename operations. Fewer issues than other tabs.
 
-## Priority Queue
+## Issues Found
 
-| # | Task | Current → Target | Effort |
-|---|------|------------------|--------|
-| 1 | Run AI Descriptions | 70% → 100% | Low |
-| 2 | Test Stripe Checkout | 75% → 90% | Low |
-| 3 | Push Notifications | 85% → 95% | Medium |
-| 4 | Result Sharing UX | 85% → 95% | Low |
-| 5 | Study Abroad Tracker | 80% → 90% | Medium |
-| 6 | Landing Page Polish | 85% → 95% | Low-Med |
+### 1. KPI cards use oversized `StatsCard` component
+Lines 244-262: Same `StatsCard` that caused alignment problems in Contacts. Needs compact `p-3` cards.
 
-## Milestones
+### 2. Pagination buttons show text on mobile
+Lines 401-422: "Previous" and "Next" text buttons — should be icon-only on small screens.
 
-- AI Descriptions + Stripe + Push → **~93%**
-- Result Sharing + Study Abroad Tracker → **~95%**
-- Final polish → **~98%**
+### 3. Header buttons not compact on mobile
+Lines 277-287: "Refresh" button shows full text. Merge button is fine (contextual).
 
-## Completed Infrastructure
+### 4. Merge button in header area can get lost on mobile
+When 2+ items selected, the Merge button wraps awkwardly at 393px alongside Refresh.
 
-- Certificates with PDF + verification ✅
-- Public SEO (Blog, Courses, Services with JSON-LD) ✅
-- Stripe self-service key config from admin panel ✅
-- Influencing Academy (3 schools, 12 programs, 168 courses, 749 modules) ✅
-- Email notifications (welcome, certificate) ✅
+## Fix Plan
+
+| # | Fix |
+|---|-----|
+| 1 | Replace `StatsCard` with compact `Card className="p-3"` matching Companies/Contacts pattern |
+| 2 | Pagination: icon-only on mobile (`<span className="hidden sm:inline">`) |
+| 3 | Refresh button: icon-only on mobile |
+| 4 | Remove `StatsCard` import |
+
+### Files to Change
+
+| File | Change |
+|------|--------|
+| `src/components/dashboard/IndustriesManager.tsx` | All 4 fixes — compact KPIs, responsive pagination & header buttons |
+
+No database changes needed. Lightweight pass — this tab is already well-structured.
+
