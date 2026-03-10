@@ -1,47 +1,46 @@
 
-# GroUp Academy — Vision Plan
 
-## Current Completion: ~88%
+# Contacts Manager — Audit Report
 
-| # | Module | Status | % | Next Action |
-|---|--------|--------|---|-------------|
-| 1 | Academy / LMS | ✅ | 95% | Batch video linking |
-| 2 | AI Module Descriptions | 🔧 | 70% | Run batch generator (4,504 pending) |
-| 3 | AI Agents / Chat | ✅ | 90% | Conversation export |
-| 4 | Jobs Hub | ✅ | 90% | Saved job alerts |
-| 5 | Career Services | ✅ | 85% | Result sharing UX |
-| 6 | Feed / Social | ✅ | 95% | Done ✅ |
-| 7 | Study Abroad | ✅ | 80% | Application tracker |
-| 8 | Profile & Onboarding | ✅ | 85% | Profile visibility settings |
-| 9 | Credits & Payments (Stripe) | 🔧 | 75% | Keys infra built ✅ — need keys + test checkout |
-| 10 | Admin Dashboard | ✅ | 90% | Bulk actions |
-| 11 | Notifications | ✅ | 85% | Push notifications |
-| 12 | Public SEO / Marketing | ✅ | 85% | Landing page optimization |
-| 13 | Gigs / Marketplace | ✅ | 80% | Payment for completions |
-| 14 | PWA / Mobile | ✅ | 90% | Done ✅ |
-| 15 | Auth & Security | ✅ | 95% | Done ✅ |
+## Current State
+632 lines. Server-side paginated with search and company filter. CRUD dialog, WhatsApp outreach with logging, LinkedIn links. Simpler than Companies but has the same class of issues.
 
-## Priority Queue
+## Bugs
 
-| # | Task | Current → Target | Effort |
-|---|------|------------------|--------|
-| 1 | Run AI Descriptions | 70% → 100% | Low |
-| 2 | Test Stripe Checkout | 75% → 90% | Low |
-| 3 | Push Notifications | 85% → 95% | Medium |
-| 4 | Result Sharing UX | 85% → 95% | Low |
-| 5 | Study Abroad Tracker | 80% → 90% | Medium |
-| 6 | Landing Page Polish | 85% → 95% | Low-Med |
+### 1. Table with 5 columns causes horizontal scroll on mobile
+Lines 351-464: Contact, Company, Contact Info, Source, Actions columns with 4 action buttons. At 391px this overflows.
 
-## Milestones
+### 2. Dialog form uses `grid-cols-2` without responsive breakpoint
+Lines 523, 544, 566: Three `grid grid-cols-2 gap-4` blocks — fields get ~170px each on mobile.
 
-- AI Descriptions + Stripe + Push → **~93%**
-- Result Sharing + Study Abroad Tracker → **~95%**
-- Final polish → **~98%**
+### 3. Delete uses browser `confirm()` instead of AlertDialog
+Line 232: `if (!confirm("Delete this contact?")) return;`
 
-## Completed Infrastructure
+### 4. Pagination text buttons overflow on mobile
+Lines 469-489: "Previous" and "Next" text buttons.
 
-- Certificates with PDF + verification ✅
-- Public SEO (Blog, Courses, Services with JSON-LD) ✅
-- Stripe self-service key config from admin panel ✅
-- Influencing Academy (3 schools, 12 programs, 168 courses, 749 modules) ✅
-- Email notifications (welcome, certificate) ✅
+### 5. No KPI summary cards
+No at-a-glance metrics.
+
+### 6. Header buttons not compact on mobile
+Lines 302-311: "Refresh" and "Add Contact" with full text on mobile.
+
+## Fix Plan
+
+| # | Category | Fix |
+|---|----------|-----|
+| 1 | Mobile | Table → card list on `< sm` (name + designation, company badge, contact icons, action row) |
+| 2 | Mobile | Dialog form: `grid-cols-1 sm:grid-cols-2` for all field pairs |
+| 3 | UX | Replace `confirm()` with `AlertDialog` |
+| 4 | Mobile | Pagination: icon-only on mobile |
+| 5 | Feature | KPI cards: Total Contacts, Primary Contacts, Never Contacted |
+| 6 | Mobile | Header buttons: icon-only Refresh on mobile |
+
+### Files to Change
+
+| File | Change |
+|------|--------|
+| `src/components/dashboard/ContactsManager.tsx` | All 6 fixes |
+
+No database changes needed.
+
