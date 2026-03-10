@@ -304,8 +304,8 @@ export function CompetitionsManager() {
             </CardTitle>
             <p className="text-sm text-muted-foreground mt-1">Total {totalCount} competitions found</p>
           </div>
-          <Button onClick={() => handleOpenDialog()}>
-            <Plus className="h-4 w-4 mr-2" /> Add Competition
+          <Button onClick={() => handleOpenDialog()} size="sm">
+            <Plus className="h-4 w-4 sm:mr-2" /> <span className="hidden sm:inline">Add Competition</span>
           </Button>
         </div>
       </CardHeader>
@@ -322,7 +322,7 @@ export function CompetitionsManager() {
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="Filter by status" />
             </SelectTrigger>
             <SelectContent>
@@ -343,7 +343,8 @@ export function CompetitionsManager() {
           <DashboardErrorState title="Error" message={error} onRetry={loadCompetitions} />
         ) : (
           <>
-            <div className="rounded-md border overflow-x-auto">
+            {/* Desktop Table */}
+            <div className="hidden sm:block rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -429,27 +430,65 @@ export function CompetitionsManager() {
               </Table>
             </div>
 
+            {/* Mobile Cards */}
+            <div className="sm:hidden space-y-2">
+              {competitions.length === 0 ? (
+                <p className="text-center py-8 text-muted-foreground">No competitions found</p>
+              ) : (
+                competitions.map((comp) => (
+                  <div key={comp.id} className="p-3 border rounded-lg space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-sm line-clamp-1">{comp.title}</p>
+                        {comp.start_date && (
+                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                            <Calendar className="h-3 w-3" />
+                            {format(new Date(comp.start_date), "MMM d, yyyy")}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleOpenDialog(comp)}>
+                          <Edit className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(comp.id)}>
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {comp.category && <Badge variant="outline" className="text-xs">{comp.category}</Badge>}
+                      <Badge variant={getStatusColor(comp.status)} className="text-xs capitalize">{comp.status}</Badge>
+                      {comp.is_featured && <Badge variant="outline" className="text-[10px]">Featured</Badge>}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
             {/* Pagination Controls */}
             {totalPages > 1 && (
               <div className="flex items-center justify-end space-x-2 py-4">
                 <Button
                   variant="outline"
-                  size="sm"
+                  size="icon"
+                  className="h-8 w-8"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
                 >
-                  <ChevronLeft className="h-4 w-4 mr-2" /> Previous
+                  <ChevronLeft className="h-4 w-4" />
                 </Button>
                 <span className="text-sm text-muted-foreground">
-                  Page {page} of {totalPages}
+                  {page} / {totalPages}
                 </span>
                 <Button
                   variant="outline"
-                  size="sm"
+                  size="icon"
+                  className="h-8 w-8"
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}
                 >
-                  Next <ChevronRight className="h-4 w-4 ml-2" />
+                  <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
             )}
@@ -472,7 +511,7 @@ export function CompetitionsManager() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Slug *</Label>
                 <Input
@@ -520,7 +559,7 @@ export function CompetitionsManager() {
               />
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label>Start Date</Label>
                 <Input
@@ -547,7 +586,7 @@ export function CompetitionsManager() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Max Participants</Label>
                 <Input

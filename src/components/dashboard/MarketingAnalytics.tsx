@@ -258,8 +258,8 @@ export function MarketingAnalytics() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold">Marketing Analytics</h2>
-          <p className="text-muted-foreground">Track performance across all marketing channels</p>
+          <h2 className="text-lg font-bold">Marketing Analytics</h2>
+          <p className="text-sm text-muted-foreground">Track performance across all marketing channels</p>
         </div>
         <div className="flex items-center gap-3">
           <Select value={dateRange} onValueChange={setDateRange}>
@@ -323,17 +323,17 @@ export function MarketingAnalytics() {
       {/* Category Tabs */}
       <Tabs value={activeCategory} onValueChange={setActiveCategory}>
         <TabsList className="grid w-full grid-cols-3 max-w-md">
-          <TabsTrigger value="jobs" className="gap-2">
+          <TabsTrigger value="jobs" className="gap-1">
             <Briefcase className="h-4 w-4" />
-            Jobs
+            <span className="hidden sm:inline">Jobs</span>
           </TabsTrigger>
-          <TabsTrigger value="content" className="gap-2">
+          <TabsTrigger value="content" className="gap-1">
             <BookOpen className="h-4 w-4" />
-            Content
+            <span className="hidden sm:inline">Content</span>
           </TabsTrigger>
-          <TabsTrigger value="services" className="gap-2">
+          <TabsTrigger value="services" className="gap-1">
             <Wrench className="h-4 w-4" />
-            Services
+            <span className="hidden sm:inline">Services</span>
           </TabsTrigger>
         </TabsList>
 
@@ -543,12 +543,12 @@ function SummaryCard({
 }) {
   return (
     <Card>
-      <CardContent className="pt-4">
-        <div className="flex items-center gap-2 mb-2">
+      <CardContent className="p-3">
+        <div className="flex items-center gap-2 mb-1">
           <span className={color}>{icon}</span>
           <span className="text-xs text-muted-foreground font-medium">{title}</span>
         </div>
-        <p className="text-2xl font-bold">{value.toLocaleString()}</p>
+        <p className="text-lg font-bold">{value.toLocaleString()}</p>
       </CardContent>
     </Card>
   );
@@ -562,7 +562,7 @@ function SourceBarChart({ data, dataKey }: { data: any[]; dataKey: string }) {
 
   return (
     <ResponsiveContainer width="100%" height={250}>
-      <BarChart data={data} layout="vertical" margin={{ top: 5, right: 30, left: 80, bottom: 5 }}>
+      <BarChart data={data} layout="vertical" margin={{ top: 5, right: 20, left: 40, bottom: 5 }}>
         <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
         <XAxis type="number" className="text-xs" />
         <YAxis dataKey={dataKey} type="category" className="text-xs" width={70} />
