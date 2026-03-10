@@ -120,9 +120,9 @@ const tabAccessMap: Record<string, AppRole[]> = {
   "ir-emails": ["admin"],
   
   // Platform Config - Admin only
+  // Platform Config - Admin only
   codes: ["admin"],
   banners: ["admin"],
-  professions: ["admin"],
   team: ["admin"],
   payments: ["admin"],
 };
