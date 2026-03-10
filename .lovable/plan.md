@@ -1,47 +1,41 @@
 
-# GroUp Academy — Vision Plan
 
-## Current Completion: ~88%
+# Industries Manager — Add to Companies & Contacts Section
 
-| # | Module | Status | % | Next Action |
-|---|--------|--------|---|-------------|
-| 1 | Academy / LMS | ✅ | 95% | Batch video linking |
-| 2 | AI Module Descriptions | 🔧 | 70% | Run batch generator (4,504 pending) |
-| 3 | AI Agents / Chat | ✅ | 90% | Conversation export |
-| 4 | Jobs Hub | ✅ | 90% | Saved job alerts |
-| 5 | Career Services | ✅ | 85% | Result sharing UX |
-| 6 | Feed / Social | ✅ | 95% | Done ✅ |
-| 7 | Study Abroad | ✅ | 80% | Application tracker |
-| 8 | Profile & Onboarding | ✅ | 85% | Profile visibility settings |
-| 9 | Credits & Payments (Stripe) | 🔧 | 75% | Keys infra built ✅ — need keys + test checkout |
-| 10 | Admin Dashboard | ✅ | 90% | Bulk actions |
-| 11 | Notifications | ✅ | 85% | Push notifications |
-| 12 | Public SEO / Marketing | ✅ | 85% | Landing page optimization |
-| 13 | Gigs / Marketplace | ✅ | 80% | Payment for completions |
-| 14 | PWA / Mobile | ✅ | 90% | Done ✅ |
-| 15 | Auth & Security | ✅ | 95% | Done ✅ |
+## Current Data
 
-## Priority Queue
+You have **1,550 companies** with **106 unique industries** and solid coverage — only 163 companies (10.5%) have no industry assigned. Top industries include Software Development (239), IT Services (134), Staffing & Recruiting (120), Financial Services (56), and Advertising (54).
 
-| # | Task | Current → Target | Effort |
-|---|------|------------------|--------|
-| 1 | Run AI Descriptions | 70% → 100% | Low |
-| 2 | Test Stripe Checkout | 75% → 90% | Low |
-| 3 | Push Notifications | 85% → 95% | Medium |
-| 4 | Result Sharing UX | 85% → 95% | Low |
-| 5 | Study Abroad Tracker | 80% → 90% | Medium |
-| 6 | Landing Page Polish | 85% → 95% | Low-Med |
+The industry field is free-text on the `companies` table, which means there are likely duplicates and inconsistencies (e.g., "Banking" vs "Financial Services"). A dedicated Industries manager would let you:
 
-## Milestones
+1. **See industry distribution** at a glance (how many companies per industry)
+2. **Normalize** messy entries (merge duplicates, fix typos)
+3. **Filter companies by industry** in the Companies tab
+4. **Cross-platform analytics** — industry-wise job counts, application rates, talent distribution
 
-- AI Descriptions + Stripe + Push → **~93%**
-- Result Sharing + Study Abroad Tracker → **~95%**
-- Final polish → **~98%**
+## Recommendation: Yes, include it
 
-## Completed Infrastructure
+### What to build
 
-- Certificates with PDF + verification ✅
-- Public SEO (Blog, Courses, Services with JSON-LD) ✅
-- Stripe self-service key config from admin panel ✅
-- Influencing Academy (3 schools, 12 programs, 168 courses, 749 modules) ✅
-- Email notifications (welcome, certificate) ✅
+**New "Industries" tab** in Companies & Contacts (after Company Agents):
+
+- **Industry list view** — table/cards showing each unique industry, company count, and job count (joined from `jobs` via `company_name`)
+- **Merge/Rename tool** — select multiple industries → merge into one canonical name (bulk UPDATE on `companies.industry`)
+- **Industry filter in Companies tab** — add a dropdown to filter companies by industry (similar to job filter we just added)
+- **KPI row** — Total industries, companies with no industry, top industry
+
+### No new database table needed
+
+We keep `industry` as free-text on `companies`. The Industries tab is a **management view** that aggregates and normalizes existing data. No schema change required.
+
+## Files to Change
+
+| File | Change |
+|------|--------|
+| `src/components/dashboard/AdminSidebar.tsx` | Add "Industries" nav item to Companies & Contacts group |
+| `src/components/dashboard/IndustriesManager.tsx` | **New file** — industry list, merge/rename, KPI cards |
+| `src/components/dashboard/CompaniesManager.tsx` | Add industry filter dropdown |
+| `src/pages/Dashboard.tsx` | Register Industries tab, lazy import |
+
+No database migrations.
+
