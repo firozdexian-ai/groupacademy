@@ -112,15 +112,15 @@ export function EnrollmentsManager() {
 
   const loadStatusCounts = useCallback(async () => {
     try {
-      const [activeRes, completedRes, cancelledRes] = await Promise.all([
+      const [activeRes, completedRes, pendingRes] = await Promise.all([
         supabase.from("enrollments").select("id", { count: "exact", head: true }).eq("status", "active"),
         supabase.from("enrollments").select("id", { count: "exact", head: true }).eq("status", "completed"),
-        supabase.from("enrollments").select("id", { count: "exact", head: true }).eq("status", "cancelled"),
+        supabase.from("enrollments").select("id", { count: "exact", head: true }).eq("status", "pending_payment"),
       ]);
       setStatusCounts({
         active: activeRes.count || 0,
         completed: completedRes.count || 0,
-        cancelled: cancelledRes.count || 0,
+        cancelled: pendingRes.count || 0,
       });
     } catch (err) {
       console.error("Error loading status counts:", err);
