@@ -63,7 +63,7 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    console.log(`Starting batch processing for ${cvUrls.length} CVs, batchId: ${batchId} by user: ${user.id}`);
+    console.log(`Starting batch processing for ${cvUrls.length} CVs, batchId: ${batchId} by user: ${userId}`);
 
     // Update batch status to processing
     await supabaseAdmin
