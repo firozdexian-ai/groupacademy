@@ -511,8 +511,8 @@ export function ContentOutreachManager() {
               </CardTitle>
               <CardDescription>Send personal WhatsApp messages to talents</CardDescription>
             </div>
-            <Button variant="outline" size="sm" onClick={loadTalents}>
-              <RefreshCw className="h-4 w-4 mr-2" /> Refresh
+            <Button variant="outline" size="icon" onClick={loadTalents}>
+              <RefreshCw className="h-4 w-4" />
             </Button>
           </CardHeader>
           <CardContent>
