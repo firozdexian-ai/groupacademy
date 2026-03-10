@@ -68,7 +68,7 @@ serve(async (req) => {
     // Update batch status to processing
     await supabaseAdmin
       .from("batch_uploads")
-      .update({ status: "processing", file_count: cvUrls.length, uploaded_by: user.id }) // Track who uploaded it
+      .update({ status: "processing", file_count: cvUrls.length, uploaded_by: userId })
       .eq("id", batchId);
 
     // Process CVs using background task - PASS THE AUTH HEADER
