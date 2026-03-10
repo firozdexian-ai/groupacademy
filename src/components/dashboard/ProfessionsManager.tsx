@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,8 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Building2, GraduationCap, Briefcase, ChevronRight, Bot, User } from "lucide-react";
+import { Plus, Pencil, Trash2, Building2, GraduationCap, Briefcase, ChevronRight, Bot, User, Search, AlertTriangle, MessageSquare, Coins } from "lucide-react";
 import { getIcon } from "@/lib/iconMap";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
@@ -52,6 +56,7 @@ interface ProfessionLine {
   target_audience: string | null;
   is_active: boolean | null;
   display_order: number | null;
+  credit_cost: number | null;
 }
 
 interface AIInstructor {
@@ -72,30 +77,43 @@ const ICON_OPTIONS = [
   "wrench", "lightbulb", "globe", "shield", "award", "rocket"
 ];
 
+function autoSlug(name: string) {
+  return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
 export function ProfessionsManager() {
   const [academies, setAcademies] = useState<Academy[]>([]);
   const [schools, setSchools] = useState<School[]>([]);
   const [professionLines, setProfessionLines] = useState<ProfessionLine[]>([]);
   const [aiInstructors, setAiInstructors] = useState<AIInstructor[]>([]);
+  const [conversationCounts, setConversationCounts] = useState<Record<string, number>>({});
+  const [contentCounts, setContentCounts] = useState<Record<string, { count: number; totalCredits: number }>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  
+  const [searchQuery, setSearchQuery] = useState("");
+
   // Filters
   const [selectedAcademyFilter, setSelectedAcademyFilter] = useState<string>("all");
   const [selectedSchoolFilter, setSelectedSchoolFilter] = useState<string>("all");
-  const [selectedProfessionFilter, setSelectedProfessionFilter] = useState<string>("all");
-  
+  // Cascading filters for instructors
+  const [instrAcademyFilter, setInstrAcademyFilter] = useState<string>("all");
+  const [instrSchoolFilter, setInstrSchoolFilter] = useState<string>("all");
+  const [instrProfessionFilter, setInstrProfessionFilter] = useState<string>("all");
+
   // Dialog states
   const [academyDialog, setAcademyDialog] = useState(false);
   const [schoolDialog, setSchoolDialog] = useState(false);
   const [professionDialog, setProfessionDialog] = useState(false);
   const [instructorDialog, setInstructorDialog] = useState(false);
-  
+
   // Edit states
   const [editingAcademy, setEditingAcademy] = useState<Academy | null>(null);
   const [editingSchool, setEditingSchool] = useState<School | null>(null);
   const [editingProfession, setEditingProfession] = useState<ProfessionLine | null>(null);
   const [editingInstructor, setEditingInstructor] = useState<AIInstructor | null>(null);
+
+  // Auto-slug tracking
+  const [autoSlugValue, setAutoSlugValue] = useState("");
 
   useEffect(() => {
     loadData();
@@ -110,16 +128,40 @@ export function ProfessionsManager() {
           Promise.resolve(supabase.from("academies").select("*").order("display_order")),
           Promise.resolve(supabase.from("schools").select("*").order("display_order")),
           Promise.resolve(supabase.from("profession_categories").select("*").order("display_order")),
-          Promise.resolve(supabase.from("ai_instructors").select("*").order("name"))
+          Promise.resolve(supabase.from("ai_instructors").select("*").order("name")),
+          Promise.resolve(supabase.from("ai_chat_sessions").select("ai_instructor_id")),
+          Promise.resolve(supabase.from("content").select("id, profession_line_id, credit_cost").eq("is_published", true))
         ]),
         TIMEOUTS.DEFAULT,
         "Loading professions data timed out"
       );
-      const [academiesRes, schoolsRes, professionsRes, instructorsRes] = results;
+      const [academiesRes, schoolsRes, professionsRes, instructorsRes, chatSessionsRes, contentRes] = results;
       if (academiesRes.data) setAcademies(academiesRes.data);
       if (schoolsRes.data) setSchools(schoolsRes.data);
       if (professionsRes.data) setProfessionLines(professionsRes.data);
       if (instructorsRes.data) setAiInstructors(instructorsRes.data);
+
+      // Compute conversation counts
+      if (chatSessionsRes.data) {
+        const counts: Record<string, number> = {};
+        chatSessionsRes.data.forEach((s: any) => {
+          counts[s.ai_instructor_id] = (counts[s.ai_instructor_id] || 0) + 1;
+        });
+        setConversationCounts(counts);
+      }
+
+      // Compute content counts per profession line
+      if (contentRes.data) {
+        const cc: Record<string, { count: number; totalCredits: number }> = {};
+        contentRes.data.forEach((c: any) => {
+          if (c.profession_line_id) {
+            if (!cc[c.profession_line_id]) cc[c.profession_line_id] = { count: 0, totalCredits: 0 };
+            cc[c.profession_line_id].count += 1;
+            cc[c.profession_line_id].totalCredits += (c.credit_cost || 0);
+          }
+        });
+        setContentCounts(cc);
+      }
     } catch (error: any) {
       console.error("Error loading data:", error);
       setLoadError(error.message || "Failed to load data");
@@ -135,28 +177,19 @@ export function ProfessionsManager() {
       name: formData.get("name") as string,
       slug: formData.get("slug") as string,
       description: formData.get("description") as string || null,
-      academy_type: formData.get("academy_type") as "executive" | "technical" | "freelancing" | "entrepreneurship" | "influencing",
+      academy_type: formData.get("academy_type") as Academy["academy_type"],
       icon: formData.get("icon") as string || "graduation-cap",
       primary_language: formData.get("primary_language") as string,
       is_active: formData.get("is_active") === "true",
       display_order: parseInt(formData.get("display_order") as string) || 0
     };
-
     try {
       if (editingAcademy) {
-        const { error } = await withTimeout(
-          Promise.resolve(supabase.from("academies").update(data).eq("id", editingAcademy.id)),
-          TIMEOUTS.DEFAULT,
-          "Update timed out"
-        );
+        const { error } = await withTimeout(Promise.resolve(supabase.from("academies").update(data).eq("id", editingAcademy.id)), TIMEOUTS.DEFAULT, "Update timed out");
         if (error) throw error;
         toast.success("Academy updated");
       } else {
-        const { error } = await withTimeout(
-          Promise.resolve(supabase.from("academies").insert(data)),
-          TIMEOUTS.DEFAULT,
-          "Insert timed out"
-        );
+        const { error } = await withTimeout(Promise.resolve(supabase.from("academies").insert(data)), TIMEOUTS.DEFAULT, "Insert timed out");
         if (error) throw error;
         toast.success("Academy created");
       }
@@ -169,13 +202,8 @@ export function ProfessionsManager() {
   };
 
   const handleDeleteAcademy = async (id: string) => {
-    if (!confirm("Delete this academy? This will orphan all related schools.")) return;
     try {
-      const { error } = await withTimeout(
-        Promise.resolve(supabase.from("academies").delete().eq("id", id)),
-        TIMEOUTS.DEFAULT,
-        "Delete timed out"
-      );
+      const { error } = await withTimeout(Promise.resolve(supabase.from("academies").delete().eq("id", id)), TIMEOUTS.DEFAULT, "Delete timed out");
       if (error) throw error;
       toast.success("Academy deleted");
       loadData();
@@ -196,22 +224,13 @@ export function ProfessionsManager() {
       is_active: formData.get("is_active") === "true",
       display_order: parseInt(formData.get("display_order") as string) || 0
     };
-
     try {
       if (editingSchool) {
-        const { error } = await withTimeout(
-          Promise.resolve(supabase.from("schools").update(data).eq("id", editingSchool.id)),
-          TIMEOUTS.DEFAULT,
-          "Update timed out"
-        );
+        const { error } = await withTimeout(Promise.resolve(supabase.from("schools").update(data).eq("id", editingSchool.id)), TIMEOUTS.DEFAULT, "Update timed out");
         if (error) throw error;
         toast.success("School updated");
       } else {
-        const { error } = await withTimeout(
-          Promise.resolve(supabase.from("schools").insert(data)),
-          TIMEOUTS.DEFAULT,
-          "Insert timed out"
-        );
+        const { error } = await withTimeout(Promise.resolve(supabase.from("schools").insert(data)), TIMEOUTS.DEFAULT, "Insert timed out");
         if (error) throw error;
         toast.success("School created");
       }
@@ -224,13 +243,8 @@ export function ProfessionsManager() {
   };
 
   const handleDeleteSchool = async (id: string) => {
-    if (!confirm("Delete this school? This will orphan all related profession lines.")) return;
     try {
-      const { error } = await withTimeout(
-        Promise.resolve(supabase.from("schools").delete().eq("id", id)),
-        TIMEOUTS.DEFAULT,
-        "Delete timed out"
-      );
+      const { error } = await withTimeout(Promise.resolve(supabase.from("schools").delete().eq("id", id)), TIMEOUTS.DEFAULT, "Delete timed out");
       if (error) throw error;
       toast.success("School deleted");
       loadData();
@@ -250,25 +264,17 @@ export function ProfessionsManager() {
       icon: formData.get("icon") as string || "briefcase",
       career_outcome: formData.get("career_outcome") as string || null,
       target_audience: formData.get("target_audience") as string || null,
+      credit_cost: parseInt(formData.get("credit_cost") as string) || 0,
       is_active: formData.get("is_active") === "true",
       display_order: parseInt(formData.get("display_order") as string) || 0
     };
-
     try {
       if (editingProfession) {
-        const { error } = await withTimeout(
-          Promise.resolve(supabase.from("profession_categories").update(data).eq("id", editingProfession.id)),
-          TIMEOUTS.DEFAULT,
-          "Update timed out"
-        );
+        const { error } = await withTimeout(Promise.resolve(supabase.from("profession_categories").update(data).eq("id", editingProfession.id)), TIMEOUTS.DEFAULT, "Update timed out");
         if (error) throw error;
         toast.success("Profession line updated");
       } else {
-        const { error } = await withTimeout(
-          Promise.resolve(supabase.from("profession_categories").insert(data)),
-          TIMEOUTS.DEFAULT,
-          "Insert timed out"
-        );
+        const { error } = await withTimeout(Promise.resolve(supabase.from("profession_categories").insert(data)), TIMEOUTS.DEFAULT, "Insert timed out");
         if (error) throw error;
         toast.success("Profession line created");
       }
@@ -281,13 +287,8 @@ export function ProfessionsManager() {
   };
 
   const handleDeleteProfession = async (id: string) => {
-    if (!confirm("Delete this profession line?")) return;
     try {
-      const { error } = await withTimeout(
-        Promise.resolve(supabase.from("profession_categories").delete().eq("id", id)),
-        TIMEOUTS.DEFAULT,
-        "Delete timed out"
-      );
+      const { error } = await withTimeout(Promise.resolve(supabase.from("profession_categories").delete().eq("id", id)), TIMEOUTS.DEFAULT, "Delete timed out");
       if (error) throw error;
       toast.success("Profession line deleted");
       loadData();
@@ -300,7 +301,6 @@ export function ProfessionsManager() {
   const handleSaveInstructor = async (formData: FormData) => {
     const expertiseRaw = formData.get("expertise_areas") as string;
     const expertise = expertiseRaw ? expertiseRaw.split(",").map(s => s.trim()).filter(Boolean) : null;
-    
     const data = {
       name: formData.get("name") as string,
       persona: formData.get("persona") as string,
@@ -310,22 +310,13 @@ export function ProfessionsManager() {
       profession_line_id: formData.get("profession_line_id") as string,
       is_active: formData.get("is_active") === "true"
     };
-
     try {
       if (editingInstructor) {
-        const { error } = await withTimeout(
-          Promise.resolve(supabase.from("ai_instructors").update(data).eq("id", editingInstructor.id)),
-          TIMEOUTS.DEFAULT,
-          "Update timed out"
-        );
+        const { error } = await withTimeout(Promise.resolve(supabase.from("ai_instructors").update(data).eq("id", editingInstructor.id)), TIMEOUTS.DEFAULT, "Update timed out");
         if (error) throw error;
         toast.success("AI Instructor updated");
       } else {
-        const { error } = await withTimeout(
-          Promise.resolve(supabase.from("ai_instructors").insert(data)),
-          TIMEOUTS.DEFAULT,
-          "Insert timed out"
-        );
+        const { error } = await withTimeout(Promise.resolve(supabase.from("ai_instructors").insert(data)), TIMEOUTS.DEFAULT, "Insert timed out");
         if (error) throw error;
         toast.success("AI Instructor created");
       }
@@ -338,13 +329,8 @@ export function ProfessionsManager() {
   };
 
   const handleDeleteInstructor = async (id: string) => {
-    if (!confirm("Delete this AI Instructor?")) return;
     try {
-      const { error } = await withTimeout(
-        Promise.resolve(supabase.from("ai_instructors").delete().eq("id", id)),
-        TIMEOUTS.DEFAULT,
-        "Delete timed out"
-      );
+      const { error } = await withTimeout(Promise.resolve(supabase.from("ai_instructors").delete().eq("id", id)), TIMEOUTS.DEFAULT, "Delete timed out");
       if (error) throw error;
       toast.success("AI Instructor deleted");
       loadData();
@@ -353,18 +339,55 @@ export function ProfessionsManager() {
     }
   };
 
-  // Filtered data
-  const filteredSchools = selectedAcademyFilter === "all" 
-    ? schools 
-    : schools.filter(s => s.academy_id === selectedAcademyFilter);
+  // Derived data
+  const professionLinesWithInstructor = useMemo(() => {
+    const set = new Set(aiInstructors.map(i => i.profession_line_id));
+    return set;
+  }, [aiInstructors]);
 
-  const filteredProfessions = selectedSchoolFilter === "all"
-    ? professionLines
-    : professionLines.filter(p => p.school_id === selectedSchoolFilter);
+  const noInstructorCount = professionLines.filter(p => !professionLinesWithInstructor.has(p.id)).length;
 
-  const filteredInstructors = selectedProfessionFilter === "all"
-    ? aiInstructors
-    : aiInstructors.filter(i => i.profession_line_id === selectedProfessionFilter);
+  // Filtered data with search
+  const filterBySearch = <T extends { name: string }>(items: T[]) =>
+    searchQuery ? items.filter(i => i.name.toLowerCase().includes(searchQuery.toLowerCase())) : items;
+
+  const filteredSchools = filterBySearch(
+    selectedAcademyFilter === "all" ? schools : schools.filter(s => s.academy_id === selectedAcademyFilter)
+  );
+
+  const filteredProfessions = filterBySearch(
+    selectedSchoolFilter === "all" ? professionLines : professionLines.filter(p => p.school_id === selectedSchoolFilter)
+  );
+
+  // Cascading instructor filters
+  const instrSchoolOptions = useMemo(() => {
+    if (instrAcademyFilter === "all") return schools;
+    return schools.filter(s => s.academy_id === instrAcademyFilter);
+  }, [instrAcademyFilter, schools]);
+
+  const instrProfessionOptions = useMemo(() => {
+    if (instrSchoolFilter === "all") {
+      if (instrAcademyFilter === "all") return professionLines;
+      const schoolIds = new Set(instrSchoolOptions.map(s => s.id));
+      return professionLines.filter(p => p.school_id && schoolIds.has(p.school_id));
+    }
+    return professionLines.filter(p => p.school_id === instrSchoolFilter);
+  }, [instrSchoolFilter, instrAcademyFilter, instrSchoolOptions, professionLines]);
+
+  const filteredInstructors = useMemo(() => {
+    let result = aiInstructors;
+    if (instrProfessionFilter !== "all") {
+      result = result.filter(i => i.profession_line_id === instrProfessionFilter);
+    } else if (instrSchoolFilter !== "all" || instrAcademyFilter !== "all") {
+      const validProfIds = new Set(instrProfessionOptions.map(p => p.id));
+      result = result.filter(i => validProfIds.has(i.profession_line_id));
+    }
+    return filterBySearch(result);
+  }, [aiInstructors, instrProfessionFilter, instrSchoolFilter, instrAcademyFilter, instrProfessionOptions, searchQuery]);
+
+  // Reset cascading filters
+  useEffect(() => { setInstrSchoolFilter("all"); setInstrProfessionFilter("all"); }, [instrAcademyFilter]);
+  useEffect(() => { setInstrProfessionFilter("all"); }, [instrSchoolFilter]);
 
   const getAcademyName = (id: string) => academies.find(a => a.id === id)?.name || "Unknown";
   const getSchoolName = (id: string | null) => id ? schools.find(s => s.id === id)?.name || "Unknown" : "Unassigned";
@@ -392,23 +415,71 @@ export function ProfessionsManager() {
 
   return (
     <div className="space-y-6">
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4 text-center">
+            <Building2 className="h-5 w-5 mx-auto mb-1 text-primary" />
+            <p className="text-2xl font-bold">{academies.length}</p>
+            <p className="text-xs text-muted-foreground">Academies · {academies.filter(a => a.is_active).length} active</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <GraduationCap className="h-5 w-5 mx-auto mb-1 text-primary" />
+            <p className="text-2xl font-bold">{schools.length}</p>
+            <p className="text-xs text-muted-foreground">Schools · {schools.filter(s => s.is_active).length} active</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <Briefcase className="h-5 w-5 mx-auto mb-1 text-primary" />
+            <p className="text-2xl font-bold">{professionLines.length}</p>
+            <p className="text-xs text-muted-foreground">Profession Lines · {professionLines.filter(p => p.is_active).length} active</p>
+            {noInstructorCount > 0 && (
+              <p className="text-xs text-destructive mt-1 flex items-center justify-center gap-1">
+                <AlertTriangle className="h-3 w-3" /> {noInstructorCount} without AI
+              </p>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <Bot className="h-5 w-5 mx-auto mb-1 text-primary" />
+            <p className="text-2xl font-bold">{aiInstructors.length}</p>
+            <p className="text-xs text-muted-foreground">AI Instructors · {aiInstructors.filter(i => i.is_active).length} active</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search by name..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-9"
+        />
+      </div>
+
       <Tabs defaultValue="academies">
-        <TabsList>
+        <TabsList className="flex-wrap h-auto gap-1">
           <TabsTrigger value="academies" className="gap-2">
             <Building2 className="h-4 w-4" />
-            Academies ({academies.length})
+            <span className="hidden sm:inline">Academies</span> ({academies.length})
           </TabsTrigger>
           <TabsTrigger value="schools" className="gap-2">
             <GraduationCap className="h-4 w-4" />
-            Schools ({schools.length})
+            <span className="hidden sm:inline">Schools</span> ({schools.length})
           </TabsTrigger>
           <TabsTrigger value="professions" className="gap-2">
             <Briefcase className="h-4 w-4" />
-            Profession Lines ({professionLines.length})
+            <span className="hidden sm:inline">Professions</span> ({professionLines.length})
           </TabsTrigger>
           <TabsTrigger value="instructors" className="gap-2">
             <Bot className="h-4 w-4" />
-            AI Instructors ({aiInstructors.length})
+            <span className="hidden sm:inline">AI Instructors</span> ({aiInstructors.length})
           </TabsTrigger>
         </TabsList>
 
@@ -416,9 +487,9 @@ export function ProfessionsManager() {
         <TabsContent value="academies" className="space-y-4">
           <div className="flex justify-between items-center">
             <p className="text-sm text-muted-foreground">
-              Manage top-level academies (Executive & Technical)
+              Manage top-level academies
             </p>
-            <Dialog open={academyDialog} onOpenChange={(open) => { setAcademyDialog(open); if (!open) setEditingAcademy(null); }}>
+            <Dialog open={academyDialog} onOpenChange={(open) => { setAcademyDialog(open); if (!open) { setEditingAcademy(null); setAutoSlugValue(""); } }}>
               <DialogTrigger asChild>
                 <Button><Plus className="h-4 w-4 mr-2" />Add Academy</Button>
               </DialogTrigger>
@@ -427,10 +498,15 @@ export function ProfessionsManager() {
                   <DialogTitle>{editingAcademy ? "Edit Academy" : "Add Academy"}</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={(e) => { e.preventDefault(); handleSaveAcademy(new FormData(e.currentTarget)); }} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="name">Name *</Label>
-                      <Input id="name" name="name" defaultValue={editingAcademy?.name} required />
+                      <Input id="name" name="name" defaultValue={editingAcademy?.name} required onChange={(e) => {
+                        const slug = autoSlug(e.target.value);
+                        setAutoSlugValue(slug);
+                        const slugInput = e.target.form?.querySelector<HTMLInputElement>('[name="slug"]');
+                        if (slugInput && (!slugInput.value || slugInput.value === autoSlugValue)) slugInput.value = slug;
+                      }} />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="slug">Slug *</Label>
@@ -441,7 +517,7 @@ export function ProfessionsManager() {
                     <Label htmlFor="description">Description</Label>
                     <Textarea id="description" name="description" defaultValue={editingAcademy?.description || ""} />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="academy_type">Type *</Label>
                       <Select name="academy_type" defaultValue={editingAcademy?.academy_type || "executive"}>
@@ -463,7 +539,7 @@ export function ProfessionsManager() {
                       </Select>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="icon">Icon</Label>
                       <Select name="icon" defaultValue={editingAcademy?.icon || "graduation-cap"}>
@@ -499,7 +575,7 @@ export function ProfessionsManager() {
           </div>
 
           <div className="grid gap-4">
-            {academies.map((academy) => {
+            {filterBySearch(academies).map((academy) => {
               const IconComp = getIcon(academy.icon);
               const schoolCount = schools.filter(s => s.academy_id === academy.id).length;
               return (
@@ -510,7 +586,7 @@ export function ProfessionsManager() {
                         <IconComp className="h-6 w-6 text-primary" />
                       </div>
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <h3 className="font-semibold">{academy.name}</h3>
                           <Badge variant={academy.academy_type === "executive" ? "default" : "secondary"}>
                             {academy.academy_type}
@@ -529,20 +605,41 @@ export function ProfessionsManager() {
                       <Button variant="outline" size="sm" onClick={() => { setEditingAcademy(academy); setAcademyDialog(true); }}>
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => handleDeleteAcademy(academy.id)}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="outline" size="sm"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Academy?</AlertDialogTitle>
+                            <AlertDialogDescription>This will orphan all related schools. This action cannot be undone.</AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDeleteAcademy(academy.id)}>Delete</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </CardContent>
                 </Card>
               );
             })}
+            {filterBySearch(academies).length === 0 && (
+              <Card className="border-dashed">
+                <CardContent className="py-12 text-center text-muted-foreground">
+                  <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No academies found.</p>
+                  <p className="text-sm">Add an academy to get started.</p>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </TabsContent>
 
         {/* Schools Tab */}
         <TabsContent value="schools" className="space-y-4">
-          <div className="flex justify-between items-center">
+          <div className="flex flex-wrap justify-between items-center gap-2">
             <div className="flex items-center gap-4">
               <Select value={selectedAcademyFilter} onValueChange={setSelectedAcademyFilter}>
                 <SelectTrigger className="w-48">
@@ -559,7 +656,7 @@ export function ProfessionsManager() {
                 {filteredSchools.length} schools
               </p>
             </div>
-            <Dialog open={schoolDialog} onOpenChange={(open) => { setSchoolDialog(open); if (!open) setEditingSchool(null); }}>
+            <Dialog open={schoolDialog} onOpenChange={(open) => { setSchoolDialog(open); if (!open) { setEditingSchool(null); setAutoSlugValue(""); } }}>
               <DialogTrigger asChild>
                 <Button><Plus className="h-4 w-4 mr-2" />Add School</Button>
               </DialogTrigger>
@@ -568,10 +665,15 @@ export function ProfessionsManager() {
                   <DialogTitle>{editingSchool ? "Edit School" : "Add School"}</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={(e) => { e.preventDefault(); handleSaveSchool(new FormData(e.currentTarget)); }} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="name">Name *</Label>
-                      <Input id="name" name="name" defaultValue={editingSchool?.name} required />
+                      <Input id="name" name="name" defaultValue={editingSchool?.name} required onChange={(e) => {
+                        const slug = autoSlug(e.target.value);
+                        setAutoSlugValue(slug);
+                        const slugInput = e.target.form?.querySelector<HTMLInputElement>('[name="slug"]');
+                        if (slugInput && (!slugInput.value || slugInput.value === autoSlugValue)) slugInput.value = slug;
+                      }} />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="slug">Slug *</Label>
@@ -597,7 +699,7 @@ export function ProfessionsManager() {
                     <Label htmlFor="executive_capability_goal">Executive Capability Goal</Label>
                     <Input id="executive_capability_goal" name="executive_capability_goal" defaultValue={editingSchool?.executive_capability_goal || ""} />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="icon">Icon</Label>
                       <Select name="icon" defaultValue={editingSchool?.icon || "book-open"}>
@@ -644,7 +746,7 @@ export function ProfessionsManager() {
                         <IconComp className="h-6 w-6 text-secondary-foreground" />
                       </div>
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <h3 className="font-semibold">{school.name}</h3>
                           {!school.is_active && <Badge variant="outline">Inactive</Badge>}
                         </div>
@@ -660,20 +762,41 @@ export function ProfessionsManager() {
                       <Button variant="outline" size="sm" onClick={() => { setEditingSchool(school); setSchoolDialog(true); }}>
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => handleDeleteSchool(school.id)}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="outline" size="sm"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete School?</AlertDialogTitle>
+                            <AlertDialogDescription>This will orphan all related profession lines. This action cannot be undone.</AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDeleteSchool(school.id)}>Delete</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </CardContent>
                 </Card>
               );
             })}
+            {filteredSchools.length === 0 && (
+              <Card className="border-dashed">
+                <CardContent className="py-12 text-center text-muted-foreground">
+                  <GraduationCap className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No schools found.</p>
+                  <p className="text-sm">Add a school to organize profession lines.</p>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </TabsContent>
 
         {/* Profession Lines Tab */}
         <TabsContent value="professions" className="space-y-4">
-          <div className="flex justify-between items-center">
+          <div className="flex flex-wrap justify-between items-center gap-2">
             <div className="flex items-center gap-4">
               <Select value={selectedSchoolFilter} onValueChange={setSelectedSchoolFilter}>
                 <SelectTrigger className="w-48">
@@ -690,7 +813,7 @@ export function ProfessionsManager() {
                 {filteredProfessions.length} profession lines
               </p>
             </div>
-            <Dialog open={professionDialog} onOpenChange={(open) => { setProfessionDialog(open); if (!open) setEditingProfession(null); }}>
+            <Dialog open={professionDialog} onOpenChange={(open) => { setProfessionDialog(open); if (!open) { setEditingProfession(null); setAutoSlugValue(""); } }}>
               <DialogTrigger asChild>
                 <Button><Plus className="h-4 w-4 mr-2" />Add Profession Line</Button>
               </DialogTrigger>
@@ -699,10 +822,15 @@ export function ProfessionsManager() {
                   <DialogTitle>{editingProfession ? "Edit Profession Line" : "Add Profession Line"}</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={(e) => { e.preventDefault(); handleSaveProfession(new FormData(e.currentTarget)); }} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="name">Name *</Label>
-                      <Input id="name" name="name" defaultValue={editingProfession?.name} required />
+                      <Input id="name" name="name" defaultValue={editingProfession?.name} required onChange={(e) => {
+                        const slug = autoSlug(e.target.value);
+                        setAutoSlugValue(slug);
+                        const slugInput = e.target.form?.querySelector<HTMLInputElement>('[name="slug"]');
+                        if (slugInput && (!slugInput.value || slugInput.value === autoSlugValue)) slugInput.value = slug;
+                      }} />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="slug">Slug *</Label>
@@ -727,7 +855,7 @@ export function ProfessionsManager() {
                     <Label htmlFor="description">Description</Label>
                     <Textarea id="description" name="description" defaultValue={editingProfession?.description || ""} />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="career_outcome">Career Outcome</Label>
                       <Input id="career_outcome" name="career_outcome" defaultValue={editingProfession?.career_outcome || ""} placeholder="e.g., Sales Executive" />
@@ -737,7 +865,12 @@ export function ProfessionsManager() {
                       <Input id="target_audience" name="target_audience" defaultValue={editingProfession?.target_audience || ""} placeholder="e.g., Fresh graduates" />
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="credit_cost">Entry Credit Cost</Label>
+                      <Input id="credit_cost" name="credit_cost" type="number" defaultValue={editingProfession?.credit_cost || 0} min={0} placeholder="e.g., 200" />
+                      <p className="text-xs text-muted-foreground">Credits to unlock this career track</p>
+                    </div>
                     <div className="space-y-2">
                       <Label htmlFor="icon">Icon</Label>
                       <Select name="icon" defaultValue={editingProfession?.icon || "briefcase"}>
@@ -757,6 +890,8 @@ export function ProfessionsManager() {
                         </SelectContent>
                       </Select>
                     </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="display_order">Display Order</Label>
                       <Input id="display_order" name="display_order" type="number" defaultValue={editingProfession?.display_order || 0} />
@@ -776,6 +911,8 @@ export function ProfessionsManager() {
             {filteredProfessions.map((profession) => {
               const IconComp = getIcon(profession.icon);
               const instructorCount = aiInstructors.filter(i => i.profession_line_id === profession.id).length;
+              const cc = contentCounts[profession.id];
+              const totalCredits = (profession.credit_cost || 0) + (cc?.totalCredits || 0);
               return (
                 <Card key={profession.id} className={!profession.is_active ? "opacity-60" : ""}>
                   <CardContent className="flex items-center justify-between p-4">
@@ -784,20 +921,37 @@ export function ProfessionsManager() {
                         <IconComp className="h-6 w-6 text-accent-foreground" />
                       </div>
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <h3 className="font-semibold">{profession.name}</h3>
                           {!profession.is_active && <Badge variant="outline">Inactive</Badge>}
                           {!profession.school_id && <Badge variant="destructive">Unassigned</Badge>}
-                          {instructorCount > 0 && (
+                          {instructorCount > 0 ? (
                             <Badge variant="secondary" className="gap-1">
                               <Bot className="h-3 w-3" />
                               {instructorCount}
                             </Badge>
+                          ) : (
+                            <Badge variant="destructive" className="gap-1">
+                              <AlertTriangle className="h-3 w-3" />
+                              No AI
+                            </Badge>
                           )}
                         </div>
                         <p className="text-sm text-muted-foreground line-clamp-1">{profession.description}</p>
-                        <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground flex-wrap">
                           <Badge variant="outline" className="text-xs">{getSchoolName(profession.school_id)}</Badge>
+                          {cc && (
+                            <Badge variant="secondary" className="text-xs gap-1">
+                              <Briefcase className="h-3 w-3" />
+                              {cc.count} courses
+                            </Badge>
+                          )}
+                          {totalCredits > 0 && (
+                            <Badge variant="secondary" className="text-xs gap-1">
+                              <Coins className="h-3 w-3" />
+                              {totalCredits} credits total
+                            </Badge>
+                          )}
                           {profession.career_outcome && (
                             <>
                               <ChevronRight className="h-3 w-3" />
@@ -811,9 +965,21 @@ export function ProfessionsManager() {
                       <Button variant="outline" size="sm" onClick={() => { setEditingProfession(profession); setProfessionDialog(true); }}>
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => handleDeleteProfession(profession.id)}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="outline" size="sm"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Profession Line?</AlertDialogTitle>
+                            <AlertDialogDescription>This will remove the profession line and may affect linked courses and instructors.</AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDeleteProfession(profession.id)}>Delete</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </CardContent>
                 </Card>
@@ -831,21 +997,43 @@ export function ProfessionsManager() {
 
         {/* AI Instructors Tab */}
         <TabsContent value="instructors" className="space-y-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-4">
-              <Select value={selectedProfessionFilter} onValueChange={setSelectedProfessionFilter}>
-                <SelectTrigger className="w-56">
-                  <SelectValue placeholder="Filter by Profession Line" />
+          <div className="flex flex-wrap justify-between items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Select value={instrAcademyFilter} onValueChange={setInstrAcademyFilter}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Academy" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Profession Lines</SelectItem>
-                  {professionLines.map(p => (
+                  <SelectItem value="all">All Academies</SelectItem>
+                  {academies.map(a => (
+                    <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={instrSchoolFilter} onValueChange={setInstrSchoolFilter}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="School" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Schools</SelectItem>
+                  {instrSchoolOptions.map(s => (
+                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={instrProfessionFilter} onValueChange={setInstrProfessionFilter}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Profession" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Professions</SelectItem>
+                  {instrProfessionOptions.map(p => (
                     <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               <p className="text-sm text-muted-foreground">
-                {filteredInstructors.length} AI instructors
+                {filteredInstructors.length} instructors
               </p>
             </div>
             <Dialog open={instructorDialog} onOpenChange={(open) => { setInstructorDialog(open); if (!open) setEditingInstructor(null); }}>
@@ -857,7 +1045,7 @@ export function ProfessionsManager() {
                   <DialogTitle>{editingInstructor ? "Edit AI Instructor" : "Add AI Instructor"}</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={(e) => { e.preventDefault(); handleSaveInstructor(new FormData(e.currentTarget)); }} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="name">Name *</Label>
                       <Input id="name" name="name" defaultValue={editingInstructor?.name} placeholder="e.g., Sarah Rahman" required />
@@ -876,37 +1064,37 @@ export function ProfessionsManager() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="persona">Persona *</Label>
-                    <Textarea 
-                      id="persona" 
-                      name="persona" 
-                      defaultValue={editingInstructor?.persona} 
+                    <Textarea
+                      id="persona"
+                      name="persona"
+                      defaultValue={editingInstructor?.persona}
                       placeholder="Brief description of the AI instructor's personality and teaching style..."
                       rows={2}
-                      required 
+                      required
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="system_prompt">System Prompt *</Label>
-                    <Textarea 
-                      id="system_prompt" 
-                      name="system_prompt" 
-                      defaultValue={editingInstructor?.system_prompt} 
+                    <Textarea
+                      id="system_prompt"
+                      name="system_prompt"
+                      defaultValue={editingInstructor?.system_prompt}
                       placeholder="You are Sarah Rahman, an experienced career consultant specializing in..."
                       rows={6}
-                      required 
+                      required
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="avatar_url">Avatar URL</Label>
                       <Input id="avatar_url" name="avatar_url" defaultValue={editingInstructor?.avatar_url || ""} placeholder="https://..." />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="expertise_areas">Expertise Areas</Label>
-                      <Input 
-                        id="expertise_areas" 
-                        name="expertise_areas" 
-                        defaultValue={editingInstructor?.expertise_areas?.join(", ") || ""} 
+                      <Input
+                        id="expertise_areas"
+                        name="expertise_areas"
+                        defaultValue={editingInstructor?.expertise_areas?.join(", ") || ""}
                         placeholder="Sales, Marketing, Negotiation"
                       />
                       <p className="text-xs text-muted-foreground">Comma-separated list</p>
@@ -923,49 +1111,64 @@ export function ProfessionsManager() {
           </div>
 
           <div className="grid gap-4">
-            {filteredInstructors.map((instructor) => (
-              <Card key={instructor.id} className={!instructor.is_active ? "opacity-60" : ""}>
-                <CardContent className="flex items-center justify-between p-4">
-                  <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 rounded-full bg-gradient-to-br from-primary/20 to-primary/40 flex items-center justify-center overflow-hidden">
-                      {instructor.avatar_url ? (
-                        <img src={instructor.avatar_url} alt={instructor.name} className="h-full w-full object-cover" />
-                      ) : (
-                        <User className="h-6 w-6 text-primary" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-semibold">{instructor.name}</h3>
-                        {!instructor.is_active && <Badge variant="outline">Inactive</Badge>}
-                        <Badge variant="secondary" className="gap-1">
-                          <Bot className="h-3 w-3" />
-                          AI
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground line-clamp-1">{instructor.persona}</p>
-                      <div className="flex items-center gap-2 mt-1 flex-wrap">
-                        <Badge variant="outline" className="text-xs">{getProfessionName(instructor.profession_line_id)}</Badge>
-                        {instructor.expertise_areas?.slice(0, 3).map((area, i) => (
-                          <Badge key={i} variant="secondary" className="text-xs">{area}</Badge>
-                        ))}
-                        {instructor.expertise_areas && instructor.expertise_areas.length > 3 && (
-                          <span className="text-xs text-muted-foreground">+{instructor.expertise_areas.length - 3} more</span>
+            {filteredInstructors.map((instructor) => {
+              const convCount = conversationCounts[instructor.id] || 0;
+              return (
+                <Card key={instructor.id} className={!instructor.is_active ? "opacity-60" : ""}>
+                  <CardContent className="flex items-center justify-between p-4">
+                    <div className="flex items-center gap-4">
+                      <div className="h-12 w-12 rounded-full bg-gradient-to-br from-primary/20 to-primary/40 flex items-center justify-center overflow-hidden">
+                        {instructor.avatar_url ? (
+                          <img src={instructor.avatar_url} alt={instructor.name} className="h-full w-full object-cover" />
+                        ) : (
+                          <User className="h-6 w-6 text-primary" />
                         )}
                       </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="font-semibold">{instructor.name}</h3>
+                          {!instructor.is_active && <Badge variant="outline">Inactive</Badge>}
+                          <Badge variant="secondary" className="gap-1">
+                            <MessageSquare className="h-3 w-3" />
+                            {convCount} chats
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-muted-foreground line-clamp-1">{instructor.persona}</p>
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                          <Badge variant="outline" className="text-xs">{getProfessionName(instructor.profession_line_id)}</Badge>
+                          {instructor.expertise_areas?.slice(0, 3).map((area, i) => (
+                            <Badge key={i} variant="secondary" className="text-xs">{area}</Badge>
+                          ))}
+                          {instructor.expertise_areas && instructor.expertise_areas.length > 3 && (
+                            <span className="text-xs text-muted-foreground">+{instructor.expertise_areas.length - 3} more</span>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => { setEditingInstructor(instructor); setInstructorDialog(true); }}>
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => handleDeleteInstructor(instructor.id)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => { setEditingInstructor(instructor); setInstructorDialog(true); }}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="outline" size="sm"><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete AI Instructor?</AlertDialogTitle>
+                            <AlertDialogDescription>This instructor and their chat history will be removed.</AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDeleteInstructor(instructor.id)}>Delete</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
             {filteredInstructors.length === 0 && (
               <Card className="border-dashed">
                 <CardContent className="py-12 text-center text-muted-foreground">

@@ -12,8 +12,6 @@ import {
   BookOpen, 
   Target, 
   Clock, 
-  Users, 
-  ArrowRight,
   ArrowLeft,
   GraduationCap,
   Briefcase,
@@ -21,7 +19,8 @@ import {
   Play,
   RefreshCw,
   AlertCircle,
-  ClipboardCheck
+  ClipboardCheck,
+  Coins
 } from "lucide-react";
 
 interface ProfessionLine {
@@ -31,6 +30,7 @@ interface ProfessionLine {
   description: string;
   target_audience: string;
   career_outcome: string;
+  credit_cost: number | null;
   schools: { name: string; academies: { name: string } };
 }
 
@@ -48,6 +48,7 @@ interface Course {
   description: string;
   estimated_hours: number;
   modules_count: number;
+  credit_cost: number | null;
   profession_levels: { name: string; slug: string };
 }
 
@@ -90,7 +91,7 @@ export default function AppProfessionDetail() {
 
         const { data: coursesData } = await supabase
           .from("content")
-          .select(`id, title, slug, description, estimated_hours, modules_count, profession_levels(name, slug)`)
+          .select(`id, title, slug, description, estimated_hours, modules_count, credit_cost, profession_levels(name, slug)`)
           .eq("profession_line_id", professionData.id)
           .eq("is_published", true)
           .order("display_order");
@@ -145,6 +146,10 @@ export default function AppProfessionDetail() {
     return acc;
   }, {} as Record<string, Course[]>);
 
+  const entryCost = profession.credit_cost || 0;
+  const courseCreditsTotal = courses.reduce((sum, c) => sum + (c.credit_cost || 0), 0);
+  const totalInvestment = entryCost + courseCreditsTotal;
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-4">
       <Button 
@@ -175,7 +180,39 @@ export default function AppProfessionDetail() {
             AI: {aiInstructor.name}
           </Badge>
         )}
+        {totalInvestment > 0 && (
+          <Badge variant="secondary" className="gap-1">
+            <Coins className="h-3 w-3" />
+            Total: {totalInvestment} Credits
+          </Badge>
+        )}
       </div>
+
+      {/* Credit Investment Card */}
+      {totalInvestment > 0 && (
+        <Card className="mb-6 bg-accent/30 border-accent/50">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3 mb-2">
+              <Coins className="h-5 w-5 text-primary" />
+              <h4 className="font-semibold text-sm">Credit Investment</h4>
+            </div>
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div>
+                <p className="text-lg font-bold">{entryCost}</p>
+                <p className="text-xs text-muted-foreground">Entry Fee</p>
+              </div>
+              <div>
+                <p className="text-lg font-bold">{courseCreditsTotal}</p>
+                <p className="text-xs text-muted-foreground">Course Credits</p>
+              </div>
+              <div>
+                <p className="text-lg font-bold text-primary">{totalInvestment}</p>
+                <p className="text-xs text-muted-foreground">Total</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Career Assessment CTA */}
       <Card className="mb-6 bg-primary/5 border-primary/20">
@@ -267,12 +304,20 @@ export default function AppProfessionDetail() {
                     <CardHeader className="pb-2">
                       <div className="flex items-center justify-between mb-1">
                         <Badge variant="outline" className="text-xs">Course {index + 1}</Badge>
-                        {course.estimated_hours && (
-                          <span className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {course.estimated_hours}h
-                          </span>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {course.credit_cost ? (
+                            <span className="text-xs text-muted-foreground flex items-center gap-1">
+                              <Coins className="h-3 w-3" />
+                              {course.credit_cost}
+                            </span>
+                          ) : null}
+                          {course.estimated_hours && (
+                            <span className="text-xs text-muted-foreground flex items-center gap-1">
+                              <Clock className="h-3 w-3" />
+                              {course.estimated_hours}h
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <CardTitle className="text-base line-clamp-1">{course.title}</CardTitle>
                       <CardDescription className="line-clamp-2 text-sm">{course.description}</CardDescription>
