@@ -855,66 +855,99 @@ export function LeadHunterManager() {
       </Card>
 
       {/* New Hunt Dialog */}
-      <Dialog open={showNewHunt} onOpenChange={setShowNewHunt}>
+      <Dialog open={showNewHunt} onOpenChange={(open) => { setShowNewHunt(open); if (!open) resetNewHunt(); }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Start New Lead Hunt</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+          {!jdParsed ? (
+            /* Step 1: Paste JD */
+            <div className="space-y-4">
               <div>
-                <Label htmlFor="job-title">Job Title</Label>
-                <Input
-                  id="job-title"
-                  value={jobTitle}
-                  onChange={(e) => setJobTitle(e.target.value)}
-                  placeholder="e.g., Senior Software Engineer"
+                <Label htmlFor="raw-jd">Paste the full Job Description</Label>
+                <Textarea
+                  id="raw-jd"
+                  value={rawJD}
+                  onChange={(e) => setRawJD(e.target.value)}
+                  placeholder="Paste the entire job posting here — title, company, requirements, responsibilities, etc."
+                  rows={12}
+                  className="mt-1"
+                />
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowNewHunt(false)}>Cancel</Button>
+                <Button onClick={parseJD} disabled={isParsing || !rawJD.trim()}>
+                  {isParsing ? (
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Parsing...</>
+                  ) : (
+                    <><Sparkles className="w-4 h-4 mr-2" />Parse with AI</>
+                  )}
+                </Button>
+              </DialogFooter>
+            </div>
+          ) : (
+            /* Step 2: Review parsed fields */
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/50 p-2 rounded-md">
+                <CheckCircle className="w-4 h-4 text-green-600 shrink-0" />
+                <span>AI extracted the fields below. Review and edit if needed.</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="job-title">Job Title</Label>
+                  <Input
+                    id="job-title"
+                    value={jobTitle}
+                    onChange={(e) => setJobTitle(e.target.value)}
+                    placeholder="e.g., Senior Software Engineer"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="company">Company Name</Label>
+                  <Input
+                    id="company"
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                    placeholder="e.g., TechCorp"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="jd">Job Description</Label>
+                <Textarea
+                  id="jd"
+                  value={jobDescription}
+                  onChange={(e) => setJobDescription(e.target.value)}
+                  rows={6}
                 />
               </div>
               <div>
-                <Label htmlFor="company">Company Name (Optional)</Label>
+                <Label htmlFor="leads">Number of leads to find</Label>
                 <Input
-                  id="company"
-                  value={companyName}
-                  onChange={(e) => setCompanyName(e.target.value)}
-                  placeholder="e.g., TechCorp"
+                  id="leads"
+                  type="number"
+                  min={5}
+                  max={50}
+                  value={leadsRequested}
+                  onChange={(e) => setLeadsRequested(parseInt(e.target.value) || 20)}
                 />
               </div>
+              <DialogFooter className="flex-col sm:flex-row gap-2">
+                <Button variant="ghost" onClick={resetNewHunt} className="sm:mr-auto">
+                  <ArrowLeft className="w-4 h-4 mr-2" />Re-paste JD
+                </Button>
+                <Button variant="outline" onClick={() => setShowNewHunt(false)}>Cancel</Button>
+                <Button onClick={startNewHunt} disabled={isSearching || !jobDescription.trim()}>
+                  {isSearching ? (
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Searching...</>
+                  ) : (
+                    <><Search className="w-4 h-4 mr-2" />Find Matches</>
+                  )}
+                </Button>
+              </DialogFooter>
             </div>
-            <div>
-              <Label htmlFor="jd">Job Description *</Label>
-              <Textarea
-                id="jd"
-                value={jobDescription}
-                onChange={(e) => setJobDescription(e.target.value)}
-                placeholder="Paste the full job description here..."
-                rows={8}
-              />
-            </div>
-            <div>
-              <Label htmlFor="leads">Number of leads to find</Label>
-              <Input
-                id="leads"
-                type="number"
-                min={5}
-                max={50}
-                value={leadsRequested}
-                onChange={(e) => setLeadsRequested(parseInt(e.target.value) || 20)}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowNewHunt(false)}>
-              Cancel
-            </Button>
-            <Button onClick={startNewHunt} disabled={isSearching || !jobDescription.trim()}>
-              {isSearching ? (
-                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Searching...</>
-              ) : (
-                <><Search className="w-4 h-4 mr-2" />Find Matches</>
-              )}
-            </Button>
-          </DialogFooter>
+          )}
         </DialogContent>
       </Dialog>
     </div>
