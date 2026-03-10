@@ -84,6 +84,7 @@ const tabAccessMap: Record<string, AppRole[]> = {
   applications: ["admin", "talent_exec"],
   companies: ["admin", "talent_exec"],
   contacts: ["admin", "talent_exec"],
+  industries: ["admin", "talent_exec"],
   
   // Marketing & Outreach - Both roles
   analytics: ["admin", "talent_exec"],
