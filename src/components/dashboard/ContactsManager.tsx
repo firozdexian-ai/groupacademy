@@ -293,10 +293,40 @@ export function ContactsManager() {
   return (
     <div className="space-y-4">
       {/* KPI Summary Cards */}
-      <div className="grid grid-cols-3 gap-3">
-        <StatsCard title="Total Contacts" value={totalCount} icon={Users} variant="default" />
-        <StatsCard title="Primary" value={primaryCount} icon={Star} variant="secondary" />
-        <StatsCard title="Never Contacted" value={neverContactedCount} icon={PhoneOff} variant="accent" />
+      <div className="grid grid-cols-3 gap-2">
+        <Card className="p-3">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-md bg-primary/10">
+              <Users className="w-3.5 h-3.5 text-primary" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Total</p>
+              <p className="text-lg font-bold">{totalCount}</p>
+            </div>
+          </div>
+        </Card>
+        <Card className="p-3">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-md bg-amber-100">
+              <Star className="w-3.5 h-3.5 text-amber-600" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Primary</p>
+              <p className="text-lg font-bold">{primaryCount}</p>
+            </div>
+          </div>
+        </Card>
+        <Card className="p-3">
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-md bg-orange-100">
+              <PhoneOff className="w-3.5 h-3.5 text-orange-600" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">No Contact</p>
+              <p className="text-lg font-bold">{neverContactedCount}</p>
+            </div>
+          </div>
+        </Card>
       </div>
 
       <Card>
