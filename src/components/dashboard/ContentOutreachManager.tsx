@@ -350,8 +350,8 @@ export function ContentOutreachManager() {
             <DialogDescription>Share widely to increase enrollments.</DialogDescription>
           </DialogHeader>
 
-          <div className="flex gap-6 mt-4">
-            <div className="w-1/3 border-r pr-6 space-y-4">
+          <div className="flex flex-col sm:flex-row gap-6 mt-4">
+            <div className="w-full sm:w-1/3 sm:border-r sm:pr-6 space-y-4 border-b sm:border-b-0 pb-4 sm:pb-0">
               <div className="space-y-2">
                 {[
                   { id: "linkedin", label: "LinkedIn", icon: Linkedin, color: "text-blue-600" },
