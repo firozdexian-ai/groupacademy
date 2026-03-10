@@ -70,7 +70,7 @@ const tabAccessMap: Record<string, AppRole[]> = {
   webinars: ["admin"],
   enrollments: ["admin"],
   "learner-progress": ["admin"],
-  "ai-descriptions": ["admin"],
+  
   
   // Talent & Leads - Both roles
   leads: ["admin", "talent_exec"],
