@@ -429,9 +429,10 @@ export function JobsKPIDashboard({ onNavigateToTab }: JobsKPIDashboardProps) {
                 <BarChart data={kpiData.dailyJobsData}>
                   <XAxis 
                     dataKey="date" 
-                    tick={{ fontSize: 11 }} 
+                    tick={{ fontSize: 10 }} 
                     tickLine={false}
                     axisLine={false}
+                    interval={isMobile ? 4 : "preserveStartEnd"}
                   />
                   <YAxis 
                     tick={{ fontSize: 11 }} 
