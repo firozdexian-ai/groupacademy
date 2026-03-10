@@ -37,7 +37,6 @@ import {
   Calendar,
   GraduationCap,
   FileText,
-  MapPin,
   Download,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -164,7 +163,7 @@ export function StudyAbroadRoadmapLeadsManager() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4">
         <Skeleton className="h-10 w-full" />
         <Skeleton className="h-[400px] w-full" />
       </div>
@@ -172,9 +171,9 @@ export function StudyAbroadRoadmapLeadsManager() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+    <div className="space-y-4">
+      {/* Stats Cards — compact */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         {Object.entries(statusCounts).map(([status, count]) => (
           <Card
             key={status}
@@ -183,41 +182,41 @@ export function StudyAbroadRoadmapLeadsManager() {
             }`}
             onClick={() => setStatusFilter(status)}
           >
-            <CardContent className="p-4">
-              <p className="text-2xl font-bold">{count}</p>
-              <p className="text-sm text-muted-foreground capitalize">{status}</p>
+            <CardContent className="p-3">
+              <p className="text-lg font-bold">{count}</p>
+              <p className="text-xs text-muted-foreground capitalize">{status}</p>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {/* Filters */}
+      {/* Main Card */}
       <Card>
         <CardHeader>
-          <div className="flex flex-col sm:flex-row gap-4 justify-between">
-            <CardTitle className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row gap-3 justify-between">
+            <CardTitle className="flex items-center gap-2 text-lg">
               <GraduationCap className="h-5 w-5" />
-              Study Abroad Roadmap Leads
+              Roadmap Leads
             </CardTitle>
             <Button variant="outline" size="sm" onClick={handleExport}>
-              <Download className="h-4 w-4 mr-2" />
-              Export
+              <Download className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Export</span>
             </Button>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <div className="flex flex-col sm:flex-row gap-3 mb-4">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search by name, email, country, or field..."
+                placeholder="Search by name, email, country..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
               <SelectContent>
@@ -230,8 +229,44 @@ export function StudyAbroadRoadmapLeadsManager() {
             </Select>
           </div>
 
-          {/* Table */}
-          <div className="rounded-md border">
+          {/* Mobile Cards */}
+          <div className="sm:hidden space-y-3">
+            {filteredLeads?.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">No roadmap leads found</p>
+            ) : (
+              filteredLeads?.map((lead) => (
+                <div key={lead.id} className="border rounded-lg p-3 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-sm">{lead.talents?.full_name || "N/A"}</p>
+                      <p className="text-xs text-muted-foreground truncate">{lead.talents?.email}</p>
+                    </div>
+                    {getStatusBadge(lead.status)}
+                  </div>
+                  <div className="flex flex-wrap gap-1">
+                    {lead.target_countries?.slice(0, 2).map((country) => (
+                      <Badge key={country} variant="outline" className="text-[10px]">{country}</Badge>
+                    ))}
+                    {(lead.target_countries?.length || 0) > 2 && (
+                      <Badge variant="outline" className="text-[10px]">+{(lead.target_countries?.length || 0) - 2}</Badge>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>{lead.degree_level} · {lead.target_intake}</span>
+                    <span>{format(new Date(lead.created_at), "MMM d")}</span>
+                  </div>
+                  <div className="flex justify-end pt-1 border-t">
+                    <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setSelectedLead(lead)}>
+                      <Eye className="h-3.5 w-3.5 mr-1" /> View
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Desktop Table */}
+          <div className="hidden sm:block rounded-md border">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -263,14 +298,10 @@ export function StudyAbroadRoadmapLeadsManager() {
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
                           {lead.target_countries?.slice(0, 2).map((country) => (
-                            <Badge key={country} variant="outline" className="text-xs">
-                              {country}
-                            </Badge>
+                            <Badge key={country} variant="outline" className="text-xs">{country}</Badge>
                           ))}
                           {(lead.target_countries?.length || 0) > 2 && (
-                            <Badge variant="outline" className="text-xs">
-                              +{(lead.target_countries?.length || 0) - 2}
-                            </Badge>
+                            <Badge variant="outline" className="text-xs">+{(lead.target_countries?.length || 0) - 2}</Badge>
                           )}
                         </div>
                       </TableCell>
@@ -279,11 +310,7 @@ export function StudyAbroadRoadmapLeadsManager() {
                       <TableCell>{getStatusBadge(lead.status)}</TableCell>
                       <TableCell>{format(new Date(lead.created_at), "MMM d, yyyy")}</TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setSelectedLead(lead)}
-                        >
+                        <Button variant="ghost" size="sm" onClick={() => setSelectedLead(lead)}>
                           <Eye className="h-4 w-4" />
                         </Button>
                       </TableCell>
@@ -313,7 +340,7 @@ export function StudyAbroadRoadmapLeadsManager() {
                   <h4 className="font-semibold text-sm text-muted-foreground uppercase">
                     Applicant Information
                   </h4>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <p className="text-sm text-muted-foreground">Name</p>
                       <p className="font-medium">{selectedLead.talents?.full_name}</p>
@@ -338,43 +365,41 @@ export function StudyAbroadRoadmapLeadsManager() {
                   <h4 className="font-semibold text-sm text-muted-foreground uppercase">
                     Study Preferences
                   </h4>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="flex items-start gap-2">
-                      <Globe className="h-4 w-4 mt-1 text-muted-foreground" />
+                      <Globe className="h-4 w-4 mt-1 text-muted-foreground shrink-0" />
                       <div>
                         <p className="text-sm text-muted-foreground">Target Countries</p>
                         <div className="flex flex-wrap gap-1 mt-1">
                           {selectedLead.target_countries?.map((c) => (
-                            <Badge key={c} variant="secondary">
-                              {c}
-                            </Badge>
+                            <Badge key={c} variant="secondary">{c}</Badge>
                           ))}
                         </div>
                       </div>
                     </div>
                     <div className="flex items-start gap-2">
-                      <Calendar className="h-4 w-4 mt-1 text-muted-foreground" />
+                      <Calendar className="h-4 w-4 mt-1 text-muted-foreground shrink-0" />
                       <div>
                         <p className="text-sm text-muted-foreground">Target Intake</p>
                         <p className="font-medium">{selectedLead.target_intake}</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-2">
-                      <DollarSign className="h-4 w-4 mt-1 text-muted-foreground" />
+                      <DollarSign className="h-4 w-4 mt-1 text-muted-foreground shrink-0" />
                       <div>
                         <p className="text-sm text-muted-foreground">Budget Level</p>
                         <p className="font-medium">{selectedLead.budget_level}</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-2">
-                      <GraduationCap className="h-4 w-4 mt-1 text-muted-foreground" />
+                      <GraduationCap className="h-4 w-4 mt-1 text-muted-foreground shrink-0" />
                       <div>
                         <p className="text-sm text-muted-foreground">Degree Level</p>
                         <p className="font-medium">{selectedLead.degree_level}</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-2">
-                      <FileText className="h-4 w-4 mt-1 text-muted-foreground" />
+                      <FileText className="h-4 w-4 mt-1 text-muted-foreground shrink-0" />
                       <div>
                         <p className="text-sm text-muted-foreground">Field of Study</p>
                         <p className="font-medium">{selectedLead.field_of_study}</p>
@@ -388,7 +413,7 @@ export function StudyAbroadRoadmapLeadsManager() {
                   <h4 className="font-semibold text-sm text-muted-foreground uppercase">
                     Academic Profile
                   </h4>
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                     <div>
                       <p className="text-sm text-muted-foreground">IELTS Score</p>
                       <p className="font-medium">{selectedLead.ielts_score || "N/A"}</p>

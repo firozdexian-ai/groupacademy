@@ -13,6 +13,16 @@ import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Plus, Search, Edit, Trash2, BookOpen, Headphones, Eye, Pencil, Mic, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 
@@ -77,6 +87,7 @@ export function IELTSResourcesManager() {
   const [editingResource, setEditingResource] = useState<IELTSResource | null>(null);
   const [formData, setFormData] = useState(emptyResource);
   const [saving, setSaving] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
     loadResources();
@@ -164,10 +175,7 @@ export function IELTSResourcesManager() {
 
       if (editingResource) {
         const { error } = await withTimeout(
-          Promise.resolve(supabase
-            .from("ielts_resources")
-            .update(resourceData)
-            .eq("id", editingResource.id)),
+          Promise.resolve(supabase.from("ielts_resources").update(resourceData).eq("id", editingResource.id)),
           TIMEOUTS.DEFAULT,
           "Update timed out"
         );
@@ -194,8 +202,6 @@ export function IELTSResourcesManager() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this resource?")) return;
-
     try {
       const { error } = await withTimeout(
         Promise.resolve(supabase.from("ielts_resources").delete().eq("id", id)),
@@ -214,10 +220,7 @@ export function IELTSResourcesManager() {
   const handleToggleActive = async (resource: IELTSResource) => {
     try {
       const { error } = await withTimeout(
-        Promise.resolve(supabase
-          .from("ielts_resources")
-          .update({ is_active: !resource.is_active })
-          .eq("id", resource.id)),
+        Promise.resolve(supabase.from("ielts_resources").update({ is_active: !resource.is_active }).eq("id", resource.id)),
         TIMEOUTS.DEFAULT,
         "Update timed out"
       );
@@ -256,33 +259,33 @@ export function IELTSResourcesManager() {
   return (
     <Card>
       <CardHeader>
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-lg">
               <BookOpen className="h-5 w-5" />
               IELTS Resources
             </CardTitle>
-            <div className="flex flex-wrap gap-4 mt-2 text-sm text-muted-foreground">
+            <div className="flex flex-wrap gap-3 mt-2 text-xs text-muted-foreground">
               {SECTIONS.map(section => {
                 const stats = getSectionStats(section.value);
                 return (
                   <span key={section.value} className="flex items-center gap-1">
                     <section.icon className={`h-3 w-3 ${section.color}`} />
-                    {section.label}: {stats.total} ({stats.free} free)
+                    {section.label}: {stats.total}
                   </span>
                 );
               })}
             </div>
           </div>
-          <Button onClick={() => handleOpenDialog()}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Resource
+          <Button size="sm" onClick={() => handleOpenDialog()}>
+            <Plus className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Add Resource</span>
           </Button>
         </div>
       </CardHeader>
       <CardContent>
         {/* Filters */}
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row gap-3 mb-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -293,7 +296,7 @@ export function IELTSResourcesManager() {
             />
           </div>
           <Select value={sectionFilter} onValueChange={setSectionFilter}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="Filter by section" />
             </SelectTrigger>
             <SelectContent>
@@ -307,8 +310,66 @@ export function IELTSResourcesManager() {
           </Select>
         </div>
 
-        {/* Table */}
-        <div className="rounded-md border overflow-x-auto">
+        {/* Mobile Cards */}
+        <div className="sm:hidden space-y-3">
+          {filteredResources.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8">No resources found</p>
+          ) : (
+            filteredResources.map((resource) => (
+              <div key={resource.id} className="border rounded-lg p-3 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    {getSectionIcon(resource.section)}
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm line-clamp-1">{resource.title}</p>
+                      {resource.description && (
+                        <p className="text-xs text-muted-foreground line-clamp-1">{resource.description}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  <Badge variant="outline" className="text-[10px] capitalize">
+                    {resource.content_type.replace("_", " ")}
+                  </Badge>
+                  {resource.difficulty_level && (
+                    <Badge variant="secondary" className="text-[10px] capitalize">{resource.difficulty_level}</Badge>
+                  )}
+                  <Badge variant={resource.is_active ? "default" : "secondary"} className="text-[10px]">
+                    {resource.is_active ? "Active" : "Inactive"}
+                  </Badge>
+                  {resource.is_free && (
+                    <Badge variant="outline" className="text-[10px] text-green-600">Free</Badge>
+                  )}
+                </div>
+                {resource.duration_mins && (
+                  <p className="text-xs text-muted-foreground">{resource.duration_mins} mins</p>
+                )}
+                <div className="flex items-center justify-end gap-1 pt-1 border-t">
+                  {resource.content_url && (
+                    <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
+                      <a href={resource.content_url} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </a>
+                    </Button>
+                  )}
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleOpenDialog(resource)}>
+                    <Edit className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleToggleActive(resource)}>
+                    {resource.is_active ? "🔴" : "🟢"}
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setDeleteId(resource.id)}>
+                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Desktop Table */}
+        <div className="hidden sm:block rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
@@ -355,9 +416,7 @@ export function IELTSResourcesManager() {
                     </TableCell>
                     <TableCell>
                       {resource.difficulty_level ? (
-                        <Badge variant="secondary" className="capitalize">
-                          {resource.difficulty_level}
-                        </Badge>
+                        <Badge variant="secondary" className="capitalize">{resource.difficulty_level}</Badge>
                       ) : "-"}
                     </TableCell>
                     <TableCell>
@@ -385,7 +444,7 @@ export function IELTSResourcesManager() {
                         <Button variant="ghost" size="icon" onClick={() => handleToggleActive(resource)}>
                           {resource.is_active ? "🔴" : "🟢"}
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDelete(resource.id)}>
+                        <Button variant="ghost" size="icon" onClick={() => setDeleteId(resource.id)}>
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </div>
@@ -398,7 +457,7 @@ export function IELTSResourcesManager() {
         </div>
       </CardContent>
 
-      {/* Dialog */}
+      {/* Form Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -407,7 +466,7 @@ export function IELTSResourcesManager() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Section *</Label>
                 <Select value={formData.section} onValueChange={(v) => setFormData(prev => ({ ...prev, section: v }))}>
@@ -466,7 +525,7 @@ export function IELTSResourcesManager() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Duration (minutes)</Label>
                 <Input
@@ -527,6 +586,29 @@ export function IELTSResourcesManager() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete AlertDialog */}
+      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Resource</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. Are you sure you want to delete this resource?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteId) handleDelete(deleteId);
+                setDeleteId(null);
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }

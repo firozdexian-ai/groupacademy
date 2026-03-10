@@ -13,6 +13,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Plus,
   Search,
   Edit,
@@ -24,7 +34,7 @@ import {
   Check,
 } from "lucide-react";
 import { toast } from "sonner";
-import { COUNTRIES } from "@/lib/constants/countries"; // Shared Constant
+import { COUNTRIES } from "@/lib/constants/countries";
 
 // --- Internal Hook for Debounce ---
 function useDebounce<T>(value: T, delay: number): T {
@@ -46,7 +56,7 @@ interface StudyAbroadProgram {
   field_of_study: string | null;
   duration: string | null;
   tuition_range: string | null;
-  requirements: string[]; // Fixed type
+  requirements: string[];
   intake_months: string[] | null;
   application_deadline: string | null;
   scholarship_available: boolean;
@@ -58,18 +68,8 @@ interface StudyAbroadProgram {
 
 const DEGREE_TYPES = ["Bachelor", "Master", "PhD", "Diploma", "Certificate"];
 const INTAKE_MONTHS = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
 ];
 
 const emptyProgram = {
@@ -93,26 +93,21 @@ const emptyProgram = {
 const ITEMS_PER_PAGE = 10;
 
 export function StudyAbroadManager() {
-  // Data State
   const [programs, setPrograms] = useState<StudyAbroadProgram[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Pagination & Search
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearch = useDebounce(searchQuery, 500);
   const [countryFilter, setCountryFilter] = useState<string>("all");
-
-  // UI State
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProgram, setEditingProgram] = useState<StudyAbroadProgram | null>(null);
   const [formData, setFormData] = useState(emptyProgram);
   const [saving, setSaving] = useState(false);
   const [requirementInput, setRequirementInput] = useState("");
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  // Fetch Data (Paginated)
   const loadPrograms = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -122,19 +117,16 @@ export function StudyAbroadManager() {
         .select("*", { count: "exact" })
         .order("created_at", { ascending: false });
 
-      // Search Logic
       if (debouncedSearch) {
         query = query.or(
           `university_name.ilike.%${debouncedSearch}%,program_name.ilike.%${debouncedSearch}%,country_name.ilike.%${debouncedSearch}%`,
         );
       }
 
-      // Filter Logic
       if (countryFilter !== "all") {
         query = query.eq("country_code", countryFilter);
       }
 
-      // Pagination
       const from = (page - 1) * ITEMS_PER_PAGE;
       const to = from + ITEMS_PER_PAGE - 1;
       query = query.range(from, to);
@@ -157,7 +149,6 @@ export function StudyAbroadManager() {
     loadPrograms();
   }, [loadPrograms]);
 
-  // Reset page on filter change
   useEffect(() => {
     setPage(1);
   }, [debouncedSearch, countryFilter]);
@@ -272,7 +263,6 @@ export function StudyAbroadManager() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete program?")) return;
     try {
       const { error } = await supabase.from("study_abroad_programs").delete().eq("id", id);
       if (error) throw error;
@@ -291,7 +281,7 @@ export function StudyAbroadManager() {
         .eq("id", program.id);
       if (error) throw error;
       toast.success(program.is_active ? "Program deactivated" : "Program activated");
-      loadPrograms(); // Ideally optimistic update, but reload is safer for now
+      loadPrograms();
     } catch (error) {
       toast.error("Failed to update status");
     }
@@ -306,22 +296,23 @@ export function StudyAbroadManager() {
   return (
     <Card>
       <CardHeader>
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-lg">
               <GraduationCap className="h-5 w-5" />
               Study Abroad Programs
             </CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">Total {totalCount} programs found</p>
+            <p className="text-xs text-muted-foreground mt-1">{totalCount} programs</p>
           </div>
-          <Button onClick={() => handleOpenDialog()}>
-            <Plus className="h-4 w-4 mr-2" /> Add Program
+          <Button size="sm" onClick={() => handleOpenDialog()}>
+            <Plus className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Add Program</span>
           </Button>
         </div>
       </CardHeader>
       <CardContent>
         {/* Filters */}
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row gap-3 mb-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -332,7 +323,7 @@ export function StudyAbroadManager() {
             />
           </div>
           <Select value={countryFilter} onValueChange={setCountryFilter}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="Filter by country" />
             </SelectTrigger>
             <SelectContent>
@@ -346,14 +337,69 @@ export function StudyAbroadManager() {
           </Select>
         </div>
 
-        {/* Table */}
+        {/* Content */}
         {loading ? (
           <DashboardTableSkeleton rows={5} columns={6} />
         ) : error ? (
           <DashboardErrorState title="Error" message={error} onRetry={loadPrograms} />
         ) : (
           <>
-            <div className="rounded-md border overflow-x-auto">
+            {/* Mobile Cards */}
+            <div className="sm:hidden space-y-3">
+              {programs.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">No programs found</p>
+              ) : (
+                programs.map((program) => (
+                  <div key={program.id} className="border rounded-lg p-3 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-sm line-clamp-1">{program.program_name}</p>
+                        <p className="text-xs text-muted-foreground line-clamp-1">{program.university_name}</p>
+                      </div>
+                      <span className="text-lg shrink-0">{getCountryFlag(program.country_code)}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      {program.degree_type && (
+                        <Badge variant="outline" className="text-[10px]">{program.degree_type}</Badge>
+                      )}
+                      <Badge variant={program.is_active ? "default" : "secondary"} className="text-[10px]">
+                        {program.is_active ? "Active" : "Inactive"}
+                      </Badge>
+                      {program.featured && (
+                        <Badge variant="outline" className="text-[10px]">Featured</Badge>
+                      )}
+                      {program.scholarship_available && (
+                        <Badge variant="outline" className="text-[10px] text-green-600 border-green-200">Scholarship</Badge>
+                      )}
+                    </div>
+                    {program.tuition_range && (
+                      <p className="text-xs text-muted-foreground">{program.tuition_range}</p>
+                    )}
+                    <div className="flex items-center justify-end gap-1 pt-1 border-t">
+                      {program.url && (
+                        <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
+                          <a href={program.url} target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </a>
+                        </Button>
+                      )}
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleOpenDialog(program)}>
+                        <Edit className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleToggleActive(program)}>
+                        {program.is_active ? "🛑" : "✅"}
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setDeleteId(program.id)}>
+                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Desktop Table */}
+            <div className="hidden sm:block rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -399,14 +445,10 @@ export function StudyAbroadManager() {
                               {program.is_active ? "Active" : "Inactive"}
                             </Badge>
                             {program.featured && (
-                              <Badge variant="outline" className="text-[10px]">
-                                Featured
-                              </Badge>
+                              <Badge variant="outline" className="text-[10px]">Featured</Badge>
                             )}
                             {program.scholarship_available && (
-                              <Badge variant="outline" className="text-[10px] text-green-600 border-green-200">
-                                Scholarship
-                              </Badge>
+                              <Badge variant="outline" className="text-[10px] text-green-600 border-green-200">Scholarship</Badge>
                             )}
                           </div>
                         </TableCell>
@@ -430,7 +472,7 @@ export function StudyAbroadManager() {
                             >
                               {program.is_active ? "🛑" : "✅"}
                             </Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleDelete(program.id)}>
+                            <Button variant="ghost" size="icon" onClick={() => setDeleteId(program.id)}>
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                           </div>
@@ -442,7 +484,7 @@ export function StudyAbroadManager() {
               </Table>
             </div>
 
-            {/* Pagination Controls */}
+            {/* Pagination */}
             {totalPages > 1 && (
               <div className="flex items-center justify-end space-x-2 py-4">
                 <Button
@@ -451,10 +493,11 @@ export function StudyAbroadManager() {
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
                 >
-                  <ChevronLeft className="h-4 w-4 mr-2" /> Previous
+                  <ChevronLeft className="h-4 w-4" />
+                  <span className="hidden sm:inline ml-1">Previous</span>
                 </Button>
                 <span className="text-sm text-muted-foreground">
-                  Page {page} of {totalPages}
+                  {page}/{totalPages}
                 </span>
                 <Button
                   variant="outline"
@@ -462,7 +505,8 @@ export function StudyAbroadManager() {
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}
                 >
-                  Next <ChevronRight className="h-4 w-4 ml-2" />
+                  <span className="hidden sm:inline mr-1">Next</span>
+                  <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
             )}
@@ -470,13 +514,14 @@ export function StudyAbroadManager() {
         )}
       </CardContent>
 
+      {/* Form Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingProgram ? "Edit Program" : "Add New Program"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Country *</Label>
                 <Select value={formData.country_code} onValueChange={handleCountryChange}>
@@ -503,9 +548,7 @@ export function StudyAbroadManager() {
                   </SelectTrigger>
                   <SelectContent>
                     {DEGREE_TYPES.map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {type}
-                      </SelectItem>
+                      <SelectItem key={type} value={type}>{type}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -528,7 +571,7 @@ export function StudyAbroadManager() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Field of Study</Label>
                 <Input
@@ -546,7 +589,7 @@ export function StudyAbroadManager() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Tuition Range</Label>
                 <Input
@@ -652,6 +695,29 @@ export function StudyAbroadManager() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete AlertDialog */}
+      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Program</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. Are you sure you want to delete this program?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteId) handleDelete(deleteId);
+                setDeleteId(null);
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
