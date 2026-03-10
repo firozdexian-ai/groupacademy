@@ -406,11 +406,11 @@ export function IndustriesManager() {
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                     disabled={page === 1}
                   >
-                    <ChevronLeft className="h-4 w-4 mr-2" />
-                    Previous
+                    <ChevronLeft className="h-4 w-4 sm:mr-1" />
+                    <span className="hidden sm:inline">Previous</span>
                   </Button>
                   <span className="text-sm text-muted-foreground">
-                    Page {page} of {totalPages}
+                    {page}/{totalPages}
                   </span>
                   <Button
                     variant="outline"
@@ -418,8 +418,8 @@ export function IndustriesManager() {
                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                     disabled={page === totalPages}
                   >
-                    Next
-                    <ChevronRight className="h-4 w-4 ml-2" />
+                    <span className="hidden sm:inline">Next</span>
+                    <ChevronRight className="h-4 w-4 sm:ml-1" />
                   </Button>
                 </div>
               )}
