@@ -65,6 +65,7 @@ function getMoMTrend(current: number, previous: number): string | undefined {
 }
 
 export function JobsKPIDashboard({ onNavigateToTab }: JobsKPIDashboardProps) {
+  const isMobile = useIsMobile();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [kpiData, setKpiData] = useState<KPIData | null>(null);
