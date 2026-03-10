@@ -232,6 +232,42 @@ export function LeadHunterManager() {
     }
   };
 
+  const parseJD = async () => {
+    if (!rawJD.trim()) {
+      toast.error("Please paste a job description first");
+      return;
+    }
+    setIsParsing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("parse-job-post", {
+        body: { rawText: rawJD },
+      });
+      if (error) throw error;
+      setJobTitle(data.title || "");
+      setCompanyName(data.company_name || "");
+      setJobDescription(data.description || rawJD);
+      setJdParsed(true);
+      toast.success("JD parsed successfully — review the extracted fields");
+    } catch (err: any) {
+      console.error("Parse error:", err);
+      toast.error("Failed to parse JD. You can fill the fields manually.");
+      setJobTitle("");
+      setCompanyName("");
+      setJobDescription(rawJD);
+      setJdParsed(true);
+    } finally {
+      setIsParsing(false);
+    }
+  };
+
+  const resetNewHunt = () => {
+    setRawJD("");
+    setJobTitle("");
+    setCompanyName("");
+    setJobDescription("");
+    setJdParsed(false);
+  };
+
   const startNewHunt = async () => {
     if (!jobDescription.trim()) {
       toast.error("Please enter a job description");
@@ -267,9 +303,7 @@ export function LeadHunterManager() {
       }
 
       setShowNewHunt(false);
-      setJobTitle("");
-      setCompanyName("");
-      setJobDescription("");
+      resetNewHunt();
     } catch (err: any) {
       console.error("Hunt error:", err);
       toast.error(err.message || "Failed to find matches");
