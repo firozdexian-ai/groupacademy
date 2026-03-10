@@ -523,16 +523,16 @@ export function JobsKPIDashboard({ onNavigateToTab }: JobsKPIDashboardProps) {
                   <p className="font-medium truncate">{job.title}</p>
                   <p className="text-sm text-muted-foreground">{job.company_name}</p>
                 </div>
-                <div className="flex items-center gap-4 text-sm">
+                <div className="flex items-center gap-2 sm:gap-4 text-sm">
                   <div className="text-center">
-                    <p className="font-semibold">{job.vacancies}</p>
-                    <p className="text-xs text-muted-foreground">Vacancies</p>
+                    <p className="font-semibold text-xs sm:text-sm">{job.vacancies}</p>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">Vac.</p>
                   </div>
                   <div className="text-center">
-                    <p className="font-semibold">{job.applications_count}</p>
-                    <p className="text-xs text-muted-foreground">Applications</p>
+                    <p className="font-semibold text-xs sm:text-sm">{job.applications_count}</p>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">Apps</p>
                   </div>
-                  <Badge variant="outline" className="text-xs">
+                  <Badge variant="outline" className="text-[10px] sm:text-xs px-1.5 sm:px-2">
                     {format(new Date(job.created_at), "MMM d")}
                   </Badge>
                 </div>
