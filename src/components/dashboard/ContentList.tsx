@@ -342,11 +342,11 @@ const ContentList = ({ filter }: ContentListProps) => {
           {totalPages > 1 && (
             <div className="flex items-center justify-end space-x-2 py-4">
               <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>
-                <ChevronLeft className="h-4 w-4 mr-2" /> Previous
+                <ChevronLeft className="h-4 w-4 sm:mr-2" /> <span className="hidden sm:inline">Previous</span>
               </Button>
               <span className="text-sm text-muted-foreground">Page {page} of {totalPages}</span>
               <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>
-                Next <ChevronRight className="h-4 w-4 ml-2" />
+                <span className="hidden sm:inline">Next</span> <ChevronRight className="h-4 w-4 sm:ml-2" />
               </Button>
             </div>
           )}

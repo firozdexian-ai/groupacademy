@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox"; // Use shadcn Checkbox
+import { Checkbox } from "@/components/ui/checkbox";
 import type { Database } from "@/integrations/supabase/types";
 
 type EnrollmentStatus = Database["public"]["Enums"]["enrollment_status"];
@@ -21,6 +21,7 @@ import {
   AlertCircle,
   ChevronLeft,
   ChevronRight,
+  Users,
 } from "lucide-react";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -86,21 +87,15 @@ const STATUS_COLORS: Record<string, string> = {
 const ITEMS_PER_PAGE = 10;
 
 export function EnrollmentsManager() {
-  // Data State
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // Pagination & Search
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearch = useDebounce(searchQuery, 500);
   const [statusFilter, setStatusFilter] = useState("all");
-
-  // Selection
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
-  // Fetch Data (Paginated)
   const loadEnrollments = useCallback(async () => {
     setLoading(true);
     try {
@@ -125,9 +120,6 @@ export function EnrollmentsManager() {
       if (statusFilter !== "all") {
         query = query.eq("status", statusFilter as EnrollmentStatus);
       }
-
-      // Note: Relation search isn't supported directly client-side for pagination efficiently without RPC.
-      // We implement basic pagination first. Search will filter client side for now on loaded page or needs RPC.
 
       const from = (page - 1) * ITEMS_PER_PAGE;
       const to = from + ITEMS_PER_PAGE - 1;
@@ -241,40 +233,38 @@ export function EnrollmentsManager() {
 
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
-  // Simplified counts for now (RPC recommended for true counts)
   const counts = {
     total: totalCount,
-    // Note: These are inaccurate in paginated view unless we run separate count queries
-    // Keeping placeholders for now
-    active: "-",
-    pending: "-",
-    completed: "-",
   };
 
   return (
     <div className="space-y-6">
-      {/* Stats - Note: Real counts require separate queries in paginated view */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-4">
-            <p className="text-sm text-muted-foreground">Total Enrollments</p>
-            <p className="text-2xl font-bold">{counts.total}</p>
-          </CardContent>
+      {/* Compact KPI */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card className="p-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-muted-foreground">Total Enrollments</p>
+              <p className="text-lg font-bold">{counts.total}</p>
+            </div>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </div>
         </Card>
-        {/* Other stats cards could be implemented with separate count queries if needed */}
       </div>
 
       {/* Filters */}
       <Card>
         <CardHeader className="pb-3">
           <div className="flex flex-col sm:flex-row gap-4 justify-between">
-            <CardTitle>Enrollments</CardTitle>
+            <CardTitle className="text-lg">Enrollments</CardTitle>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={loadEnrollments}>
-                <RefreshCw className="h-4 w-4 mr-2" /> Refresh
+                <RefreshCw className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Refresh</span>
               </Button>
               <Button variant="outline" size="sm" onClick={handleExportCSV}>
-                <Download className="h-4 w-4 mr-2" /> Export
+                <Download className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Export</span>
               </Button>
             </div>
           </div>
@@ -297,7 +287,7 @@ export function EnrollmentsManager() {
                 setPage(1);
               }}
             >
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
               <SelectContent>
@@ -312,7 +302,7 @@ export function EnrollmentsManager() {
 
           {/* Bulk Actions */}
           {selectedIds.length > 0 && (
-            <div className="flex items-center gap-2 mb-4 p-3 bg-muted rounded-lg animate-in fade-in slide-in-from-top-2">
+            <div className="flex flex-wrap items-center gap-2 mb-4 p-3 bg-muted rounded-lg animate-in fade-in slide-in-from-top-2">
               <span className="text-sm font-medium">{selectedIds.length} selected</span>
               <div className="h-4 w-px bg-border mx-2" />
               <Button size="sm" variant="outline" onClick={() => handleBulkStatusUpdate("active")}>
@@ -322,7 +312,7 @@ export function EnrollmentsManager() {
                 Mark Completed
               </Button>
               <Button size="sm" variant="ghost" onClick={() => setSelectedIds([])}>
-                Clear Selection
+                Clear
               </Button>
             </div>
           )}
@@ -340,80 +330,136 @@ export function EnrollmentsManager() {
               <p>No enrollments found</p>
             </div>
           ) : (
-            <div className="rounded-md border overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-10">
-                      <Checkbox
-                        checked={selectedIds.length === enrollments.length && enrollments.length > 0}
-                        onCheckedChange={toggleSelectAll}
-                      />
-                    </TableHead>
-                    <TableHead>Student/Talent</TableHead>
-                    <TableHead>Content</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Enrolled</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {enrollments.map((enrollment) => {
-                    const StatusIcon = STATUS_ICONS[enrollment.status] || Clock;
-                    const person = enrollment.talent || enrollment.student;
-                    return (
-                      <TableRow key={enrollment.id}>
-                        <TableCell>
-                          <Checkbox
-                            checked={selectedIds.includes(enrollment.id)}
-                            onCheckedChange={() => toggleSelect(enrollment.id)}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium">{person?.full_name || "N/A"}</p>
-                            <p className="text-xs text-muted-foreground">{person?.email || ""}</p>
+            <>
+              {/* Desktop Table */}
+              <div className="hidden sm:block rounded-md border overflow-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-10">
+                        <Checkbox
+                          checked={selectedIds.length === enrollments.length && enrollments.length > 0}
+                          onCheckedChange={toggleSelectAll}
+                        />
+                      </TableHead>
+                      <TableHead>Student/Talent</TableHead>
+                      <TableHead>Content</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Enrolled</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {enrollments.map((enrollment) => {
+                      const StatusIcon = STATUS_ICONS[enrollment.status] || Clock;
+                      const person = enrollment.talent || enrollment.student;
+                      return (
+                        <TableRow key={enrollment.id}>
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedIds.includes(enrollment.id)}
+                              onCheckedChange={() => toggleSelect(enrollment.id)}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium">{person?.full_name || "N/A"}</p>
+                              <p className="text-xs text-muted-foreground">{person?.email || ""}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium line-clamp-1">{enrollment.content?.title || "N/A"}</p>
+                              <p className="text-xs text-muted-foreground capitalize">
+                                {enrollment.content?.content_type?.replace("_", " ") || ""}
+                              </p>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={`gap-1 ${STATUS_COLORS[enrollment.status] || ""}`}>
+                              <StatusIcon className="h-3 w-3" />
+                              {enrollment.status.replace("_", " ")}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {enrollment.enrolled_at ? format(new Date(enrollment.enrolled_at), "MMM d, yyyy") : "N/A"}
+                          </TableCell>
+                          <TableCell>
+                            <Select
+                              value={enrollment.status || ""}
+                              onValueChange={(value) => handleStatusUpdate(enrollment.id, value as EnrollmentStatus)}
+                            >
+                              <SelectTrigger className="w-[130px] h-8 text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="active">Active</SelectItem>
+                                <SelectItem value="pending_payment">Pending</SelectItem>
+                                <SelectItem value="completed">Completed</SelectItem>
+                                <SelectItem value="cancelled">Cancelled</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Mobile Card Layout */}
+              <div className="sm:hidden space-y-3">
+                {enrollments.map((enrollment) => {
+                  const StatusIcon = STATUS_ICONS[enrollment.status] || Clock;
+                  const person = enrollment.talent || enrollment.student;
+                  return (
+                    <Card key={enrollment.id} className="p-3">
+                      <div className="flex items-start gap-3">
+                        <Checkbox
+                          checked={selectedIds.includes(enrollment.id)}
+                          onCheckedChange={() => toggleSelect(enrollment.id)}
+                          className="mt-1"
+                        />
+                        <div className="flex-1 min-w-0 space-y-2">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="font-medium text-sm truncate">{person?.full_name || "N/A"}</p>
+                              <p className="text-xs text-muted-foreground truncate">{person?.email || ""}</p>
+                            </div>
+                            <Badge className={`gap-1 shrink-0 text-[10px] ${STATUS_COLORS[enrollment.status] || ""}`}>
+                              <StatusIcon className="h-3 w-3" />
+                              {enrollment.status.replace("_", " ")}
+                            </Badge>
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium line-clamp-1">{enrollment.content?.title || "N/A"}</p>
-                            <p className="text-xs text-muted-foreground capitalize">
-                              {enrollment.content?.content_type?.replace("_", " ") || ""}
-                            </p>
+                          <p className="text-xs text-muted-foreground line-clamp-1">
+                            {enrollment.content?.title || "N/A"}
+                          </p>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-xs text-muted-foreground">
+                              {enrollment.enrolled_at ? format(new Date(enrollment.enrolled_at), "MMM d, yyyy") : "N/A"}
+                            </span>
+                            <Select
+                              value={enrollment.status || ""}
+                              onValueChange={(value) => handleStatusUpdate(enrollment.id, value as EnrollmentStatus)}
+                            >
+                              <SelectTrigger className="w-[110px] h-7 text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="active">Active</SelectItem>
+                                <SelectItem value="pending_payment">Pending</SelectItem>
+                                <SelectItem value="completed">Completed</SelectItem>
+                                <SelectItem value="cancelled">Cancelled</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={`gap-1 ${STATUS_COLORS[enrollment.status] || ""}`}>
-                            <StatusIcon className="h-3 w-3" />
-                            {enrollment.status.replace("_", " ")}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {enrollment.enrolled_at ? format(new Date(enrollment.enrolled_at), "MMM d, yyyy") : "N/A"}
-                        </TableCell>
-                        <TableCell>
-                          <Select
-                            value={enrollment.status || ""}
-                            onValueChange={(value) => handleStatusUpdate(enrollment.id, value as EnrollmentStatus)}
-                          >
-                            <SelectTrigger className="w-[130px] h-8 text-xs">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="active">Active</SelectItem>
-                              <SelectItem value="pending_payment">Pending</SelectItem>
-                              <SelectItem value="completed">Completed</SelectItem>
-                              <SelectItem value="cancelled">Cancelled</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            </>
           )}
 
           {/* Pagination Controls */}
@@ -425,10 +471,11 @@ export function EnrollmentsManager() {
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page === 1}
               >
-                <ChevronLeft className="h-4 w-4 mr-2" /> Previous
+                <ChevronLeft className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Previous</span>
               </Button>
               <span className="text-sm text-muted-foreground">
-                Page {page} of {totalPages}
+                {page}/{totalPages}
               </span>
               <Button
                 variant="outline"
@@ -436,7 +483,8 @@ export function EnrollmentsManager() {
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
               >
-                Next <ChevronRight className="h-4 w-4 ml-2" />
+                <span className="hidden sm:inline">Next</span>
+                <ChevronRight className="h-4 w-4 sm:ml-2" />
               </Button>
             </div>
           )}

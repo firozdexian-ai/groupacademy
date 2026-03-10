@@ -473,15 +473,15 @@ export function BatchContentGenerator() {
                 {GENERATORS[key].needsSchool && !isLoading && schools.length > 0 && (
                   <div className="grid grid-cols-3 gap-3 mb-2">
                     <div className="bg-muted/50 rounded-lg p-3 text-center">
-                      <div className="text-2xl font-bold text-primary">{schools.length}</div>
+                      <div className="text-lg font-bold text-primary">{schools.length}</div>
                       <div className="text-xs text-muted-foreground">Schools</div>
                     </div>
                     <div className="bg-muted/50 rounded-lg p-3 text-center">
-                      <div className="text-2xl font-bold text-destructive">{totalPending}</div>
+                      <div className="text-lg font-bold text-destructive">{totalPending}</div>
                       <div className="text-xs text-muted-foreground">Pending</div>
                     </div>
                     <div className="bg-muted/50 rounded-lg p-3 text-center">
-                      <div className="text-2xl font-bold text-green-600">{totalComplete}</div>
+                      <div className="text-lg font-bold text-green-600">{totalComplete}</div>
                       <div className="text-xs text-muted-foreground">Complete</div>
                     </div>
                   </div>
@@ -606,7 +606,7 @@ export function BatchContentGenerator() {
                       return (
                         <div key={school.id} className="flex items-center gap-3 text-sm">
                           <span className="flex-1 truncate">{school.name}</span>
-                          <Progress value={pct} className="h-1.5 w-24" />
+                          <Progress value={pct} className="h-1.5 w-16 sm:w-24" />
                           <span className="text-xs w-16 text-right text-muted-foreground">
                             {school.total - school.pending}/{school.total}
                           </span>
@@ -635,10 +635,10 @@ export function BatchContentGenerator() {
                       {drafts.length > 0 && (
                         <div className="flex gap-2">
                           <Button size="sm" variant="outline" className="gap-1 text-xs h-7" onClick={approveAll}>
-                            <Check className="w-3 h-3" /> Approve All
+                            <Check className="w-3 h-3" /> <span className="hidden sm:inline">Approve All</span><span className="sm:hidden">All</span>
                           </Button>
                           <Button size="sm" variant="ghost" className="gap-1 text-xs h-7 text-destructive" onClick={rejectAll}>
-                            <Trash2 className="w-3 h-3" /> Reject All
+                            <Trash2 className="w-3 h-3" /> <span className="hidden sm:inline">Reject All</span><span className="sm:hidden">All</span>
                           </Button>
                         </div>
                       )}
