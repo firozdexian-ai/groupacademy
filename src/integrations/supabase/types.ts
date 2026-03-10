@@ -834,6 +834,80 @@ export type Database = {
         }
         Relationships: []
       }
+      company_agent_leads: {
+        Row: {
+          agent_id: string | null
+          company_agent_id: string
+          created_at: string | null
+          id: string
+          lead_company: string | null
+          lead_email: string | null
+          lead_interest: string | null
+          lead_name: string | null
+          lead_phone: string | null
+          session_id: string | null
+          status: string | null
+          talent_id: string | null
+        }
+        Insert: {
+          agent_id?: string | null
+          company_agent_id: string
+          created_at?: string | null
+          id?: string
+          lead_company?: string | null
+          lead_email?: string | null
+          lead_interest?: string | null
+          lead_name?: string | null
+          lead_phone?: string | null
+          session_id?: string | null
+          status?: string | null
+          talent_id?: string | null
+        }
+        Update: {
+          agent_id?: string | null
+          company_agent_id?: string
+          created_at?: string | null
+          id?: string
+          lead_company?: string | null
+          lead_email?: string | null
+          lead_interest?: string | null
+          lead_name?: string | null
+          lead_phone?: string | null
+          session_id?: string | null
+          status?: string | null
+          talent_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_agent_leads_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_agent_leads_company_agent_id_fkey"
+            columns: ["company_agent_id"]
+            isOneToOne: false
+            referencedRelation: "company_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_agent_leads_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "agent_chat_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_agent_leads_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_agents: {
         Row: {
           agent_id: string
@@ -842,6 +916,7 @@ export type Database = {
           credits_used: number | null
           id: string
           is_active: boolean | null
+          lead_config: Json | null
           monthly_budget: number | null
           sponsorship_type: string | null
           updated_at: string | null
@@ -853,6 +928,7 @@ export type Database = {
           credits_used?: number | null
           id?: string
           is_active?: boolean | null
+          lead_config?: Json | null
           monthly_budget?: number | null
           sponsorship_type?: string | null
           updated_at?: string | null
@@ -864,6 +940,7 @@ export type Database = {
           credits_used?: number | null
           id?: string
           is_active?: boolean | null
+          lead_config?: Json | null
           monthly_budget?: number | null
           sponsorship_type?: string | null
           updated_at?: string | null
