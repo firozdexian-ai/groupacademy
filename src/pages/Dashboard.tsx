@@ -276,7 +276,7 @@ const Dashboard = () => {
       case "professions":
         return <ProfessionsManager />;
       case "jobs-kpis":
-        return <JobsKPIDashboard />;
+        return <JobsKPIDashboard onNavigateToTab={setActiveTab} />;
       case "jobs":
         return <JobsManager />;
       case "applications":
