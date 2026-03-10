@@ -635,10 +635,10 @@ export function BatchContentGenerator() {
                       {drafts.length > 0 && (
                         <div className="flex gap-2">
                           <Button size="sm" variant="outline" className="gap-1 text-xs h-7" onClick={approveAll}>
-                            <Check className="w-3 h-3" /> Approve All
+                            <Check className="w-3 h-3" /> <span className="hidden sm:inline">Approve All</span><span className="sm:hidden">All</span>
                           </Button>
                           <Button size="sm" variant="ghost" className="gap-1 text-xs h-7 text-destructive" onClick={rejectAll}>
-                            <Trash2 className="w-3 h-3" /> Reject All
+                            <Trash2 className="w-3 h-3" /> <span className="hidden sm:inline">Reject All</span><span className="sm:hidden">All</span>
                           </Button>
                         </div>
                       )}
