@@ -606,7 +606,7 @@ export function BatchContentGenerator() {
                       return (
                         <div key={school.id} className="flex items-center gap-3 text-sm">
                           <span className="flex-1 truncate">{school.name}</span>
-                          <Progress value={pct} className="h-1.5 w-24" />
+                          <Progress value={pct} className="h-1.5 w-16 sm:w-24" />
                           <span className="text-xs w-16 text-right text-muted-foreground">
                             {school.total - school.pending}/{school.total}
                           </span>
