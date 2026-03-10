@@ -1083,7 +1083,96 @@ export function JobsManager() {
     loadCountryCounts();
   }, [COUNTRY_ALIASES]);
 
-  const loadJobs = useCallback(async () => {
+  // --- Cascading filter helpers ---
+  const computeCountryCounts = useCallback((rows: { location: string | null }[]) => {
+    const counts: Record<string, number> = {};
+    const flagMap: Record<string, string> = {};
+    COUNTRIES.forEach((c) => { flagMap[c.name] = c.flag; });
+    rows.forEach((row) => {
+      const loc = row.location || "";
+      COUNTRIES.forEach((country) => {
+        const aliases = COUNTRY_ALIASES[country.name] || [country.name];
+        if (aliases.some((a) => loc.toLowerCase().includes(a.toLowerCase()))) {
+          const key = country.name === "United Kingdom" ? "United Kingdom" : country.name;
+          counts[key] = (counts[key] || 0) + 1;
+          flagMap[key] = country.flag;
+        }
+      });
+    });
+    return Object.entries(counts)
+      .map(([name, count]) => ({ name, flag: flagMap[name] || "🌍", count }))
+      .sort((a, b) => b.count - a.count);
+  }, [COUNTRY_ALIASES]);
+
+  const applyLocationToQuery = useCallback((query: any, locFilter: string) => {
+    if (locFilter === "bangladesh") return query.ilike("location", "%Bangladesh%");
+    if (locFilter === "remote") return query.ilike("location", "%remote%");
+    if (locFilter === "abroad") return query.not("location", "ilike", "%Bangladesh%");
+    if (locFilter !== "all") {
+      const aliases = COUNTRY_ALIASES[locFilter];
+      if (aliases && aliases.length > 1) {
+        return query.or(aliases.map((a: string) => `location.ilike.%${a}%`).join(","));
+      }
+      return query.ilike("location", `%${locFilter}%`);
+    }
+    return query;
+  }, [COUNTRY_ALIASES]);
+
+  // Recompute cascading filter data whenever any filter changes
+  useEffect(() => {
+    const loadCascadingData = async () => {
+      // 1. Country counts: respect status + company (not location)
+      let countryQ = supabase.from("jobs").select("location");
+      if (statusFilter !== "all") {
+        countryQ = statusFilter === "featured" ? countryQ.eq("is_featured", true) : countryQ.eq("is_active", statusFilter === "active");
+      }
+      if (companyFilter !== "all") {
+        const co = companiesList.find((c) => c.id === companyFilter);
+        if (co) countryQ = countryQ.ilike("company_name", `%${co.name}%`);
+      }
+
+      // 2. Company list: respect status + location (not company)
+      let companyQ = supabase.from("jobs").select("company_name");
+      if (statusFilter !== "all") {
+        companyQ = statusFilter === "featured" ? companyQ.eq("is_featured", true) : companyQ.eq("is_active", statusFilter === "active");
+      }
+      companyQ = applyLocationToQuery(companyQ, locationFilter);
+
+      // 3. Status counts: respect location + company (not status)
+      let statusQ = supabase.from("jobs").select("is_active, is_featured");
+      statusQ = applyLocationToQuery(statusQ, locationFilter);
+      if (companyFilter !== "all") {
+        const co = companiesList.find((c) => c.id === companyFilter);
+        if (co) statusQ = statusQ.ilike("company_name", `%${co.name}%`);
+      }
+
+      const [countryRes, companyRes, statusRes] = await Promise.all([countryQ, companyQ, statusQ]);
+
+      if (countryRes.data) {
+        setCountryCounts(computeCountryCounts(countryRes.data as { location: string | null }[]));
+      }
+
+      if (companyRes.data) {
+        const uniqueNames = new Set(
+          (companyRes.data as { company_name: string }[]).map((r) => r.company_name?.toLowerCase()).filter(Boolean)
+        );
+        setFilteredCompaniesList(companiesList.filter((c) => uniqueNames.has(c.name.toLowerCase())));
+      }
+
+      if (statusRes.data) {
+        const rows = statusRes.data as { is_active: boolean; is_featured: boolean }[];
+        setStatusCounts({
+          all: rows.length,
+          active: rows.filter((r) => r.is_active).length,
+          inactive: rows.filter((r) => !r.is_active).length,
+          featured: rows.filter((r) => r.is_featured).length,
+        });
+      }
+    };
+    loadCascadingData();
+  }, [statusFilter, locationFilter, companyFilter, companiesList, applyLocationToQuery, computeCountryCounts]);
+
+
     setLoading(true);
     setError(null);
     try {
