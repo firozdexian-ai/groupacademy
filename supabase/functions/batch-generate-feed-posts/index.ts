@@ -126,7 +126,7 @@ Rules:
         author_name: "GroUp Academy",
         author_title: "Career Development Platform",
         content_type: "text",
-        status: "draft",
+        status: "pending",
         is_active: false,
       });
       if (!error) inserted++;
