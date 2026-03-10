@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { BatchTalentUpload } from "./BatchTalentUpload";
+import { TalentDetailDialog } from "./TalentDetailDialog";
 import { OUTREACH_TEMPLATES, getOutreachWhatsAppLink, OutreachProduct } from "@/lib/outreachTemplates";
 import { COUNTRIES_WITH_PHONE, getCountryFlag } from "@/lib/constants/countries";
 import { formatWhatsAppLink, extractFirstName } from "@/lib/utils";
