@@ -668,7 +668,7 @@ export function LeadHunterManager() {
                     <h4 className="font-medium mb-2 flex items-center gap-2">
                       <CheckCircle className="w-4 h-4 text-green-600" /> Strengths
                     </h4>
-                    <ul className="space-y-1 bg-green-50 p-3 rounded-md text-sm text-green-900">
+                    <ul className="space-y-1 bg-success/10 p-3 rounded-md text-sm text-foreground">
                       {selectedMatch.ai_analysis.strengths?.map((s: string, i: number) => (
                         <li key={i}>• {s}</li>
                       ))}
