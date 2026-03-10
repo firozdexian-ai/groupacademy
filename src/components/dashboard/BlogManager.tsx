@@ -658,22 +658,24 @@ export function BlogManager() {
               <div className="flex items-center justify-end space-x-2 py-4">
                 <Button
                   variant="outline"
-                  size="sm"
+                  size="icon"
+                  className="h-8 w-8"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
                 >
-                  <ChevronLeft className="h-4 w-4 mr-2" /> Previous
+                  <ChevronLeft className="h-4 w-4" />
                 </Button>
                 <span className="text-sm text-muted-foreground">
-                  Page {page} of {totalPages}
+                  {page} / {totalPages}
                 </span>
                 <Button
                   variant="outline"
-                  size="sm"
+                  size="icon"
+                  className="h-8 w-8"
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page === totalPages}
                 >
-                  Next <ChevronRight className="h-4 w-4 ml-2" />
+                  <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
             )}

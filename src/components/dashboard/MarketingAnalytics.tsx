@@ -562,7 +562,7 @@ function SourceBarChart({ data, dataKey }: { data: any[]; dataKey: string }) {
 
   return (
     <ResponsiveContainer width="100%" height={250}>
-      <BarChart data={data} layout="vertical" margin={{ top: 5, right: 30, left: 80, bottom: 5 }}>
+      <BarChart data={data} layout="vertical" margin={{ top: 5, right: 20, left: 40, bottom: 5 }}>
         <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
         <XAxis type="number" className="text-xs" />
         <YAxis dataKey={dataKey} type="category" className="text-xs" width={70} />

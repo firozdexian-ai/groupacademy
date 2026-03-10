@@ -519,7 +519,8 @@ export function ContentOutreachManager() {
             {talents.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">No talents found matching criteria.</div>
             ) : (
-              <div className="rounded-md border">
+              {/* Desktop Table */}
+              <div className="hidden sm:block rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -569,6 +570,36 @@ export function ContentOutreachManager() {
                     ))}
                   </TableBody>
                 </Table>
+              </div>
+              {/* Mobile Cards */}
+              <div className="sm:hidden space-y-2">
+                {talents.map((talent) => (
+                  <div key={talent.id} className="p-3 border rounded-lg flex items-center justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-sm truncate">{talent.full_name}</p>
+                      <p className="text-xs text-muted-foreground font-mono">{talent.phone}</p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {isPitched(talent.id) ? (
+                        <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
+                          <Check className="h-3 w-3" />
+                        </Badge>
+                      ) : talent.phone ? (
+                        <Button
+                          size="sm"
+                          onClick={() => handleSendOutreach(talent)}
+                          disabled={isSending === talent.id}
+                        >
+                          {isSending === talent.id ? (
+                            <RefreshCw className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Send className="h-3 w-3" />
+                          )}
+                        </Button>
+                      ) : null}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </CardContent>

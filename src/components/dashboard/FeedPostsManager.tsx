@@ -428,91 +428,134 @@ export function FeedPostsManager() {
       {/* Posts Table */}
       <Card>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Post</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Author</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
+          {/* Desktop Table */}
+          <div className="hidden sm:block">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
-                    Loading posts...
-                  </TableCell>
+                  <TableHead>Post</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Author</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Created</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ) : posts?.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                    No posts yet. Create your first post!
-                  </TableCell>
-                </TableRow>
-              ) : (
-                posts?.map((post) => {
-                  const typeBadge = getTypeBadge(post.content_type);
-                  return (
-                    <TableRow key={post.id}>
-                      <TableCell className="max-w-xs">
-                        <div className="flex items-start gap-2">
-                          {post.is_pinned && <Pin className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />}
-                          <p className="line-clamp-2 text-sm">{post.text_content}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary" className={typeBadge.className}>
-                          {typeBadge.label}
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8">
+                      Loading posts...
+                    </TableCell>
+                  </TableRow>
+                ) : posts?.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                      No posts yet. Create your first post!
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  posts?.map((post) => {
+                    const typeBadge = getTypeBadge(post.content_type);
+                    return (
+                      <TableRow key={post.id}>
+                        <TableCell className="max-w-xs">
+                          <div className="flex items-start gap-2">
+                            {post.is_pinned && <Pin className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />}
+                            <p className="line-clamp-2 text-sm">{post.text_content}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary" className={typeBadge.className}>
+                            {typeBadge.label}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm">{post.author_name}</TableCell>
+                        <TableCell>
+                          <Badge variant={post.is_active ? 'default' : 'secondary'}>
+                            {post.is_active ? 'Published' : 'Draft'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {format(new Date(post.created_at), 'MMM d, yyyy')}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => togglePinMutation.mutate({ id: post.id, isPinned: post.is_pinned })}
+                              title={post.is_pinned ? 'Unpin' : 'Pin'}
+                            >
+                              <Pin className={`h-4 w-4 ${post.is_pinned ? 'text-primary fill-primary' : ''}`} />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleOpenEdit(post)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                if (confirm('Delete this post?')) {
+                                  deleteMutation.mutate(post.id);
+                                }
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          {/* Mobile Cards */}
+          <div className="sm:hidden p-3 space-y-2">
+            {isLoading ? (
+              <p className="text-center py-8 text-muted-foreground">Loading posts...</p>
+            ) : posts?.length === 0 ? (
+              <p className="text-center py-8 text-muted-foreground">No posts yet.</p>
+            ) : (
+              posts?.map((post) => {
+                const typeBadge = getTypeBadge(post.content_type);
+                return (
+                  <div key={post.id} className="p-3 border rounded-lg space-y-2">
+                    <div className="flex items-start gap-2">
+                      {post.is_pinned && <Pin className="h-3.5 w-3.5 text-primary flex-shrink-0 mt-0.5" />}
+                      <p className="text-sm line-clamp-2 flex-1">{post.text_content}</p>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <Badge variant="secondary" className={`text-xs ${typeBadge.className}`}>{typeBadge.label}</Badge>
+                        <Badge variant={post.is_active ? 'default' : 'secondary'} className="text-xs">
+                          {post.is_active ? 'Live' : 'Draft'}
                         </Badge>
-                      </TableCell>
-                      <TableCell className="text-sm">{post.author_name}</TableCell>
-                      <TableCell>
-                        <Badge variant={post.is_active ? 'default' : 'secondary'}>
-                          {post.is_active ? 'Published' : 'Draft'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {format(new Date(post.created_at), 'MMM d, yyyy')}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => togglePinMutation.mutate({ id: post.id, isPinned: post.is_pinned })}
-                            title={post.is_pinned ? 'Unpin' : 'Pin'}
-                          >
-                            <Pin className={`h-4 w-4 ${post.is_pinned ? 'text-primary fill-primary' : ''}`} />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleOpenEdit(post)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => {
-                              if (confirm('Delete this post?')) {
-                                deleteMutation.mutate(post.id);
-                              }
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
+                        <span className="text-xs text-muted-foreground">{format(new Date(post.created_at), 'MMM d')}</span>
+                      </div>
+                      <div className="flex gap-0.5">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => togglePinMutation.mutate({ id: post.id, isPinned: post.is_pinned })}>
+                          <Pin className={`h-3.5 w-3.5 ${post.is_pinned ? 'text-primary fill-primary' : ''}`} />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleOpenEdit(post)}>
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { if (confirm('Delete?')) deleteMutation.mutate(post.id); }}>
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>

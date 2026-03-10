@@ -698,32 +698,47 @@ export function CVOutreachGenerator() {
                   <CardTitle>Recent Outreach Activity</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Product</TableHead>
-                        <TableHead>Message Snippet</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {analyticsData.recentActivity.map((msg: any) => (
-                        <TableRow key={msg.id}>
-                          <TableCell className="text-xs text-muted-foreground">
-                            {new Date(msg.sent_at).toLocaleDateString()}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="secondary" className="text-xs">
-                              {msg.product}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="max-w-[300px] truncate text-xs text-muted-foreground">
-                            {msg.message_content}
-                          </TableCell>
+                  {/* Desktop Table */}
+                  <div className="hidden sm:block">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Product</TableHead>
+                          <TableHead>Message Snippet</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {analyticsData.recentActivity.map((msg: any) => (
+                          <TableRow key={msg.id}>
+                            <TableCell className="text-xs text-muted-foreground">
+                              {new Date(msg.sent_at).toLocaleDateString()}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="secondary" className="text-xs">
+                                {msg.product}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="max-w-[300px] truncate text-xs text-muted-foreground">
+                              {msg.message_content}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  {/* Mobile Cards */}
+                  <div className="sm:hidden space-y-2">
+                    {analyticsData.recentActivity.map((msg: any) => (
+                      <div key={msg.id} className="p-3 border rounded-lg space-y-1">
+                        <div className="flex items-center justify-between">
+                          <Badge variant="secondary" className="text-xs">{msg.product}</Badge>
+                          <span className="text-xs text-muted-foreground">{new Date(msg.sent_at).toLocaleDateString()}</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground line-clamp-2">{msg.message_content}</p>
+                      </div>
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
             </div>
