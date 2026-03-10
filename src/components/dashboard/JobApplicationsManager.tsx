@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
@@ -460,6 +461,7 @@ const ApplicationCard = ({
 // --- Main Component ---
 export const JobApplicationsManager = () => {
   const isMobile = useIsMobile();
+  const [searchParams] = useSearchParams();
 
   const [applications, setApplications] = useState<JobApplication[]>([]);
   const [loading, setLoading] = useState(true);
@@ -471,6 +473,8 @@ export const JobApplicationsManager = () => {
   const debouncedSearch = useDebounce(searchQuery, 300);
   const [statusFilter, setStatusFilter] = useState<ApplicationStatus | "all">("all");
   const [deliveryFilter, setDeliveryFilter] = useState<DeliveryStatus | "all">("all");
+  const [jobFilter, setJobFilter] = useState<string>(searchParams.get("jobId") || "all");
+  const [jobsList, setJobsList] = useState<{ id: string; title: string; company: string; count: number }[]>([]);
 
   const [resendingId, setResendingId] = useState<string | null>(null);
 
@@ -479,6 +483,43 @@ export const JobApplicationsManager = () => {
     applicantName: string;
     jobTitle: string;
   } | null>(null);
+
+  // Load distinct jobs that have applications
+  useEffect(() => {
+    const loadJobsList = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("job_applications")
+          .select("job_id, jobs (title, company_name)");
+        if (error) throw error;
+
+        const jobMap = new Map<string, { title: string; company: string; count: number }>();
+        (data || []).forEach((row: any) => {
+          const id = row.job_id;
+          if (!id) return;
+          const existing = jobMap.get(id);
+          if (existing) {
+            existing.count++;
+          } else {
+            jobMap.set(id, {
+              title: row.jobs?.title || "Unknown",
+              company: row.jobs?.company_name || "",
+              count: 1,
+            });
+          }
+        });
+
+        const list = Array.from(jobMap.entries())
+          .map(([id, info]) => ({ id, ...info }))
+          .sort((a, b) => b.count - a.count);
+
+        setJobsList(list);
+      } catch (err) {
+        console.error("Failed to load jobs list for filter:", err);
+      }
+    };
+    loadJobsList();
+  }, []);
 
   const loadApplications = useCallback(async () => {
     setLoading(true);
@@ -499,6 +540,7 @@ export const JobApplicationsManager = () => {
 
       if (statusFilter !== "all") query = query.eq("application_status", statusFilter);
       if (deliveryFilter !== "all") query = query.eq("delivery_status", deliveryFilter);
+      if (jobFilter !== "all") query = query.eq("job_id", jobFilter);
 
       const from = (page - 1) * ITEMS_PER_PAGE;
       const to = from + ITEMS_PER_PAGE - 1;
@@ -519,7 +561,7 @@ export const JobApplicationsManager = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, statusFilter, deliveryFilter]);
+  }, [page, statusFilter, deliveryFilter, jobFilter]);
 
   useEffect(() => {
     loadApplications();
@@ -805,41 +847,62 @@ This application was submitted via GroUp Academy Jobs Board.
               className="pl-10"
             />
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <Select
-              value={statusFilter}
+              value={jobFilter}
               onValueChange={(v) => {
-                setStatusFilter(v as ApplicationStatus | "all");
+                setJobFilter(v);
                 setPage(1);
               }}
             >
-              <SelectTrigger className="flex-1 md:w-48 md:flex-none">
-                <SelectValue placeholder="Application Status" />
+              <SelectTrigger className="flex-1 md:w-56 md:flex-none">
+                <SelectValue placeholder="Filter by Job" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                {APPLICATION_STATUSES.map((s) => (
-                  <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                <SelectItem value="all">All Jobs</SelectItem>
+                {jobsList.map((j) => (
+                  <SelectItem key={j.id} value={j.id}>
+                    {j.title}{j.company ? ` - ${j.company}` : ""} ({j.count})
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <Select
-              value={deliveryFilter}
-              onValueChange={(v) => {
-                setDeliveryFilter(v as DeliveryStatus | "all");
-                setPage(1);
-              }}
-            >
-              <SelectTrigger className="flex-1 md:w-48 md:flex-none">
-                <SelectValue placeholder="Delivery Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Delivery</SelectItem>
-                {DELIVERY_STATUSES.map((s) => (
-                  <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2">
+              <Select
+                value={statusFilter}
+                onValueChange={(v) => {
+                  setStatusFilter(v as ApplicationStatus | "all");
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="flex-1 md:w-48 md:flex-none">
+                  <SelectValue placeholder="Application Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  {APPLICATION_STATUSES.map((s) => (
+                    <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select
+                value={deliveryFilter}
+                onValueChange={(v) => {
+                  setDeliveryFilter(v as DeliveryStatus | "all");
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger className="flex-1 md:w-48 md:flex-none">
+                  <SelectValue placeholder="Delivery Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Delivery</SelectItem>
+                  {DELIVERY_STATUSES.map((s) => (
+                    <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
       </CardHeader>

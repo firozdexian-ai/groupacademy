@@ -45,6 +45,7 @@ import {
   Mic,
   Clock,
   MapPin,
+  ClipboardList,
   RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -1377,6 +1378,9 @@ export function JobsManager() {
             <Button variant="ghost" size="icon" className="h-7 w-7 text-blue-600" onClick={() => { setShareJob(job); setIsShareOpen(true); }}>
               <Share2 className="w-3.5 h-3.5" />
             </Button>
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-primary" onClick={() => { const p = new URLSearchParams(searchParams.toString()); p.set("tab", "applications"); p.set("jobId", job.id); window.location.search = p.toString(); }} title="View Applications">
+              <ClipboardList className="w-3.5 h-3.5" />
+            </Button>
             <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDelete(job.id)}>
               <Trash2 className="w-3.5 h-3.5" />
             </Button>
@@ -1655,6 +1659,15 @@ export function JobsManager() {
                             }}
                           >
                             <Share2 className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-primary"
+                            title="View Applications"
+                            onClick={() => { const p = new URLSearchParams(searchParams.toString()); p.set("tab", "applications"); p.set("jobId", job.id); window.location.search = p.toString(); }}
+                          >
+                            <ClipboardList className="w-4 h-4" />
                           </Button>
                           <Button
                             variant="ghost"

@@ -1,42 +1,47 @@
 
+# GroUp Academy — Vision Plan
 
-# Add Job Filter to Applications Manager + Recruitment Section Final Audit
+## Current Completion: ~88%
 
-## Problem
-Currently there is no way to filter applications by job. An admin managing 50+ jobs cannot quickly see "all applications for Job X." The only filters are application status and delivery status.
+| # | Module | Status | % | Next Action |
+|---|--------|--------|---|-------------|
+| 1 | Academy / LMS | ✅ | 95% | Batch video linking |
+| 2 | AI Module Descriptions | 🔧 | 70% | Run batch generator (4,504 pending) |
+| 3 | AI Agents / Chat | ✅ | 90% | Conversation export |
+| 4 | Jobs Hub | ✅ | 90% | Saved job alerts |
+| 5 | Career Services | ✅ | 85% | Result sharing UX |
+| 6 | Feed / Social | ✅ | 95% | Done ✅ |
+| 7 | Study Abroad | ✅ | 80% | Application tracker |
+| 8 | Profile & Onboarding | ✅ | 85% | Profile visibility settings |
+| 9 | Credits & Payments (Stripe) | 🔧 | 75% | Keys infra built ✅ — need keys + test checkout |
+| 10 | Admin Dashboard | ✅ | 90% | Bulk actions |
+| 11 | Notifications | ✅ | 85% | Push notifications |
+| 12 | Public SEO / Marketing | ✅ | 85% | Landing page optimization |
+| 13 | Gigs / Marketplace | ✅ | 80% | Payment for completions |
+| 14 | PWA / Mobile | ✅ | 90% | Done ✅ |
+| 15 | Auth & Security | ✅ | 95% | Done ✅ |
 
-## Solution
+## Priority Queue
 
-### 1. Add a Job Filter dropdown to Applications Manager
+| # | Task | Current → Target | Effort |
+|---|------|------------------|--------|
+| 1 | Run AI Descriptions | 70% → 100% | Low |
+| 2 | Test Stripe Checkout | 75% → 90% | Low |
+| 3 | Push Notifications | 85% → 95% | Medium |
+| 4 | Result Sharing UX | 85% → 95% | Low |
+| 5 | Study Abroad Tracker | 80% → 90% | Medium |
+| 6 | Landing Page Polish | 85% → 95% | Low-Med |
 
-- Fetch distinct jobs from `job_applications` (joined with `jobs` for title/company) on mount
-- Add a third `Select` dropdown: "All Jobs" + list of jobs with application counts (e.g., "Marketing Manager - ABC Corp (12)")
-- When a job is selected, the server-side query adds `.eq('job_id', selectedJobId)`
-- Reset pagination on filter change
-- **Bonus**: Accept `?jobId=xxx` URL param so the Jobs Manager can link directly to "View Applications" for a specific job
+## Milestones
 
-### 2. Add "View Applications" action to Jobs Manager
+- AI Descriptions + Stripe + Push → **~93%**
+- Result Sharing + Study Abroad Tracker → **~95%**
+- Final polish → **~98%**
 
-- In the Jobs Manager action menu (per-job), add a "View Applications" option
-- Clicking it navigates to `?tab=applications&jobId={job_id}`
-- Applications Manager reads this param on mount and pre-applies the job filter
+## Completed Infrastructure
 
-### 3. Recruitment Section Final Audit Summary
-
-After this change, the Recruitment section will have:
-- **Jobs KPI**: Analytics dashboard with conversion tracking, targets, trends -- done
-- **Manage Jobs**: Cascading cross-filters (country/company/status), mobile cards, search -- done
-- **Applications**: KPI cards, mobile cards, search, status/delivery/job filters, job deep-link -- done after this
-- **Companies & Contacts**: Separate group, already audited -- done
-
-No remaining gaps in Recruitment.
-
-## Files to Change
-
-| File | Change |
-|------|--------|
-| `src/components/dashboard/JobApplicationsManager.tsx` | Add job filter state, fetch distinct jobs list, add Select dropdown, read `jobId` URL param, wire into query |
-| `src/components/dashboard/JobsManager.tsx` | Add "View Applications" action in per-job dropdown menu |
-
-No database changes needed.
-
+- Certificates with PDF + verification ✅
+- Public SEO (Blog, Courses, Services with JSON-LD) ✅
+- Stripe self-service key config from admin panel ✅
+- Influencing Academy (3 schools, 12 programs, 168 courses, 749 modules) ✅
+- Email notifications (welcome, certificate) ✅
