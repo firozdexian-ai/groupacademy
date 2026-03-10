@@ -27,13 +27,16 @@ serve(async (req) => {
       .from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin").maybeSingle();
     if (!roleData) throw new Error("Admin access required");
 
-    const { count = 10 } = await req.json();
+    const { count = 10, topic = "", context = "" } = await req.json();
 
     const { data: programs } = await supabase.from("profession_categories").select("name").limit(30);
     const programContext = (programs || []).map((p: any) => p.name).join(", ");
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+
+    const topicInstruction = topic ? `\n- Focus specifically on: ${topic}` : "";
+    const contextInstruction = context ? `\n- Additional context/guidance: ${context}` : "";
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 55000);
@@ -59,7 +62,7 @@ Rules:
 - Posts should feel authentic and conversational
 - Cover topics across: ${programContext}
 - Author name: "GroUp Academy" with title "Career Development Platform"
-- Make some posts include questions to drive engagement`,
+- Make some posts include questions to drive engagement${topicInstruction}${contextInstruction}`,
           },
           {
             role: "user",
@@ -123,8 +126,8 @@ Rules:
         author_name: "GroUp Academy",
         author_title: "Career Development Platform",
         content_type: "text",
-        status: "published",
-        is_active: true,
+        status: "draft",
+        is_active: false,
       });
       if (!error) inserted++;
       else console.error("Insert error:", error);

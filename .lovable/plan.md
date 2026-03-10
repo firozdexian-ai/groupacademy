@@ -1,60 +1,47 @@
 
+# GroUp Academy — Vision Plan
 
-# Improved AI Content Tools: Completion Status + Approval Workflow
+## Current Completion: ~88%
 
-## Problem 1: No Completion Status in BatchContentGenerator
+| # | Module | Status | % | Next Action |
+|---|--------|--------|---|-------------|
+| 1 | Academy / LMS | ✅ | 95% | Batch video linking |
+| 2 | AI Module Descriptions | 🔧 | 70% | Run batch generator (4,504 pending) |
+| 3 | AI Agents / Chat | ✅ | 90% | Conversation export |
+| 4 | Jobs Hub | ✅ | 90% | Saved job alerts |
+| 5 | Career Services | ✅ | 85% | Result sharing UX |
+| 6 | Feed / Social | ✅ | 95% | Done ✅ |
+| 7 | Study Abroad | ✅ | 80% | Application tracker |
+| 8 | Profile & Onboarding | ✅ | 85% | Profile visibility settings |
+| 9 | Credits & Payments (Stripe) | 🔧 | 75% | Keys infra built ✅ — need keys + test checkout |
+| 10 | Admin Dashboard | ✅ | 90% | Bulk actions |
+| 11 | Notifications | ✅ | 85% | Push notifications |
+| 12 | Public SEO / Marketing | ✅ | 85% | Landing page optimization |
+| 13 | Gigs / Marketplace | ✅ | 80% | Payment for completions |
+| 14 | PWA / Mobile | ✅ | 90% | Done ✅ |
+| 15 | Auth & Security | ✅ | 95% | Done ✅ |
 
-The `BatchDescriptionGenerator` shows per-school completion with pending counts, progress bars, and done/pending badges. The `BatchContentGenerator` (quizzes, flashcards, scenarios, course-metadata) has **none of this** — just a flat school list with no indication of what's done.
+## Priority Queue
 
-## Problem 2: Blog & Feed Posts Auto-Publish Without Review
+| # | Task | Current → Target | Effort |
+|---|------|------------------|--------|
+| 1 | Run AI Descriptions | 70% → 100% | Low |
+| 2 | Test Stripe Checkout | 75% → 90% | Low |
+| 3 | Push Notifications | 85% → 95% | Medium |
+| 4 | Result Sharing UX | 85% → 95% | Low |
+| 5 | Study Abroad Tracker | 80% → 90% | Medium |
+| 6 | Landing Page Polish | 85% → 95% | Low-Med |
 
-Both generators insert content directly as `status: "published"`. No way to preview, edit, or reject AI-generated content before it goes live.
+## Milestones
 
----
+- AI Descriptions + Stripe + Push → **~93%**
+- Result Sharing + Study Abroad Tracker → **~95%**
+- Final polish → **~98%**
 
-## Plan
+## Completed Infrastructure
 
-### Part 1: Add School Completion Status to All Learning Generators
-
-**What changes**: Enhance `BatchContentGenerator.tsx` to fetch per-school completion stats for each generator type, matching the `BatchDescriptionGenerator` pattern.
-
-For each school, query:
-- **Quizzes**: Count modules with vs without rows in `quiz_questions`
-- **Flashcards**: Count modules with vs without `module_resources` where `resource_type = 'flashcards'`
-- **Scenarios**: Same but `resource_type = 'ai_scenario'`
-- **Course Metadata**: Count courses with vs without `description`, `learning_objectives`, `estimated_hours`
-
-Display:
-- Summary cards at top (total pending, schools complete)
-- School dropdown shows "X pending" or "Done" badge per school
-- School status list at bottom with progress bars (same as BatchDescriptionGenerator)
-- "Regenerate All" toggle per generator type
-
-### Part 2: Blog & Feed Post Approval Workflow
-
-**What changes**: Blog and feed generators insert with `status: "draft"` instead of `"published"`. Add a review UI inside the BatchContentGenerator where admins can preview, edit, approve, or reject each generated item.
-
-**Edge function changes**:
-- `batch-generate-blog-posts`: Insert as `status: "draft"`, accept `category`, `topic`, and `context` parameters from the UI
-- `batch-generate-feed-posts`: Insert as `status: "draft"` and `is_active: false`, accept `topic` and `context` parameters
-
-**UI additions to Blog & Feed tabs**:
-- **Generation controls**: Category dropdown, topic input field, and optional context textarea so admins can guide the AI ("Write about remote work trends in tech", "Focus on interview preparation for fresh graduates")
-- **Pending Review section**: Shows draft posts in expandable cards with:
-  - Full preview (markdown rendered for blog, plain text for feed)
-  - "Approve" button (sets `status: "published"`)
-  - "Reject" button (deletes the draft)
-  - "Edit" button (inline edit before approving)
-  - Bulk "Approve All" / "Reject All" actions
-
-### Files to Change
-
-| File | Change |
-|------|--------|
-| `src/components/dashboard/BatchContentGenerator.tsx` | Major rewrite: add completion stats fetching, school status display, regenerate toggle, blog/feed generation controls (category/topic/context), pending review section |
-| `supabase/functions/batch-generate-blog-posts/index.ts` | Insert as `draft`, accept `topic` and `context` params, use them in prompt |
-| `supabase/functions/batch-generate-feed-posts/index.ts` | Insert as `draft` + `is_active: false`, accept `topic` and `context` params |
-
-### No database changes needed
-Both `blog_posts.status` and `feed_posts.is_active` / `feed_posts.status` columns already exist and support draft states.
-
+- Certificates with PDF + verification ✅
+- Public SEO (Blog, Courses, Services with JSON-LD) ✅
+- Stripe self-service key config from admin panel ✅
+- Influencing Academy (3 schools, 12 programs, 168 courses, 749 modules) ✅
+- Email notifications (welcome, certificate) ✅

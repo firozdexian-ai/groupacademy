@@ -27,9 +27,8 @@ serve(async (req) => {
       .from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin").maybeSingle();
     if (!roleData) throw new Error("Admin access required");
 
-    const { count = 5, category = "career-advice" } = await req.json();
+    const { count = 5, category = "career-advice", topic = "", context = "" } = await req.json();
 
-    // Get academy/program data for context
     const { data: academies } = await supabase.from("academies").select("name, description").eq("is_active", true).limit(10);
     const { data: programs } = await supabase.from("profession_categories").select("name").limit(30);
 
@@ -38,6 +37,9 @@ serve(async (req) => {
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+
+    const topicInstruction = topic ? `\n- Focus specifically on: ${topic}` : "";
+    const contextInstruction = context ? `\n- Additional context/guidance: ${context}` : "";
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 55000);
@@ -66,7 +68,7 @@ Rules:
 - Posts should cover diverse career topics across these domains: ${academyContext}
 - Programs available: ${programContext}
 - Category for all posts: "${category}"
-- Author name: "GroUp Academy"`,
+- Author name: "GroUp Academy"${topicInstruction}${contextInstruction}`,
           },
           {
             role: "user",
@@ -129,7 +131,6 @@ Rules:
     let inserted = 0;
 
     for (const post of posts) {
-      // Ensure unique slug by appending timestamp
       const uniqueSlug = `${post.slug}-${Date.now().toString(36)}`;
       const { error } = await supabase.from("blog_posts").insert({
         title: post.title,
@@ -140,8 +141,7 @@ Rules:
         category: post.category,
         reading_time_mins: post.reading_time_mins,
         author_name: "GroUp Academy",
-        status: "published",
-        published_at: new Date().toISOString(),
+        status: "draft",
       });
       if (!error) inserted++;
       else console.error("Insert error:", error);
