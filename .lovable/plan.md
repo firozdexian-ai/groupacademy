@@ -1,47 +1,56 @@
 
-# GroUp Academy — Vision Plan
 
-## Current Completion: ~88%
+# Consolidate AI Description Generator into Batch Content Generator
 
-| # | Module | Status | % | Next Action |
-|---|--------|--------|---|-------------|
-| 1 | Academy / LMS | ✅ | 95% | Batch video linking |
-| 2 | AI Module Descriptions | 🔧 | 70% | Run batch generator (4,504 pending) |
-| 3 | AI Agents / Chat | ✅ | 90% | Conversation export |
-| 4 | Jobs Hub | ✅ | 90% | Saved job alerts |
-| 5 | Career Services | ✅ | 85% | Result sharing UX |
-| 6 | Feed / Social | ✅ | 95% | Done ✅ |
-| 7 | Study Abroad | ✅ | 80% | Application tracker |
-| 8 | Profile & Onboarding | ✅ | 85% | Profile visibility settings |
-| 9 | Credits & Payments (Stripe) | 🔧 | 75% | Keys infra built ✅ — need keys + test checkout |
-| 10 | Admin Dashboard | ✅ | 90% | Bulk actions |
-| 11 | Notifications | ✅ | 85% | Push notifications |
-| 12 | Public SEO / Marketing | ✅ | 85% | Landing page optimization |
-| 13 | Gigs / Marketplace | ✅ | 80% | Payment for completions |
-| 14 | PWA / Mobile | ✅ | 90% | Done ✅ |
-| 15 | Auth & Security | ✅ | 95% | Done ✅ |
+## Current State
 
-## Priority Queue
+Two separate components with nearly identical code:
 
-| # | Task | Current → Target | Effort |
-|---|------|------------------|--------|
-| 1 | Run AI Descriptions | 70% → 100% | Low |
-| 2 | Test Stripe Checkout | 75% → 90% | Low |
-| 3 | Push Notifications | 85% → 95% | Medium |
-| 4 | Result Sharing UX | 85% → 95% | Low |
-| 5 | Study Abroad Tracker | 80% → 90% | Medium |
-| 6 | Landing Page Polish | 85% → 95% | Low-Med |
+- `BatchDescriptionGenerator` (394 lines) — generates module descriptions, school-by-school, with progress tracking
+- `BatchContentGenerator` (742 lines) — generates quizzes, flashcards, scenarios, course metadata, blog posts, feed posts with the same school-by-school pattern + draft approval for blog/feed
 
-## Milestones
+They share: school fetching logic, batch processing loop with rate-limit/error handling, progress bar, batch log, regenerate toggle, school status list. The Description Generator is essentially just another "school-based" generator type.
 
-- AI Descriptions + Stripe + Push → **~93%**
-- Result Sharing + Study Abroad Tracker → **~95%**
-- Final polish → **~98%**
+## Plan
 
-## Completed Infrastructure
+### 1. Add "descriptions" as a 7th generator type in `BatchContentGenerator`
 
-- Certificates with PDF + verification ✅
-- Public SEO (Blog, Courses, Services with JSON-LD) ✅
-- Stripe self-service key config from admin panel ✅
-- Influencing Academy (3 schools, 12 programs, 168 courses, 749 modules) ✅
-- Email notifications (welcome, certificate) ✅
+Add to the `GENERATORS` config:
+```
+"descriptions": {
+  label: "Module Descriptions",
+  icon: FileText,
+  description: "Generate rich 5-7 bullet content guides for modules with short descriptions (<500 chars)",
+  endpoint: "batch-generate-descriptions",
+  batchSize: 3,
+  needsSchool: true,
+  countLabel: "descriptions",
+}
+```
+
+Update the `fetchSchools` logic to handle `activeTab === "descriptions"` — count modules where `description.length < 500` as pending (same logic currently in `BatchDescriptionGenerator`).
+
+### 2. Delete `BatchDescriptionGenerator.tsx`
+
+No longer needed — all its functionality absorbed into the unified component.
+
+### 3. Update Dashboard routing
+
+In `Dashboard.tsx`:
+- Remove `BatchDescriptionGenerator` import
+- Map the `"ai-descriptions"` tab to `<BatchContentGenerator />` (or merge both admin tabs into one)
+- Simplest approach: remove the separate "ai-descriptions" sidebar item and have one "AI Content Tools" entry that includes all 7 generator types
+
+### 4. Update tab grid layout
+
+Change `grid-cols-6` to accommodate 7 tabs — use a scrollable `TabsList` or `grid-cols-4 lg:grid-cols-7`.
+
+### Files to Change
+
+| File | Change |
+|------|--------|
+| `src/components/dashboard/BatchContentGenerator.tsx` | Add "descriptions" generator type, add description-specific pending logic in `fetchSchools` |
+| `src/components/dashboard/BatchDescriptionGenerator.tsx` | Delete |
+| `src/pages/Dashboard.tsx` | Remove BatchDescriptionGenerator import, point "ai-descriptions" tab to BatchContentGenerator (or merge tabs) |
+| `src/components/dashboard/AdminSidebar.tsx` | Remove "ai-descriptions" sidebar item if merging into single entry |
+
