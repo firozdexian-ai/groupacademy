@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { format, startOfMonth, endOfMonth, differenceInDays, eachDayOfInterval, subMonths } from "date-fns";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 import CircularProgress from "./CircularProgress";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface KPIData {
   jobsThisMonth: number;

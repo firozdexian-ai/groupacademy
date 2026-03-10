@@ -2,13 +2,14 @@ interface CircularProgressProps {
   value: number;
   current: number;
   target: number;
+  size?: "sm" | "md" | "lg";
 }
 
 const CircularProgress = ({ value, current, target }: CircularProgressProps) => {
   const clampedValue = Math.min(value, 100);
   
   return (
-    <div className="relative w-28 h-28 sm:w-40 sm:h-40 flex-shrink-0">
+    <div className="relative w-16 h-16 sm:w-28 sm:h-28 lg:w-40 lg:h-40 flex-shrink-0">
       <svg className="w-full h-full transform -rotate-90" viewBox="0 0 160 160">
         <circle
           cx="80"
@@ -33,8 +34,8 @@ const CircularProgress = ({ value, current, target }: CircularProgressProps) => 
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-2xl sm:text-3xl font-bold">{current}</span>
-        <span className="text-xs sm:text-sm text-muted-foreground">of {target}</span>
+        <span className="text-lg sm:text-2xl lg:text-3xl font-bold">{current}</span>
+        <span className="text-[10px] sm:text-xs lg:text-sm text-muted-foreground">of {target}</span>
       </div>
     </div>
   );
