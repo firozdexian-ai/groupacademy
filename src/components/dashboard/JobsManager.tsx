@@ -1046,42 +1046,9 @@ export function JobsManager() {
       const { data } = await supabase.from("companies").select("id, name").order("name");
       setCompaniesList(data || []);
     };
-    const loadCountryCounts = async () => {
-      const { data } = await supabase.from("jobs").select("location").eq("is_active", true);
-      if (!data) return;
-
-      const counts: Record<string, number> = {};
-      const flagMap: Record<string, string> = {};
-
-      COUNTRIES.forEach((c) => {
-        flagMap[c.name] = c.flag;
-      });
-
-      data.forEach((row) => {
-        const loc = row.location || "";
-        COUNTRIES.forEach((country) => {
-          const aliases = COUNTRY_ALIASES[country.name] || [country.name];
-          const matched = aliases.some((alias) =>
-            loc.toLowerCase().includes(alias.toLowerCase())
-          );
-          if (matched) {
-            const key = country.name === "United Kingdom" ? "United Kingdom" : country.name;
-            counts[key] = (counts[key] || 0) + 1;
-            flagMap[key] = country.flag;
-          }
-        });
-      });
-
-      const sorted = Object.entries(counts)
-        .map(([name, count]) => ({ name, flag: flagMap[name] || "🌍", count }))
-        .sort((a, b) => b.count - a.count);
-
-      setCountryCounts(sorted);
-    };
     loadCategories();
     loadCompanies();
-    loadCountryCounts();
-  }, [COUNTRY_ALIASES]);
+  }, []);
 
   // --- Cascading filter helpers ---
   const computeCountryCounts = useCallback((rows: { location: string | null }[]) => {
