@@ -566,16 +566,16 @@ function StatMiniCard({ icon: Icon, label, value, color, bgColor, trend, onClick
       className={`${clickable ? "cursor-pointer hover:border-primary/40" : ""}`}
       onClick={onClick}
     >
-      <CardContent className="pt-4 pb-3 px-4">
-        <div className="flex items-center gap-3">
-          <div className={`p-2 rounded-lg ${bgColor}`}>
-            <Icon className={`w-4 h-4 ${color}`} />
+      <CardContent className="pt-3 pb-2 px-3 sm:pt-4 sm:pb-3 sm:px-4">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className={`p-1.5 sm:p-2 rounded-lg ${bgColor}`}>
+            <Icon className={`w-3 h-3 sm:w-4 sm:h-4 ${color}`} />
           </div>
           <div className="min-w-0">
-            <p className="text-xl font-bold leading-tight">{value}</p>
-            <p className="text-xs text-muted-foreground truncate">{label}</p>
+            <p className="text-lg sm:text-xl font-bold leading-tight">{value}</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{label}</p>
             {trend && (
-              <p className={`text-xs font-medium ${trend.startsWith("+") ? "text-emerald-500" : "text-red-500"}`}>
+              <p className={`text-[10px] sm:text-xs font-medium ${trend.startsWith("+") ? "text-emerald-500" : "text-red-500"}`}>
                 {trend} vs last mo
               </p>
             )}
