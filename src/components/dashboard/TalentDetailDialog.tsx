@@ -122,7 +122,7 @@ export function TalentDetailDialog({
           supabase.from('agent_chat_sessions').select('id, agent_key, created_at, messages, credits_charged').eq('talent_id', talentId).order('created_at', { ascending: false }).limit(5),
           supabase.from('notifications').select('id, title, message, type, is_read, created_at').eq('talent_id', talentId).order('created_at', { ascending: false }).limit(10),
           supabase.from('outreach_messages').select('id, product, sent_at').eq('talent_id', talentId).order('sent_at', { ascending: false }),
-          supabase.from('career_assessments').eq('email', talentEmail.toLowerCase()).select('id, created_at, percentage, readiness_level').order('created_at', { ascending: false }),
+          supabase.from('career_assessments').select('id, created_at, percentage, readiness_level').eq('email', talentEmail.toLowerCase()).order('created_at', { ascending: false }),
           supabase.from('mock_interviews').select('id, created_at, selection_percentage, status, job_title').eq('email', talentEmail.toLowerCase()).order('created_at', { ascending: false }),
           supabase.from('salary_analyses').select('id, created_at, status, job_title').eq('email', talentEmail.toLowerCase()).order('created_at', { ascending: false }),
           supabase.from('portfolio_requests').select('id, created_at, status').eq('email', talentEmail.toLowerCase()).order('created_at', { ascending: false })
