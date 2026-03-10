@@ -444,7 +444,7 @@ export function BatchContentGenerator() {
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={(v) => { if (!isRunning) setActiveTab(v as GeneratorType); }}>
-        <TabsList className="grid grid-cols-3 lg:grid-cols-6 h-auto">
+        <TabsList className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 h-auto">
           {(Object.entries(GENERATORS) as [GeneratorType, typeof GENERATORS[GeneratorType]][]).map(([key, gen]) => (
             <TabsTrigger key={key} value={key} disabled={isRunning} className="text-xs gap-1 py-2 relative">
               <gen.icon className="w-3.5 h-3.5" />
