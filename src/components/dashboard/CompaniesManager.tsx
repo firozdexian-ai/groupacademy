@@ -86,11 +86,13 @@ export function CompaniesManager() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [outreachHistory, setOutreachHistory] = useState<Record<string, { last_sent: string; template: string } | null>>({});
 
-  // Pagination & Search State
+  // Pagination & Search & Filter State
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearch = useDebounce(searchQuery, 500);
+  const [industryFilter, setIndustryFilter] = useState("all");
+  const [industryOptions, setIndustryOptions] = useState<string[]>([]);
 
   // Modal & Form State
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -113,6 +115,13 @@ export function CompaniesManager() {
         query = query.or(
           `name.ilike.%${debouncedSearch}%,industry.ilike.%${debouncedSearch}%,primary_email.ilike.%${debouncedSearch}%`,
         );
+      }
+
+      // Apply Industry Filter
+      if (industryFilter === "none") {
+        query = query.is("industry", null);
+      } else if (industryFilter !== "all") {
+        query = query.eq("industry", industryFilter);
       }
 
       // Apply Pagination
@@ -140,7 +149,7 @@ export function CompaniesManager() {
     } finally {
       setIsLoading(false);
     }
-  }, [page, debouncedSearch]);
+  }, [page, debouncedSearch, industryFilter]);
 
   // Load outreach history for displayed companies
   const loadOutreachHistory = useCallback(async (companyIds: string[]) => {
@@ -183,7 +192,18 @@ export function CompaniesManager() {
   // Reset page when searching
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch]);
+  }, [debouncedSearch, industryFilter]);
+
+  // Load industry options once
+  useEffect(() => {
+    const loadIndustryOptions = async () => {
+      const { data } = await supabase.from("companies").select("industry");
+      const unique = [...new Set((data || []).map((c: any) => c.industry?.trim()).filter(Boolean))] as string[];
+      unique.sort((a, b) => a.localeCompare(b));
+      setIndustryOptions(unique);
+    };
+    loadIndustryOptions();
+  }, []);
 
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
@@ -400,8 +420,8 @@ export function CompaniesManager() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="mb-4">
-            <div className="relative max-w-sm">
+          <div className="mb-4 flex flex-col sm:flex-row gap-3">
+            <div className="relative max-w-sm flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="Search by name, industry, or email..."
@@ -410,6 +430,18 @@ export function CompaniesManager() {
                 className="pl-9"
               />
             </div>
+            <Select value={industryFilter} onValueChange={setIndustryFilter}>
+              <SelectTrigger className="w-full sm:w-[200px]">
+                <SelectValue placeholder="All Industries" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Industries</SelectItem>
+                <SelectItem value="none">No Industry</SelectItem>
+                {industryOptions.map((ind) => (
+                  <SelectItem key={ind} value={ind}>{ind}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {isLoading ? (

@@ -25,6 +25,7 @@ import { CreditsManager } from "@/components/dashboard/CreditsManager";
 import { NotificationsManager } from "@/components/dashboard/NotificationsManager";
 import { AgentSessionsManager } from "@/components/dashboard/AgentSessionsManager";
 import { CompanyAgentsManager } from "@/components/dashboard/CompanyAgentsManager";
+import { IndustriesManager } from "@/components/dashboard/IndustriesManager";
 import { EnrollmentsManager } from "@/components/dashboard/EnrollmentsManager";
 import { LearnerProgressManager } from "@/components/dashboard/LearnerProgressManager"; // 👈 Added Import
 import { StudyAbroadManager } from "@/components/dashboard/StudyAbroadManager";
@@ -83,6 +84,7 @@ const tabAccessMap: Record<string, AppRole[]> = {
   applications: ["admin", "talent_exec"],
   companies: ["admin", "talent_exec"],
   contacts: ["admin", "talent_exec"],
+  industries: ["admin", "talent_exec"],
   
   // Marketing & Outreach - Both roles
   analytics: ["admin", "talent_exec"],
@@ -291,6 +293,8 @@ const Dashboard = () => {
         return <CompaniesManager />;
       case "contacts":
         return <ContactsManager />;
+      case "industries":
+        return <IndustriesManager />;
       case "team":
         return <TeamManager />;
       case "ai-agents":
@@ -366,6 +370,7 @@ const Dashboard = () => {
       talent: "Talent Pool",
       companies: "Companies",
       contacts: "Contacts",
+      industries: "Industries",
       team: "Team Members",
       "ai-agents": "AI Agents",
       "company-agents": "Company Agents",

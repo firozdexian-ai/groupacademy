@@ -36,6 +36,7 @@ import {
   Landmark,
   Mail,
   CreditCard,
+  Factory,
 } from "lucide-react";
 import {
   Sidebar,
@@ -97,6 +98,8 @@ const navGroups: NavGroup[] = [
     items: [
       { title: "Companies", icon: Building2, value: "companies" },
       { title: "Contacts", icon: Users, value: "contacts" },
+      { title: "Company Agents", icon: Bot, value: "company-agents" },
+      { title: "Industries", icon: Factory, value: "industries" },
     ],
   },
   {
@@ -143,7 +146,6 @@ const navGroups: NavGroup[] = [
     roles: ["admin"],
     items: [
       { title: "AI Agents", icon: Bot, value: "ai-agents" },
-      { title: "Company Agents", icon: Building2, value: "company-agents" },
       { title: "Agent Sessions", icon: MessageSquare, value: "agent-sessions" },
       { title: "Assessment Leads", icon: ClipboardList, value: "leads" },
       { title: "Mock Interview Leads", icon: MessageSquare, value: "interviews" },
