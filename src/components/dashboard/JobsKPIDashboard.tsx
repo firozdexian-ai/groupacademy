@@ -324,8 +324,8 @@ export function JobsKPIDashboard({ onNavigateToTab }: JobsKPIDashboardProps) {
       {/* Hero Progress Section */}
       <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-background border-primary/20">
         <CardContent className="pt-6">
-          <div className="flex flex-col lg:flex-row items-center gap-6 lg:gap-8">
-            {/* Circular Progress - responsive via component */}
+          <div className="flex flex-row items-center gap-4 sm:gap-6 lg:gap-8">
+            {/* Circular Progress - compact on mobile */}
             <CircularProgress 
               value={Math.min(jobsProgress, 100)} 
               current={kpiData.jobsThisMonth} 
@@ -333,51 +333,51 @@ export function JobsKPIDashboard({ onNavigateToTab }: JobsKPIDashboardProps) {
             />
 
             {/* Stats */}
-            <div className="flex-1 w-full space-y-4">
+            <div className="flex-1 min-w-0 space-y-3 sm:space-y-4">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                <div>
-                  <h2 className="text-xl sm:text-2xl font-bold">Monthly Jobs Target</h2>
-                  <p className="text-sm text-muted-foreground">
-                    {format(monthStart, "MMMM yyyy")} • {daysPassed}d passed, {daysRemaining}d left
+                <div className="min-w-0">
+                  <h2 className="text-base sm:text-xl lg:text-2xl font-bold truncate">Monthly Jobs Target</h2>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
+                    {format(monthStart, "MMM yyyy")} • {daysPassed}d passed, {daysRemaining}d left
                   </p>
                 </div>
                 {editingTarget === "jobs_posted" ? (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
                     <Input
                       type="number"
                       value={editValue}
                       onChange={(e) => setEditValue(parseInt(e.target.value) || 0)}
-                      className="w-24"
+                      className="w-16 sm:w-24 h-8"
                     />
-                    <Button size="sm" onClick={handleSaveTarget} disabled={savingTarget}>
-                      {savingTarget ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    <Button size="sm" className="h-8 w-8 p-0" onClick={handleSaveTarget} disabled={savingTarget}>
+                      {savingTarget ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => setEditingTarget(null)}>
-                      <X className="w-4 h-4" />
+                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => setEditingTarget(null)}>
+                      <X className="w-3.5 h-3.5" />
                     </Button>
                   </div>
                 ) : (
-                  <Button variant="outline" size="sm" onClick={() => handleEditTarget("jobs_posted")}>
-                    <Edit className="w-4 h-4 mr-2" />
-                    Edit Target
+                  <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => handleEditTarget("jobs_posted")}>
+                    <Edit className="w-3 h-3 mr-1" />
+                    Edit
                   </Button>
                 )}
               </div>
               
-              <Progress value={Math.min(jobsProgress, 100)} className="h-3" />
+              <Progress value={Math.min(jobsProgress, 100)} className="h-2 sm:h-3" />
               
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="p-3 bg-background rounded-lg border text-center">
-                  <p className="text-xl sm:text-2xl font-bold text-primary">{kpiData.jobsToday}</p>
-                  <p className="text-xs text-muted-foreground">Posted Today</p>
+              <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                <div className="p-2 sm:p-3 bg-background rounded-lg border text-center">
+                  <p className="text-base sm:text-2xl font-bold text-primary">{kpiData.jobsToday}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Today</p>
                 </div>
-                <div className="p-3 bg-background rounded-lg border text-center">
-                  <p className="text-xl sm:text-2xl font-bold text-amber-500">{dailyRunRate}</p>
-                  <p className="text-xs text-muted-foreground">Daily Run Rate</p>
+                <div className="p-2 sm:p-3 bg-background rounded-lg border text-center">
+                  <p className="text-base sm:text-2xl font-bold text-amber-500">{dailyRunRate}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Run Rate</p>
                 </div>
-                <div className="p-3 bg-background rounded-lg border text-center">
-                  <p className="text-xl sm:text-2xl font-bold text-emerald-500">{Math.round(jobsProgress)}%</p>
-                  <p className="text-xs text-muted-foreground">Target Achieved</p>
+                <div className="p-2 sm:p-3 bg-background rounded-lg border text-center">
+                  <p className="text-base sm:text-2xl font-bold text-emerald-500">{Math.round(jobsProgress)}%</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">Achieved</p>
                 </div>
               </div>
             </div>
