@@ -73,12 +73,9 @@ const tabAccessMap: Record<string, AppRole[]> = {
   
   
   // Talent & Leads - Both roles
-  leads: ["admin", "talent_exec"],
-  interviews: ["admin", "talent_exec"],
-  salary: ["admin", "talent_exec"],
-  portfolios: ["admin", "talent_exec"],
   talent: ["admin", "talent_exec"],
   "lead-hunter": ["admin", "talent_exec"],
+  professions: ["admin", "talent_exec"],
   
   // Recruitment - Both roles
   "jobs-kpis": ["admin", "talent_exec"],
@@ -105,6 +102,10 @@ const tabAccessMap: Record<string, AppRole[]> = {
   "ai-agents": ["admin"],
   "company-agents": ["admin"],
   "agent-sessions": ["admin"],
+  leads: ["admin"],
+  interviews: ["admin"],
+  salary: ["admin"],
+  portfolios: ["admin"],
   gigs: ["admin"],
   "marketplace-gigs": ["admin"],
   "gig-submissions": ["admin"],
@@ -119,9 +120,9 @@ const tabAccessMap: Record<string, AppRole[]> = {
   "ir-emails": ["admin"],
   
   // Platform Config - Admin only
+  // Platform Config - Admin only
   codes: ["admin"],
   banners: ["admin"],
-  professions: ["admin"],
   team: ["admin"],
   payments: ["admin"],
 };

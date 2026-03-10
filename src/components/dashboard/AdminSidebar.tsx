@@ -77,10 +77,7 @@ const navGroups: NavGroup[] = [
     items: [
       { title: "Talent Pool", icon: DatabaseIcon, value: "talent" },
       { title: "Lead Hunter", icon: Target, value: "lead-hunter" },
-      { title: "Assessment Leads", icon: ClipboardList, value: "leads" },
-      { title: "Mock Interview Leads", icon: MessageSquare, value: "interviews" },
-      { title: "Salary Analysis Leads", icon: TrendingUp, value: "salary" },
-      { title: "Portfolio Requests", icon: Briefcase, value: "portfolios" },
+      { title: "Professions", icon: GraduationCap, value: "professions" },
     ],
   },
   {
@@ -141,6 +138,10 @@ const navGroups: NavGroup[] = [
       { title: "AI Agents", icon: Bot, value: "ai-agents" },
       { title: "Company Agents", icon: Building2, value: "company-agents" },
       { title: "Agent Sessions", icon: MessageSquare, value: "agent-sessions" },
+      { title: "Assessment Leads", icon: ClipboardList, value: "leads" },
+      { title: "Mock Interview Leads", icon: MessageSquare, value: "interviews" },
+      { title: "Salary Analysis Leads", icon: TrendingUp, value: "salary" },
+      { title: "Portfolio Requests", icon: Briefcase, value: "portfolios" },
       { title: "Manage Gigs", icon: Briefcase, value: "gigs" },
       { title: "Marketplace Gigs", icon: Briefcase, value: "marketplace-gigs" },
       { title: "Gig Submissions", icon: FileCheck, value: "gig-submissions" },
@@ -167,7 +168,6 @@ const navGroups: NavGroup[] = [
     items: [
       { title: "Access Codes", icon: Key, value: "codes" },
       { title: "Banners", icon: ImageIcon, value: "banners" },
-      { title: "Professions", icon: GraduationCap, value: "professions" },
       { title: "Team Members", icon: UserCog, value: "team" },
       { title: "Payments", icon: CreditCard, value: "payments" },
     ],

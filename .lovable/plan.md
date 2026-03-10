@@ -1,47 +1,47 @@
 
+# GroUp Academy — Vision Plan
 
-# Reorganize Admin Sidebar — Move Service Leads to AI & Monetization, Add Professions to Talent & Leads
+## Current Completion: ~88%
 
-## What You're Asking
+| # | Module | Status | % | Next Action |
+|---|--------|--------|---|-------------|
+| 1 | Academy / LMS | ✅ | 95% | Batch video linking |
+| 2 | AI Module Descriptions | 🔧 | 70% | Run batch generator (4,504 pending) |
+| 3 | AI Agents / Chat | ✅ | 90% | Conversation export |
+| 4 | Jobs Hub | ✅ | 90% | Saved job alerts |
+| 5 | Career Services | ✅ | 85% | Result sharing UX |
+| 6 | Feed / Social | ✅ | 95% | Done ✅ |
+| 7 | Study Abroad | ✅ | 80% | Application tracker |
+| 8 | Profile & Onboarding | ✅ | 85% | Profile visibility settings |
+| 9 | Credits & Payments (Stripe) | 🔧 | 75% | Keys infra built ✅ — need keys + test checkout |
+| 10 | Admin Dashboard | ✅ | 90% | Bulk actions |
+| 11 | Notifications | ✅ | 85% | Push notifications |
+| 12 | Public SEO / Marketing | ✅ | 85% | Landing page optimization |
+| 13 | Gigs / Marketplace | ✅ | 80% | Payment for completions |
+| 14 | PWA / Mobile | ✅ | 90% | Done ✅ |
+| 15 | Auth & Security | ✅ | 95% | Done ✅ |
 
-Move the 4 service lead tabs (Assessment Leads, Mock Interview Leads, Salary Analysis Leads, Portfolio Requests) out of "Talent & Leads" into "AI & Monetization" — since those are AI-powered services. Then move "Professions" from "Platform Config" into "Talent & Leads" since profession categories are core to how talents are organized.
+## Priority Queue
 
-## Proposed New Structure
+| # | Task | Current → Target | Effort |
+|---|------|------------------|--------|
+| 1 | Run AI Descriptions | 70% → 100% | Low |
+| 2 | Test Stripe Checkout | 75% → 90% | Low |
+| 3 | Push Notifications | 85% → 95% | Medium |
+| 4 | Result Sharing UX | 85% → 95% | Low |
+| 5 | Study Abroad Tracker | 80% → 90% | Medium |
+| 6 | Landing Page Polish | 85% → 95% | Low-Med |
 
-**Talent & Leads** (was 6 items → stays at 3 + 1 new = 3 items)
-- Talent Pool
-- Lead Hunter
-- Professions ← moved from Platform Config
+## Milestones
 
-**AI & Monetization** (gains the 4 service leads)
-- AI Agents
-- Company Agents
-- Agent Sessions
-- Assessment Leads ← moved from Talent & Leads
-- Mock Interview Leads ← moved from Talent & Leads
-- Salary Analysis Leads ← moved from Talent & Leads
-- Portfolio Requests ← moved from Talent & Leads
-- Manage Gigs
-- Marketplace Gigs
-- Gig Submissions
-- Credits Manager
-- Notifications
+- AI Descriptions + Stripe + Push → **~93%**
+- Result Sharing + Study Abroad Tracker → **~95%**
+- Final polish → **~98%**
 
-**Platform Config** (loses Professions)
-- Access Codes
-- Banners
-- Team Members
-- Payments
+## Completed Infrastructure
 
-## Other Observations
-
-- "Notifications" could arguably move to "Platform Config" but it's fine under AI & Monetization since notifications are often credit/service-related.
-- Everything else looks well-placed. No other moves needed.
-
-## Files to Change
-
-| File | Change |
-|------|--------|
-| `src/components/dashboard/AdminSidebar.tsx` | Move items between nav groups |
-| `src/pages/Dashboard.tsx` | Update `tabAccessMap` for moved tabs (professions needs `talent_exec` access added) |
-
+- Certificates with PDF + verification ✅
+- Public SEO (Blog, Courses, Services with JSON-LD) ✅
+- Stripe self-service key config from admin panel ✅
+- Influencing Academy (3 schools, 12 programs, 168 courses, 749 modules) ✅
+- Email notifications (welcome, certificate) ✅
