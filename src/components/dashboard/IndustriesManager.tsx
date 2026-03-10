@@ -239,25 +239,28 @@ export function IndustriesManager() {
   return (
     <div className="space-y-6">
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatsCard
-          title="Total Industries"
-          value={totalIndustries}
-          icon={Factory}
-          variant="default"
-        />
-        <StatsCard
-          title="No Industry Assigned"
-          value={noIndustryCount}
-          icon={AlertCircle}
-          variant="secondary"
-        />
-        <StatsCard
-          title="Top Industry"
-          value={topIndustry}
-          icon={TrendingUp}
-          variant="success"
-        />
+      <div className="grid grid-cols-3 gap-3">
+        <Card className="p-3">
+          <div className="flex items-center gap-2 text-muted-foreground mb-1">
+            <Factory className="w-4 h-4" />
+            <span className="text-xs font-medium">Industries</span>
+          </div>
+          <p className="text-xl font-bold">{totalIndustries}</p>
+        </Card>
+        <Card className="p-3">
+          <div className="flex items-center gap-2 text-muted-foreground mb-1">
+            <AlertCircle className="w-4 h-4" />
+            <span className="text-xs font-medium">Unassigned</span>
+          </div>
+          <p className="text-xl font-bold">{noIndustryCount}</p>
+        </Card>
+        <Card className="p-3">
+          <div className="flex items-center gap-2 text-muted-foreground mb-1">
+            <TrendingUp className="w-4 h-4" />
+            <span className="text-xs font-medium">Top</span>
+          </div>
+          <p className="text-xl font-bold truncate" title={topIndustry}>{topIndustry}</p>
+        </Card>
       </div>
 
       <Card>
