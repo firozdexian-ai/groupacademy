@@ -9,9 +9,20 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
+import StatsCard from "./StatsCard";
 import {
   Users,
   Plus,
@@ -27,6 +38,8 @@ import {
   Linkedin,
   ChevronLeft,
   ChevronRight,
+  Star,
+  PhoneOff,
 } from "lucide-react";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
@@ -106,20 +119,18 @@ export function ContactsManager() {
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [formData, setFormData] = useState(emptyContact);
   const [saving, setSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
   // Fetch Data (Paginated)
   const loadData = useCallback(async () => {
     setIsLoading(true);
     setLoadError(null);
     try {
-      // 1. Fetch Companies (Lookup - lightweight)
-      // Only fetch once
       if (companies.length === 0) {
         const { data: companyData } = await supabase.from("companies").select("id, name, industry").order("name");
         setCompanies(companyData || []);
       }
 
-      // 2. Fetch Contacts (Paginated)
       let query = supabase
         .from("contacts")
         .select("*, company:companies(id, name, industry)", { count: "exact" })
@@ -158,7 +169,6 @@ export function ContactsManager() {
     loadData();
   }, [loadData]);
 
-  // Reset page on search
   useEffect(() => {
     setPage(1);
   }, [debouncedSearch, companyFilter]);
@@ -229,11 +239,11 @@ export function ContactsManager() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this contact?")) return;
     try {
       const { error } = await supabase.from("contacts").delete().eq("id", id);
       if (error) throw error;
       toast.success("Contact deleted");
+      setDeleteTarget(null);
       loadData();
     } catch (error: any) {
       toast.error("Failed to delete contact");
@@ -247,21 +257,10 @@ export function ContactsManager() {
       return;
     }
 
-    // Get company name for template
     const companyName = contact.company?.name || "your organization";
-    
-    // Use Dexian branded WhatsApp template
-    const whatsappLink = getDexianWhatsAppLink(
-      phone,
-      'intro',
-      contact.full_name,
-      companyName
-    );
-
-    // Open WhatsApp with Dexian template
+    const whatsappLink = getDexianWhatsAppLink(phone, "intro", contact.full_name, companyName);
     window.open(whatsappLink, "_blank");
 
-    // Log outreach (fire and forget)
     try {
       const {
         data: { user },
@@ -287,32 +286,43 @@ export function ContactsManager() {
 
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
+  // KPI derived values
+  const primaryCount = contacts.filter((c) => c.is_primary).length;
+  const neverContactedCount = contacts.filter((c) => !c.last_contacted_at).length;
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      {/* KPI Summary Cards */}
+      <div className="grid grid-cols-3 gap-3">
+        <StatsCard title="Total Contacts" value={totalCount} icon={Users} variant="default" />
+        <StatsCard title="Primary" value={primaryCount} icon={Star} variant="secondary" />
+        <StatsCard title="Never Contacted" value={neverContactedCount} icon={PhoneOff} variant="accent" />
+      </div>
+
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between flex-wrap gap-4">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between flex-wrap gap-3">
             <div>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-lg">
                 <Users className="w-5 h-5" />
                 Contacts
               </CardTitle>
               <CardDescription>{totalCount} contacts found</CardDescription>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={loadData} disabled={isLoading}>
-                <RefreshCw className={`w-4 h-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
-                Refresh
+              <Button variant="outline" size="icon" onClick={loadData} disabled={isLoading}>
+                <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
               </Button>
-              <Button onClick={() => handleOpenDialog()}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add Contact
+              <Button onClick={() => handleOpenDialog()} size="sm">
+                <Plus className="w-4 h-4 mr-1" />
+                <span className="hidden sm:inline">Add Contact</span>
+                <span className="sm:hidden">Add</span>
               </Button>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-4 mb-4 flex-col sm:flex-row">
+          <div className="flex gap-3 mb-4 flex-col sm:flex-row">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
@@ -348,7 +358,96 @@ export function ContactsManager() {
             </div>
           ) : (
             <>
-              <div className="rounded-md border overflow-x-auto">
+              {/* Mobile Card View */}
+              <div className="sm:hidden space-y-3">
+                {contacts.map((contact) => (
+                  <div key={contact.id} className="rounded-lg border bg-card p-3 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-sm truncate flex items-center gap-1.5">
+                          {contact.full_name}
+                          {contact.is_primary && (
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                              Primary
+                            </Badge>
+                          )}
+                        </p>
+                        {contact.designation && (
+                          <p className="text-xs text-muted-foreground truncate">{contact.designation}</p>
+                        )}
+                      </div>
+                      <Badge variant="outline" className="text-[10px] shrink-0">
+                        {contact.source || "manual"}
+                      </Badge>
+                    </div>
+
+                    {contact.company && (
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <Building2 className="w-3 h-3 shrink-0" />
+                        <span className="truncate">{contact.company.name}</span>
+                        {contact.company.industry && (
+                          <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                            {contact.company.industry}
+                          </Badge>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-3 text-xs">
+                      {contact.email && (
+                        <a href={`mailto:${contact.email}`} className="text-primary hover:underline flex items-center gap-1 truncate min-w-0">
+                          <Mail className="w-3 h-3 shrink-0" />
+                          <span className="truncate">{contact.email}</span>
+                        </a>
+                      )}
+                      {contact.phone && (
+                        <span className="text-muted-foreground flex items-center gap-1 shrink-0">
+                          <Phone className="w-3 h-3" />
+                          {contact.phone}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-end gap-1 pt-1 border-t">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-green-600"
+                              onClick={() => handleWhatsApp(contact)}
+                              disabled={!contact.phone && !contact.whatsapp_number}
+                            >
+                              <MessageCircle className="w-3.5 h-3.5" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>WhatsApp</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      {contact.linkedin_url && (
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => window.open(contact.linkedin_url!, "_blank")}>
+                          <Linkedin className="w-3.5 h-3.5" />
+                        </Button>
+                      )}
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleOpenDialog(contact)}>
+                        <Edit className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-destructive hover:text-destructive"
+                        onClick={() => setDeleteTarget(contact.id)}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop Table View */}
+              <div className="hidden sm:block rounded-md border overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -451,7 +550,7 @@ export function ContactsManager() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleDelete(contact.id)}
+                              onClick={() => setDeleteTarget(contact.id)}
                               className="text-destructive hover:text-destructive"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -464,27 +563,29 @@ export function ContactsManager() {
                 </Table>
               </div>
 
-              {/* Pagination Controls */}
+              {/* Pagination */}
               {totalPages > 1 && (
                 <div className="flex items-center justify-end space-x-2 py-4">
                   <Button
                     variant="outline"
-                    size="sm"
+                    size="icon"
+                    className="h-8 w-8"
                     onClick={() => setPage((p) => Math.max(1, p - 1))}
                     disabled={page === 1}
                   >
-                    <ChevronLeft className="h-4 w-4 mr-2" /> Previous
+                    <ChevronLeft className="h-4 w-4" />
                   </Button>
                   <span className="text-sm text-muted-foreground">
-                    Page {page} of {totalPages}
+                    {page} / {totalPages}
                   </span>
                   <Button
                     variant="outline"
-                    size="sm"
+                    size="icon"
+                    className="h-8 w-8"
                     onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                     disabled={page === totalPages}
                   >
-                    Next <ChevronRight className="h-4 w-4 ml-2" />
+                    <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
               )}
@@ -520,7 +621,7 @@ export function ContactsManager() {
               </Select>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="full_name">Full Name *</Label>
                 <Input
@@ -541,7 +642,7 @@ export function ContactsManager() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="department">Department</Label>
                 <Input
@@ -563,7 +664,7 @@ export function ContactsManager() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone</Label>
                 <Input
@@ -627,6 +728,27 @@ export function ContactsManager() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Contact</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this contact and any associated outreach history. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteTarget && handleDelete(deleteTarget)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
