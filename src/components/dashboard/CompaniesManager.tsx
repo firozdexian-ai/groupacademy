@@ -420,8 +420,8 @@ export function CompaniesManager() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="mb-4">
-            <div className="relative max-w-sm">
+          <div className="mb-4 flex flex-col sm:flex-row gap-3">
+            <div className="relative max-w-sm flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="Search by name, industry, or email..."
@@ -430,6 +430,18 @@ export function CompaniesManager() {
                 className="pl-9"
               />
             </div>
+            <Select value={industryFilter} onValueChange={setIndustryFilter}>
+              <SelectTrigger className="w-full sm:w-[200px]">
+                <SelectValue placeholder="All Industries" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Industries</SelectItem>
+                <SelectItem value="none">No Industry</SelectItem>
+                {industryOptions.map((ind) => (
+                  <SelectItem key={ind} value={ind}>{ind}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {isLoading ? (
