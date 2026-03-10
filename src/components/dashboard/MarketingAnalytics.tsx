@@ -323,17 +323,17 @@ export function MarketingAnalytics() {
       {/* Category Tabs */}
       <Tabs value={activeCategory} onValueChange={setActiveCategory}>
         <TabsList className="grid w-full grid-cols-3 max-w-md">
-          <TabsTrigger value="jobs" className="gap-2">
+          <TabsTrigger value="jobs" className="gap-1">
             <Briefcase className="h-4 w-4" />
-            Jobs
+            <span className="hidden sm:inline">Jobs</span>
           </TabsTrigger>
-          <TabsTrigger value="content" className="gap-2">
+          <TabsTrigger value="content" className="gap-1">
             <BookOpen className="h-4 w-4" />
-            Content
+            <span className="hidden sm:inline">Content</span>
           </TabsTrigger>
-          <TabsTrigger value="services" className="gap-2">
+          <TabsTrigger value="services" className="gap-1">
             <Wrench className="h-4 w-4" />
-            Services
+            <span className="hidden sm:inline">Services</span>
           </TabsTrigger>
         </TabsList>
 
