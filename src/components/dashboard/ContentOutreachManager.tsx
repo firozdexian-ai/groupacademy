@@ -519,88 +519,90 @@ export function ContentOutreachManager() {
             {talents.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">No talents found matching criteria.</div>
             ) : (
-              {/* Desktop Table */}
-              <div className="hidden sm:block rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Phone</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Action</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {talents.map((talent) => (
-                      <TableRow key={talent.id}>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium">{talent.full_name}</p>
-                            <p className="text-xs text-muted-foreground">{talent.email}</p>
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-mono text-sm">{talent.phone}</TableCell>
-                        <TableCell>
-                          {isPitched(talent.id) ? (
-                            <Badge variant="secondary" className="bg-green-100 text-green-700">
-                              <Check className="h-3 w-3 mr-1" /> Pitched
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline">Pending</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {talent.phone && !isPitched(talent.id) && (
-                            <Button
-                              size="sm"
-                              onClick={() => handleSendOutreach(talent)}
-                              disabled={isSending === talent.id}
-                            >
-                              {isSending === talent.id ? (
-                                <RefreshCw className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <>
-                                  <Send className="h-4 w-4 mr-1" /> WhatsApp
-                                </>
-                              )}
-                            </Button>
-                          )}
-                        </TableCell>
+              <>
+                {/* Desktop Table */}
+                <div className="hidden sm:block rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Phone</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Action</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-              {/* Mobile Cards */}
-              <div className="sm:hidden space-y-2">
-                {talents.map((talent) => (
-                  <div key={talent.id} className="p-3 border rounded-lg flex items-center justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium text-sm truncate">{talent.full_name}</p>
-                      <p className="text-xs text-muted-foreground font-mono">{talent.phone}</p>
+                    </TableHeader>
+                    <TableBody>
+                      {talents.map((talent) => (
+                        <TableRow key={talent.id}>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium">{talent.full_name}</p>
+                              <p className="text-xs text-muted-foreground">{talent.email}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">{talent.phone}</TableCell>
+                          <TableCell>
+                            {isPitched(talent.id) ? (
+                              <Badge variant="secondary" className="bg-green-100 text-green-700">
+                                <Check className="h-3 w-3 mr-1" /> Pitched
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline">Pending</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {talent.phone && !isPitched(talent.id) && (
+                              <Button
+                                size="sm"
+                                onClick={() => handleSendOutreach(talent)}
+                                disabled={isSending === talent.id}
+                              >
+                                {isSending === talent.id ? (
+                                  <RefreshCw className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <>
+                                    <Send className="h-4 w-4 mr-1" /> WhatsApp
+                                  </>
+                                )}
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                {/* Mobile Cards */}
+                <div className="sm:hidden space-y-2">
+                  {talents.map((talent) => (
+                    <div key={talent.id} className="p-3 border rounded-lg flex items-center justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-sm truncate">{talent.full_name}</p>
+                        <p className="text-xs text-muted-foreground font-mono">{talent.phone}</p>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {isPitched(talent.id) ? (
+                          <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
+                            <Check className="h-3 w-3" />
+                          </Badge>
+                        ) : talent.phone ? (
+                          <Button
+                            size="sm"
+                            onClick={() => handleSendOutreach(talent)}
+                            disabled={isSending === talent.id}
+                          >
+                            {isSending === talent.id ? (
+                              <RefreshCw className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <Send className="h-3 w-3" />
+                            )}
+                          </Button>
+                        ) : null}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      {isPitched(talent.id) ? (
-                        <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
-                          <Check className="h-3 w-3" />
-                        </Badge>
-                      ) : talent.phone ? (
-                        <Button
-                          size="sm"
-                          onClick={() => handleSendOutreach(talent)}
-                          disabled={isSending === talent.id}
-                        >
-                          {isSending === talent.id ? (
-                            <RefreshCw className="h-3 w-3 animate-spin" />
-                          ) : (
-                            <Send className="h-3 w-3" />
-                          )}
-                        </Button>
-                      ) : null}
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
