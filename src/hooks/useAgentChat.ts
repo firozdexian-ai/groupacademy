@@ -45,7 +45,7 @@ export function useAgentChat(): UseAgentChatReturn {
   const [recentSessions, setRecentSessions] = useState<AgentSession[]>([]);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [isLoadingSessions, setIsLoadingSessions] = useState(true);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Calculate if session is expired
   const isSessionExpired = session ? new Date(session.session_expires_at) < new Date() : false;

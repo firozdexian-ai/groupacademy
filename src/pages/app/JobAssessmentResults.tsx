@@ -150,8 +150,8 @@ export default function JobAssessmentResults() {
 
   // 2. Polling logic
   useEffect(() => {
-    let intervalId: NodeJS.Timeout;
-    let timeoutId: NodeJS.Timeout;
+    let intervalId: ReturnType<typeof setInterval>;
+    let timeoutId: ReturnType<typeof setTimeout>;
 
     if (result && result.status === "completed" && result.ai_score === null && !timedOut) {
       setPolling(true);

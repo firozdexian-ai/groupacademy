@@ -31,7 +31,7 @@ export function useSupabaseQuery<T>(
   const [isTimeout, setIsTimeout] = useState(false);
   
   const abortControllerRef = useRef<AbortController | null>(null);
-  const timeoutIdRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutIdRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const abort = useCallback(() => {
     if (abortControllerRef.current) {
