@@ -669,7 +669,7 @@ export function CVOutreachGenerator() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-4xl font-bold">{analyticsData.totalMessages}</div>
+                  <div className="text-2xl font-bold">{analyticsData.totalMessages}</div>
                   <p className="text-sm text-muted-foreground">All time outreach messages sent</p>
                 </CardContent>
               </Card>
