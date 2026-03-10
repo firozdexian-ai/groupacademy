@@ -473,15 +473,15 @@ export function BatchContentGenerator() {
                 {GENERATORS[key].needsSchool && !isLoading && schools.length > 0 && (
                   <div className="grid grid-cols-3 gap-3 mb-2">
                     <div className="bg-muted/50 rounded-lg p-3 text-center">
-                      <div className="text-2xl font-bold text-primary">{schools.length}</div>
+                      <div className="text-lg font-bold text-primary">{schools.length}</div>
                       <div className="text-xs text-muted-foreground">Schools</div>
                     </div>
                     <div className="bg-muted/50 rounded-lg p-3 text-center">
-                      <div className="text-2xl font-bold text-destructive">{totalPending}</div>
+                      <div className="text-lg font-bold text-destructive">{totalPending}</div>
                       <div className="text-xs text-muted-foreground">Pending</div>
                     </div>
                     <div className="bg-muted/50 rounded-lg p-3 text-center">
-                      <div className="text-2xl font-bold text-green-600">{totalComplete}</div>
+                      <div className="text-lg font-bold text-green-600">{totalComplete}</div>
                       <div className="text-xs text-muted-foreground">Complete</div>
                     </div>
                   </div>
