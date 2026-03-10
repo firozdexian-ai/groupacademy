@@ -258,7 +258,7 @@ export function MarketingAnalytics() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold">Marketing Analytics</h2>
+          <h2 className="text-lg font-bold">Marketing Analytics</h2>
           <p className="text-muted-foreground">Track performance across all marketing channels</p>
         </div>
         <div className="flex items-center gap-3">
