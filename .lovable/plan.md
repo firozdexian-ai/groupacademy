@@ -1,47 +1,30 @@
 
-# GroUp Academy — Vision Plan
 
-## Current Completion: ~88%
+# Section Report: Companies & Contacts (Group 3)
 
-| # | Module | Status | % | Next Action |
-|---|--------|--------|---|-------------|
-| 1 | Academy / LMS | ✅ | 95% | Batch video linking |
-| 2 | AI Module Descriptions | 🔧 | 70% | Run batch generator (4,504 pending) |
-| 3 | AI Agents / Chat | ✅ | 90% | Conversation export |
-| 4 | Jobs Hub | ✅ | 90% | Saved job alerts |
-| 5 | Career Services | ✅ | 85% | Result sharing UX |
-| 6 | Feed / Social | ✅ | 95% | Done ✅ |
-| 7 | Study Abroad | ✅ | 80% | Application tracker |
-| 8 | Profile & Onboarding | ✅ | 85% | Profile visibility settings |
-| 9 | Credits & Payments (Stripe) | 🔧 | 75% | Keys infra built ✅ — need keys + test checkout |
-| 10 | Admin Dashboard | ✅ | 90% | Bulk actions |
-| 11 | Notifications | ✅ | 85% | Push notifications |
-| 12 | Public SEO / Marketing | ✅ | 85% | Landing page optimization |
-| 13 | Gigs / Marketplace | ✅ | 80% | Payment for completions |
-| 14 | PWA / Mobile | ✅ | 90% | Done ✅ |
-| 15 | Auth & Security | ✅ | 95% | Done ✅ |
+## Tabs in this Section
 
-## Priority Queue
+| Tab | Lines | Status | Summary |
+|-----|-------|--------|---------|
+| **Companies** | 950 | Done | Mobile card layout, compact KPIs, AlertDialog, outreach integration, deep-link to Jobs tab |
+| **Contacts** | 784 | Done | Compact KPIs (p-3), AlertDialog, outreach history, responsive cards + table split |
+| **Company Agents** | 721 | Done | Full rebuild — two-tab layout (Agents + Leads), lead capture config, CSV export, ROI metrics, mobile cards, AlertDialog |
+| **Industries** | 495 | Done | Compact KPIs, mobile card + desktop table split, merge/rename, icon-only pagination & header buttons |
 
-| # | Task | Current → Target | Effort |
-|---|------|------------------|--------|
-| 1 | Run AI Descriptions | 70% → 100% | Low |
-| 2 | Test Stripe Checkout | 75% → 90% | Low |
-| 3 | Push Notifications | 85% → 95% | Medium |
-| 4 | Result Sharing UX | 85% → 95% | Low |
-| 5 | Study Abroad Tracker | 80% → 90% | Medium |
-| 6 | Landing Page Polish | 85% → 95% | Low-Med |
+## What Was Done
 
-## Milestones
+1. **KPI Cards** — All 4 tabs now use compact `Card className="p-3"` with `text-xs` labels and `text-lg` values. No more oversized `StatsCard` clipping on 393px.
+2. **Mobile Responsiveness** — Every tab has a table-to-card breakpoint at `< 640px`. No horizontal scrolling.
+3. **AlertDialog** — All destructive actions use `AlertDialog` instead of native `confirm()`.
+4. **Header Buttons** — Icon-only on mobile across all tabs (Refresh, Add, Import).
+5. **Dialog Forms** — Standardized to `grid-cols-1 sm:grid-cols-2`.
+6. **Company Agents Upgrade** — Transformed from basic CRUD into a B2B lead generation channel with lead capture config (JSONB), a dedicated Leads sub-tab, CSV export, and ROI tracking (conversations, leads, budget utilization).
 
-- AI Descriptions + Stripe + Push → **~93%**
-- Result Sharing + Study Abroad Tracker → **~95%**
-- Final polish → **~98%**
+## Database Changes Made
+- `company_agents.lead_config` — new JSONB column for capture settings
+- `company_agent_leads` — new table with RLS for storing captured leads
 
-## Completed Infrastructure
+## Section Grade: Complete
 
-- Certificates with PDF + verification ✅
-- Public SEO (Blog, Courses, Services with JSON-LD) ✅
-- Stripe self-service key config from admin panel ✅
-- Influencing Academy (3 schools, 12 programs, 168 courses, 749 modules) ✅
-- Email notifications (welcome, certificate) ✅
+All 4 tabs in this group meet the compact admin design standard. Ready to move to the next section.
+
