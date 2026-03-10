@@ -66,9 +66,7 @@ import MyResults from "./pages/app/MyResults";
 import MyApplications from "./pages/app/MyApplications";
 import SavedItems from "./pages/app/SavedItems";
 import Gigs from "./pages/app/Gigs";
-import Marketplace from "./pages/app/Marketplace";
 import MarketplaceGigDetail from "./pages/app/MarketplaceGigDetail";
-import MyGigs from "./pages/app/MyGigs";
 import Transactions from "./pages/app/Transactions";
 
 // Feature Details
