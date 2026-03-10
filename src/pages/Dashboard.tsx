@@ -293,6 +293,8 @@ const Dashboard = () => {
         return <CompaniesManager />;
       case "contacts":
         return <ContactsManager />;
+      case "industries":
+        return <IndustriesManager />;
       case "team":
         return <TeamManager />;
       case "ai-agents":
