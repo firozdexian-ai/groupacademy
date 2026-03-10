@@ -1,67 +1,47 @@
 
+# GroUp Academy — Vision Plan
 
-# Lead Hunter Tab — Audit & Improvement Plan
+## Current Completion: ~88%
 
-## Issues Found
+| # | Module | Status | % | Next Action |
+|---|--------|--------|---|-------------|
+| 1 | Academy / LMS | ✅ | 95% | Batch video linking |
+| 2 | AI Module Descriptions | 🔧 | 70% | Run batch generator (4,504 pending) |
+| 3 | AI Agents / Chat | ✅ | 90% | Conversation export |
+| 4 | Jobs Hub | ✅ | 90% | Saved job alerts |
+| 5 | Career Services | ✅ | 85% | Result sharing UX |
+| 6 | Feed / Social | ✅ | 95% | Done ✅ |
+| 7 | Study Abroad | ✅ | 80% | Application tracker |
+| 8 | Profile & Onboarding | ✅ | 85% | Profile visibility settings |
+| 9 | Credits & Payments (Stripe) | 🔧 | 75% | Keys infra built ✅ — need keys + test checkout |
+| 10 | Admin Dashboard | ✅ | 90% | Bulk actions |
+| 11 | Notifications | ✅ | 85% | Push notifications |
+| 12 | Public SEO / Marketing | ✅ | 85% | Landing page optimization |
+| 13 | Gigs / Marketplace | ✅ | 80% | Payment for completions |
+| 14 | PWA / Mobile | ✅ | 90% | Done ✅ |
+| 15 | Auth & Security | ✅ | 95% | Done ✅ |
 
-### Bug Fixes
-1. **No `created_by` filter on sessions query** — The sessions list fetches ALL sessions from all admins (`select("*")`). Should filter by the current user or at minimum show who created each session.
-2. **Session detail header buttons not mobile-friendly** — Export buttons overflow on small screens; "Back" + title + 2 buttons don't fit.
-3. **New Hunt dialog `grid-cols-2` breaks on mobile** — Job title and company name fields stack poorly on narrow screens.
+## Priority Queue
 
-### Mobile UI Issues
-4. **Matches table overflows on mobile** — 6-column table (checkbox, candidate, skills, initial score, AI score, actions) doesn't fit on small screens. Needs card layout.
-5. **Analysis dialog hardcoded `max-w-2xl`** — On mobile this is fine but the `grid-cols-2` breakdown cards inside it are cramped.
+| # | Task | Current → Target | Effort |
+|---|------|------------------|--------|
+| 1 | Run AI Descriptions | 70% → 100% | Low |
+| 2 | Test Stripe Checkout | 75% → 90% | Low |
+| 3 | Push Notifications | 85% → 95% | Medium |
+| 4 | Result Sharing UX | 85% → 95% | Low |
+| 5 | Study Abroad Tracker | 80% → 90% | Medium |
+| 6 | Landing Page Polish | 85% → 95% | Low-Med |
 
-### Improvements
-6. **No KPI summary** — No stats showing total sessions, total matches found, shortlisted count across sessions.
-7. **No search/filter on sessions list** — Can't search sessions by job title or filter by status.
-8. **No "Score All" button** — Admin has to click "Score" individually for each candidate. Add a "Score All Unscored" batch action.
-9. **No delete session** — Once a hunt session is created, it cannot be removed.
-10. **Session cards show no match count** — Sessions list only shows title, company, date, and status. Should show how many matches were found.
-11. **No link to talent detail** — Clicking a candidate name in matches should open the `TalentDetailDialog` from the talent pool, connecting the two tabs.
+## Milestones
 
-### Refactoring
-12. **`useDebounce` hook defined inline** — Already exists as a pattern elsewhere; minor but could be shared. Since it's only used here and is 7 lines, leave it.
+- AI Descriptions + Stripe + Push → **~93%**
+- Result Sharing + Study Abroad Tracker → **~95%**
+- Final polish → **~98%**
 
-## Plan
+## Completed Infrastructure
 
-### A. Add KPI Cards
-Add 3 stat cards at the top:
-- Total Sessions | Total Matches Found | Total Shortlisted
-- Query with `count` on `lead_hunt_sessions` and `lead_hunt_matches`
-
-### B. Mobile-Responsive Matches View
-- On mobile, render matches as cards instead of table rows
-- Each card: name, email, skills badges, scores side-by-side, shortlist checkbox, action buttons
-- Wrap session detail header buttons responsively
-
-### C. Add Session Search + Match Count
-- Add a search input to filter sessions by job title (client-side on current page is fine given pagination)
-- Fetch match count per session using a joined count or separate query, show as badge on session cards
-
-### D. Add "Score All" Batch Action
-- Button in session detail view: "Score All Unscored"
-- Iterates through matches without `ai_match_score`, calls `score-talent-match` sequentially with progress indicator
-
-### E. Add Delete Session
-- Add a delete button (with confirmation) on each session card
-- Cascade deletes matches (already set up in DB via foreign key)
-
-### F. Connect to Talent Detail
-- Import `TalentDetailDialog` and open it when clicking a candidate name in the matches view
-
-### G. Fix New Hunt Dialog for Mobile
-- Change `grid-cols-2` to `grid-cols-1 sm:grid-cols-2`
-
-### H. Fix Session Query Security
-- Add `.eq("created_by", userId)` filter or fetch current user and filter — requires getting the auth user in the component
-
-## Files to Change
-
-| File | Change |
-|------|--------|
-| `src/components/dashboard/LeadHunterManager.tsx` | KPI cards, mobile card layout for matches, session search, match count on session cards, Score All button, delete session, talent detail link, responsive dialog, created_by filter |
-
-No database or edge function changes needed.
-
+- Certificates with PDF + verification ✅
+- Public SEO (Blog, Courses, Services with JSON-LD) ✅
+- Stripe self-service key config from admin panel ✅
+- Influencing Academy (3 schools, 12 programs, 168 courses, 749 modules) ✅
+- Email notifications (welcome, certificate) ✅
