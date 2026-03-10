@@ -77,10 +77,7 @@ const navGroups: NavGroup[] = [
     items: [
       { title: "Talent Pool", icon: DatabaseIcon, value: "talent" },
       { title: "Lead Hunter", icon: Target, value: "lead-hunter" },
-      { title: "Assessment Leads", icon: ClipboardList, value: "leads" },
-      { title: "Mock Interview Leads", icon: MessageSquare, value: "interviews" },
-      { title: "Salary Analysis Leads", icon: TrendingUp, value: "salary" },
-      { title: "Portfolio Requests", icon: Briefcase, value: "portfolios" },
+      { title: "Professions", icon: GraduationCap, value: "professions" },
     ],
   },
   {
