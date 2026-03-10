@@ -1,47 +1,91 @@
 
-# GroUp Academy — Vision Plan
 
-## Current Completion: ~88%
+# Company Agents — Rebuild Plan
 
-| # | Module | Status | % | Next Action |
-|---|--------|--------|---|-------------|
-| 1 | Academy / LMS | ✅ | 95% | Batch video linking |
-| 2 | AI Module Descriptions | 🔧 | 70% | Run batch generator (4,504 pending) |
-| 3 | AI Agents / Chat | ✅ | 90% | Conversation export |
-| 4 | Jobs Hub | ✅ | 90% | Saved job alerts |
-| 5 | Career Services | ✅ | 85% | Result sharing UX |
-| 6 | Feed / Social | ✅ | 95% | Done ✅ |
-| 7 | Study Abroad | ✅ | 80% | Application tracker |
-| 8 | Profile & Onboarding | ✅ | 85% | Profile visibility settings |
-| 9 | Credits & Payments (Stripe) | 🔧 | 75% | Keys infra built ✅ — need keys + test checkout |
-| 10 | Admin Dashboard | ✅ | 90% | Bulk actions |
-| 11 | Notifications | ✅ | 85% | Push notifications |
-| 12 | Public SEO / Marketing | ✅ | 85% | Landing page optimization |
-| 13 | Gigs / Marketplace | ✅ | 80% | Payment for completions |
-| 14 | PWA / Mobile | ✅ | 90% | Done ✅ |
-| 15 | Auth & Security | ✅ | 95% | Done ✅ |
+## Current State
+667 lines. Basic CRUD for linking AI agents to companies with sponsorship settings (full/partial/branded), monthly budgets, and credit tracking. Has the same mobile issues as other tabs: 7-column table, non-responsive dialog grids, no AlertDialog for delete, oversized KPI cards.
 
-## Priority Queue
+## Vision: Company Agents as a B2B Revenue Channel
 
-| # | Task | Current → Target | Effort |
-|---|------|------------------|--------|
-| 1 | Run AI Descriptions | 70% → 100% | Low |
-| 2 | Test Stripe Checkout | 75% → 90% | Low |
-| 3 | Push Notifications | 85% → 95% | Medium |
-| 4 | Result Sharing UX | 85% → 95% | Low |
-| 5 | Study Abroad Tracker | 80% → 90% | Medium |
-| 6 | Landing Page Polish | 85% → 95% | Low-Med |
+Company agents should serve as **lead generation machines** and **service resale channels** for partner companies. When a user chats with a company-sponsored agent, the agent can:
+1. **Collect leads** — capture name, email, phone, interest during conversation
+2. **Promote company services** — the agent acts as a branded sales rep
+3. **Track ROI** — companies see conversations, leads captured, and budget usage
 
-## Milestones
+## What We Will Build
 
-- AI Descriptions + Stripe + Push → **~93%**
-- Result Sharing + Study Abroad Tracker → **~95%**
-- Final polish → **~98%**
+### A. Mobile & UX Fixes (same pattern as Companies/Contacts)
+1. **Table to card layout** on mobile — each agent as a compact card with company logo, agent name, sponsorship badge, budget bar, and toggle
+2. **Dialog form**: `grid-cols-1 sm:grid-cols-2` for all field pairs
+3. **AlertDialog** for delete instead of raw click-to-delete
+4. **KPI cards**: compact `p-3` style matching Companies/Contacts tabs
+5. **Header buttons**: icon-only on mobile
+6. **Pagination**: not needed currently (no server-side pagination) but future-proofed
 
-## Completed Infrastructure
+### B. Lead Collection Configuration
+Add a "Lead Capture" section to the create/edit dialog:
+- **Enable Lead Capture** toggle — when on, the agent will prompt users for contact info
+- **Lead Fields** multi-select — Name, Email, Phone, Company, Interest (checkboxes)
+- **Lead Notification Email** — where captured leads get sent (company contact email)
 
-- Certificates with PDF + verification ✅
-- Public SEO (Blog, Courses, Services with JSON-LD) ✅
-- Stripe self-service key config from admin panel ✅
-- Influencing Academy (3 schools, 12 programs, 168 courses, 749 modules) ✅
-- Email notifications (welcome, certificate) ✅
+These settings will be stored as JSON in a new `lead_config` column on `company_agents`.
+
+### C. Leads Dashboard Sub-Tab
+Add a two-tab layout within the Company Agents manager:
+- **Agents** tab (existing agent list, improved)
+- **Leads** tab — shows leads captured by company agents, with:
+  - Filter by company/agent
+  - Lead cards: name, email, phone, agent that captured, timestamp
+  - Export to CSV button
+  - Lead count in KPI cards
+
+Leads will be stored in a new `company_agent_leads` table.
+
+### D. Service Resale Tracking
+Enhance the agent card/row to show:
+- **Conversations** count (from `ai_agents.total_conversations`)
+- **Leads captured** count
+- **Budget utilization** progress bar (already exists, will improve)
+
+## Database Changes
+
+### New column on `company_agents`:
+```sql
+ALTER TABLE company_agents ADD COLUMN lead_config jsonb DEFAULT '{"enabled": false, "fields": ["name", "email"], "notification_email": null}'::jsonb;
+```
+
+### New table `company_agent_leads`:
+```sql
+CREATE TABLE company_agent_leads (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_agent_id uuid REFERENCES company_agents(id) ON DELETE CASCADE NOT NULL,
+  agent_id uuid REFERENCES ai_agents(id) ON DELETE SET NULL,
+  talent_id uuid REFERENCES talents(id) ON DELETE SET NULL,
+  lead_name text,
+  lead_email text,
+  lead_phone text,
+  lead_company text,
+  lead_interest text,
+  session_id uuid REFERENCES agent_sessions(id) ON DELETE SET NULL,
+  status text DEFAULT 'new',
+  created_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE company_agent_leads ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admins can manage leads"
+ON company_agent_leads FOR ALL TO authenticated
+USING (public.has_any_admin_role(auth.uid()));
+```
+
+## Files to Change
+
+| File | Change |
+|------|--------|
+| `src/components/dashboard/CompanyAgentsManager.tsx` | Full rebuild: mobile cards, compact KPIs, AlertDialog, two-tab layout (Agents + Leads), lead config in dialog, responsive grids |
+| Database migration | Add `lead_config` column + `company_agent_leads` table |
+
+## Implementation Order
+1. Database migration (lead_config column + leads table)
+2. Rebuild CompanyAgentsManager with all mobile fixes + new tabs
+
