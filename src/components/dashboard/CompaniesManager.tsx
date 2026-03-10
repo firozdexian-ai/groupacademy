@@ -149,7 +149,7 @@ export function CompaniesManager() {
     } finally {
       setIsLoading(false);
     }
-  }, [page, debouncedSearch]);
+  }, [page, debouncedSearch, industryFilter]);
 
   // Load outreach history for displayed companies
   const loadOutreachHistory = useCallback(async (companyIds: string[]) => {
