@@ -1,31 +1,47 @@
 
+# GroUp Academy — Vision Plan
 
-# Admin Panel — No Horizontal Scroll Fix
+## Current Completion: ~88%
 
-## Problem
-The admin panel at 391px viewport can produce horizontal overflow from:
-1. **Dashboard container** uses `p-6` (24px padding both sides = 48px eaten from 391px)
-2. **SidebarInset** has no `overflow-x-hidden` — wide children (charts, grids) can push the page wider
-3. **Chart containers** and card grids can exceed viewport width without containment
-4. **Header** uses `px-6` which wastes space on mobile
+| # | Module | Status | % | Next Action |
+|---|--------|--------|---|-------------|
+| 1 | Academy / LMS | ✅ | 95% | Batch video linking |
+| 2 | AI Module Descriptions | 🔧 | 70% | Run batch generator (4,504 pending) |
+| 3 | AI Agents / Chat | ✅ | 90% | Conversation export |
+| 4 | Jobs Hub | ✅ | 90% | Saved job alerts |
+| 5 | Career Services | ✅ | 85% | Result sharing UX |
+| 6 | Feed / Social | ✅ | 95% | Done ✅ |
+| 7 | Study Abroad | ✅ | 80% | Application tracker |
+| 8 | Profile & Onboarding | ✅ | 85% | Profile visibility settings |
+| 9 | Credits & Payments (Stripe) | 🔧 | 75% | Keys infra built ✅ — need keys + test checkout |
+| 10 | Admin Dashboard | ✅ | 90% | Bulk actions |
+| 11 | Notifications | ✅ | 85% | Push notifications |
+| 12 | Public SEO / Marketing | ✅ | 85% | Landing page optimization |
+| 13 | Gigs / Marketplace | ✅ | 80% | Payment for completions |
+| 14 | PWA / Mobile | ✅ | 90% | Done ✅ |
+| 15 | Auth & Security | ✅ | 95% | Done ✅ |
 
-## Fix Plan
+## Priority Queue
 
-### 1. Add `overflow-x-hidden` to SidebarInset usage in Dashboard.tsx
-Add `overflow-x-hidden` class to `SidebarInset` to prevent any child from causing horizontal scroll.
+| # | Task | Current → Target | Effort |
+|---|------|------------------|--------|
+| 1 | Run AI Descriptions | 70% → 100% | Low |
+| 2 | Test Stripe Checkout | 75% → 90% | Low |
+| 3 | Push Notifications | 85% → 95% | Medium |
+| 4 | Result Sharing UX | 85% → 95% | Low |
+| 5 | Study Abroad Tracker | 80% → 90% | Medium |
+| 6 | Landing Page Polish | 85% → 95% | Low-Med |
 
-### 2. Reduce mobile padding
-- Dashboard `<main>` padding: `p-3 sm:p-6` (instead of fixed `p-6`)
-- Header padding: `px-3 sm:px-6`
+## Milestones
 
-### 3. Add global admin overflow guard
-Add `overflow-x-hidden` to the outer `div.min-h-screen` wrapper in Dashboard.tsx.
+- AI Descriptions + Stripe + Push → **~93%**
+- Result Sharing + Study Abroad Tracker → **~95%**
+- Final polish → **~98%**
 
-### Files to Change
+## Completed Infrastructure
 
-| File | Change |
-|------|--------|
-| `src/pages/Dashboard.tsx` | Add `overflow-x-hidden` to wrapper + SidebarInset, reduce padding on mobile |
-
-Single file, 3 line-level changes. No database changes.
-
+- Certificates with PDF + verification ✅
+- Public SEO (Blog, Courses, Services with JSON-LD) ✅
+- Stripe self-service key config from admin panel ✅
+- Influencing Academy (3 schools, 12 programs, 168 courses, 749 modules) ✅
+- Email notifications (welcome, certificate) ✅

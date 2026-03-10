@@ -399,12 +399,12 @@ const Dashboard = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
+      <div className="min-h-screen flex w-full bg-background overflow-x-hidden">
         <AdminSidebar activeTab={activeTab} onTabChange={setActiveTab} userRole={userRole} />
-        <SidebarInset className="flex-1">
+        <SidebarInset className="flex-1 overflow-x-hidden">
           {/* Header */}
           <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-            <div className="flex items-center gap-4 px-6 py-3">
+            <div className="flex items-center gap-4 px-3 sm:px-6 py-3">
               <SidebarTrigger>
                 <Button variant="ghost" size="icon" className="md:hidden">
                   <Menu className="h-5 w-5" />
@@ -415,7 +415,7 @@ const Dashboard = () => {
           </header>
 
           {/* Main Content */}
-          <main className="p-6">{renderContent()}</main>
+          <main className="p-3 sm:p-6">{renderContent()}</main>
         </SidebarInset>
       </div>
     </SidebarProvider>
