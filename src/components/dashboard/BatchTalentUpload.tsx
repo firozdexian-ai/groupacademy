@@ -8,8 +8,10 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Upload, FileText, Link as LinkIcon, Loader2, CheckCircle, XCircle, AlertCircle, RefreshCw, FileUp } from "lucide-react";
+import { Upload, FileText, Link as LinkIcon, Loader2, CheckCircle, XCircle, AlertCircle, RefreshCw, FileUp, FileJson2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { LinkedInJsonUpload } from "./LinkedInJsonUpload";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface BatchUpload {
