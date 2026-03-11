@@ -351,6 +351,11 @@ export function ContactsManager() {
                 <span className="hidden sm:inline">Add Contact</span>
                 <span className="sm:hidden">Add</span>
               </Button>
+              <Button variant="outline" onClick={() => setLinkedinImportOpen(true)} size="sm">
+                <Linkedin className="w-4 h-4 mr-1" />
+                <span className="hidden sm:inline">Import LinkedIn</span>
+                <span className="sm:hidden">Import</span>
+              </Button>
             </div>
           </div>
         </CardHeader>

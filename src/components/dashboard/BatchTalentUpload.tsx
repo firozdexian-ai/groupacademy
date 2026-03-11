@@ -401,6 +401,10 @@ export function BatchTalentUpload({ onComplete }: BatchTalentUploadProps) {
               )}
             </Button>
           </TabsContent>
+
+          <TabsContent value="linkedin" className="space-y-4">
+            <LinkedInJsonUpload mode="talent" onComplete={onComplete} />
+          </TabsContent>
         </Tabs>
 
         {showProgress && currentBatch && (
