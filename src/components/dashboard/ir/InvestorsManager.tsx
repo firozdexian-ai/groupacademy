@@ -62,6 +62,7 @@ export function InvestorsManager() {
   const [editingInvestor, setEditingInvestor] = useState<Investor | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [selectedInvestorId, setSelectedInvestorId] = useState<string | null>(null);
+  const [linkedinImportOpen, setLinkedinImportOpen] = useState(false);
   const [filterFirmId, setFilterFirmId] = useState<string>("all");
   
   const [formData, setFormData] = useState({
