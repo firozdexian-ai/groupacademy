@@ -1,47 +1,82 @@
 
-# GroUp Academy — Vision Plan
 
-## Current Completion: ~88%
+# LinkedIn JSON Import — Universal Batch Upload for Talents, Contacts, and Investors
 
-| # | Module | Status | % | Next Action |
-|---|--------|--------|---|-------------|
-| 1 | Academy / LMS | ✅ | 95% | Batch video linking |
-| 2 | AI Module Descriptions | 🔧 | 70% | Run batch generator (4,504 pending) |
-| 3 | AI Agents / Chat | ✅ | 90% | Conversation export |
-| 4 | Jobs Hub | ✅ | 90% | Saved job alerts |
-| 5 | Career Services | ✅ | 85% | Result sharing UX |
-| 6 | Feed / Social | ✅ | 95% | Done ✅ |
-| 7 | Study Abroad | ✅ | 80% | Application tracker |
-| 8 | Profile & Onboarding | ✅ | 85% | Profile visibility settings |
-| 9 | Credits & Payments (Stripe) | 🔧 | 75% | Keys infra built ✅ — need keys + test checkout |
-| 10 | Admin Dashboard | ✅ | 90% | Bulk actions |
-| 11 | Notifications | ✅ | 85% | Push notifications |
-| 12 | Public SEO / Marketing | ✅ | 85% | Landing page optimization |
-| 13 | Gigs / Marketplace | ✅ | 80% | Payment for completions |
-| 14 | PWA / Mobile | ✅ | 90% | Done ✅ |
-| 15 | Auth & Security | ✅ | 95% | Done ✅ |
+## What This Does
 
-## Priority Queue
+Adds a **3rd upload method** ("LinkedIn JSON") alongside the existing "Upload CVs" and "Paste CV Links" tabs in the Talent Pool, and reuses the same LinkedIn JSON parser for **Contacts** and **IR Investors** managers — giving you one scraper format that feeds all three systems.
 
-| # | Task | Current → Target | Effort |
-|---|------|------------------|--------|
-| 1 | Run AI Descriptions | 70% → 100% | Low |
-| 2 | Test Stripe Checkout | 75% → 90% | Low |
-| 3 | Push Notifications | 85% → 95% | Medium |
-| 4 | Result Sharing UX | 85% → 95% | Low |
-| 5 | Study Abroad Tracker | 80% → 90% | Medium |
-| 6 | Landing Page Polish | 85% → 95% | Low-Med |
+## Data Mapping
 
-## Milestones
+The LinkedIn scraper JSON maps cleanly to all three tables:
 
-- AI Descriptions + Stripe + Push → **~93%**
-- Result Sharing + Study Abroad Tracker → **~95%**
-- Final polish → **~98%**
+```text
+LinkedIn Field          → Talent              → Contact                → IR Investor
+─────────────────────────────────────────────────────────────────────────────────────
+fullName                  full_name              full_name                full_name
+email                     email                  email                    email
+mobileNumber              phone                  phone                    phone
+headline                  custom_profession      designation              title
+linkedinUrl               linkedin_url           linkedin_url             linkedin_url
+companyName               (experience context)   (resolve → company_id)   (resolve → vc_firm_id)
+addressWithCountry        country (parsed)       —                        —
+profilePicHighQuality     profile_photo_url      —                        —
+about                     (bio/summary)          notes                    relationship_summary
+experiences[]             experience (JSONB)     —                        —
+educations[]              education (JSONB)      —                        —
+skills[]                  skills (JSONB)         —                        —
+```
 
-## Completed Infrastructure
+## Implementation
 
-- Certificates with PDF + verification ✅
-- Public SEO (Blog, Courses, Services with JSON-LD) ✅
-- Stripe self-service key config from admin panel ✅
-- Influencing Academy (3 schools, 12 programs, 168 courses, 749 modules) ✅
-- Email notifications (welcome, certificate) ✅
+### 1. Shared Parser Utility — `src/lib/linkedinJsonParser.ts`
+
+A pure TypeScript module with three functions:
+- **`parseLinkedInForTalents(json)`** — Maps each profile to a talent insert object (full_name, email, phone, linkedin_url, custom_profession from headline, country from address, profile_photo_url, education/experience/skills as JSONB arrays)
+- **`parseLinkedInForContacts(json)`** — Maps to contact insert objects (full_name, email, phone, designation from headline, linkedin_url, source = "linkedin_import")
+- **`parseLinkedInForInvestors(json)`** — Maps to investor insert objects (full_name, email, phone, title from headline, linkedin_url)
+
+Each function handles null/missing fields gracefully and returns `{ valid: ParsedRecord[], skipped: SkippedRecord[] }`.
+
+### 2. Reusable Upload Component — `src/components/dashboard/LinkedInJsonUpload.tsx`
+
+A single component used across all three managers. Props:
+- `mode: 'talent' | 'contact' | 'investor'`
+- `onComplete: () => void`
+
+UI flow:
+1. File drop zone / file picker for `.json` files
+2. **Preview table** showing parsed records with validation badges (missing email, missing name, etc.)
+3. Company/VC firm resolution step (for contacts/investors — match `companyName` against existing companies/vc_firms, show unmatched ones)
+4. "Import X records" button with progress bar
+5. Summary: imported count, skipped count, duplicate count (dedup by email + linkedin_url)
+
+### 3. Integration Points
+
+**BatchTalentUpload.tsx** — Add a 3rd tab "LinkedIn JSON" alongside "Upload Files" and "Paste Links", rendering `<LinkedInJsonUpload mode="talent" />`.
+
+**ContactsManager.tsx** — Add an "Import LinkedIn" button next to "Add Contact", opening a dialog with `<LinkedInJsonUpload mode="contact" />`. For company resolution: match `companyName` against existing `companies` table rows (case-insensitive), skip unmatched.
+
+**InvestorsManager.tsx** — Add an "Import LinkedIn" button next to "Add Investor", opening a dialog with `<LinkedInJsonUpload mode="investor" />`. For VC firm resolution: match against `ir_vc_firms` table.
+
+### 4. Deduplication Logic
+
+Before inserting, check existing records:
+- **Talents**: Match by `LOWER(email)` OR `linkedin_url`
+- **Contacts**: Match by `LOWER(email)` AND `company_id`
+- **Investors**: Match by `LOWER(email)`
+
+Duplicates are flagged in the preview (not silently skipped), letting admin choose to skip or update.
+
+## Files to Create/Change
+
+| File | Action | Effort |
+|------|--------|--------|
+| `src/lib/linkedinJsonParser.ts` | Create | Medium |
+| `src/components/dashboard/LinkedInJsonUpload.tsx` | Create | Medium |
+| `src/components/dashboard/BatchTalentUpload.tsx` | Add 3rd tab | Light |
+| `src/components/dashboard/ContactsManager.tsx` | Add import button + dialog | Light |
+| `src/components/dashboard/ir/InvestorsManager.tsx` | Add import button + dialog | Light |
+
+No database migrations needed — all fields already exist in the target tables.
+
