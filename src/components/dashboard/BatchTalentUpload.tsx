@@ -12,7 +12,6 @@ import { Upload, FileText, Link as LinkIcon, Loader2, CheckCircle, XCircle, Aler
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { LinkedInJsonUpload } from "./LinkedInJsonUpload";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface BatchUpload {
   id: string;
