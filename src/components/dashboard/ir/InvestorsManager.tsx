@@ -251,6 +251,10 @@ export function InvestorsManager() {
               ))}
             </SelectContent>
           </Select>
+          <Button variant="outline" onClick={() => setLinkedinImportOpen(true)}>
+            <FileJson2 className="mr-2 h-4 w-4" />
+            Import LinkedIn
+          </Button>
           <Button onClick={() => { resetForm(); setDialogOpen(true); }}>
             <Plus className="mr-2 h-4 w-4" />
             Add Investor

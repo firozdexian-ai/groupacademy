@@ -787,6 +787,16 @@ export function ContactsManager() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* LinkedIn JSON Import Dialog */}
+      <ImportDialog open={linkedinImportOpen} onOpenChange={setLinkedinImportOpen}>
+        <ImportDialogContent className="max-w-lg">
+          <ImportDialogHeader>
+            <ImportDialogTitle>Import Contacts from LinkedIn JSON</ImportDialogTitle>
+          </ImportDialogHeader>
+          <LinkedInJsonUpload mode="contact" onComplete={() => { setLinkedinImportOpen(false); loadData(); }} />
+        </ImportDialogContent>
+      </ImportDialog>
     </div>
   );
 }
