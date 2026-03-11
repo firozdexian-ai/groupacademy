@@ -233,7 +233,18 @@ export function LinkedInJsonUpload({ mode, onComplete }: LinkedInJsonUploadProps
         if (insertData[k] === null || insertData[k] === undefined) delete insertData[k];
       });
 
-      const { error } = await supabase.from(labels.table).insert(insertData);
+      // Use explicit table references to satisfy TypeScript
+      let error: any = null;
+      if (mode === "talent") {
+        const res = await supabase.from("talents").insert(insertData as any);
+        error = res.error;
+      } else if (mode === "contact") {
+        const res = await supabase.from("contacts").insert(insertData as any);
+        error = res.error;
+      } else {
+        const res = await supabase.from("ir_investors").insert(insertData as any);
+        error = res.error;
+      }
 
       if (error) {
         console.error(`Failed to insert ${insertData.full_name}:`, error.message);
