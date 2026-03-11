@@ -122,6 +122,7 @@ export function ContactsManager() {
   const [formData, setFormData] = useState(emptyContact);
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [linkedinImportOpen, setLinkedinImportOpen] = useState(false);
 
   // Fetch Data (Paginated)
   const loadData = useCallback(async () => {
