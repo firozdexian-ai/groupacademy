@@ -1,47 +1,47 @@
 
+# GroUp Academy — Vision Plan
 
-# Update LinkedIn JSON Parser to Support New Leads-Finder Format + Auto-Create Companies/VC Firms
+## Current Completion: ~88%
 
-## What Changes
+| # | Module | Status | % | Next Action |
+|---|--------|--------|---|-------------|
+| 1 | Academy / LMS | ✅ | 95% | Batch video linking |
+| 2 | AI Module Descriptions | 🔧 | 70% | Run batch generator (4,504 pending) |
+| 3 | AI Agents / Chat | ✅ | 90% | Conversation export |
+| 4 | Jobs Hub | ✅ | 90% | Saved job alerts |
+| 5 | Career Services | ✅ | 85% | Result sharing UX |
+| 6 | Feed / Social | ✅ | 95% | Done ✅ |
+| 7 | Study Abroad | ✅ | 80% | Application tracker |
+| 8 | Profile & Onboarding | ✅ | 85% | Profile visibility settings |
+| 9 | Credits & Payments (Stripe) | 🔧 | 75% | Keys infra built ✅ — need keys + test checkout |
+| 10 | Admin Dashboard | ✅ | 90% | Bulk actions |
+| 11 | Notifications | ✅ | 85% | Push notifications |
+| 12 | Public SEO / Marketing | ✅ | 85% | Landing page optimization |
+| 13 | Gigs / Marketplace | ✅ | 80% | Payment for completions |
+| 14 | PWA / Mobile | ✅ | 90% | Done ✅ |
+| 15 | Auth & Security | ✅ | 95% | Done ✅ |
 
-The new crawler uses **snake_case** fields (`first_name`, `linkedin`, `job_title`, `company_name`, `company_website`, `company_linkedin`, `industry`, `city`, `country`, `seniority_level`, `company_size`, `company_description`, `company_founded_year`, etc.) instead of the old camelCase format. It also has richer company data that we can use to auto-create companies and VC firms.
+## Priority Queue
 
-The parser will be updated to **auto-detect** which format is being uploaded (camelCase = old scraper, snake_case = new leads-finder) and handle both seamlessly.
+| # | Task | Current → Target | Effort |
+|---|------|------------------|--------|
+| 1 | Run AI Descriptions | 70% → 100% | Low |
+| 2 | Test Stripe Checkout | 75% → 90% | Low |
+| 3 | Push Notifications | 85% → 95% | Medium |
+| 4 | Result Sharing UX | 85% → 95% | Low |
+| 5 | Study Abroad Tracker | 80% → 90% | Medium |
+| 6 | Landing Page Polish | 85% → 95% | Low-Med |
 
-## Key Improvements
+## Milestones
 
-1. **Auto-detect format** -- check for `first_name` (new) vs `firstName` (old) on the first record
-2. **Richer field mapping** from new format:
-   - `city` + `country` directly available (no parsing needed)
-   - `job_title` and `headline` both present
-   - `seniority_level`, `functional_level` available for talent context
-   - `personal_email` as fallback email
-   - `company_website`, `company_linkedin`, `company_description`, `company_size`, `industry`, `company_founded_year`, `company_phone`, `company_full_address` -- rich company data
-3. **Auto-create companies** during contact import: if `company_name` doesn't match an existing company, create it with enriched data (website, linkedin_url, industry, address, notes from description)
-4. **Auto-create VC firms** during investor import: same logic against `ir_vc_firms` (name, website, linkedin_url)
-5. **Dedup on LinkedIn URL** in addition to email -- already in place, just needs the new `linkedin` field mapped
+- AI Descriptions + Stripe + Push → **~93%**
+- Result Sharing + Study Abroad Tracker → **~95%**
+- Final polish → **~98%**
 
-## Files to Change
+## Completed Infrastructure
 
-| File | Change |
-|------|--------|
-| `src/lib/linkedinJsonParser.ts` | Add format detection + new field mappings for all 3 parse functions |
-| `src/components/dashboard/LinkedInJsonUpload.tsx` | Add auto-create logic for companies/VC firms during import; update drop zone text |
-
-## Technical Details
-
-**Parser changes** (`linkedinJsonParser.ts`):
-- Add new interface `LeadsFinderProfile` with snake_case fields
-- Update `getName()` to check `full_name` then `first_name`+`last_name`
-- Update `getLinkedInUrl()` to check `linkedin` field
-- Update `getPhone()` to check `mobile_number`
-- For talents: map `job_title`/`headline` to `custom_profession`, `city`+`country` directly, `keywords` to skills array, `personal_email` as fallback
-- For contacts: extract `_companyData` object (name, website, linkedin, industry, address, description) for auto-creation
-- For investors: same `_companyData` extraction for VC firm auto-creation
-
-**Upload component changes** (`LinkedInJsonUpload.tsx`):
-- During contact import: for unmatched company names, auto-insert into `companies` table using enriched data, then use returned ID for `company_id`
-- During investor import: for unmatched firm names, auto-insert into `ir_vc_firms` table
-- Dedup companies/VC firms by name (case-insensitive) before creating
-- Update description text to say "LinkedIn Profile Scraper or Leads Finder"
-
+- Certificates with PDF + verification ✅
+- Public SEO (Blog, Courses, Services with JSON-LD) ✅
+- Stripe self-service key config from admin panel ✅
+- Influencing Academy (3 schools, 12 programs, 168 courses, 749 modules) ✅
+- Email notifications (welcome, certificate) ✅

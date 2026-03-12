@@ -1,6 +1,8 @@
-// LinkedIn Profile Scraper JSON → Talent / Contact / Investor parser
+// LinkedIn Profile Scraper / Leads-Finder JSON → Talent / Contact / Investor parser
+// Supports two formats: camelCase (old scraper) and snake_case (new leads-finder)
 
 export interface LinkedInProfile {
+  // Old scraper (camelCase)
   fullName?: string;
   firstName?: string;
   lastName?: string;
@@ -22,7 +24,47 @@ export interface LinkedInProfile {
   companyIndustry?: string | null;
   connections?: number | null;
   isJobSeeker?: boolean | null;
+
+  // New leads-finder (snake_case)
+  full_name?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  mobile_number?: string | null;
+  personal_email?: string | null;
+  linkedin?: string | null;
+  job_title?: string | null;
+  industry?: string | null;
+  seniority_level?: string | null;
+  functional_level?: string | null;
+  company_name?: string | null;
+  company_website?: string | null;
+  company_linkedin?: string | null;
+  company_size?: number | null;
+  company_description?: string | null;
+  company_founded_year?: number | null;
+  company_phone?: string | null;
+  company_full_address?: string | null;
+  company_street_address?: string | null;
+  company_city?: string | null;
+  company_state?: string | null;
+  company_country?: string | null;
+  company_domain?: string | null;
+  city?: string | null;
+  state?: string | null;
+  country?: string | null;
+  keywords?: string | null;
+
   [key: string]: any;
+}
+
+export interface CompanyData {
+  name: string;
+  website?: string | null;
+  linkedin_url?: string | null;
+  industry?: string | null;
+  address?: string | null;
+  notes?: string | null;
+  primary_email?: string | null;
 }
 
 export interface ParsedRecord {
@@ -42,26 +84,85 @@ export interface ParseResult<T = Record<string, any>> {
   skipped: SkippedRecord[];
 }
 
+// ─── FORMAT DETECTION ───────────────────────────────────────
+
+function isLeadsFinderFormat(p: LinkedInProfile): boolean {
+  return 'first_name' in p || 'job_title' in p || ('linkedin' in p && !('linkedinUrl' in p));
+}
+
+// ─── FIELD EXTRACTORS ───────────────────────────────────────
+
 function getName(p: LinkedInProfile): string {
-  return (p.fullName || [p.firstName, p.lastName].filter(Boolean).join(" ") || "").trim();
+  return (
+    p.full_name ||
+    p.fullName ||
+    [p.first_name || p.firstName, p.last_name || p.lastName].filter(Boolean).join(" ") ||
+    ""
+  ).trim();
 }
 
 function getLinkedInUrl(p: LinkedInProfile): string | null {
-  return p.linkedinUrl || p.linkedinPublicUrl || null;
+  return p.linkedin || p.linkedinUrl || p.linkedinPublicUrl || null;
 }
 
 function getPhone(p: LinkedInProfile): string | null {
-  if (!p.mobileNumber) return null;
-  const phone = String(p.mobileNumber).trim();
+  const raw = p.mobile_number ?? p.mobileNumber;
+  if (!raw) return null;
+  const phone = String(raw).trim();
   return phone || null;
 }
 
-function parseCountry(p: LinkedInProfile): string | null {
+function getEmail(p: LinkedInProfile): string | null {
+  const primary = p.email?.trim();
+  if (primary) return primary;
+  const personal = p.personal_email?.trim();
+  if (personal) return personal;
+  return null;
+}
+
+function getCountry(p: LinkedInProfile): string | null {
+  // New format has direct country field
+  if (p.country) return p.country;
+  // Old format: parse from address
   const addr = p.addressCountryOnly || p.addressWithCountry;
   if (!addr) return null;
-  // Take last part after comma as country
   const parts = addr.split(",").map((s) => s.trim());
   return parts[parts.length - 1] || null;
+}
+
+function getCity(p: LinkedInProfile): string | null {
+  return p.city || null;
+}
+
+function getHeadline(p: LinkedInProfile): string | null {
+  return p.headline || p.job_title || p.jobTitle || null;
+}
+
+function getCompanyName(p: LinkedInProfile): string | null {
+  return p.company_name || p.companyName || null;
+}
+
+function extractCompanyData(p: LinkedInProfile): CompanyData | null {
+  const name = getCompanyName(p);
+  if (!name) return null;
+  return {
+    name,
+    website: p.company_website || null,
+    linkedin_url: p.company_linkedin || null,
+    industry: p.industry || p.companyIndustry || null,
+    address: p.company_full_address || p.company_street_address || null,
+    notes: p.company_description || null,
+    primary_email: null,
+  };
+}
+
+function mapKeywordsToSkills(p: LinkedInProfile): string[] | null {
+  // New format: keywords is a comma-separated string
+  if (p.keywords) {
+    return p.keywords.split(",").map((s) => s.trim()).filter(Boolean);
+  }
+  // Old format: skills array
+  return mapSkills(p.skills || []);
 }
 
 function mapEducations(educations: any[]): any[] | null {
@@ -107,21 +208,25 @@ export function parseLinkedInForTalents(profiles: LinkedInProfile[]): ParseResul
     }
 
     const warnings: string[] = [];
-    const email = p.email?.trim();
+    const email = getEmail(p);
 
     if (!email) warnings.push("No email");
+
+    const skills = mapKeywordsToSkills(p);
+    const education = mapEducations(p.educations || []);
+    const experience = mapExperiences(p.experiences || []);
 
     const data: Record<string, any> = {
       full_name: name,
       email: email || `placeholder-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@linkedin-import.local`,
       phone: getPhone(p),
       linkedin_url: getLinkedInUrl(p),
-      custom_profession: p.headline || null,
-      country: parseCountry(p),
+      custom_profession: getHeadline(p),
+      country: getCountry(p),
       profile_photo_url: p.profilePicHighQuality || p.profilePic || null,
-      education: mapEducations(p.educations || []),
-      experience: mapExperiences(p.experiences || []),
-      skills: mapSkills(p.skills || []),
+      education,
+      experience,
+      skills,
       current_status: p.isJobSeeker ? "job_seeking" : null,
     };
 
@@ -153,17 +258,19 @@ export function parseLinkedInForContacts(profiles: LinkedInProfile[]): ParseResu
     }
 
     const warnings: string[] = [];
-    if (!p.email) warnings.push("No email");
+    const email = getEmail(p);
+    if (!email) warnings.push("No email");
 
     const data: Record<string, any> = {
       full_name: name,
-      email: p.email?.trim() || null,
+      email: email || null,
       phone: getPhone(p),
-      designation: p.headline || p.jobTitle || null,
+      designation: getHeadline(p),
       linkedin_url: getLinkedInUrl(p),
       source: "linkedin_import",
       notes: p.about || null,
-      _companyName: p.companyName || null, // for resolution
+      _companyName: getCompanyName(p),
+      _companyData: extractCompanyData(p),
     };
 
     valid.push({ data, warnings, raw: p });
@@ -186,17 +293,19 @@ export function parseLinkedInForInvestors(profiles: LinkedInProfile[]): ParseRes
     }
 
     const warnings: string[] = [];
-    if (!p.email) warnings.push("No email");
+    const email = getEmail(p);
+    if (!email) warnings.push("No email");
 
     const data: Record<string, any> = {
       full_name: name,
-      email: p.email?.trim() || null,
+      email: email || null,
       phone: getPhone(p),
-      title: p.headline || p.jobTitle || null,
+      title: getHeadline(p),
       linkedin_url: getLinkedInUrl(p),
       relationship_summary: p.about || null,
       subscription_status: "pending",
-      _companyName: p.companyName || null, // for VC firm resolution
+      _companyName: getCompanyName(p),
+      _companyData: extractCompanyData(p),
     };
 
     valid.push({ data, warnings, raw: p });
