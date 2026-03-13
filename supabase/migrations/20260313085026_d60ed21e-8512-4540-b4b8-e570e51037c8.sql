@@ -1,0 +1,1 @@
+ALTER TABLE public.outreach_messages ADD COLUMN IF NOT EXISTS channel text NOT NULL DEFAULT 'whatsapp';

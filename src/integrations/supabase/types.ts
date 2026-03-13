@@ -3665,6 +3665,7 @@ export type Database = {
       }
       outreach_messages: {
         Row: {
+          channel: string
           course_id: string | null
           created_at: string | null
           id: string
@@ -3676,6 +3677,7 @@ export type Database = {
           talent_id: string
         }
         Insert: {
+          channel?: string
           course_id?: string | null
           created_at?: string | null
           id?: string
@@ -3687,6 +3689,7 @@ export type Database = {
           talent_id: string
         }
         Update: {
+          channel?: string
           course_id?: string | null
           created_at?: string | null
           id?: string
