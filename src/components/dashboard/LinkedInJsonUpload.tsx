@@ -361,7 +361,7 @@ export function LinkedInJsonUpload({ mode, onComplete }: LinkedInJsonUploadProps
       onComplete?.();
     }
     if (companiesCreated > 0) toast.success(`${companiesCreated} new ${mode === "investor" ? "VC firms" : "companies"} created`);
-    if (duplicates > 0) toast.info(`${duplicates} duplicates skipped`);
+    if (duplicates > 0) toast.info(`${duplicates} duplicates enriched`);
     if (failed > 0) toast.error(`${failed} failed to import`);
   };
 
