@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import {
   Search, Users, MessageSquare, Download, RefreshCw, Eye, Loader2, Briefcase,
   ChevronLeft, ChevronRight, Hand, Check, Mic, Banknote, ClipboardCheck,
-  Globe, Filter, MoreHorizontal, FileText, Phone, UserPlus, Mail, Upload,
+  Globe, Filter, MoreHorizontal, FileText, Phone, UserPlus, Mail, Upload, Linkedin, Copy,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { BatchTalentUpload } from "./BatchTalentUpload";
