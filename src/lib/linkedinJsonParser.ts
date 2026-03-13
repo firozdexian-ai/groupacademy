@@ -121,9 +121,7 @@ function getEmail(p: LinkedInProfile): string | null {
 }
 
 function getCountry(p: LinkedInProfile): string | null {
-  // New format has direct country field
   if (p.country) return p.country;
-  // Old format: parse from address
   const addr = p.addressCountryOnly || p.addressWithCountry;
   if (!addr) return null;
   const parts = addr.split(",").map((s) => s.trim());
@@ -157,11 +155,9 @@ function extractCompanyData(p: LinkedInProfile): CompanyData | null {
 }
 
 function mapKeywordsToSkills(p: LinkedInProfile): string[] | null {
-  // New format: keywords is a comma-separated string
   if (p.keywords) {
     return p.keywords.split(",").map((s) => s.trim()).filter(Boolean);
   }
-  // Old format: skills array
   return mapSkills(p.skills || []);
 }
 
@@ -194,6 +190,31 @@ function mapSkills(skills: any[]): any[] | null {
   return skills.map((s) => (typeof s === "string" ? s : s.name || s.skill || String(s)));
 }
 
+// ─── PROFESSION EXTRACTION ─────────────────────────────────
+
+const SENIORITY_PREFIXES = [
+  'sr\\.?', 'senior', 'jr\\.?', 'junior', 'lead', 'principal', 'chief',
+  'head of', 'director of', 'vp of', 'vice president of',
+  'associate', 'assistant', 'staff', 'executive', 'managing',
+];
+const SENIORITY_REGEX = new RegExp(`^(${SENIORITY_PREFIXES.join('|')})\\s+`, 'i');
+const COMPANY_SPLIT_REGEX = /\s+(?:at|@|[-–—]|,)\s+/i;
+
+/**
+ * Extracts a clean profession from a raw headline / job_title.
+ * "Sr. Software Engineer at Google" → "Software Engineer"
+ * "Managing Director - Acme Corp" → "Director"
+ */
+export function extractProfession(raw: string | null): string | null {
+  if (!raw) return null;
+  // Strip company context
+  let profession = raw.split(COMPANY_SPLIT_REGEX)[0].trim();
+  // Strip seniority prefixes (up to 2 passes for "Senior Lead …")
+  profession = profession.replace(SENIORITY_REGEX, '').trim();
+  profession = profession.replace(SENIORITY_REGEX, '').trim();
+  return profession || raw;
+}
+
 // ─── TALENTS ────────────────────────────────────────────────
 
 export function parseLinkedInForTalents(profiles: LinkedInProfile[]): ParseResult {
@@ -215,13 +236,14 @@ export function parseLinkedInForTalents(profiles: LinkedInProfile[]): ParseResul
     const skills = mapKeywordsToSkills(p);
     const education = mapEducations(p.educations || []);
     const experience = mapExperiences(p.experiences || []);
+    const rawHeadline = getHeadline(p);
 
     const data: Record<string, any> = {
       full_name: name,
       email: email || `placeholder-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@linkedin-import.local`,
       phone: getPhone(p),
       linkedin_url: getLinkedInUrl(p),
-      custom_profession: getHeadline(p),
+      custom_profession: extractProfession(rawHeadline),
       country: getCountry(p),
       profile_photo_url: p.profilePicHighQuality || p.profilePic || null,
       education,
@@ -237,6 +259,10 @@ export function parseLinkedInForTalents(profiles: LinkedInProfile[]): ParseResul
     }
 
     if (!email) data._hasPlaceholderEmail = true;
+    // Store original headline for reference
+    if (rawHeadline && rawHeadline !== data.custom_profession) {
+      data._originalHeadline = rawHeadline;
+    }
 
     valid.push({ data, warnings, raw: p });
   }
