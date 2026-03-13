@@ -277,18 +277,37 @@ export function LinkedInJsonUpload({ mode, onComplete }: LinkedInJsonUploadProps
       const email = insertData.email?.toLowerCase();
       const linkedin = insertData.linkedin_url;
 
-      if (mode === "talent") {
-        if ((email && !_hasPlaceholderEmail && existingEmails.has(email)) || (linkedin && existingLinkedins.has(linkedin))) {
-          duplicates++;
-          setImportProgress(((i + 1) / selected.length) * 100);
-          continue;
+      // Duplicate detection + enrichment
+      const isDuplicate = mode === "talent"
+        ? ((email && !_hasPlaceholderEmail && existingEmails.has(email)) || (linkedin && existingLinkedins.has(linkedin)))
+        : ((email && existingEmails.has(email)) || (linkedin && existingLinkedins.has(linkedin)));
+
+      if (isDuplicate) {
+        // Enrich the existing record instead of skipping
+        try {
+          const enrichFields: Record<string, any> = {};
+          Object.entries(insertData).forEach(([k, v]) => {
+            if (v !== null && v !== undefined && v !== '' && k !== 'email' && k !== 'full_name') {
+              enrichFields[k] = v;
+            }
+          });
+
+          if (Object.keys(enrichFields).length > 0) {
+            const table = mode === "talent" ? "talents" : mode === "contact" ? "contacts" : "ir_investors";
+            let enrichQuery;
+            if (email && existingEmails.has(email)) {
+              enrichQuery = supabase.from(table).update(enrichFields as any).eq("email", email);
+            } else if (linkedin && existingLinkedins.has(linkedin)) {
+              enrichQuery = supabase.from(table).update(enrichFields as any).eq("linkedin_url", linkedin);
+            }
+            if (enrichQuery) await enrichQuery;
+          }
+        } catch (enrichErr) {
+          console.error("Enrich failed:", enrichErr);
         }
-      } else {
-        if ((email && existingEmails.has(email)) || (linkedin && existingLinkedins.has(linkedin))) {
-          duplicates++;
-          setImportProgress(((i + 1) / selected.length) * 100);
-          continue;
-        }
+        duplicates++;
+        setImportProgress(((i + 1) / selected.length) * 100);
+        continue;
       }
 
       // Resolve or auto-create company/firm
