@@ -96,7 +96,7 @@ export function TalentPoolManager() {
   const [error, setError] = useState<string | null>(null);
 
   // KPI State
-  const [kpiStats, setKpiStats] = useState({ total: 0, newThisWeek: 0, withCV: 0, withoutPhone: 0, registered: 0, uploaded: 0 });
+  const [kpiStats, setKpiStats] = useState({ total: 0, newThisWeek: 0, withCV: 0, withoutPhone: 0, registered: 0, uploaded: 0, noEmail: 0, contacted: 0, unreached: 0 });
 
   // Pagination & Search & Filters
   const [page, setPage] = useState(1);
