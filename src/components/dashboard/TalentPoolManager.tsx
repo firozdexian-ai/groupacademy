@@ -213,9 +213,9 @@ export function TalentPoolManager() {
     try {
       const { data } = await supabase
         .from("outreach_messages")
-        .select("id, talent_id, product, sent_at")
+        .select("id, talent_id, product, sent_at, channel")
         .in("talent_id", talentIds);
-      setOutreachRecords(data || []);
+      setOutreachRecords((data as unknown as OutreachRecord[]) || []);
     } catch (err) {
       console.error("Error loading outreach records:", err);
     }
