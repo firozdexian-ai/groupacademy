@@ -399,8 +399,11 @@ export function TalentDetailDialog({
                   {/* Multi-channel outreach actions */}
                   <div className="p-3 rounded-lg border bg-muted/30 space-y-2">
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Quick Outreach</p>
+                    {isPlaceholderEmail(talent.email) && (
+                      <Badge className="text-[10px] bg-blue-600/10 text-blue-700 border-blue-200 mb-1">LinkedIn Only — No real email</Badge>
+                    )}
                     <div className="flex flex-wrap gap-2">
-                      {talent.email && (
+                      {hasRealEmail && (
                         <Button variant="outline" size="sm" onClick={() => sendOutreachViaChannel('welcome', 'email')}>
                           <Mail className="h-3.5 w-3.5 mr-1 text-blue-600" />Email Invite
                         </Button>
