@@ -208,6 +208,19 @@ export function TalentDetailDialog({
     toast.success("Copied to clipboard");
   };
 
+  const isPlaceholderEmail = (email: string) =>
+    !email || email.includes("placeholder") || email.includes("noemail") || email.includes("no-email") || email.endsWith("@linkedin.com");
+
+  const hasRealEmail = talent ? !isPlaceholderEmail(talent.email) : false;
+
+  const getChannelIcon = (channel: string) => {
+    switch (channel) {
+      case 'email': return <Mail className="h-4 w-4 text-blue-600" />;
+      case 'linkedin': return <Linkedin className="h-4 w-4 text-blue-700" />;
+      default: return <MessageSquare className="h-4 w-4 text-green-600" />;
+    }
+  };
+
   const sendOutreachViaChannel = async (product: OutreachProduct, channel: 'email' | 'linkedin') => {
     if (!talent) return;
     const firstName = extractFirstName(talent.full_name);
