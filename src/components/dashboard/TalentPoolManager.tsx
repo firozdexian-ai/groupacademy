@@ -464,24 +464,26 @@ export function TalentPoolManager() {
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           {/* Email & LinkedIn outreach for phoneless talents */}
-          {talent.email && !hasPhone && (
-            <DropdownMenuItem onClick={() => {
+          {talent.email && !isPlaceholderEmail(talent.email) && !hasPhone && (
+            <DropdownMenuItem onClick={async () => {
               const firstName = extractFirstName(talent.full_name);
               const link = getOutreachEmailLink(talent.email, 'welcome', firstName);
               window.open(link, '_blank');
-              supabase.from("outreach_messages").insert({ talent_id: talent.id, product: 'welcome', message_content: 'Email invite', channel: 'email' } as any);
+              await supabase.from("outreach_messages").insert({ talent_id: talent.id, product: 'welcome', message_content: 'Email invite', channel: 'email' } as any);
+              await loadOutreachRecords(talents.map(t => t.id));
               toast.success("Email invite opened");
             }}>
               <Mail className="w-4 h-4 mr-2 text-blue-600" /> Email Invite
             </DropdownMenuItem>
           )}
           {talent.linkedin_url && !hasPhone && (
-            <DropdownMenuItem onClick={() => {
+            <DropdownMenuItem onClick={async () => {
               const firstName = extractFirstName(talent.full_name);
               const message = getOutreachLinkedInMessage('welcome', firstName);
               navigator.clipboard.writeText(message);
               window.open(talent.linkedin_url!, '_blank');
-              supabase.from("outreach_messages").insert({ talent_id: talent.id, product: 'welcome', message_content: 'LinkedIn invite', channel: 'linkedin' } as any);
+              await supabase.from("outreach_messages").insert({ talent_id: talent.id, product: 'welcome', message_content: 'LinkedIn invite', channel: 'linkedin' } as any);
+              await loadOutreachRecords(talents.map(t => t.id));
               toast.success("LinkedIn message copied — paste in DM");
             }}>
               <Linkedin className="w-4 h-4 mr-2 text-blue-700" /> LinkedIn Invite
