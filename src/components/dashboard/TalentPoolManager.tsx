@@ -71,6 +71,10 @@ interface ProfessionCategory {
 }
 
 type SourceFilter = "all" | "registered" | "uploaded";
+type EmailFilter = "all" | "has_email" | "linkedin_only";
+
+const isPlaceholderEmail = (email: string) =>
+  !email || email.includes("placeholder") || email.includes("noemail") || email.includes("no-email") || email.endsWith("@linkedin.com");
 
 const ITEMS_PER_PAGE = 10;
 
