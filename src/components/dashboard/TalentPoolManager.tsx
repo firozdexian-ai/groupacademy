@@ -443,6 +443,19 @@ export function TalentPoolManager() {
     return <Badge className="text-[10px] px-1.5 py-0 bg-amber-600/10 text-amber-700 border-amber-200">Uploaded</Badge>;
   };
 
+  // Outreach status badge for table
+  const renderOutreachBadge = (talent: Talent) => {
+    const last = getLastOutreachForTalent(talent.id);
+    if (!last) return <span className="text-xs text-muted-foreground">—</span>;
+    const daysSince = Math.floor((Date.now() - new Date(last.sent_at).getTime()) / 86400000);
+    return (
+      <div className="flex items-center gap-1">
+        {getChannelIcon(last.channel)}
+        <span className="text-xs text-muted-foreground">{daysSince === 0 ? 'Today' : `${daysSince}d ago`}</span>
+      </div>
+    );
+  };
+
   // Renders the actions dropdown for a talent row
   const renderActionsDropdown = (talent: Talent) => {
     const hasPhone = !!talent.phone;
