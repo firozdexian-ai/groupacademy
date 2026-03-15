@@ -226,6 +226,20 @@ export function TalentPoolManager() {
     return record?.sent_at || null;
   };
 
+  const getLastOutreachForTalent = (talentId: string) => {
+    const records = outreachRecords.filter(r => r.talent_id === talentId);
+    if (records.length === 0) return null;
+    return records.sort((a, b) => new Date(b.sent_at).getTime() - new Date(a.sent_at).getTime())[0];
+  };
+
+  const getChannelIcon = (channel: string) => {
+    switch (channel) {
+      case 'email': return <Mail className="h-3 w-3 text-blue-600" />;
+      case 'linkedin': return <Linkedin className="h-3 w-3 text-blue-700" />;
+      default: return <MessageSquare className="h-3 w-3 text-green-600" />;
+    }
+  };
+
   const sendProductOutreach = async (talent: Talent, product: OutreachProduct) => {
     if (!talent.phone) {
       toast.error("No phone number available");
