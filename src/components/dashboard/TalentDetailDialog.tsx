@@ -446,8 +446,17 @@ export function TalentDetailDialog({
                               <p className="font-medium text-sm">{template.name}</p>
                               <p className="text-xs text-muted-foreground">
                                 {sentAt ? `Sent on ${format(new Date(sentAt), 'MMM d, yyyy')}` : 'Not pitched yet'}
-                                {channels.length > 0 && ` via ${[...new Set(channels)].join(', ')}`}
                               </p>
+                              {channels.length > 0 && (
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                  {[...new Set(channels)].map(ch => (
+                                    <div key={ch} className="flex items-center gap-0.5">
+                                      {getChannelIcon(ch)}
+                                      <span className="text-[10px] text-muted-foreground capitalize">{ch}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           </div>
                           <div className="flex items-center gap-1">
