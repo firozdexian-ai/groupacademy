@@ -208,6 +208,19 @@ export function TalentDetailDialog({
     toast.success("Copied to clipboard");
   };
 
+  const isPlaceholderEmail = (email: string) =>
+    !email || email.includes("placeholder") || email.includes("noemail") || email.includes("no-email") || email.endsWith("@linkedin.com");
+
+  const hasRealEmail = talent ? !isPlaceholderEmail(talent.email) : false;
+
+  const getChannelIcon = (channel: string) => {
+    switch (channel) {
+      case 'email': return <Mail className="h-4 w-4 text-blue-600" />;
+      case 'linkedin': return <Linkedin className="h-4 w-4 text-blue-700" />;
+      default: return <MessageSquare className="h-4 w-4 text-green-600" />;
+    }
+  };
+
   const sendOutreachViaChannel = async (product: OutreachProduct, channel: 'email' | 'linkedin') => {
     if (!talent) return;
     const firstName = extractFirstName(talent.full_name);
@@ -386,8 +399,11 @@ export function TalentDetailDialog({
                   {/* Multi-channel outreach actions */}
                   <div className="p-3 rounded-lg border bg-muted/30 space-y-2">
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Quick Outreach</p>
+                    {isPlaceholderEmail(talent.email) && (
+                      <Badge className="text-[10px] bg-blue-600/10 text-blue-700 border-blue-200 mb-1">LinkedIn Only — No real email</Badge>
+                    )}
                     <div className="flex flex-wrap gap-2">
-                      {talent.email && (
+                      {hasRealEmail && (
                         <Button variant="outline" size="sm" onClick={() => sendOutreachViaChannel('welcome', 'email')}>
                           <Mail className="h-3.5 w-3.5 mr-1 text-blue-600" />Email Invite
                         </Button>
@@ -430,14 +446,23 @@ export function TalentDetailDialog({
                               <p className="font-medium text-sm">{template.name}</p>
                               <p className="text-xs text-muted-foreground">
                                 {sentAt ? `Sent on ${format(new Date(sentAt), 'MMM d, yyyy')}` : 'Not pitched yet'}
-                                {channels.length > 0 && ` via ${[...new Set(channels)].join(', ')}`}
                               </p>
+                              {channels.length > 0 && (
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                  {[...new Set(channels)].map(ch => (
+                                    <div key={ch} className="flex items-center gap-0.5">
+                                      {getChannelIcon(ch)}
+                                      <span className="text-[10px] text-muted-foreground capitalize">{ch}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           </div>
                           <div className="flex items-center gap-1">
                             {!sentAt && (
                               <>
-                                {talent.email && (
+                                {hasRealEmail && (
                                   <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => sendOutreachViaChannel(product, 'email')} title="Send via Email">
                                     <Mail className="h-3.5 w-3.5 text-blue-600" />
                                   </Button>

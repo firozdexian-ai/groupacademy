@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import {
   Search, Users, MessageSquare, Download, RefreshCw, Eye, Loader2, Briefcase,
   ChevronLeft, ChevronRight, Hand, Check, Mic, Banknote, ClipboardCheck,
-  Globe, Filter, MoreHorizontal, FileText, Phone, UserPlus, Mail, Upload, Linkedin, Copy,
+  Globe, Filter, MoreHorizontal, FileText, Phone, UserPlus, Mail, Upload, Linkedin, Copy, Send,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { BatchTalentUpload } from "./BatchTalentUpload";
@@ -62,6 +62,7 @@ interface OutreachRecord {
   talent_id: string;
   product: string;
   sent_at: string;
+  channel: string;
 }
 
 interface ProfessionCategory {
@@ -70,6 +71,10 @@ interface ProfessionCategory {
 }
 
 type SourceFilter = "all" | "registered" | "uploaded";
+type EmailFilter = "all" | "has_email" | "linkedin_only";
+
+const isPlaceholderEmail = (email: string) =>
+  !email || email.includes("placeholder") || email.includes("noemail") || email.includes("no-email") || email.endsWith("@linkedin.com");
 
 const ITEMS_PER_PAGE = 10;
 
@@ -91,7 +96,7 @@ export function TalentPoolManager() {
   const [error, setError] = useState<string | null>(null);
 
   // KPI State
-  const [kpiStats, setKpiStats] = useState({ total: 0, newThisWeek: 0, withCV: 0, withoutPhone: 0, registered: 0, uploaded: 0 });
+  const [kpiStats, setKpiStats] = useState({ total: 0, newThisWeek: 0, withCV: 0, withoutPhone: 0, registered: 0, uploaded: 0, noEmail: 0, contacted: 0, unreached: 0 });
 
   // Pagination & Search & Filters
   const [page, setPage] = useState(1);
@@ -100,6 +105,7 @@ export function TalentPoolManager() {
   const [countryFilter, setCountryFilter] = useState<string>("all");
   const [outreachFilter, setOutreachFilter] = useState<string>("all");
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
+  const [emailFilter, setEmailFilter] = useState<EmailFilter>("all");
   const debouncedSearch = useDebounce(searchQuery, 500);
 
   // UI State
@@ -117,14 +123,17 @@ export function TalentPoolManager() {
       const oneWeekAgo = new Date();
       oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
-      const [totalRes, newRes, cvRes, noPhoneRes, registeredRes, uploadedRes] = await Promise.all([
+      const [totalRes, newRes, cvRes, noPhoneRes, registeredRes, uploadedRes, noEmailRes, contactedRes] = await Promise.all([
         supabase.from("talents").select("*", { count: "exact", head: true }),
         supabase.from("talents").select("*", { count: "exact", head: true }).gte("created_at", oneWeekAgo.toISOString()),
         supabase.from("talents").select("*", { count: "exact", head: true }).not("cv_url", "is", null),
         supabase.from("talents").select("*", { count: "exact", head: true }).is("phone", null),
         supabase.from("talents").select("*", { count: "exact", head: true }).not("user_id", "is", null),
         supabase.from("talents").select("*", { count: "exact", head: true }).is("user_id", null),
+        supabase.from("talents").select("*", { count: "exact", head: true }).or("email.ilike.%placeholder%,email.ilike.%noemail%,email.ilike.%@linkedin.com"),
+        supabase.from("outreach_messages").select("talent_id", { count: "exact", head: false }).gte("sent_at", oneWeekAgo.toISOString()),
       ]);
+      const contactedThisWeek = new Set((contactedRes.data || []).map((r: any) => r.talent_id)).size;
       setKpiStats({
         total: totalRes.count || 0,
         newThisWeek: newRes.count || 0,
@@ -132,6 +141,9 @@ export function TalentPoolManager() {
         withoutPhone: noPhoneRes.count || 0,
         registered: registeredRes.count || 0,
         uploaded: uploadedRes.count || 0,
+        noEmail: noEmailRes.count || 0,
+        contacted: contactedThisWeek,
+        unreached: (totalRes.count || 0) - contactedThisWeek,
       });
     } catch (err) {
       console.error("Error loading KPI stats:", err);
@@ -201,9 +213,9 @@ export function TalentPoolManager() {
     try {
       const { data } = await supabase
         .from("outreach_messages")
-        .select("id, talent_id, product, sent_at")
+        .select("id, talent_id, product, sent_at, channel")
         .in("talent_id", talentIds);
-      setOutreachRecords(data || []);
+      setOutreachRecords((data as unknown as OutreachRecord[]) || []);
     } catch (err) {
       console.error("Error loading outreach records:", err);
     }
@@ -212,6 +224,20 @@ export function TalentPoolManager() {
   const getOutreachSentAt = (talentId: string, product: OutreachProduct): string | null => {
     const record = outreachRecords.find((r) => r.talent_id === talentId && r.product === product);
     return record?.sent_at || null;
+  };
+
+  const getLastOutreachForTalent = (talentId: string) => {
+    const records = outreachRecords.filter(r => r.talent_id === talentId);
+    if (records.length === 0) return null;
+    return records.sort((a, b) => new Date(b.sent_at).getTime() - new Date(a.sent_at).getTime())[0];
+  };
+
+  const getChannelIcon = (channel: string) => {
+    switch (channel) {
+      case 'email': return <Mail className="h-3 w-3 text-blue-600" />;
+      case 'linkedin': return <Linkedin className="h-3 w-3 text-blue-700" />;
+      default: return <MessageSquare className="h-3 w-3 text-green-600" />;
+    }
   };
 
   const sendProductOutreach = async (talent: Talent, product: OutreachProduct) => {
@@ -290,7 +316,7 @@ export function TalentPoolManager() {
 
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, countryFilter, outreachFilter, sourceFilter]);
+  }, [debouncedSearch, countryFilter, outreachFilter, sourceFilter, emailFilter]);
 
   const getProfessionName = (categoryId: string | null, customProfession: string | null) => {
     if (customProfession) return customProfession;
@@ -389,8 +415,12 @@ export function TalentPoolManager() {
     toast.success(`CSV exported (${exportAll ? "All Filtered" : "Current Page"} — ${rows.length} rows)`);
   };
 
-  // Client-side filtering for outreach products (no_portfolio, no_mock, etc.)
+  // Client-side filtering for outreach products and email filter
   const filteredTalents = talents.filter((talent) => {
+    // Email filter
+    if (emailFilter === "has_email" && isPlaceholderEmail(talent.email)) return false;
+    if (emailFilter === "linkedin_only" && !isPlaceholderEmail(talent.email)) return false;
+
     if (outreachFilter === "all" || outreachFilter === "no_welcome") return true;
     const talentOutreach = outreachRecords.filter((r) => r.talent_id === talent.id);
     const hasOutreachFor = (product: string) => talentOutreach.some((r) => r.product === product);
@@ -411,6 +441,19 @@ export function TalentPoolManager() {
       return <Badge className="text-[10px] px-1.5 py-0 bg-green-600/10 text-green-700 border-green-200">Registered</Badge>;
     }
     return <Badge className="text-[10px] px-1.5 py-0 bg-amber-600/10 text-amber-700 border-amber-200">Uploaded</Badge>;
+  };
+
+  // Outreach status badge for table
+  const renderOutreachBadge = (talent: Talent) => {
+    const last = getLastOutreachForTalent(talent.id);
+    if (!last) return <span className="text-xs text-muted-foreground">—</span>;
+    const daysSince = Math.floor((Date.now() - new Date(last.sent_at).getTime()) / 86400000);
+    return (
+      <div className="flex items-center gap-1">
+        {getChannelIcon(last.channel)}
+        <span className="text-xs text-muted-foreground">{daysSince === 0 ? 'Today' : `${daysSince}d ago`}</span>
+      </div>
+    );
   };
 
   // Renders the actions dropdown for a talent row
@@ -438,24 +481,26 @@ export function TalentPoolManager() {
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           {/* Email & LinkedIn outreach for phoneless talents */}
-          {talent.email && !hasPhone && (
-            <DropdownMenuItem onClick={() => {
+          {talent.email && !isPlaceholderEmail(talent.email) && !hasPhone && (
+            <DropdownMenuItem onClick={async () => {
               const firstName = extractFirstName(talent.full_name);
               const link = getOutreachEmailLink(talent.email, 'welcome', firstName);
               window.open(link, '_blank');
-              supabase.from("outreach_messages").insert({ talent_id: talent.id, product: 'welcome', message_content: 'Email invite', channel: 'email' } as any);
+              await supabase.from("outreach_messages").insert({ talent_id: talent.id, product: 'welcome', message_content: 'Email invite', channel: 'email' } as any);
+              await loadOutreachRecords(talents.map(t => t.id));
               toast.success("Email invite opened");
             }}>
               <Mail className="w-4 h-4 mr-2 text-blue-600" /> Email Invite
             </DropdownMenuItem>
           )}
           {talent.linkedin_url && !hasPhone && (
-            <DropdownMenuItem onClick={() => {
+            <DropdownMenuItem onClick={async () => {
               const firstName = extractFirstName(talent.full_name);
               const message = getOutreachLinkedInMessage('welcome', firstName);
               navigator.clipboard.writeText(message);
               window.open(talent.linkedin_url!, '_blank');
-              supabase.from("outreach_messages").insert({ talent_id: talent.id, product: 'welcome', message_content: 'LinkedIn invite', channel: 'linkedin' } as any);
+              await supabase.from("outreach_messages").insert({ talent_id: talent.id, product: 'welcome', message_content: 'LinkedIn invite', channel: 'linkedin' } as any);
+              await loadOutreachRecords(talents.map(t => t.id));
               toast.success("LinkedIn message copied — paste in DM");
             }}>
               <Linkedin className="w-4 h-4 mr-2 text-blue-700" /> LinkedIn Invite
@@ -527,6 +572,8 @@ export function TalentPoolManager() {
         <Badge variant="secondary" className="text-xs">{getProfessionName(talent.profession_category_id, talent.custom_profession)}</Badge>
         {talent.cv_url && <Badge variant="outline" className="text-xs">Has CV</Badge>}
         {talent.welcome_sent_at && <Badge className="text-xs bg-green-600/10 text-green-700 border-green-200">Welcome ✓</Badge>}
+        {isPlaceholderEmail(talent.email) && <Badge className="text-[10px] px-1.5 py-0 bg-blue-600/10 text-blue-700 border-blue-200">LinkedIn Only</Badge>}
+        {renderOutreachBadge(talent)}
       </div>
       <p className="text-xs text-muted-foreground">Updated {new Date(talent.updated_at).toLocaleDateString()}</p>
     </div>
@@ -589,6 +636,37 @@ export function TalentPoolManager() {
             <div>
               <p className="text-xl font-bold">{kpiStats.withoutPhone}</p>
               <p className="text-xs text-muted-foreground">No Phone</p>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* Outreach KPIs */}
+      <div className="grid grid-cols-3 gap-3">
+        <Card className="p-3">
+          <div className="flex items-center gap-2">
+            <Mail className="h-4 w-4 text-destructive" />
+            <div>
+              <p className="text-xl font-bold">{kpiStats.noEmail}</p>
+              <p className="text-xs text-muted-foreground">No Real Email</p>
+            </div>
+          </div>
+        </Card>
+        <Card className="p-3">
+          <div className="flex items-center gap-2">
+            <Send className="h-4 w-4 text-green-600" />
+            <div>
+              <p className="text-xl font-bold">{kpiStats.contacted}</p>
+              <p className="text-xs text-muted-foreground">Contacted This Week</p>
+            </div>
+          </div>
+        </Card>
+        <Card className="p-3">
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-amber-600" />
+            <div>
+              <p className="text-xl font-bold">{kpiStats.unreached}</p>
+              <p className="text-xs text-muted-foreground">Unreached</p>
             </div>
           </div>
         </Card>
@@ -686,8 +764,21 @@ export function TalentPoolManager() {
                   </SelectContent>
                 </Select>
               </div>
-              {(countryFilter !== "all" || outreachFilter !== "all" || sourceFilter !== "all") && (
-                <Button variant="ghost" size="sm" onClick={() => { setCountryFilter("all"); setOutreachFilter("all"); setSourceFilter("all"); }} className="text-muted-foreground shrink-0">
+              <div className="flex-1">
+                <Label className="text-xs text-muted-foreground mb-1 block">Email Status</Label>
+                <Select value={emailFilter} onValueChange={(v) => setEmailFilter(v as EmailFilter)}>
+                  <SelectTrigger className="bg-background">
+                    <SelectValue placeholder="All" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover z-50">
+                    <SelectItem value="all">All Emails</SelectItem>
+                    <SelectItem value="has_email">Has Real Email</SelectItem>
+                    <SelectItem value="linkedin_only">LinkedIn Only</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {(countryFilter !== "all" || outreachFilter !== "all" || sourceFilter !== "all" || emailFilter !== "all") && (
+                <Button variant="ghost" size="sm" onClick={() => { setCountryFilter("all"); setOutreachFilter("all"); setSourceFilter("all"); setEmailFilter("all"); }} className="text-muted-foreground shrink-0">
                   Clear
                 </Button>
               )}
@@ -727,7 +818,8 @@ export function TalentPoolManager() {
                         <TableHead>Contact</TableHead>
                         <TableHead>Country</TableHead>
                         <TableHead>Profession</TableHead>
-                        <TableHead>Source</TableHead>
+                         <TableHead>Source</TableHead>
+                        <TableHead>Outreach</TableHead>
                         <TableHead>Updated</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
@@ -748,7 +840,13 @@ export function TalentPoolManager() {
                             ) : <span className="text-xs text-muted-foreground">—</span>}
                           </TableCell>
                           <TableCell><Badge variant="secondary">{getProfessionName(talent.profession_category_id, talent.custom_profession)}</Badge></TableCell>
-                          <TableCell>{renderSourceBadge(talent)}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1.5">
+                              {renderSourceBadge(talent)}
+                              {isPlaceholderEmail(talent.email) && <Badge className="text-[10px] px-1 py-0 bg-blue-600/10 text-blue-700 border-blue-200">LinkedIn Only</Badge>}
+                            </div>
+                          </TableCell>
+                          <TableCell>{renderOutreachBadge(talent)}</TableCell>
                           <TableCell className="text-sm text-muted-foreground">{new Date(talent.updated_at).toLocaleDateString()}</TableCell>
                           <TableCell className="text-right">{renderActionsDropdown(talent)}</TableCell>
                         </TableRow>
