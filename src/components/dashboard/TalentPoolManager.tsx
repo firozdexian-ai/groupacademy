@@ -639,6 +639,37 @@ export function TalentPoolManager() {
         </Card>
       </div>
 
+      {/* Outreach KPIs */}
+      <div className="grid grid-cols-3 gap-3">
+        <Card className="p-3">
+          <div className="flex items-center gap-2">
+            <Mail className="h-4 w-4 text-destructive" />
+            <div>
+              <p className="text-xl font-bold">{kpiStats.noEmail}</p>
+              <p className="text-xs text-muted-foreground">No Real Email</p>
+            </div>
+          </div>
+        </Card>
+        <Card className="p-3">
+          <div className="flex items-center gap-2">
+            <Send className="h-4 w-4 text-green-600" />
+            <div>
+              <p className="text-xl font-bold">{kpiStats.contacted}</p>
+              <p className="text-xs text-muted-foreground">Contacted This Week</p>
+            </div>
+          </div>
+        </Card>
+        <Card className="p-3">
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-amber-600" />
+            <div>
+              <p className="text-xl font-bold">{kpiStats.unreached}</p>
+              <p className="text-xs text-muted-foreground">Unreached</p>
+            </div>
+          </div>
+        </Card>
+      </div>
+
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between flex-wrap gap-3">
