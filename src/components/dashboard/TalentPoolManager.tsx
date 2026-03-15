@@ -818,7 +818,8 @@ export function TalentPoolManager() {
                         <TableHead>Contact</TableHead>
                         <TableHead>Country</TableHead>
                         <TableHead>Profession</TableHead>
-                        <TableHead>Source</TableHead>
+                         <TableHead>Source</TableHead>
+                        <TableHead>Outreach</TableHead>
                         <TableHead>Updated</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
