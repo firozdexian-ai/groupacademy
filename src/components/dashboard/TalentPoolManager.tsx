@@ -105,6 +105,7 @@ export function TalentPoolManager() {
   const [countryFilter, setCountryFilter] = useState<string>("all");
   const [outreachFilter, setOutreachFilter] = useState<string>("all");
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
+  const [emailFilter, setEmailFilter] = useState<EmailFilter>("all");
   const debouncedSearch = useDebounce(searchQuery, 500);
 
   // UI State
