@@ -572,6 +572,8 @@ export function TalentPoolManager() {
         <Badge variant="secondary" className="text-xs">{getProfessionName(talent.profession_category_id, talent.custom_profession)}</Badge>
         {talent.cv_url && <Badge variant="outline" className="text-xs">Has CV</Badge>}
         {talent.welcome_sent_at && <Badge className="text-xs bg-green-600/10 text-green-700 border-green-200">Welcome ✓</Badge>}
+        {isPlaceholderEmail(talent.email) && <Badge className="text-[10px] px-1.5 py-0 bg-blue-600/10 text-blue-700 border-blue-200">LinkedIn Only</Badge>}
+        {renderOutreachBadge(talent)}
       </div>
       <p className="text-xs text-muted-foreground">Updated {new Date(talent.updated_at).toLocaleDateString()}</p>
     </div>
