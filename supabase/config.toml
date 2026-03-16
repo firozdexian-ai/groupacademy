@@ -116,3 +116,6 @@ verify_jwt = false
 
 [functions.batch-generate-descriptions]
 verify_jwt = false
+
+[functions.ai-support-assistant]
+verify_jwt = false
