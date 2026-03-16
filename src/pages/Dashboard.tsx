@@ -402,6 +402,7 @@ const Dashboard = () => {
       "ir-investors": "Investors",
       "ir-emails": "Email Updates",
       payments: "Payment Settings",
+      "support-assistant": "AI Support Assistant",
     };
     return titles[activeTab] || "Dashboard";
   };
