@@ -175,6 +175,7 @@ const navGroups: NavGroup[] = [
     icon: Settings,
     roles: ["admin"],
     items: [
+      { title: "Support AI", icon: Sparkles, value: "support-assistant" },
       { title: "Access Codes", icon: Key, value: "codes" },
       { title: "Banners", icon: ImageIcon, value: "banners" },
       { title: "Team Members", icon: UserCog, value: "team" },
