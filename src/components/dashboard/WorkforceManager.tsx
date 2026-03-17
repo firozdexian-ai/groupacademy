@@ -13,6 +13,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Search, Users, Plus, RefreshCw, Loader2, Coins, TrendingUp, UserCog, Link2 } from "lucide-react";
 
+type WorkforceRoleType = Database["public"]["Enums"]["workforce_role_type"];
+
 const ROLE_LABELS: Record<string, string> = {
   country_director: "Country Director",
   head_of_ta: "Head of TA",
