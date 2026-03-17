@@ -50,6 +50,7 @@ import { InvestorsManager } from "@/components/dashboard/ir/InvestorsManager";
 import { EmailComposer } from "@/components/dashboard/ir/EmailComposer";
 import { PaymentSettingsManager } from "@/components/dashboard/PaymentSettingsManager";
 import { SupportAssistant } from "@/components/dashboard/SupportAssistant";
+import { WorkforceManager } from "@/components/dashboard/WorkforceManager";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
