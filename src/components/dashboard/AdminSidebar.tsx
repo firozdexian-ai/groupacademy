@@ -37,6 +37,7 @@ import {
   Mail,
   CreditCard,
   Factory,
+  Network,
 } from "lucide-react";
 import {
   Sidebar,
