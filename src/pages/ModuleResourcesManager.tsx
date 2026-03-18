@@ -222,7 +222,7 @@ export default function ModuleResourcesManager() {
       setModule(moduleData);
 
       // Load existing resources with timeout
-      const { data: resourcesData } = await withTimeout(
+      const { data: resourcesData, error: resourcesError } = await withTimeout(
         Promise.resolve(supabase
           .from("module_resources")
           .select("*")
@@ -232,6 +232,11 @@ export default function ModuleResourcesManager() {
         TIMEOUTS.DEFAULT,
         "Loading resources timed out"
       );
+
+      if (resourcesError) {
+        console.error("Error loading resources:", resourcesError);
+        throw resourcesError;
+      }
 
       if (resourcesData) {
         const loadedResources = resourcesData.map(r => ({
