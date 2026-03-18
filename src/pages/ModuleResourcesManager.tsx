@@ -487,9 +487,12 @@ export default function ModuleResourcesManager() {
     let successCount = 0;
     let errorCount = 0;
     
-    for (let i = 0; i < resources.length; i++) {
-      const resource = resources[i];
-      const resourceKey = getResourceKey(resource, i);
+    // Snapshot current resources to avoid stale closure issues
+    const currentResources = [...resources];
+    
+    for (let i = 0; i < currentResources.length; i++) {
+      const resource = currentResources[i];
+      const resourceKey = resource.id || `temp-${i}`;
       const state = saveStates[resourceKey];
       
       // Save if unsaved, error, or no state (new resource)
@@ -511,6 +514,11 @@ export default function ModuleResourcesManager() {
       }
     } else {
       toast.info("All resources are already saved");
+    }
+    
+    // Reload from database to ensure local state matches persisted data
+    if (successCount > 0) {
+      await loadData();
     }
     
     setSaving(false);
