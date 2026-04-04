@@ -119,3 +119,6 @@ verify_jwt = false
 
 [functions.ai-support-assistant]
 verify_jwt = false
+
+[functions.ai-auth-agent]
+verify_jwt = false

@@ -16,7 +16,8 @@ import { TalentAppShell } from "./layouts/TalentAppShell";
 
 // Public Pages
 import Index from "./pages/Index";
-import Auth from "./pages/Auth";
+import AuthChat from "./pages/AuthChat";
+import AuthClassic from "./pages/AuthClassic";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import PublicJobDetail from "./pages/PublicJobDetail";
@@ -183,7 +184,8 @@ export default function App() {
                 <Routes>
                   {/* ================= PUBLIC ROUTES ================= */}
                   <Route path="/" element={<Index />} />
-                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/auth" element={<AuthChat />} />
+                  <Route path="/auth/classic" element={<AuthClassic />} />
                   <Route path="/reset-password" element={<ResetPassword />} />
 
                   {/* Public Job View */}
