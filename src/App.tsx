@@ -16,7 +16,8 @@ import { TalentAppShell } from "./layouts/TalentAppShell";
 
 // Public Pages
 import Index from "./pages/Index";
-import Auth from "./pages/Auth";
+import AuthChat from "./pages/AuthChat";
+import AuthClassic from "./pages/AuthClassic";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import PublicJobDetail from "./pages/PublicJobDetail";
