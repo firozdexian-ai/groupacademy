@@ -1588,6 +1588,30 @@ export function JobsManager() {
                 ))}
               </SelectContent>
             </Select>
+            <Select
+              value={appTypeFilter}
+              onValueChange={(v) => {
+                setAppTypeFilter(v);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-[150px]">
+                <LinkIcon className="w-3 h-3 mr-1" />
+                <SelectValue placeholder="App Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="link">
+                  <span className="flex items-center gap-1.5"><ExternalLink className="w-3 h-3" /> Link</span>
+                </SelectItem>
+                <SelectItem value="email">
+                  <span className="flex items-center gap-1.5"><Mail className="w-3 h-3" /> Email</span>
+                </SelectItem>
+                <SelectItem value="internal">
+                  <span className="flex items-center gap-1.5"><Building2 className="w-3 h-3" /> Internal</span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardHeader>
         <CardContent>
