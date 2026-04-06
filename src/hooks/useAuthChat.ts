@@ -98,8 +98,9 @@ export function useAuthChat() {
     const step = context.step as string;
     switch (step) {
       case "welcome":
+        // Removed Bangla text here
         return {
-          reply: "স্বাগতম! Welcome to GroUp Academy! 😊 I'm Aisha, your guide. What's your email address?",
+          reply: "Welcome to GroUp Academy! 😊 I'm Aisha, your guide. To get started, what's your email address?",
           action: "collect_email",
           quiz: null,
         };
@@ -119,12 +120,16 @@ export function useAuthChat() {
         return { reply: "Let's create your account! What's your full name?", action: "collect_name", quiz: null };
       case "name_collected":
         return {
-          reply: "Great! Now, your phone number please — we'll use it for WhatsApp updates.",
+          reply: "Great! Now, your phone number please — we'll use it for updates.",
           action: "collect_phone",
           quiz: null,
         };
       case "phone_collected":
-        return { reply: "Quick human check! 🧮 What is 7 + 5?", action: "verify_human", quiz: { answer: "12" } };
+        return {
+          reply: "Quick human check! What is the opposite of hot?",
+          action: "verify_human",
+          quiz: { answer: "cold" },
+        };
       case "quiz_passed":
         return {
           reply: "You're human! 🎉 Now create a strong password (at least 8 characters).",
@@ -152,7 +157,7 @@ export function useAuthChat() {
           quiz: null,
         };
       default:
-        return { reply: "What's your email address?", action: "collect_email", quiz: null };
+        return { reply: "Let's continue. What's your email address?", action: "collect_email", quiz: null };
     }
   };
 
@@ -161,7 +166,8 @@ export function useAuthChat() {
     try {
       const response = await callAgent({ step: "welcome", flow: null });
       addMessage("assistant", response.reply);
-      setCurrentAction(response.action);
+      // Force it to collect_email if the AI agent returned something generic
+      setCurrentAction(response.action === "welcome" ? "collect_email" : response.action);
     } finally {
       setIsLoading(false);
     }
@@ -170,8 +176,7 @@ export function useAuthChat() {
   const checkEmail = useCallback(
     async (email: string): Promise<{ exists: boolean; hasUserId: boolean; talentName?: string }> => {
       try {
-        // Replaced direct RLS-blocked select with the secure RPC
-        const { data, error } = await supabase.rpc("check_auth_email" as any, {
+        const { data, error } = await supabase.rpc("check_auth_email", {
           lookup_email: email.trim().toLowerCase(),
         });
 
@@ -180,7 +185,6 @@ export function useAuthChat() {
           return { exists: false, hasUserId: false };
         }
 
-        // Supabase RPC returns the JSON object we defined
         const result = data as unknown as { exists: boolean; hasUserId: boolean; talentName: string | null };
 
         return {
@@ -210,6 +214,13 @@ export function useAuthChat() {
         switch (currentAction) {
           case "collect_email": {
             const email = trimmed.toLowerCase();
+            // Basic format validation
+            if (!email.includes("@")) {
+              addMessage("assistant", "That doesn't look like an email address. Please enter a valid email.");
+              setCurrentAction("collect_email");
+              break;
+            }
+
             setCollectedData((prev) => ({ ...prev, email }));
 
             const emailResult = await checkEmail(email);
@@ -261,8 +272,8 @@ export function useAuthChat() {
           }
 
           case "verify_human": {
-            const userAnswer = trimmed.replace(/\s/g, "");
-            const correctAnswer = quiz?.answer?.replace(/\s/g, "");
+            const userAnswer = trimmed.toLowerCase().replace(/[^a-z0-9]/g, "");
+            const correctAnswer = quiz?.answer?.toLowerCase().replace(/[^a-z0-9]/g, "");
 
             if (userAnswer === correctAnswer) {
               const response = await callAgent({ step: "quiz_passed", flow });
@@ -280,7 +291,7 @@ export function useAuthChat() {
 
           case "collect_password":
           case "set_password": {
-            break;
+            break; // Handled directly by handleSubmit
           }
 
           default: {
@@ -294,6 +305,10 @@ export function useAuthChat() {
                 addMessage("assistant", response.reply);
                 setCurrentAction("collect_email");
               }
+            } else {
+              // If we are in an unknown state (like just typing "hi"), force it back to email collection
+              addMessage("assistant", "To help you proceed, please enter your email address.");
+              setCurrentAction("collect_email");
             }
             break;
           }
