@@ -167,7 +167,7 @@ export default function ReportCard() {
         try {
           const { sendTransactionalEmail } = await import("@/lib/emailNotifications");
           sendTransactionalEmail({
-            type: "service_complete",
+            template: "service-complete",
             talentId: reportData.enrollment.talent_id,
             data: {
               service_name: "Certificate",
