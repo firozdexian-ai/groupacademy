@@ -15,40 +15,43 @@ interface ProtectedRouteProps {
   children: React.ReactNode;
   requireAdmin?: boolean;
   requireAnyAdminRole?: boolean;
+  // Added to respect the user's preferred auth flow
+  authType?: "ai" | "classic";
 }
 
 export const ProtectedRoute = ({
   children,
   requireAdmin = false,
   requireAnyAdminRole = false,
+  authType = "ai",
 }: ProtectedRouteProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isPWA } = usePWADetect();
   const [isChecking, setIsChecking] = useState(true);
   const [isAuthorized, setIsAuthorized] = useState(false);
-  const [userRole, setUserRole] = useState<AppRole | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Use ref to track if we've already checked auth to prevent double-firing
   const checkedRef = useRef(false);
-
-  // Use centralized timeout config - PWA users get longer timeout
   const authTimeout = isPWA ? TIMEOUTS.PWA_AUTH : TIMEOUTS.AUTH;
 
-  const clearSessionAndRedirect = useCallback(async () => {
-    try {
-      await supabase.auth.signOut();
-    } catch (e) {
-      console.warn("Error during session cleanup:", e);
-    }
-    // Use window.location to avoid React dependency cycles
-    const returnUrl = window.location.pathname + window.location.search;
-    navigate(`/auth/classic?returnTo=${encodeURIComponent(returnUrl)}`, { replace: true });
-  }, [navigate]);
+  const handleRedirect = useCallback(
+    async (clearSession = true) => {
+      if (clearSession) {
+        try {
+          await supabase.auth.signOut();
+        } catch (e) {
+          console.warn(e);
+        }
+      }
+      const returnUrl = location.pathname + location.search;
+      const loginPath = authType === "classic" ? "/auth/classic" : "/auth";
+      navigate(`${loginPath}?returnTo=${encodeURIComponent(returnUrl)}`, { replace: true });
+    },
+    [navigate, location, authType],
+  );
 
   const checkAuth = useCallback(async () => {
-    // Prevent re-checking if we are already authorized (unless error handling)
     if (checkedRef.current && isAuthorized) return;
 
     setIsChecking(true);
@@ -59,133 +62,73 @@ export const ProtectedRoute = ({
         setTimeout(() => reject(new Error("Auth check timed out")), authTimeout),
       );
 
-      let session;
-      try {
-        const sessionPromise = supabase.auth.getSession();
-        const result = (await Promise.race([sessionPromise, timeoutPromise])) as Awaited<typeof sessionPromise>;
-        session = result.data.session;
-      } catch (sessionErr: unknown) {
-        const errorMessage = sessionErr instanceof Error ? sessionErr.message : String(sessionErr);
-        const isInvalidToken =
-          errorMessage.includes("refresh_token_not_found") ||
-          errorMessage.includes("Invalid Refresh Token") ||
-          errorMessage.includes("Refresh Token Not Found");
+      const {
+        data: { session },
+        error: sessionError,
+      } = (await Promise.race([supabase.auth.getSession(), timeoutPromise])) as any;
 
-        if (isInvalidToken) {
-          console.log("[ProtectedRoute] Invalid refresh token, clearing session...");
-          await clearSessionAndRedirect();
-          return;
-        }
-        throw sessionErr;
-      }
+      if (sessionError) throw sessionError;
 
       if (!session) {
-        const returnUrl = window.location.pathname + window.location.search;
-        navigate(`/auth/classic?returnTo=${encodeURIComponent(returnUrl)}`, { replace: true });
+        await handleRedirect(false);
         return;
       }
 
-      // Check for admin role specifically
-      if (requireAdmin) {
-        const { data: roleData } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", session.user.id)
-          .eq("role", "admin")
-          .maybeSingle();
+      // Role check logic
+      if (requireAdmin || requireAnyAdminRole) {
+        const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", session.user.id);
 
-        if (!roleData) {
+        const userRoles = (roles || []).map((r) => r.role);
+
+        if (requireAdmin && !userRoles.includes("admin")) {
           toast.error("Admin access required");
           navigate("/app/learning");
           return;
         }
-        setUserRole("admin");
-      }
 
-      // Check for any admin-level role (admin OR talent_exec)
-      if (requireAnyAdminRole) {
-        const { data: roleData } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", session.user.id)
-          .in("role", ["admin", "talent_exec"]);
-
-        if (!roleData || roleData.length === 0) {
+        if (requireAnyAdminRole && !userRoles.some((r) => ["admin", "talent_exec"].includes(r))) {
           toast.error("Dashboard access required");
           navigate("/app/learning");
           return;
         }
-
-        const hasAdmin = roleData.some((r) => r.role === "admin");
-        setUserRole(hasAdmin ? "admin" : "talent_exec");
       }
 
       setIsAuthorized(true);
       checkedRef.current = true;
-    } catch (err) {
-      console.error("Auth check error:", err);
+    } catch (err: any) {
+      console.error("[ProtectedRoute] Error:", err);
 
-      const errorMessage = err instanceof Error ? err.message : String(err);
-      const isSessionError =
-        errorMessage.includes("refresh_token") || errorMessage.includes("Invalid") || errorMessage.includes("session");
-
-      if (isSessionError && errorMessage !== "Auth check timed out") {
-        await clearSessionAndRedirect();
+      if (err.message?.includes("refresh_token") || err.status === 400) {
+        await handleRedirect(true);
         return;
       }
 
-      const displayError =
-        err instanceof Error && err.message === "Auth check timed out"
-          ? "Authorization check timed out"
-          : "Authentication error";
-      setError(displayError);
+      setError(err.message === "Auth check timed out" ? "Connection timed out" : "Authentication error");
     } finally {
       setIsChecking(false);
     }
-    // FIX: Removed 'location' from dependencies to prevent re-runs on navigation
-  }, [navigate, requireAdmin, requireAnyAdminRole, authTimeout, clearSessionAndRedirect]);
+  }, [requireAdmin, requireAnyAdminRole, authTimeout, handleRedirect, navigate, isAuthorized]);
 
   useEffect(() => {
     checkAuth();
-
-    // Listen for auth state changes to handle session expiration
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_OUT" || !session) {
-        navigate("/auth/classic");
-        return;
-      }
-
-      if (event === "TOKEN_REFRESHED" && !session) {
-        console.log("[ProtectedRoute] Token refresh failed, redirecting to auth");
-        navigate("/auth/classic");
+      if (event === "SIGNED_OUT" || (event === "TOKEN_REFRESHED" && !session)) {
+        handleRedirect(false);
       }
     });
-
     return () => subscription.unsubscribe();
-  }, [checkAuth, navigate]);
+  }, [checkAuth, handleRedirect]);
 
   if (isChecking) {
-    if (isPWA) {
-      return (
-        <div className="min-h-screen bg-background flex flex-col items-center justify-center">
-          <img src={logoIcon} alt="GroUp Academy" className="w-16 h-16 mb-4 animate-pulse" />
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-            <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-            <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
-          </div>
-          <p className="text-muted-foreground text-sm mt-4">Loading...</p>
-        </div>
-      );
-    }
-
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Checking authorization...</p>
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+        <img src={logoIcon} alt="GroUp" className="w-12 h-12 mb-6 animate-pulse opacity-50" />
+        <div className="flex gap-1.5">
+          <div className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]" />
+          <div className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]" />
+          <div className="w-2 h-2 bg-primary rounded-full animate-bounce" />
         </div>
       </div>
     );
@@ -193,25 +136,24 @@ export const ProtectedRoute = ({
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <p className="text-destructive font-medium">{error}</p>
-          <p className="text-muted-foreground text-sm">Please try again or sign in.</p>
-          <div className="flex gap-3 justify-center">
+      <div className="min-h-screen flex items-center justify-center p-6 bg-background">
+        <div className="text-center max-w-sm">
+          <p className="text-destructive font-semibold mb-2">{error}</p>
+          <p className="text-muted-foreground text-sm mb-6">
+            We couldn't verify your session. This might be due to a poor connection.
+          </p>
+          <div className="grid grid-cols-2 gap-3">
             <Button
+              variant="outline"
               onClick={() => {
                 checkedRef.current = false;
                 checkAuth();
               }}
-              variant="outline"
-              size="sm"
             >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Retry
+              <RefreshCw className="h-4 w-4 mr-2" /> Retry
             </Button>
-            <Button onClick={() => navigate("/auth/classic")} size="sm">
-              <LogIn className="h-4 w-4 mr-2" />
-              Sign In
+            <Button onClick={() => handleRedirect(true)}>
+              <LogIn className="h-4 w-4 mr-2" /> Sign In
             </Button>
           </div>
         </div>
@@ -219,53 +161,39 @@ export const ProtectedRoute = ({
     );
   }
 
-  if (!isAuthorized) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-muted-foreground">Redirecting...</p>
-        </div>
-      </div>
-    );
-  }
-
-  return <>{children}</>;
+  return isAuthorized ? <>{children}</> : null;
 };
 
-// Export hook for getting user role
+// Optimized Role Hook with caching
 export const useUserRole = () => {
   const [role, setRole] = useState<AppRole | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let mounted = true;
     const fetchRole = async () => {
-      try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        if (!session) {
-          setIsLoading(false);
-          return;
-        }
-
-        const { data: roleData } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", session.user.id)
-          .in("role", ["admin", "talent_exec"]);
-
-        if (roleData && roleData.length > 0) {
-          const hasAdmin = roleData.some((r) => r.role === "admin");
-          setRole(hasAdmin ? "admin" : "talent_exec");
-        }
-      } catch (error) {
-        console.error("Error fetching role:", error);
-      } finally {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session || !mounted) {
         setIsLoading(false);
+        return;
       }
+
+      const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", session.user.id);
+
+      if (mounted && roles) {
+        const roleNames = roles.map((r) => r.role);
+        if (roleNames.includes("admin")) setRole("admin");
+        else if (roleNames.includes("talent_exec")) setRole("talent_exec");
+      }
+      setIsLoading(false);
     };
 
     fetchRole();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   return { role, isLoading };
