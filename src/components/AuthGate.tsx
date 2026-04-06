@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,134 +12,92 @@ interface AuthGateProps {
   children: React.ReactNode;
   redirectTo?: string;
   message?: string;
+  // Added to support the AI vs Classic preference
+  authType?: "ai" | "classic";
 }
 
-export function AuthGate({ children, redirectTo, message }: AuthGateProps) {
+export function AuthGate({ children, redirectTo, message, authType = "ai" }: AuthGateProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { isPWA } = usePWADetect();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [seconds, setSeconds] = useState(0);
 
-  // Use appropriate timeout based on PWA status
   const authTimeout = isPWA ? TIMEOUTS.PWA_AUTH : TIMEOUTS.AUTH;
 
-  const clearSessionAndRedirect = useCallback(async () => {
-    try {
-      await supabase.auth.signOut();
-    } catch (e) {
-      console.warn("Error during session cleanup:", e);
-    }
-    const returnUrl = redirectTo || window.location.pathname;
-    // Standardized to returnTo and classic auth
-    navigate(`/auth/classic?returnTo=${encodeURIComponent(returnUrl)}`);
-  }, [navigate, redirectTo]);
+  const handleRedirect = useCallback(() => {
+    const returnUrl = redirectTo || location.pathname + location.search;
+    const loginPath = authType === "classic" ? "/auth/classic" : "/auth";
+    navigate(`${loginPath}?returnTo=${encodeURIComponent(returnUrl)}`);
+  }, [navigate, redirectTo, location, authType]);
 
   const checkAuth = useCallback(async () => {
     setLoading(true);
     setError(null);
-    setSeconds(0);
 
     try {
-      // Race between getSession and timeout
-      const sessionPromise = supabase.auth.getSession();
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error("timeout")), authTimeout);
-      });
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
 
-      try {
-        const {
-          data: { session },
-        } = await Promise.race([sessionPromise, timeoutPromise]);
-        setUser(session?.user ?? null);
-      } catch (sessionErr: unknown) {
-        // Check if this is an invalid refresh token error
-        const errorMessage = sessionErr instanceof Error ? sessionErr.message : String(sessionErr);
-        const isInvalidToken =
-          errorMessage.includes("refresh_token_not_found") ||
-          errorMessage.includes("Invalid Refresh Token") ||
-          errorMessage.includes("Refresh Token Not Found");
+      if (sessionError) throw sessionError;
 
-        if (isInvalidToken) {
-          console.log("[AuthGate] Invalid refresh token, clearing session...");
-          await clearSessionAndRedirect();
-          return;
-        }
-        throw sessionErr;
-      }
-    } catch (err) {
-      console.error("Auth check error:", err);
-
-      // Check if timeout
-      const errorMessage = err instanceof Error ? err.message : String(err);
-      if (errorMessage === "timeout") {
-        setError("Connection timed out. Please check your network and try again.");
-      } else {
-        setError("Unable to verify your session. Please try again.");
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [authTimeout, clearSessionAndRedirect]);
-
-  useEffect(() => {
-    // Set up auth listener first
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("[AuthGate] Auth state changed:", event);
-
-      if (event === "SIGNED_OUT") {
+      if (!session) {
         setUser(null);
-        setLoading(false);
-        setError(null);
+      } else {
+        setUser(session.user);
+      }
+    } catch (err: any) {
+      console.error("[AuthGate] Auth check error:", err);
+
+      // Standardize session clearing for expired/invalid tokens
+      if (err.message?.includes("refresh_token_not_found") || err.status === 400) {
+        await supabase.auth.signOut();
+        handleRedirect();
         return;
       }
 
-      setUser(session?.user ?? null);
+      setError("Unable to verify your session. Please check your connection.");
+    } finally {
       setLoading(false);
-      setError(null);
+    }
+  }, [handleRedirect]);
+
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT") {
+        setUser(null);
+        setLoading(false);
+      } else if (session) {
+        setUser(session.user);
+        setLoading(false);
+      }
     });
 
-    // Then check current session with timeout
     checkAuth();
-
     return () => subscription.unsubscribe();
   }, [checkAuth]);
 
-  // Progressive loading timer
+  // Progressive loading timer logic
   useEffect(() => {
     if (!loading) return;
-
-    const interval = setInterval(() => {
-      setSeconds((s) => s + 1);
-    }, 1000);
-
+    const interval = setInterval(() => setSeconds((s) => s + 1), 1000);
     return () => clearInterval(interval);
   }, [loading]);
-
-  // Get progressive message
-  const getLoadingMessage = () => {
-    if (seconds < 5) return "Checking authentication...";
-    if (seconds < 10) return "Connecting to server...";
-    if (seconds < 15) return "Still working...";
-    return "This is taking longer than expected...";
-  };
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4 text-center px-4">
-          <div className="relative">
-            <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            {seconds >= 5 && (
-              <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-amber-500 rounded-full flex items-center justify-center">
-                <span className="text-[10px] text-white font-bold">{seconds}s</span>
-              </div>
-            )}
-          </div>
-          <p className="text-muted-foreground">{getLoadingMessage()}</p>
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          <p className="text-muted-foreground">
+            {seconds > 10 ? "This is taking a bit longer..." : "Verifying your access..."}
+          </p>
         </div>
       </div>
     );
@@ -148,21 +106,18 @@ export function AuthGate({ children, redirectTo, message }: AuthGateProps) {
   if (error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Card className="max-w-md w-full">
+        <Card className="max-w-md w-full border-destructive/20 shadow-lg">
           <CardHeader className="text-center">
-            <div className="w-14 h-14 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-2">
-              <AlertCircle className="h-7 w-7 text-destructive" />
-            </div>
-            <CardTitle>Connection Issue</CardTitle>
+            <AlertCircle className="h-10 w-10 text-destructive mx-auto mb-2" />
+            <CardTitle>Session Error</CardTitle>
             <CardDescription>{error}</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
             <Button onClick={checkAuth} className="w-full">
-              <RefreshCw className="mr-2 h-4 w-4" />
               Try Again
             </Button>
-            <Button variant="outline" onClick={() => navigate("/auth/classic")} className="w-full">
-              Go to Login
+            <Button variant="outline" onClick={handleRedirect} className="w-full">
+              Return to Login
             </Button>
           </CardContent>
         </Card>
@@ -171,29 +126,22 @@ export function AuthGate({ children, redirectTo, message }: AuthGateProps) {
   }
 
   if (!user) {
-    const returnUrl = redirectTo || window.location.pathname;
-
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Card className="max-w-md w-full">
+        <Card className="max-w-md w-full shadow-xl">
           <CardHeader className="text-center">
-            <CardTitle className="flex items-center justify-center gap-2">
-              <LogIn className="h-5 w-5" />
-              Sign In Required
-            </CardTitle>
-            <CardDescription>
-              {message || "Please sign in to access this service. It only takes a moment."}
-            </CardDescription>
+            <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <LogIn className="h-6 w-6 text-primary" />
+            </div>
+            <CardTitle>Unlock GroUp Academy</CardTitle>
+            <CardDescription>{message || "Please sign in to continue your career journey."}</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
-            <Button
-              onClick={() => navigate(`/auth/classic?returnTo=${encodeURIComponent(returnUrl)}`)}
-              className="w-full"
-            >
-              Sign In to Continue
+            <Button onClick={handleRedirect} className="w-full py-6 text-lg font-semibold">
+              Sign In Now
             </Button>
-            <Button variant="outline" onClick={() => navigate("/")} className="w-full">
-              Go to Homepage
+            <Button variant="ghost" onClick={() => navigate("/")} className="w-full">
+              Back to Home
             </Button>
           </CardContent>
         </Card>
