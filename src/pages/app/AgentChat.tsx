@@ -106,8 +106,6 @@ export default function AgentChat() {
           }}
           messages={messages}
           isStreaming={isStreaming}
-          timeRemaining={0}
-          isSessionExpired={false}
           onSendMessage={sendMessage}
           onBack={handleBack}
           onEndSession={handleEndSession}
