@@ -1031,6 +1031,7 @@ export function JobsManager() {
   const [countryCounts, setCountryCounts] = useState<{ name: string; flag: string; count: number }[]>([]);
   const [filteredCompaniesList, setFilteredCompaniesList] = useState<{ id: string; name: string }[]>([]);
   const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
+  const [appTypeFilter, setAppTypeFilter] = useState<string>("all");
 
   const COUNTRY_ALIASES: Record<string, string[]> = useMemo(() => ({
     "United Arab Emirates": ["UAE", "United Arab Emirates", "Dubai", "Abu Dhabi"],
