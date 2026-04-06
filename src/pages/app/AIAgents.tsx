@@ -85,8 +85,8 @@ export default function AIAgents() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<AgentCategory>("all");
 
-  const { recentSessions, startNewSession, isLoadingSessions } = useAgentChat();
-  const { balance, deductCredits } = useCredits();
+  const { recentSessions, startOrResumeSession, isLoadingSessions } = useAgentChat();
+  const { balance } = useCredits();
 
   // Fetch agents from database
   const { data: dbAgents, isLoading: isLoadingAgents } = useQuery({
