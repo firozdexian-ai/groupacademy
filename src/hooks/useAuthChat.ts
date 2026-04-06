@@ -170,20 +170,23 @@ export function useAuthChat() {
   const checkEmail = useCallback(
     async (email: string): Promise<{ exists: boolean; hasUserId: boolean; talentName?: string }> => {
       try {
-        const { data, error } = await supabase
-          .from("talents")
-          .select("id, full_name, user_id")
-          .eq("email", email.trim().toLowerCase())
-          .limit(1);
+        // Replaced direct RLS-blocked select with the secure RPC
+        const { data, error } = await supabase.rpc("check_auth_email", {
+          lookup_email: email.trim().toLowerCase(),
+        });
 
-        if (error || !data || data.length === 0) {
+        if (error || !data) {
+          console.error("Email check error:", error);
           return { exists: false, hasUserId: false };
         }
 
+        // Supabase RPC returns the JSON object we defined
+        const result = data as unknown as { exists: boolean; hasUserId: boolean; talentName: string | null };
+
         return {
-          exists: true,
-          hasUserId: !!data[0].user_id,
-          talentName: data[0].full_name,
+          exists: result.exists,
+          hasUserId: result.hasUserId,
+          talentName: result.talentName || undefined,
         };
       } catch {
         return { exists: false, hasUserId: false };
