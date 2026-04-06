@@ -204,10 +204,6 @@ export default function AIAgents() {
     navigate(`/app/agents/${selectedAgentKey}`);
     setShowCreditGate(false);
   };
-    } else {
-      setShowCreditGate(false);
-    }
-  };
 
   const selectedAgent = selectedAgentKey ? agents.find((a) => a.agent_key === selectedAgentKey) : null;
   const hasCompanyAgents = agents.some((a) => a.isCompanyAgent);
