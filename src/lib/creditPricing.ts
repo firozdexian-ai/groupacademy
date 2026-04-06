@@ -41,8 +41,8 @@ export const CREDIT_CONFIG = {
     },
     AI_AGENT_CHAT: {
       name: 'AI Agent Session',
-      cost: 10,
-      description: 'Chat with AI career experts'
+      cost: 1,
+      description: 'Per-response credit charge for AI agent chat'
     },
     SUGGESTED_JOBS: {
       name: 'AI Job Suggestions',
