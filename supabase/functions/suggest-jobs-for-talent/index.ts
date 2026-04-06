@@ -11,7 +11,6 @@ const corsHeaders = {
 function extractKeywords(talent: any): string[] {
   const keywords: Set<string> = new Set();
 
-  // Skill names
   if (Array.isArray(talent.skills)) {
     for (const s of talent.skills) {
       const name = typeof s === "string" ? s : s?.name;
@@ -19,14 +18,12 @@ function extractKeywords(talent: any): string[] {
     }
   }
 
-  // Job titles from experience
   if (Array.isArray(talent.experience)) {
     for (const e of talent.experience) {
       if (e?.title) keywords.add(e.title.toLowerCase());
     }
   }
 
-  // Fields of study from education
   if (Array.isArray(talent.education)) {
     for (const e of talent.education) {
       if (e?.field) keywords.add(e.field.toLowerCase());
@@ -34,12 +31,10 @@ function extractKeywords(talent: any): string[] {
     }
   }
 
-  // Custom profession
   if (talent.custom_profession) {
     keywords.add(talent.custom_profession.toLowerCase());
   }
 
-  // Job preferences keywords
   if (talent.job_preferences) {
     const prefs = typeof talent.job_preferences === "string"
       ? JSON.parse(talent.job_preferences)
@@ -51,10 +46,36 @@ function extractKeywords(talent: any): string[] {
     }
   }
 
-  // Filter out very short or generic terms
   return Array.from(keywords)
     .filter((k) => k.length >= 3 && !["the", "and", "for", "not"].includes(k))
     .slice(0, 20);
+}
+
+/** Country alias map for location matching */
+const COUNTRY_ALIASES: Record<string, string[]> = {
+  "Bangladesh": ["Bangladesh", "BD", "Dhaka", "Chittagong", "Chattogram"],
+  "United Arab Emirates": ["UAE", "United Arab Emirates", "Dubai", "Abu Dhabi", "AE"],
+  "United Kingdom": ["UK", "United Kingdom", "England", "Scotland", "Wales", "London", "GB"],
+  "United States": ["USA", "United States", "US"],
+  "India": ["India", "IN", "Mumbai", "Delhi", "Bangalore", "Bengaluru"],
+  "Saudi Arabia": ["Saudi Arabia", "KSA", "SA", "Riyadh", "Jeddah"],
+  "Canada": ["Canada", "CA", "Toronto", "Vancouver"],
+  "Australia": ["Australia", "AU", "Sydney", "Melbourne"],
+  "Singapore": ["Singapore", "SG"],
+  "Malaysia": ["Malaysia", "MY", "Kuala Lumpur"],
+  "Qatar": ["Qatar", "QA", "Doha"],
+  "Kuwait": ["Kuwait", "KW"],
+};
+
+function getCountryAliases(country: string): string[] {
+  if (!country) return [];
+  const upper = country.toUpperCase().trim();
+  for (const [canonical, aliases] of Object.entries(COUNTRY_ALIASES)) {
+    if (aliases.some(a => a.toUpperCase() === upper)) {
+      return aliases;
+    }
+  }
+  return [country];
 }
 
 serve(async (req) => {
@@ -86,10 +107,10 @@ serve(async (req) => {
       });
     }
 
-    // Fetch talent profile
+    // Fetch talent profile including country
     const { data: talent, error: talentError } = await supabase
       .from("talents")
-      .select("id, full_name, skills, experience, education, profession_category_id, job_preferences, cv_text, custom_profession")
+      .select("id, full_name, skills, experience, education, profession_category_id, job_preferences, cv_text, custom_profession, country")
       .eq("user_id", user.id)
       .single();
 
@@ -100,24 +121,51 @@ serve(async (req) => {
       });
     }
 
-    // ── Stage 1: Keyword-based pre-filtering ──
+    // ── Stage 1: Location-prioritized + keyword-based pre-filtering ──
     const keywords = extractKeywords(talent);
-    console.log(`Extracted ${keywords.length} keywords:`, keywords);
+    const talentCountry = talent.country || "";
+    const countryAliases = getCountryAliases(talentCountry);
+    console.log(`Extracted ${keywords.length} keywords, talent country: ${talentCountry}`);
 
     const jobFields = "id, title, company_name, description, requirements, preferred_skills, job_type, location, experience_level, profession_category_id, company_logo_url, salary_range_min, salary_range_max, deadline, is_featured, created_at";
 
     let candidateJobs: any[] = [];
     const seenIds = new Set<string>();
 
-    // Query with keyword matching on title and description
-    if (keywords.length > 0) {
-      // Build OR filter: title.ilike.%keyword% or description.ilike.%keyword%
+    // Step 1A: Fetch jobs matching talent's country first (up to 100)
+    if (talentCountry && countryAliases.length > 0) {
+      const locationOrClauses = countryAliases
+        .map(a => `location.ilike.%${a}%`)
+        .join(",");
+      
+      const { data: localJobs } = await supabase
+        .from("jobs")
+        .select(jobFields)
+        .eq("is_active", true)
+        .or("deadline.is.null,deadline.gte.now()")
+        .or(locationOrClauses)
+        .order("created_at", { ascending: false })
+        .limit(100);
+
+      if (localJobs) {
+        for (const job of localJobs) {
+          if (!seenIds.has(job.id)) {
+            seenIds.add(job.id);
+            candidateJobs.push(job);
+          }
+        }
+      }
+      console.log(`Local country jobs: ${candidateJobs.length}`);
+    }
+
+    // Step 1B: Keyword-based search for remaining slots
+    if (keywords.length > 0 && candidateJobs.length < 200) {
       const orClauses = keywords
-        .slice(0, 10) // limit to top 10 keywords to keep query manageable
+        .slice(0, 10)
         .flatMap((k) => [`title.ilike.%${k}%`, `description.ilike.%${k}%`])
         .join(",");
 
-      const { data: matchedJobs, error: matchError } = await supabase
+      const { data: matchedJobs } = await supabase
         .from("jobs")
         .select(jobFields)
         .eq("is_active", true)
@@ -126,29 +174,29 @@ serve(async (req) => {
         .order("created_at", { ascending: false })
         .limit(200);
 
-      if (!matchError && matchedJobs) {
+      if (matchedJobs) {
         for (const job of matchedJobs) {
-          if (!seenIds.has(job.id)) {
+          if (!seenIds.has(job.id) && candidateJobs.length < 200) {
             seenIds.add(job.id);
             candidateJobs.push(job);
           }
         }
       }
-      console.log(`Keyword search returned ${candidateJobs.length} jobs`);
+      console.log(`After keyword search: ${candidateJobs.length} jobs`);
     }
 
-    // Fallback: if fewer than 50 keyword matches, backfill with recent jobs
+    // Fallback: if fewer than 50 matches, backfill with recent jobs
     if (candidateJobs.length < 50) {
       const backfillNeeded = 50 - candidateJobs.length;
-      const { data: recentJobs, error: recentError } = await supabase
+      const { data: recentJobs } = await supabase
         .from("jobs")
         .select(jobFields)
         .eq("is_active", true)
         .or("deadline.is.null,deadline.gte.now()")
         .order("created_at", { ascending: false })
-        .limit(backfillNeeded + seenIds.size); // fetch extra to account for dedup
+        .limit(backfillNeeded + seenIds.size);
 
-      if (!recentError && recentJobs) {
+      if (recentJobs) {
         for (const job of recentJobs) {
           if (!seenIds.has(job.id) && candidateJobs.length < 200) {
             seenIds.add(job.id);
@@ -165,9 +213,7 @@ serve(async (req) => {
       });
     }
 
-    // ── Stage 2: AI Deep Ranking ──
-
-    // Build compact profile summary
+    // ── Stage 2: AI Deep Ranking with location awareness ──
     const skills = Array.isArray(talent.skills)
       ? talent.skills.map((s: any) => (typeof s === "string" ? s : s.name || "")).filter(Boolean)
       : [];
@@ -179,13 +225,13 @@ serve(async (req) => {
       : [];
 
     const profileSummary = [
+      talentCountry ? `Location: ${talentCountry}` : "",
       skills.length > 0 ? `Skills: ${skills.join(", ")}` : "",
       experience.length > 0 ? `Experience: ${experience.join("; ")}` : "",
       education.length > 0 ? `Education: ${education.join("; ")}` : "",
       talent.cv_text ? `CV Summary: ${(talent.cv_text as string).slice(0, 500)}` : "",
     ].filter(Boolean).join("\n");
 
-    // Build job summaries WITH descriptions (truncated to 300 chars)
     const jobSummaries = candidateJobs.map((j) => ({
       id: j.id,
       title: j.title,
@@ -206,6 +252,10 @@ serve(async (req) => {
       });
     }
 
+    const locationInstruction = talentCountry
+      ? `\n\nIMPORTANT LOCATION PREFERENCE: The candidate is based in ${talentCountry}. Strongly prefer jobs located in or near ${talentCountry}. Only rank international jobs highly if they are explicitly remote-friendly or represent an exceptional skill match. At least 60-70% of results should be from the candidate's country when available.`
+      : "";
+
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -219,17 +269,17 @@ serve(async (req) => {
             role: "system",
             content: `You are a job matching expert. Given a candidate profile and a list of jobs, return the top 12 most relevant jobs ranked by fit.
 
-Consider: skill overlap, experience level fit, industry relevance, transferable skills, seniority alignment, and job description content.
+Consider: skill overlap, experience level fit, industry relevance, transferable skills, seniority alignment, job description content, and LOCATION proximity.
 
 Scoring guidelines:
-- 80-100%: Strong direct match (same role, matching skills)
+- 80-100%: Strong direct match (same role, matching skills, same country)
 - 60-79%: Good match with transferable skills or adjacent roles
 - 50-59%: Partial match worth considering
 - Below 50%: Only include if there's a clear transferable connection
 
-Consider partial matches, transferable skills, and adjacent roles. A 50-60% match is still valuable to show. Score generously for adjacent relevance -- someone with marketing skills could be a decent match for a growth role.
+Consider partial matches, transferable skills, and adjacent roles. A 50-60% match is still valuable to show. Score generously for adjacent relevance.
 
-Always try to return at least 8-12 results if enough jobs are provided. The candidate benefits from seeing a range of opportunities.`,
+Always try to return at least 8-12 results if enough jobs are provided.${locationInstruction}`,
           },
           {
             role: "user",
@@ -298,7 +348,6 @@ Always try to return at least 8-12 results if enough jobs are provided. The cand
     const parsed = JSON.parse(toolCall.function.arguments);
     const matches = parsed.matches || [];
 
-    // Enrich with full job data
     const jobMap = new Map(candidateJobs.map((j) => [j.id, j]));
     const suggestions = matches
       .filter((m: any) => jobMap.has(m.job_id))

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTalent } from "@/hooks/useTalent";
 import { toast } from "sonner";
@@ -26,7 +26,7 @@ interface UseAgentChatReturn {
   isLoading: boolean;
   isStreaming: boolean;
   sendMessage: (content: string) => Promise<void>;
-  startNewSession: (agentKey: string) => Promise<AgentSession | null>;
+  startOrResumeSession: (agentKey: string) => Promise<AgentSession | null>;
   loadSession: (sessionId: string) => Promise<void>;
   endSession: () => Promise<void>;
   recentSessions: AgentSession[];
@@ -34,6 +34,8 @@ interface UseAgentChatReturn {
   isSessionExpired: boolean;
   timeRemaining: number | null;
   isLoadingSessions: boolean;
+  /** Per-response credit cost for the current agent */
+  perResponseCost: number;
 }
 
 export function useAgentChat(): UseAgentChatReturn {
@@ -43,41 +45,12 @@ export function useAgentChat(): UseAgentChatReturn {
   const [isLoading, setIsLoading] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
   const [recentSessions, setRecentSessions] = useState<AgentSession[]>([]);
-  const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [isLoadingSessions, setIsLoadingSessions] = useState(true);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [perResponseCost, setPerResponseCost] = useState<number>(1);
 
-  // Calculate if session is expired
-  const isSessionExpired = session ? new Date(session.session_expires_at) < new Date() : false;
-
-  // Update time remaining every second
-  useEffect(() => {
-    if (!session || !session.is_active) {
-      setTimeRemaining(null);
-      return;
-    }
-
-    const updateTimer = () => {
-      const expiresAt = new Date(session.session_expires_at).getTime();
-      const now = Date.now();
-      const remaining = Math.max(0, Math.floor((expiresAt - now) / 1000));
-      setTimeRemaining(remaining);
-
-      if (remaining <= 0 && session.is_active) {
-        // Session expired, mark as inactive
-        endSession();
-      }
-    };
-
-    updateTimer();
-    timerRef.current = setInterval(updateTimer, 1000);
-
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-    };
-  }, [session]);
+  // No more session expiration — sessions are persistent
+  const isSessionExpired = false;
+  const timeRemaining = null;
 
   const loadRecentSessions = useCallback(async () => {
     if (!talent?.id) {
@@ -92,11 +65,10 @@ export function useAgentChat(): UseAgentChatReturn {
         .select("*")
         .eq("talent_id", talent.id)
         .order("created_at", { ascending: false })
-        .limit(10);
+        .limit(20);
 
       if (error) throw error;
 
-      // Parse messages from JSON
       const sessions = (data || []).map((s) => ({
         ...s,
         messages: (s.messages as unknown as AgentMessage[]) || [],
@@ -124,6 +96,15 @@ export function useAgentChat(): UseAgentChatReturn {
 
       setSession(sessionData);
       setMessages(sessionData.messages);
+
+      // Load the per-response cost for this agent
+      const { data: agentConfig } = await supabase
+        .from("ai_agents")
+        .select("credit_cost")
+        .eq("agent_key", sessionData.agent_key)
+        .eq("is_active", true)
+        .single();
+      setPerResponseCost(agentConfig?.credit_cost ?? 1);
     } catch (error) {
       console.error("Failed to load session:", error);
       toast.error("Failed to load chat session");
@@ -132,7 +113,11 @@ export function useAgentChat(): UseAgentChatReturn {
     }
   }, []);
 
-  const startNewSession = useCallback(
+  /**
+   * Start a new session or resume existing one for an agent.
+   * Per-response model: no upfront credit charge, no time limit.
+   */
+  const startOrResumeSession = useCallback(
     async (agentKey: string): Promise<AgentSession | null> => {
       if (!talent?.id) {
         toast.error("Please complete your profile first");
@@ -141,22 +126,42 @@ export function useAgentChat(): UseAgentChatReturn {
 
       setIsLoading(true);
       try {
-        // Fetch agent config from database for dynamic pricing/duration
+        // Fetch agent config for per-response cost
         const { data: agentConfig } = await supabase
           .from("ai_agents")
-          .select("credit_cost, session_duration_minutes")
+          .select("credit_cost")
           .eq("agent_key", agentKey)
           .eq("is_active", true)
           .single();
 
-        const creditCost = agentConfig?.credit_cost ?? 10;
-        const sessionDuration = agentConfig?.session_duration_minutes ?? 30;
+        const creditCost = agentConfig?.credit_cost ?? 1;
+        setPerResponseCost(creditCost);
 
-        // Create new session with dynamic duration
+        // Check for existing active session for this agent
+        const { data: existingSessions } = await supabase
+          .from("agent_chat_sessions")
+          .select("*")
+          .eq("talent_id", talent.id)
+          .eq("agent_key", agentKey)
+          .eq("is_active", true)
+          .order("created_at", { ascending: false })
+          .limit(1);
+
+        if (existingSessions && existingSessions.length > 0) {
+          const existing = existingSessions[0];
+          const sessionData: AgentSession = {
+            ...existing,
+            messages: (existing.messages as unknown as AgentMessage[]) || [],
+          };
+          setSession(sessionData);
+          setMessages(sessionData.messages);
+          return sessionData;
+        }
+
+        // Create new session — no upfront cost, no time limit
         const now = new Date();
-        const expiresAt = new Date(now.getTime() + sessionDuration * 60 * 1000);
+        const farFuture = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
 
-        // Increment conversation counter
         await supabase.rpc("increment_agent_conversations", { p_agent_key: agentKey });
 
         const { data, error } = await supabase
@@ -166,9 +171,9 @@ export function useAgentChat(): UseAgentChatReturn {
             agent_key: agentKey,
             messages: [],
             is_active: true,
-            credits_charged: creditCost,
+            credits_charged: 0,
             session_started_at: now.toISOString(),
-            session_expires_at: expiresAt.toISOString(),
+            session_expires_at: farFuture.toISOString(),
           })
           .select()
           .single();
@@ -182,7 +187,6 @@ export function useAgentChat(): UseAgentChatReturn {
 
         setSession(sessionData);
         setMessages([]);
-
         return sessionData;
       } catch (error) {
         console.error("Failed to start session:", error);
@@ -200,7 +204,6 @@ export function useAgentChat(): UseAgentChatReturn {
 
     try {
       await supabase.from("agent_chat_sessions").update({ is_active: false }).eq("id", session.id);
-
       setSession((prev) => (prev ? { ...prev, is_active: false } : null));
     } catch (error) {
       console.error("Failed to end session:", error);
@@ -208,14 +211,22 @@ export function useAgentChat(): UseAgentChatReturn {
   }, [session]);
 
   const saveMessages = useCallback(
-    async (newMessages: AgentMessage[]) => {
+    async (newMessages: AgentMessage[], additionalCredits: number = 0) => {
       if (!session) return;
 
       try {
+        const updatePayload: any = { messages: newMessages as unknown as any };
+        if (additionalCredits > 0) {
+          updatePayload.credits_charged = (session.credits_charged || 0) + additionalCredits;
+        }
         await supabase
           .from("agent_chat_sessions")
-          .update({ messages: newMessages as unknown as any })
+          .update(updatePayload)
           .eq("id", session.id);
+        
+        if (additionalCredits > 0) {
+          setSession(prev => prev ? { ...prev, credits_charged: (prev.credits_charged || 0) + additionalCredits } : null);
+        }
       } catch (error) {
         console.error("Failed to save messages:", error);
       }
@@ -227,11 +238,6 @@ export function useAgentChat(): UseAgentChatReturn {
     async (content: string) => {
       if (!session || !content.trim() || isStreaming) return;
 
-      if (isSessionExpired) {
-        toast.error("Session expired. Please start a new session.");
-        return;
-      }
-
       const userMessage: AgentMessage = { role: "user", content: content.trim() };
       const newMessages = [...messages, userMessage];
       setMessages(newMessages);
@@ -240,7 +246,6 @@ export function useAgentChat(): UseAgentChatReturn {
       let assistantContent = "";
 
       try {
-        // SECURITY FIX: Get the actual user session token
         const {
           data: { session: authSession },
         } = await supabase.auth.getSession();
@@ -253,7 +258,6 @@ export function useAgentChat(): UseAgentChatReturn {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            // Pass the USER token, not the Anon Key
             Authorization: `Bearer ${authSession.access_token}`,
           },
           body: JSON.stringify({
@@ -272,6 +276,7 @@ export function useAgentChat(): UseAgentChatReturn {
           } else {
             toast.error(message, { description: suggestion });
           }
+          setMessages(messages); // revert
           return;
         }
 
@@ -283,7 +288,6 @@ export function useAgentChat(): UseAgentChatReturn {
         const decoder = new TextDecoder();
         let textBuffer = "";
 
-        // Add empty assistant message
         setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
 
         while (true) {
@@ -318,26 +322,38 @@ export function useAgentChat(): UseAgentChatReturn {
                 });
               }
             } catch {
-              // Incomplete JSON, put it back
               textBuffer = line + "\n" + textBuffer;
               break;
             }
           }
         }
 
+        // Deduct credits per-response (only if cost > 0)
+        if (perResponseCost > 0 && assistantContent) {
+          const { data: deductResult } = await supabase.rpc("deduct_credits", {
+            p_amount: perResponseCost,
+            p_service_type: "AI_AGENT_CHAT",
+            p_reference_id: session.id,
+            p_description: `AI Agent response (${session.agent_key})`,
+          });
+
+          if (deductResult && !(deductResult as any).success) {
+            console.warn("Credit deduction failed:", (deductResult as any).error);
+          }
+        }
+
         // Save messages after streaming completes
         const finalMessages = [...newMessages, { role: "assistant" as const, content: assistantContent }];
-        await saveMessages(finalMessages);
+        await saveMessages(finalMessages, perResponseCost);
       } catch (error) {
         console.error("Send message error:", error);
         toast.error("Failed to send message. Please try again.");
-        // Remove the failed user message so they can try again
         setMessages((prev) => prev.filter((_, i) => i !== prev.length - 1));
       } finally {
         setIsStreaming(false);
       }
     },
-    [session, messages, isStreaming, isSessionExpired, saveMessages],
+    [session, messages, isStreaming, saveMessages, perResponseCost],
   );
 
   // Load recent sessions when talent changes
@@ -353,7 +369,7 @@ export function useAgentChat(): UseAgentChatReturn {
     isLoading,
     isStreaming,
     sendMessage,
-    startNewSession,
+    startOrResumeSession,
     loadSession,
     endSession,
     recentSessions,
@@ -361,5 +377,6 @@ export function useAgentChat(): UseAgentChatReturn {
     isSessionExpired,
     timeRemaining,
     isLoadingSessions,
+    perResponseCost,
   };
 }

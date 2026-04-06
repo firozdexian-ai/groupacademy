@@ -1031,6 +1031,7 @@ export function JobsManager() {
   const [countryCounts, setCountryCounts] = useState<{ name: string; flag: string; count: number }[]>([]);
   const [filteredCompaniesList, setFilteredCompaniesList] = useState<{ id: string; name: string }[]>([]);
   const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
+  const [appTypeFilter, setAppTypeFilter] = useState<string>("all");
 
   const COUNTRY_ALIASES: Record<string, string[]> = useMemo(() => ({
     "United Arab Emirates": ["UAE", "United Arab Emirates", "Dubai", "Abu Dhabi"],
@@ -1086,59 +1087,86 @@ export function JobsManager() {
     return query;
   }, [COUNTRY_ALIASES]);
 
+  // Helper to paginate all rows for a lightweight select
+  const fetchAllRows = useCallback(async (baseQuery: () => any) => {
+    const PAGE_SIZE = 1000;
+    let allRows: any[] = [];
+    let page = 0;
+    let hasMore = true;
+    while (hasMore) {
+      const from = page * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+      const { data } = await baseQuery().range(from, to);
+      if (data && data.length > 0) {
+        allRows = allRows.concat(data);
+        hasMore = data.length === PAGE_SIZE;
+        page++;
+      } else {
+        hasMore = false;
+      }
+    }
+    return allRows;
+  }, []);
+
+  const applyAppTypeToQuery = useCallback((query: any, filter: string) => {
+    if (filter !== "all") return query.eq("application_type", filter);
+    return query;
+  }, []);
+
   // Recompute cascading filter data whenever any filter changes
   useEffect(() => {
     const loadCascadingData = async () => {
-      // 1. Country counts: respect status + company (not location)
-      let countryQ = supabase.from("jobs").select("location");
-      if (statusFilter !== "all") {
-        countryQ = statusFilter === "featured" ? countryQ.eq("is_featured", true) : countryQ.eq("is_active", statusFilter === "active");
-      }
-      if (companyFilter !== "all") {
-        const co = companiesList.find((c) => c.id === companyFilter);
-        if (co) countryQ = countryQ.ilike("company_name", `%${co.name}%`);
-      }
+      // 1. Country counts: respect status + company + appType (not location) — paginated
+      const countryRows = await fetchAllRows(() => {
+        let q = supabase.from("jobs").select("location");
+        if (statusFilter !== "all") {
+          q = statusFilter === "featured" ? q.eq("is_featured", true) : q.eq("is_active", statusFilter === "active");
+        }
+        if (companyFilter !== "all") {
+          const co = companiesList.find((c) => c.id === companyFilter);
+          if (co) q = q.ilike("company_name", `%${co.name}%`);
+        }
+        q = applyAppTypeToQuery(q, appTypeFilter);
+        return q;
+      });
+      setCountryCounts(computeCountryCounts(countryRows as { location: string | null }[]));
 
-      // 2. Company list: respect status + location (not company)
-      let companyQ = supabase.from("jobs").select("company_name");
-      if (statusFilter !== "all") {
-        companyQ = statusFilter === "featured" ? companyQ.eq("is_featured", true) : companyQ.eq("is_active", statusFilter === "active");
-      }
-      companyQ = applyLocationToQuery(companyQ, locationFilter);
+      // 2. Company list: respect status + location + appType (not company) — paginated
+      const companyRows = await fetchAllRows(() => {
+        let q = supabase.from("jobs").select("company_name");
+        if (statusFilter !== "all") {
+          q = statusFilter === "featured" ? q.eq("is_featured", true) : q.eq("is_active", statusFilter === "active");
+        }
+        q = applyLocationToQuery(q, locationFilter);
+        q = applyAppTypeToQuery(q, appTypeFilter);
+        return q;
+      });
+      const uniqueNames = new Set(
+        (companyRows as { company_name: string }[]).map((r) => r.company_name?.toLowerCase()).filter(Boolean)
+      );
+      setFilteredCompaniesList(companiesList.filter((c) => uniqueNames.has(c.name.toLowerCase())));
 
-      // 3. Status counts: respect location + company (not status)
-      let statusQ = supabase.from("jobs").select("is_active, is_featured");
-      statusQ = applyLocationToQuery(statusQ, locationFilter);
-      if (companyFilter !== "all") {
-        const co = companiesList.find((c) => c.id === companyFilter);
-        if (co) statusQ = statusQ.ilike("company_name", `%${co.name}%`);
-      }
-
-      const [countryRes, companyRes, statusRes] = await Promise.all([countryQ, companyQ, statusQ]);
-
-      if (countryRes.data) {
-        setCountryCounts(computeCountryCounts(countryRes.data as { location: string | null }[]));
-      }
-
-      if (companyRes.data) {
-        const uniqueNames = new Set(
-          (companyRes.data as { company_name: string }[]).map((r) => r.company_name?.toLowerCase()).filter(Boolean)
-        );
-        setFilteredCompaniesList(companiesList.filter((c) => uniqueNames.has(c.name.toLowerCase())));
-      }
-
-      if (statusRes.data) {
-        const rows = statusRes.data as { is_active: boolean; is_featured: boolean }[];
-        setStatusCounts({
-          all: rows.length,
-          active: rows.filter((r) => r.is_active).length,
-          inactive: rows.filter((r) => !r.is_active).length,
-          featured: rows.filter((r) => r.is_featured).length,
-        });
-      }
+      // 3. Status counts: respect location + company + appType (not status) — paginated
+      const statusRows = await fetchAllRows(() => {
+        let q = supabase.from("jobs").select("is_active, is_featured");
+        q = applyLocationToQuery(q, locationFilter);
+        if (companyFilter !== "all") {
+          const co = companiesList.find((c) => c.id === companyFilter);
+          if (co) q = q.ilike("company_name", `%${co.name}%`);
+        }
+        q = applyAppTypeToQuery(q, appTypeFilter);
+        return q;
+      });
+      const rows = statusRows as { is_active: boolean; is_featured: boolean }[];
+      setStatusCounts({
+        all: rows.length,
+        active: rows.filter((r) => r.is_active).length,
+        inactive: rows.filter((r) => !r.is_active).length,
+        featured: rows.filter((r) => r.is_featured).length,
+      });
     };
     loadCascadingData();
-  }, [statusFilter, locationFilter, companyFilter, companiesList, applyLocationToQuery, computeCountryCounts]);
+  }, [statusFilter, locationFilter, companyFilter, appTypeFilter, companiesList, applyLocationToQuery, applyAppTypeToQuery, computeCountryCounts, fetchAllRows]);
 
   const loadJobs = useCallback(async () => {
     setLoading(true);
@@ -1175,6 +1203,10 @@ export function JobsManager() {
         if (selectedCompany) {
           query = query.ilike("company_name", `%${selectedCompany.name}%`);
         }
+      }
+
+      if (appTypeFilter !== "all") {
+        query = query.eq("application_type", appTypeFilter as "email" | "link");
       }
 
       const from = (page - 1) * ITEMS_PER_PAGE;
@@ -1215,7 +1247,7 @@ export function JobsManager() {
     } finally {
       setLoading(false);
     }
-  }, [page, debouncedSearch, statusFilter, locationFilter, companyFilter, companiesList, COUNTRY_ALIASES]);
+  }, [page, debouncedSearch, statusFilter, locationFilter, companyFilter, appTypeFilter, companiesList, COUNTRY_ALIASES]);
 
   useEffect(() => {
     loadJobs();
@@ -1554,6 +1586,30 @@ export function JobsManager() {
                 {(filteredCompaniesList.length > 0 ? filteredCompaniesList : companiesList).map((c) => (
                   <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+            <Select
+              value={appTypeFilter}
+              onValueChange={(v) => {
+                setAppTypeFilter(v);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger className="w-full sm:w-[150px]">
+                <LinkIcon className="w-3 h-3 mr-1" />
+                <SelectValue placeholder="App Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="link">
+                  <span className="flex items-center gap-1.5"><ExternalLink className="w-3 h-3" /> Link</span>
+                </SelectItem>
+                <SelectItem value="email">
+                  <span className="flex items-center gap-1.5"><Mail className="w-3 h-3" /> Email</span>
+                </SelectItem>
+                <SelectItem value="internal">
+                  <span className="flex items-center gap-1.5"><Building2 className="w-3 h-3" /> Internal</span>
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>

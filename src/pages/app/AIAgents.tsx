@@ -85,8 +85,8 @@ export default function AIAgents() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<AgentCategory>("all");
 
-  const { recentSessions, startNewSession, isLoadingSessions } = useAgentChat();
-  const { balance, deductCredits } = useCredits();
+  const { recentSessions, startOrResumeSession, isLoadingSessions } = useAgentChat();
+  const { balance } = useCredits();
 
   // Fetch agents from database
   const { data: dbAgents, isLoading: isLoadingAgents } = useQuery({
@@ -167,7 +167,7 @@ export default function AIAgents() {
   // Get active sessions with agent details
   const activeConversations = useMemo(() => {
     return recentSessions
-      .filter((s) => s.is_active && new Date(s.session_expires_at) > new Date())
+      .filter((s) => s.is_active)
       .map((session) => {
         const agent = agents.find((a) => a.agent_key === session.agent_key);
         const lastMsg = session.messages?.[session.messages.length - 1];
@@ -179,10 +179,9 @@ export default function AIAgents() {
       });
   }, [recentSessions, agents]);
 
-  // Recent (inactive) conversations
   const recentChats = useMemo(() => {
     return recentSessions
-      .filter((s) => !s.is_active || new Date(s.session_expires_at) <= new Date())
+      .filter((s) => !s.is_active)
       .slice(0, 10)
       .map((session) => {
         const agent = agents.find((a) => a.agent_key === session.agent_key);
@@ -195,42 +194,15 @@ export default function AIAgents() {
       });
   }, [recentSessions, agents]);
 
-  const getActiveSession = (agentKey: string) => {
-    return recentSessions.find(
-      (s) => s.agent_key === agentKey && s.is_active && new Date(s.session_expires_at) > new Date()
-    );
-  };
-
   const handleAgentClick = (agentKey: string) => {
-    const activeSession = getActiveSession(agentKey);
-    if (activeSession) {
-      navigate(`/app/agents/${agentKey}`);
-    } else {
-      setSelectedAgentKey(agentKey);
-      setShowCreditGate(true);
-    }
+    // Per-response model: go directly to chat, no credit gate upfront
+    navigate(`/app/agents/${agentKey}`);
   };
 
   const handleConfirmCredit = async () => {
     if (!selectedAgentKey) return;
-    const agent = agents.find((a) => a.agent_key === selectedAgentKey);
-    const success = await deductCredits(
-      "AI_AGENT_CHAT",
-      undefined,
-      `AI Agent: ${agent?.name || "Chat"} session`
-    );
-    if (success) {
-      const session = await startNewSession(selectedAgentKey);
-      if (session) {
-        setShowCreditGate(false);
-        navigate(`/app/agents/${selectedAgentKey}`);
-        toast.success("Session started! You have 30 minutes.");
-      } else {
-        toast.error("Failed to start session. Please try again.");
-      }
-    } else {
-      setShowCreditGate(false);
-    }
+    navigate(`/app/agents/${selectedAgentKey}`);
+    setShowCreditGate(false);
   };
 
   const selectedAgent = selectedAgentKey ? agents.find((a) => a.agent_key === selectedAgentKey) : null;
@@ -334,7 +306,7 @@ export default function AIAgents() {
             ) : (
               <div className="grid grid-cols-2 gap-3">
                 {filteredAgents.map((agent) => {
-                  const activeSession = getActiveSession(agent.agent_key);
+                  const activeSession = recentSessions.find(s => s.agent_key === agent.agent_key && s.is_active);
                   return (
                     <AgentCard
                       key={agent.id}

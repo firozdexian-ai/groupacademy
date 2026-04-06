@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { ArrowLeft, Send, Clock, MoreVertical, Trash2, Copy, Check } from "lucide-react";
+import { ArrowLeft, Send, MoreVertical, Trash2, Copy, Check, Coins } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { AgentMessage } from "@/hooks/useAgentChat";
 import { cn } from "@/lib/utils";
-import ReactMarkdown from "react-markdown"; // Ensure this is installed: npm install react-markdown
+import ReactMarkdown from "react-markdown";
 
 interface AgentInfo {
   id?: string;
@@ -32,18 +32,13 @@ interface AgentChatDialogProps {
   onSendMessage: (content: string) => void;
   onBack: () => void;
   onEndSession: () => void;
+  perResponseCost?: number;
 }
 
-// Helper: Contextual suggestions based on agent ID
 const getSuggestions = (agentId?: string) => {
   switch (agentId) {
     case "cv-coach":
-      return [
-        "Review my resume summary",
-        "ATS optimization tips",
-        "Action verbs for leadership",
-        "Proofread this section",
-      ];
+      return ["Review my resume summary", "ATS optimization tips", "Action verbs for leadership", "Proofread this section"];
     case "interview-coach":
       return ["Start mock interview", "Tell me about yourself", "STAR method example", "Questions to ask interviewers"];
     case "salary-negotiator":
@@ -59,18 +54,16 @@ export function AgentChatDialog({
   agent,
   messages,
   isStreaming,
-  timeRemaining,
-  isSessionExpired,
   onSendMessage,
   onBack,
   onEndSession,
+  perResponseCost = 1,
 }: AgentChatDialogProps) {
   const [input, setInput] = useState("");
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     if (scrollAreaRef.current) {
       const scrollContainer = scrollAreaRef.current.querySelector("[data-radix-scroll-area-viewport]");
@@ -78,11 +71,11 @@ export function AgentChatDialog({
         scrollContainer.scrollTop = scrollContainer.scrollHeight;
       }
     }
-  }, [messages, isStreaming]); // Added isStreaming to scroll during generation
+  }, [messages, isStreaming]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (input.trim() && !isStreaming && !isSessionExpired) {
+    if (input.trim() && !isStreaming) {
       onSendMessage(input.trim());
       setInput("");
     }
@@ -92,13 +85,6 @@ export function AgentChatDialog({
     navigator.clipboard.writeText(content);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
-  };
-
-  const formatTime = (seconds: number) => {
-    if (seconds < 0) return "0:00"; // Prevent negative time
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
   const suggestions = getSuggestions(agent.id);
@@ -120,20 +106,13 @@ export function AgentChatDialog({
           <div className="min-w-0 flex flex-col justify-center">
             <h2 className="font-semibold text-sm truncate leading-none mb-1">{agent.name}</h2>
             <div className="flex items-center gap-2 text-xs">
-              {isSessionExpired ? (
-                <span className="text-destructive font-medium flex items-center gap-1">Session Expired</span>
-              ) : timeRemaining !== null ? (
-                <span
-                  className={cn(
-                    "flex items-center gap-1 font-medium tabular-nums",
-                    timeRemaining < 300 ? "text-amber-600 animate-pulse" : "text-muted-foreground",
-                  )}
-                >
-                  <Clock className="h-3 w-3" />
-                  {formatTime(timeRemaining)} remaining
+              {perResponseCost > 0 ? (
+                <span className="flex items-center gap-1 text-muted-foreground">
+                  <Coins className="h-3 w-3" />
+                  {perResponseCost} credit{perResponseCost !== 1 ? 's' : ''}/response
                 </span>
               ) : (
-                <span className="text-muted-foreground">Connecting...</span>
+                <span className="text-emerald-600 font-medium">Free</span>
               )}
             </div>
           </div>
@@ -148,7 +127,7 @@ export function AgentChatDialog({
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={onEndSession} className="text-destructive focus:text-destructive">
               <Trash2 className="h-4 w-4 mr-2" />
-              End Session
+              End Conversation
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -172,7 +151,7 @@ export function AgentChatDialog({
                   <button
                     key={suggestion}
                     onClick={() => onSendMessage(suggestion)}
-                    disabled={isStreaming || isSessionExpired}
+                    disabled={isStreaming}
                     className="px-4 py-2 text-xs font-medium rounded-full border bg-background hover:bg-primary/5 hover:border-primary/30 transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 shrink-0"
                   >
                     {suggestion}
@@ -196,7 +175,6 @@ export function AgentChatDialog({
                 )}
 
                 <div className={cn("relative max-w-[85%] sm:max-w-[75%]", isUser ? "items-end" : "items-start")}>
-                  {/* Message Bubble */}
                   <div
                     className={cn(
                       "rounded-2xl px-4 py-3 text-sm shadow-sm",
@@ -214,7 +192,6 @@ export function AgentChatDialog({
                     )}
                   </div>
 
-                  {/* Copy Button (AI Messages Only) */}
                   {!isUser && (
                     <div className="absolute -bottom-6 left-0 opacity-0 group-hover:opacity-100 transition-opacity">
                       <Button
@@ -255,14 +232,8 @@ export function AgentChatDialog({
               <div className="bg-muted rounded-2xl rounded-bl-sm px-4 py-3 border shadow-sm">
                 <div className="flex gap-1 h-5 items-center">
                   <span className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce"></span>
-                  <span
-                    className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce"
-                    style={{ animationDelay: "0.1s" }}
-                  ></span>
-                  <span
-                    className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce"
-                    style={{ animationDelay: "0.2s" }}
-                  ></span>
+                  <span className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce" style={{ animationDelay: "0.1s" }}></span>
+                  <span className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></span>
                 </div>
               </div>
             </div>
@@ -272,25 +243,13 @@ export function AgentChatDialog({
 
       {/* Input Area */}
       <form onSubmit={handleSubmit} className="p-3 md:p-4 border-t bg-background relative">
-        {isSessionExpired ? (
-          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center z-10 p-4 text-center">
-            <Badge variant="destructive" className="mb-2 px-3 py-1">
-              Session Expired
-            </Badge>
-            <p className="text-sm text-muted-foreground mb-4">Your 30-minute session has ended.</p>
-            <Button onClick={onBack} size="sm">
-              Start New Session
-            </Button>
-          </div>
-        ) : null}
-
         <div className="flex gap-2 items-end">
           <Input
             ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder={isStreaming ? "AI is typing..." : "Type your message..."}
-            disabled={isStreaming || isSessionExpired}
+            disabled={isStreaming}
             className="flex-1 min-h-[44px] max-h-32 py-3"
             autoComplete="off"
           />
@@ -298,7 +257,7 @@ export function AgentChatDialog({
             type="submit"
             size="icon"
             className="h-11 w-11 shrink-0 rounded-xl"
-            disabled={!input.trim() || isStreaming || isSessionExpired}
+            disabled={!input.trim() || isStreaming}
           >
             <Send className="h-5 w-5" />
           </Button>

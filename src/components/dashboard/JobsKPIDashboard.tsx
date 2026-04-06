@@ -9,15 +9,17 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Briefcase, Target, Users, FileCheck, TrendingUp, Calendar, 
   Building2, Edit, Save, X, ChevronRight, Loader2, Signal, MousePointerClick,
-  RefreshCw, Share2, Percent
+  RefreshCw, Share2, Percent, Globe, Database
 } from "lucide-react";
 import { toast } from "sonner";
 import { format, startOfMonth, endOfMonth, differenceInDays, eachDayOfInterval, subMonths } from "date-fns";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 import CircularProgress from "./CircularProgress";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { COUNTRIES } from "@/lib/constants/countries";
 
 interface KPIData {
+  totalAllTimeJobs: number;
   jobsThisMonth: number;
   jobsLastMonth: number;
   jobsToday: number;
@@ -42,6 +44,7 @@ interface KPIData {
   totalApplyClicks: number;
   totalShares: number;
   conversionRate: number;
+  countryDistribution: { name: string; flag: string; count: number }[];
 }
 
 interface KPITarget {
@@ -56,12 +59,58 @@ interface JobsKPIDashboardProps {
 }
 
 const SOURCE_COLORS = ["hsl(var(--primary))", "#10b981", "#f59e0b", "#8b5cf6", "#6b7280"];
+const COUNTRY_COLORS = ["hsl(var(--primary))", "#10b981", "#f59e0b", "#8b5cf6", "#ef4444", "#06b6d4", "#ec4899", "#6b7280"];
+
+const COUNTRY_ALIASES: Record<string, string[]> = {
+  "United Arab Emirates": ["UAE", "United Arab Emirates", "Dubai", "Abu Dhabi"],
+  "United Kingdom": ["UK", "United Kingdom", "England", "Scotland", "Wales"],
+  "United States": ["USA", "United States", "US"],
+};
 
 function getMoMTrend(current: number, previous: number): string | undefined {
   if (previous === 0) return current > 0 ? "+100%" : undefined;
   const change = ((current - previous) / previous) * 100;
   if (change === 0) return undefined;
   return `${change > 0 ? "+" : ""}${Math.round(change)}%`;
+}
+
+// Paginate all rows for lightweight queries
+async function fetchAllRows(buildQuery: () => any): Promise<any[]> {
+  const PAGE_SIZE = 1000;
+  let allRows: any[] = [];
+  let page = 0;
+  let hasMore = true;
+  while (hasMore) {
+    const from = page * PAGE_SIZE;
+    const { data } = await buildQuery().range(from, from + PAGE_SIZE - 1);
+    if (data && data.length > 0) {
+      allRows = allRows.concat(data);
+      hasMore = data.length === PAGE_SIZE;
+      page++;
+    } else {
+      hasMore = false;
+    }
+  }
+  return allRows;
+}
+
+function computeCountryCounts(rows: { location: string | null }[]): { name: string; flag: string; count: number }[] {
+  const counts: Record<string, number> = {};
+  const flagMap: Record<string, string> = {};
+  COUNTRIES.forEach((c) => { flagMap[c.name] = c.flag; });
+  rows.forEach((row) => {
+    const loc = row.location || "";
+    COUNTRIES.forEach((country) => {
+      const aliases = COUNTRY_ALIASES[country.name] || [country.name];
+      if (aliases.some((a) => loc.toLowerCase().includes(a.toLowerCase()))) {
+        counts[country.name] = (counts[country.name] || 0) + 1;
+        flagMap[country.name] = country.flag;
+      }
+    });
+  });
+  return Object.entries(counts)
+    .map(([name, count]) => ({ name, flag: flagMap[name] || "🌍", count }))
+    .sort((a, b) => b.count - a.count);
 }
 
 export function JobsKPIDashboard({ onNavigateToTab }: JobsKPIDashboardProps) {
@@ -100,9 +149,10 @@ export function JobsKPIDashboard({ onNavigateToTab }: JobsKPIDashboardProps) {
       // Parallelize all independent queries
       const [
         targetsRes,
-        jobsRes,
+        totalAllTimeRes,
+        jobsThisMonthCountRes,
         lastMonthJobsRes,
-        activeJobsRes,
+        activeVacanciesRows,
         appsRes,
         lastMonthAppsRes,
         recentJobsRes,
@@ -112,17 +162,14 @@ export function JobsKPIDashboard({ onNavigateToTab }: JobsKPIDashboardProps) {
         sharesRes,
       ] = await Promise.all([
         supabase.from("kpi_targets").select("*"),
-        supabase.from("jobs")
-          .select("id, title, company_name, vacancies, source_platform, created_at, deadline, is_active")
+        supabase.from("jobs").select("id", { count: "exact", head: true }),
+        supabase.from("jobs").select("id", { count: "exact", head: true })
           .gte("created_at", monthStart.toISOString())
           .lte("created_at", monthEnd.toISOString()),
-        supabase.from("jobs")
-          .select("id", { count: "exact", head: true })
+        supabase.from("jobs").select("id", { count: "exact", head: true })
           .gte("created_at", lastMonthStart.toISOString())
           .lte("created_at", lastMonthEnd.toISOString()),
-        supabase.from("jobs")
-          .select("vacancies")
-          .eq("is_active", true),
+        fetchAllRows(() => supabase.from("jobs").select("vacancies").eq("is_active", true)),
         supabase.from("job_applications")
           .select("id, talent_id, job_id")
           .gte("created_at", monthStart.toISOString()),
@@ -144,9 +191,7 @@ export function JobsKPIDashboard({ onNavigateToTab }: JobsKPIDashboardProps) {
             .lte("deadline", weekFromNow.toISOString())
             .gte("deadline", now.toISOString());
         })(),
-        supabase.from("jobs")
-          .select("id", { count: "exact", head: true })
-          .eq("is_active", true),
+        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("is_active", true),
         (() => {
           const thirtyDaysAgo = new Date();
           thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -154,18 +199,30 @@ export function JobsKPIDashboard({ onNavigateToTab }: JobsKPIDashboardProps) {
             .select("id", { count: "exact", head: true })
             .gte("clicked_at", thirtyDaysAgo.toISOString());
         })(),
-        supabase.from("gig_share_logs")
-          .select("id", { count: "exact", head: true }),
+        supabase.from("gig_share_logs").select("id", { count: "exact", head: true }),
       ]);
+
+      // Fetch this month's jobs for daily chart + source breakdown (paginated)
+      const thisMonthJobs = await fetchAllRows(() =>
+        supabase.from("jobs")
+          .select("id, title, company_name, vacancies, source_platform, created_at, deadline, is_active")
+          .gte("created_at", monthStart.toISOString())
+          .lte("created_at", monthEnd.toISOString())
+      );
+
+      // Fetch active job locations for country distribution (paginated)
+      const activeLocationRows = await fetchAllRows(() =>
+        supabase.from("jobs").select("location").eq("is_active", true)
+      );
 
       setTargets(targetsRes.data || []);
 
-      const jobs = jobsRes.data || [];
+      const jobs = thisMonthJobs;
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
       const jobsToday = jobs.filter(j => new Date(j.created_at) >= todayStart).length;
 
-      const totalVacancies = (activeJobsRes.data || []).reduce((sum, j) => sum + (j.vacancies || 1), 0);
+      const totalVacancies = (activeVacanciesRows || []).reduce((sum: number, j: any) => sum + (j.vacancies || 1), 0);
 
       const applications = appsRes.data || [];
       const uniqueTalentIds = new Set(applications.map(a => a.talent_id).filter(Boolean));
@@ -174,11 +231,9 @@ export function JobsKPIDashboard({ onNavigateToTab }: JobsKPIDashboardProps) {
         ? parseFloat((applications.length / jobsWithApps.size).toFixed(1))
         : 0;
 
-      // Last month comparisons
       const lastMonthApps = lastMonthAppsRes.data || [];
       const lastMonthUniqueApplicants = new Set(lastMonthApps.map(a => a.talent_id).filter(Boolean)).size;
 
-      // Jobs by source
       const sourceCount: Record<string, number> = {};
       jobs.forEach(job => {
         const source = job.source_platform || "other";
@@ -189,7 +244,6 @@ export function JobsKPIDashboard({ onNavigateToTab }: JobsKPIDashboardProps) {
         value
       }));
 
-      // Daily jobs data
       const daysArray = eachDayOfInterval({ start: monthStart, end: now });
       const dailyJobsData = daysArray.map(day => {
         const dayStr = format(day, "yyyy-MM-dd");
@@ -197,7 +251,6 @@ export function JobsKPIDashboard({ onNavigateToTab }: JobsKPIDashboardProps) {
         return { date: format(day, "MMM d"), jobs: count };
       });
 
-      // Recent jobs
       const recentJobs = (recentJobsRes.data || []).map(job => ({
         id: job.id,
         title: job.title,
@@ -213,8 +266,11 @@ export function JobsKPIDashboard({ onNavigateToTab }: JobsKPIDashboardProps) {
         ? parseFloat(((totalApps / totalApplyClicks) * 100).toFixed(1))
         : 0;
 
+      const countryDistribution = computeCountryCounts(activeLocationRows as { location: string | null }[]);
+
       setKpiData({
-        jobsThisMonth: jobs.length,
+        totalAllTimeJobs: totalAllTimeRes.count || 0,
+        jobsThisMonth: jobsThisMonthCountRes.count || 0,
         jobsLastMonth: lastMonthJobsRes.count || 0,
         jobsToday,
         totalVacancies,
@@ -231,6 +287,7 @@ export function JobsKPIDashboard({ onNavigateToTab }: JobsKPIDashboardProps) {
         totalApplyClicks,
         totalShares: sharesRes.count || 0,
         conversionRate,
+        countryDistribution,
       });
     } catch (error) {
       console.error("Error loading KPI data:", error);
@@ -325,14 +382,12 @@ export function JobsKPIDashboard({ onNavigateToTab }: JobsKPIDashboardProps) {
       <Card className="bg-gradient-to-br from-primary/10 via-primary/5 to-background border-primary/20">
         <CardContent className="pt-6">
           <div className="flex flex-row items-center gap-4 sm:gap-6 lg:gap-8">
-            {/* Circular Progress - compact on mobile */}
             <CircularProgress 
               value={Math.min(jobsProgress, 100)} 
               current={kpiData.jobsThisMonth} 
               target={jobsTarget} 
             />
 
-            {/* Stats */}
             <div className="flex-1 min-w-0 space-y-3 sm:space-y-4">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                 <div className="min-w-0">
@@ -385,8 +440,9 @@ export function JobsKPIDashboard({ onNavigateToTab }: JobsKPIDashboardProps) {
         </CardContent>
       </Card>
 
-      {/* Quick Stats Grid - 2 rows of 4 on large, 2 cols on mobile */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+      {/* Quick Stats Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <StatMiniCard icon={Database} label="Total All-Time" value={kpiData.totalAllTimeJobs} color="text-primary" bgColor="bg-primary/10" />
         <StatMiniCard icon={Signal} label="Live Jobs" value={kpiData.liveJobs} color="text-green-500" bgColor="bg-green-500/10" />
         <StatMiniCard icon={Briefcase} label="Vacancies" value={kpiData.totalVacancies} color="text-blue-500" bgColor="bg-blue-500/10" />
         <StatMiniCard icon={FileCheck} label="Applications" value={kpiData.totalApplications} color="text-green-500" bgColor="bg-green-500/10" trend={appsMoM} />
@@ -498,6 +554,57 @@ export function JobsKPIDashboard({ onNavigateToTab }: JobsKPIDashboardProps) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Country-wise Active Jobs Distribution */}
+      {kpiData.countryDistribution.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Globe className="w-4 h-4" />
+              Active Jobs by Country
+              <Badge variant="outline" className="ml-auto text-xs">{kpiData.countryDistribution.length} countries</Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart 
+                  data={kpiData.countryDistribution.slice(0, 15)} 
+                  layout="vertical"
+                  margin={{ left: 10, right: 20 }}
+                >
+                  <XAxis type="number" tick={{ fontSize: 11 }} tickLine={false} axisLine={false} />
+                  <YAxis 
+                    type="category" 
+                    dataKey="name" 
+                    tick={{ fontSize: 11 }} 
+                    tickLine={false} 
+                    axisLine={false}
+                    width={isMobile ? 80 : 120}
+                    tickFormatter={(name: string) => {
+                      const c = kpiData.countryDistribution.find(cc => cc.name === name);
+                      return `${c?.flag || ''} ${name.length > 12 ? name.slice(0, 12) + '…' : name}`;
+                    }}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      background: 'hsl(var(--card))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px'
+                    }}
+                    formatter={(value: number) => [value, 'Active Jobs']}
+                  />
+                  <Bar dataKey="count" radius={[0, 4, 4, 0]} maxBarSize={24}>
+                    {kpiData.countryDistribution.slice(0, 15).map((_, index) => (
+                      <Cell key={`country-${index}`} fill={COUNTRY_COLORS[index % COUNTRY_COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Recent Jobs Table */}
       <Card>

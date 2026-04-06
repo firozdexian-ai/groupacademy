@@ -5114,15 +5114,25 @@ export type Database = {
         Returns: boolean
       }
       cleanup_rate_limits: { Args: never; Returns: undefined }
-      deduct_credits: {
-        Args: {
-          p_amount: number
-          p_description?: string
-          p_reference_id?: string
-          p_service_type: string
-        }
-        Returns: Json
-      }
+      deduct_credits:
+        | {
+            Args: {
+              p_amount: number
+              p_description?: string
+              p_reference_id?: string
+              p_service_type: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_amount: number
+              p_description?: string
+              p_reference_id?: string
+              p_service_type: string
+            }
+            Returns: Json
+          }
       get_or_create_talent: {
         Args: {
           p_email: string
@@ -5144,6 +5154,7 @@ export type Database = {
         Args: { p_agent_key: string }
         Returns: undefined
       }
+      normalize_country_name: { Args: { p_country: string }; Returns: string }
       normalize_phone: {
         Args: { p_country_code: string; p_phone: string }
         Returns: string
