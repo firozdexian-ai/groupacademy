@@ -153,8 +153,8 @@ export function JobsKPIDashboard({ onNavigateToTab }: JobsKPIDashboardProps) {
         jobsThisMonthCountRes,
         lastMonthJobsRes,
         activeVacanciesRows,
-        appsRes,
-        lastMonthAppsRes,
+        applicationsRows,
+        lastMonthAppsRows,
         recentJobsRes,
         expiringRes,
         liveRes,
@@ -170,22 +170,29 @@ export function JobsKPIDashboard({ onNavigateToTab }: JobsKPIDashboardProps) {
           .gte("created_at", lastMonthStart.toISOString())
           .lte("created_at", lastMonthEnd.toISOString()),
         fetchAllRows(() => supabase.from("jobs").select("vacancies").eq("is_active", true)),
-        supabase.from("job_applications")
+        
+        // FIX: Replaced standard select with fetchAllRows to prevent 1000 limit
+        fetchAllRows(() => supabase.from("job_applications")
           .select("id, talent_id, job_id")
-          .gte("created_at", monthStart.toISOString()),
-        supabase.from("job_applications")
-          .select("id, talent_id", { count: "exact", head: false })
+          .gte("created_at", monthStart.toISOString())),
+          
+        // FIX: Replaced standard select with fetchAllRows to prevent 1000 limit
+        fetchAllRows(() => supabase.from("job_applications")
+          .select("id, talent_id")
           .gte("created_at", lastMonthStart.toISOString())
-          .lte("created_at", lastMonthEnd.toISOString()),
+          .lte("created_at", lastMonthEnd.toISOString())),
+          
         supabase.from("jobs")
           .select(`id, title, company_name, vacancies, created_at, job_applications(count)`)
           .order("created_at", { ascending: false })
           .limit(10),
+          
+        // FIX: Converted to a count exact query instead of pulling row data
         (() => {
           const weekFromNow = new Date();
           weekFromNow.setDate(weekFromNow.getDate() + 7);
           return supabase.from("jobs")
-            .select("id")
+            .select("id", { count: "exact", head: true })
             .eq("is_active", true)
             .not("deadline", "is", null)
             .lte("deadline", weekFromNow.toISOString())
@@ -224,14 +231,14 @@ export function JobsKPIDashboard({ onNavigateToTab }: JobsKPIDashboardProps) {
 
       const totalVacancies = (activeVacanciesRows || []).reduce((sum: number, j: any) => sum + (j.vacancies || 1), 0);
 
-      const applications = appsRes.data || [];
+      const applications = applicationsRows || [];
       const uniqueTalentIds = new Set(applications.map(a => a.talent_id).filter(Boolean));
       const jobsWithApps = new Set(applications.map(a => a.job_id));
       const avgAppsPerJob = jobsWithApps.size > 0
         ? parseFloat((applications.length / jobsWithApps.size).toFixed(1))
         : 0;
 
-      const lastMonthApps = lastMonthAppsRes.data || [];
+      const lastMonthApps = lastMonthAppsRows || [];
       const lastMonthUniqueApplicants = new Set(lastMonthApps.map(a => a.talent_id).filter(Boolean)).size;
 
       const sourceCount: Record<string, number> = {};
@@ -282,7 +289,7 @@ export function JobsKPIDashboard({ onNavigateToTab }: JobsKPIDashboardProps) {
         jobsBySource,
         dailyJobsData,
         recentJobs,
-        jobsExpiringThisWeek: expiringRes.data?.length || 0,
+        jobsExpiringThisWeek: expiringRes.count || 0,
         liveJobs: liveRes.count || 0,
         totalApplyClicks,
         totalShares: sharesRes.count || 0,
@@ -603,92 +610,4 @@ export function JobsKPIDashboard({ onNavigateToTab }: JobsKPIDashboardProps) {
               </ResponsiveContainer>
             </div>
           </CardContent>
-        </Card>
-      )}
-
-      {/* Recent Jobs Table */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-base">Recent Job Posts</CardTitle>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="text-muted-foreground"
-            onClick={() => onNavigateToTab?.("jobs")}
-          >
-            View All <ChevronRight className="w-4 h-4 ml-1" />
-          </Button>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {kpiData.recentJobs.map((job) => (
-              <div 
-                key={job.id} 
-                className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors gap-2"
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">{job.title}</p>
-                  <p className="text-sm text-muted-foreground">{job.company_name}</p>
-                </div>
-                <div className="flex items-center gap-2 sm:gap-4 text-sm">
-                  <div className="text-center">
-                    <p className="font-semibold text-xs sm:text-sm">{job.vacancies}</p>
-                    <p className="text-[10px] sm:text-xs text-muted-foreground">Vac.</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="font-semibold text-xs sm:text-sm">{job.applications_count}</p>
-                    <p className="text-[10px] sm:text-xs text-muted-foreground">Apps</p>
-                  </div>
-                  <Badge variant="outline" className="text-[10px] sm:text-xs px-1.5 sm:px-2">
-                    {format(new Date(job.created_at), "MMM d")}
-                  </Badge>
-                </div>
-              </div>
-            ))}
-            {kpiData.recentJobs.length === 0 && (
-              <p className="text-center text-muted-foreground py-4">No jobs posted yet</p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
-/* ── Compact stat card used in the grid ── */
-interface StatMiniCardProps {
-  icon: React.ElementType;
-  label: string;
-  value: string | number;
-  color: string;
-  bgColor: string;
-  trend?: string;
-  onClick?: () => void;
-  clickable?: boolean;
-}
-
-function StatMiniCard({ icon: Icon, label, value, color, bgColor, trend, onClick, clickable }: StatMiniCardProps) {
-  return (
-    <Card 
-      className={`${clickable ? "cursor-pointer hover:border-primary/40" : ""}`}
-      onClick={onClick}
-    >
-      <CardContent className="pt-3 pb-2 px-3 sm:pt-4 sm:pb-3 sm:px-4">
-        <div className="flex items-center gap-2 sm:gap-3">
-          <div className={`p-1.5 sm:p-2 rounded-lg ${bgColor}`}>
-            <Icon className={`w-3 h-3 sm:w-4 sm:h-4 ${color}`} />
-          </div>
-          <div className="min-w-0">
-            <p className="text-lg sm:text-xl font-bold leading-tight">{value}</p>
-            <p className="text-[10px] sm:text-xs text-muted-foreground truncate">{label}</p>
-            {trend && (
-              <p className={`text-[10px] sm:text-xs font-medium ${trend.startsWith("+") ? "text-emerald-500" : "text-red-500"}`}>
-                {trend} vs last mo
-              </p>
-            )}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
+        </Card
