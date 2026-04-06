@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   FileText,
   Upload,
@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useTalent } from "@/hooks/useTalent";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -30,6 +32,11 @@ interface ParsedCVData {
   education?: Array<{ institution?: string; degree?: string; field?: string }>;
   experience?: Array<{ company?: string; title?: string; description?: string }>;
   skills?: string[];
+}
+
+interface ProfessionCategory {
+  id: string;
+  name: string;
 }
 
 const PARSING_STAGES = [
@@ -51,6 +58,22 @@ export function CVUploadStep({ onContinue, onSkip }: CVUploadStepProps) {
   const [parsedData, setParsedData] = useState<ParsedCVData | null>(null);
   const [parseComplete, setParseComplete] = useState(false);
   const [parseError, setParseError] = useState<string | null>(null);
+
+  // Profession Category State
+  const [categories, setCategories] = useState<ProfessionCategory[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>(talent?.profession_category_id || "none");
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      const { data, error } = await supabase.from("profession_categories").select("id, name").order("name");
+
+      if (!error && data) {
+        setCategories(data);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   const handleDragOver = useCallback(
     (e: React.DragEvent) => {
@@ -212,6 +235,27 @@ export function CVUploadStep({ onContinue, onSkip }: CVUploadStepProps) {
     }
   }
 
+  const handleContinueWithProfession = async () => {
+    if (selectedCategory === "none") {
+      toast.error("Please select a profession category to continue.");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      if (selectedCategory !== talent?.profession_category_id) {
+        await updateTalent({ profession_category_id: selectedCategory });
+        await refreshTalent();
+      }
+      onContinue();
+    } catch (error) {
+      console.error("Failed to save profession:", error);
+      toast.error("Failed to save your profession. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const renderParsedSummary = () => {
     if (!parsedData && !parseComplete) return null;
 
@@ -282,10 +326,9 @@ export function CVUploadStep({ onContinue, onSkip }: CVUploadStepProps) {
     );
   };
 
-  const canContinue = !isUploading && !isParsing;
-
-  // 👇 FIXED: Simplified logic. If we have parsed data OR we are done parsing + have a file, it's a success.
+  const isUploadingOrParsing = isUploading || isParsing || isSaving;
   const showSuccessState = !!(parsedData || (uploadedFile && parseComplete));
+  const isContinueReady = !isUploadingOrParsing && selectedCategory !== "none";
 
   return (
     <div className="flex flex-col items-center px-4 py-6 max-w-md mx-auto">
@@ -302,7 +345,6 @@ export function CVUploadStep({ onContinue, onSkip }: CVUploadStepProps) {
         className={cn(
           "relative w-full border-2 border-dashed rounded-xl p-8 text-center transition-all",
           isDragging && "border-primary bg-primary/5 scale-[1.02]",
-          // 👇 FORCE GREEN BORDER ON SUCCESS
           showSuccessState && "border-success bg-success/5",
           !isDragging && !showSuccessState && "border-border hover:border-primary/50",
           (isUploading || isParsing) && "pointer-events-none opacity-90",
@@ -335,14 +377,13 @@ export function CVUploadStep({ onContinue, onSkip }: CVUploadStepProps) {
             </div>
           </div>
         ) : showSuccessState ? (
-          /* 👇 IMPROVED SUCCESS UI: Shows clearly that upload is done */
           <div className="flex flex-col items-center gap-3 py-4 animate-in fade-in zoom-in">
             <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
               <CheckCircle2 className="h-8 w-8 text-green-600" />
             </div>
             <div>
               <p className="text-foreground font-bold text-lg">{parsedData ? "CV Analyzed!" : "Upload Complete!"}</p>
-              <p className="text-xs text-muted-foreground mt-1">Your profile is ready. Click Continue.</p>
+              <p className="text-xs text-muted-foreground mt-1">Your profile is ready below.</p>
             </div>
             <Button
               variant="ghost"
@@ -370,7 +411,6 @@ export function CVUploadStep({ onContinue, onSkip }: CVUploadStepProps) {
           </div>
         )}
 
-        {/* Input is properly disabled during loading to prevent double-uploads */}
         <input
           type="file"
           accept=".pdf,.doc,.docx"
@@ -382,10 +422,46 @@ export function CVUploadStep({ onContinue, onSkip }: CVUploadStepProps) {
 
       {renderParsedSummary()}
 
+      {/* Mandatory Profession Selection */}
+      <div className="w-full mt-8 p-5 bg-card border rounded-xl shadow-sm">
+        <Label htmlFor="profession" className="text-sm font-semibold flex items-center gap-2 mb-3">
+          <Briefcase className="w-4 h-4 text-primary" />
+          What is your primary profession? <span className="text-destructive">*</span>
+        </Label>
+        <Select value={selectedCategory} onValueChange={setSelectedCategory} disabled={isUploadingOrParsing}>
+          <SelectTrigger
+            id="profession"
+            className="w-full bg-background border-muted-foreground/30 focus:ring-primary/50"
+          >
+            <SelectValue placeholder="Select your career category..." />
+          </SelectTrigger>
+          <SelectContent className="max-h-[300px]">
+            <SelectItem value="none" disabled>
+              Select a category...
+            </SelectItem>
+            {categories.map((cat) => (
+              <SelectItem key={cat.id} value={cat.id}>
+                {cat.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+          We use this to precisely match you with the right job opportunities and assign your dedicated AI instructor.
+        </p>
+      </div>
+
       {/* Actions */}
-      <div className="flex flex-col w-full gap-3 mt-8">
-        <Button size="lg" onClick={onContinue} className="w-full shadow-lg shadow-primary/20" disabled={!canContinue}>
-          {parsedData ? (
+      <div className="flex flex-col w-full gap-3 mt-6">
+        <Button
+          size="lg"
+          onClick={handleContinueWithProfession}
+          className="w-full shadow-lg shadow-primary/20"
+          disabled={!isContinueReady}
+        >
+          {isSaving ? (
+            <Loader2 className="h-5 w-5 animate-spin" />
+          ) : parsedData ? (
             <>
               <Eye className="h-4 w-4 mr-2" />
               Review & Continue
@@ -393,10 +469,10 @@ export function CVUploadStep({ onContinue, onSkip }: CVUploadStepProps) {
           ) : parseComplete ? (
             "Continue to Profile"
           ) : (
-            "Continue"
+            "Save & Continue"
           )}
         </Button>
-        <Button variant="ghost" onClick={onSkip} className="text-muted-foreground" disabled={!canContinue}>
+        <Button variant="ghost" onClick={onSkip} className="text-muted-foreground" disabled={isUploadingOrParsing}>
           Skip for now
         </Button>
       </div>
