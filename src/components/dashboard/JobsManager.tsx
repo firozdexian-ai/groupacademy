@@ -1247,7 +1247,7 @@ export function JobsManager() {
     } finally {
       setLoading(false);
     }
-  }, [page, debouncedSearch, statusFilter, locationFilter, companyFilter, companiesList, COUNTRY_ALIASES]);
+  }, [page, debouncedSearch, statusFilter, locationFilter, companyFilter, appTypeFilter, companiesList, COUNTRY_ALIASES]);
 
   useEffect(() => {
     loadJobs();
