@@ -1,61 +1,68 @@
 import { supabase } from "@/integrations/supabase/client";
 
-type EmailType = "welcome" | "service_complete" | "bid_accepted" | "credit_receipt";
+/**
+ * Valid templates registered in our Edge Function registry
+ */
+type TemplateKey =
+  | "welcome"
+  | "service-complete"
+  | "bid-accepted"
+  | "credit-receipt"
+  | "job-application-sent"
+  | "talent-invite";
 
 interface SendEmailParams {
-  type: EmailType;
+  template: TemplateKey;
   talentId: string;
   data?: Record<string, any>;
 }
 
-/**
- * Fire-and-forget transactional email sender.
- * Calls the send-transactional-email edge function.
- * Never throws — logs errors silently so callers aren't blocked.
- */
-export async function sendTransactionalEmail({ type, talentId, data }: SendEmailParams): Promise<boolean> {
+export async function sendTransactionalEmail({ template, talentId, data }: SendEmailParams): Promise<boolean> {
   try {
     const { data: result, error } = await supabase.functions.invoke("send-transactional-email", {
-      body: { type, talent_id: talentId, data },
+      body: { template, talent_id: talentId, data },
     });
 
     if (error) {
-      console.warn(`[Email] Failed to send ${type} email:`, error.message);
+      console.warn(`[Email] Failed to queue ${template}:`, error.message);
       return false;
     }
 
     return result?.success === true;
   } catch (err) {
-    console.warn(`[Email] Unexpected error sending ${type} email:`, err);
+    console.warn(`[Email] Unexpected error queueing ${template}:`, err);
     return false;
   }
 }
 
-/**
- * Convenience helpers
- */
 export const emailNotifications = {
-  welcome: (talentId: string) =>
-    sendTransactionalEmail({ type: "welcome", talentId }),
+  welcome: (talentId: string) => sendTransactionalEmail({ template: "welcome", talentId }),
 
   serviceComplete: (talentId: string, serviceName: string, summary: string) =>
     sendTransactionalEmail({
-      type: "service_complete",
+      template: "service-complete",
       talentId,
       data: { service_name: serviceName, summary },
     }),
 
   bidAccepted: (talentId: string, gigTitle: string, creditsAwarded: number) =>
     sendTransactionalEmail({
-      type: "bid_accepted",
+      template: "bid-accepted",
       talentId,
       data: { gig_title: gigTitle, credits_awarded: creditsAwarded },
     }),
 
   creditReceipt: (talentId: string, amount: number, newBalance: number, transactionType: string) =>
     sendTransactionalEmail({
-      type: "credit_receipt",
+      template: "credit-receipt",
       talentId,
       data: { amount, new_balance: newBalance, transaction_type: transactionType },
+    }),
+
+  talentInvite: (talentId: string, personalNote?: string) =>
+    sendTransactionalEmail({
+      template: "talent-invite",
+      talentId,
+      data: { personal_note: personalNote },
     }),
 };
