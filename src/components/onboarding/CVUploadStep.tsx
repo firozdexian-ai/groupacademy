@@ -61,7 +61,7 @@ export function CVUploadStep({ onContinue, onSkip }: CVUploadStepProps) {
 
   // Profession Category State
   const [categories, setCategories] = useState<ProfessionCategory[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>(talent?.profession_category_id || "none");
+  const [selectedCategory, setSelectedCategory] = useState<string>(talent?.professionCategoryId || "none");
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -243,8 +243,8 @@ export function CVUploadStep({ onContinue, onSkip }: CVUploadStepProps) {
 
     setIsSaving(true);
     try {
-      if (selectedCategory !== talent?.profession_category_id) {
-        await updateTalent({ profession_category_id: selectedCategory });
+      if (selectedCategory !== talent?.professionCategoryId) {
+        await updateTalent({ professionCategoryId: selectedCategory });
         await refreshTalent();
       }
       onContinue();
