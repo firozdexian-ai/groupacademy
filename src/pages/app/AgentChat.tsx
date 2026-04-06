@@ -24,8 +24,6 @@ export default function AgentChat() {
     loadSession,
     endSession,
     recentSessions,
-    isSessionExpired,
-    timeRemaining,
     isLoadingSessions,
     perResponseCost,
   } = useAgentChat();
@@ -108,8 +106,8 @@ export default function AgentChat() {
           }}
           messages={messages}
           isStreaming={isStreaming}
-          timeRemaining={timeRemaining}
-          isSessionExpired={isSessionExpired}
+          timeRemaining={0}
+          isSessionExpired={false}
           onSendMessage={sendMessage}
           onBack={handleBack}
           onEndSession={handleEndSession}
