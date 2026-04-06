@@ -95,24 +95,40 @@ const AuthChat = () => {
     navigate(safeReturn, { replace: true });
   };
 
+  const handleClassicAuthFallback = () => {
+    const returnTo = searchParams.get("returnTo");
+    // Standardize redirection parameter for the classic auth route
+    navigate(`/auth/classic${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ""}`);
+  };
+
   const getInputPlaceholder = (action: AuthAction): string => {
     switch (action) {
-      case "collect_email": return "Enter your email address...";
-      case "collect_name": return "Enter your full name...";
-      case "collect_password": return "Enter your password...";
-      case "set_password": return "Create a password (min 8 characters)...";
-      case "collect_phone": return "Enter your phone number...";
-      case "verify_human": return "Type your answer...";
-      default: return "Type a message...";
+      case "collect_email":
+        return "Enter your email address...";
+      case "collect_name":
+        return "Enter your full name...";
+      case "collect_password":
+        return "Enter your password...";
+      case "set_password":
+        return "Create a password (min 8 characters)...";
+      case "collect_phone":
+        return "Enter your phone number...";
+      case "verify_human":
+        return "Type your answer...";
+      default:
+        return "Type a message...";
     }
   };
 
   const getInputType = (action: AuthAction): string => {
     switch (action) {
-      case "collect_email": return "email";
+      case "collect_email":
+        return "email";
       case "collect_password":
-      case "set_password": return "password";
-      default: return "text";
+      case "set_password":
+        return "password";
+      default:
+        return "text";
     }
   };
 
@@ -132,11 +148,7 @@ const AuthChat = () => {
       {/* Header */}
       <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card">
         <button onClick={() => navigate("/")} className="flex items-center gap-2">
-          <img
-            src={theme === "dark" ? logoLight : logoDark}
-            alt="GroUp Academy"
-            className="h-8"
-          />
+          <img src={theme === "dark" ? logoLight : logoDark} alt="GroUp Academy" className="h-8" />
         </button>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <ShieldCheck className="w-4 h-4 text-primary" />
@@ -158,10 +170,7 @@ const AuthChat = () => {
       {/* Chat Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
         {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-          >
+          <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
             <div
               className={`max-w-[85%] sm:max-w-[70%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
                 msg.role === "user"
@@ -179,9 +188,18 @@ const AuthChat = () => {
           <div className="flex justify-start">
             <div className="bg-muted rounded-2xl rounded-bl-md px-4 py-3">
               <div className="flex gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-muted-foreground/50 animate-bounce" style={{ animationDelay: "0ms" }} />
-                <div className="w-2 h-2 rounded-full bg-muted-foreground/50 animate-bounce" style={{ animationDelay: "150ms" }} />
-                <div className="w-2 h-2 rounded-full bg-muted-foreground/50 animate-bounce" style={{ animationDelay: "300ms" }} />
+                <div
+                  className="w-2 h-2 rounded-full bg-muted-foreground/50 animate-bounce"
+                  style={{ animationDelay: "0ms" }}
+                />
+                <div
+                  className="w-2 h-2 rounded-full bg-muted-foreground/50 animate-bounce"
+                  style={{ animationDelay: "150ms" }}
+                />
+                <div
+                  className="w-2 h-2 rounded-full bg-muted-foreground/50 animate-bounce"
+                  style={{ animationDelay: "300ms" }}
+                />
               </div>
             </div>
           </div>
@@ -267,17 +285,8 @@ const AuthChat = () => {
               />
             )}
 
-            <Button
-              type="submit"
-              size="icon"
-              disabled={isLoading}
-              className="shrink-0"
-            >
-              {isLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Send className="w-4 h-4" />
-              )}
+            <Button type="submit" size="icon" disabled={isLoading} className="shrink-0">
+              {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
             </Button>
           </form>
 
@@ -302,6 +311,17 @@ const AuthChat = () => {
               </p>
             </div>
           )}
+
+          {/* Classic Login Fallback */}
+          <div className="mt-4 text-center">
+            <button
+              type="button"
+              onClick={handleClassicAuthFallback}
+              className="text-xs text-muted-foreground hover:text-primary transition-colors"
+            >
+              Having trouble with the AI? Switch to classic login
+            </button>
+          </div>
         </div>
       )}
     </div>
