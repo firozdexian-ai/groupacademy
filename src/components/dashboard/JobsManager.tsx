@@ -1205,6 +1205,10 @@ export function JobsManager() {
         }
       }
 
+      if (appTypeFilter !== "all") {
+        query = query.eq("application_type", appTypeFilter);
+      }
+
       const from = (page - 1) * ITEMS_PER_PAGE;
       query = query.range(from, from + ITEMS_PER_PAGE - 1);
       const result = await withTimeout(Promise.resolve(query), TIMEOUTS.DEFAULT, "Timeout");
