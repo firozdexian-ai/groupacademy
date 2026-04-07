@@ -1,29 +1,62 @@
-import { emailNotifications } from "@/lib/emailNotifications";
-import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
-// Inside the handleSend function:
-const handleSendUpdate = async () => {
-  if (!selectedInvestor?.email) {
-    toast.error("No recipient email found.");
-    return;
+/**
+ * CTO Note:
+ * These keys must match the TEMPLATES map in supabase/functions/_shared/transactional-email-templates/registry.ts
+ */
+type TemplateKey =
+  | "welcome"
+  | "service-complete"
+  | "bid-accepted"
+  | "credit-receipt"
+  | "job-application-sent"
+  | "job-application-employer"
+  | "talent-invite"
+  | "investor-update";
+
+interface SendEmailParams {
+  template: TemplateKey;
+  talentId?: string;
+  recipientEmail?: string;
+  data?: Record<string, any>;
+}
+
+export async function sendTransactionalEmail({
+  template,
+  talentId,
+  recipientEmail,
+  data,
+}: SendEmailParams): Promise<boolean> {
+  try {
+    const { data: result, error } = await supabase.functions.invoke("send-transactional-email", {
+      body: { template, talent_id: talentId, recipient_email: recipientEmail, data },
+    });
+    if (error) return false;
+    return result?.success === true;
+  } catch (err) {
+    return false;
   }
+}
 
-  const toastId = toast.loading("Sending investor update via GroUp platform...");
-
-  const success = await emailNotifications.investorUpdate(
-    selectedInvestor.email,
-    emailSubject, // State from your form
-    emailBody, // State from your Rich Text editor/textarea
-  );
-
-  toast.dismiss(toastId);
-
-  if (success) {
-    toast.success("Investor update sent successfully!");
-    // Logic to log to 'ir_investor_interactions' table remains here
-    onClose();
-  } else {
-    toast.error("Failed to send via platform. Falling back to email client...");
-    window.open(`mailto:${selectedInvestor.email}?subject=${emailSubject}&body=${emailBody}`);
-  }
+export const emailNotifications = {
+  welcome: (talentId: string) => sendTransactionalEmail({ template: "welcome", talentId }),
+  serviceComplete: (talentId: string, serviceName: string, summary: string) =>
+    sendTransactionalEmail({ template: "service-complete", talentId, data: { service_name: serviceName, summary } }),
+  bidAccepted: (talentId: string, gigTitle: string, creditsAwarded: number) =>
+    sendTransactionalEmail({
+      template: "bid-accepted",
+      talentId,
+      data: { gig_title: gigTitle, credits_awarded: creditsAwarded },
+    }),
+  creditReceipt: (talentId: string, amount: number, newBalance: number, transactionType: string) =>
+    sendTransactionalEmail({
+      template: "credit-receipt",
+      talentId,
+      data: { amount, new_balance: newBalance, transaction_type: transactionType },
+    }),
+  talentInvite: (talentId: string, personalNote?: string) =>
+    sendTransactionalEmail({ template: "talent-invite", talentId, data: { personal_note: personalNote } }),
+  // Add this missing method:
+  investorUpdate: (recipientEmail: string, subject: string, content: string) =>
+    sendTransactionalEmail({ template: "investor-update", recipientEmail, data: { subject, content } }),
 };
