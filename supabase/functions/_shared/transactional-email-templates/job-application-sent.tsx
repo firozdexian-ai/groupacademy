@@ -7,33 +7,35 @@ import type { TemplateEntry } from './registry.ts'
 const SITE_NAME = "GroUp Academy"
 const SITE_URL = "https://groupacademy.lovable.app"
 
-interface BidAcceptedProps {
+interface JobApplicationSentProps {
   name?: string
-  gig_title?: string
-  credits_awarded?: number
+  job_title?: string
+  company_name?: string
 }
 
-const BidAcceptedEmail = ({ name, gig_title, credits_awarded }: BidAcceptedProps) => (
+const JobApplicationSentEmail = ({ name, job_title, company_name }: JobApplicationSentProps) => (
   <Html lang="en" dir="ltr">
     <Head />
-    <Preview>Your gig submission was approved — {credits_awarded || 0} credits earned!</Preview>
+    <Preview>Your application for {job_title || 'a position'} has been submitted</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Heading style={h1}>Submission Approved! 🏆</Heading>
+        <Heading style={h1}>Application Submitted ✅</Heading>
         <Text style={text}>
-          {name ? `Congrats ${name},` : 'Congrats,'}
+          {name ? `Hi ${name},` : 'Hi there,'}
         </Text>
         <Text style={text}>
-          Your submission for <strong>{gig_title || 'a gig'}</strong> has been reviewed and approved.
+          Your application for <strong>{job_title || 'the position'}</strong>
+          {company_name ? ` at ${company_name}` : ''} has been submitted successfully.
         </Text>
-        <Text style={rewardBox}>
-          💰 <strong>{credits_awarded || 0} credits</strong> have been added to your wallet.
+        <Text style={text}>
+          The employer will review your application and you'll be notified of any updates.
+          In the meantime, keep exploring other opportunities!
         </Text>
-        <Button style={button} href={SITE_URL + "/app/gigs"}>
-          View Your Gigs
+        <Button style={button} href={SITE_URL + "/app/my-applications"}>
+          View My Applications
         </Button>
         <Text style={footer}>
-          Keep earning — The {SITE_NAME} Team
+          Good luck — The {SITE_NAME} Team
         </Text>
       </Container>
     </Body>
@@ -41,16 +43,15 @@ const BidAcceptedEmail = ({ name, gig_title, credits_awarded }: BidAcceptedProps
 )
 
 export const template = {
-  component: BidAcceptedEmail,
-  subject: 'Your gig submission was approved! 🏆',
-  displayName: 'Gig submission approved',
-  previewData: { name: 'Rafi', gig_title: 'Share 3 Job Posts', credits_awarded: 50 },
+  component: JobApplicationSentEmail,
+  subject: 'Application submitted successfully',
+  displayName: 'Job application confirmation',
+  previewData: { name: 'Nadia', job_title: 'Marketing Manager', company_name: 'TechCorp' },
 } satisfies TemplateEntry
 
 const main = { backgroundColor: '#ffffff', fontFamily: "'Segoe UI', Roboto, Helvetica, Arial, sans-serif" }
 const container = { padding: '32px 28px' }
 const h1 = { fontSize: '22px', fontWeight: 'bold' as const, color: '#333333', margin: '0 0 20px' }
 const text = { fontSize: '14px', color: '#677280', lineHeight: '1.6', margin: '0 0 16px' }
-const rewardBox = { fontSize: '16px', color: '#10D576', lineHeight: '1.6', margin: '0 0 20px', padding: '16px', backgroundColor: '#f0fdf4', borderRadius: '8px', textAlign: 'center' as const }
 const button = { backgroundColor: '#2A7DDE', color: '#ffffff', fontSize: '14px', borderRadius: '8px', padding: '12px 24px', textDecoration: 'none', fontWeight: '600' as const }
 const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }
