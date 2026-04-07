@@ -1,6 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
 
-type TemplateKey =
+/**
+ * CTO Note:
+ * These keys must match the TEMPLATES map in registry.ts
+ */
+export type TemplateKey =
   | "welcome"
   | "service-complete"
   | "bid-accepted"
@@ -17,36 +21,72 @@ interface SendEmailParams {
   data?: Record<string, any>;
 }
 
-async function sendTransactionalEmail({ template, talentId, recipientEmail, data }: SendEmailParams): Promise<boolean> {
+/**
+ * Exported core function for direct use (e.g., in ReportCard)
+ */
+export async function sendTransactionalEmail({
+  template,
+  talentId,
+  recipientEmail,
+  data,
+}: SendEmailParams): Promise<boolean> {
   try {
     const { data: result, error } = await supabase.functions.invoke("send-transactional-email", {
-      body: { template, talent_id: talentId, recipient_email: recipientEmail, data },
+      body: {
+        template,
+        talent_id: talentId,
+        recipient_email: recipientEmail,
+        data,
+      },
     });
-    if (error) return false;
+
+    if (error) {
+      console.warn(`[Email] Queue failed for ${template}:`, error.message);
+      return false;
+    }
+
     return result?.success === true;
   } catch (err) {
+    console.warn(`[Email] Unexpected error in helper:`, err);
     return false;
   }
 }
 
 export const emailNotifications = {
   welcome: (talentId: string) => sendTransactionalEmail({ template: "welcome", talentId }),
+
   serviceComplete: (talentId: string, serviceName: string, summary: string) =>
-    sendTransactionalEmail({ template: "service-complete", talentId, data: { service_name: serviceName, summary } }),
+    sendTransactionalEmail({
+      template: "service-complete",
+      talentId,
+      data: { service_name: serviceName, summary },
+    }),
+
   bidAccepted: (talentId: string, gigTitle: string, creditsAwarded: number) =>
     sendTransactionalEmail({
       template: "bid-accepted",
       talentId,
       data: { gig_title: gigTitle, credits_awarded: creditsAwarded },
     }),
+
   creditReceipt: (talentId: string, amount: number, newBalance: number, transactionType: string) =>
     sendTransactionalEmail({
       template: "credit-receipt",
       talentId,
       data: { amount, new_balance: newBalance, transaction_type: transactionType },
     }),
+
   talentInvite: (talentId: string, personalNote?: string) =>
-    sendTransactionalEmail({ template: "talent-invite", talentId, data: { personal_note: personalNote } }),
+    sendTransactionalEmail({
+      template: "talent-invite",
+      talentId,
+      data: { personal_note: personalNote },
+    }),
+
   investorUpdate: (recipientEmail: string, subject: string, content: string) =>
-    sendTransactionalEmail({ template: "investor-update", recipientEmail, data: { subject, content } }),
+    sendTransactionalEmail({
+      template: "investor-update",
+      recipientEmail,
+      data: { subject, content },
+    }),
 };
