@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/dashboard/AdminSidebar";
 import { DashboardOverview } from "@/components/dashboard/DashboardOverview";
 import { TalentPoolManager } from "@/components/dashboard/TalentPoolManager";
@@ -57,49 +58,38 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden">
-      {/* Sidebar navigation based on AdminSidebar.tsx [cite: 28] */}
-      <AdminSidebar activeTab={activeTab} onTabChange={handleTabChange} />
+    <SidebarProvider>
+      <div className="flex h-screen bg-muted overflow-hidden w-full">
+        <AdminSidebar activeTab={activeTab} onTabChange={handleTabChange} />
 
-      <main className="flex-1 overflow-y-auto p-6">
-        <div className="max-w-7xl mx-auto">
-          {/* Tab-to-File Mapping [cite: 27, 29, 30] */}
-          {activeTab === "overview" && <DashboardOverview />}
-
-          {activeTab === "talent" && <TalentPoolManager />}
-
-          {activeTab === "jobs" && <JobsManager />}
-
-          {activeTab === "jobs-kpis" && <JobsKPIDashboard onNavigateToTab={handleTabChange} />}
-
-          {activeTab === "all" && <ContentList />}
-
-          {activeTab === "enrollments" && <EnrollmentsManager />}
-
-          {/* Investor Relations Tab Group [cite: 29, 44] */}
-          {activeTab === "irdashboard" && (
-            /* IRDashboard expects onNavigate prop */
-            <div className="space-y-6">
-              <IRDashboard onNavigate={handleTabChange} />
-              {selectedInvestor && (
-                <div className="mt-8">
-                  {/* Fixed: Added mandatory onClose prop and used named export */}
-                  <EmailComposer selectedInvestor={selectedInvestor} onClose={() => setSelectedInvestor(null)} />
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Placeholder for remaining 40+ Admin Sections [cite: 29, 30] */}
-          {!["overview", "talent", "jobs", "jobs-kpis", "all", "enrollments", "irdashboard"].includes(activeTab) && (
-            <div className="flex flex-col items-center justify-center h-[60vh] text-slate-400">
-              <p className="text-lg font-medium">Module "{activeTab}" is initialized.</p>
-              <p className="text-sm">Accessing database table: {activeTab.replace("-", "_")} [cite: 448]</p>
-            </div>
-          )}
-        </div>
-      </main>
-    </div>
+        <main className="flex-1 overflow-y-auto p-6">
+          <div className="max-w-7xl mx-auto">
+            {activeTab === "overview" && <DashboardOverview />}
+            {activeTab === "talent" && <TalentPoolManager />}
+            {activeTab === "jobs" && <JobsManager />}
+            {activeTab === "jobs-kpis" && <JobsKPIDashboard onNavigateToTab={handleTabChange} />}
+            {activeTab === "all" && <ContentList />}
+            {activeTab === "enrollments" && <EnrollmentsManager />}
+            {activeTab === "irdashboard" && (
+              <div className="space-y-6">
+                <IRDashboard onNavigate={handleTabChange} />
+                {selectedInvestor && (
+                  <div className="mt-8">
+                    <EmailComposer selectedInvestor={selectedInvestor} onClose={() => setSelectedInvestor(null)} />
+                  </div>
+                )}
+              </div>
+            )}
+            {!["overview", "talent", "jobs", "jobs-kpis", "all", "enrollments", "irdashboard"].includes(activeTab) && (
+              <div className="flex flex-col items-center justify-center h-[60vh] text-muted-foreground">
+                <p className="text-lg font-medium">Module "{activeTab}" is initialized.</p>
+                <p className="text-sm">Accessing database table: {activeTab.replace("-", "_")}</p>
+              </div>
+            )}
+          </div>
+        </main>
+      </div>
+    </SidebarProvider>
   );
 };
 
