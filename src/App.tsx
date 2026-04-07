@@ -222,6 +222,9 @@ export default function App() {
                   <Route path="/salary-analysis/processing/:id" element={<SalaryAnalysisProcessing />} />
                   <Route path="/salary-analysis/results/:id" element={<SalaryAnalysisResults />} />
 
+                  {/* Unsubscribe (public — no auth required) */}
+                  <Route path="/unsubscribe" element={<Unsubscribe />} />
+
                   {/* Redirects */}
                   <Route path="/jobs" element={<Navigate to="/auth?returnTo=/app/jobs" replace />} />
                   <Route path="/professions" element={<Navigate to="/auth?returnTo=/app/learning/tracks" replace />} />
