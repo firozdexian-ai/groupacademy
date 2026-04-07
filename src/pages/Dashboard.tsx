@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/dashboard/AdminSidebar";
 import { DashboardOverview } from "@/components/dashboard/DashboardOverview";
 import { TalentPoolManager } from "@/components/dashboard/TalentPoolManager";
