@@ -70,7 +70,7 @@ const Dashboard = () => {
 
           {activeTab === "jobs" && <JobsManager />}
 
-          {activeTab === "jobs-kpis" && <JobsKPIDashboard />}
+          {activeTab === "jobs-kpis" && <JobsKPIDashboard onNavigateToTab={handleTabChange} />}
 
           {activeTab === "all" && <ContentList />}
 
