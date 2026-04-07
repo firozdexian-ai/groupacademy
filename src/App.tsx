@@ -116,6 +116,7 @@ import Blog from "./pages/app/Blog";
 import BlogPost from "./pages/app/BlogPost";
 import PublicBlog from "./pages/PublicBlog";
 import PublicBlogPost from "./pages/PublicBlogPost";
+import Unsubscribe from "./pages/app/Unsubscribe";
 
 const queryClient = new QueryClient({
   defaultOptions: {
