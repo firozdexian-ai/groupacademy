@@ -666,43 +666,29 @@ Applied: ${app.created_at ? format(new Date(app.created_at), "MMMM d, yyyy HH:mm
     return `https://wa.me/${cleaned}?text=${message}`;
   };
 
-  const handleForwardManually = (app: JobApplication) => {
+  const handleForwardManually = async (app: JobApplication) => {
     const employerEmail = app.jobs?.application_email;
     if (!employerEmail) {
       toast.error("No employer email", { description: "This job does not have an application email set" });
       return;
     }
 
-    const subject = encodeURIComponent(`Job Application: ${app.jobs?.title} - ${app.talents?.full_name}`);
-    const body = encodeURIComponent(
-      `
-Dear Hiring Manager,
+    const toastId = toast.loading("Sending application to employer...");
+    try {
+      const { error } = await supabase.functions.invoke("send-job-application", {
+        body: { applicationId: app.id },
+      });
 
-Please find attached the job application from ${app.talents?.full_name} for the ${app.jobs?.title} position at ${app.jobs?.company_name}.
+      toast.dismiss(toastId);
+      if (error) throw error;
 
-APPLICANT DETAILS:
-- Name: ${app.talents?.full_name}
-- Email: ${app.talents?.email}
-- Phone: ${app.talents?.phone || "Not provided"}
-
-CV Link: ${app.cv_url || "Not provided"}
-
-COVER LETTER:
-${app.cover_letter || "Not provided"}
-
----
-This application was submitted via GroUp Academy Jobs Board.
-    `.trim(),
-    );
-
-    window.open(`mailto:${employerEmail}?subject=${subject}&body=${body}`, "_blank");
-
-    handleStatusChange(app.id, "sent_to_employer");
-    supabase
-      .from("job_applications")
-      .update({ delivery_status: "sent" })
-      .eq("id", app.id)
-      .then(() => loadApplications());
+      toast.success("Application forwarded to employer!");
+      handleStatusChange(app.id, "sent_to_employer");
+      loadApplications();
+    } catch (err: any) {
+      toast.dismiss(toastId);
+      toast.error("Platform send failed", { description: "Please try again later." });
+    }
   };
 
   const handleNotifyWhatsApp = async (app: JobApplication) => {

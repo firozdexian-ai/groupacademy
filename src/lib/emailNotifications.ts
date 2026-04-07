@@ -1,9 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
 
-/**
- * CTO Note:
- * These keys must match the TEMPLATES map in registry.ts
- */
 export type TemplateKey =
   | "welcome"
   | "service-complete"
@@ -16,27 +12,24 @@ export type TemplateKey =
 
 interface SendEmailParams {
   template: TemplateKey;
-  talentId?: string;
-  recipientEmail?: string;
+  recipientEmail: string;
+  idempotencyKey: string;
   data?: Record<string, any>;
 }
 
-/**
- * Exported core function for direct use (e.g., in ReportCard)
- */
 export async function sendTransactionalEmail({
   template,
-  talentId,
   recipientEmail,
+  idempotencyKey,
   data,
 }: SendEmailParams): Promise<boolean> {
   try {
     const { data: result, error } = await supabase.functions.invoke("send-transactional-email", {
       body: {
-        template,
-        talent_id: talentId,
-        recipient_email: recipientEmail,
-        data,
+        templateName: template,
+        recipientEmail,
+        idempotencyKey,
+        templateData: data,
       },
     });
 
@@ -52,41 +45,75 @@ export async function sendTransactionalEmail({
   }
 }
 
+/**
+ * Helper to look up a talent's email by ID, then send.
+ * Used when we only have a talent_id (e.g., from gig approval).
+ */
+async function sendToTalent(
+  talentId: string,
+  template: TemplateKey,
+  idempotencyKeySuffix: string,
+  data?: Record<string, any>,
+): Promise<boolean> {
+  const { data: talent, error } = await supabase
+    .from("talents")
+    .select("email, full_name")
+    .eq("id", talentId)
+    .single();
+
+  if (error || !talent?.email) {
+    console.warn(`[Email] Could not find talent ${talentId}`);
+    return false;
+  }
+
+  return sendTransactionalEmail({
+    template,
+    recipientEmail: talent.email,
+    idempotencyKey: `${template}-${idempotencyKeySuffix}`,
+    data: { name: talent.full_name || "there", ...data },
+  });
+}
+
 export const emailNotifications = {
-  welcome: (talentId: string) => sendTransactionalEmail({ template: "welcome", talentId }),
+  welcome: (talentId: string) => sendToTalent(talentId, "welcome", talentId),
 
   serviceComplete: (talentId: string, serviceName: string, summary: string) =>
-    sendTransactionalEmail({
-      template: "service-complete",
-      talentId,
-      data: { service_name: serviceName, summary },
+    sendToTalent(talentId, "service-complete", `${talentId}-${Date.now()}`, {
+      service_name: serviceName,
+      summary,
     }),
 
   bidAccepted: (talentId: string, gigTitle: string, creditsAwarded: number) =>
-    sendTransactionalEmail({
-      template: "bid-accepted",
-      talentId,
-      data: { gig_title: gigTitle, credits_awarded: creditsAwarded },
+    sendToTalent(talentId, "bid-accepted", `${talentId}-${Date.now()}`, {
+      gig_title: gigTitle,
+      credits_awarded: creditsAwarded,
     }),
 
   creditReceipt: (talentId: string, amount: number, newBalance: number, transactionType: string) =>
+    sendToTalent(talentId, "credit-receipt", `${talentId}-${Date.now()}`, {
+      amount,
+      new_balance: newBalance,
+      transaction_type: transactionType,
+    }),
+
+  jobApplicationSent: (recipientEmail: string, jobTitle: string, companyName: string, applicantName: string) =>
     sendTransactionalEmail({
-      template: "credit-receipt",
-      talentId,
-      data: { amount, new_balance: newBalance, transaction_type: transactionType },
+      template: "job-application-sent",
+      recipientEmail,
+      idempotencyKey: `job-app-sent-${recipientEmail}-${Date.now()}`,
+      data: { name: applicantName, job_title: jobTitle, company_name: companyName },
     }),
 
   talentInvite: (talentId: string, personalNote?: string) =>
-    sendTransactionalEmail({
-      template: "talent-invite",
-      talentId,
-      data: { personal_note: personalNote },
+    sendToTalent(talentId, "talent-invite", talentId, {
+      personal_note: personalNote,
     }),
 
   investorUpdate: (recipientEmail: string, subject: string, content: string) =>
     sendTransactionalEmail({
       template: "investor-update",
       recipientEmail,
+      idempotencyKey: `investor-update-${recipientEmail}-${Date.now()}`,
       data: { subject, content },
     }),
 };

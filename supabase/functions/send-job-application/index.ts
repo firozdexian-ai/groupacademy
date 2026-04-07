@@ -9,7 +9,6 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const authHeader = req.headers.get("Authorization")!;
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAdmin = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
@@ -24,24 +23,40 @@ Deno.serve(async (req) => {
 
     if (error || !app) throw new Error("Application not found");
 
-    // 2. Trigger the Employer-Facing Email via our new central system
-    // We send this to the EMPLOYER, but we use the talent_id to track the context
+    // 2. Send employer notification via the transactional email system
     await supabaseAdmin.functions.invoke("send-transactional-email", {
       body: {
-        template: "job-application-employer",
-        talent_id: app.talent_id,
-        data: {
+        templateName: "job-application-employer",
+        recipientEmail: app.jobs.application_email,
+        idempotencyKey: `job-app-employer-${applicationId}`,
+        templateData: {
           job_title: app.jobs.title,
           company_name: app.jobs.company_name,
-          employer_email: app.jobs.application_email,
+          applicant_name: app.talents?.full_name || "A candidate",
           cover_letter: app.cover_letter,
           cv_url: app.cv_url,
-          match_score: app.match_score, // Passing this to the branded template
+          match_score: app.match_score,
         },
       },
     });
 
-    // 3. Update Status
+    // 3. Send confirmation to the applicant
+    if (app.talents?.email) {
+      await supabaseAdmin.functions.invoke("send-transactional-email", {
+        body: {
+          templateName: "job-application-sent",
+          recipientEmail: app.talents.email,
+          idempotencyKey: `job-app-sent-${applicationId}`,
+          templateData: {
+            name: app.talents.full_name || "there",
+            job_title: app.jobs.title,
+            company_name: app.jobs.company_name,
+          },
+        },
+      });
+    }
+
+    // 4. Update Status
     await supabaseAdmin
       .from("job_applications")
       .update({

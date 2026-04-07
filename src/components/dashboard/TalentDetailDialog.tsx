@@ -80,7 +80,11 @@ export const TalentDetailDialog = ({
 
             <Button
               variant="outline"
-              onClick={() => window.open(`mailto:${displayTalent.email}`)}
+              onClick={() => {
+                const text = `Hi ${displayTalent.full_name || ""},\n\nWe'd love to connect with you on GroUp Academy.\n\nBest regards`;
+                navigator.clipboard.writeText(text);
+                window.open(`mailto:${displayTalent.email}`);
+              }}
               className="flex gap-2"
             >
               <Mail className="h-4 w-4" />

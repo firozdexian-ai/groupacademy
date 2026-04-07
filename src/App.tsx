@@ -116,6 +116,7 @@ import Blog from "./pages/app/Blog";
 import BlogPost from "./pages/app/BlogPost";
 import PublicBlog from "./pages/PublicBlog";
 import PublicBlogPost from "./pages/PublicBlogPost";
+import Unsubscribe from "./pages/app/Unsubscribe";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -220,6 +221,9 @@ export default function App() {
                   <Route path="/salary-analysis/setup" element={<SalaryAnalysisSetup />} />
                   <Route path="/salary-analysis/processing/:id" element={<SalaryAnalysisProcessing />} />
                   <Route path="/salary-analysis/results/:id" element={<SalaryAnalysisResults />} />
+
+                  {/* Unsubscribe (public — no auth required) */}
+                  <Route path="/unsubscribe" element={<Unsubscribe />} />
 
                   {/* Redirects */}
                   <Route path="/jobs" element={<Navigate to="/auth?returnTo=/app/jobs" replace />} />

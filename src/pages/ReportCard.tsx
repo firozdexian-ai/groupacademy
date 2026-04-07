@@ -165,15 +165,12 @@ export default function ReportCard() {
         setCertificate(cert as CertificateInfo);
         // Send certificate notification email (fire-and-forget)
         try {
-          const { sendTransactionalEmail } = await import("@/lib/emailNotifications");
-          sendTransactionalEmail({
-            template: "service-complete",
-            talentId: reportData.enrollment.talent_id,
-            data: {
-              service_name: "Certificate",
-              summary: `Congratulations! Your certificate for "${reportData.content.title}" has been issued. Verify at: ${window.location.origin}/verify/${cert.verify_code}`,
-            },
-          });
+          const { emailNotifications } = await import("@/lib/emailNotifications");
+          emailNotifications.serviceComplete(
+            reportData.enrollment.talent_id,
+            "Certificate",
+            `Congratulations! Your certificate for "${reportData.content.title}" has been issued. Verify at: ${window.location.origin}/verify/${cert.verify_code}`,
+          );
         } catch (e) {
           console.warn("[Cert] Email notification failed:", e);
         }

@@ -31,10 +31,7 @@ export const EmailComposer = ({ selectedInvestor, onClose }: EmailComposerProps)
       toast.success("Investor update enqueued successfully!");
       onClose();
     } else {
-      toast.error("Platform send failed. Falling back to email client...");
-      window.open(
-        `mailto:${selectedInvestor.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`,
-      );
+      toast.error("Failed to send investor update. Please try again.");
     }
   };
 
