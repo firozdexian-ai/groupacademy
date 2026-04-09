@@ -1,54 +1,110 @@
 
 
-# Revised Plan: Include CompaniesManager & ContactsManager in Migration
+# Dashboard Stabilization Plan
 
-## Why the Original Plan Excluded Them
+## Problems Identified
 
-The B2B outreach emails in CompaniesManager and ContactsManager are **sales/marketing emails** (cold outreach to external companies). The transactional email system is explicitly designed to reject non-transactional sends to protect domain reputation — mixing cold outreach with password resets and receipts on the same domain can damage deliverability for all emails.
+1. **Most tabs show placeholder text** — `Dashboard.tsx` only maps 7 tab values to actual components (`overview`, `talent`, `jobs`, `jobs-kpis`, `all`, `enrollments`, `irdashboard`). The sidebar defines ~40 tab values. All unmapped ones fall through to the generic "Module X is initialized" message.
 
-## What We Can Do Instead
+2. **Sidebar IR tab mismatch** — Sidebar uses `ir-dashboard` but Dashboard checks for `irdashboard`. The IR Dashboard tab never renders.
 
-These components already have a solid pattern: compose the email content using templates (`companyOutreachTemplates.ts`), open `mailto:`, and log the outreach to `contact_outreach` table. The issue is that `mailto:` depends on the user's local email client.
+3. **Email from Talent tab** — The `TalentDetailDialog` invite button relies on `emailNotifications.talentInvite()` which requires the `send-transactional-email` Edge Function to be deployed and working. Need to verify the function is deployed.
 
-### Option A: Send via Platform with a Dedicated Outreach Template (Recommended)
+## Fix: Wire All 40+ Tabs to Their Components
 
-Create a **separate outreach Edge Function** (`send-outreach-email`) that:
-- Sends from a different queue purpose (`outreach` vs `transactional`) to keep reputation separation
-- Uses the existing `companyOutreachTemplates.ts` content as the email body
-- Logs to `contact_outreach` table (already happening)
-- Does NOT go through `send-transactional-email` (which blocks non-transactional sends)
+Every manager component already exists in `src/components/dashboard/`. The only missing piece is the tab-to-component mapping in `Dashboard.tsx`.
 
-**However**, this conflicts with the Lovable email infrastructure rules — the system only supports auth and transactional purposes. Outreach/marketing emails would be rejected by the API.
+### Complete Tab Mapping
 
-### Option B: Keep mailto: but Improve the UX (Pragmatic)
+| Sidebar Value | Component | Import From |
+|---|---|---|
+| `overview` | `DashboardOverview` | Already imported |
+| `workforce` | `WorkforceManager` | `./WorkforceManager` |
+| `talent` | `TalentPoolManager` | Already imported |
+| `lead-hunter` | `LeadHunterManager` | `./LeadHunterManager` |
+| `professions` | `ProfessionsManager` | `./ProfessionsManager` |
+| `jobs-kpis` | `JobsKPIDashboard` | Already imported |
+| `jobs` | `JobsManager` | Already imported |
+| `applications` | `JobApplicationsManager` | `./JobApplicationsManager` |
+| `companies` | `CompaniesManager` | `./CompaniesManager` |
+| `contacts` | `ContactsManager` | `./ContactsManager` |
+| `company-agents` | `CompanyAgentsManager` | `./CompanyAgentsManager` |
+| `industries` | `IndustriesManager` | `./IndustriesManager` |
+| `all` | `ContentList` | Already imported |
+| `enrollments` | `EnrollmentsManager` | Already imported |
+| `learner-progress` | `LearnerProgressManager` | `./LearnerProgressManager` |
+| `ai-content-tools` | `BatchContentGenerator` | `./BatchContentGenerator` |
+| `analytics` | `MarketingAnalytics` | `./MarketingAnalytics` |
+| `outreach` | `CVOutreachGenerator` | `./CVOutreachGenerator` |
+| `content-outreach` | `ContentOutreachManager` | `./ContentOutreachManager` |
+| `service-outreach` | `ServiceOutreachManager` | `./ServiceOutreachManager` |
+| `blog` | `BlogManager` | `./BlogManager` |
+| `feed-posts` | `FeedPostsManager` | `./FeedPostsManager` |
+| `competitions` | `CompetitionsManager` | `./CompetitionsManager` |
+| `study-abroad` | `StudyAbroadManager` | `./StudyAbroadManager` |
+| `ielts` | `IELTSResourcesManager` | `./IELTSResourcesManager` |
+| `roadmap-leads` | `StudyAbroadRoadmapLeadsManager` | `./StudyAbroadRoadmapLeadsManager` |
+| `ai-agents` | `AIAgentsManager` | `./AIAgentsManager` |
+| `agent-sessions` | `AgentSessionsManager` | `./AgentSessionsManager` |
+| `leads` | `AssessmentLeadsManager` | `./AssessmentLeadsManager` |
+| `interviews` | `MockInterviewLeadsManager` | `./MockInterviewLeadsManager` |
+| `salary` | `SalaryAnalysisLeadsManager` | `./SalaryAnalysisLeadsManager` |
+| `portfolios` | `PortfolioRequestsManager` | `./PortfolioRequestsManager` |
+| `gigs` | `GigsManager` | `./GigsManager` |
+| `marketplace-gigs` | `MarketplaceGigsManager` | `./MarketplaceGigsManager` |
+| `gig-submissions` | `GigSubmissionsManager` | `./GigSubmissionsManager` |
+| `credits` | `CreditsManager` | `./CreditsManager` |
+| `notifications` | `NotificationsManager` | `./NotificationsManager` |
+| `ir-dashboard` | `IRDashboard` | `./ir/IRDashboard` |
+| `ir-targets` | `MRRTargetManager` | `./ir/MRRTargetManager` |
+| `ir-vcs` | `VCFirmsManager` | `./ir/VCFirmsManager` |
+| `ir-investors` | `InvestorsManager` | `./ir/InvestorsManager` |
+| `ir-emails` | `EmailComposer` | `./ir/EmailComposer` |
+| `support-assistant` | `SupportAssistant` | `./SupportAssistant` |
+| `codes` | `AccessCodeManager` | `../AccessCodeManager` |
+| `banners` | `BannerManager` | `./BannerManager` |
+| `team` | `TeamManager` | `./TeamManager` |
+| `payments` | `PaymentSettingsManager` | `./PaymentSettingsManager` |
 
-Keep the `mailto:` links for CompaniesManager and ContactsManager since these are genuinely B2B sales emails that should come from the executive's own email address (Towsif Ahmed's `info@dexian.com.bd`), not from `notify@groupacademy.online`. The recipient expects to reply to a real person, not a platform no-reply address.
+### Implementation Steps
 
-**Improvements we CAN make:**
-1. Add a "Copy to Clipboard" button alongside mailto so users on devices without email clients can still send
-2. Ensure outreach logging to `contact_outreach` is reliable (it already works)
+**Step 1: Rewrite Dashboard.tsx tab rendering**
+- Use React.lazy() for all tab components to avoid a massive upfront bundle
+- Replace the hardcoded if/else chain with a `tabComponents` map
+- Fix the `irdashboard` → `ir-dashboard` mismatch
+- Remove the fallback placeholder (every tab will have a component)
+- Add a Suspense fallback for lazy-loaded components
 
-### Recommendation
+**Step 2: Verify email Edge Function deployment**
+- Check `send-transactional-email` Edge Function logs
+- Ensure the function is deployed and responding correctly
+- Test the talent invite flow works end-to-end
 
-**Go with Option B.** These B2B outreach emails are fundamentally different from transactional emails:
-- They're sent FROM a named sales executive, not from the platform
-- Recipients expect to reply to a real person
-- The content is personalized sales pitches, not system notifications
-- Sending them from `notify@groupacademy.online` would actually reduce effectiveness
+**Step 3: Add clipboard fallback to CompaniesManager and ContactsManager**
+- Add a "Copy Email" button alongside the existing mailto links
+- This was committed to in the email migration plan (Option B for B2B outreach)
 
-The existing mailto + outreach logging pattern is the correct architecture for this use case. We'll add a clipboard fallback for better UX.
+### Technical Approach
 
-## Updated Migration Plan
+```typescript
+// Dashboard.tsx — lazy loading pattern
+const CompaniesManager = React.lazy(() => import("@/components/dashboard/CompaniesManager").then(m => ({ default: m.CompaniesManager })));
+// ... repeat for all ~40 components
 
-The full migration plan stays the same for all 7 steps, with this change:
+const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
+  "companies": CompaniesManager,
+  "contacts": ContactsManager,
+  // ... all 40+ mappings
+};
 
-**Step 6 (Admin Outreach) becomes:**
-- Replace mailto in `TalentDetailDialog.tsx` → platform send via `talent-invite` template
-- Replace mailto in `EmailComposer.tsx` → platform send via `investor-update` template  
-- Replace mailto in `JobApplicationsManager.tsx` → platform send via `send-job-application`
-- Replace mailto in `InvestorsManager.tsx` / `InvestorDetailSheet.tsx` → open EmailComposer
-- **CompaniesManager.tsx** → Keep mailto (B2B sales from executive's personal email), add clipboard fallback
-- **ContactsManager.tsx** → Keep mailto (B2B contact outreach), add clipboard fallback
+// In render:
+const TabComponent = TAB_COMPONENTS[activeTab];
+return TabComponent ? (
+  <Suspense fallback={<DashboardSkeleton />}>
+    <TabComponent onNavigateToTab={handleTabChange} />
+  </Suspense>
+) : null;
+```
 
-No other steps change.
+This single file change (`Dashboard.tsx`) fixes the primary issue — all tabs rendering as placeholders. No other files need structural changes.
 
