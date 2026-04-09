@@ -2,7 +2,7 @@ import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/dashboard/AdminSidebar";
-import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
+import { DashboardTableSkeleton } from "@/components/dashboard/DashboardSkeleton";
 import { useAuth } from "@/hooks/useAuth";
 import { useTalent } from "@/hooks/useTalent";
 import { toast } from "sonner";
@@ -39,7 +39,7 @@ const AgentSessionsManager = React.lazy(() => import("@/components/dashboard/Age
 const AssessmentLeadsManager = React.lazy(() => import("@/components/dashboard/AssessmentLeadsManager").then(m => ({ default: m.AssessmentLeadsManager })));
 const MockInterviewLeadsManager = React.lazy(() => import("@/components/dashboard/MockInterviewLeadsManager").then(m => ({ default: m.MockInterviewLeadsManager })));
 const SalaryAnalysisLeadsManager = React.lazy(() => import("@/components/dashboard/SalaryAnalysisLeadsManager").then(m => ({ default: m.SalaryAnalysisLeadsManager })));
-const PortfolioRequestsManager = React.lazy(() => import("@/components/dashboard/PortfolioRequestsManager").then(m => ({ default: m.PortfolioRequestsManager })));
+const PortfolioRequestsManager = React.lazy(() => import("@/components/dashboard/PortfolioRequestsManager"));
 const GigsManager = React.lazy(() => import("@/components/dashboard/GigsManager").then(m => ({ default: m.GigsManager })));
 const MarketplaceGigsManager = React.lazy(() => import("@/components/dashboard/MarketplaceGigsManager").then(m => ({ default: m.MarketplaceGigsManager })));
 const GigSubmissionsManager = React.lazy(() => import("@/components/dashboard/GigSubmissionsManager").then(m => ({ default: m.GigSubmissionsManager })));
@@ -158,15 +158,16 @@ const Dashboard = () => {
           </header>
 
           <div className="p-6 max-w-7xl mx-auto">
-            <Suspense fallback={<DashboardSkeleton />}>
+            <Suspense fallback={<DashboardTableSkeleton />}>
               {TabComponent ? (
-                TABS_WITH_NAVIGATE.has(activeTab) ? (
-                  <TabComponent onNavigateToTab={handleTabChange} onNavigate={handleTabChange} />
-                ) : activeTab === "ir-emails" ? (
-                  <TabComponent onClose={() => handleTabChange("ir-dashboard")} />
-                ) : (
-                  <TabComponent />
-                )
+                (() => {
+                  const props: Record<string, any> = {};
+                  if (activeTab === "jobs-kpis") props.onNavigateToTab = handleTabChange;
+                  if (activeTab === "ir-dashboard") props.onNavigate = handleTabChange;
+                  if (activeTab === "ir-emails") props.onClose = () => handleTabChange("ir-dashboard");
+                  return <TabComponent {...props} />;
+                })()
+              
               ) : (
                 <div className="flex flex-col items-center justify-center h-[60vh] text-muted-foreground">
                   <p className="text-lg font-medium">Module "{activeTab}" not found.</p>
