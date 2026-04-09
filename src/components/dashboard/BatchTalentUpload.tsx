@@ -118,11 +118,16 @@ export function BatchTalentUpload({ onComplete }: BatchTalentUploadProps) {
           continue;
         }
 
-        const { data: publicUrlData } = supabase.storage
+        const { data: signedUrlData, error: signedError } = await supabase.storage
           .from('talent-cvs')
-          .getPublicUrl(filePath);
+          .createSignedUrl(filePath, 60 * 60 * 24 * 365); // 1 year signed URL
 
-        urls.push(publicUrlData.publicUrl);
+        if (signedError || !signedUrlData?.signedUrl) {
+          uploadErrors.push(`${file.name}: Failed to get signed URL`);
+          continue;
+        }
+
+        urls.push(signedUrlData.signedUrl);
       }
 
       if (uploadErrors.length > 0) {
