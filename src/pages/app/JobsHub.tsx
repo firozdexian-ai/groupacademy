@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Briefcase,
@@ -17,6 +17,8 @@ import {
   TrendingUp,
   ChevronDown,
   ChevronUp,
+  Search,
+  Filter,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTalent } from "@/hooks/useTalent";
@@ -26,6 +28,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
 import { JobPreferencesSheet } from "@/components/jobs/JobPreferencesSheet";
 import { JobCard, type JobCardData } from "@/components/jobs/JobCard";
 import { JOB_COLLECTIONS } from "@/lib/constants/jobTypes";
@@ -33,6 +36,13 @@ import { toast } from "sonner";
 import { SectionHeader } from "@/components/ui/section-header";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ProcessingCard, type ProcessingStage } from "@/components/ui/processing-card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const AI_PROCESSING_STAGES: ProcessingStage[] = [
   { progress: 0, message: "Analyzing your profile and skills..." },
@@ -53,11 +63,14 @@ interface TopCompany {
   name: string;
   logo_url: string | null;
   count: number;
+  industry: string | null;
 }
 
-interface TopCountry {
-  location: string;
-  count: number;
+interface CountryGroup {
+  country: string;
+  flag: string;
+  totalJobs: number;
+  cities: { name: string; count: number }[];
 }
 
 type TabKey = "for-you" | "collection" | "company" | "country";
@@ -70,6 +83,127 @@ const TABS: { key: TabKey; label: string; icon: typeof Sparkles }[] = [
 ];
 
 const INITIAL_SHOW = 3;
+
+// Country flag emoji map
+const COUNTRY_FLAGS: Record<string, string> = {
+  "Bangladesh": "🇧🇩", "India": "🇮🇳", "Singapore": "🇸🇬", "Japan": "🇯🇵",
+  "United Arab Emirates": "🇦🇪", "Saudi Arabia": "🇸🇦", "Ireland": "🇮🇪",
+  "New Zealand": "🇳🇿", "United States": "🇺🇸", "United Kingdom": "🇬🇧",
+  "Canada": "🇨🇦", "Australia": "🇦🇺", "Germany": "🇩🇪", "France": "🇫🇷",
+  "Netherlands": "🇳🇱", "Sweden": "🇸🇪", "Norway": "🇳🇴", "Denmark": "🇩🇰",
+  "Finland": "🇫🇮", "Switzerland": "🇨🇭", "Malaysia": "🇲🇾", "Qatar": "🇶🇦",
+  "Kuwait": "🇰🇼", "Bahrain": "🇧🇭", "Oman": "🇴🇲", "Pakistan": "🇵🇰",
+  "Sri Lanka": "🇱🇰", "Nepal": "🇳🇵", "Philippines": "🇵🇭", "Indonesia": "🇮🇩",
+  "Thailand": "🇹🇭", "Vietnam": "🇻🇳", "South Korea": "🇰🇷", "China": "🇨🇳",
+  "Italy": "🇮🇹", "Spain": "🇪🇸", "Portugal": "🇵🇹", "Austria": "🇦🇹",
+  "Belgium": "🇧🇪", "Poland": "🇵🇱",
+};
+
+// Parse "City, Country" → { city, country }
+function parseLocation(location: string): { city: string; country: string } {
+  const parts = location.split(",").map((s) => s.trim());
+  if (parts.length >= 2) {
+    const country = parts[parts.length - 1];
+    const city = parts.slice(0, -1).join(", ");
+    return { city, country };
+  }
+  // Single value — could be country or region
+  return { city: "", country: location };
+}
+
+// Paginated fetch to get all rows beyond the 1000 limit
+async function fetchAllLocations(): Promise<{ location: string; count: number }[]> {
+  const pageSize = 1000;
+  let allData: { location: string }[] = [];
+  let page = 0;
+  let hasMore = true;
+
+  while (hasMore) {
+    const { data, error } = await supabase
+      .from("jobs")
+      .select("location")
+      .eq("is_active", true)
+      .or("deadline.is.null,deadline.gte.now()")
+      .not("location", "is", null)
+      .range(page * pageSize, (page + 1) * pageSize - 1);
+
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    allData = allData.concat(data);
+    hasMore = data.length === pageSize;
+    page++;
+  }
+
+  const map = new Map<string, number>();
+  for (const row of allData) {
+    const loc = row.location?.trim();
+    if (!loc) continue;
+    map.set(loc, (map.get(loc) || 0) + 1);
+  }
+  return Array.from(map.entries())
+    .map(([location, count]) => ({ location, count }))
+    .sort((a, b) => b.count - a.count);
+}
+
+async function fetchAllCompanies(): Promise<TopCompany[]> {
+  // Fetch from jobs table with pagination
+  const pageSize = 1000;
+  let allData: { company_name: string; company_logo_url: string | null }[] = [];
+  let page = 0;
+  let hasMore = true;
+
+  while (hasMore) {
+    const { data, error } = await supabase
+      .from("jobs")
+      .select("company_name, company_logo_url")
+      .eq("is_active", true)
+      .or("deadline.is.null,deadline.gte.now()")
+      .range(page * pageSize, (page + 1) * pageSize - 1);
+
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    allData = allData.concat(data);
+    hasMore = data.length === pageSize;
+    page++;
+  }
+
+  // Also fetch company details for industry + better logos
+  const { data: companiesData } = await supabase
+    .from("companies")
+    .select("name, logo_url, industry")
+    .limit(5000);
+
+  const companyDetailsMap = new Map<string, { logo_url: string | null; industry: string | null }>();
+  for (const c of companiesData || []) {
+    companyDetailsMap.set(c.name.toLowerCase(), { logo_url: c.logo_url, industry: c.industry });
+  }
+
+  const map = new Map<string, { logo_url: string | null; count: number; industry: string | null }>();
+  for (const job of allData) {
+    if (!job.company_name) continue;
+    const existing = map.get(job.company_name);
+    const details = companyDetailsMap.get(job.company_name.toLowerCase());
+    if (existing) {
+      existing.count++;
+      if (!existing.logo_url && (job.company_logo_url || details?.logo_url)) {
+        existing.logo_url = details?.logo_url || job.company_logo_url;
+      }
+      if (!existing.industry && details?.industry) {
+        existing.industry = details.industry;
+      }
+    } else {
+      map.set(job.company_name, {
+        logo_url: details?.logo_url || job.company_logo_url,
+        count: 1,
+        industry: details?.industry || null,
+      });
+    }
+  }
+
+  return Array.from(map.entries())
+    .map(([name, info]) => ({ name, logo_url: info.logo_url, count: info.count, industry: info.industry }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
 
 export default function JobsHub() {
   const navigate = useNavigate();
@@ -98,9 +232,19 @@ export default function JobsHub() {
     hot: false,
   });
 
-  // Other tab states
-  const [topCompanies, setTopCompanies] = useState<TopCompany[]>([]);
-  const [topCountries, setTopCountries] = useState<TopCountry[]>([]);
+  // Company tab states
+  const [allCompanies, setAllCompanies] = useState<TopCompany[]>([]);
+  const [companySearch, setCompanySearch] = useState("");
+  const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
+  const [selectedIndustry, setSelectedIndustry] = useState<string>("all");
+
+  // Country tab states
+  const [countryGroups, setCountryGroups] = useState<CountryGroup[]>([]);
+  const [expandedCountry, setExpandedCountry] = useState<string | null>(null);
+
+  // Expiring & Hot counts for collection tab
+  const [expiringCount, setExpiringCount] = useState(0);
+  const [hotCount, setHotCount] = useState(0);
 
   useEffect(() => {
     loadAllData();
@@ -110,19 +254,50 @@ export default function JobsHub() {
     setLoading(true);
     setError(null);
     try {
-      const [featuredResult, expiringResult, hotResult, companiesResult, countriesResult] = await Promise.all([
+      const [featuredResult, expiringResult, hotResult, companiesResult, locationsResult] = await Promise.all([
         fetchFeaturedJobs(),
         fetchExpiringJobs(),
         fetchHotJobs(),
-        fetchTopCompanies(),
-        fetchTopCountries(),
+        fetchAllCompanies(),
+        fetchAllLocations(),
       ]);
 
       setFeaturedJobs(featuredResult);
       setExpiringJobs(expiringResult);
+      setExpiringCount(expiringResult.length);
       setHotJobs(hotResult);
-      setTopCompanies(companiesResult);
-      setTopCountries(countriesResult);
+      setHotCount(hotResult.length);
+      setAllCompanies(companiesResult);
+
+      // Parse locations into country groups
+      const countryMap = new Map<string, { totalJobs: number; cities: Map<string, number> }>();
+      for (const loc of locationsResult) {
+        const { city, country } = parseLocation(loc.location);
+        const existing = countryMap.get(country);
+        if (existing) {
+          existing.totalJobs += loc.count;
+          if (city) {
+            existing.cities.set(city, (existing.cities.get(city) || 0) + loc.count);
+          }
+        } else {
+          const cities = new Map<string, number>();
+          if (city) cities.set(city, loc.count);
+          countryMap.set(country, { totalJobs: loc.count, cities });
+        }
+      }
+
+      const groups: CountryGroup[] = Array.from(countryMap.entries())
+        .map(([country, data]) => ({
+          country,
+          flag: COUNTRY_FLAGS[country] || "🌍",
+          totalJobs: data.totalJobs,
+          cities: Array.from(data.cities.entries())
+            .map(([name, count]) => ({ name, count }))
+            .sort((a, b) => b.count - a.count),
+        }))
+        .sort((a, b) => b.totalJobs - a.totalJobs);
+
+      setCountryGroups(groups);
 
       if (talent?.id) {
         await fetchRecommendations();
@@ -155,7 +330,6 @@ export default function JobsHub() {
 
     setRecommendationsGeneratedAt(data[0].generated_at);
 
-    // Fetch job details for all recommended job IDs
     const jobIds = data.map((r) => r.job_id);
     const { data: jobsData, error: jobsError } = await supabase
       .from("jobs")
@@ -215,32 +389,23 @@ export default function JobsHub() {
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const since = thirtyDaysAgo.toISOString();
 
-    // Fetch click counts and application counts in parallel
     const [clicksResult, appsResult] = await Promise.all([
-      supabase
-        .from("job_analytics")
-        .select("job_id")
-        .gte("clicked_at", since),
-      supabase
-        .from("job_applications")
-        .select("job_id")
-        .gte("created_at", since),
+      supabase.from("job_analytics").select("job_id").gte("clicked_at", since),
+      supabase.from("job_applications").select("job_id").gte("created_at", since),
     ]);
 
-    // Aggregate counts
     const engagementMap = new Map<string, number>();
     for (const row of clicksResult.data || []) {
       engagementMap.set(row.job_id, (engagementMap.get(row.job_id) || 0) + 1);
     }
     for (const row of appsResult.data || []) {
       if (row.job_id) {
-        engagementMap.set(row.job_id, (engagementMap.get(row.job_id) || 0) + 2); // applications weigh more
+        engagementMap.set(row.job_id, (engagementMap.get(row.job_id) || 0) + 2);
       }
     }
 
     if (engagementMap.size === 0) return [];
 
-    // Sort by engagement, take top 10
     const topJobIds = Array.from(engagementMap.entries())
       .sort((a, b) => b[1] - a[1])
       .slice(0, 10)
@@ -254,58 +419,9 @@ export default function JobsHub() {
 
     if (error) throw error;
 
-    // Re-sort by engagement score
     const result = (data as JobCardData[]) || [];
     result.sort((a, b) => (engagementMap.get(b.id) || 0) - (engagementMap.get(a.id) || 0));
     return result;
-  }
-
-  async function fetchTopCompanies(): Promise<TopCompany[]> {
-    const { data, error } = await supabase
-      .from("jobs")
-      .select("company_name, company_logo_url")
-      .eq("is_active", true)
-      .or("deadline.is.null,deadline.gte.now()")
-      .limit(500);
-    if (error) throw error;
-    if (!data) return [];
-    const map = new Map<string, { logo_url: string | null; count: number }>();
-    for (const job of data) {
-      if (!job.company_name) continue;
-      const existing = map.get(job.company_name);
-      if (existing) {
-        existing.count++;
-        if (!existing.logo_url && job.company_logo_url) existing.logo_url = job.company_logo_url;
-      } else {
-        map.set(job.company_name, { logo_url: job.company_logo_url, count: 1 });
-      }
-    }
-    return Array.from(map.entries())
-      .map(([name, info]) => ({ name, logo_url: info.logo_url, count: info.count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 20);
-  }
-
-  async function fetchTopCountries(): Promise<TopCountry[]> {
-    const { data, error } = await supabase
-      .from("jobs")
-      .select("location")
-      .eq("is_active", true)
-      .or("deadline.is.null,deadline.gte.now()")
-      .not("location", "is", null)
-      .limit(500);
-    if (error) throw error;
-    if (!data) return [];
-    const map = new Map<string, number>();
-    for (const job of data) {
-      const loc = job.location?.trim();
-      if (!loc) continue;
-      map.set(loc, (map.get(loc) || 0) + 1);
-    }
-    return Array.from(map.entries())
-      .map(([location, count]) => ({ location, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 20);
   }
 
   async function handleGetAIRecommendations() {
@@ -334,12 +450,8 @@ export default function JobsHub() {
         return;
       }
 
-      // Persist to database: delete old, insert new
       if (talent?.id) {
-        await supabase
-          .from("ai_job_recommendations")
-          .delete()
-          .eq("talent_id", talent.id);
+        await supabase.from("ai_job_recommendations").delete().eq("talent_id", talent.id);
 
         const rows = suggestions.map((s: AISuggestion) => ({
           talent_id: talent.id,
@@ -351,7 +463,6 @@ export default function JobsHub() {
         await supabase.from("ai_job_recommendations").insert(rows);
       }
 
-      // Reload from DB
       await fetchRecommendations();
       toast.success(`Found ${suggestions.length} recommended jobs for you!`);
     } catch (error) {
@@ -365,6 +476,41 @@ export default function JobsHub() {
   const toggleShowMore = (key: keyof typeof showMore) => {
     setShowMore((prev) => ({ ...prev, [key]: !prev[key] }));
   };
+
+  // Filtered companies for By Company tab
+  const filteredCompanies = useMemo(() => {
+    let result = allCompanies;
+    if (selectedLetter) {
+      result = result.filter((c) => c.name.toUpperCase().startsWith(selectedLetter));
+    }
+    if (selectedIndustry && selectedIndustry !== "all") {
+      result = result.filter((c) => c.industry === selectedIndustry);
+    }
+    if (companySearch) {
+      const q = companySearch.toLowerCase();
+      result = result.filter((c) => c.name.toLowerCase().includes(q));
+    }
+    return result;
+  }, [allCompanies, selectedLetter, selectedIndustry, companySearch]);
+
+  // Unique industries for filter
+  const industries = useMemo(() => {
+    const set = new Set<string>();
+    for (const c of allCompanies) {
+      if (c.industry) set.add(c.industry);
+    }
+    return Array.from(set).sort();
+  }, [allCompanies]);
+
+  // Alphabet bar letters that have companies
+  const availableLetters = useMemo(() => {
+    const set = new Set<string>();
+    for (const c of allCompanies) {
+      const first = c.name.charAt(0).toUpperCase();
+      if (/[A-Z]/.test(first)) set.add(first);
+    }
+    return Array.from(set).sort();
+  }, [allCompanies]);
 
   // -- Reusable vertical job list section --
   function renderJobSection(
@@ -458,7 +604,6 @@ export default function JobsHub() {
           <section className="space-y-2">
             <SectionHeader icon={Brain} title="Recommended for You" />
 
-            {/* AI Recommendation Button */}
             <Button
               variant="outline"
               className="w-full gap-2 h-9"
@@ -481,7 +626,6 @@ export default function JobsHub() {
               </Badge>
             </Button>
 
-            {/* AI Loading Skeleton */}
             {loadingAI && (
               <ProcessingCard
                 title="Finding Your Best Matches"
@@ -490,14 +634,12 @@ export default function JobsHub() {
               />
             )}
 
-            {/* Timestamp */}
             {recommendationsGeneratedAt && !loadingAI && (
               <p className="text-[10px] text-muted-foreground">
                 Last updated: {new Date(recommendationsGeneratedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}
               </p>
             )}
 
-            {/* Recommendation Results */}
             {!loadingAI && recommendations.length > 0 && (
               <>
                 <div className="space-y-2">
@@ -528,7 +670,6 @@ export default function JobsHub() {
               </>
             )}
 
-            {/* Empty state for first-time users */}
             {!loadingAI && recommendations.length === 0 && !loading && (
               <Card className="border-dashed bg-muted/30">
                 <CardContent className="p-6 text-center">
@@ -565,7 +706,6 @@ export default function JobsHub() {
             </section>
           )}
 
-          {/* Loading skeleton for all sections */}
           {loading && (
             <div className="space-y-3">
               {[1, 2, 3, 4, 5].map((i) => (
@@ -589,33 +729,126 @@ export default function JobsHub() {
 
       {/* ===== Tab: Job Collection ===== */}
       {activeTab === "collection" && (
-        <section>
-          <SectionHeader icon={Layers} title="Browse by Type" />
-          <div className="grid grid-cols-2 gap-3">
-            {JOB_COLLECTIONS.map((collection) => (
+        <section className="space-y-4">
+          {/* Special Collections */}
+          <div>
+            <SectionHeader icon={Flame} title="Special Collections" />
+            <div className="grid grid-cols-2 gap-3">
               <Card
-                key={collection.filter}
-                className="cursor-pointer hover:border-primary/50 hover:shadow-md transition-all group"
-                onClick={() => navigate(`/app/jobs/all?type=${collection.filter}`)}
+                className="cursor-pointer hover:border-destructive/50 hover:shadow-md transition-all group border-destructive/20 bg-destructive/5"
+                onClick={() => navigate("/app/jobs/all?sort=hot")}
               >
                 <CardContent className="p-3 flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
-                    <collection.icon className="h-5 w-5 text-primary" />
+                  <div className="h-8 w-8 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0 group-hover:bg-destructive/20 transition-colors">
+                    <Flame className="h-5 w-5 text-destructive" />
                   </div>
-                  <span className="text-sm font-medium group-hover:text-primary transition-colors">
-                    {collection.label}
-                  </span>
+                  <div>
+                    <span className="text-sm font-medium group-hover:text-destructive transition-colors">Hot Jobs</span>
+                    {hotCount > 0 && (
+                      <p className="text-[10px] text-muted-foreground">{hotCount} trending</p>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
-            ))}
+              <Card
+                className="cursor-pointer hover:border-amber-500/50 hover:shadow-md transition-all group border-amber-500/20 bg-amber-500/5"
+                onClick={() => navigate("/app/jobs/all?sort=expiring")}
+              >
+                <CardContent className="p-3 flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0 group-hover:bg-amber-500/20 transition-colors">
+                    <AlertTriangle className="h-5 w-5 text-amber-600" />
+                  </div>
+                  <div>
+                    <span className="text-sm font-medium group-hover:text-amber-600 transition-colors">Expiring Soon</span>
+                    {expiringCount > 0 && (
+                      <p className="text-[10px] text-muted-foreground">{expiringCount} closing</p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          {/* Browse by Type */}
+          <div>
+            <SectionHeader icon={Layers} title="Browse by Type" />
+            <div className="grid grid-cols-2 gap-3">
+              {JOB_COLLECTIONS.map((collection) => (
+                <Card
+                  key={collection.filter}
+                  className="cursor-pointer hover:border-primary/50 hover:shadow-md transition-all group"
+                  onClick={() => navigate(`/app/jobs/all?type=${collection.filter}`)}
+                >
+                  <CardContent className="p-3 flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
+                      <collection.icon className="h-5 w-5 text-primary" />
+                    </div>
+                    <span className="text-sm font-medium group-hover:text-primary transition-colors">
+                      {collection.label}
+                    </span>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
         </section>
       )}
 
       {/* ===== Tab: By Company ===== */}
       {activeTab === "company" && (
-        <section>
-          <SectionHeader icon={Building2} title="Job by Company" />
+        <section className="space-y-3">
+          <SectionHeader icon={Building2} title={`Companies (${allCompanies.length})`} />
+
+          {/* Search + Industry Filter */}
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search companies..."
+                value={companySearch}
+                onChange={(e) => { setCompanySearch(e.target.value); setSelectedLetter(null); }}
+                className="pl-8 h-9"
+              />
+            </div>
+            {industries.length > 0 && (
+              <Select value={selectedIndustry} onValueChange={setSelectedIndustry}>
+                <SelectTrigger className="w-[140px] h-9">
+                  <Filter className="h-3 w-3 mr-1" />
+                  <SelectValue placeholder="Industry" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Industries</SelectItem>
+                  {industries.map((ind) => (
+                    <SelectItem key={ind} value={ind}>{ind}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+
+          {/* A-Z Alphabet Bar */}
+          <div className="flex flex-wrap gap-1">
+            <button
+              onClick={() => setSelectedLetter(null)}
+              className={`h-7 w-7 rounded text-xs font-medium transition-colors ${
+                !selectedLetter ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-accent"
+              }`}
+            >
+              All
+            </button>
+            {availableLetters.map((letter) => (
+              <button
+                key={letter}
+                onClick={() => setSelectedLetter(selectedLetter === letter ? null : letter)}
+                className={`h-7 w-7 rounded text-xs font-medium transition-colors ${
+                  selectedLetter === letter ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-accent"
+                }`}
+              >
+                {letter}
+              </button>
+            ))}
+          </div>
+
           {loading ? (
             <div className="grid grid-cols-3 gap-3">
               {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -628,20 +861,24 @@ export default function JobsHub() {
                 </Card>
               ))}
             </div>
-          ) : topCompanies.length === 0 ? (
+          ) : filteredCompanies.length === 0 ? (
             <Card className="border-dashed bg-muted/30">
               <CardContent className="p-8 text-center">
                 <Building2 className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
-                <p className="text-muted-foreground">No company data available yet.</p>
+                <p className="text-muted-foreground">
+                  {companySearch || selectedLetter || selectedIndustry !== "all"
+                    ? "No companies match your filters."
+                    : "No company data available yet."}
+                </p>
               </CardContent>
             </Card>
           ) : (
             <div className="grid grid-cols-3 gap-3">
-              {topCompanies.map((company, index) => (
+              {filteredCompanies.slice(0, 60).map((company, index) => (
                 <Card
                   key={company.name}
                   className="cursor-pointer hover:border-primary/50 hover:shadow-md transition-all group animate-in fade-in"
-                  style={{ animationDelay: `${index * 30}ms` }}
+                  style={{ animationDelay: `${Math.min(index, 10) * 20}ms` }}
                   onClick={() => navigate(`/app/jobs/all?company=${encodeURIComponent(company.name)}`)}
                 >
                   <CardContent className="p-3 flex flex-col items-center gap-2">
@@ -657,6 +894,9 @@ export default function JobsHub() {
                       <p className="text-xs font-medium line-clamp-1 group-hover:text-primary transition-colors">
                         {company.name}
                       </p>
+                      {company.industry && (
+                        <p className="text-[9px] text-primary/70 line-clamp-1">{company.industry}</p>
+                      )}
                       <p className="text-[10px] text-muted-foreground">
                         {company.count} {company.count === 1 ? "job" : "jobs"}
                       </p>
@@ -666,13 +906,19 @@ export default function JobsHub() {
               ))}
             </div>
           )}
+
+          {filteredCompanies.length > 60 && (
+            <p className="text-xs text-muted-foreground text-center">
+              Showing 60 of {filteredCompanies.length} companies. Use search or filters to find specific companies.
+            </p>
+          )}
         </section>
       )}
 
       {/* ===== Tab: By Country ===== */}
       {activeTab === "country" && (
-        <section>
-          <SectionHeader icon={Globe} title="Job by Location" />
+        <section className="space-y-3">
+          <SectionHeader icon={Globe} title="Jobs by Country" />
           {loading ? (
             <div className="grid grid-cols-2 gap-3">
               {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -687,7 +933,7 @@ export default function JobsHub() {
                 </Card>
               ))}
             </div>
-          ) : topCountries.length === 0 ? (
+          ) : countryGroups.length === 0 ? (
             <Card className="border-dashed bg-muted/30">
               <CardContent className="p-8 text-center">
                 <Globe className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
@@ -695,26 +941,73 @@ export default function JobsHub() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
-              {topCountries.map((country, index) => (
+            <div className="space-y-2">
+              {countryGroups.map((group) => (
                 <Card
-                  key={country.location}
-                  className="cursor-pointer hover:border-primary/50 hover:shadow-md transition-all group animate-in fade-in"
-                  style={{ animationDelay: `${index * 30}ms` }}
-                  onClick={() => navigate(`/app/jobs/all?location=${encodeURIComponent(country.location)}`)}
+                  key={group.country}
+                  className="overflow-hidden transition-all hover:shadow-md"
                 >
-                  <CardContent className="p-3 px-4 flex items-center gap-3">
-                    <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
-                      <Globe className="h-4 w-4 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium line-clamp-1 group-hover:text-primary transition-colors">
-                        {country.location}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {country.count} {country.count === 1 ? "job" : "jobs"}
-                      </p>
-                    </div>
+                  <CardContent className="p-0">
+                    {/* Country Header */}
+                    <button
+                      className="w-full p-3 px-4 flex items-center gap-3 hover:bg-accent/50 transition-colors"
+                      onClick={() => {
+                        if (group.cities.length > 0) {
+                          setExpandedCountry(expandedCountry === group.country ? null : group.country);
+                        } else {
+                          navigate(`/app/jobs/all?location=${encodeURIComponent(group.country)}`);
+                        }
+                      }}
+                    >
+                      <span className="text-2xl">{group.flag}</span>
+                      <div className="flex-1 text-left">
+                        <p className="text-sm font-medium">{group.country}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {group.totalJobs.toLocaleString()} {group.totalJobs === 1 ? "job" : "jobs"}
+                        </p>
+                      </div>
+                      {group.cities.length > 0 && (
+                        <div className="flex items-center gap-1 text-muted-foreground">
+                          <span className="text-[10px]">{group.cities.length} cities</span>
+                          {expandedCountry === group.country ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                        </div>
+                      )}
+                    </button>
+
+                    {/* Expanded Cities */}
+                    {expandedCountry === group.country && group.cities.length > 0 && (
+                      <div className="border-t bg-muted/30 px-4 py-2 space-y-1">
+                        {/* View All for this country */}
+                        <button
+                          className="w-full flex items-center justify-between py-1.5 px-2 rounded hover:bg-accent transition-colors text-sm font-medium text-primary"
+                          onClick={() => navigate(`/app/jobs/all?location=${encodeURIComponent(group.country)}`)}
+                        >
+                          All {group.country} jobs
+                          <Badge variant="secondary" className="text-[10px] h-5">{group.totalJobs}</Badge>
+                        </button>
+                        {group.cities.slice(0, 15).map((city) => (
+                          <button
+                            key={city.name}
+                            className="w-full flex items-center justify-between py-1.5 px-2 rounded hover:bg-accent transition-colors"
+                            onClick={() => navigate(`/app/jobs/all?location=${encodeURIComponent(city.name)}`)}
+                          >
+                            <span className="text-sm text-foreground">{city.name}</span>
+                            <Badge variant="secondary" className="text-[10px] h-5">
+                              {city.count}
+                            </Badge>
+                          </button>
+                        ))}
+                        {group.cities.length > 15 && (
+                          <p className="text-[10px] text-muted-foreground text-center py-1">
+                            +{group.cities.length - 15} more cities
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               ))}
