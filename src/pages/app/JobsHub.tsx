@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import {
   Briefcase,
   Sparkles,
@@ -19,6 +20,8 @@ import {
   ChevronUp,
   Search,
   Filter,
+  Bot,
+  ArrowRight,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTalent } from "@/hooks/useTalent";
@@ -245,6 +248,22 @@ export default function JobsHub() {
   // Expiring & Hot counts for collection tab
   const [expiringCount, setExpiringCount] = useState(0);
   const [hotCount, setHotCount] = useState(0);
+
+  // Career Development Agents from DB
+  const { data: careerAgents = [] } = useQuery({
+    queryKey: ["career-agents"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("ai_agents")
+        .select("agent_key, name, description, icon, color, bg_color, credit_cost, avatar_url, category, is_featured")
+        .eq("is_active", true)
+        .in("category", ["career", "career-tools", "education"])
+        .order("display_order", { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
   useEffect(() => {
     loadAllData();
@@ -600,6 +619,47 @@ export default function JobsHub() {
       {/* ===== Tab: For You ===== */}
       {activeTab === "for-you" && (
         <>
+          {/* Section 0: Career Development Agents */}
+          {careerAgents.length > 0 && (
+            <section className="space-y-2">
+              <SectionHeader icon={Bot} title="Career Development Agents" />
+              <div className="grid grid-cols-4 gap-2">
+                {careerAgents.map((agent) => (
+                  <button
+                    key={agent.agent_key}
+                    onClick={() => navigate(`/app/agents/${agent.agent_key}`)}
+                    className="flex flex-col items-center gap-1.5 p-2 rounded-xl hover:bg-accent transition-colors cursor-pointer active:scale-95"
+                  >
+                    <div
+                      className="h-12 w-12 rounded-full flex items-center justify-center border-2 border-border"
+                      style={{ backgroundColor: agent.bg_color || undefined }}
+                    >
+                      {agent.avatar_url ? (
+                        <img src={agent.avatar_url} alt={agent.name} className="h-12 w-12 rounded-full object-cover" />
+                      ) : (
+                        <Bot className="h-5 w-5" style={{ color: agent.color || undefined }} />
+                      )}
+                    </div>
+                    <div className="text-center">
+                      <p className="text-[10px] font-medium leading-tight line-clamp-2">{agent.name}</p>
+                      <p className="text-[9px] text-muted-foreground">
+                        {agent.credit_cost ?? 1} cr/msg
+                      </p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full text-xs text-muted-foreground gap-1"
+                onClick={() => navigate("/app/agents")}
+              >
+                View All Agents <ArrowRight className="h-3 w-3" />
+              </Button>
+            </section>
+          )}
+
           {/* Section 1: Recommended for You (AI-powered) */}
           <section className="space-y-2">
             <SectionHeader icon={Brain} title="Recommended for You" />
