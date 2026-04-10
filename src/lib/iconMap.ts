@@ -246,6 +246,8 @@ export const iconMap: Record<string, LucideIcon> = {
   "flame": Flame,
   "gift": Gift,
   "upload": Upload,
+  "search": Search,
+  "headphones": Headphones,
 };
 
 // Default icon when no match found
