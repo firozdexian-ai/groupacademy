@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Building2, MapPin, Clock, ArrowRight, Bookmark, Star, AlertTriangle, Banknote } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -47,6 +48,7 @@ export function JobCard({
   const isCompact = variant === "compact";
   const showUrgency = isDeadlineUrgent(job.deadline || null);
   const isClosed = isDeadlinePassed(job.deadline || null);
+  const [logoError, setLogoError] = useState(false);
 
   const handleSaveClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -74,12 +76,13 @@ export function JobCard({
         <CardContent className="p-3">
           <div className="flex items-center gap-3">
             {/* Logo */}
-            {job.company_logo_url ? (
+            {job.company_logo_url && !logoError ? (
               <img
                 src={job.company_logo_url}
                 alt={job.company_name}
                 className="w-10 h-10 rounded-lg object-cover bg-muted shrink-0 border"
                 loading="lazy"
+                onError={() => setLogoError(true)}
               />
             ) : (
               <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20">
@@ -140,12 +143,13 @@ export function JobCard({
         {/* Header */}
         <div className="flex gap-3">
           {/* Logo */}
-          {job.company_logo_url ? (
+          {job.company_logo_url && !logoError ? (
             <img
               src={job.company_logo_url}
               alt={job.company_name}
               className="w-12 h-12 rounded-xl object-cover border bg-muted shrink-0"
               loading="lazy"
+              onError={() => setLogoError(true)}
             />
           ) : (
             <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20">

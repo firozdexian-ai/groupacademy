@@ -95,6 +95,7 @@ export default function AppJobDetail() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [showApplyAI, setShowApplyAI] = useState(false);
+  const [logoError, setLogoError] = useState(false);
   const { balance } = useCredits();
 
   // FIX 2: Ensure ID exists before checking save status
@@ -412,11 +413,12 @@ export default function AppJobDetail() {
       {/* Header Section */}
       <div className="flex gap-3 items-start mb-2">
         <div className="shrink-0">
-          {job.company_logo_url ? (
+          {job.company_logo_url && !logoError ? (
             <img
               src={job.company_logo_url}
               alt={job.company_name}
               className="w-12 h-12 rounded-xl object-cover border bg-white"
+              onError={() => setLogoError(true)}
             />
           ) : company?.logo_url ? (
             <img
