@@ -163,6 +163,7 @@ export type Database = {
           company_id: string | null
           created_at: string | null
           credit_cost: number | null
+          delivery_credit_cost: number | null
           description: string
           display_order: number | null
           expertise_areas: string[] | null
@@ -191,6 +192,7 @@ export type Database = {
           company_id?: string | null
           created_at?: string | null
           credit_cost?: number | null
+          delivery_credit_cost?: number | null
           description: string
           display_order?: number | null
           expertise_areas?: string[] | null
@@ -219,6 +221,7 @@ export type Database = {
           company_id?: string | null
           created_at?: string | null
           credit_cost?: number | null
+          delivery_credit_cost?: number | null
           description?: string
           display_order?: number | null
           expertise_areas?: string[] | null
