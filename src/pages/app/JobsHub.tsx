@@ -41,7 +41,7 @@ import { SectionHeader } from "@/components/ui/section-header";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ProcessingCard, type ProcessingStage } from "@/components/ui/processing-card";
 import { AgentAvatar } from "@/components/ai-agents/AgentAvatar";
-import { getIconByName } from "@/lib/iconMap";
+import { getIcon } from "@/lib/iconMap";
 import {
   Select,
   SelectContent,
