@@ -1,150 +1,84 @@
+# Transform "For You" Tab into Messenger-Style Agent Chat Hub
 
+## Summary
 
-# Jobs Hub Overhaul & Agentic Career Platform
-
-This is a large initiative spanning 5 workstreams. I recommend splitting it across multiple sessions to maintain stability. Here is the full plan:
-
----
-
-## Phase 1: Fix Broken Company Logos (Quick Win)
-
-**Problem**: `company_logo_url` in the `jobs` table stores URLs that may be broken (dead links from LinkedIn scraping, expired URLs, etc.). The `companies` table has a separate `logo_url` field that might have better data.
-
-**Fix**:
-- Add an `onError` fallback handler to the `<img>` tag in `JobCard.tsx` and `AppJobDetail.tsx` that hides the broken image and shows the `Building2` icon fallback instead
-- In the "By Company" tab, cross-reference `companies.logo_url` as a secondary source when `jobs.company_logo_url` is null
-- Run a one-time DB query to audit how many logo URLs return 404s (informational)
-
-**Files**: `JobCard.tsx`, `AppJobDetail.tsx`, `JobsHub.tsx`
+Rename the "For You" tab to "Agents", replace the grid layout with a WhatsApp-style chat list, move "Recommended for You" to the Collection tab, and add country-specific Study Abroad agents.
 
 ---
 
-## Phase 2: Improve "By Company" Tab
+## Changes
 
-**Current**: Shows top 20 companies sorted by job count in a flat grid. Limited to 500 jobs scanned.
+### 1. Rename Tab & Restructure Layout
 
-**New Design**:
-- Add an **alphabet bar** (A-Z strip) at the top for quick-jump navigation
-- Show **all companies** grouped alphabetically, with an industry filter dropdown
-- Cross-reference the `companies` table for `logo_url` and `industry` data
-- Each company card shows: logo, name, industry tag, job count
-- Clicking a company navigates to the jobs list filtered by that company
-- Remove the 500-job scan limit; use a dedicated query grouping by `company_name`
+- Change `TABS[0]` from `{ key: "for-you", label: "For You" }` to `{ key: "agents", label: "Agents" }`
+- Update `activeTab` default and all references from `"for-you"` to `"agents"`
 
-**Files**: `JobsHub.tsx` (company tab section)
+### 2. Messenger-Style Agent List (replaces 4-column grid)
 
----
-
-## Phase 3: Improve "Collection" Tab
-
-**Current**: Shows 6 job-type collections (Full-time, Part-time, etc.)
-
-**New Design**:
-- Add two new collection cards at the top: **"Hot Jobs"** (trending) and **"Expiring Soon"** (deadline within 7 days)
-- These link to the jobs list with appropriate query params
-- Keep existing 6 type-based collections below
-- Update `JOB_COLLECTIONS` in `jobTypes.ts` or add the new entries inline
-
-**Files**: `JobsHub.tsx` (collection tab), `jobTypes.ts`
-
----
-
-## Phase 4: Improve "By Country" Tab
-
-**Current**: Shows raw `location` strings (city-level), limited to 500 jobs. Duplicates like "Dhaka" and "Dhaka, Bangladesh" appear separately.
-
-**New Design**:
-- Parse locations into **country** (extracted from the last comma-separated segment) and **city**
-- Show countries first as primary cards with total job counts and flag emojis
-- Clicking a country expands to show cities within that country
-- Normalize common patterns (e.g., "Bangladesh" from "Dhaka, Bangladesh")
-- Remove the 500-job scan limit
-
-**Files**: `JobsHub.tsx` (country tab section)
-
----
-
-## Phase 5: Reconstruct "For You" Tab with Career Development Agents
-
-This is the largest change. The "For You" tab transforms from a static job listing into an **agentic career hub**.
-
-**New "For You" Tab Structure**:
+Replace the current `grid grid-cols-4` agent cards with a vertical list resembling WhatsApp chats:
 
 ```text
-+------------------------------------------+
-|  Career Development Agents               |
-|  [Agent 1] [Agent 2] [Agent 3] [Agent 4] |
-|  [Agent 5] [Agent 6] [Agent 7] ...       |
-+------------------------------------------+
-|  Featured Jobs (keep existing)           |
-+------------------------------------------+
++--------------------------------------------------+
+| [Avatar]  Job Hunter                              |
+|           Career Agent · 1 cr/msg                 |
++--------------------------------------------------+
+| [Avatar]  Application Helper                      |
+|           Career Agent · 1 cr/msg                 |
++--------------------------------------------------+
+| [Avatar]  IELTS Speaking Coach                    |
+|           Education · 1 cr/msg                    |
++--------------------------------------------------+
 ```
 
-**Agent Roster** (all DB-driven via `ai_agents` table):
+Each row shows:
 
-| # | Agent Name | Purpose | Chat Cost | Delivery Cost |
-|---|-----------|---------|-----------|---------------|
-| 1 | Job Hunter | Conversational job search within user's country | 1 credit/msg | 1 credit per job suggested |
-| 2 | Application Helper | Helps fill external job application forms | 1 credit/msg | TBD per deliverable |
-| 3 | Remote Work Expert | Remote job search + skill gap advice | 1 credit/msg | 1 credit per job suggested |
-| 4 | Career Abroad Advisor | Jobs outside user's home country | 1 credit/msg | 1 credit per job suggested |
-| 5 | Study Abroad Advisor | Country-wise personalized roadmaps | 1 credit/msg | Variable per roadmap |
-| 6-9 | IELTS Agents (x4) | Listening, Reading, Writing, Speaking prep | 1 credit/msg | N/A |
-| 10 | Career Scorecard Coach | Replaces standalone assessment | 1 credit/msg | Variable |
-| 11 | Interview Prep Coach | Replaces mock interview service | 1 credit/msg | Variable |
-| 12 | Salary Negotiation Coach | Replaces salary analysis service | 1 credit/msg | Variable |
-| 13 | CV & Portfolio Coach | Replaces portfolio service | 1 credit/msg | Variable |
+- Round avatar (placeholder or `avatar_url` from DB)
+- Agent name (bold)
+- Description/designation line (category or short description)
+- Credit cost badge on the right
+- Last message preview if user has a session (from `agent_chat_sessions`)
+- Tapping opens `/app/agents/{agent_key}`
 
-**Credit Model Change**:
-- The existing `useAgentChat` hook already supports per-response credit deduction via `credit_cost` from the `ai_agents` table
-- We need to add a **two-tier credit model**: standard chat cost (1 credit) vs. delivery cost (variable, set per agent)
-- The Edge Function `ai-agent-chat` needs a way for the AI to signal "this is a delivery response" (e.g., via a tool call or structured output marker) so the hook can charge the higher rate
-- Add a `delivery_credit_cost` column to `ai_agents` table
+### 3. Move "Recommended for You" to Collection Tab
 
-**Database Migration**:
-```sql
-ALTER TABLE ai_agents ADD COLUMN IF NOT EXISTS delivery_credit_cost numeric(12,1) DEFAULT 1.0;
-```
+- Remove the entire "Recommended for You" section (AI recommendations, the 10-credit button, processing card) from the agents tab
+- Add it as a new section at the top of the Collection tab, above "Special Collections"
+- Also remove "Expiring Soon" and "Hot Jobs" job lists from the agents tab (they already exist in Collection)
+-  "Featured Jobs" section should also be taken to collections. 
 
-Then insert the new agent rows via migration.
+### 4. Add Country-Specific Study Abroad Agents
 
-**UI in "For You" Tab**:
-- Show agents as a horizontal scrollable row of avatar cards (name + icon + "1 credit/msg")
-- Tapping an agent opens `AgentChatDialog` (existing component)
-- Keep Featured Jobs section below the agents strip
-- Remove "Recommended for You" (AI batch recommendations), "Expiring Soon", and "Hot Jobs" from this tab (moved to Collection tab)
+The migration from the previous session only inserted one "Study Abroad Advisor". Add country-specific agents via a new DB migration:
 
-**Files**: `JobsHub.tsx`, `useAgentChat.ts`, `ai-agent-chat/index.ts`, new DB migration, `agents.ts` constants
+- Study Abroad - USA
+- Study Abroad - UK  
+- Study Abroad - Canada
+- Study Abroad - Australia
+- Study Abroad - Germany
+- Study Abroad - Malaysia
+
+Each with `category = 'education'`, unique `agent_key` (e.g., `study-abroad-usa`), and a system prompt specialized for that country's visa, university, and scholarship landscape.
+
+### 5. Performance: Fetch Recent Sessions for Chat Preview
+
+To show "last message" previews in the messenger list, fetch the user's latest `agent_chat_sessions` with a single query (joined or batched), not per-agent. This keeps it to 1 DB call.
+
+### 6. Admin Management
+
+Agents are already managed via the `AIAgentsManager` in the admin dashboard (reads/writes `ai_agents` table). No admin changes needed — new agents appear automatically once inserted.
 
 ---
 
-## Phase 6: Transform QuickActionsGrid to Personalized Agents
+## Files Modified
 
-**Current**: 8 hardcoded shortcuts (Jobs, Abroad, For You, Remote, Scorecard, Interview, Salary, Portfolio)
 
-**New Design**:
-- Query the user's `agent_chat_sessions` to find their **most-used agents** (by message count or session count)
-- Show top 8 agents as quick-access buttons with their avatar/icon
-- If user has fewer than 8 used agents, fill remaining slots with **most popular agents** platform-wide (from `ai_agents.total_conversations`)
-- If user has no history, show the 8 agents with highest `total_conversations`
-- Tapping navigates to `/app/agents/{agent-key}` to open chat
+| File                        | Change                                                                               |
+| --------------------------- | ------------------------------------------------------------------------------------ |
+| `src/pages/app/JobsHub.tsx` | Rename tab, replace grid with messenger list, move recommendations to Collection tab |
+| DB migration (new)          | Insert country-specific Study Abroad agents                                          |
 
-**Files**: `QuickActionsGrid.tsx` (rewrite to be data-driven)
 
----
+## Files NOT Changed
 
-## Implementation Order
-
-I recommend implementing in this order across multiple sessions:
-
-1. **Phase 1** (Logo fix) - 10 min, immediate visual improvement
-2. **Phase 3** (Collection tab) - 15 min, simple additions
-3. **Phase 4** (Country tab) - 20 min, location parsing
-4. **Phase 2** (Company tab) - 25 min, alphabet nav + industry filter
-5. **Phase 5** (Agentic For You) - 45 min, DB migration + agent setup + UI rewrite + credit model
-6. **Phase 6** (QuickActionsGrid) - 15 min, depends on Phase 5
-
-**Total**: ~2 hours of implementation work. Phases 1-4 can be done in one session. Phase 5 is the largest and should be its own session. Phase 6 follows Phase 5.
-
-Shall I proceed with all phases, or would you like to start with Phases 1-4 first?
-
+- `AgentChat.tsx`, `AgentChatDialog.tsx`, `useAgentChat.ts` — no changes needed, the chat experience stays the same
+- `AIAgentsManager.tsx` — admin already supports all agents from the DB
