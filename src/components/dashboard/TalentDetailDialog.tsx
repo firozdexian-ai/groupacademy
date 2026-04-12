@@ -8,11 +8,6 @@ import { emailNotifications } from "@/lib/emailNotifications";
 import { Mail, UserPlus, Phone, Globe, Briefcase, Calendar, CheckCircle2, FileText, ExternalLink } from "lucide-react";
 import { getCountryFlag } from "@/lib/constants/countries";
 
-/**
- * CTO Note:
- * This dialog provides a 360-degree view of the talent's status,
- * platform usage, and outreach history[cite: 4, 42].
- */
 interface TalentDetailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -46,7 +41,7 @@ export const TalentDetailDialog = ({
 
     const success = await emailNotifications.talentInvite(
       displayTalent.id,
-      "Join GroUp Academy to access AI career tools[cite: 301, 381].",
+      "Join GroUp Academy to access AI career tools and exclusive job matches.",
     );
 
     toast.dismiss(toastId);
@@ -67,10 +62,10 @@ export const TalentDetailDialog = ({
               <DialogTitle className="text-2xl font-bold flex items-center gap-2">
                 {displayTalent.full_name || "Talent Profile"}
                 {displayTalent.user_id ? (
-                  <Badge className="bg-green-100 text-green-700 border-green-200">Registered [cite: 92]</Badge>
+                  <Badge className="bg-green-100 text-green-700 border-green-200">Registered</Badge>
                 ) : (
                   <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50">
-                    Uploaded [cite: 92]
+                    Uploaded
                   </Badge>
                 )}
               </DialogTitle>
@@ -137,7 +132,7 @@ export const TalentDetailDialog = ({
                   <p className="text-xs text-muted-foreground uppercase font-bold">Location</p>
                   <div className="flex items-center gap-2 mt-1">
                     <span className="text-lg">{getCountryFlag(displayTalent.country)}</span>
-                    <p className="text-sm font-medium">{displayTalent.country || "Pending [cite: 53]"}</p>
+                    <p className="text-sm font-medium">{displayTalent.country || "Pending"}</p>
                   </div>
                 </div>
               </div>
@@ -162,7 +157,7 @@ export const TalentDetailDialog = ({
                         className="cursor-pointer gap-1"
                         onClick={() => window.open(displayTalent.cv_url)}
                       >
-                        <FileText className="h-3 w-3" /> CV Available [cite: 92]
+                        <FileText className="h-3 w-3" /> CV Available
                       </Badge>
                     ) : (
                       <Badge variant="outline" className="text-muted-foreground italic border-dashed">
@@ -195,19 +190,19 @@ export const TalentDetailDialog = ({
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
                 <div>
                   <p className="text-2xl font-bold">{displayTalent.services_used?.length || 0}</p>
-                  <p className="text-[10px] text-muted-foreground uppercase">Services [cite: 136]</p>
+                  <p className="text-[10px] text-muted-foreground uppercase">Services</p>
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{displayTalent.credit_balance || 0}</p>
-                  <p className="text-[10px] text-muted-foreground uppercase">Credits [cite: 138]</p>
+                  <p className="text-[10px] text-muted-foreground uppercase">Credits</p>
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{displayTalent.total_applications || 0}</p>
-                  <p className="text-[10px] text-muted-foreground uppercase">Job Apps [cite: 117]</p>
+                  <p className="text-[10px] text-muted-foreground uppercase">Job Apps</p>
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{displayTalent.onboarding_completed_at ? "YES" : "NO"}</p>
-                  <p className="text-[10px] text-muted-foreground uppercase">Onboarded [cite: 92]</p>
+                  <p className="text-[10px] text-muted-foreground uppercase">Onboarded</p>
                 </div>
               </div>
             </div>
