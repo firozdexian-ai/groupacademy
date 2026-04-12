@@ -1,151 +1,300 @@
-import { useState, useEffect, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { Loader2, MessageSquare } from "lucide-react";
-import { AgentChatDialog } from "@/components/ai-agents/AgentChatDialog";
-import { useAgentChat } from "@/hooks/useAgentChat";
-import { useCredits } from "@/hooks/useCredits";
-import { toast } from "sonner";
-import { getAgentById } from "@/lib/constants/agents";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { getIcon } from "@/lib/iconMap";
+import { useTalent } from "@/hooks/useTalent";
+import { toast } from "sonner";
+import { handleAIError, getAIUnavailableToast } from "@/lib/aiErrorHandler";
 
-export default function AgentChat() {
-  const { agentKey } = useParams<{ agentKey: string }>();
-  const navigate = useNavigate();
-  const [isInitializing, setIsInitializing] = useState(true);
+export interface AgentMessage {
+  role: "user" | "assistant";
+  content: string;
+}
 
-  const {
-    session,
-    messages,
-    isStreaming,
-    sendMessage,
-    startOrResumeSession,
-    endSession,
-    isLoadingSessions,
-    perResponseCost,
-  } = useAgentChat();
+export interface AgentSession {
+  id: string;
+  agent_key: string;
+  messages: AgentMessage[];
+  is_active: boolean;
+  credits_charged: number;
+  session_started_at: string;
+  session_expires_at: string;
+  created_at: string;
+}
 
-  const { balance } = useCredits();
+interface UseAgentChatReturn {
+  session: AgentSession | null;
+  messages: AgentMessage[];
+  isLoading: boolean;
+  isStreaming: boolean;
+  sendMessage: (content: string) => Promise<void>;
+  startOrResumeSession: (agentKey: string) => Promise<AgentSession | null>;
+  loadSession: (sessionId: string) => Promise<void>;
+  endSession: () => Promise<void>;
+  recentSessions: AgentSession[];
+  loadRecentSessions: () => Promise<void>;
+  isLoadingSessions: boolean;
+  perResponseCost: number;
+}
 
-  // 1. Fetch Agent metadata from DB (Primary Source for all agents)
-  const { data: dbAgent, isLoading: isLoadingDbAgent } = useQuery({
-    queryKey: ["ai-agent-detail", agentKey],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("ai_agents")
-        .select("*")
-        .eq("agent_key", agentKey!)
-        .eq("is_active", true)
-        .maybeSingle();
+export function useAgentChat(): UseAgentChatReturn {
+  const { talent } = useTalent();
+  const [session, setSession] = useState<AgentSession | null>(null);
+  const [messages, setMessages] = useState<AgentMessage[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [recentSessions, setRecentSessions] = useState<AgentSession[]>([]);
+  const [isLoadingSessions, setIsLoadingSessions] = useState(true);
+  const [perResponseCost, setPerResponseCost] = useState<number>(1);
 
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!agentKey,
-    staleTime: 10 * 60 * 1000,
-  });
-
-  // 2. Fallback to static constants for core agents only
-  const staticAgent = useMemo(() => (agentKey ? getAgentById(agentKey) : null), [agentKey]);
-
-  // 3. Construct the active agent object dynamically
-  const activeAgent = useMemo(() => {
-    if (dbAgent) {
-      return {
-        name: dbAgent.name,
-        color: dbAgent.bg_color || "bg-primary",
-        iconColor: dbAgent.color || "text-primary-foreground",
-        iconName: dbAgent.icon || "MessageSquare",
-        avatarUrl: dbAgent.avatar_url,
-        creditCost: dbAgent.credit_cost,
-      };
-    }
-    if (staticAgent) {
-      return {
-        name: staticAgent.name,
-        color: staticAgent.bgColor,
-        iconColor: staticAgent.iconColor,
-        iconName: "MessageSquare",
-        avatarUrl: null,
-        creditCost: 1, // Default to 1 as per our conversation
-      };
-    }
-    return null;
-  }, [dbAgent, staticAgent]);
-
-  // 4. Session initialization: Logic ensures we don't redirect while loading
-  useEffect(() => {
-    if (isLoadingDbAgent || isLoadingSessions) return;
-
-    if (!activeAgent && !isLoadingDbAgent) {
-      toast.error("Agent not found in registry");
-      navigate("/app/agents");
+  const loadRecentSessions = useCallback(async () => {
+    if (!talent?.id) {
+      setIsLoadingSessions(false);
       return;
     }
 
-    const initializeSession = async () => {
-      if (!agentKey) return;
+    setIsLoadingSessions(true);
+    try {
+      const { data, error } = await supabase
+        .from("agent_chat_sessions")
+        .select("*")
+        .eq("talent_id", talent.id)
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+
+      const sessions = (data || []).map((s) => ({
+        ...s,
+        messages: (s.messages as unknown as AgentMessage[]) || [],
+      }));
+
+      setRecentSessions(sessions);
+    } catch (error) {
+      console.error("Failed to load recent sessions:", error);
+    } finally {
+      setIsLoadingSessions(false);
+    }
+  }, [talent?.id]);
+
+  const loadSession = useCallback(async (sessionId: string) => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.from("agent_chat_sessions").select("*").eq("id", sessionId).single();
+      if (error) throw error;
+
+      const sessionData: AgentSession = {
+        ...data,
+        messages: (data.messages as unknown as AgentMessage[]) || [],
+      };
+
+      setSession(sessionData);
+      setMessages(sessionData.messages);
+
+      const { data: agentConfig } = await supabase
+        .from("ai_agents")
+        .select("credit_cost")
+        .eq("agent_key", sessionData.agent_key)
+        .maybeSingle();
+
+      if (agentConfig) setPerResponseCost(agentConfig.credit_cost);
+    } catch (error) {
+      console.error("Failed to load session:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const startOrResumeSession = useCallback(
+    async (agentKey: string): Promise<AgentSession | null> => {
+      if (!talent?.id) return null;
+
+      setIsLoading(true);
       try {
-        const result = await startOrResumeSession(agentKey);
-        if (result) {
-          setIsInitializing(false);
+        const { data: agentConfig } = await supabase
+          .from("ai_agents")
+          .select("credit_cost")
+          .eq("agent_key", agentKey)
+          .maybeSingle();
+
+        const cost = agentConfig?.credit_cost ?? 1;
+        setPerResponseCost(cost);
+
+        const { data: existingSessions } = await supabase
+          .from("agent_chat_sessions")
+          .select("*")
+          .eq("talent_id", talent.id)
+          .eq("agent_key", agentKey)
+          .eq("is_active", true)
+          .order("created_at", { ascending: false })
+          .limit(1);
+
+        if (existingSessions && existingSessions.length > 0) {
+          const existing = existingSessions[0];
+          const sessionData: AgentSession = {
+            ...existing,
+            messages: (existing.messages as unknown as AgentMessage[]) || [],
+          };
+          setSession(sessionData);
+          setMessages(sessionData.messages);
+          return sessionData;
         }
-      } catch (err) {
-        console.error("AgentChat init error:", err);
-        navigate("/app/agents");
+
+        const now = new Date();
+        const { data, error } = await supabase
+          .from("agent_chat_sessions")
+          .insert({
+            talent_id: talent.id,
+            agent_key: agentKey,
+            messages: [],
+            is_active: true,
+            credits_charged: 0,
+            session_started_at: now.toISOString(),
+            session_expires_at: new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+        const sessionData: AgentSession = { ...data, messages: [] };
+        setSession(sessionData);
+        setMessages([]);
+        return sessionData;
+      } catch (error) {
+        console.error("Session error:", error);
+        return null;
+      } finally {
+        setIsLoading(false);
       }
-    };
-
-    initializeSession();
-  }, [agentKey, isLoadingDbAgent, isLoadingSessions, activeAgent, navigate, startOrResumeSession]);
-
-  const handleBack = () => navigate("/app/agents");
-
-  const handleEndSession = async () => {
-    await endSession();
-    toast.success("Conversation archived");
-    navigate("/app/agents");
-  };
-
-  // Prevent rendering before we know the agent status
-  if (!agentKey) return null;
-
-  if (isInitializing || isLoadingDbAgent) {
-    return (
-      <div className="flex items-center justify-center h-[50vh]">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground animate-pulse">Connecting to {activeAgent?.name || "Agent"}...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Final check to prevent errors
-  if (!activeAgent) return null;
-
-  const IconComponent = getIcon(activeAgent.iconName) || MessageSquare;
-
-  return (
-    <div className="max-w-4xl mx-auto h-[calc(100vh-4rem)] md:h-[calc(100vh-2rem)] flex flex-col pb-16 md:pb-0">
-      {session && (
-        <AgentChatDialog
-          agent={{
-            id: agentKey,
-            name: activeAgent.name,
-            color: activeAgent.color,
-            icon: <IconComponent className={`h-4 w-4 ${activeAgent.iconColor}`} />,
-            avatarUrl: activeAgent.avatarUrl,
-          }}
-          messages={messages}
-          isStreaming={isStreaming}
-          onSendMessage={sendMessage}
-          onBack={handleBack}
-          onEndSession={handleEndSession}
-          perResponseCost={activeAgent.creditCost || perResponseCost}
-        />
-      )}
-    </div>
+    },
+    [talent?.id],
   );
+
+  const endSession = useCallback(async () => {
+    if (!session) return;
+    await supabase.from("agent_chat_sessions").update({ is_active: false }).eq("id", session.id);
+    setSession((prev) => (prev ? { ...prev, is_active: false } : null));
+  }, [session]);
+
+  const saveMessages = useCallback(
+    async (newMessages: AgentMessage[], additionalCredits: number = 0) => {
+      if (!session) return;
+      const updatePayload: any = { messages: newMessages as unknown as any };
+      if (additionalCredits > 0) {
+        updatePayload.credits_charged = (session.credits_charged || 0) + additionalCredits;
+      }
+      await supabase.from("agent_chat_sessions").update(updatePayload).eq("id", session.id);
+    },
+    [session],
+  );
+
+  const sendMessage = useCallback(
+    async (content: string) => {
+      if (!session || !content.trim() || isStreaming) return;
+
+      const userMessage: AgentMessage = { role: "user", content: content.trim() };
+      const newMessages = [...messages, userMessage];
+      setMessages(newMessages);
+      setIsStreaming(true);
+
+      let assistantContent = "";
+
+      try {
+        const {
+          data: { session: authSession },
+        } = await supabase.auth.getSession();
+        if (!authSession?.access_token) throw new Error("Unauthenticated");
+
+        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-agent-chat`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${authSession.access_token}`,
+          },
+          body: JSON.stringify({
+            agentKey: session.agent_key,
+            messages: newMessages.map((m) => ({ role: m.role, content: m.content })),
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          const { message } = handleAIError(errorData, response.status);
+          toast.error(message);
+          setMessages(messages);
+          return;
+        }
+
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+        if (!reader) throw new Error("No reader");
+
+        setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split("\n");
+          for (const line of lines) {
+            if (line.startsWith("data: ")) {
+              const jsonStr = line.slice(6).trim();
+              if (jsonStr === "[DONE]") break;
+              try {
+                const parsed = JSON.parse(jsonStr);
+                const token = parsed.choices?.[0]?.delta?.content;
+                if (token) {
+                  assistantContent += token;
+                  setMessages((prev) => {
+                    const updated = [...prev];
+                    updated[updated.length - 1] = { role: "assistant", content: assistantContent };
+                    return updated;
+                  });
+                }
+              } catch (e) {}
+            }
+          }
+        }
+
+        if (perResponseCost > 0 && assistantContent) {
+          const { data: deductResult } = await supabase.rpc("deduct_credits", {
+            p_amount: perResponseCost,
+            p_service_type: "AI_AGENT_CHAT",
+            p_reference_id: session.id,
+            p_description: `AI Response: ${session.agent_key}`,
+          });
+
+          if (deductResult && !(deductResult as any).success) {
+            toast.error("Insufficient credits.");
+            return;
+          }
+        }
+
+        await saveMessages([...newMessages, { role: "assistant", content: assistantContent }], perResponseCost);
+      } catch (error) {
+        console.error("Chat error:", error);
+        setMessages((prev) => prev.slice(0, -1));
+      } finally {
+        setIsStreaming(false);
+      }
+    },
+    [session, messages, isStreaming, saveMessages, perResponseCost],
+  );
+
+  useEffect(() => {
+    if (talent?.id) loadRecentSessions();
+  }, [talent?.id, loadRecentSessions]);
+
+  return {
+    session,
+    messages,
+    isLoading,
+    isStreaming,
+    sendMessage,
+    startOrResumeSession,
+    loadSession,
+    endSession,
+    recentSessions,
+    loadRecentSessions,
+    isLoadingSessions,
+    perResponseCost,
+  };
 }
