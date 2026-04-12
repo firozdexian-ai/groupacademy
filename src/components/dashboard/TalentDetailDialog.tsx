@@ -10,15 +10,15 @@ import { getCountryFlag } from "@/lib/constants/countries";
 
 /**
  * CTO Note:
- * This dialog is the central hub for talent management.
- * It provides a 360-degree view of the talent's status, platform usage, and outreach history.
+ * This dialog provides a 360-degree view of the talent's status,
+ * platform usage, and outreach history[cite: 4, 42].
  */
 interface TalentDetailDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  talent?: any; // Full database object from TalentPoolManager
-  talentEmail?: string; // Legacy fallback
-  talentName?: string; // Legacy fallback
+  talent?: any;
+  talentEmail?: string;
+  talentName?: string;
 }
 
 export const TalentDetailDialog = ({
@@ -28,7 +28,6 @@ export const TalentDetailDialog = ({
   talentEmail,
   talentName,
 }: TalentDetailDialogProps) => {
-  // Construct a display object regardless of how the parent component calls this dialog
   const displayTalent = talent || {
     email: talentEmail,
     full_name: talentName,
@@ -39,15 +38,15 @@ export const TalentDetailDialog = ({
 
   const handlePlatformInvite = async () => {
     if (!displayTalent.id) {
-      toast.error("Cannot send platform invite: Missing Talent ID. Please use Direct Email.");
+      toast.error("Cannot send platform invite: Missing Talent ID.");
       return;
     }
 
-    const toastId = toast.loading("Sending branded invite from GroUp Academy...");
+    const toastId = toast.loading("Sending branded invite...");
 
     const success = await emailNotifications.talentInvite(
       displayTalent.id,
-      "We've identified you as a top candidate. Join GroUp Academy to access AI career tools and exclusive job matches.",
+      "Join GroUp Academy to access AI career tools[cite: 301, 381].",
     );
 
     toast.dismiss(toastId);
@@ -68,23 +67,22 @@ export const TalentDetailDialog = ({
               <DialogTitle className="text-2xl font-bold flex items-center gap-2">
                 {displayTalent.full_name || "Talent Profile"}
                 {displayTalent.user_id ? (
-                  <Badge className="bg-green-100 text-green-700 border-green-200">Registered</Badge>
+                  <Badge className="bg-green-100 text-green-700 border-green-200">Registered [cite: 92]</Badge>
                 ) : (
                   <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50">
-                    Uploaded
+                    Uploaded [cite: 92]
                   </Badge>
                 )}
               </DialogTitle>
               <p className="text-sm text-muted-foreground flex items-center gap-1">
                 <Calendar className="h-3 w-3" />
-                Added on {new Date(displayTalent.created_at).toLocaleDateString()}
+                Added on {displayTalent.created_at ? new Date(displayTalent.created_at).toLocaleDateString() : "N/A"}
               </p>
             </div>
           </div>
         </DialogHeader>
 
         <div className="grid gap-6 py-4">
-          {/* Action Bar: High-Conversion Tools */}
           <div className="flex flex-wrap gap-3 p-4 bg-slate-50 rounded-lg border border-slate-200">
             <Button
               onClick={handlePlatformInvite}
@@ -98,7 +96,7 @@ export const TalentDetailDialog = ({
             <Button
               variant="outline"
               onClick={() => {
-                const text = `Hi ${displayTalent.full_name || ""},\n\nWe'd love to connect with you on GroUp Academy.`;
+                const text = `Hi ${displayTalent.full_name || ""}, We'd love to connect on GroUp Academy.`;
                 navigator.clipboard.writeText(text);
                 window.open(`mailto:${displayTalent.email}`);
               }}
@@ -121,7 +119,6 @@ export const TalentDetailDialog = ({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Contact & Geography Section */}
             <div className="space-y-4">
               <h3 className="font-semibold text-lg flex items-center gap-2">
                 <Globe className="h-5 w-5 text-primary" />
@@ -140,13 +137,12 @@ export const TalentDetailDialog = ({
                   <p className="text-xs text-muted-foreground uppercase font-bold">Location</p>
                   <div className="flex items-center gap-2 mt-1">
                     <span className="text-lg">{getCountryFlag(displayTalent.country)}</span>
-                    <p className="text-sm font-medium">{displayTalent.country || "Pending Normalization"}</p>
+                    <p className="text-sm font-medium">{displayTalent.country || "Pending [cite: 53]"}</p>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Career & Skills Section */}
             <div className="space-y-4">
               <h3 className="font-semibold text-lg flex items-center gap-2">
                 <Briefcase className="h-5 w-5 text-primary" />
@@ -166,10 +162,10 @@ export const TalentDetailDialog = ({
                         className="cursor-pointer gap-1"
                         onClick={() => window.open(displayTalent.cv_url)}
                       >
-                        <FileText className="h-3 w-3" /> CV Available
+                        <FileText className="h-3 w-3" /> CV Available [cite: 92]
                       </Badge>
                     ) : (
-                      <Badge variant="ghost" className="text-muted-foreground italic">
+                      <Badge variant="outline" className="text-muted-foreground italic border-dashed">
                         No CV Uploaded
                       </Badge>
                     )}
@@ -190,7 +186,6 @@ export const TalentDetailDialog = ({
 
           <Separator />
 
-          {/* Platform Activity / Insights */}
           <div className="space-y-4">
             <h3 className="font-semibold text-lg flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-primary" />
@@ -200,19 +195,19 @@ export const TalentDetailDialog = ({
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
                 <div>
                   <p className="text-2xl font-bold">{displayTalent.services_used?.length || 0}</p>
-                  <p className="text-[10px] text-muted-foreground uppercase">Services Used</p>
+                  <p className="text-[10px] text-muted-foreground uppercase">Services [cite: 136]</p>
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{displayTalent.credit_balance || 0}</p>
-                  <p className="text-[10px] text-muted-foreground uppercase">Credits</p>
+                  <p className="text-[10px] text-muted-foreground uppercase">Credits [cite: 138]</p>
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{displayTalent.total_applications || 0}</p>
-                  <p className="text-[10px] text-muted-foreground uppercase">Job Apps</p>
+                  <p className="text-[10px] text-muted-foreground uppercase">Job Apps [cite: 117]</p>
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{displayTalent.onboarding_completed_at ? "YES" : "NO"}</p>
-                  <p className="text-[10px] text-muted-foreground uppercase">Onboarded</p>
+                  <p className="text-[10px] text-muted-foreground uppercase">Onboarded [cite: 92]</p>
                 </div>
               </div>
             </div>
