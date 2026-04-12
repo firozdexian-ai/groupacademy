@@ -66,7 +66,7 @@ export function AgentChatDialog({
   const inputRef = useRef<HTMLInputElement>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // Auto-scroll logic for new messages
+  // CTO FIX: Force scroll to bottom whenever messages or streaming status change
   useEffect(() => {
     if (scrollAreaRef.current) {
       const scrollContainer = scrollAreaRef.current.querySelector("[data-radix-scroll-area-viewport]");
@@ -93,160 +93,127 @@ export function AgentChatDialog({
   const suggestions = getSuggestions(agent.id);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] md:h-[calc(100vh-2rem)] bg-background md:rounded-lg md:border md:shadow-sm overflow-hidden relative">
-      {/* Header - Sticky at the top */}
-      <div className="flex items-center gap-3 p-4 border-b bg-background/80 backdrop-blur-md sticky top-0 z-10">
-        <Button variant="ghost" size="icon" onClick={onBack} className="shrink-0 h-9 w-9">
-          <ArrowLeft className="h-5 w-5" />
+    /* CTO FIX: h-full and flex-col ensure the container fills the parent. 
+      overflow-hidden prevents the "awkward" double-scroll behavior seen in your video.
+    */
+    <div className="flex flex-col h-full bg-background md:rounded-lg md:border md:shadow-sm overflow-hidden border-x">
+      {/* Header - Fixed height */}
+      <div className="flex items-center gap-3 p-3 border-b bg-background/95 backdrop-blur-sm shrink-0">
+        <Button variant="ghost" size="icon" onClick={onBack} className="shrink-0 h-8 w-8">
+          <ArrowLeft className="h-4 w-4" />
         </Button>
 
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-          <Avatar className="h-9 w-9 shrink-0 ring-2 ring-background">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <Avatar className="h-8 w-8 shrink-0">
             {agent.avatarUrl && <AvatarImage src={agent.avatarUrl} alt={agent.name} />}
-            <AvatarFallback className={cn("text-white font-bold", agent.color)}>{agent.icon}</AvatarFallback>
+            <AvatarFallback className={cn("text-white text-xs font-bold", agent.color)}>{agent.icon}</AvatarFallback>
           </Avatar>
-
-          <div className="min-w-0 flex flex-col justify-center">
-            <h2 className="font-semibold text-sm truncate leading-none mb-1">{agent.name}</h2>
-            <div className="flex items-center gap-2 text-xs">
-              {perResponseCost > 0 ? (
-                <span className="flex items-center gap-1 text-muted-foreground">
-                  <Coins className="h-3 w-3" />
-                  {perResponseCost} credit{perResponseCost !== 1 ? "s" : ""}/response
-                </span>
-              ) : (
-                <span className="text-emerald-600 font-medium">Free</span>
-              )}
+          <div className="min-w-0">
+            <h2 className="font-semibold text-sm truncate">{agent.name}</h2>
+            <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+              <Coins className="h-2.5 w-2.5" />
+              {perResponseCost} credit{perResponseCost !== 1 ? "s" : ""}/response
             </div>
           </div>
         </div>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="shrink-0 h-9 w-9">
+            <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8">
               <MoreVertical className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={onEndSession} className="text-destructive focus:text-destructive">
+            <DropdownMenuItem onClick={onEndSession} className="text-destructive">
               <Trash2 className="h-4 w-4 mr-2" />
-              End Conversation
+              End Session
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
 
-      {/* Messages / Introductory Content Area */}
-      <ScrollArea ref={scrollAreaRef} className="flex-1 p-4">
-        <div className="space-y-6 pb-20">
-          {" "}
-          {/* Bottom padding to clear the fixed input */}
+      {/* Messages Area - Independent Scroll Zone */}
+      <ScrollArea ref={scrollAreaRef} className="flex-1 w-full bg-slate-50/30">
+        <div className="max-w-2xl mx-auto p-4 space-y-6">
           {messages.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
-              <div className="h-16 w-16 rounded-2xl bg-muted/50 flex items-center justify-center mb-6 animate-in zoom-in duration-300">
-                <span className="text-4xl">👋</span>
+            <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
+              <div className="h-14 w-14 rounded-2xl bg-muted/50 flex items-center justify-center mb-4">
+                <span className="text-3xl">👋</span>
               </div>
-              <h3 className="text-lg font-semibold mb-2">Hello! I'm your {agent.name}</h3>
-              <p className="text-sm text-muted-foreground mb-8 max-w-xs mx-auto leading-relaxed">
-                I'm here to help you achieve your career goals. Pick a topic below to get started.
+              <h3 className="text-md font-semibold mb-1">Hello! I'm your {agent.name}</h3>
+              <p className="text-xs text-muted-foreground mb-6 leading-relaxed">
+                Pick a topic below to start your session.
               </p>
 
-              {/* REFACTORED: Vertical stack for suggestions instead of horizontal carousel */}
-              <div className="flex flex-col gap-3 w-full max-w-xs mx-auto">
+              {/* REFACTORED: Vertical stack for high-conversion suggestions */}
+              <div className="flex flex-col gap-2 w-full max-w-[280px]">
                 {suggestions.map((suggestion) => (
-                  <button
+                  <Button
                     key={suggestion}
+                    variant="outline"
                     onClick={() => onSendMessage(suggestion)}
                     disabled={isStreaming}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl border bg-background hover:bg-primary/5 hover:border-primary/30 transition-all hover:translate-x-1 active:scale-[0.98] disabled:opacity-50 text-left group"
+                    className="w-full justify-start h-auto py-3 px-4 text-xs font-medium rounded-xl bg-white border-slate-200 hover:bg-slate-50 hover:border-primary/30 transition-all text-left"
                   >
-                    <div className={cn("p-1.5 rounded-lg bg-muted group-hover:bg-primary/10 transition-colors")}>
-                      <MessageSquare className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
-                    </div>
+                    <MessageSquare className="h-3.5 w-3.5 mr-3 text-muted-foreground" />
                     {suggestion}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>
           )}
-          {/* Message Bubbles */}
+
           {messages.map((message, index) => {
             const isUser = message.role === "user";
             const msgId = `msg-${index}`;
 
             return (
-              <div key={index} className={cn("flex gap-3 group", isUser ? "justify-end" : "justify-start")}>
+              <div key={index} className={cn("flex gap-2 group", isUser ? "justify-end" : "justify-start")}>
                 {!isUser && (
-                  <Avatar className="h-8 w-8 shrink-0 mt-0.5 ring-1 ring-border">
+                  <Avatar className="h-7 w-7 mt-1 shrink-0 border">
                     {agent.avatarUrl && <AvatarImage src={agent.avatarUrl} alt={agent.name} />}
-                    <AvatarFallback className={cn("text-white text-xs", agent.color)}>{agent.icon}</AvatarFallback>
+                    <AvatarFallback className={cn("text-white text-[10px]", agent.color)}>{agent.icon}</AvatarFallback>
                   </Avatar>
                 )}
-
-                <div className={cn("relative max-w-[85%] sm:max-w-[75%]", isUser ? "items-end" : "items-start")}>
+                <div className={cn("relative max-w-[85%]", isUser ? "items-end" : "items-start")}>
                   <div
                     className={cn(
-                      "rounded-2xl px-4 py-3 text-sm shadow-sm",
+                      "rounded-2xl px-4 py-2.5 text-sm shadow-sm",
                       isUser
-                        ? "bg-primary text-primary-foreground rounded-br-sm"
-                        : "bg-muted/80 text-foreground rounded-bl-sm border",
+                        ? "bg-primary text-primary-foreground rounded-br-none"
+                        : "bg-white text-foreground rounded-bl-none border",
                     )}
                   >
                     {isUser ? (
-                      <p className="whitespace-pre-wrap break-words leading-relaxed">{message.content}</p>
+                      <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
                     ) : (
-                      <div className="markdown-content prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed prose-pre:bg-background/50 prose-pre:border prose-pre:rounded-lg">
+                      <div className="markdown-content prose prose-sm max-w-none">
                         <ReactMarkdown>{message.content}</ReactMarkdown>
                       </div>
                     )}
                   </div>
-
                   {!isUser && (
-                    <div className="absolute -bottom-6 left-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 text-muted-foreground hover:text-foreground"
-                        onClick={() => handleCopy(message.content, msgId)}
-                      >
-                        {copiedId === msgId ? (
-                          <Check className="h-3 w-3 text-green-500" />
-                        ) : (
-                          <Copy className="h-3 w-3" />
-                        )}
-                      </Button>
-                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 mt-1 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => handleCopy(message.content, msgId)}
+                    >
+                      {copiedId === msgId ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+                    </Button>
                   )}
                 </div>
-
-                {isUser && (
-                  <Avatar className="h-8 w-8 shrink-0 mt-0.5">
-                    <AvatarFallback className="bg-secondary text-secondary-foreground text-xs font-medium">
-                      You
-                    </AvatarFallback>
-                  </Avatar>
-                )}
               </div>
             );
           })}
-          {/* Typing Indicator */}
-          {isStreaming && messages[messages.length - 1]?.role !== "assistant" && (
-            <div className="flex gap-3 justify-start">
-              <Avatar className="h-8 w-8 shrink-0 mt-0.5 ring-1 ring-border">
-                {agent.avatarUrl && <AvatarImage src={agent.avatarUrl} alt={agent.name} />}
-                <AvatarFallback className={cn("text-white text-xs", agent.color)}>{agent.icon}</AvatarFallback>
-              </Avatar>
-              <div className="bg-muted rounded-2xl rounded-bl-sm px-4 py-3 border shadow-sm">
-                <div className="flex gap-1 h-5 items-center">
-                  <span className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce"></span>
-                  <span
-                    className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce"
-                    style={{ animationDelay: "0.1s" }}
-                  ></span>
-                  <span
-                    className="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce"
-                    style={{ animationDelay: "0.2s" }}
-                  ></span>
+
+          {isStreaming && (
+            <div className="flex gap-2 justify-start">
+              <div className="bg-white border rounded-2xl rounded-bl-none px-4 py-2.5 shadow-sm">
+                <div className="flex gap-1 items-center">
+                  <span className="w-1 h-1 bg-primary/40 rounded-full animate-bounce"></span>
+                  <span className="w-1 h-1 bg-primary/40 rounded-full animate-bounce [animation-delay:0.1s]"></span>
+                  <span className="w-1 h-1 bg-primary/40 rounded-full animate-bounce [animation-delay:0.2s]"></span>
                 </div>
               </div>
             </div>
@@ -254,31 +221,26 @@ export function AgentChatDialog({
         </div>
       </ScrollArea>
 
-      {/* FIXED Input Area - Fixed at the absolute bottom of the dialog container */}
-      <div className="mt-auto border-t bg-background p-3 md:p-4 z-20">
-        <form onSubmit={handleSubmit} className="relative">
-          <div className="flex gap-2 items-end">
-            <Input
-              ref={inputRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder={isStreaming ? "AI is typing..." : "Type your message..."}
-              disabled={isStreaming}
-              className="flex-1 min-h-[44px] max-h-32 py-3 bg-muted/30 border-none focus-visible:ring-1 focus-visible:ring-primary/30"
-              autoComplete="off"
-            />
-            <Button
-              type="submit"
-              size="icon"
-              className="h-11 w-11 shrink-0 rounded-xl shadow-sm"
-              disabled={!input.trim() || isStreaming}
-            >
-              <Send className="h-5 w-5" />
-            </Button>
-          </div>
-          <div className="hidden md:block text-[10px] text-muted-foreground text-center mt-2 opacity-50">
-            AI can make mistakes. Check important info.
-          </div>
+      {/* Input Area - Pinned to bottom of the flex container */}
+      <div className="border-t bg-background p-3 shrink-0">
+        <form onSubmit={handleSubmit} className="flex gap-2 items-center max-w-2xl mx-auto">
+          <Input
+            ref={inputRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Type your message..."
+            disabled={isStreaming}
+            className="flex-1 h-11 bg-slate-50 border-none rounded-xl focus-visible:ring-1 focus-visible:ring-primary/20"
+            autoComplete="off"
+          />
+          <Button
+            type="submit"
+            size="icon"
+            className="h-11 w-11 shrink-0 rounded-xl shadow-md"
+            disabled={!input.trim() || isStreaming}
+          >
+            <Send className="h-5 w-5" />
+          </Button>
         </form>
       </div>
     </div>
