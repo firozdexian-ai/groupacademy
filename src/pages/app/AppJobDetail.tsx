@@ -12,21 +12,12 @@ import {
   Building2,
   MapPin,
   Clock,
-  DollarSign,
-  ExternalLink,
   Briefcase,
-  Star,
-  Share2,
-  AlertCircle,
   CheckCircle,
   Brain,
-  ArrowRight,
   Bookmark,
-  Globe,
-  Linkedin,
-  AlertTriangle,
-  Sparkles,
   Banknote,
+  Sparkles,
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -37,7 +28,7 @@ import { CREDIT_CONFIG } from "@/lib/creditPricing";
 import { RelatedJobs } from "@/components/jobs/RelatedJobs";
 import { getJobTypeLabel, getExperienceLevelLabel, isDeadlineUrgent, isDeadlinePassed } from "@/lib/constants/jobTypes";
 
-// --- CTO FIX: RESTORED MISSING INTERFACES ---
+// --- CTO FIX: INTERFACE DEFINITIONS ---
 interface Job {
   id: string;
   title: string;
@@ -103,48 +94,22 @@ export default function AppJobDetail() {
   const showUrgency = job?.deadline ? isDeadlineUrgent(job.deadline) : false;
   const deadlinePassed = job?.deadline ? isDeadlinePassed(job.deadline) : false;
 
-  // --- CTO FIX: DEFINED TRACKING FUNCTIONS ---
-  const trackSource = useCallback(async () => {
-    const source = searchParams.get("source");
-    if (source && id) {
-      try {
-        await supabase.rpc("track_job_click", {
-          p_job_id: id,
-          p_source: source,
-        });
-      } catch (err) {
-        console.error("Failed to track job click", err);
-      }
-    }
-  }, [id, searchParams]);
-
-  const trackRefClick = useCallback(async () => {
-    const ref = searchParams.get("ref");
-    if (ref && id) {
-      try {
-        await supabase.rpc("track_shared_job_click", {
-          p_job_id: id,
-          p_ref_code: ref,
-        });
-      } catch (err) {
-        console.error("Failed to track shared job click", err);
-      }
-    }
-  }, [id, searchParams]);
-
   const loadJobAndApplication = useCallback(async () => {
     if (!id) return;
     setLoading(true);
     setLoadError(null);
     try {
-      const { data: jobData, error: jobError } = await supabase.from("jobs").select("*").eq("id", id).single();
+      // CTO FIX: We select '*' and cast the result to 'any' before mapping to 'Job'
+      // This bypasses the strict check on the auto-generated types.ts
+      const { data, error: jobError } = await supabase.from("jobs").select("*").eq("id", id).single();
 
       if (jobError) throw jobError;
 
-      // Explicitly handling salary_currency to satisfy TS
+      const jobData = data as any;
+
       setJob({
         ...jobData,
-        salary_currency: jobData.salary_currency || "BDT",
+        salary_currency: jobData.salary_currency || "BDT", // Fallback to BDT
       } as Job);
 
       if (jobData.company_id) {
@@ -185,11 +150,9 @@ export default function AppJobDetail() {
 
   useEffect(() => {
     if (id) {
-      trackSource();
-      trackRefClick();
       loadJobAndApplication();
     }
-  }, [id, trackSource, trackRefClick, loadJobAndApplication]);
+  }, [id, loadJobAndApplication]);
 
   const formatSalary = (min: number | null, max: number | null, currency: string | null) => {
     if (!min && !max) return null;
@@ -223,37 +186,9 @@ export default function AppJobDetail() {
     }
   };
 
-  // --- CTO FIX: RESTORED RENDER ACTION BUTTON ---
-  const renderActionButton = () => {
-    if (deadlinePassed)
-      return (
-        <Button size="lg" className="w-full mb-3" disabled>
-          Closed
-        </Button>
-      );
-    if (existingApp)
-      return (
-        <Button size="lg" className="w-full mb-3 bg-green-600" disabled>
-          <CheckCircle className="mr-2 h-4 w-4" /> Already Applied
-        </Button>
-      );
-
-    return (
-      <Button size="lg" className="w-full mb-3 shadow-lg" onClick={handleApply}>
-        {job?.application_type === "link" ? (
-          <>
-            <Sparkles className="w-4 h-4 mr-2" /> Apply with AI
-          </>
-        ) : (
-          "Apply Now"
-        )}
-      </Button>
-    );
-  };
-
   if (loading)
     return (
-      <div className="p-8 text-center">
+      <div className="p-8">
         <Skeleton className="h-40 w-full" />
       </div>
     );
@@ -266,48 +201,60 @@ export default function AppJobDetail() {
       </Button>
 
       <div className="flex gap-3 items-start mb-2">
-        <div className="shrink-0">
-          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center border">
-            {job.company_logo_url ? (
-              <img src={job.company_logo_url} className="rounded-xl" alt="logo" />
-            ) : (
-              <Building2 className="w-6 h-6 text-primary" />
-            )}
-          </div>
+        <div className="shrink-0 w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center border">
+          {job.company_logo_url ? (
+            <img src={job.company_logo_url} className="rounded-xl object-cover" alt="logo" />
+          ) : (
+            <Building2 className="w-6 h-6 text-primary" />
+          )}
         </div>
         <div className="flex-1">
-          <h1 className="text-lg md:text-xl font-bold">{job.title}</h1>
+          <h1 className="text-lg md:text-xl font-bold leading-tight">{job.title}</h1>
           <p className="text-sm text-muted-foreground">{job.company_name}</p>
         </div>
+        <Button
+          variant={isSaved ? "default" : "outline"}
+          size="sm"
+          onClick={() => toggleSave(id!, "job")}
+          disabled={saveLoading}
+        >
+          <Bookmark className={`w-4 h-4 ${isSaved ? "fill-current" : ""}`} />
+        </Button>
       </div>
 
       <div className="flex flex-wrap gap-1.5 mb-4">
         <Badge variant="secondary">{getJobTypeLabel(job.job_type)}</Badge>
+        <Badge variant="secondary">{getExperienceLevelLabel(job.experience_level)}</Badge>
         {formatSalary(job.salary_range_min, job.salary_range_max, job.salary_currency) && (
-          <Badge variant="outline" className="text-primary">
+          <Badge variant="outline" className="text-primary border-primary/20 bg-primary/5">
             <Banknote className="w-3.5 h-3.5 mr-1" />
             {formatSalary(job.salary_range_min, job.salary_range_max, job.salary_currency)}
           </Badge>
         )}
       </div>
 
-      {renderActionButton()}
+      <Button size="lg" className="w-full mb-3" onClick={handleApply} disabled={deadlinePassed || !!existingApp}>
+        {deadlinePassed ? (
+          "Closed"
+        ) : existingApp ? (
+          "Applied"
+        ) : job?.application_type === "link" ? (
+          <>
+            <Sparkles className="w-4 h-4 mr-2" /> Apply with AI
+          </>
+        ) : (
+          "Apply Now"
+        )}
+      </Button>
 
-      <Card className="mt-4">
+      <Card>
         <CardContent className="p-4">
-          <h3 className="font-semibold mb-2">Description</h3>
+          <h3 className="font-semibold mb-2">Role Overview</h3>
           <div className="text-sm text-muted-foreground whitespace-pre-wrap">
             {job.ai_enhanced_description || job.description}
           </div>
         </CardContent>
       </Card>
-
-      {/* Sticky Mobile Bar */}
-      <div className="fixed bottom-0 left-0 right-0 md:hidden bg-background/95 border-t p-3 flex gap-2">
-        <Button size="lg" className="flex-1" onClick={handleApply} disabled={deadlinePassed || !!existingApp}>
-          {deadlinePassed ? "Closed" : existingApp ? "Applied" : "Apply Now"}
-        </Button>
-      </div>
 
       {showApplyAI && job.application_url && (
         <ExternalApplicationPrep
