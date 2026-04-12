@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,20 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-  CommandSeparator,
-} from "@/components/ui/command";
-import { COUNTRIES } from "@/lib/constants/countries";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Plus,
@@ -34,19 +22,22 @@ import {
   ChevronLeft,
   ChevronRight,
   Wand2,
-  Linkedin,
-  Building2,
-  ExternalLink,
-  Mail,
   Banknote,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format, endOfMonth } from "date-fns";
-import { withTimeout } from "@/hooks/useQueryWithTimeout";
-import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { DashboardTableSkeleton } from "./DashboardSkeleton";
 
-// --- Valid job fields for payload sanitization ---
+// --- CTO FIX: RESTORED INTERNAL HOOKS & UTILS ---
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+  return debouncedValue;
+}
+
 const VALID_JOB_FIELDS = [
   "title",
   "company_name",
@@ -106,22 +97,6 @@ interface ProfessionCategory {
   id: string;
   name: string;
 }
-
-const JOB_TYPES: { value: JobType; label: string }[] = [
-  { value: "full_time", label: "Full Time" },
-  { value: "part_time", label: "Part Time" },
-  { value: "contract", label: "Contract" },
-  { value: "internship", label: "Internship" },
-  { value: "freelance", label: "Freelance" },
-  { value: "remote", label: "Remote" },
-];
-
-const EXPERIENCE_LEVELS: { value: ExperienceLevel; label: string }[] = [
-  { value: "entry", label: "Entry Level" },
-  { value: "mid", label: "Mid Level" },
-  { value: "senior", label: "Senior Level" },
-  { value: "executive", label: "Executive" },
-];
 
 const ITEMS_PER_PAGE = 10;
 const emptyJob = {
@@ -305,7 +280,6 @@ const JobForm = ({
   );
 };
 
-// --- MAIN MANAGER COMPONENT ---
 export function JobsManager() {
   const isMobile = useIsMobile();
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -351,11 +325,9 @@ export function JobsManager() {
     loadJobs();
   }, [loadJobs]);
 
-  // --- CTO FIX: RESOLVED TYPE OVERLOAD ERROR ---
   const handleSaveJob = async (formData: any) => {
     setSaving(true);
     try {
-      // 1. Create payload with strictly whitelisted keys
       const payload: Record<string, any> = {};
       VALID_JOB_FIELDS.forEach((field) => {
         if (formData[field] !== undefined) {
@@ -363,15 +335,14 @@ export function JobsManager() {
         }
       });
 
-      // 2. Perform DB operation with explicit casting to bypass overload confusion
       if (editingJob) {
         const { error } = await supabase
           .from("jobs")
-          .update(payload as any) // Explicit cast to any for update payload
+          .update(payload as any)
           .eq("id", editingJob.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("jobs").insert([payload as any]); // Pass as array of 1 object
+        const { error } = await supabase.from("jobs").insert([payload as any]);
         if (error) throw error;
       }
 
@@ -418,7 +389,7 @@ export function JobsManager() {
             />
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-[150px]">
-                <SelectValue />
+                <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
@@ -475,6 +446,27 @@ export function JobsManager() {
                   ))}
                 </TableBody>
               </Table>
+            </div>
+          )}
+
+          {Math.ceil(totalCount / ITEMS_PER_PAGE) > 1 && (
+            <div className="flex justify-end gap-2 mt-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => p + 1)}
+                disabled={page >= Math.ceil(totalCount / ITEMS_PER_PAGE)}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
             </div>
           )}
         </CardContent>
