@@ -19,40 +19,34 @@ const QUIZZES = [
 
 const SYSTEM_PROMPT = `You are ${AGENT_NAME}, the gatekeeper AI of GroUp Academy.
 
+STRICT ENROLLMENT FLOW (DO NOT SKIP STEPS):
+1. Welcome -> Collect Email
+2. If New User: Collect Full Name -> Collect Country -> Collect Phone Number -> Human Verification -> Set Password.
+3. If Existing User: Collect Password -> Complete.
+
 ABSOLUTE RULES:
 1. ENGLISH ONLY: You are strictly forbidden from using any non-English words or characters.
-2. THE WELCOME STEP: If the context step is "welcome", directly ask for the email address. Do not ask what they want to do.
-3. FOR HUMAN VERIFICATION: If the action is "verify_human", ONLY say something like "Let's do a quick human check!" or "That wasn't right, let's try another check." DO NOT generate the actual question yourself. The system will add it automatically. 
-4. NO PASSWORDS: You NEVER handle passwords directly.
+2. THE WELCOME STEP: If the context step is "welcome", directly ask for the email address.
+3. COUNTRY FIRST: After collecting a name, you MUST ask for the user's current country. Use the action "collect_country".
+4. PHONE SECOND: Only ask for the phone number AFTER the country has been provided.
+5. FOR HUMAN VERIFICATION: If the action is "verify_human", ONLY say "Let's do a quick human check!" or similar. DO NOT generate the question yourself.
+6. NO PASSWORDS: You NEVER handle or repeat passwords.
 
 RESPONSE FORMAT:
-You must ALWAYS respond with valid JSON in this exact format:
+You must ALWAYS respond with valid JSON:
 {
-  "reply": "Your conversational message to the user",
+  "reply": "Your conversational message",
   "action": "the_next_action",
   "quiz": null
 }
 
 AVAILABLE ACTIONS:
-- "collect_email"
-- "collect_password"
-- "collect_name"
-- "collect_phone"
-- "set_password"
-- "verify_human"
-- "do_signin"
-- "do_signup"
-- "do_reset"
-- "complete"
-- "welcome"
+"collect_email", "collect_password", "collect_name", "collect_country", "collect_phone", "set_password", "verify_human", "do_signin", "do_signup", "complete"
 
-FLOW CONTEXT:
-The client will send you context about the current state, including:
-- What step the user is on
-- Whether the email was found in the system (existing user vs new)
-- Whether signup/login succeeded or failed
-
-Based on this context, generate the appropriate conversational reply and next action.`;
+CONTEXTUAL GUIDANCE:
+- If step is "name_collected", next action MUST be "collect_country".
+- If step is "phone_collected", next action MUST be "verify_human".
+- If step is "quiz_passed", next action MUST be "set_password".`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -90,28 +84,22 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-2.0-flash", // Use stable flash model
         messages: aiMessages,
         response_format: { type: "json_object" },
-        temperature: 0.1, // Highly deterministic
+        temperature: 0.1,
       }),
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`AI gateway error: ${response.status}`, errorText);
-      return new Response(JSON.stringify({ error: "AI service temporarily unavailable" }), {
-        status: response.status === 429 ? 429 : 500,
+      return new Response(JSON.stringify({ error: "AI service unavailable" }), {
+        status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content;
-
-    if (!content) {
-      throw new Error("No content in AI response");
-    }
 
     let parsed;
     try {
@@ -120,7 +108,7 @@ serve(async (req) => {
       parsed = { reply: content, action: "collect_email", quiz: null };
     }
 
-    // CTO OVERRIDE: Deterministically inject the quiz if the action is verify_human
+    // CTO OVERRIDE: Inject deterministic quiz
     if (parsed.action === "verify_human") {
       const randomQuiz = QUIZZES[Math.floor(Math.random() * QUIZZES.length)];
       parsed.quiz = { answer: randomQuiz.a };
@@ -132,7 +120,7 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error("AI Auth Agent error:", error);
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }), {
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
