@@ -2,13 +2,14 @@ import { useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { isPhoneNumber } from "@/lib/validations";
+import { COUNTRIES_WITH_PHONE } from "@/lib/constants/countries";
 
 export type AuthAction =
   | "welcome"
   | "collect_email"
   | "collect_password"
   | "collect_name"
+  | "collect_country"
   | "collect_phone"
   | "set_password"
   | "verify_human"
@@ -50,7 +51,7 @@ export function useAuthChat() {
     name: "",
     phone: "",
     countryCode: "+880",
-    country: "BD",
+    country: "Bangladesh",
   });
   const [quiz, setQuiz] = useState<QuizData | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -80,10 +81,7 @@ export function useAuthChat() {
           body: JSON.stringify({ context, messages: conversationHistory || [] }),
         });
 
-        if (!res.ok) {
-          throw new Error("AI service unavailable");
-        }
-
+        if (!res.ok) throw new Error("AI service unavailable");
         return (await res.json()) as { reply: string; action: AuthAction; quiz: QuizData | null };
       } catch {
         return getFallbackResponse(context);
@@ -98,9 +96,8 @@ export function useAuthChat() {
     const step = context.step as string;
     switch (step) {
       case "welcome":
-        // Removed Bangla text here
         return {
-          reply: "Welcome to GroUp Academy! 😊 I'm Aisha, your guide. To get started, what's your email address?",
+          reply: "Welcome to GroUp Academy! 😊 I'm Aisha. To get started, what's your email address?",
           action: "collect_email",
           quiz: null,
         };
@@ -110,54 +107,16 @@ export function useAuthChat() {
           action: "collect_password",
           quiz: null,
         };
-      case "email_found_unclaimed":
-        return {
-          reply: "We have your profile! Let's set up your login. Please confirm your full name.",
-          action: "collect_name",
-          quiz: null,
-        };
       case "email_not_found":
         return { reply: "Let's create your account! What's your full name?", action: "collect_name", quiz: null };
-      case "name_collected":
-        return {
-          reply: "Great! Now, your phone number please — we'll use it for updates.",
-          action: "collect_phone",
-          quiz: null,
-        };
-      case "phone_collected":
-        return {
-          reply: "Quick human check! What is the opposite of hot?",
-          action: "verify_human",
-          quiz: { answer: "cold" },
-        };
-      case "quiz_passed":
-        return {
-          reply: "You're human! 🎉 Now create a strong password (at least 8 characters).",
-          action: "set_password",
-          quiz: null,
-        };
       case "signup_success":
         return {
           reply: "🎉 Account created! Welcome to GroUp Academy! You've earned 250 bonus credits!",
           action: "complete",
           quiz: null,
         };
-      case "signin_success":
-        return { reply: "Welcome back! 🎉 You're all set.", action: "complete", quiz: null };
-      case "reset_sent":
-        return {
-          reply: "Password reset link sent to your email! Check your inbox.",
-          action: "collect_email",
-          quiz: null,
-        };
-      case "auth_error":
-        return {
-          reply: `Hmm, that didn't work: ${context.error}. Let's try again.`,
-          action: (context.retryAction as AuthAction) || "collect_email",
-          quiz: null,
-        };
       default:
-        return { reply: "Let's continue. What's your email address?", action: "collect_email", quiz: null };
+        return { reply: "Let's continue. What's your email?", action: "collect_email", quiz: null };
     }
   };
 
@@ -166,103 +125,105 @@ export function useAuthChat() {
     try {
       const response = await callAgent({ step: "welcome", flow: null });
       addMessage("assistant", response.reply);
-      // Force it to collect_email if the AI agent returned something generic
       setCurrentAction(response.action === "welcome" ? "collect_email" : response.action);
     } finally {
       setIsLoading(false);
     }
   }, [callAgent, addMessage]);
 
-  const checkEmail = useCallback(
-    async (email: string): Promise<{ exists: boolean; hasUserId: boolean; talentName?: string }> => {
-      try {
-        const { data, error } = await supabase.rpc("check_auth_email", {
-          lookup_email: email.trim().toLowerCase(),
-        });
-
-        if (error || !data) {
-          console.error("Email check error:", error);
-          return { exists: false, hasUserId: false };
-        }
-
-        const result = data as unknown as { exists: boolean; hasUserId: boolean; talentName: string | null };
-
-        return {
-          exists: result.exists,
-          hasUserId: result.hasUserId,
-          talentName: result.talentName || undefined,
-        };
-      } catch {
-        return { exists: false, hasUserId: false };
-      }
-    },
-    [],
-  );
+  const checkEmail = useCallback(async (email: string) => {
+    const { data, error } = await supabase.rpc("check_auth_email", {
+      lookup_email: email.trim().toLowerCase(),
+    });
+    if (error || !data) return { exists: false, hasUserId: false };
+    return data as { exists: boolean; hasUserId: boolean; talentName: string | null };
+  }, []);
 
   const handleUserInput = useCallback(
     async (input: string) => {
       if (isLoading || isComplete) return;
-
       const trimmed = input.trim();
       if (!trimmed) return;
 
       addMessage("user", trimmed);
       setIsLoading(true);
-      setAuthError(null);
 
       try {
         switch (currentAction) {
           case "collect_email": {
             const email = trimmed.toLowerCase();
-            // Basic format validation
             if (!email.includes("@")) {
-              addMessage("assistant", "That doesn't look like an email address. Please enter a valid email.");
+              addMessage("assistant", "Please enter a valid email address.");
               setCurrentAction("collect_email");
               break;
             }
-
             setCollectedData((prev) => ({ ...prev, email }));
-
             const emailResult = await checkEmail(email);
-
             if (emailResult.exists && emailResult.hasUserId) {
               setFlow("login");
-              const response = await callAgent({
-                step: "email_found",
-                email,
-                talentName: emailResult.talentName,
-              });
+              const response = await callAgent({ step: "email_found", email });
               addMessage("assistant", response.reply);
-              setCurrentAction(response.action);
-            } else if (emailResult.exists && !emailResult.hasUserId) {
-              setFlow("claim");
-              setCollectedData((prev) => ({ ...prev, name: emailResult.talentName || "" }));
-              const response = await callAgent({
-                step: "email_found_unclaimed",
-                email,
-                talentName: emailResult.talentName,
-              });
-              addMessage("assistant", response.reply);
-              setCurrentAction(response.action);
+              setCurrentAction("collect_password");
             } else {
               setFlow("signup");
               const response = await callAgent({ step: "email_not_found", email });
               addMessage("assistant", response.reply);
-              setCurrentAction(response.action);
+              setCurrentAction("collect_name");
             }
             break;
           }
 
           case "collect_name": {
             setCollectedData((prev) => ({ ...prev, name: trimmed }));
-            const response = await callAgent({ step: "name_collected", name: trimmed, flow });
-            addMessage("assistant", response.reply);
-            setCurrentAction(response.action);
-            if (response.quiz) setQuiz(response.quiz);
+            addMessage("assistant", `Nice to meet you, ${trimmed}! Which country are you currently based in?`);
+            setCurrentAction("collect_country");
+            break;
+          }
+
+          case "collect_country": {
+            const matched = COUNTRIES_WITH_PHONE.find(
+              (c) => trimmed.toLowerCase().includes(c.name.toLowerCase()) || trimmed.toUpperCase() === c.code,
+            );
+
+            if (!matched) {
+              addMessage(
+                "assistant",
+                "I didn't recognize that country. Could you please type your country name again?",
+              );
+              setCurrentAction("collect_country");
+              break;
+            }
+
+            setCollectedData((prev) => ({
+              ...prev,
+              country: matched.name,
+              countryCode: matched.phoneCode,
+            }));
+
+            addMessage(
+              "assistant",
+              `Great! Since you're in ${matched.name}, what is your mobile number? (e.g. ${matched.phoneCode}...)`,
+            );
+            setCurrentAction("collect_phone");
             break;
           }
 
           case "collect_phone": {
+            const digits = trimmed.replace(/\D/g, "");
+            // Strict Bangladesh Validation
+            if (collectedData.country === "Bangladesh" && digits.length < 10) {
+              addMessage(
+                "assistant",
+                "That looks like an incomplete number for Bangladesh. Please provide your full mobile number.",
+              );
+              break;
+            }
+            // General length check
+            if (digits.length < 7) {
+              addMessage("assistant", "That number is too short. Please provide a valid mobile number.");
+              break;
+            }
+
             setCollectedData((prev) => ({ ...prev, phone: trimmed }));
             const response = await callAgent({ step: "phone_collected", flow });
             addMessage("assistant", response.reply);
@@ -274,49 +235,22 @@ export function useAuthChat() {
           case "verify_human": {
             const userAnswer = trimmed.toLowerCase().replace(/[^a-z0-9]/g, "");
             const correctAnswer = quiz?.answer?.toLowerCase().replace(/[^a-z0-9]/g, "");
-
             if (userAnswer === correctAnswer) {
               const response = await callAgent({ step: "quiz_passed", flow });
               addMessage("assistant", response.reply);
-              setCurrentAction(response.action);
+              setCurrentAction("set_password");
               setQuiz(null);
             } else {
-              const response = await callAgent({ step: "quiz_failed", flow });
-              addMessage("assistant", response.reply);
-              setCurrentAction("verify_human");
-              if (response.quiz) setQuiz(response.quiz);
+              addMessage("assistant", "Not quite! Let's try another: What is the opposite of 'hot'?");
+              setQuiz({ answer: "cold" });
             }
             break;
           }
 
-          case "collect_password":
-          case "set_password": {
-            break; // Handled directly by handleSubmit
-          }
-
-          default: {
-            const lowerInput = trimmed.toLowerCase();
-            if (lowerInput.includes("forgot") || lowerInput.includes("reset") || lowerInput.includes("password")) {
-              setFlow("reset");
-              if (collectedData.email) {
-                await handleResetPassword();
-              } else {
-                const response = await callAgent({ step: "forgot_password_no_email" });
-                addMessage("assistant", response.reply);
-                setCurrentAction("collect_email");
-              }
-            } else {
-              // If we are in an unknown state (like just typing "hi"), force it back to email collection
-              addMessage("assistant", "To help you proceed, please enter your email address.");
-              setCurrentAction("collect_email");
-            }
+          default:
+            setCurrentAction("collect_email");
             break;
-          }
         }
-      } catch (error) {
-        console.error("Auth chat error:", error);
-        addMessage("assistant", "Something went wrong. Let's try again. What's your email?");
-        setCurrentAction("collect_email");
       } finally {
         setIsLoading(false);
       }
@@ -328,24 +262,24 @@ export function useAuthChat() {
     async (password: string) => {
       if (isLoading) return;
       setIsLoading(true);
-      setAuthError(null);
-
       addMessage("user", "••••••••");
 
       try {
         if (flow === "login") {
           await signIn(collectedData.email, password);
-          const response = await callAgent({ step: "signin_success" });
-          addMessage("assistant", response.reply);
-          setCurrentAction("complete");
+          addMessage("assistant", "Welcome back! You are now logged in.");
           setIsComplete(true);
-        } else if (flow === "signup" || flow === "claim") {
-          const fullPhone = `${collectedData.countryCode}${collectedData.phone}`;
+        } else {
+          const cleanPhone = collectedData.phone.replace(/\D/g, "");
+          const finalPhone = collectedData.phone.startsWith("+")
+            ? collectedData.phone
+            : `${collectedData.countryCode}${cleanPhone}`;
+
           const success = await signUp(
             collectedData.name,
             collectedData.email,
             password,
-            fullPhone,
+            finalPhone,
             collectedData.country,
             collectedData.countryCode,
           );
@@ -353,27 +287,12 @@ export function useAuthChat() {
           if (success) {
             const response = await callAgent({ step: "signup_success" });
             addMessage("assistant", response.reply);
-            setCurrentAction("complete");
             setIsComplete(true);
-          } else {
-            const response = await callAgent({ step: "signup_needs_signin" });
-            addMessage("assistant", response.reply || "Account created! Please sign in with your credentials.");
-            setFlow("login");
-            setCurrentAction("collect_password");
           }
         }
       } catch (error: any) {
-        const errorMsg = error?.message || "Authentication failed";
-        setAuthError(errorMsg);
-        const retryAction = flow === "login" ? "collect_password" : "set_password";
-        const response = await callAgent({
-          step: "auth_error",
-          error: errorMsg,
-          flow,
-          retryAction,
-        });
-        addMessage("assistant", response.reply);
-        setCurrentAction(retryAction);
+        toast.error(error.message);
+        addMessage("assistant", `Authentication error: ${error.message}. Please try your password again.`);
       } finally {
         setIsLoading(false);
       }
@@ -381,33 +300,15 @@ export function useAuthChat() {
     [flow, collectedData, isLoading, signIn, signUp, callAgent, addMessage],
   );
 
-  const handleResetPassword = useCallback(async () => {
-    if (!collectedData.email) return;
-    setIsLoading(true);
-
-    try {
-      await resetPassword(collectedData.email);
-      const response = await callAgent({ step: "reset_sent", email: collectedData.email });
-      addMessage("assistant", response.reply);
-      setCurrentAction("collect_email");
-      setFlow(null);
-    } catch (error: any) {
-      addMessage("assistant", "Couldn't send reset link. Please check your email and try again.");
-      setCurrentAction("collect_email");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [collectedData.email, resetPassword, callAgent, addMessage]);
-
   const handleForgotPassword = useCallback(async () => {
-    setFlow("reset");
-    if (collectedData.email) {
-      await handleResetPassword();
-    } else {
-      addMessage("assistant", "No problem! Please enter your email address and I'll send you a reset link.");
+    if (!collectedData.email) {
+      addMessage("assistant", "Please enter your email first so I can send a reset link.");
       setCurrentAction("collect_email");
+      return;
     }
-  }, [collectedData.email, handleResetPassword, addMessage]);
+    await resetPassword(collectedData.email);
+    addMessage("assistant", "Reset link sent! Please check your inbox.");
+  }, [collectedData.email, resetPassword, addMessage]);
 
   const updatePhoneData = useCallback((phone: string, countryCode: string, country: string) => {
     setCollectedData((prev) => ({ ...prev, phone, countryCode, country }));
@@ -425,7 +326,6 @@ export function useAuthChat() {
     handleUserInput,
     handlePasswordSubmit,
     handleForgotPassword,
-    handleResetPassword,
     updatePhoneData,
     agentName: "Aisha",
   };
