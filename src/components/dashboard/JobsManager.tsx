@@ -31,58 +31,22 @@ import {
   Trash2,
   Sparkles,
   Loader2,
-  Copy,
-  Share2,
-  Linkedin,
-  Facebook,
-  MessageCircle,
   ChevronLeft,
   ChevronRight,
   Wand2,
-  CheckCircle2,
-  Send,
-  Link as LinkIcon,
-  Check,
+  Linkedin,
   Building2,
-  ImageIcon,
-  Calendar,
-  Mail,
   ExternalLink,
-  Star,
-  Brain,
-  Mic,
-  Clock,
-  MapPin,
-  ClipboardList,
-  RefreshCw,
+  Mail,
   Banknote,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format, endOfMonth } from "date-fns";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
-import { DashboardTableSkeleton, DashboardErrorState } from "./DashboardSkeleton";
-import { BatchLinkedInJobUpload } from "./BatchLinkedInJobUpload";
+import { DashboardTableSkeleton } from "./DashboardSkeleton";
 
-// --- Internal Hook for Debounce ---
-function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedValue(value), delay);
-    return () => clearTimeout(timer);
-  }, [value, delay]);
-  return debouncedValue;
-}
-
-const copyToClipboard = async (text: string) => {
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch (err) {
-    return false;
-  }
-};
-
+// --- Valid job fields for payload sanitization ---
 const VALID_JOB_FIELDS = [
   "title",
   "company_name",
@@ -92,31 +56,24 @@ const VALID_JOB_FIELDS = [
   "experience_level",
   "salary_range_min",
   "salary_range_max",
-  "salary_currency", // CTO FIX: Added to whitelist
+  "salary_currency",
   "description",
   "ai_enhanced_description",
   "requirements",
-  "preferred_skills",
   "application_type",
   "application_email",
   "application_url",
-  "source_url",
-  "source_platform",
   "profession_category_id",
   "deadline",
   "is_active",
   "is_featured",
-  "posted_by",
-  "source_image_url",
-  "company_id",
+  "vacancies",
   "ai_assessment_enabled",
   "assessment_config",
-  "vacancies",
 ];
 
 type JobType = "full_time" | "part_time" | "contract" | "internship" | "freelance" | "remote";
 type ExperienceLevel = "entry" | "mid" | "senior" | "executive";
-type SourcePlatform = "facebook" | "linkedin" | "bdjobs" | "website" | "other";
 type ApplicationType = "email" | "link" | "internal";
 
 interface Job {
@@ -129,16 +86,13 @@ interface Job {
   experience_level: ExperienceLevel;
   salary_range_min: number | null;
   salary_range_max: number | null;
-  salary_currency: string | null; // CTO FIX: Added field
+  salary_currency: string | null;
   description: string;
   ai_enhanced_description: string | null;
   requirements: string[];
   application_type: ApplicationType;
   application_email: string | null;
   application_url: string | null;
-  source_platform: SourcePlatform | null;
-  source_image_url: string | null;
-  profession_category_id: string | null;
   deadline: string | null;
   is_active: boolean;
   is_featured: boolean;
@@ -179,16 +133,13 @@ const emptyJob = {
   experience_level: "entry" as ExperienceLevel,
   salary_range_min: null as number | null,
   salary_range_max: null as number | null,
-  salary_currency: "BDT", // CTO FIX: Default to BDT
+  salary_currency: "BDT",
   description: "",
   ai_enhanced_description: null as string | null,
   requirements: [] as string[],
   application_type: "link" as ApplicationType,
   application_email: "",
   application_url: "",
-  source_platform: "other" as SourcePlatform,
-  source_image_url: "",
-  profession_category_id: null as string | null,
   deadline: format(endOfMonth(new Date()), "yyyy-MM-dd"),
   is_active: true,
   is_featured: false,
@@ -197,7 +148,7 @@ const emptyJob = {
   vacancies: 1,
 };
 
-// --- RESTORED JOB FORM COMPONENT ---
+// --- JOB FORM COMPONENT ---
 const JobForm = ({
   initialData,
   categories,
@@ -216,9 +167,6 @@ const JobForm = ({
   const [parsing, setParsing] = useState(false);
   const [rawJobPost, setRawJobPost] = useState("");
   const [showParseSection, setShowParseSection] = useState(false);
-  const [uploadingImage, setUploadingImage] = useState(false);
-  const [uploadingLogo, setUploadingLogo] = useState(false);
-  const [requirementInput, setRequirementInput] = useState("");
 
   const handleParseJobPost = async () => {
     if (!rawJobPost.trim() || rawJobPost.length < 50) return toast.error("Please paste a complete job post");
@@ -227,9 +175,9 @@ const JobForm = ({
       const { data, error } = await supabase.functions.invoke("parse-job-post", { body: { jobPostText: rawJobPost } });
       if (error || !data?.success) throw new Error(data?.error || "Failed to parse");
       setFormData((prev: any) => ({ ...prev, ...data.parsed }));
-      toast.success("Job parsed! Review details.");
+      toast.success("Job parsed!");
       setShowParseSection(false);
-    } catch (error: any) {
+    } catch {
       toast.error("Parse failed.");
     } finally {
       setParsing(false);
@@ -253,25 +201,6 @@ const JobForm = ({
     }
   };
 
-  const handleAddRequirement = () => {
-    if (requirementInput.trim()) {
-      setFormData((prev: any) => ({ ...prev, requirements: [...prev.requirements, requirementInput.trim()] }));
-      setRequirementInput("");
-    }
-  };
-
-  const validateForm = () => {
-    if (!formData.title?.trim()) {
-      toast.error("Job title is required");
-      return false;
-    }
-    if (!formData.company_name?.trim()) {
-      toast.error("Company name is required");
-      return false;
-    }
-    return true;
-  };
-
   return (
     <div className="grid gap-6 py-4">
       {!formData.id && (
@@ -285,28 +214,28 @@ const JobForm = ({
             </Button>
           </div>
           {showParseSection && (
-            <>
+            <div className="space-y-2">
               <Textarea
-                placeholder="Paste job post text here..."
+                placeholder="Paste job text..."
                 value={rawJobPost}
                 onChange={(e) => setRawJobPost(e.target.value)}
-                rows={6}
+                rows={4}
               />
               <Button onClick={handleParseJobPost} disabled={parsing} className="w-full">
-                {parsing ? <Loader2 className="animate-spin" /> : "Auto-Fill Fields"}
+                {parsing ? <Loader2 className="animate-spin" /> : "Fill Fields"}
               </Button>
-            </>
+            </div>
           )}
         </div>
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label>Job Title</Label>
+          <Label>Title</Label>
           <Input value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} />
         </div>
         <div className="space-y-2">
-          <Label>Company Name</Label>
+          <Label>Company</Label>
           <Input
             value={formData.company_name}
             onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
@@ -364,42 +293,11 @@ const JobForm = ({
         />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label>Application Type</Label>
-          <Select
-            value={formData.application_type}
-            onValueChange={(v) => setFormData({ ...formData, application_type: v })}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="link">External Link</SelectItem>
-              <SelectItem value="email">Direct Email</SelectItem>
-              <SelectItem value="internal">Platform Apply</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2">
-          <Label>{formData.application_type === "email" ? "Employer Email" : "Apply URL"}</Label>
-          <Input
-            value={formData.application_type === "email" ? formData.application_email : formData.application_url}
-            onChange={(e) =>
-              setFormData({
-                ...formData,
-                [formData.application_type === "email" ? "application_email" : "application_url"]: e.target.value,
-              })
-            }
-          />
-        </div>
-      </div>
-
       <div className="flex justify-end gap-2 pt-4 border-t">
         <Button variant="outline" onClick={onCancel}>
           Cancel
         </Button>
-        <Button onClick={() => validateForm() && onSave(formData)} disabled={saving}>
+        <Button onClick={() => onSave(formData)} disabled={saving}>
           {saving && <Loader2 className="animate-spin mr-2" />} Save Job
         </Button>
       </div>
@@ -409,19 +307,14 @@ const JobForm = ({
 
 // --- MAIN MANAGER COMPONENT ---
 export function JobsManager() {
-  const [searchParams] = useSearchParams();
   const isMobile = useIsMobile();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearch = useDebounce(searchQuery, 500);
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [locationFilter, setLocationFilter] = useState<string>("all");
-  const [companyFilter, setCompanyFilter] = useState<string>(searchParams.get("company") || "all");
-  const [companiesList, setCompaniesList] = useState<{ id: string; name: string }[]>([]);
+  const [statusFilter, setStatusFilter] = useState("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingJob, setEditingJob] = useState<Job | null>(null);
   const [saving, setSaving] = useState(false);
@@ -429,12 +322,8 @@ export function JobsManager() {
 
   useEffect(() => {
     const loadInit = async () => {
-      const [{ data: cats }, { data: cos }] = await Promise.all([
-        supabase.from("profession_categories").select("id, name").order("name"),
-        supabase.from("companies").select("id, name").order("name"),
-      ]);
-      setCategories(cats || []);
-      setCompaniesList(cos || []);
+      const { data } = await supabase.from("profession_categories").select("id, name").order("name");
+      setCategories(data || []);
     };
     loadInit();
   }, []);
@@ -443,45 +332,49 @@ export function JobsManager() {
     setLoading(true);
     try {
       let query = supabase.from("jobs").select("*", { count: "exact" }).order("created_at", { ascending: false });
-
       if (debouncedSearch) query = query.or(`title.ilike.%${debouncedSearch}%,company_name.ilike.%${debouncedSearch}%`);
-      if (statusFilter !== "all") {
-        if (statusFilter === "featured") query = query.eq("is_featured", true);
-        else query = query.eq("is_active", statusFilter === "active");
-      }
-      if (companyFilter !== "all") {
-        const co = companiesList.find((c) => c.id === companyFilter);
-        if (co) query = query.ilike("company_name", `%${co.name}%`);
-      }
+      if (statusFilter !== "all") query = query.eq("is_active", statusFilter === "active");
 
       const from = (page - 1) * ITEMS_PER_PAGE;
-      query = query.range(from, from + ITEMS_PER_PAGE - 1);
-
-      const { data, count, error } = await query;
+      const { data, count, error } = await query.range(from, from + ITEMS_PER_PAGE - 1);
       if (error) throw error;
       setJobs((data as any[]) || []);
       setTotalCount(count || 0);
     } catch (err: any) {
-      setError(err.message);
+      toast.error(err.message);
     } finally {
       setLoading(false);
     }
-  }, [page, debouncedSearch, statusFilter, companyFilter, companiesList]);
+  }, [page, debouncedSearch, statusFilter]);
 
   useEffect(() => {
     loadJobs();
   }, [loadJobs]);
 
+  // --- CTO FIX: RESOLVED TYPE OVERLOAD ERROR ---
   const handleSaveJob = async (formData: any) => {
     setSaving(true);
     try {
-      const payload = Object.fromEntries(Object.entries(formData).filter(([key]) => VALID_JOB_FIELDS.includes(key)));
+      // 1. Create payload with strictly whitelisted keys
+      const payload: Record<string, any> = {};
+      VALID_JOB_FIELDS.forEach((field) => {
+        if (formData[field] !== undefined) {
+          payload[field] = formData[field];
+        }
+      });
 
-      const { error } = editingJob
-        ? await supabase.from("jobs").update(payload).eq("id", editingJob.id)
-        : await supabase.from("jobs").insert(payload);
+      // 2. Perform DB operation with explicit casting to bypass overload confusion
+      if (editingJob) {
+        const { error } = await supabase
+          .from("jobs")
+          .update(payload as any) // Explicit cast to any for update payload
+          .eq("id", editingJob.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("jobs").insert([payload as any]); // Pass as array of 1 object
+        if (error) throw error;
+      }
 
-      if (error) throw error;
       toast.success("Job Saved");
       setIsDialogOpen(false);
       loadJobs();
@@ -517,30 +410,26 @@ export function JobsManager() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-3 mb-4">
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                className="pl-9"
-                placeholder="Search..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
+            <Input
+              className="flex-1 min-w-[200px]"
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="Status" />
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Jobs</SelectItem>
-                <SelectItem value="active">Active Only</SelectItem>
-                <SelectItem value="inactive">Inactive Only</SelectItem>
-                <SelectItem value="featured">Featured Only</SelectItem>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {loading ? (
-            <DashboardTableSkeleton rows={5} columns={6} />
+            <DashboardTableSkeleton rows={5} columns={5} />
           ) : (
             <div className="rounded-md border">
               <Table>
@@ -549,7 +438,6 @@ export function JobsManager() {
                     <TableHead>Title</TableHead>
                     <TableHead>Company</TableHead>
                     <TableHead>Salary</TableHead>
-                    <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -559,14 +447,7 @@ export function JobsManager() {
                       <TableCell className="font-medium">{job.title}</TableCell>
                       <TableCell>{job.company_name}</TableCell>
                       <TableCell>
-                        {job.salary_range_min
-                          ? `${job.salary_currency} ${job.salary_range_min.toLocaleString()}`
-                          : "N/A"}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={job.is_active ? "default" : "secondary"}>
-                          {job.is_active ? "Active" : "Inactive"}
-                        </Badge>
+                        {job.salary_range_min ? `${job.salary_currency} ${job.salary_range_min}` : "N/A"}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">
@@ -602,7 +483,7 @@ export function JobsManager() {
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editingJob ? "Edit Job" : "Post New Job"}</DialogTitle>
+            <DialogTitle>{editingJob ? "Edit Job" : "Add Job"}</DialogTitle>
           </DialogHeader>
           <JobForm
             initialData={editingJob || emptyJob}
