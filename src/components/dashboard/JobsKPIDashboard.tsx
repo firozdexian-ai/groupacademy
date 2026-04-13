@@ -2,7 +2,6 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,24 +12,19 @@ import {
   FileCheck,
   TrendingUp,
   Calendar,
-  Building2,
   Edit,
   Save,
   X,
-  ChevronRight,
   Loader2,
   Signal,
   MousePointerClick,
   RefreshCw,
-  Share2,
   Percent,
   Globe,
-  Database,
-  ArrowUpRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format, startOfMonth, endOfMonth, differenceInDays, eachDayOfInterval, subMonths } from "date-fns";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import CircularProgress from "./CircularProgress";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { COUNTRIES } from "@/lib/constants/countries";
@@ -55,8 +49,6 @@ interface KPIData {
   countryDistribution: { name: string; flag: string; count: number }[];
 }
 
-// Internal CTO Consts
-const SOURCE_COLORS = ["hsl(var(--primary))", "#10b981", "#f59e0b", "#8b5cf6", "#6b7280"];
 const COUNTRY_COLORS = [
   "hsl(var(--primary))",
   "#10b981",
@@ -81,8 +73,6 @@ export function JobsKPIDashboard({ onNavigateToTab }: { onNavigateToTab?: (tab: 
   const [refreshing, setRefreshing] = useState(false);
   const [kpiData, setKpiData] = useState<KPIData | null>(null);
   const [targets, setTargets] = useState<any[]>([]);
-  const [editingTarget, setEditingTarget] = useState<string | null>(null);
-  const [editValue, setEditValue] = useState<number>(0);
 
   const now = new Date();
   const monthStart = startOfMonth(now);
@@ -93,7 +83,6 @@ export function JobsKPIDashboard({ onNavigateToTab }: { onNavigateToTab?: (tab: 
   const loadData = useCallback(async () => {
     setRefreshing(true);
     try {
-      // Parallel Count Queries (High Performance)
       const [
         totalJobs,
         thisMonthJobs,
@@ -108,37 +97,48 @@ export function JobsKPIDashboard({ onNavigateToTab }: { onNavigateToTab?: (tab: 
         activeLocations,
         thisMonthJobDetails,
       ] = await Promise.all([
-        supabase.from("jobs").select("*", { count: "exact", head: true }),
-        supabase.from("jobs").select("*", { count: "exact", head: true }).gte("created_at", monthStart.toISOString()),
+        supabase.from("jobs" as any).select("*", { count: "exact", head: true }),
         supabase
-          .from("jobs")
+          .from("jobs" as any)
+          .select("*", { count: "exact", head: true })
+          .gte("created_at", monthStart.toISOString()),
+        supabase
+          .from("jobs" as any)
           .select("*", { count: "exact", head: true })
           .gte("created_at", lastMonthStart.toISOString())
           .lte("created_at", lastMonthEnd.toISOString()),
-        supabase.from("jobs").select("vacancies, location, source_platform, created_at").eq("is_active", true),
         supabase
-          .from("jobs")
+          .from("jobs" as any)
+          .select("vacancies, location, source_platform, created_at")
+          .eq("is_active", true),
+        supabase
+          .from("jobs" as any)
           .select("*", { count: "exact", head: true })
           .eq("is_active", true)
           .lte("deadline", new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString())
           .gte("deadline", now.toISOString()),
-        supabase.from("job_applications").select("*", { count: "exact", head: true }),
+        supabase.from("job_applications" as any).select("*", { count: "exact", head: true }),
         supabase
-          .from("job_applications")
+          .from("job_applications" as any)
           .select("*", { count: "exact", head: true })
           .gte("created_at", lastMonthStart.toISOString())
           .lte("created_at", lastMonthEnd.toISOString()),
-        supabase.from("job_apply_clicks").select("*", { count: "exact", head: true }),
-        supabase.from("gig_share_logs").select("*", { count: "exact", head: true }),
-        supabase.from("kpi_targets").select("*"),
-        supabase.from("jobs").select("location").eq("is_active", true),
-        supabase.from("jobs").select("created_at, source_platform").gte("created_at", monthStart.toISOString()),
+        supabase.from("job_apply_clicks" as any).select("*", { count: "exact", head: true }),
+        supabase.from("gig_share_logs" as any).select("*", { count: "exact", head: true }),
+        supabase.from("kpi_targets" as any).select("*"),
+        supabase
+          .from("jobs" as any)
+          .select("location")
+          .eq("is_active", true),
+        supabase
+          .from("jobs" as any)
+          .select("created_at, source_platform")
+          .gte("created_at", monthStart.toISOString()),
       ]);
 
       const activeJobsList = activeJobs.data || [];
       const totalVacancies = activeJobsList.reduce((sum, j) => sum + (j.vacancies || 1), 0);
 
-      // Daily Distribution logic
       const daysArray = eachDayOfInterval({ start: monthStart, end: now });
       const dailyJobsData = daysArray.map((day) => {
         const dayStr = format(day, "yyyy-MM-dd");
@@ -148,14 +148,12 @@ export function JobsKPIDashboard({ onNavigateToTab }: { onNavigateToTab?: (tab: 
         return { date: format(day, "MMM d"), jobs: count };
       });
 
-      // Source Distribution logic
       const sourceCount: Record<string, number> = {};
       (thisMonthJobDetails.data || []).forEach((j) => {
         const src = j.source_platform || "Direct";
         sourceCount[src] = (sourceCount[src] || 0) + 1;
       });
 
-      // Country Normalization Mapping
       const countryCounts: Record<string, number> = {};
       (activeLocations.data || []).forEach((row) => {
         const loc = row.location || "";
@@ -166,17 +164,18 @@ export function JobsKPIDashboard({ onNavigateToTab }: { onNavigateToTab?: (tab: 
         });
       });
 
+      // CTO FIX: Wrapped number in new Date() to fix TS2365
+      const todayStart = new Date(new Date().setHours(0, 0, 0, 0));
+
       setKpiData({
         totalAllTimeJobs: totalJobs.count || 0,
         jobsThisMonth: thisMonthJobs.count || 0,
         jobsLastMonth: lastMonthJobs.count || 0,
-        jobsToday: (thisMonthJobDetails.data || []).filter(
-          (j) => new Date(j.created_at) >= new Date().setHours(0, 0, 0, 0),
-        ).length,
+        jobsToday: (thisMonthJobDetails.data || []).filter((j) => new Date(j.created_at) >= todayStart).length,
         totalVacancies,
         totalApplications: totalApps.count || 0,
         applicationsLastMonth: lastMonthApps.count || 0,
-        uniqueApplicants: 0, // Requires distinct talent_id RPC for accuracy
+        uniqueApplicants: 0,
         avgApplicationsPerJob: totalJobs.count ? parseFloat(((totalApps.count || 0) / totalJobs.count).toFixed(1)) : 0,
         jobsBySource: Object.entries(sourceCount).map(([name, value]) => ({ name, value })),
         dailyJobsData,
@@ -215,21 +214,17 @@ export function JobsKPIDashboard({ onNavigateToTab }: { onNavigateToTab?: (tab: 
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      {/* Strategic Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Recruitment Intelligence</h2>
-          <p className="text-muted-foreground text-sm">
-            Monitoring conversion, market reach, and pipeline growth[cite: 29, 343].
-          </p>
+          <p className="text-muted-foreground text-sm">Monitoring conversion, market reach, and pipeline growth.</p>
         </div>
-        <Button variant="outline" size="sm" onClick={loadData} disabled={refreshing} className="shadow-sm">
+        <Button variant="outline" size="sm" onClick={loadData} disabled={refreshing}>
           <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
           Sync Data
         </Button>
       </div>
 
-      {/* Target Progress Card */}
       <Card className="border-primary/20 shadow-lg overflow-hidden relative">
         <div className="absolute top-0 right-0 p-4 opacity-10">
           <Target className="w-24 h-24" />
@@ -241,11 +236,13 @@ export function JobsKPIDashboard({ onNavigateToTab }: { onNavigateToTab?: (tab: 
               <div className="flex justify-between items-end">
                 <div>
                   <h3 className="text-lg font-bold">Monthly Posting Goal</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {format(now, "MMMM yyyy")} Pipeline Status[cite: 83, 167].
-                  </p>
+                  <p className="text-sm text-muted-foreground">{format(now, "MMMM yyyy")} Status.</p>
                 </div>
-                <Badge variant={jobsProgress >= 100 ? "success" : "secondary"} className="mb-1">
+                {/* CTO FIX: Used standard variant and custom bg-color to fix TS2322 */}
+                <Badge
+                  variant={jobsProgress >= 100 ? "default" : "secondary"}
+                  className={jobsProgress >= 100 ? "bg-emerald-500 hover:bg-emerald-600 mb-1" : "mb-1"}
+                >
                   {Math.round(jobsProgress)}% Achieved
                 </Badge>
               </div>
@@ -271,48 +268,46 @@ export function JobsKPIDashboard({ onNavigateToTab }: { onNavigateToTab?: (tab: 
         </CardContent>
       </Card>
 
-      {/* KPI Mini Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <KPIMiniCard
           icon={Signal}
-          label="Active Listings"
+          label="Active"
           value={kpiData.liveJobs}
-          subLabel="Current live jobs"
+          subLabel="Live jobs"
           color="text-emerald-500"
         />
         <KPIMiniCard
           icon={FileCheck}
-          label="Applications"
+          label="Apps"
           value={kpiData.totalApplications}
-          subLabel="Total submissions"
+          subLabel="Submissions"
           color="text-blue-500"
         />
         <KPIMiniCard
           icon={MousePointerClick}
-          label="Apply Clicks"
+          label="Clicks"
           value={kpiData.totalApplyClicks}
-          subLabel="Intent tracking"
+          subLabel="Intent"
           color="text-orange-500"
         />
         <KPIMiniCard
           icon={Percent}
-          label="Conversion"
+          label="Conv."
           value={`${kpiData.conversionRate}%`}
-          subLabel="Clicks to Apps"
+          subLabel="Rate"
           color="text-indigo-500"
         />
         <KPIMiniCard
           icon={Calendar}
           label="Expiring"
           value={kpiData.jobsExpiringThisWeek}
-          subLabel="Due in 7 days"
+          subLabel="Next 7d"
           color="text-red-500"
           clickable
           onClick={() => onNavigateToTab?.("jobs")}
         />
       </div>
 
-      {/* Main Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="shadow-md">
           <CardHeader>
@@ -370,7 +365,10 @@ export function JobsKPIDashboard({ onNavigateToTab }: { onNavigateToTab?: (tab: 
 
 function KPIMiniCard({ icon: Icon, label, value, subLabel, color, clickable, onClick }: any) {
   return (
-    <Card className={`${clickable ? "hover:border-primary transition-all cursor-pointer" : ""}`} onClick={onClick}>
+    <Card
+      className={`${clickable ? "hover:border-primary transition-all cursor-pointer shadow-sm" : "shadow-sm"}`}
+      onClick={onClick}
+    >
       <CardContent className="p-4 flex flex-col gap-1">
         <div className={`p-2 w-fit rounded-lg bg-muted/50 ${color}`}>
           <Icon className="w-4 h-4" />
