@@ -84,7 +84,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.0-flash", // Use stable flash model
+        model: "google/gemini-2.5-flash",
         messages: aiMessages,
         response_format: { type: "json_object" },
         temperature: 0.1,
@@ -92,6 +92,8 @@ serve(async (req) => {
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error("AI auth agent gateway error:", response.status, errorText);
       return new Response(JSON.stringify({ error: "AI service unavailable" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
