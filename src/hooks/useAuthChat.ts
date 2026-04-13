@@ -39,6 +39,10 @@ interface CollectedData {
   country: string;
 }
 
+const FALLBACK_HUMAN_CHECK: QuizData = {
+  answer: "cold",
+};
+
 export function useAuthChat() {
   const { signIn, signUp, resetPassword } = useAuth();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -109,6 +113,18 @@ export function useAuthChat() {
         };
       case "email_not_found":
         return { reply: "Let's create your account! What's your full name?", action: "collect_name", quiz: null };
+      case "phone_collected":
+        return {
+          reply: "Let's do a quick human check!\n\nQuestion: What is the opposite of hot?",
+          action: "verify_human",
+          quiz: FALLBACK_HUMAN_CHECK,
+        };
+      case "quiz_passed":
+        return {
+          reply: "Perfect. Now create a password with at least 8 characters.",
+          action: "set_password",
+          quiz: null,
+        };
       case "signup_success":
         return {
           reply: "🎉 Account created! Welcome to GroUp Academy! You've earned 250 bonus credits!",
@@ -288,6 +304,13 @@ export function useAuthChat() {
             const response = await callAgent({ step: "signup_success" });
             addMessage("assistant", response.reply);
             setIsComplete(true);
+          } else {
+            addMessage(
+              "assistant",
+              "Your account was created. Please verify your email from your inbox, then come back here and sign in.",
+            );
+            setFlow("login");
+            setCurrentAction("collect_email");
           }
         }
       } catch (error: any) {
