@@ -15,7 +15,6 @@ import {
   AlertCircle,
   Bot,
   Coins,
-  Bell,
   Globe,
   TrendingUp,
   PlayCircle,
@@ -58,23 +57,21 @@ export function DashboardOverview() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // CTO REFACTOR: Fixed type recursion and promise handling
-  const fetchCount = async (table: string, queryFn?: (q: any) => any): Promise<number> => {
+  // CTO REFACTOR: Helper returns just the numeric count to keep logic clean
+  const fetchCount = async (table: string, filter?: (q: any) => any): Promise<number> => {
     try {
       let query = supabase.from(table as any).select("*", { count: "exact", head: true });
-      if (queryFn) query = queryFn(query);
+      if (filter) query = filter(query);
 
-      // withTimeout expects a Promise, so we cast the Supabase query
-      const { count, error: fetchError } = await withTimeout(
-        query as any,
-        TIMEOUTS.DEFAULT,
-        `Count ${table} timed out`,
-      );
+      const result = (await withTimeout(query as any, TIMEOUTS.DEFAULT, `Count ${table} timed out`)) as {
+        count: number | null;
+        error: any;
+      };
 
-      if (fetchError) throw fetchError;
-      return count || 0;
+      if (result.error) throw result.error;
+      return result.count || 0;
     } catch (e) {
-      console.warn(`Stat error [${table}]:`, e);
+      console.warn(`Stat count error [${table}]:`, e);
       return 0;
     }
   };
@@ -86,6 +83,7 @@ export function DashboardOverview() {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
+      // Perform all strategic fetches in parallel [cite: 8]
       const [
         talents,
         registered,
@@ -97,8 +95,8 @@ export function DashboardOverview() {
         portfolios,
         sessions,
         credits,
-        txToday,
         bdTalents,
+        txTodayResult,
       ] = await Promise.all([
         fetchCount("talents"),
         fetchCount("talents", (q) => q.not("user_id", "is", null)),
@@ -113,10 +111,11 @@ export function DashboardOverview() {
         supabase.from("portfolio_requests" as any).select("status"),
         fetchCount("agent_chat_sessions"),
         supabase.from("talent_credits" as any).select("balance"),
-        fetchCount("credit_transactions" as any)
+        fetchCount("talents", (q) => q.ilike("country", "Bangladesh")),
+        supabase
+          .from("credit_transactions" as any)
           .select("*", { count: "exact", head: true })
           .gte("created_at", today.toISOString()),
-        fetchCount("talents", (q) => q.ilike("country", "Bangladesh")),
       ]);
 
       const rev = (revenueData.data || []).reduce(
@@ -128,6 +127,7 @@ export function DashboardOverview() {
         0,
       );
       const totalCreds = (credits.data || []).reduce((sum: number, item: any) => sum + (Number(item.balance) || 0), 0);
+      const txToday = (txTodayResult as { count: number | null }).count || 0;
 
       setStats({
         totalTalents: talents,
@@ -147,7 +147,7 @@ export function DashboardOverview() {
         aiAgents: { totalSessions: sessions },
         credits: {
           totalInCirculation: totalCreds,
-          transactionsToday: typeof txToday === "number" ? txToday : 0,
+          transactionsToday: txToday,
         },
         marketShare: { bdPercentage: talents > 0 ? Math.round((bdTalents / talents) * 100) : 0 },
       });
@@ -172,21 +172,30 @@ export function DashboardOverview() {
           <p className="text-muted-foreground">Real-time platform health and monetization metrics.</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="icon" onClick={loadStats} className="rounded-full">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={loadStats}
+            className="rounded-full shadow-sm hover:rotate-180 transition-transform duration-500"
+          >
             <RefreshCw className="h-4 w-4" />
           </Button>
-          <Button onClick={() => navigate("/dashboard?tab=ai-content-tools")} className="shadow-md">
+          <Button
+            onClick={() => navigate("/dashboard?tab=ai-content-tools")}
+            className="shadow-md bg-primary hover:bg-primary/90"
+          >
             <Bot className="mr-2 h-4 w-4" /> AI Content Tools
           </Button>
         </div>
       </header>
 
       {error && (
-        <div className="bg-destructive/15 border border-destructive/30 p-3 rounded-lg flex items-center gap-2 text-destructive text-sm">
+        <div className="bg-destructive/15 border border-destructive/30 p-3 rounded-lg flex items-center gap-2 text-destructive text-sm font-medium">
           <AlertCircle className="h-4 w-4" /> {error}
         </div>
       )}
 
+      {/* Primary KPI Grid [cite: 29] */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard
           title="Talent Pool"
@@ -208,7 +217,7 @@ export function DashboardOverview() {
           value={`${stats.marketShare.bdPercentage}%`}
           icon={Globe}
           variant="secondary"
-          trend="Primary: BD"
+          trend="Primary Market: BD"
           trendLabel="Regional concentration"
         />
         <StatsCard
@@ -222,13 +231,13 @@ export function DashboardOverview() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2 shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between">
+        <Card className="lg:col-span-2 shadow-sm border-muted">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-md font-semibold flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-primary" /> Service Performance
+              <TrendingUp className="h-4 w-4 text-primary" /> Service Performance [cite: 135]
             </CardTitle>
           </CardHeader>
-          <CardContent className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <CardContent className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4">
             <div className="space-y-1 text-center sm:text-left">
               <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Assessments</p>
               <p className="text-2xl font-bold">{stats.assessments.total}</p>
@@ -248,18 +257,18 @@ export function DashboardOverview() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-sm border-primary/20">
-          <CardHeader>
-            <CardTitle className="text-md font-semibold">LMS Pulse</CardTitle>
+        <Card className="shadow-sm border-primary/20 bg-primary/5">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-md font-semibold">LMS Pulse [cite: 126]</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 pt-4">
             <div className="flex justify-between items-center">
               <span className="text-sm text-muted-foreground">Active Learners</span>
               <span className="font-mono font-bold text-primary">{stats.activeEnrollments}</span>
             </div>
             <Button
               variant="outline"
-              className="w-full justify-between group"
+              className="w-full justify-between group border-primary/30 hover:bg-primary hover:text-white"
               onClick={() => navigate("/dashboard?tab=learner-progress")}
             >
               View Progress <BookOpen className="h-4 w-4 ml-2 group-hover:scale-110 transition-transform" />
@@ -268,11 +277,11 @@ export function DashboardOverview() {
         </Card>
       </div>
 
-      <Card className="bg-muted/30 border-none">
-        <CardHeader>
-          <CardTitle className="text-lg">Operational Shortcuts</CardTitle>
+      <Card className="bg-muted/30 border-none shadow-inner">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg font-bold">Operational Shortcuts [cite: 29, 30]</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+        <CardContent className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 pt-4">
           <ShortcutButton icon={Users} label="Talent Pool" onClick={() => navigate("/dashboard?tab=talent")} />
           <ShortcutButton icon={Briefcase} label="Jobs" onClick={() => navigate("/dashboard?tab=jobs")} />
           <ShortcutButton icon={Bot} label="AI Agents" onClick={() => navigate("/dashboard?tab=ai-agents")} />
@@ -289,11 +298,11 @@ function ShortcutButton({ icon: Icon, label, onClick }: { icon: any; label: stri
   return (
     <Button
       variant="secondary"
-      className="h-auto py-4 flex flex-col gap-2 bg-background hover:bg-primary hover:text-primary-foreground transition-all duration-300 shadow-sm"
+      className="h-auto py-5 flex flex-col gap-2 bg-white hover:bg-primary hover:text-white transition-all duration-300 shadow-sm border-muted"
       onClick={onClick}
     >
       <Icon className="h-5 w-5" />
-      <span className="text-xs font-medium">{label}</span>
+      <span className="text-xs font-semibold">{label}</span>
     </Button>
   );
 }
@@ -301,7 +310,7 @@ function ShortcutButton({ icon: Icon, label, onClick }: { icon: any; label: stri
 function DashboardLoadingSkeleton() {
   return (
     <div className="space-y-6">
-      <div className="flex justify-between">
+      <div className="flex justify-between items-center">
         <Skeleton className="h-10 w-64" />
         <Skeleton className="h-10 w-32" />
       </div>
@@ -310,7 +319,11 @@ function DashboardLoadingSkeleton() {
           <Skeleton key={i} className="h-32 w-full rounded-xl" />
         ))}
       </div>
-      <Skeleton className="h-64 w-full rounded-xl" />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Skeleton className="h-48 lg:col-span-2 rounded-xl" />
+        <Skeleton className="h-48 rounded-xl" />
+      </div>
+      <Skeleton className="h-32 w-full rounded-xl" />
     </div>
   );
 }
