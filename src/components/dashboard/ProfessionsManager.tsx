@@ -36,7 +36,6 @@ import {
   AlertTriangle,
   MessageSquare,
   Coins,
-  Globe,
   ShieldCheck,
 } from "lucide-react";
 import { getIcon } from "@/lib/iconMap";
@@ -132,7 +131,6 @@ export function ProfessionsManager() {
   const [schools, setSchools] = useState<School[]>([]);
   const [professionLines, setProfessionLines] = useState<ProfessionLine[]>([]);
   const [aiInstructors, setAiInstructors] = useState<AIInstructor[]>([]);
-  const [conversationCounts, setConversationCounts] = useState<Record<string, number>>({});
   const [contentCounts, setContentCounts] = useState<Record<string, { count: number; totalCredits: number }>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -140,9 +138,6 @@ export function ProfessionsManager() {
 
   const [selectedAcademyFilter, setSelectedAcademyFilter] = useState<string>("all");
   const [selectedSchoolFilter, setSelectedSchoolFilter] = useState<string>("all");
-  const [instrAcademyFilter, setInstrAcademyFilter] = useState<string>("all");
-  const [instrSchoolFilter, setInstrSchoolFilter] = useState<string>("all");
-  const [instrProfessionFilter, setInstrProfessionFilter] = useState<string>("all");
 
   const [academyDialog, setAcademyDialog] = useState(false);
   const [schoolDialog, setSchoolDialog] = useState(false);
@@ -164,20 +159,19 @@ export function ProfessionsManager() {
     setIsLoading(true);
     setLoadError(null);
     try {
-      const results = await withTimeout(
+      const results = (await withTimeout(
         Promise.all([
           supabase.from("academies").select("*").order("display_order"),
           supabase.from("schools").select("*").order("display_order"),
           supabase.from("profession_categories").select("*").order("display_order"),
           supabase.from("ai_instructors").select("*").order("name"),
-          supabase.from("agent_chat_sessions").select("agent_key"), // Matches ai_agents logic
           supabase.from("content").select("id, profession_line_id, credit_cost").eq("is_published", true),
         ]),
         TIMEOUTS.DEFAULT,
         "Loading structural metadata timed out",
-      );
+      )) as any;
 
-      const [academiesRes, schoolsRes, professionsRes, instructorsRes, chatSessionsRes, contentRes] = results as any;
+      const [academiesRes, schoolsRes, professionsRes, instructorsRes, contentRes] = results;
       if (academiesRes.data) setAcademies(academiesRes.data);
       if (schoolsRes.data) setSchools(schoolsRes.data);
       if (professionsRes.data) setProfessionLines(professionsRes.data);
@@ -217,8 +211,10 @@ export function ProfessionsManager() {
       const query = editingAcademy
         ? supabase.from("academies").update(data).eq("id", editingAcademy.id)
         : supabase.from("academies").insert(data);
-      const { error } = await withTimeout(query, TIMEOUTS.DEFAULT, "Database timeout");
+
+      const { error } = (await withTimeout(query as any, TIMEOUTS.DEFAULT, "Database timeout")) as { error: any };
       if (error) throw error;
+
       toast.success(editingAcademy ? "Academy updated" : "Academy deployed");
       setAcademyDialog(false);
       setEditingAcademy(null);
@@ -243,8 +239,10 @@ export function ProfessionsManager() {
       const query = editingSchool
         ? supabase.from("schools").update(data).eq("id", editingSchool.id)
         : supabase.from("schools").insert(data);
-      const { error } = await withTimeout(query, TIMEOUTS.DEFAULT, "Database timeout");
+
+      const { error } = (await withTimeout(query as any, TIMEOUTS.DEFAULT, "Database timeout")) as { error: any };
       if (error) throw error;
+
       toast.success("School configuration saved");
       setSchoolDialog(false);
       setEditingSchool(null);
@@ -272,8 +270,10 @@ export function ProfessionsManager() {
       const query = editingProfession
         ? supabase.from("profession_categories").update(data).eq("id", editingProfession.id)
         : supabase.from("profession_categories").insert(data);
-      const { error } = await withTimeout(query, TIMEOUTS.DEFAULT, "Database timeout");
+
+      const { error } = (await withTimeout(query as any, TIMEOUTS.DEFAULT, "Database timeout")) as { error: any };
       if (error) throw error;
+
       toast.success("Profession line synchronized");
       setProfessionDialog(false);
       setEditingProfession(null);
@@ -304,8 +304,10 @@ export function ProfessionsManager() {
       const query = editingInstructor
         ? supabase.from("ai_instructors").update(data).eq("id", editingInstructor.id)
         : supabase.from("ai_instructors").insert(data);
-      const { error } = await withTimeout(query, TIMEOUTS.DEFAULT, "Database timeout");
+
+      const { error } = (await withTimeout(query as any, TIMEOUTS.DEFAULT, "Database timeout")) as { error: any };
       if (error) throw error;
+
       toast.success("AI Instructor persona updated");
       setInstructorDialog(false);
       setEditingInstructor(null);
@@ -334,36 +336,6 @@ export function ProfessionsManager() {
       : professionLines.filter((p) => p.school_id === selectedSchoolFilter),
   );
 
-  const instrSchoolOptions = useMemo(
-    () => (instrAcademyFilter === "all" ? schools : schools.filter((s) => s.academy_id === instrAcademyFilter)),
-    [instrAcademyFilter, schools],
-  );
-  const instrProfessionOptions = useMemo(() => {
-    if (instrSchoolFilter === "all") {
-      if (instrAcademyFilter === "all") return professionLines;
-      const schoolIds = new Set(instrSchoolOptions.map((s) => s.id));
-      return professionLines.filter((p) => p.school_id && schoolIds.has(p.school_id));
-    }
-    return professionLines.filter((p) => p.school_id === instrSchoolFilter);
-  }, [instrSchoolFilter, instrAcademyFilter, instrSchoolOptions, professionLines]);
-
-  const filteredInstructors = useMemo(() => {
-    let result = aiInstructors;
-    if (instrProfessionFilter !== "all") result = result.filter((i) => i.profession_line_id === instrProfessionFilter);
-    else if (instrSchoolFilter !== "all" || instrAcademyFilter !== "all") {
-      const validProfIds = new Set(instrProfessionOptions.map((p) => p.id));
-      result = result.filter((i) => validProfIds.has(i.profession_line_id));
-    }
-    return filterBySearch(result);
-  }, [
-    aiInstructors,
-    instrProfessionFilter,
-    instrSchoolFilter,
-    instrAcademyFilter,
-    instrProfessionOptions,
-    searchQuery,
-  ]);
-
   if (isLoading)
     return (
       <div className="space-y-6">
@@ -378,7 +350,7 @@ export function ProfessionsManager() {
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Academic Infrastructure</h2>
           <p className="text-sm text-muted-foreground">
-            Define schools, professions, and AI instructors for the global platform.
+            Manage academies, schools, and AI instructors[cite: 175, 183].
           </p>
         </div>
       </header>
@@ -388,26 +360,26 @@ export function ProfessionsManager() {
           icon={Building2}
           label="Academies"
           value={academies.length}
-          subtext={`${academies.filter((a) => a.is_active).length} online`}
+          subtext={`${academies.filter((a) => a.is_active).length} active [cite: 88]`}
         />
         <KPIStatCard
           icon={GraduationCap}
           label="Schools"
           value={schools.length}
-          subtext={`${schools.filter((s) => s.is_active).length} online`}
+          subtext={`${schools.filter((s) => s.is_active).length} active [cite: 175]`}
         />
         <KPIStatCard
           icon={Briefcase}
           label="Professions"
           value={professionLines.length}
-          subtext={`${professionLines.filter((p) => p.is_active).length} online`}
           alertCount={noInstructorCount}
+          subtext="Total programs [cite: 123]"
         />
         <KPIStatCard
           icon={Bot}
           label="AI Instructors"
           value={aiInstructors.length}
-          subtext={`${aiInstructors.filter((i) => i.is_active).length} online`}
+          subtext="Active personas [cite: 124]"
         />
       </div>
 
@@ -439,8 +411,16 @@ export function ProfessionsManager() {
 
         <TabsContent value="academies" className="space-y-4">
           <div className="flex justify-between items-center">
-            <p className="text-sm font-medium text-muted-foreground uppercase tracking-widest">Global Academies</p>
-            <Button onClick={() => setAcademyDialog(true)} className="shadow-md">
+            <p className="text-sm font-medium text-muted-foreground uppercase tracking-widest">
+              Global Academies [cite: 120]
+            </p>
+            <Button
+              onClick={() => {
+                setEditingAcademy(null);
+                setAcademyDialog(true);
+              }}
+              className="shadow-md"
+            >
               <Plus className="h-4 w-4 mr-2" />
               Add Academy
             </Button>
@@ -451,7 +431,7 @@ export function ProfessionsManager() {
                 key={a.id}
                 academy={a}
                 schoolCount={schools.filter((s) => s.academy_id === a.id).length}
-                onEdit={(a) => {
+                onEdit={(a: Academy) => {
                   setEditingAcademy(a);
                   setAcademyDialog(true);
                 }}
@@ -460,11 +440,18 @@ export function ProfessionsManager() {
           </div>
         </TabsContent>
 
-        {/* Schools, Professions, and Instructors content similar structure but optimized icons/badges */}
         <TabsContent value="professions" className="space-y-4">
           <div className="flex justify-between items-center">
-            <p className="text-sm font-medium text-muted-foreground uppercase tracking-widest">Career Tracks</p>
-            <Button onClick={() => setProfessionDialog(true)} className="shadow-md">
+            <p className="text-sm font-medium text-muted-foreground uppercase tracking-widest">
+              Career Tracks [cite: 123]
+            </p>
+            <Button
+              onClick={() => {
+                setEditingProfession(null);
+                setProfessionDialog(true);
+              }}
+              className="shadow-md"
+            >
               <Plus className="h-4 w-4 mr-2" />
               Add Profession
             </Button>
@@ -479,7 +466,7 @@ export function ProfessionsManager() {
                   hasAI={!!instructor}
                   schoolName={schools.find((s) => s.id === p.school_id)?.name}
                   stats={contentCounts[p.id]}
-                  onEdit={(p) => {
+                  onEdit={(p: ProfessionLine) => {
                     setEditingProfession(p);
                     setProfessionDialog(true);
                   }}
@@ -502,7 +489,7 @@ function KPIStatCard({ icon: Icon, label, value, subtext, alertCount }: any) {
         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{label}</p>
         {alertCount ? (
           <p className="text-[10px] text-destructive font-bold mt-1 flex items-center justify-center gap-1">
-            <AlertTriangle className="h-3 w-3" /> {alertCount} MISSING AI
+            <AlertTriangle className="h-3 w-3" /> {alertCount} MISSING AI [cite: 171]
           </p>
         ) : (
           <p className="text-[10px] text-muted-foreground mt-1">{subtext}</p>
@@ -529,7 +516,7 @@ function AcademyItem({ academy, schoolCount, onEdit }: any) {
               </Badge>
             </h4>
             <p className="text-xs text-muted-foreground">
-              {schoolCount} Schools • {academy.primary_language === "english" ? "English" : "Bangla"}
+              {schoolCount} Schools • {academy.primary_language === "english" ? "English" : "Bangla"} [cite: 120]
             </p>
           </div>
         </div>
@@ -560,7 +547,7 @@ function ProfessionItem({ profession, hasAI, schoolName, stats, onEdit }: any) {
               )}
             </h4>
             <p className="text-xs text-muted-foreground">
-              {schoolName || "Unassigned"} • {stats?.count || 0} Courses • {profession.credit_cost || 0} credits
+              {schoolName || "Unassigned"} • {stats?.count || 0} Courses • {profession.credit_cost || 0} credits{" "}
             </p>
           </div>
         </div>
