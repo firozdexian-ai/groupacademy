@@ -5,6 +5,7 @@ import { AdminSidebar } from "@/components/dashboard/AdminSidebar";
 import { DashboardTableSkeleton } from "@/components/dashboard/DashboardSkeleton";
 import { useAuth } from "@/hooks/useAuth";
 import { useTalent } from "@/hooks/useTalent";
+import { useUserRole } from "@/components/ProtectedRoute";
 import { toast } from "sonner";
 
 // Lazy-load every tab component
