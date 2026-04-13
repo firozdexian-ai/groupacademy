@@ -5,6 +5,7 @@ import { AdminSidebar } from "@/components/dashboard/AdminSidebar";
 import { DashboardTableSkeleton } from "@/components/dashboard/DashboardSkeleton";
 import { useAuth } from "@/hooks/useAuth";
 import { useTalent } from "@/hooks/useTalent";
+import { useUserRole } from "@/components/ProtectedRoute";
 import { toast } from "sonner";
 
 // Lazy-load every tab component
@@ -114,7 +115,7 @@ const Dashboard = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user, isLoading: authLoading } = useAuth();
-  const { talent, isLoading: talentLoading } = useTalent();
+  const { role, isLoading: roleLoading } = useUserRole();
   const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "overview");
 
   useEffect(() => {
@@ -123,25 +124,24 @@ const Dashboard = () => {
   }, [searchParams]);
 
   useEffect(() => {
-    if (!authLoading && !talentLoading) {
+    if (!authLoading && !roleLoading) {
       if (!user) {
         navigate("/auth");
         return;
       }
-      const userRole = talent?.learnerStatus;
-      if (userRole !== "admin" && userRole !== "talent_exec") {
+      if (role !== "admin" && role !== "talent_exec") {
         toast.error("Access denied: Administrative privileges required.");
         navigate("/app/feed");
       }
     }
-  }, [user, talent, authLoading, talentLoading, navigate]);
+  }, [user, role, authLoading, roleLoading, navigate]);
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
     setSearchParams({ tab });
   };
 
-  if (authLoading || talentLoading) {
+  if (authLoading || roleLoading) {
     return <div className="flex items-center justify-center h-screen">Loading Command Center...</div>;
   }
 
