@@ -12,15 +12,11 @@ import {
   FileCheck,
   TrendingUp,
   Calendar,
-  Edit,
-  Save,
-  X,
-  Loader2,
-  Signal,
-  MousePointerClick,
   RefreshCw,
   Percent,
   Globe,
+  Signal,
+  MousePointerClick,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format, startOfMonth, endOfMonth, differenceInDays, eachDayOfInterval, subMonths } from "date-fns";
@@ -61,10 +57,10 @@ const COUNTRY_COLORS = [
 ];
 
 const COUNTRY_ALIASES: Record<string, string[]> = {
-  Bangladesh: ["BD", "Bangladesh", "Dhaka", "Chattogram"],
-  "United Arab Emirates": ["UAE", "United Arab Emirates", "Dubai", "Abu Dhabi"],
-  "United Kingdom": ["UK", "United Kingdom", "London"],
-  "United States": ["USA", "United States", "US", "NY", "California"],
+  Bangladesh: ["BD", "Bangladesh", "Dhaka", "Chattogram"], //
+  "United Arab Emirates": ["UAE", "United Arab Emirates", "Dubai", "Abu Dhabi"], //
+  "United Kingdom": ["UK", "United Kingdom", "London"], // [cite: 94, 113]
+  "United States": ["USA", "United States", "US", "NY", "California"], //
 };
 
 export function JobsKPIDashboard({ onNavigateToTab }: { onNavigateToTab?: (tab: string) => void }) {
@@ -83,18 +79,18 @@ export function JobsKPIDashboard({ onNavigateToTab }: { onNavigateToTab?: (tab: 
   const loadData = useCallback(async () => {
     setRefreshing(true);
     try {
+      // Parallel Count Queries with explicit bypass
       const [
         totalJobs,
         thisMonthJobs,
         lastMonthJobs,
-        activeJobs,
+        activeJobsResult,
         expiringJobs,
         totalApps,
         lastMonthApps,
         applyClicks,
         shareLogs,
         targetsRes,
-        activeLocations,
         thisMonthJobDetails,
       ] = await Promise.all([
         supabase.from("jobs" as any).select("*", { count: "exact", head: true }),
@@ -128,34 +124,32 @@ export function JobsKPIDashboard({ onNavigateToTab }: { onNavigateToTab?: (tab: 
         supabase.from("kpi_targets" as any).select("*"),
         supabase
           .from("jobs" as any)
-          .select("location")
-          .eq("is_active", true),
-        supabase
-          .from("jobs" as any)
           .select("created_at, source_platform")
           .gte("created_at", monthStart.toISOString()),
       ]);
 
-      const activeJobsList = activeJobs.data || [];
-      const totalVacancies = activeJobsList.reduce((sum, j) => sum + (j.vacancies || 1), 0);
+      // CTO FIX: Assert data types to bypass SelectQueryError
+      const activeJobsList = (activeJobsResult.data as any[]) || [];
+      const thisMonthList = (thisMonthJobDetails.data as any[]) || [];
+      const todayStart = new Date(new Date().setHours(0, 0, 0, 0));
+
+      const totalVacancies = activeJobsList.reduce((sum, j) => sum + (Number(j.vacancies) || 1), 0);
 
       const daysArray = eachDayOfInterval({ start: monthStart, end: now });
       const dailyJobsData = daysArray.map((day) => {
         const dayStr = format(day, "yyyy-MM-dd");
-        const count = (thisMonthJobDetails.data || []).filter(
-          (j) => format(new Date(j.created_at), "yyyy-MM-dd") === dayStr,
-        ).length;
+        const count = thisMonthList.filter((j) => format(new Date(j.created_at), "yyyy-MM-dd") === dayStr).length;
         return { date: format(day, "MMM d"), jobs: count };
       });
 
       const sourceCount: Record<string, number> = {};
-      (thisMonthJobDetails.data || []).forEach((j) => {
+      thisMonthList.forEach((j) => {
         const src = j.source_platform || "Direct";
         sourceCount[src] = (sourceCount[src] || 0) + 1;
       });
 
       const countryCounts: Record<string, number> = {};
-      (activeLocations.data || []).forEach((row) => {
+      activeJobsList.forEach((row) => {
         const loc = row.location || "";
         Object.entries(COUNTRY_ALIASES).forEach(([official, aliases]) => {
           if (aliases.some((a) => loc.toLowerCase().includes(a.toLowerCase()))) {
@@ -164,14 +158,11 @@ export function JobsKPIDashboard({ onNavigateToTab }: { onNavigateToTab?: (tab: 
         });
       });
 
-      // CTO FIX: Wrapped number in new Date() to fix TS2365
-      const todayStart = new Date(new Date().setHours(0, 0, 0, 0));
-
       setKpiData({
         totalAllTimeJobs: totalJobs.count || 0,
         jobsThisMonth: thisMonthJobs.count || 0,
         jobsLastMonth: lastMonthJobs.count || 0,
-        jobsToday: (thisMonthJobDetails.data || []).filter((j) => new Date(j.created_at) >= todayStart).length,
+        jobsToday: thisMonthList.filter((j) => new Date(j.created_at) >= todayStart).length,
         totalVacancies,
         totalApplications: totalApps.count || 0,
         applicationsLastMonth: lastMonthApps.count || 0,
@@ -196,7 +187,8 @@ export function JobsKPIDashboard({ onNavigateToTab }: { onNavigateToTab?: (tab: 
       });
       setTargets(targetsRes.data || []);
     } catch (err) {
-      toast.error("Data fetch failed");
+      console.error("KPI Error:", err);
+      toast.error("Recruitment data sync failed");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -217,15 +209,15 @@ export function JobsKPIDashboard({ onNavigateToTab }: { onNavigateToTab?: (tab: 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Recruitment Intelligence</h2>
-          <p className="text-muted-foreground text-sm">Monitoring conversion, market reach, and pipeline growth.</p>
+          <p className="text-muted-foreground text-sm">Targeting high-conversion job pipelines.</p>
         </div>
-        <Button variant="outline" size="sm" onClick={loadData} disabled={refreshing}>
+        <Button variant="outline" size="sm" onClick={loadData} disabled={refreshing} className="shadow-sm">
           <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
-          Sync Data
+          Sync Core Data
         </Button>
       </div>
 
-      <Card className="border-primary/20 shadow-lg overflow-hidden relative">
+      <Card className="border-primary/20 shadow-lg overflow-hidden relative bg-card">
         <div className="absolute top-0 right-0 p-4 opacity-10">
           <Target className="w-24 h-24" />
         </div>
@@ -235,10 +227,9 @@ export function JobsKPIDashboard({ onNavigateToTab }: { onNavigateToTab?: (tab: 
             <div className="flex-1 w-full space-y-4">
               <div className="flex justify-between items-end">
                 <div>
-                  <h3 className="text-lg font-bold">Monthly Posting Goal</h3>
-                  <p className="text-sm text-muted-foreground">{format(now, "MMMM yyyy")} Status.</p>
+                  <h3 className="text-lg font-bold">Jobs Posting Performance</h3>
+                  <p className="text-sm text-muted-foreground">{format(now, "MMMM yyyy")} Pipeline.</p>
                 </div>
-                {/* CTO FIX: Used standard variant and custom bg-color to fix TS2322 */}
                 <Badge
                   variant={jobsProgress >= 100 ? "default" : "secondary"}
                   className={jobsProgress >= 100 ? "bg-emerald-500 hover:bg-emerald-600 mb-1" : "mb-1"}
@@ -246,20 +237,20 @@ export function JobsKPIDashboard({ onNavigateToTab }: { onNavigateToTab?: (tab: 
                   {Math.round(jobsProgress)}% Achieved
                 </Badge>
               </div>
-              <Progress value={jobsProgress} className="h-3 shadow-inner" />
+              <Progress value={jobsProgress} className="h-3" />
               <div className="grid grid-cols-3 gap-4">
-                <div className="bg-muted/50 p-3 rounded-xl border border-border/50">
-                  <p className="text-xs font-medium text-muted-foreground uppercase">Today</p>
+                <div className="bg-muted/30 p-3 rounded-xl border border-border/50">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase">Today</p>
                   <p className="text-xl font-bold">{kpiData.jobsToday}</p>
                 </div>
                 <div className="bg-primary/5 p-3 rounded-xl border border-primary/10">
-                  <p className="text-xs font-medium text-primary uppercase">Run Rate</p>
+                  <p className="text-[10px] font-bold text-primary uppercase">Daily Target</p>
                   <p className="text-xl font-bold">
-                    {Math.ceil((jobsTarget - kpiData.jobsThisMonth) / Math.max(1, differenceInDays(monthEnd, now)))}/day
+                    {Math.ceil((jobsTarget - kpiData.jobsThisMonth) / Math.max(1, differenceInDays(monthEnd, now)))}
                   </p>
                 </div>
-                <div className="bg-muted/50 p-3 rounded-xl border border-border/50 text-right">
-                  <p className="text-xs font-medium text-muted-foreground uppercase">Target</p>
+                <div className="bg-muted/30 p-3 rounded-xl border border-border/50 text-right">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase">Target</p>
                   <p className="text-xl font-bold">{jobsTarget}</p>
                 </div>
               </div>
@@ -273,35 +264,35 @@ export function JobsKPIDashboard({ onNavigateToTab }: { onNavigateToTab?: (tab: 
           icon={Signal}
           label="Active"
           value={kpiData.liveJobs}
-          subLabel="Live jobs"
+          subLabel="Live in market"
           color="text-emerald-500"
         />
         <KPIMiniCard
           icon={FileCheck}
           label="Apps"
           value={kpiData.totalApplications}
-          subLabel="Submissions"
+          subLabel="Total talent interest"
           color="text-blue-500"
         />
         <KPIMiniCard
           icon={MousePointerClick}
           label="Clicks"
           value={kpiData.totalApplyClicks}
-          subLabel="Intent"
+          subLabel="User intent"
           color="text-orange-500"
         />
         <KPIMiniCard
           icon={Percent}
-          label="Conv."
+          label="Conversion"
           value={`${kpiData.conversionRate}%`}
-          subLabel="Rate"
+          subLabel="Clicks to Apps"
           color="text-indigo-500"
         />
         <KPIMiniCard
           icon={Calendar}
-          label="Expiring"
+          label="Due Soon"
           value={kpiData.jobsExpiringThisWeek}
-          subLabel="Next 7d"
+          subLabel="Expiring <7d"
           color="text-red-500"
           clickable
           onClick={() => onNavigateToTab?.("jobs")}
@@ -312,7 +303,7 @@ export function JobsKPIDashboard({ onNavigateToTab }: { onNavigateToTab?: (tab: 
         <Card className="shadow-md">
           <CardHeader>
             <CardTitle className="text-base font-semibold flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-primary" /> Daily Velocity
+              <TrendingUp className="w-4 h-4 text-primary" /> Posting Velocity
             </CardTitle>
           </CardHeader>
           <CardContent className="h-72">
@@ -322,7 +313,7 @@ export function JobsKPIDashboard({ onNavigateToTab }: { onNavigateToTab?: (tab: 
                 <YAxis hide />
                 <Tooltip
                   cursor={{ fill: "hsl(var(--primary)/0.05)" }}
-                  contentStyle={{ borderRadius: "12px", border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
+                  contentStyle={{ borderRadius: "12px", border: "none" }}
                 />
                 <Bar dataKey="jobs" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} barSize={isMobile ? 12 : 24} />
               </BarChart>
@@ -370,12 +361,12 @@ function KPIMiniCard({ icon: Icon, label, value, subLabel, color, clickable, onC
       onClick={onClick}
     >
       <CardContent className="p-4 flex flex-col gap-1">
-        <div className={`p-2 w-fit rounded-lg bg-muted/50 ${color}`}>
+        <div className={`p-1.5 w-fit rounded-lg bg-muted ${color}`}>
           <Icon className="w-4 h-4" />
         </div>
         <div>
-          <p className="text-2xl font-bold mt-1 tracking-tight">{value}</p>
-          <p className="text-[11px] font-bold text-muted-foreground uppercase">{label}</p>
+          <p className="text-2xl font-bold mt-1 tracking-tighter">{value}</p>
+          <p className="text-[10px] font-extrabold text-muted-foreground uppercase">{label}</p>
           <p className="text-[10px] text-muted-foreground/70">{subLabel}</p>
         </div>
       </CardContent>
@@ -386,16 +377,16 @@ function KPIMiniCard({ icon: Icon, label, value, subLabel, color, clickable, onC
 function DashboardSkeleton() {
   return (
     <div className="space-y-6">
-      <Skeleton className="h-12 w-48" />
-      <Skeleton className="h-48 w-full rounded-2xl" />
+      <Skeleton className="h-10 w-48" />
+      <Skeleton className="h-44 w-full rounded-2xl" />
       <div className="grid grid-cols-5 gap-4">
         {[...Array(5)].map((_, i) => (
           <Skeleton key={i} className="h-24 w-full" />
         ))}
       </div>
       <div className="grid grid-cols-2 gap-6">
-        <Skeleton className="h-80 w-full" />
-        <Skeleton className="h-80 w-full" />
+        <Skeleton className="h-72 w-full" />
+        <Skeleton className="h-72 w-full" />
       </div>
     </div>
   );
