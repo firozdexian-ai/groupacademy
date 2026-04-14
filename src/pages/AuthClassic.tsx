@@ -41,13 +41,16 @@ const Auth = () => {
   const [showSignupPassword, setShowSignupPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
 
-  // Safe Redirect Logic
+  // Safe Redirect Logic — validate session first to avoid stale-token loops
   useEffect(() => {
     if (!authLoading && user) {
-      const returnTo = searchParams.get("returnTo");
-      const safeReturn = returnTo && returnTo !== "/auth" && returnTo !== "/" ? returnTo : "/app/feed";
-
-      navigate(safeReturn, { replace: true });
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session) {
+          const returnTo = searchParams.get("returnTo");
+          const safeReturn = returnTo && returnTo !== "/auth" && returnTo !== "/" ? returnTo : "/app/feed";
+          navigate(safeReturn, { replace: true });
+        }
+      });
     }
   }, [user, authLoading, navigate, searchParams]);
 

@@ -33,11 +33,19 @@ export const useAuth = (): AuthState => {
     // Set up auth state listener
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       if (mounted.current) {
+        // If token refresh failed (stale session), purge it
+        if (event === 'TOKEN_REFRESHED' && !session) {
+          supabase.auth.signOut();
+          setSession(null);
+          setUser(null);
+          setIsLoading(false);
+          return;
+        }
         setSession(session);
         setUser(session?.user ?? null);
-        setIsLoading(false); // Ensure loading stops when state changes
+        setIsLoading(false);
       }
     });
 
@@ -54,8 +62,12 @@ export const useAuth = (): AuthState => {
             setUser(data.session.user);
           }
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Session check failed:", error);
+        // Clear stale tokens on refresh failure to prevent redirect loops
+        if (error?.message?.includes('Refresh Token') || error?.code === 'refresh_token_not_found') {
+          await supabase.auth.signOut();
+        }
         if (mounted.current) {
           setSession(null);
           setUser(null);
