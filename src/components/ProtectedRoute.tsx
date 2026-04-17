@@ -164,30 +164,46 @@ export const ProtectedRoute = ({
   return isAuthorized ? <>{children}</> : null;
 };
 
-// Optimized Role Hook with caching
+// Optimized Role Hook with caching and resilient error handling
 export const useUserRole = () => {
   const [role, setRole] = useState<AppRole | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
     let mounted = true;
     const fetchRole = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session || !mounted) {
-        setIsLoading(false);
-        return;
-      }
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (!session || !mounted) {
+          setIsLoading(false);
+          return;
+        }
 
-      const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", session.user.id);
+        const { data: roles, error: rolesError } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", session.user.id);
 
-      if (mounted && roles) {
-        const roleNames = roles.map((r) => r.role);
-        if (roleNames.includes("admin")) setRole("admin");
-        else if (roleNames.includes("talent_exec")) setRole("talent_exec");
+        if (rolesError) throw rolesError;
+
+        if (mounted && roles) {
+          const roleNames = roles.map((r) => r.role);
+          if (roleNames.includes("admin")) setRole("admin");
+          else if (roleNames.includes("talent_exec")) setRole("talent_exec");
+        }
+      } catch (err: any) {
+        console.error("[useUserRole] Failed to load role:", err);
+        if (mounted) {
+          setError(err instanceof Error ? err : new Error(String(err)));
+          // Surface a single toast so the user knows why their dashboard is empty
+          toast.error("Couldn't verify your access level. Please refresh.");
+        }
+      } finally {
+        if (mounted) setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
     fetchRole();
@@ -196,5 +212,5 @@ export const useUserRole = () => {
     };
   }, []);
 
-  return { role, isLoading };
+  return { role, isLoading, error };
 };

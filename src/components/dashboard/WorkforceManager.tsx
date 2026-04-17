@@ -144,7 +144,7 @@ export function WorkforceManager() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Search talents for add dialog
   useEffect(() => {
