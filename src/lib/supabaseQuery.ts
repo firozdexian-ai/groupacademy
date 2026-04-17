@@ -115,6 +115,33 @@ export async function abortableQueries<T extends readonly unknown[]>(
 }
 
 /**
+ * Sanitize a user-supplied string for safe use inside a PostgREST `.ilike` /
+ * `.or(...)` filter value.
+ *
+ * PostgREST parses commas, parentheses, asterisks, backslashes, and percent /
+ * underscore wildcards specially inside `.or(...)` strings. Unescaped user
+ * input can either break the query (500 error) or be silently reinterpreted as
+ * additional filter expressions.
+ *
+ * Use this on every search term you splice into an `.or()` or `.ilike()` call:
+ *
+ *   const safe = sanitizeIlike(searchQuery);
+ *   query.or(`name.ilike.%${safe}%,email.ilike.%${safe}%`);
+ */
+export function sanitizeIlike(input: string | null | undefined): string {
+  if (!input) return "";
+  return String(input)
+    .replace(/\\/g, "\\\\")
+    .replace(/%/g, "\\%")
+    .replace(/_/g, "\\_")
+    .replace(/,/g, " ")
+    .replace(/\(/g, " ")
+    .replace(/\)/g, " ")
+    .replace(/\*/g, " ")
+    .trim();
+}
+
+/**
  * Check if an error is an abort/timeout error
  */
 export function isAbortError(error: unknown): boolean {

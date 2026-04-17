@@ -211,10 +211,31 @@ export function AdminSidebar({ activeTab, onTabChange, userRole = "admin" }: Adm
 
   const filteredNavGroups = navGroups.filter((group) => userRole && group.roles.includes(userRole));
 
-  // Auto-expand group containing active tab
-  const activeGroup =
+  // Auto-expand group containing the active tab. Multiple groups may be open
+  // simultaneously so admins can keep context while jumping between modules.
+  const activeGroupTitle =
     filteredNavGroups.find((g) => g.items.some((i) => i.value === activeTab))?.title || filteredNavGroups[0]?.title;
-  const [openGroup, setOpenGroup] = useState<string | null>(activeGroup);
+  const [openGroups, setOpenGroups] = useState<Set<string>>(
+    () => new Set(activeGroupTitle ? [activeGroupTitle] : []),
+  );
+
+  // Ensure the group containing the active tab is always open when activeTab changes.
+  if (activeGroupTitle && !openGroups.has(activeGroupTitle)) {
+    setOpenGroups((prev) => {
+      const next = new Set(prev);
+      next.add(activeGroupTitle);
+      return next;
+    });
+  }
+
+  const toggleGroup = (title: string, isOpen: boolean) => {
+    setOpenGroups((prev) => {
+      const next = new Set(prev);
+      if (isOpen) next.add(title);
+      else next.delete(title);
+      return next;
+    });
+  };
 
   return (
     <Sidebar collapsible="icon" className="border-r bg-background">
@@ -256,8 +277,8 @@ export function AdminSidebar({ activeTab, onTabChange, userRole = "admin" }: Adm
         {filteredNavGroups.map((group) => (
           <Collapsible
             key={group.title}
-            open={openGroup === group.title}
-            onOpenChange={(isOpen) => isOpen && setOpenGroup(group.title)}
+            open={openGroups.has(group.title)}
+            onOpenChange={(isOpen) => toggleGroup(group.title, isOpen)}
             className="group/collapsible"
           >
             <SidebarGroup className="p-0">

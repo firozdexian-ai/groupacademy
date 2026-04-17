@@ -1,8 +1,9 @@
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect, Suspense, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/dashboard/AdminSidebar";
 import { DashboardTableSkeleton } from "@/components/dashboard/DashboardSkeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
 import { useTalent } from "@/hooks/useTalent";
 import { useUserRole } from "@/components/ProtectedRoute";
@@ -72,6 +73,9 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   "company-agents": CompanyAgentsManager,
   industries: IndustriesManager,
   all: ContentList,
+  videos: ContentList,
+  courses: ContentList,
+  webinars: ContentList,
   enrollments: EnrollmentsManager,
   "learner-progress": LearnerProgressManager,
   "ai-content-tools": BatchContentGenerator,
@@ -108,20 +112,85 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   payments: PaymentSettingsManager,
 };
 
-// Some components accept an onNavigateToTab or onNavigate prop
-const TABS_WITH_NAVIGATE = new Set(["jobs-kpis", "ir-dashboard"]);
+// ContentList content_type filter prop, keyed by tab value
+const CONTENT_TYPE_FILTER: Record<string, string> = {
+  videos: "free_video",
+  courses: "recorded_course",
+  webinars: "live_webinar",
+};
+
+// Section titles shown beside the SidebarTrigger
+const TAB_TITLES: Record<string, string> = {
+  overview: "Overview",
+  workforce: "Workforce Members",
+  talent: "Talent Pool",
+  "lead-hunter": "Lead Hunter",
+  professions: "Professions",
+  "jobs-kpis": "Jobs KPIs",
+  jobs: "Manage Jobs",
+  applications: "Applications",
+  companies: "Companies",
+  contacts: "Contacts",
+  "company-agents": "Company Agents",
+  industries: "Industries",
+  all: "All Content",
+  videos: "Free Videos",
+  courses: "Recorded Courses",
+  webinars: "Live Sessions",
+  enrollments: "Enrollments",
+  "learner-progress": "Learner Progress",
+  "ai-content-tools": "AI Content Tools",
+  analytics: "Marketing Analytics",
+  outreach: "CV Outreach",
+  "content-outreach": "Content Outreach",
+  "service-outreach": "Service Outreach",
+  blog: "Blog Posts",
+  "feed-posts": "Feed Posts",
+  competitions: "Competitions",
+  "study-abroad": "Study Abroad Programs",
+  ielts: "IELTS Resources",
+  "roadmap-leads": "Roadmap Leads",
+  "ai-agents": "AI Agents",
+  "agent-sessions": "Agent Sessions",
+  leads: "Assessment Leads",
+  interviews: "Mock Interview Leads",
+  salary: "Salary Analysis Leads",
+  portfolios: "Portfolio Requests",
+  gigs: "Manage Gigs",
+  "marketplace-gigs": "Marketplace Gigs",
+  "gig-submissions": "Gig Submissions",
+  credits: "Credits Manager",
+  notifications: "Notifications",
+  "ir-dashboard": "IR Dashboard",
+  "ir-targets": "MRR Targets",
+  "ir-vcs": "VC Firms",
+  "ir-investors": "Investors",
+  "ir-emails": "Email Updates",
+  "support-assistant": "Support AI",
+  codes: "Access Codes",
+  banners: "Banners",
+  team: "Team Members",
+  payments: "Payments",
+};
 
 const Dashboard = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user, isLoading: authLoading } = useAuth();
   const { role, isLoading: roleLoading } = useUserRole();
-  const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "overview");
+
+  // Default tab depends on role: admins land on Overview, talent execs on Talent Pool.
+  const defaultTab = useMemo(() => (role === "talent_exec" ? "talent" : "overview"), [role]);
+  const [activeTab, setActiveTab] = useState(searchParams.get("tab") || defaultTab);
 
   useEffect(() => {
     const tab = searchParams.get("tab");
-    if (tab) setActiveTab(tab);
-  }, [searchParams]);
+    if (tab) {
+      setActiveTab(tab);
+    } else if (!roleLoading) {
+      setActiveTab(defaultTab);
+    }
+  }, [searchParams, defaultTab, roleLoading]);
 
   useEffect(() => {
     if (!authLoading && !roleLoading) {
@@ -142,22 +211,32 @@ const Dashboard = () => {
   };
 
   if (authLoading || roleLoading) {
-    return <div className="flex items-center justify-center h-screen">Loading Command Center...</div>;
+    return (
+      <div className="min-h-screen bg-muted p-6">
+        <div className="max-w-[1600px] mx-auto space-y-4">
+          <Skeleton className="h-10 w-64" />
+          <Skeleton className="h-4 w-96" />
+          <DashboardTableSkeleton />
+        </div>
+      </div>
+    );
   }
 
   const TabComponent = TAB_COMPONENTS[activeTab];
+  const pageTitle = TAB_TITLES[activeTab] ?? "Dashboard";
 
   return (
     <SidebarProvider>
       <div className="flex h-screen bg-muted overflow-hidden w-full">
-        <AdminSidebar activeTab={activeTab} onTabChange={handleTabChange} />
+        <AdminSidebar activeTab={activeTab} onTabChange={handleTabChange} userRole={role} />
 
         <main className="flex-1 overflow-y-auto">
-          <header className="h-12 flex items-center border-b bg-background px-4 sticky top-0 z-10">
+          <header className="h-14 flex items-center gap-3 border-b bg-background px-4 sticky top-0 z-10">
             <SidebarTrigger />
+            <h1 className="text-base font-semibold truncate">{pageTitle}</h1>
           </header>
 
-          <div className="p-6 max-w-7xl mx-auto">
+          <div className="p-6 max-w-[1600px] mx-auto">
             <Suspense fallback={<DashboardTableSkeleton />}>
               {TabComponent ? (
                 (() => {
@@ -165,9 +244,9 @@ const Dashboard = () => {
                   if (activeTab === "jobs-kpis") props.onNavigateToTab = handleTabChange;
                   if (activeTab === "ir-dashboard") props.onNavigate = handleTabChange;
                   if (activeTab === "ir-emails") props.onClose = () => handleTabChange("ir-dashboard");
-                  return <TabComponent {...props} />;
+                  if (CONTENT_TYPE_FILTER[activeTab]) props.filter = CONTENT_TYPE_FILTER[activeTab];
+                  return <TabComponent key={activeTab} {...props} />;
                 })()
-              
               ) : (
                 <div className="flex flex-col items-center justify-center h-[60vh] text-muted-foreground">
                   <p className="text-lg font-medium">Module "{activeTab}" not found.</p>
