@@ -377,13 +377,13 @@ serve(async (req) => {
       }
     }
 
-    const systemPrompt = `You are an expert CV/Resume parser. Extract structured information from the CV.
+    const systemPrompt = `You are an expert CV/Resume parser. Extract structured information from the CV/Resume document or text provided.
 
-Return a JSON object:
+Return ONLY a valid JSON object (no markdown, no commentary) with this exact shape:
 {
   "full_name": "string",
   "email": "string or null",
-  "phone": "string",
+  "phone": "string or null",
   "linkedin_url": "string or null",
   "current_status": "studying | job_seeking | employed | business_owner",
   "profile_type": "student | early_career | professional | executive",
@@ -396,22 +396,34 @@ Return a JSON object:
   "certifications": ["string"]
 }
 
-Important: Extract ALL information available. Return ONLY valid JSON.`;
+Rules:
+- Extract every detail you can find. If a section is missing, return an empty array (or null for strings).
+- For scanned/image-based CVs, READ the visible text from the document carefully (OCR-style).
+- Always return valid JSON even if extraction is partial. Never refuse.`;
 
-    // Build message for AI
+    // Build message for AI - use Gemini's native PDF support via file content type
     let userMessage: any;
     if (pdfBase64) {
       userMessage = {
         role: "user",
         content: [
-          { type: "text", text: "Parse this CV/Resume and extract all information. Return JSON only." },
-          { type: "image_url", image_url: { url: `data:application/pdf;base64,${pdfBase64}` } },
+          {
+            type: "text",
+            text: "Parse this CV/Resume PDF and extract all information into the JSON schema. If the PDF is a scanned image, read the visible text via OCR. Return JSON only.",
+          },
+          {
+            type: "file",
+            file: {
+              filename: "cv.pdf",
+              file_data: `data:application/pdf;base64,${pdfBase64}`,
+            },
+          },
         ],
       };
     } else {
       userMessage = {
         role: "user",
-        content: `Parse this CV and extract all information:\n\n${actualCvText}\n\nReturn JSON only.`,
+        content: `Parse this CV and extract all information into the JSON schema:\n\n${actualCvText}\n\nReturn JSON only.`,
       };
     }
 
@@ -420,9 +432,18 @@ Important: Extract ALL information available. Return ONLY valid JSON.`;
 
     let aiResponse: Response | null = null;
     let retryCount = 0;
+    let lastErrorBody = "";
 
-    while (retryCount <= 2) {
+    // Try Gemini Pro first for PDFs (better OCR), fall back to Flash
+    const modelsToTry = pdfBase64
+      ? ["google/gemini-2.5-pro", "google/gemini-2.5-flash"]
+      : ["google/gemini-2.5-flash"];
+    let modelIndex = 0;
+
+    while (retryCount <= 2 && modelIndex < modelsToTry.length) {
+      const currentModel = modelsToTry[modelIndex];
       try {
+        console.log(`[parse-cv] Calling AI model=${currentModel} attempt=${retryCount + 1}`);
         aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
           headers: {
@@ -430,42 +451,67 @@ Important: Extract ALL information available. Return ONLY valid JSON.`;
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "google/gemini-2.5-flash",
+            model: currentModel,
             messages: [{ role: "system", content: systemPrompt }, userMessage],
+            response_format: { type: "json_object" },
           }),
           signal: controller.signal,
         });
 
         if (aiResponse.ok) break;
 
+        lastErrorBody = await aiResponse.text();
+        console.error(`[parse-cv] AI ${currentModel} returned ${aiResponse.status}: ${lastErrorBody.slice(0, 500)}`);
+
+        // 4xx on PDF -> try next model (Pro might reject, fall back to Flash, or vice versa)
+        if (aiResponse.status >= 400 && aiResponse.status < 500 && modelIndex < modelsToTry.length - 1) {
+          modelIndex++;
+          retryCount = 0;
+          continue;
+        }
+
         if (aiResponse.status >= 500 && retryCount < 2) {
-          console.log(`[parse-cv] AI returned ${aiResponse.status}, retrying...`);
           retryCount++;
           await new Promise((r) => setTimeout(r, 1000 * (retryCount + 1)));
+        } else if (modelIndex < modelsToTry.length - 1) {
+          modelIndex++;
+          retryCount = 0;
         } else {
           break;
         }
       } catch (fetchErr) {
-        if (retryCount >= 2) throw fetchErr;
-        retryCount++;
-        await new Promise((r) => setTimeout(r, 1000 * (retryCount + 1)));
+        console.error(`[parse-cv] Fetch error on ${currentModel}:`, fetchErr);
+        if (retryCount >= 2 && modelIndex >= modelsToTry.length - 1) throw fetchErr;
+        if (retryCount >= 2) {
+          modelIndex++;
+          retryCount = 0;
+        } else {
+          retryCount++;
+          await new Promise((r) => setTimeout(r, 1000 * (retryCount + 1)));
+        }
       }
     }
 
     clearTimeout(timeoutId);
 
     if (!aiResponse || !aiResponse.ok) {
-      console.error("[parse-cv] AI API failed:", aiResponse?.status);
-      return new Response(JSON.stringify({ error: "Failed to parse CV with AI" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      console.error("[parse-cv] AI API failed after all retries:", aiResponse?.status, lastErrorBody.slice(0, 500));
+      return new Response(
+        JSON.stringify({
+          error: "Failed to parse CV with AI",
+          detail: lastErrorBody.slice(0, 500) || `Status ${aiResponse?.status}`,
+        }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     const aiData = await aiResponse.json();
     let parsedContent = aiData.choices?.[0]?.message?.content;
 
-    if (!parsedContent) throw new Error("AI returned empty response");
+    if (!parsedContent) {
+      console.error("[parse-cv] Empty AI response:", JSON.stringify(aiData).slice(0, 500));
+      throw new Error("AI returned empty response");
+    }
 
     // Clean up JSON
     parsedContent = parsedContent
