@@ -1,4 +1,4 @@
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, isValid } from "date-fns";
 import { Coins, ArrowRight, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AgentAvatar } from "./AgentAvatar";
@@ -40,21 +40,31 @@ export function AgentListItem({
   expertise = [],
   onClick,
 }: AgentListItemProps) {
-  const timeAgo = lastMessageTime
-    ? formatDistanceToNow(new Date(lastMessageTime), { addSuffix: false })
-    : null;
+  // CTO Fix: Safe date resolution to prevent runtime crashes
+  const getTimeAgo = () => {
+    if (!lastMessageTime) return null;
+    const date = new Date(lastMessageTime);
+    if (!isValid(date)) return null;
+    return formatDistanceToNow(date, { addSuffix: false });
+  };
+
+  const timeAgo = getTimeAgo();
 
   return (
     <button
       onClick={onClick}
       className={cn(
-        "w-full flex items-start gap-3 p-4 rounded-xl transition-all duration-200",
-        "hover:bg-accent/50 active:scale-[0.99]",
-        "text-left group",
-        isActive && "bg-green-50/50 dark:bg-green-950/20 ring-1 ring-green-200 dark:ring-green-800"
+        "w-full flex items-start gap-4 p-4 transition-all duration-300 border-b border-border/40",
+        "hover:bg-muted/50 active:scale-[0.98] group relative overflow-hidden",
+        isActive && "bg-primary/[0.03] dark:bg-primary/[0.01]",
       )}
     >
-      {/* Avatar */}
+      {/* Active Indicator Bar */}
+      {isActive && (
+        <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary animate-in slide-in-from-left duration-500" />
+      )}
+
+      {/* Avatar Layer */}
       <AgentAvatar
         name={name}
         avatarUrl={avatarUrl}
@@ -65,60 +75,68 @@ export function AgentListItem({
         isOnline={isActive}
         isCompanyAgent={isCompanyAgent}
         companyName={companyName}
+        className="shrink-0"
       />
 
-      {/* Content */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-start justify-between gap-2 mb-1">
+      {/* Information Layer */}
+      <div className="flex-1 min-w-0 py-0.5">
+        <div className="flex items-center justify-between gap-2 mb-1">
           <div className="flex items-center gap-2 min-w-0">
-            <h3 className="font-semibold text-sm truncate">{name}</h3>
+            <h3 className="font-bold text-sm truncate tracking-tight group-hover:text-primary transition-colors">
+              {name}
+            </h3>
             {isActive && (
-              <Badge variant="secondary" className="bg-green-100 text-green-700 text-[10px] px-1.5 py-0 h-4">
+              <Badge className="bg-emerald-500/10 text-emerald-600 border-none text-[9px] font-black uppercase tracking-widest h-4 px-1.5">
                 Active
               </Badge>
             )}
           </div>
+
           <div className="flex items-center gap-2 shrink-0">
-            {timeAgo && (
-              <span className="text-[10px] text-muted-foreground">{timeAgo}</span>
-            )}
-            {!lastMessage && (
-              <span className="text-[10px] font-medium text-primary flex items-center gap-0.5">
-                <Coins className="h-3 w-3" />
-                {creditCost}
+            {timeAgo ? (
+              <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-tighter">
+                {timeAgo}
               </span>
+            ) : (
+              !lastMessage && (
+                <div className="flex items-center gap-1 text-primary/80">
+                  <Coins className="h-3 w-3" />
+                  <span className="text-[10px] font-black">{creditCost}</span>
+                </div>
+              )
             )}
           </div>
         </div>
 
-        {/* Last message or description */}
+        {/* Dynamic Context: Show conversation snippet or expertise */}
         {lastMessage ? (
-          <p className="text-xs text-muted-foreground line-clamp-1 flex items-center gap-1.5">
-            <MessageCircle className="h-3 w-3 shrink-0" />
-            <span className="truncate">{lastMessage}</span>
-          </p>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground/80 font-medium italic">
+            <MessageCircle className="h-3 w-3 shrink-0 text-primary/40" />
+            <p className="truncate leading-none">{lastMessage}</p>
+          </div>
         ) : (
-          <p className="text-xs text-muted-foreground line-clamp-1">{description}</p>
-        )}
-
-        {/* Expertise tags (only show when no last message) */}
-        {!lastMessage && expertise.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-2">
-            {expertise.slice(0, 3).map((skill) => (
-              <Badge
-                key={skill}
-                variant="outline"
-                className="text-[10px] px-1.5 py-0 h-4 font-normal bg-background"
-              >
-                {skill}
-              </Badge>
-            ))}
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground line-clamp-1 leading-none font-medium">{description}</p>
+            {expertise.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {expertise.slice(0, 2).map((skill) => (
+                  <span
+                    key={skill}
+                    className="text-[9px] px-2 py-0.5 rounded-md font-bold uppercase tracking-tighter bg-muted text-muted-foreground/70 border border-border/50"
+                  >
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      {/* Arrow indicator */}
-      <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0 mt-1 opacity-0 group-hover:opacity-100 transition-opacity" />
+      {/* Affordance Arrow */}
+      <div className="flex items-center self-stretch pl-2">
+        <ArrowRight className="h-4 w-4 text-muted-foreground/30 group-hover:text-primary group-hover:translate-x-1 transition-all duration-300" />
+      </div>
     </button>
   );
 }
