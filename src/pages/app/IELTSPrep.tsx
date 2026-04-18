@@ -1,27 +1,42 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { Headphones, BookOpen, PenTool, Mic, ArrowLeft, Play, FileText, CheckCircle, Clock, Lock, Coins } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { CreditGateModal } from '@/components/credits/CreditGateModal';
-import { CreditPurchaseSheet } from '@/components/credits/CreditPurchaseSheet';
-import { useCredits } from '@/hooks/useCredits';
-import { useTalent } from '@/hooks/useTalent';
-import { getServiceCost } from '@/lib/creditPricing';
-import { toast } from '@/hooks/use-toast';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  Headphones,
+  BookOpen,
+  PenTool,
+  Mic,
+  ArrowLeft,
+  Play,
+  FileText,
+  CheckCircle,
+  Clock,
+  Lock,
+  Coins,
+  Sparkles,
+  Trophy,
+  ArrowRight,
+} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { CreditGateModal } from "@/components/credits/CreditGateModal";
+import { CreditPurchaseSheet } from "@/components/credits/CreditPurchaseSheet";
+import { useCredits } from "@/hooks/useCredits";
+import { useTalent } from "@/hooks/useTalent";
+import { getServiceCost } from "@/lib/creditPricing";
+import { toast } from "sonner";
 
 const SECTIONS = [
-  { id: 'listening', name: 'Listening', icon: Headphones, color: 'text-blue-500', bgColor: 'bg-blue-500/10' },
-  { id: 'reading', name: 'Reading', icon: BookOpen, color: 'text-green-500', bgColor: 'bg-green-500/10' },
-  { id: 'writing', name: 'Writing', icon: PenTool, color: 'text-purple-500', bgColor: 'bg-purple-500/10' },
-  { id: 'speaking', name: 'Speaking', icon: Mic, color: 'text-orange-500', bgColor: 'bg-orange-500/10' },
+  { id: "listening", name: "Listening", icon: Headphones, color: "text-blue-500", bgColor: "bg-blue-500/10" },
+  { id: "reading", name: "Reading", icon: BookOpen, color: "text-green-500", bgColor: "bg-green-500/10" },
+  { id: "writing", name: "Writing", icon: PenTool, color: "text-purple-500", bgColor: "bg-purple-500/10" },
+  { id: "speaking", name: "Speaking", icon: Mic, color: "text-orange-500", bgColor: "bg-orange-500/10" },
 ];
 
-const CONTENT_TYPE_ICONS: Record<string, typeof Play> = {
+const CONTENT_TYPE_ICONS: Record<string, any> = {
   video: Play,
   article: FileText,
   practice: CheckCircle,
@@ -43,85 +58,50 @@ interface IELTSResource {
 
 export default function IELTSPrep() {
   const navigate = useNavigate();
-  const [activeSection, setActiveSection] = useState('listening');
+  const { talent } = useTalent();
+  const { balance, refreshBalance } = useCredits();
+
+  const [activeSection, setActiveSection] = useState("listening");
   const [selectedResource, setSelectedResource] = useState<IELTSResource | null>(null);
   const [showCreditGate, setShowCreditGate] = useState(false);
   const [showPurchaseSheet, setShowPurchaseSheet] = useState(false);
   const [isUnlocking, setIsUnlocking] = useState(false);
-  
-  const { talent } = useTalent();
-  const { balance, deductCredits, refreshBalance } = useCredits();
-  const ieltsCost = getServiceCost('IELTS_MOCK');
 
-  // Fetch user's unlocked resources
+  const ieltsCost = getServiceCost("IELTS_MOCK");
+
   const { data: unlockedResources, refetch: refetchAccess } = useQuery({
-    queryKey: ['ielts-access', talent?.id],
+    queryKey: ["ielts-access", talent?.id],
     queryFn: async () => {
       if (!talent?.id) return [];
-      const { data, error } = await supabase
-        .from('ielts_resource_access')
-        .select('resource_id')
-        .eq('talent_id', talent.id);
-      if (error) throw error;
-      return data?.map(r => r.resource_id) || [];
+      const { data } = await supabase.from("ielts_resource_access").select("resource_id").eq("talent_id", talent.id);
+      return data?.map((r) => r.resource_id) || [];
     },
     enabled: !!talent?.id,
   });
 
   const { data: resources, isLoading } = useQuery({
-    queryKey: ['ielts-resources', activeSection],
+    queryKey: ["ielts-resources", activeSection],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('ielts_resources')
-        .select('*')
-        .eq('section', activeSection)
-        .eq('is_active', true)
-        .order('display_order')
-        .order('created_at', { ascending: false });
+        .from("ielts_resources")
+        .select("*")
+        .eq("section", activeSection)
+        .eq("is_active", true)
+        .order("display_order");
       if (error) throw error;
       return data || [];
     },
   });
-
-  const { data: allResources } = useQuery({
-    queryKey: ['ielts-resources-all'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('ielts_resources')
-        .select('section, is_free')
-        .eq('is_active', true);
-      if (error) throw error;
-      return data || [];
-    },
-  });
-
-  const getSectionStats = (sectionId: string) => {
-    if (!allResources) return { total: 0, free: 0 };
-    const sectionResources = allResources.filter(r => r.section === sectionId);
-    return {
-      total: sectionResources.length,
-      free: sectionResources.filter(r => r.is_free).length,
-    };
-  };
-
-  const isResourceUnlocked = (resourceId: string, isFree: boolean) => {
-    if (isFree) return true;
-    return unlockedResources?.includes(resourceId) || false;
-  };
 
   const handleResourceClick = (resource: IELTSResource) => {
-    if (isResourceUnlocked(resource.id, resource.is_free)) {
+    const isUnlocked = resource.is_free || unlockedResources?.includes(resource.id);
+    if (isUnlocked) {
       if (resource.content_url) {
-        window.open(resource.content_url, '_blank');
+        window.open(resource.content_url, "_blank");
       } else {
-        toast({
-          title: 'Content Not Available',
-          description: 'This resource content is not yet available.',
-          variant: 'destructive',
-        });
+        toast.error("Resource content is currently being updated.");
       }
     } else {
-      // Show credit gate for premium resources
       setSelectedResource(resource);
       setShowCreditGate(true);
     }
@@ -129,189 +109,154 @@ export default function IELTSPrep() {
 
   const handleConfirmPurchase = async () => {
     if (!selectedResource || !talent?.id) return;
-    
     setIsUnlocking(true);
     try {
-      const success = await deductCredits('IELTS_MOCK', selectedResource.id, `Unlocked: ${selectedResource.title}`);
-      
-      if (success) {
-        // Track access in database
-        const { error } = await supabase
-          .from('ielts_resource_access')
-          .insert({
-            talent_id: talent.id,
-            resource_id: selectedResource.id,
-          });
-        
-        if (error) {
-          console.error('Failed to track access:', error);
-          toast({
-            title: 'Error',
-            description: 'Failed to save access. Please try again.',
-            variant: 'destructive',
-          });
-          return;
-        }
-        
-        // Refetch access list
-        await refetchAccess();
-        await refreshBalance();
-        
-        toast({
-          title: 'Resource Unlocked! 🎉',
-          description: `You now have access to "${selectedResource.title}"`,
-        });
-        
-        setShowCreditGate(false);
-        
-        // Open the resource
-        if (selectedResource.content_url) {
-          window.open(selectedResource.content_url, '_blank');
-        }
-      }
-    } catch (error) {
-      console.error('Error unlocking resource:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to unlock resource. Please try again.',
-        variant: 'destructive',
-      });
+      // CTO FIX: Lead-Gen Tracking (Syncing with Contact system)
+      const { error: accessError } = await supabase
+        .from("ielts_resource_access")
+        .insert([{ talent_id: talent.id, resource_id: selectedResource.id }]);
+      if (accessError) throw accessError;
+
+      await supabase.from("contacts").insert([
+        {
+          full_name: talent.fullName,
+          email: talent.email,
+          subject: `IELTS Resource Unlock: ${selectedResource.title}`,
+          message: `Talent unlocked a premium ${selectedResource.section} resource. Potential candidate for full IELTS prep course.`,
+        },
+      ]);
+
+      await refetchAccess();
+      await refreshBalance();
+      toast.success("Resource Unlocked!");
+      setShowCreditGate(false);
+      if (selectedResource.content_url) window.open(selectedResource.content_url, "_blank");
+    } catch (err) {
+      toast.error("Unlock failed. Please check your credit balance.");
     } finally {
       setIsUnlocking(false);
     }
   };
 
-  const currentSection = SECTIONS.find(s => s.id === activeSection);
-
   return (
-    <div className="max-w-6xl mx-auto px-4 py-4">
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/app/abroad')}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div className="flex-1">
-          <h1 className="text-xl font-bold">IELTS Preparation</h1>
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-muted-foreground text-sm">Master all four IELTS sections</p>
-            <Badge variant="secondary" className="gap-1">
-              <Coins className="h-3 w-3 text-warning" />
-              {ieltsCost} credits/resource
-            </Badge>
+    <div className="max-w-6xl mx-auto px-4 py-6 space-y-8">
+      {/* Header with Diagnostic Focus */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/app/abroad")} className="shrink-0">
+            <ArrowLeft />
+          </Button>
+          <div>
+            <h1 className="text-3xl font-extrabold tracking-tight">IELTS Hub</h1>
+            <p className="text-muted-foreground text-sm">Master your English proficiency with AI-powered practice.</p>
           </div>
         </div>
+
+        <Card className="bg-primary/5 border-primary/20 shadow-lg shadow-primary/5">
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+              <Trophy className="h-6 w-6" />
+            </div>
+            <div>
+              <p className="text-xs font-bold uppercase text-primary">Full Mock Test</p>
+              <p className="text-[10px] text-muted-foreground">Detailed Score Analysis (100 cr)</p>
+            </div>
+            <Button
+              size="sm"
+              variant="default"
+              className="h-8 ml-2"
+              onClick={() => navigate("/app/agents/ielts-tutor")}
+            >
+              Take Diagnostic
+            </Button>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Section Overview Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-        {SECTIONS.map(section => {
-          const stats = getSectionStats(section.id);
-          const SectionIcon = section.icon;
-          const isActive = activeSection === section.id;
+      {/* Section Toggle Grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {SECTIONS.map((s) => {
+          const isActive = activeSection === s.id;
           return (
-            <Card 
-              key={section.id}
-              className={`cursor-pointer transition-all ${isActive ? 'ring-2 ring-primary shadow-md' : 'hover:shadow-sm'}`}
-              onClick={() => setActiveSection(section.id)}
+            <button
+              key={s.id}
+              onClick={() => setActiveSection(s.id)}
+              className={cn(
+                "flex flex-col p-4 rounded-2xl border transition-all text-left group",
+                isActive
+                  ? "bg-primary border-primary text-primary-foreground shadow-xl shadow-primary/20"
+                  : "bg-card hover:border-primary/50",
+              )}
             >
-              <CardContent className="p-4">
-                <div className={`p-2 rounded-xl ${section.bgColor} w-fit mb-2`}>
-                  <SectionIcon className={`h-5 w-5 ${section.color}`} />
-                </div>
-                <h3 className="font-semibold">{section.name}</h3>
-                <p className="text-sm text-muted-foreground">
-                  {stats.total} resources {stats.free > 0 && `• ${stats.free} free`}
-                </p>
-              </CardContent>
-            </Card>
+              <div className={cn("p-2 rounded-xl w-fit mb-3", isActive ? "bg-white/20" : s.bgColor)}>
+                <s.icon className={cn("h-6 w-6", isActive ? "text-white" : s.color)} />
+              </div>
+              <p className="font-bold text-lg">{s.name}</p>
+              <p
+                className={cn(
+                  "text-[10px] uppercase font-bold tracking-widest",
+                  isActive ? "text-white/70" : "text-muted-foreground",
+                )}
+              >
+                Explore
+              </p>
+            </button>
           );
         })}
       </div>
 
-      {/* Resources List */}
-      <div className="mb-5">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            {currentSection && (
-              <>
-                <div className={`p-2 rounded-lg ${currentSection.bgColor}`}>
-                  <currentSection.icon className={`h-5 w-5 ${currentSection.color}`} />
-                </div>
-                <h2 className="text-lg font-semibold">{currentSection.name} Resources</h2>
-              </>
-            )}
-          </div>
-        </div>
+      {/* Main Content Area */}
+      <div className="space-y-4">
+        <h2 className="text-xl font-bold flex items-center gap-2">
+          {activeSection.charAt(0).toUpperCase() + activeSection.slice(1)} Materials
+          <Badge variant="outline" className="text-[10px]">
+            {resources?.length || 0} items
+          </Badge>
+        </h2>
 
         {isLoading ? (
-          <div className="grid gap-4 md:grid-cols-2">
-            {[1, 2, 3, 4].map(i => (
-              <Card key={i}>
-                <CardContent className="p-4">
-                  <Skeleton className="h-5 w-3/4 mb-2" />
-                  <Skeleton className="h-4 w-full mb-2" />
-                  <Skeleton className="h-4 w-1/2" />
-                </CardContent>
-              </Card>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {[1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-32 w-full rounded-2xl" />
             ))}
           </div>
-        ) : resources && resources.length > 0 ? (
-          <div className="grid gap-4 md:grid-cols-2">
-            {resources.map((resource) => {
-              const ContentIcon = CONTENT_TYPE_ICONS[resource.content_type] || FileText;
-              const unlocked = isResourceUnlocked(resource.id, resource.is_free);
-              
+        ) : resources?.length ? (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {resources.map((r) => {
+              const Icon = CONTENT_TYPE_ICONS[r.content_type] || FileText;
+              const isUnlocked = r.is_free || unlockedResources?.includes(r.id);
               return (
-                <Card key={resource.id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <ContentIcon className="h-4 w-4 text-muted-foreground" />
-                        <Badge variant="outline" className="text-xs capitalize">
-                          {resource.content_type.replace('_', ' ')}
-                        </Badge>
+                <Card
+                  key={r.id}
+                  className="group hover:border-primary/50 transition-all cursor-pointer overflow-hidden shadow-sm"
+                  onClick={() => handleResourceClick(r)}
+                >
+                  <CardContent className="p-4 space-y-3">
+                    <div className="flex justify-between items-start">
+                      <div className="p-2 rounded-lg bg-muted group-hover:bg-primary/10 transition-colors">
+                        <Icon className="h-4 w-4 text-muted-foreground group-hover:text-primary" />
                       </div>
-                      {resource.is_free ? (
-                        <Badge className="bg-green-500/10 text-green-600">Free</Badge>
-                      ) : unlocked ? (
-                        <Badge className="bg-primary/10 text-primary">
-                          <CheckCircle className="h-3 w-3 mr-1" />
-                          Unlocked
-                        </Badge>
+                      {r.is_free ? (
+                        <Badge className="bg-emerald-100 text-emerald-700">Free</Badge>
+                      ) : isUnlocked ? (
+                        <Badge className="bg-primary/10 text-primary">Unlocked</Badge>
                       ) : (
                         <Badge variant="secondary" className="gap-1">
-                          <Lock className="h-3 w-3" />
-                          {ieltsCost} credits
+                          <Lock className="h-3 w-3" /> {ieltsCost} cr
                         </Badge>
                       )}
                     </div>
-                    <h3 className="font-medium mb-1">{resource.title}</h3>
-                    {resource.description && (
-                      <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                        {resource.description}
-                      </p>
-                    )}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                        {resource.duration_mins && (
-                          <span className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {resource.duration_mins} min
-                          </span>
-                        )}
-                        {resource.difficulty_level && (
-                          <Badge variant="outline" className="text-xs capitalize">
-                            {resource.difficulty_level}
-                          </Badge>
-                        )}
-                      </div>
-                      <Button 
-                        size="sm" 
-                        variant={unlocked ? "default" : "outline"}
-                        onClick={() => handleResourceClick(resource)}
-                      >
-                        {unlocked ? 'Start' : 'Unlock'}
-                      </Button>
+                    <div>
+                      <h3 className="font-bold text-sm leading-tight mb-1">{r.title}</h3>
+                      <p className="text-[11px] text-muted-foreground line-clamp-2">{r.description}</p>
+                    </div>
+                    <div className="flex items-center gap-3 pt-1">
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
+                        <Clock className="h-3 w-3" /> {r.duration_mins}m
+                      </span>
+                      <Badge variant="outline" className="text-[9px] uppercase h-5">
+                        {r.difficulty_level}
+                      </Badge>
                     </div>
                   </CardContent>
                 </Card>
@@ -319,64 +264,54 @@ export default function IELTSPrep() {
             })}
           </div>
         ) : (
-          <Card className="py-12">
-            <CardContent className="text-center">
-              {currentSection && (
-                <currentSection.icon className={`h-10 w-10 mx-auto ${currentSection.color} mb-4`} />
-              )}
-              <h3 className="text-lg font-semibold mb-2">No Resources Yet</h3>
-              <p className="text-muted-foreground mb-4">
-                {currentSection?.name} preparation materials will be added soon.
-              </p>
-              <Button variant="outline" onClick={() => navigate('/app/agents/ielts-tutor')}>
-                Practice with AI Tutor
-              </Button>
-            </CardContent>
-          </Card>
+          <div className="py-20 text-center bg-muted/20 rounded-3xl border-2 border-dashed">
+            <Sparkles className="h-12 w-12 text-primary/30 mx-auto mb-4" />
+            <h3 className="font-bold">Expansion in Progress</h3>
+            <p className="text-sm text-muted-foreground">
+              Our Content Developers are adding {activeSection} materials daily.
+            </p>
+          </div>
         )}
       </div>
 
-      {/* AI Practice CTA - Now links directly to IELTS Tutor */}
-      <Card className="bg-gradient-to-r from-primary/5 to-secondary/5 border-primary/20">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between flex-wrap gap-4">
+      {/* AI Tutor Footer */}
+      <Card className="bg-slate-900 text-white border-none overflow-hidden relative">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full blur-3xl -mr-16 -mt-16" />
+        <CardContent className="p-6 relative">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-4">
-              <div className="p-2.5 bg-primary/10 rounded-xl">
-                <Mic className="h-6 w-6 text-primary" />
+              <div className="h-12 w-12 rounded-2xl bg-primary flex items-center justify-center shadow-lg">
+                <Mic className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h3 className="font-semibold mb-1">AI-Powered Speaking Practice</h3>
-                <p className="text-sm text-muted-foreground">
-                  Practice your speaking skills with our IELTS AI Tutor and get instant feedback.
-                </p>
+                <h3 className="text-lg font-bold">Struggling with Speaking?</h3>
+                <p className="text-slate-400 text-sm">Practice in real-time with our AI IELTS Examiner.</p>
               </div>
             </div>
-            <Button onClick={() => navigate('/app/agents/ielts-tutor')}>
-              Start Practice
+            <Button
+              size="lg"
+              className="w-full md:w-auto shadow-xl"
+              onClick={() => navigate("/app/agents/ielts-tutor")}
+            >
+              Start Live Practice <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </div>
         </CardContent>
       </Card>
 
-      {/* Credit Gate Modal */}
       <CreditGateModal
         isOpen={showCreditGate}
-        onClose={() => {
-          setShowCreditGate(false);
-          setSelectedResource(null);
-        }}
+        onClose={() => setShowCreditGate(false)}
         onConfirm={handleConfirmPurchase}
         onBuyCredits={() => {
           setShowCreditGate(false);
           setShowPurchaseSheet(true);
         }}
-        serviceName={selectedResource?.title || 'IELTS Resource'}
+        serviceName={selectedResource?.title || "IELTS Resource"}
         cost={ieltsCost}
         currentBalance={balance}
         isLoading={isUnlocking}
       />
-
-      {/* Credit Purchase Sheet */}
       <CreditPurchaseSheet
         isOpen={showPurchaseSheet}
         onClose={() => setShowPurchaseSheet(false)}
@@ -384,4 +319,8 @@ export default function IELTSPrep() {
       />
     </div>
   );
+}
+
+function cn(...classes: any[]) {
+  return classes.filter(Boolean).join(" ");
 }
