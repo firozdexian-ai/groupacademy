@@ -9,13 +9,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ChevronLeft, ChevronRight, Loader2, MapPin, GraduationCap, Wallet, X, Coins } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, MapPin, GraduationCap, Wallet, X, Coins, Sparkles } from "lucide-react";
 import { useTalent } from "@/hooks/useTalent";
 import { useCredits } from "@/hooks/useCredits";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { COUNTRIES, getCountryFlag } from "@/lib/constants/countries";
 import { CREDIT_CONFIG } from "@/lib/creditPricing";
+import { cn } from "@/lib/utils";
 
 const POPULAR_COUNTRIES = COUNTRIES.filter((c) =>
   ["US", "UK", "CA", "AU", "DE", "NL", "SE", "JP", "SG", "NZ", "IE", "FR"].includes(c.code),
@@ -68,7 +69,8 @@ interface FormData {
   specialRequirements: string;
 }
 
-export default function RoadmapIntakeForm() {
+// CTO FIX: Exported as Named Function to match existing imports
+export function RoadmapIntakeForm() {
   const navigate = useNavigate();
   const { talent } = useTalent();
   const { balance, canAffordAmount, deductCustomAmount } = useCredits();
@@ -115,7 +117,7 @@ export default function RoadmapIntakeForm() {
       const deducted = await deductCustomAmount(serviceCost, "STUDY_ABROAD_ROADMAP", undefined, "AI Abroad Roadmap");
       if (!deducted) throw new Error("Credit deduction failed");
 
-      // CTO FIX: Lead Generation (Corrected Interface references)
+      // CTO FIX: Immediate Lead Generation in 'contacts' table
       await supabase.from("contacts").insert([
         {
           full_name: talent.fullName || "Roadmap Lead",
@@ -125,6 +127,7 @@ export default function RoadmapIntakeForm() {
         },
       ]);
 
+      // Create the Roadmap Record
       const { data: roadmap, error: insertError } = await supabase
         .from("study_abroad_roadmaps")
         .insert([
@@ -146,6 +149,7 @@ export default function RoadmapIntakeForm() {
 
       if (insertError) throw insertError;
 
+      // Invoke AI Generation Edge Function
       await supabase.functions.invoke("generate-study-roadmap", {
         body: { roadmapId: roadmap.id, ...formData, fullName: talent.fullName, email: talent.email },
       });
@@ -153,6 +157,7 @@ export default function RoadmapIntakeForm() {
       toast.success("Roadmap generation started!");
       navigate(`/app/abroad/roadmap/${roadmap.id}`);
     } catch (error: any) {
+      console.error("Submission error:", error);
       toast.error(error.message || "Failed to process request");
     } finally {
       setIsSubmitting(false);
@@ -160,41 +165,55 @@ export default function RoadmapIntakeForm() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
+    <div className="max-w-3xl mx-auto px-4 py-4 space-y-6">
       <div className="space-y-2">
-        <h1 className="text-2xl font-bold">Admissions Roadmap</h1>
-        <p className="text-sm text-muted-foreground">Answer a few questions for your personalized journey.</p>
+        <div className="flex justify-between items-end">
+          <div>
+            <h1 className="text-2xl font-bold">Admissions Roadmap</h1>
+            <p className="text-sm text-muted-foreground">Personalized journey to your dream university</p>
+          </div>
+          <Badge variant="outline" className="mb-1 py-1">
+            Step {step} of 3
+          </Badge>
+        </div>
         <Progress value={(step / 3) * 100} className="h-2" />
       </div>
 
       {step === 1 && (
-        <Card>
+        <Card className="border-primary/10">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MapPin className="text-primary h-5 w-5" /> Destinations
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <MapPin className="text-primary h-5 w-5" /> Destinations & Degree
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-              {POPULAR_COUNTRIES.map((c) => (
-                <button
-                  key={c.code}
-                  onClick={() => toggleCountry(c.code)}
-                  className={cn(
-                    "p-2 border rounded-xl text-center transition-all",
-                    formData.targetCountries.includes(c.code)
-                      ? "bg-primary/10 border-primary ring-1 ring-primary"
-                      : "hover:bg-muted",
-                  )}
-                >
-                  <span className="text-xl block">{getCountryFlag(c.code)}</span>
-                  <span className="text-[10px] font-bold uppercase">{c.name}</span>
-                </button>
-              ))}
+            <div className="space-y-3">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                Select up to 3 Countries
+              </Label>
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                {POPULAR_COUNTRIES.map((c) => (
+                  <button
+                    key={c.code}
+                    type="button"
+                    onClick={() => toggleCountry(c.code)}
+                    className={cn(
+                      "p-2 border rounded-xl text-center transition-all",
+                      formData.targetCountries.includes(c.code)
+                        ? "bg-primary/5 border-primary ring-1 ring-primary"
+                        : "hover:bg-muted bg-background",
+                    )}
+                  >
+                    <span className="text-xl block">{getCountryFlag(c.code)}</span>
+                    <span className="text-[10px] font-bold uppercase truncate block">{c.name}</span>
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="space-y-4 pt-4 border-t">
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t">
               <div className="space-y-2">
-                <Label>Degree Level</Label>
+                <Label>Desired Degree Level</Label>
                 <Select
                   value={formData.degreeLevel}
                   onValueChange={(v) => setFormData((p) => ({ ...p, degreeLevel: v }))}
@@ -218,7 +237,7 @@ export default function RoadmapIntakeForm() {
                   onValueChange={(v) => setFormData((p) => ({ ...p, targetIntake: v }))}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select intake" />
+                    <SelectValue placeholder="Select term" />
                   </SelectTrigger>
                   <SelectContent>
                     {INTAKE_OPTIONS.map((i) => (
@@ -235,10 +254,10 @@ export default function RoadmapIntakeForm() {
       )}
 
       {step === 2 && (
-        <Card>
+        <Card className="border-primary/10">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <GraduationCap className="text-primary h-5 w-5" /> Readiness
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <GraduationCap className="text-primary h-5 w-5" /> Academic Profile
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -248,44 +267,60 @@ export default function RoadmapIntakeForm() {
                 checked={formData.useExistingCV}
                 onCheckedChange={(c) => setFormData((p) => ({ ...p, useExistingCV: !!c }))}
               />
-              <Label htmlFor="useCV" className="text-xs">
-                Enhance my roadmap using my profile CV and skills data
-              </Label>
-            </div>
-            <div className="space-y-4">
-              <Label>Current GPA / Standing</Label>
-              <Input
-                placeholder="e.g. 3.8/4.0"
-                value={formData.gpa}
-                onChange={(e) => setFormData((p) => ({ ...p, gpa: e.target.value }))}
-              />
-              <div className="flex items-center gap-3">
-                <Checkbox
-                  id="ielts"
-                  checked={formData.hasTakenIelts}
-                  onCheckedChange={(c) => setFormData((p) => ({ ...p, hasTakenIelts: !!c }))}
-                />
-                <Label htmlFor="ielts">I have an IELTS/TOEFL score</Label>
+              <div className="grid gap-1">
+                <Label htmlFor="useCV" className="text-sm font-bold">
+                  Smart Sync
+                </Label>
+                <p className="text-[11px] text-muted-foreground">
+                  Use my existing CV and Skills to find better university matches
+                </p>
               </div>
-              {formData.hasTakenIelts && (
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Current GPA / Standing</Label>
                 <Input
-                  type="number"
-                  placeholder="Overall Band"
-                  value={formData.ieltsScore}
-                  onChange={(e) => setFormData((p) => ({ ...p, ieltsScore: e.target.value }))}
-                  className="w-32"
+                  placeholder="e.g. 3.8/4.0 or First Class"
+                  value={formData.gpa}
+                  onChange={(e) => setFormData((p) => ({ ...p, gpa: e.target.value }))}
                 />
-              )}
+              </div>
+
+              <div className="p-4 border rounded-xl space-y-4">
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    id="ielts"
+                    checked={formData.hasTakenIelts}
+                    onCheckedChange={(c) => setFormData((p) => ({ ...p, hasTakenIelts: !!c }))}
+                  />
+                  <Label htmlFor="ielts" className="text-sm font-medium">
+                    I have IELTS / TOEFL scores
+                  </Label>
+                </div>
+                {formData.hasTakenIelts && (
+                  <div className="flex items-center gap-3 animate-in fade-in slide-in-from-left-2">
+                    <Label className="text-xs shrink-0">Overall Score:</Label>
+                    <Input
+                      type="number"
+                      placeholder="Band"
+                      value={formData.ieltsScore}
+                      onChange={(e) => setFormData((p) => ({ ...p, ieltsScore: e.target.value }))}
+                      className="w-24"
+                    />
+                  </div>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
       )}
 
       {step === 3 && (
-        <Card>
+        <Card className="border-primary/10">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Wallet className="text-primary h-5 w-5" /> Budget
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Wallet className="text-primary h-5 w-5" /> Budget & Funding
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -293,50 +328,69 @@ export default function RoadmapIntakeForm() {
               {BUDGET_LEVELS.map((b) => (
                 <button
                   key={b.value}
+                  type="button"
                   onClick={() => setFormData((p) => ({ ...p, budgetLevel: b.value }))}
                   className={cn(
                     "p-4 border rounded-xl text-left transition-all",
-                    formData.budgetLevel === b.value ? "bg-primary/5 border-primary" : "hover:bg-muted",
+                    formData.budgetLevel === b.value
+                      ? "bg-primary/5 border-primary ring-1 ring-primary"
+                      : "hover:bg-muted bg-background",
                   )}
                 >
                   <p className="font-bold text-sm">{b.label}</p>
-                  <p className="text-xs text-muted-foreground">{b.description}</p>
+                  <p className="text-xs text-muted-foreground leading-tight">{b.description}</p>
                 </button>
               ))}
             </div>
-            <div className="p-4 bg-muted/50 rounded-xl border space-y-2">
-              <div className="flex justify-between text-xs font-bold uppercase">
-                <span>Cost</span>
-                <span>{serviceCost} Credits</span>
+
+            <div className="p-4 bg-muted/50 rounded-xl border border-dashed space-y-3">
+              <div className="flex justify-between items-center text-xs font-bold uppercase tracking-tighter">
+                <span className="text-muted-foreground">Roadmap Generation Fee</span>
+                <span className="text-foreground">{serviceCost} Credits</span>
               </div>
-              <div className="flex justify-between text-xs font-bold uppercase">
-                <span>Your Balance</span>
-                <span>{balance} Credits</span>
+              <div className="flex justify-between items-center text-xs font-bold uppercase tracking-tighter">
+                <span className="text-muted-foreground">Available Balance</span>
+                <span className={balance < serviceCost ? "text-destructive" : "text-emerald-600"}>
+                  {balance} Credits
+                </span>
               </div>
+              {balance < serviceCost && (
+                <p className="text-[10px] text-destructive italic text-right">* Insufficient balance. Please top up.</p>
+              )}
             </div>
           </CardContent>
         </Card>
       )}
 
-      <div className="flex justify-between pt-4">
+      <div className="flex justify-between items-center pt-4 sticky bottom-4 bg-background/80 backdrop-blur-sm p-2 rounded-xl border sm:relative sm:bottom-0 sm:border-none sm:bg-transparent">
         <Button variant="outline" onClick={() => (step > 1 ? setStep(step - 1) : navigate(-1))} disabled={isSubmitting}>
           <ChevronLeft className="mr-2 h-4 w-4" /> {step === 1 ? "Cancel" : "Back"}
         </Button>
+
         {step < 3 ? (
           <Button onClick={() => setStep(step + 1)} disabled={step === 1 && formData.targetCountries.length === 0}>
             Next <ChevronRight className="ml-2 h-4 w-4" />
           </Button>
         ) : (
-          <Button onClick={handleSubmit} disabled={isSubmitting || !formData.budgetLevel || balance < serviceCost}>
-            {isSubmitting ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Coins className="mr-2 h-4 w-4" />}
-            Generate Roadmap
+          <Button
+            onClick={handleSubmit}
+            disabled={isSubmitting || !formData.budgetLevel || balance < serviceCost}
+            className="shadow-lg shadow-primary/20"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="animate-spin mr-2 h-4 w-4" />
+                Processing...
+              </>
+            ) : (
+              <>
+                <Sparkles className="mr-2 h-4 w-4" />
+                Generate Roadmap
+              </>
+            )}
           </Button>
         )}
       </div>
     </div>
   );
-}
-
-function cn(...classes: any[]) {
-  return classes.filter(Boolean).join(" ");
 }
