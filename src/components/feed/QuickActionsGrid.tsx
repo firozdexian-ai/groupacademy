@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Bot, LucideIcon } from "lucide-react";
+import { Bot, Globe, LucideIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTalent } from "@/hooks/useTalent";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,6 +14,13 @@ interface QuickAgent {
   bg_color: string | null;
   avatar_url: string | null;
 }
+
+// Fixed shortcut to the Career Abroad hub — always shown so the vertical is reachable from the feed.
+const ABROAD_SHORTCUT = {
+  key: "__abroad",
+  name: "Abroad",
+  path: "/app/abroad",
+};
 
 export function QuickActionsGrid() {
   const navigate = useNavigate();
@@ -40,7 +47,7 @@ export function QuickActionsGrid() {
           }
           personalAgentKeys = Array.from(countMap.entries())
             .sort((a, b) => b[1] - a[1])
-            .slice(0, 8)
+            .slice(0, 7) // reserve last slot for the Abroad shortcut
             .map(([key]) => key);
         }
       }
@@ -62,9 +69,10 @@ export function QuickActionsGrid() {
       const result: QuickAgent[] = [];
       const used = new Set<string>();
 
+      // Reserve last slot for the Abroad shortcut → max 7 agents
       for (const key of personalAgentKeys) {
         const agent = agentMap.get(key);
-        if (agent && result.length < 8) {
+        if (agent && result.length < 7) {
           result.push(agent);
           used.add(key);
         }
@@ -72,7 +80,7 @@ export function QuickActionsGrid() {
 
       // Fill remaining with popular agents
       for (const agent of allAgents) {
-        if (!used.has(agent.agent_key) && result.length < 8) {
+        if (!used.has(agent.agent_key) && result.length < 7) {
           result.push(agent);
           used.add(agent.agent_key);
         }
@@ -98,7 +106,7 @@ export function QuickActionsGrid() {
     );
   }
 
-  if (agents.length === 0) return null;
+  // Note: even if no agents are available we still render the Abroad shortcut.
 
   return (
     <div className="bg-card rounded-xl p-3 shadow-sm">
@@ -129,6 +137,20 @@ export function QuickActionsGrid() {
             </button>
           );
         })}
+
+        {/* Always-visible Career Abroad shortcut */}
+        <button
+          key={ABROAD_SHORTCUT.key}
+          onClick={() => navigate(ABROAD_SHORTCUT.path)}
+          className="flex flex-col items-center gap-1 cursor-pointer active:scale-95 transition-transform"
+        >
+          <div className="h-10 w-10 rounded-full flex items-center justify-center bg-primary/10">
+            <Globe className="h-4 w-4 text-primary" />
+          </div>
+          <span className="text-[10px] text-center text-muted-foreground leading-tight line-clamp-1">
+            {ABROAD_SHORTCUT.name}
+          </span>
+        </button>
       </div>
     </div>
   );

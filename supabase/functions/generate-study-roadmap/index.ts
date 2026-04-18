@@ -28,10 +28,62 @@ interface RoadmapRequest {
   email: string;
 }
 
+const ROADMAP_CREDIT_COST = 100;
+
+// Refund credits to the talent who initiated the roadmap so a failure never charges the user.
+async function refundCredits(
+  supabase: ReturnType<typeof createClient>,
+  roadmapId: string,
+  reason: string,
+) {
+  try {
+    const { data: roadmap } = await supabase
+      .from("study_abroad_roadmaps")
+      .select("talent_id")
+      .eq("id", roadmapId)
+      .maybeSingle();
+
+    const talentId = (roadmap as { talent_id?: string } | null)?.talent_id;
+    if (!talentId) return;
+
+    const { data: credits } = await supabase
+      .from("talent_credits")
+      .select("balance")
+      .eq("talent_id", talentId)
+      .maybeSingle();
+
+    const currentBalance = Number((credits as { balance?: number } | null)?.balance ?? 0);
+    const newBalance = currentBalance + ROADMAP_CREDIT_COST;
+
+    await supabase
+      .from("talent_credits")
+      .update({ balance: newBalance })
+      .eq("talent_id", talentId);
+
+    await supabase.from("credit_transactions").insert({
+      talent_id: talentId,
+      amount: ROADMAP_CREDIT_COST,
+      balance_after: newBalance,
+      transaction_type: "refund",
+      service_type: "STUDY_ABROAD_ROADMAP",
+      reference_id: roadmapId,
+      description: `Auto-refund: ${reason}`,
+    });
+  } catch (refundErr) {
+    console.error("Refund failed:", refundErr);
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
+
+  // Capture body once so we can reference roadmapId in the catch path.
+  let requestData: RoadmapRequest | null = null;
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const supabase = createClient(supabaseUrl, supabaseKey);
 
   try {
     const authHeader = req.headers.get("Authorization");
@@ -43,9 +95,6 @@ serve(async (req) => {
     }
 
     const token = authHeader.replace("Bearer ", "");
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Verify user
     const { data: userData, error: userError } = await supabase.auth.getUser(token);
@@ -56,7 +105,7 @@ serve(async (req) => {
       });
     }
 
-    const requestData: RoadmapRequest = await req.json();
+    requestData = (await req.json()) as RoadmapRequest;
     const {
       roadmapId,
       targetCountries,
@@ -77,6 +126,15 @@ serve(async (req) => {
       fullName,
     } = requestData;
 
+    // Look up the talent's home country to personalize without hardcoding regions.
+    const { data: talentRow } = await supabase
+      .from("talents")
+      .select("country")
+      .eq("user_id", userData.user.id)
+      .maybeSingle();
+    const homeCountry =
+      (talentRow as { country?: string | null } | null)?.country?.trim() || "their home country";
+
     // Update status to processing
     await supabase
       .from("study_abroad_roadmaps")
@@ -91,18 +149,18 @@ serve(async (req) => {
     const currentDate = new Date().toISOString().split("T")[0];
     const countriesStr = targetCountries.join(", ");
 
-    const systemPrompt = `You are an expert study abroad consultant with deep knowledge of international university admissions, visa processes, and scholarship opportunities. You specialize in helping Bangladeshi students plan their study abroad journey.
+    const systemPrompt = `You are an expert study-abroad consultant with global knowledge of international university admissions, visa processes, and scholarship opportunities. You advise students from any country planning their study-abroad journey.
 
 CURRENT DATE: ${currentDate}
 
-Your task is to create a COMPREHENSIVE and PERSONALIZED 12-month study abroad roadmap. Be specific, actionable, and realistic.
+Your task is to create a COMPREHENSIVE and PERSONALIZED 12-month study abroad roadmap. Be specific, actionable, and realistic. Tailor financial figures, deadlines, and visa notes to the candidate's stated home country and target destinations.
 
 CRITICAL INSTRUCTIONS:
 1. Generate realistic university recommendations based on the profile
 2. Create a month-by-month timeline starting from the current month
-3. Include country-specific requirements and deadlines
+3. Include country-specific requirements and deadlines (use the candidate's home country for visa nuance)
 4. Be honest about profile gaps and how to address them
-5. Provide accurate scholarship information relevant to Bangladeshi students
+5. Provide accurate scholarship information available to applicants from the candidate's home country
 
 OUTPUT FORMAT: You MUST respond with valid JSON matching this exact structure:
 {
@@ -162,6 +220,7 @@ IMPORTANT: Recommend 4-5 universities with a mix of reach, target, and safety sc
     const profileContext = `
 CANDIDATE PROFILE:
 - Name: ${fullName}
+- Home Country: ${homeCountry}
 - Target Countries: ${countriesStr}
 - Degree Level: ${degreeLevel}
 - Field of Study: ${fieldOfStudy || "Not specified"}
@@ -189,7 +248,7 @@ Generate a personalized study abroad roadmap for this candidate.`;
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: profileContext },
@@ -203,17 +262,21 @@ Generate a personalized study abroad roadmap for this candidate.`;
       const errorText = await aiResponse.text();
       console.error("AI Gateway error:", aiResponse.status, errorText);
 
+      // Mark as failed and refund the user before returning a soft error.
+      await supabase.from("study_abroad_roadmaps").update({ status: "failed" }).eq("id", roadmapId);
+      await refundCredits(supabase, roadmapId, "AI service unavailable");
+
       if (aiResponse.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return new Response(
+          JSON.stringify({ error: "Rate limit exceeded. Your credits have been refunded — please try again shortly." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
       }
       if (aiResponse.status === 402) {
-        return new Response(JSON.stringify({ error: "Service temporarily unavailable." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return new Response(
+          JSON.stringify({ error: "Service temporarily unavailable. Your credits have been refunded." }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
       }
 
       throw new Error(`AI service error: ${aiResponse.status}`);
@@ -273,28 +336,28 @@ Generate a personalized study abroad roadmap for this candidate.`;
   } catch (error) {
     console.error("Error generating roadmap:", error);
 
-    // Try to update status to failed if we have roadmapId
-    try {
-      const requestData = await req.clone().json();
-      if (requestData.roadmapId) {
-        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-        const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-        const supabase = createClient(supabaseUrl, supabaseKey);
+    // Mark failed + refund (best-effort) when we have a roadmapId.
+    if (requestData?.roadmapId) {
+      try {
         await supabase
           .from("study_abroad_roadmaps")
           .update({ status: "failed" })
           .eq("id", requestData.roadmapId);
+        await refundCredits(supabase, requestData.roadmapId, "Roadmap generation failed");
+      } catch (cleanupErr) {
+        console.error("Failure cleanup error:", cleanupErr);
       }
-    } catch {
-      // Ignore cleanup errors
     }
 
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Failed to generate roadmap" }),
+      JSON.stringify({
+        error: error instanceof Error ? error.message : "Failed to generate roadmap",
+        refunded: !!requestData?.roadmapId,
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      },
     );
   }
 });
