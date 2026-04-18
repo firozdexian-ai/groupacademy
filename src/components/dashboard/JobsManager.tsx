@@ -108,7 +108,7 @@ export function JobsManager() {
     if (jobIds.length === 0) return;
 
     const clicksRes = await supabase.from("job_analytics").select("job_id").in("job_id", jobIds);
-    const savesRes = await supabase.from("saved_items").select("item_id").eq("kind", "job").in("item_id", jobIds);
+    const savesRes = await (supabase.from("saved_items") as any).select("item_id").eq("kind", "job").in("item_id", jobIds);
     const recsRes = await supabase.from("ai_job_recommendations").select("job_id").in("job_id", jobIds);
 
     const stats: Record<string, EngagementData> = {};
