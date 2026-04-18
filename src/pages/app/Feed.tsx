@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Inbox, RefreshCw, ArrowDown, BookOpen, FileText, WifiOff, Clock, TrendingUp, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useTalent } from "@/hooks/useTalent";
 import { useFeedRecommendations, FeedItem, FeedFilterType } from "@/hooks/useFeedRecommendations";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
@@ -23,12 +24,12 @@ export default function Feed() {
   const navigate = useNavigate();
   const { talent, refreshTalent } = useTalent();
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
 
   // Pull-to-refresh state
   const [startY, setStartY] = useState(0);
   const [pullDistance, setPullDistance] = useState(0);
   const [isPulling, setIsPulling] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const {
     items = [],
@@ -50,13 +51,19 @@ export default function Feed() {
     }
   }, [talent]);
 
+  const handleOnboardingComplete = async () => {
+    setShowOnboarding(false);
+    await refreshTalent();
+    refresh();
+  };
+
   const handleInterested = async (item: FeedItem) => {
     await markInterested(item);
     if (!item.slug && !item.youtubeUrl) return;
 
     switch (item.type) {
       case "blog":
-        navigate(`/app/blog/${item.slug}`);
+        if (item.slug) navigate(`/app/blog/${item.slug}`);
         break;
       case "course":
       case "video":
@@ -66,7 +73,7 @@ export default function Feed() {
     }
   };
 
-  // CTO Fix: Memoized counts to prevent re-calculation crashes
+  // CTO Optimization: Memoized counts to prevent re-render logic errors
   const counts = useMemo(
     () => ({
       all: items.length,
@@ -93,39 +100,52 @@ export default function Feed() {
     const diff = currentY - startY;
     if (diff > 0 && window.scrollY === 0) {
       setPullDistance(Math.min(diff * 0.4, 80));
+    } else {
+      setPullDistance(0);
     }
   };
 
   const handleTouchEnd = async () => {
     if (!isPulling) return;
     setIsPulling(false);
-    if (pullDistance > 60) await refresh();
+    if (pullDistance > 60) {
+      await refresh();
+    }
     setPullDistance(0);
   };
 
-  if (showOnboarding)
-    return (
-      <OnboardingWizard
-        onComplete={() => {
-          setShowOnboarding(false);
-          refreshTalent();
-          refresh();
-        }}
-      />
-    );
+  const getEmptyStateAction = (type: FeedFilterType) => {
+    switch (type) {
+      case "course":
+      case "video":
+        return { label: "Explore Learning", action: () => navigate("/app/learning"), icon: BookOpen };
+      case "blog":
+        return { label: "Read Blog", action: () => navigate("/app/blog"), icon: FileText };
+      default:
+        return { label: "Update Preferences", action: () => navigate("/app/profile"), icon: RefreshCw };
+    }
+  };
 
+  if (showOnboarding) {
+    return <OnboardingWizard onComplete={handleOnboardingComplete} />;
+  }
+
+  // Loading State
   if (isLoading && !isRefreshing) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-6 grid lg:grid-cols-12 gap-8">
+      <div className="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-8 space-y-6">
           <FeedSkeleton />
         </div>
         <div className="hidden lg:block lg:col-span-4 space-y-6">
-          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-40 w-full rounded-2xl" />
+          <Skeleton className="h-64 w-full rounded-2xl" />
         </div>
       </div>
     );
   }
+
+  const emptyAction = getEmptyStateAction(filters.type);
 
   return (
     <div
@@ -135,124 +155,135 @@ export default function Feed() {
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      {/* Pull Indicator */}
+      {/* Pull Refresh Indicator */}
       <div
-        className="absolute left-0 right-0 flex justify-center pointer-events-none transition-transform duration-200"
-        style={{ transform: `translateY(${pullDistance}px)`, top: -40, opacity: pullDistance > 10 ? 1 : 0 }}
+        className="absolute left-0 right-0 flex justify-center z-50 pointer-events-none transition-all duration-200"
+        style={{
+          top: isRefreshing ? "20px" : `${pullDistance - 40}px`,
+          opacity: pullDistance > 10 || isRefreshing ? 1 : 0,
+        }}
       >
-        <div className="bg-primary text-white p-2 rounded-full shadow-xl">
-          <RefreshCw className={cn("h-5 w-5", isRefreshing && "animate-spin")} />
+        <div className="bg-primary shadow-xl rounded-full p-2 border-4 border-background">
+          <RefreshCw className={cn("h-5 w-5 text-white", isRefreshing && "animate-spin")} />
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* MAIN FEED COLUMN */}
         <div className="lg:col-span-8 space-y-4">
           <FeedHeader
             talentName={talent?.fullName}
             talentPhoto={talent?.profilePhotoUrl}
             talentProfession={talent?.customProfession}
-            onRefresh={refresh}
+            onRefresh={() => refresh()}
             isRefreshing={isRefreshing}
           />
 
           <QuickActionsGrid />
           <BannerCarousel compact />
-          <ComposePost onPostCreated={refresh} />
+          <ComposePost onPostCreated={() => refresh()} />
           <FeedFilters filters={filters} onChange={setFilters} counts={counts} />
 
           {error ? (
-            <Card className="border-destructive/20 bg-destructive/5">
+            <Card className="border-destructive/20 bg-destructive/5 rounded-2xl">
               <CardContent className="p-12 text-center">
-                <WifiOff className="h-10 w-10 text-destructive mx-auto mb-4" />
-                <h3 className="font-bold text-lg text-destructive">Feed Connection Lost</h3>
-                <Button variant="outline" className="mt-4" onClick={refresh}>
-                  Reconnect
+                <WifiOff className="h-12 w-12 text-destructive mx-auto mb-4 opacity-50" />
+                <h3 className="font-black text-xl text-destructive tracking-tight">Sync Failed</h3>
+                <p className="text-sm text-muted-foreground mt-2 mb-6">We couldn't reach the academy servers.</p>
+                <Button onClick={() => refresh()} className="font-bold px-8">
+                  Retry Connection
                 </Button>
               </CardContent>
             </Card>
           ) : items.length === 0 ? (
-            <div className="py-20 text-center space-y-4">
-              <Inbox className="h-12 w-12 text-muted-foreground mx-auto opacity-20" />
-              <h3 className="text-xl font-bold">No updates found</h3>
-              <Button onClick={() => setFilters({ ...filters, type: "all" })}>Clear Filters</Button>
-            </div>
+            <Card className="rounded-[32px] border-dashed bg-muted/20">
+              <CardContent className="p-20 text-center flex flex-col items-center">
+                <Inbox className="h-16 w-16 text-muted-foreground/30 mb-6" />
+                <h3 className="text-2xl font-black tracking-tight">All Caught Up!</h3>
+                <p className="text-muted-foreground mt-2 mb-8 max-w-xs">
+                  Check back later for new professional updates and courses.
+                </p>
+                <Button onClick={emptyAction.action} className="rounded-xl font-bold">
+                  <emptyAction.icon className="h-4 w-4 mr-2" />
+                  {emptyAction.label}
+                </Button>
+              </CardContent>
+            </Card>
           ) : (
-            <div className="space-y-4 pb-20">
-              {items.map((item, index) => {
-                if (!item) return null; // Safe guard
-                return (
-                  <div key={item.id || index} className="animate-in fade-in duration-500">
-                    {item.type === "post" ? (
-                      <PostCard
-                        post={{
-                          id: item.id,
-                          authorName: item.authorName || "Academy Expert",
-                          authorAvatar: item.authorAvatar,
-                          authorTitle: item.authorTitle || "Verified Instructor",
-                          contentType: item.contentType || "text",
-                          textContent: item.textContent || item.description || "",
-                          mediaUrl: item.mediaUrl,
-                          pollOptions: item.pollOptions || [],
-                          pollEndsAt: item.pollEndsAt,
-                          linkUrl: item.linkUrl,
-                          linkPreview: item.linkPreview,
-                          tags: item.tags || [],
-                          isPinned: item.isPinned || false,
-                          createdAt: item.createdAt || new Date().toISOString(),
-                        }}
-                      />
-                    ) : (
-                      <FeedCardRedesigned
-                        item={item}
-                        onInterested={() => handleInterested(item)}
-                        onNotInterested={() => markNotInterested(item.id)}
-                      />
-                    )}
-                  </div>
-                );
-              })}
+            <div className="space-y-4 pb-24">
+              {items.map((item, index) => (
+                <div key={item.id || index} className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  {item.type === "post" ? (
+                    <PostCard
+                      post={{
+                        id: item.id,
+                        authorName: item.authorName || "Academy Expert",
+                        authorAvatar: item.authorAvatar,
+                        authorTitle: item.authorTitle || "Verified User",
+                        contentType: (item.contentType as any) || "text",
+                        textContent: item.textContent || item.description || "",
+                        mediaUrl: item.mediaUrl,
+                        pollOptions: item.pollOptions || [],
+                        pollEndsAt: item.pollEndsAt,
+                        linkUrl: item.linkUrl,
+                        linkPreview: item.linkPreview,
+                        tags: item.tags || [],
+                        isPinned: item.isPinned || false,
+                        createdAt: item.createdAt || new Date().toISOString(),
+                      }}
+                    />
+                  ) : (
+                    <FeedCardRedesigned
+                      item={item}
+                      onInterested={() => handleInterested(item)}
+                      onNotInterested={() => markNotInterested(item.id)}
+                    />
+                  )}
+                </div>
+              ))}
 
-              <div className="flex justify-center pt-8">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={loadMore}
-                  disabled={isRefreshing}
-                  className="gap-2 font-bold text-muted-foreground"
-                >
+              <div className="flex flex-col items-center py-10">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-4">
+                  End of personalized feed
+                </p>
+                <Button variant="ghost" onClick={loadMore} disabled={isRefreshing} className="font-bold gap-2">
                   <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
-                  Discover More
+                  Load Older Content
                 </Button>
               </div>
             </div>
           )}
         </div>
 
-        {/* Sidebar */}
+        {/* SIDEBAR COLUMN */}
         <div className="hidden lg:block lg:col-span-4 space-y-6">
           <div className="sticky top-24 space-y-6">
             <PersonalizedPromptCard />
-            <Card className="rounded-2xl border-primary/10 shadow-sm overflow-hidden">
-              <div className="p-4 bg-primary/5 border-b border-primary/10">
+
+            <Card className="rounded-[24px] border-primary/10 shadow-sm overflow-hidden">
+              <div className="p-5 bg-primary/5 border-b border-primary/10">
                 <h3 className="text-xs font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                  <TrendingUp className="h-3 w-3" /> Growth Stats
+                  <TrendingUp className="h-3.5 w-3.5" /> Discovery Hub
                 </h3>
               </div>
-              <CardContent className="p-4 grid grid-cols-2 gap-2">
+              <CardContent className="p-5 grid grid-cols-2 gap-3">
                 {[
-                  { label: "Posts", val: counts.post },
-                  { label: "Courses", val: counts.course },
+                  { label: "Updates", val: counts.post },
+                  { label: "Learning", val: counts.course },
                   { label: "Videos", val: counts.video },
-                  { label: "Articles", val: counts.blog },
+                  { label: "Insight", val: counts.blog },
                 ].map((stat) => (
-                  <div key={stat.label} className="bg-muted/30 p-3 rounded-xl text-center">
-                    <p className="text-lg font-black">{stat.val}</p>
-                    <p className="text-[10px] uppercase font-bold text-muted-foreground">{stat.label}</p>
+                  <div key={stat.label} className="bg-muted/30 p-4 rounded-2xl text-center border border-border/40">
+                    <p className="text-xl font-black tracking-tighter">{stat.val}</p>
+                    <p className="text-[9px] uppercase font-black text-muted-foreground tracking-widest">
+                      {stat.label}
+                    </p>
                   </div>
                 ))}
               </CardContent>
             </Card>
-            <CareerInsightsStack insights={insights} />
+
+            <CareerInsightsStack insights={insights || []} />
           </div>
         </div>
       </div>
