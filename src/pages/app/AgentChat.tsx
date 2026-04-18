@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Loader2, MessageSquare } from "lucide-react";
+import { Loader2, MessageSquare, ShieldAlert } from "lucide-react";
 import { AgentChatDialog } from "@/components/ai-agents/AgentChatDialog";
 import { useAgentChat } from "@/hooks/useAgentChat";
 import { useCredits } from "@/hooks/useCredits";
@@ -28,6 +28,7 @@ export default function AgentChat() {
 
   const { balance } = useCredits();
 
+  // CTO: Fetching agent metadata from DB for live branding/pricing
   const { data: dbAgent, isLoading: isLoadingDbAgent } = useQuery({
     queryKey: ["ai-agent-detail", agentKey],
     queryFn: async () => {
@@ -75,7 +76,7 @@ export default function AgentChat() {
     if (isLoadingDbAgent || isLoadingSessions) return;
 
     if (!activeAgent && !isLoadingDbAgent && agentKey) {
-      toast.error("Agent not found in registry");
+      toast.error("Specialist not found");
       navigate("/app/agents");
       return;
     }
@@ -88,7 +89,8 @@ export default function AgentChat() {
           setIsInitializing(false);
         }
       } catch (err) {
-        console.error("AgentChat init error:", err);
+        console.error("Session Init Failure:", err);
+        toast.error("Could not establish connection");
         navigate("/app/agents");
       }
     };
@@ -98,10 +100,17 @@ export default function AgentChat() {
 
   if (!agentKey) return null;
 
+  // CTO FIX: Standardized Loading Shell
   if (isInitializing || isLoadingDbAgent) {
     return (
-      <div className="flex items-center justify-center h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex flex-col items-center justify-center h-[80dvh] space-y-4">
+        <div className="relative">
+          <Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" />
+          <MessageSquare className="h-5 w-5 text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+        </div>
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground animate-pulse">
+          Establishing Secure Channel...
+        </p>
       </div>
     );
   }
@@ -111,14 +120,13 @@ export default function AgentChat() {
   const IconComponent = getIcon(activeAgent.iconName) || MessageSquare;
 
   return (
-    /** * CTO CRITICAL FIX:
-     * We must use 100dvh (dynamic viewport height) to account for mobile address bars.
-     * We subtract the approximate height of the top search bar and bottom nav (~120px).
-     * overflow-hidden is MANDATORY here to stop the page-level scrolling.
+    /** * CTO ARCHITECTURAL NOTE:
+     * fixed inset-0 + padding-top/bottom is the only way to stop mobile "bounce"
+     * 60px = Top Navigation | 65px = Bottom Nav Bar
      */
-    <div className="fixed inset-x-0 top-[60px] bottom-[65px] flex flex-col overflow-hidden bg-background">
-      <div className="flex-1 w-full max-w-4xl mx-auto flex flex-col overflow-hidden">
-        {session && (
+    <div className="fixed inset-0 top-[60px] bottom-[65px] flex flex-col overflow-hidden bg-background z-10">
+      <main className="flex-1 w-full max-w-5xl mx-auto flex flex-col overflow-hidden shadow-2xl bg-card">
+        {session ? (
           <AgentChatDialog
             agent={{
               id: agentKey,
@@ -137,8 +145,15 @@ export default function AgentChat() {
             }}
             perResponseCost={activeAgent.creditCost || perResponseCost}
           />
+        ) : (
+          <div className="flex flex-col items-center justify-center h-full p-8 text-center">
+            <ShieldAlert className="h-12 w-12 text-destructive/30 mb-4" />
+            <h3 className="font-bold text-lg">Session Interrupted</h3>
+            <p className="text-sm text-muted-foreground mb-6">We lost the handshake with the AI specialist.</p>
+            <Button onClick={() => window.location.reload()}>Re-establish Connection</Button>
+          </div>
         )}
-      </div>
+      </main>
     </div>
   );
 }
