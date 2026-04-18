@@ -21,7 +21,7 @@ export function FloatingWhatsAppButton({ showPrompt = true }: FloatingWhatsAppBu
 
   const bonusAmount = CREDIT_CONFIG.WHATSAPP_CONNECT_BONUS || 10;
   // Check if user has already claimed the bonus
-  const hasClaimedBonus = !!talent?.whatsapp_bonus_claimed_at;
+  const hasClaimedBonus = !!talent?.whatsappBonusClaimedAt;
 
   const handleClick = async () => {
     if (isProcessing || !talent) return;
