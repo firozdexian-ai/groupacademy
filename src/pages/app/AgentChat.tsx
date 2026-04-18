@@ -9,6 +9,7 @@ import { getAgentById } from "@/lib/constants/agents";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getIcon } from "@/lib/iconMap";
+import { Button } from "@/components/ui/button";
 
 export default function AgentChat() {
   const { agentKey } = useParams<{ agentKey: string }>();
