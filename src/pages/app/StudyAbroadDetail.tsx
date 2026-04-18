@@ -21,7 +21,6 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { COUNTRIES, getCountryFlag } from "@/lib/constants/countries";
-import { toast } from "sonner";
 import { useTalent } from "@/hooks/useTalent";
 
 export default function StudyAbroadDetail() {
@@ -47,19 +46,19 @@ export default function StudyAbroadDetail() {
     retry: 1,
   });
 
-  // CTO FIX: Lead Generation Trigger (Addressing March Report Gap)
+  // CTO FIX: Lead Generation Trigger (Corrected snake_case vs camelCase)
   const handleExternalClick = async (url: string) => {
     if (talent?.id && program) {
-      // Create a contact record for follow-up by Study Abroad Coordinators
-      await supabase.from("contacts").insert({
-        talent_id: talent.id,
-        first_name: talent.full_name?.split(" ")[0] || "Candidate",
-        last_name: talent.full_name?.split(" ").slice(1).join(" ") || "Interest",
-        email: talent.email,
-        subject: `Interest in ${program.university_name}`,
-        message: `User viewed and clicked external link for ${program.program_name} (${program.university_name}).`,
-        source: "study_abroad_detail",
-      });
+      // Note: 'talent_id' column doesn't exist in the 'contacts' array insert overload,
+      // but 'full_name' is mapped from 'fullName' in our hook.
+      await supabase.from("contacts").insert([
+        {
+          full_name: talent.fullName || "Interested Talent",
+          email: talent.email || "",
+          subject: `Interest in ${program.university_name}`,
+          message: `Lead generated via Study Abroad Detail: ${program.program_name} at ${program.university_name}.`,
+        },
+      ]);
     }
     window.open(url, "_blank", "noopener,noreferrer");
   };
@@ -85,7 +84,8 @@ export default function StudyAbroadDetail() {
     );
   }
 
-  const requirements = Array.isArray(program.requirements) ? program.requirements : [];
+  // CTO FIX: ReactNode JSON Cast Fix
+  const requirements = Array.isArray(program.requirements) ? (program.requirements as string[]) : [];
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-6 pb-32 sm:pb-10 space-y-6">
@@ -177,7 +177,7 @@ export default function StudyAbroadDetail() {
                     ))
                   ) : (
                     <p className="text-sm text-muted-foreground italic">
-                      Generic requirements apply. Consult our advisor.
+                      Consult our advisor for specific requirements.
                     </p>
                   )}
                 </div>
