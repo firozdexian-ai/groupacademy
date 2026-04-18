@@ -23,6 +23,7 @@ import {
   AlertCircle,
   Coins,
   Loader2,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -51,19 +52,12 @@ const CONTENT_TYPE_CONFIG: Record<ContentType, { icon: any; label: string; color
   offline_seminar: { icon: MapPin, label: "Offline Seminar", color: "bg-red-100 text-red-800" },
 };
 
-interface AppCourseDetailProps {
-  inlineSlug?: string;
-  onBack?: () => void;
-}
-
-export default function AppCourseDetail({ inlineSlug, onBack }: AppCourseDetailProps) {
+export default function AppCourseDetail({ inlineSlug, onBack }: { inlineSlug?: string; onBack?: () => void }) {
   const params = useParams();
   const slug = inlineSlug || params.slug;
   const navigate = useNavigate();
-  const isInline = !!inlineSlug;
-  const handleBack = onBack || (() => navigate("/app/learning/courses"));
-  const [searchParams, setSearchParams] = useSearchParams();
-  const { talent } = useTalent();
+  const [searchParams] = useSearchParams();
+  const { talent, refreshTalent } = useTalent();
   const { balance, deductCustomAmount, refreshBalance } = useCredits();
 
   const [course, setCourse] = useState<Course | null>(null);
@@ -74,36 +68,14 @@ export default function AppCourseDetail({ inlineSlug, onBack }: AppCourseDetailP
   const [showCreditGate, setShowCreditGate] = useState(false);
   const [showPurchaseSheet, setShowPurchaseSheet] = useState(false);
 
-  // Ref to prevent double-submission race conditions
   const isProcessing = useRef(false);
 
   useEffect(() => {
-    if (slug) {
-      fetchCourse();
-    }
+    if (slug) fetchCourse();
   }, [slug, talent?.id]);
 
-  const trackSource = async (contentId: string) => {
-    const source = searchParams.get("source");
-    if (source && contentId) {
-      try {
-        await supabase.rpc("track_content_click", {
-          p_content_id: contentId,
-          p_source: source,
-        });
-
-        // Clean URL
-        const newParams = new URLSearchParams(searchParams);
-        newParams.delete("source");
-        window.history.replaceState({}, "", `${window.location.pathname}?${newParams.toString()}`);
-      } catch (err) {
-        console.error("Failed to track content click", err);
-      }
-    }
-  };
-
   const fetchCourse = async () => {
-    setLoadingError(null);
+    setIsLoading(true);
     try {
       const { data, error } = await supabase
         .from("content")
@@ -120,10 +92,6 @@ export default function AppCourseDetail({ inlineSlug, onBack }: AppCourseDetailP
 
       setCourse(data);
 
-      // Track click if source param exists
-      trackSource(data.id);
-
-      // Check enrollment
       if (talent?.id) {
         const { data: enrollment } = await supabase
           .from("enrollments")
@@ -134,25 +102,10 @@ export default function AppCourseDetail({ inlineSlug, onBack }: AppCourseDetailP
 
         setIsEnrolled(!!enrollment);
       }
-    } catch (error: any) {
-      console.error("Error fetching course:", error);
+    } catch (err) {
       setLoadingError("Failed to load course details.");
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleEnrollClick = () => {
-    if (!talent) {
-      toast.error("Please log in to enroll");
-      navigate("/auth");
-      return;
-    }
-
-    if (course && course.price === 0) {
-      handleEnroll();
-    } else {
-      setShowCreditGate(true);
     }
   };
 
@@ -164,27 +117,20 @@ export default function AppCourseDetail({ inlineSlug, onBack }: AppCourseDetailP
     setShowCreditGate(false);
 
     try {
-      // 1. Process Payment (Credits)
+      // 1. Credit Deduction
       if (course.price > 0) {
         const creditCost = getCourseCredits(course.price);
         const success = await deductCustomAmount(
           creditCost,
           "COURSE_ENROLLMENT",
           course.id,
-          `Enrolled in: ${course.title}`,
+          `Enrolled: ${course.title}`,
         );
-
-        if (!success) {
-          isProcessing.current = false;
-          setIsEnrolling(false);
-          return; // Stop if payment failed
-        }
+        if (!success) throw new Error("Payment failed");
       }
 
-      // 2. Ensure Student Profile Exists
-      let studentId = talent.userId; // Default mapping strategy
-
-      // Check if explicit student record exists
+      // 2. Resolve Student ID (Atomic resolution)
+      let studentId: string;
       const { data: existingStudent } = await supabase
         .from("students")
         .select("id")
@@ -196,265 +142,161 @@ export default function AppCourseDetail({ inlineSlug, onBack }: AppCourseDetailP
           .from("students")
           .insert([
             {
-              student_id: talent.userId, // Legacy mapping
               user_id: talent.userId,
               full_name: talent.fullName,
               email: talent.email,
-              phone: talent.phone,
-              status: "free_learner",
+              status: "active_learner",
             },
           ])
           .select()
           .single();
-
         if (createError) throw createError;
         studentId = newStudent.id;
       } else {
         studentId = existingStudent.id;
       }
 
-      // 3. Create Enrollment Record
+      // 3. Create Enrollment
       const { error: enrollError } = await supabase.from("enrollments").insert({
         student_id: studentId,
         content_id: course.id,
         talent_id: talent.id,
         status: "active",
-        enrolled_at: new Date().toISOString(),
       });
 
-      if (enrollError) {
-        if (enrollError.code === "23505") {
-          // Unique violation
-          toast.info("You are already enrolled!");
-          setIsEnrolled(true);
-        } else {
-          throw enrollError;
-        }
-      } else {
-        toast.success("Successfully enrolled!");
-        setIsEnrolled(true);
-        refreshBalance();
-      }
+      if (enrollError && enrollError.code !== "23505") throw enrollError;
+
+      // 4. Update Talent Services Metadata
+      const updatedServices = Array.from(new Set([...(talent.servicesUsed || []), "course_enrollment"]));
+      await supabase.from("talents").update({ services_used: updatedServices }).eq("id", talent.id);
+
+      toast.success("Welcome to the course!");
+      setIsEnrolled(true);
+      refreshBalance();
+      await refreshTalent();
     } catch (error: any) {
-      console.error("Enrollment error:", error);
-      toast.error("Failed to process enrollment.");
+      console.error("Enrollment failed:", error);
+      toast.error(error.message || "Failed to process enrollment.");
     } finally {
       setIsEnrolling(false);
       isProcessing.current = false;
     }
   };
 
-  const getYouTubeEmbedUrl = (url: string | null) => {
-    if (!url) return null;
-    const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/);
-    return match ? `https://www.youtube.com/embed/${match[1]}` : null;
-  };
-
-  const creditCost = course ? getCourseCredits(course.price) : 0;
-
-  if (isLoading) {
+  if (isLoading)
     return (
-      <div className="max-w-4xl mx-auto px-4 py-4">
-        <Skeleton className="h-8 w-24 mb-4" />
-        <Skeleton className="h-10 w-3/4 mb-2" />
-        <Skeleton className="aspect-video w-full rounded-lg mb-4" />
-        <Skeleton className="h-5 w-full mb-2" />
-        <Skeleton className="h-5 w-2/3" />
+      <div className="p-8 space-y-4">
+        <Skeleton className="h-64 w-full rounded-2xl" />
+        <Skeleton className="h-10 w-1/2" />
       </div>
     );
-  }
 
   if (loadingError || !course) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-4">
-        <Card>
-          <CardContent className="pt-6 text-center">
-            <AlertCircle className="h-10 w-10 text-destructive mx-auto mb-4" />
-            <h2 className="text-lg font-semibold mb-2">Course Unavailable</h2>
-            <p className="text-muted-foreground mb-4">{loadingError || "Content not found"}</p>
-            <div className="flex gap-2 justify-center">
-              <Button onClick={fetchCourse} variant="outline">
-                <RefreshCw className="h-4 w-4 mr-2" /> Try Again
-              </Button>
-              <Button onClick={() => navigate("/app/learning/courses")}>Browse Courses</Button>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="flex flex-col items-center justify-center p-12 text-center">
+        <AlertCircle className="h-12 w-12 text-destructive mb-4" />
+        <h2 className="text-xl font-bold">Course Not Found</h2>
+        <Button variant="link" onClick={() => navigate("/app/learning")}>
+          Return to Academy
+        </Button>
       </div>
     );
   }
 
-  const config = CONTENT_TYPE_CONFIG[course.content_type] || CONTENT_TYPE_CONFIG.recorded_course;
-  const embedUrl = getYouTubeEmbedUrl(course.youtube_url);
+  const creditCost = getCourseCredits(course.price);
 
   return (
-    <div className={isInline ? "pb-28 md:pb-6" : "max-w-4xl mx-auto px-4 py-4 pb-28 md:pb-6"}>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={handleBack}
-        className="mb-4 -ml-2 hover:bg-muted"
-      >
-        <ArrowLeft className="w-4 h-4 mr-2" /> Back
+    <div className="max-w-5xl mx-auto px-4 py-6 pb-32">
+      <Button variant="ghost" size="sm" onClick={onBack || (() => navigate(-1))} className="mb-6 group">
+        <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform" />
+        Back to Academy
       </Button>
 
-      {/* Media Player / Cover */}
-      <div className="mb-4 rounded-xl overflow-hidden bg-black shadow-lg">
-        <AspectRatio ratio={16 / 9}>
-          {embedUrl ? (
-            <iframe
-              src={embedUrl}
-              title={course.title}
-              className="w-full h-full"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
-          ) : (
-            <img
-              src={course.cover_image_url || "/placeholder-course.jpg"}
-              alt={course.title}
-              className="w-full h-full object-cover"
-            />
-          )}
-        </AspectRatio>
-      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left: Main Content */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="rounded-3xl overflow-hidden bg-black aspect-video shadow-2xl border-4 border-white dark:border-muted/20">
+            {course.youtube_url ? (
+              <iframe
+                src={`https://www.youtube.com/embed/${course.youtube_url.match(/(?:v=|be\/)([^&\s?]+)/)?.[1]}`}
+                className="w-full h-full"
+                allowFullScreen
+              />
+            ) : (
+              <img src={course.cover_image_url || "/placeholder.jpg"} className="w-full h-full object-cover" />
+            )}
+          </div>
 
-      {/* Header Info */}
-      <div className="mb-3">
-        <div className="flex flex-wrap items-center gap-2 mb-2">
-          <Badge variant="secondary" className={config.color}>
-            <config.icon className="h-3 w-3 mr-1" />
-            {config.label}
-          </Badge>
-          {course.price === 0 ? (
-            <Badge className="bg-green-600 hover:bg-green-700">Free</Badge>
-          ) : (
-            <Badge variant="outline" className="border-amber-500 text-amber-700 bg-amber-50">
-              <Coins className="h-3 w-3 mr-1" />
-              {creditCost} Credits
-            </Badge>
-          )}
+          <div className="space-y-4">
+            <h1 className="text-3xl font-black tracking-tight">{course.title}</h1>
+            <div className="flex flex-wrap gap-2">
+              <Badge className={CONTENT_TYPE_CONFIG[course.content_type].color}>
+                {course.content_type.replace("_", " ")}
+              </Badge>
+              <Badge variant="outline" className="font-bold">
+                <Users className="h-3 w-3 mr-1" />
+                {course.instructor_name}
+              </Badge>
+            </div>
+            <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">{course.description}</p>
+          </div>
         </div>
 
-        <h1 className="text-lg font-bold mb-1 text-foreground">{course.title}</h1>
+        {/* Right: Pricing & Enrollment Card */}
+        <div className="lg:col-span-1">
+          <Card className="sticky top-6 border-primary/20 shadow-xl overflow-hidden rounded-3xl">
+            <div className="bg-primary/5 p-6 border-b border-primary/10">
+              <div className="flex justify-between items-center mb-4">
+                <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">Access Fee</span>
+                {course.price === 0 ? (
+                  <span className="text-emerald-600 font-black text-xl">FREE</span>
+                ) : (
+                  <div className="flex items-center gap-1.5 text-primary">
+                    <Coins className="h-5 w-5" />
+                    <span className="text-2xl font-black tracking-tighter">{creditCost}</span>
+                  </div>
+                )}
+              </div>
 
-        {course.instructor_name && (
-          <p className="text-sm text-muted-foreground">
-            Instructor: <span className="font-medium text-foreground">{course.instructor_name}</span>
-          </p>
-        )}
+              {isEnrolled ? (
+                <Button
+                  className="w-full h-14 text-lg font-bold rounded-2xl shadow-lg group"
+                  onClick={() => navigate(`/app/learn/${course.slug}`)}
+                >
+                  <Play className="mr-2 h-5 w-5 fill-current" />
+                  Continue Learning
+                </Button>
+              ) : (
+                <Button
+                  className="w-full h-14 text-lg font-bold rounded-2xl shadow-lg bg-primary hover:scale-[1.02] transition-transform"
+                  onClick={() => (course.price === 0 ? handleEnroll() : setShowCreditGate(true))}
+                  disabled={isEnrolling}
+                >
+                  {isEnrolling ? <Loader2 className="animate-spin" /> : "Enroll Now"}
+                </Button>
+              )}
+            </div>
+
+            <CardContent className="p-6 space-y-4">
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 text-sm font-medium">
+                  <Clock className="h-4 w-4 text-primary" />
+                  <span>{course.duration_hours || 0} Hours of content</span>
+                </div>
+                <div className="flex items-center gap-3 text-sm font-medium">
+                  <BookOpen className="h-4 w-4 text-primary" />
+                  <span>{course.modules_count || 0} Learning modules</span>
+                </div>
+                <div className="flex items-center gap-3 text-sm font-medium">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <span>Certificate of Completion</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-        {course.duration_hours && (
-          <div className="p-3 bg-muted/50 rounded-lg flex items-center gap-3">
-            <div className="p-2 bg-background rounded-full shadow-sm text-primary">
-              <Clock className="h-4 w-4" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Duration</p>
-              <p className="font-semibold text-sm">{course.duration_hours}h</p>
-            </div>
-          </div>
-        )}
-        {course.modules_count && (
-          <div className="p-3 bg-muted/50 rounded-lg flex items-center gap-3">
-            <div className="p-2 bg-background rounded-full shadow-sm text-secondary">
-              <BookOpen className="h-4 w-4" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Modules</p>
-              <p className="font-semibold text-sm">{course.modules_count}</p>
-            </div>
-          </div>
-        )}
-        {course.event_date && (
-          <div className="p-3 bg-muted/50 rounded-lg flex items-center gap-3">
-            <div className="p-2 bg-background rounded-full shadow-sm text-accent">
-              <Calendar className="h-4 w-4" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Start Date</p>
-              <p className="font-semibold text-sm">{new Date(course.event_date).toLocaleDateString()}</p>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Primary Action - hidden on mobile since sticky bar handles it */}
-      <div className="mb-4 hidden md:block">
-        {isEnrolled ? (
-          <Button
-            size="lg"
-            className="w-full md:w-auto md:min-w-[200px] h-12 text-base shadow-lg hover:shadow-xl transition-all"
-            onClick={() => navigate(`/app/learn/${course.slug}`)}
-          >
-            <Play className="h-5 w-5 mr-2 fill-current" />
-            Start Learning
-          </Button>
-        ) : (
-          <Button
-            size="lg"
-            className="w-full md:w-auto md:min-w-[200px] h-12 text-base shadow-lg hover:shadow-xl transition-all"
-            onClick={handleEnrollClick}
-            disabled={isEnrolling}
-          >
-            {isEnrolling ? (
-              <>
-                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                Processing...
-              </>
-            ) : (
-              <>
-                Enroll Now
-                {course.price > 0 && <span className="ml-1 opacity-90 text-sm">({creditCost} credits)</span>}
-              </>
-            )}
-          </Button>
-        )}
-      </div>
-
-      {/* Description Content */}
-      <div>
-        <h3 className="text-base font-semibold mb-2">Course Overview</h3>
-        <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
-          {course.description}
-        </p>
-      </div>
-
-      {/* Sticky Bottom CTA - Mobile */}
-      <div className="fixed bottom-16 left-0 right-0 bg-background/95 backdrop-blur-md border-t p-3 flex gap-3 md:hidden z-40">
-        {isEnrolled ? (
-          <Button
-            className="flex-1 h-12 text-base"
-            onClick={() => navigate(`/app/learn/${course.slug}`)}
-          >
-            <Play className="h-5 w-5 mr-2 fill-current" />
-            Start Learning
-          </Button>
-        ) : (
-          <Button
-            className="flex-1 h-12 text-base"
-            onClick={handleEnrollClick}
-            disabled={isEnrolling}
-          >
-            {isEnrolling ? (
-              <>
-                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                Processing...
-              </>
-            ) : (
-              <>
-                Enroll Now
-                {course.price > 0 && <span className="ml-1 opacity-90 text-sm">({creditCost} credits)</span>}
-              </>
-            )}
-          </Button>
-        )}
-      </div>
-
-      {/* Modals */}
       <CreditGateModal
         isOpen={showCreditGate}
         onClose={() => setShowCreditGate(false)}
@@ -468,7 +310,6 @@ export default function AppCourseDetail({ inlineSlug, onBack }: AppCourseDetailP
         }}
         isLoading={isEnrolling}
       />
-
       <CreditPurchaseSheet
         isOpen={showPurchaseSheet}
         onClose={() => setShowPurchaseSheet(false)}
