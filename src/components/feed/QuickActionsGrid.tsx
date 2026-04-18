@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Bot, LucideIcon } from "lucide-react";
+import { Bot, Globe, LucideIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTalent } from "@/hooks/useTalent";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,6 +14,13 @@ interface QuickAgent {
   bg_color: string | null;
   avatar_url: string | null;
 }
+
+// Fixed shortcut to the Career Abroad hub — always shown so the vertical is reachable from the feed.
+const ABROAD_SHORTCUT = {
+  key: "__abroad",
+  name: "Abroad",
+  path: "/app/abroad",
+};
 
 export function QuickActionsGrid() {
   const navigate = useNavigate();
