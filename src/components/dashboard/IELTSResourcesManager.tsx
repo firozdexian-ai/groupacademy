@@ -23,20 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  Plus,
-  Search,
-  Edit,
-  Trash2,
-  BookOpen,
-  Headphones,
-  Eye,
-  Pencil,
-  Mic,
-  ExternalLink,
-  Filter,
-  RefreshCw,
-} from "lucide-react";
+import { Plus, Search, Edit, Trash2, BookOpen, Headphones, Eye, Pencil, Mic, Filter, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -160,11 +147,27 @@ export function IELTSResourcesManager() {
     }
   };
 
+  // CTO FIX: Re-implemented missing handleDelete function
+  const handleDelete = async (id: string) => {
+    try {
+      const { error: deleteError } = await supabase.from("ielts_resources").delete().eq("id", id);
+
+      if (deleteError) throw deleteError;
+
+      toast.success("Resource deleted permanently");
+      loadResources();
+    } catch (err: any) {
+      console.error("Delete error:", err);
+      toast.error("Failed to delete resource");
+    }
+  };
+
   const handleToggleActive = async (resource: IELTSResource) => {
     const { error } = await supabase
       .from("ielts_resources")
       .update({ is_active: !resource.is_active })
       .eq("id", resource.id);
+
     if (!error) {
       toast.success(`Status set to ${!resource.is_active ? "Active" : "Inactive"}`);
       loadResources();
@@ -413,7 +416,7 @@ export function IELTSResourcesManager() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deleteId && handleDelete(deleteId)}
-              className="bg-destructive text-destructive-foreground"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Delete
             </AlertDialogAction>
