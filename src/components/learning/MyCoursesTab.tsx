@@ -8,7 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
-import { BookOpen, CheckCircle, Clock, MessageCircle } from "lucide-react";
+import { BookOpen, CheckCircle, Clock, MessageCircle, Award, PlayCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface EnrollmentContent {
   id: string;
@@ -18,15 +19,13 @@ interface EnrollmentContent {
   thumbnail_url: string | null;
   cover_image_url: string | null;
   instructor_name: string | null;
-  event_date: string | null;
   whatsapp_group_link: string | null;
 }
 
 interface Enrollment {
   id: string;
-  status: string;
+  status: "active" | "completed" | "pending_payment" | string;
   enrolled_at: string;
-  completed_at: string | null;
   progress: number;
   content: EnrollmentContent;
 }
@@ -38,50 +37,95 @@ const LearningCard = ({ enrollment }: { enrollment: Enrollment }) => {
 
   return (
     <Card
-      className="cursor-pointer hover:shadow-lg transition-all group overflow-hidden border-border/50 h-full flex flex-col"
-      onClick={() => navigate(`/app/learning/courses/${content.slug}`)}
+      className="group cursor-pointer hover:shadow-2xl transition-all duration-500 overflow-hidden border-border/40 bg-card/50 backdrop-blur-sm h-full flex flex-col rounded-[24px]"
+      onClick={() => navigate(`/app/learn/${content.slug}`)}
     >
-      <div className="h-24 bg-muted relative overflow-hidden shrink-0">
+      {/* Visual Header */}
+      <div className="h-28 bg-muted relative overflow-hidden shrink-0">
         {imageSrc ? (
-          <img src={imageSrc} alt={content.title} className="w-full h-full object-cover" loading="lazy" />
+          <img
+            src={imageSrc}
+            alt={content.title}
+            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+            loading="lazy"
+          />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-primary/5">
-            <BookOpen className="h-8 w-8 text-primary/20" />
+            <BookOpen className="h-10 w-10 text-primary/20" />
           </div>
         )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+          <PlayCircle className="text-white h-10 w-10 shadow-2xl" />
+        </div>
       </div>
-      <CardContent className="p-3 flex flex-col flex-1">
-        <div className="flex-1">
-          <div className="flex items-start justify-between gap-2 mb-1.5">
-            <Badge variant="outline" className="capitalize text-[10px] h-5 px-1.5">{content.content_type.replace(/_/g, " ")}</Badge>
-            <Badge variant={status === "active" ? "default" : "secondary"} className="text-[10px] h-5 px-1.5">
-              {status === "pending_payment" ? "Payment Pending" : status}
+
+      <CardContent className="p-4 flex flex-col flex-1">
+        <div className="flex-1 space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <Badge
+              variant="outline"
+              className="text-[9px] font-black uppercase tracking-widest border-primary/20 text-primary"
+            >
+              {content.content_type.replace(/_/g, " ")}
+            </Badge>
+            <Badge
+              className={cn(
+                "text-[9px] font-black uppercase tracking-widest border-none",
+                status === "active" ? "bg-emerald-500/10 text-emerald-600" : "bg-primary/10 text-primary",
+              )}
+            >
+              {status === "pending_payment" ? "Pending" : status}
             </Badge>
           </div>
-          <h3 className="font-semibold text-sm line-clamp-2 mb-1">{content.title}</h3>
-          {content.instructor_name && <p className="text-xs text-muted-foreground line-clamp-1">By {content.instructor_name}</p>}
+
+          <h3 className="font-black text-sm tracking-tight leading-tight line-clamp-2 group-hover:text-primary transition-colors">
+            {content.title}
+          </h3>
+
+          {content.instructor_name && (
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+              Faculty: {content.instructor_name}
+            </p>
+          )}
         </div>
-        <div className="space-y-2 mt-auto pt-2">
+
+        {/* Action & Progress Layer */}
+        <div className="space-y-3 mt-4">
           {status === "active" && (
-            <div className="space-y-1">
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>Progress</span>
-                <span className="font-medium text-foreground">{progress || 0}%</span>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
+                <span>Completion</span>
+                <span className="text-primary">{progress || 0}%</span>
               </div>
               <Progress value={progress || 0} className="h-1.5" />
             </div>
           )}
+
           <div className="flex gap-2">
             {content.whatsapp_group_link && (
-              <Button variant="outline" size="sm" className="w-full h-8 text-xs bg-green-50 border-green-200 text-green-700 hover:bg-green-100 hover:text-green-800 dark:bg-green-950/20 dark:border-green-900 dark:text-green-400"
-                onClick={(e) => { e.stopPropagation(); window.open(content.whatsapp_group_link!, "_blank"); }}>
-                <MessageCircle className="w-3 h-3 mr-1.5" /> Group
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 h-9 text-[10px] font-black uppercase tracking-widest rounded-xl bg-emerald-500/5 border-emerald-500/20 text-emerald-600 hover:bg-emerald-500 hover:text-white transition-all"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.open(content.whatsapp_group_link!, "_blank");
+                }}
+              >
+                <MessageCircle className="w-3.5 h-3.5 mr-2" /> Cohort
               </Button>
             )}
             {status === "completed" && (
-              <Button variant="outline" size="sm" className="w-full h-8 text-xs"
-                onClick={(e) => { e.stopPropagation(); navigate(`/report-card/${enrollment.id}`); }}>
-                Certificate
+              <Button
+                variant="default"
+                size="sm"
+                className="flex-1 h-9 text-[10px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-primary/20"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/app/report-card/${enrollment.id}`);
+                }}
+              >
+                <Award className="w-3.5 h-3.5 mr-2" /> Certificate
               </Button>
             )}
           </div>
@@ -91,24 +135,35 @@ const LearningCard = ({ enrollment }: { enrollment: Enrollment }) => {
   );
 };
 
-interface MyCoursesTabProps {
-  onBrowseCatalog?: () => void;
-}
-
 export function MyCoursesTab({ onBrowseCatalog }: MyCoursesTabProps) {
   const navigate = useNavigate();
   const { talent } = useTalent();
 
-  const { data: enrollments = [], isLoading, error, refetch } = useQuery({
+  const {
+    data: enrollments = [],
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
     queryKey: ["talent-enrollments", talent?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("enrollments")
-        .select(`id, status, enrolled_at, completed_at, progress, content:content_id (id, title, slug, content_type, thumbnail_url, cover_image_url, instructor_name, event_date, whatsapp_group_link)`)
+        .select(
+          `
+          id, status, enrolled_at, completed_at, progress,
+          content:content_id (
+            id, title, slug, content_type, thumbnail_url, cover_image_url, 
+            instructor_name, whatsapp_group_link
+          )
+        `,
+        )
         .eq("talent_id", talent!.id)
         .order("last_accessed_at", { ascending: false });
+
       if (error) throw error;
-      return (data as unknown as Enrollment[]).filter(e => e.content.content_type !== "free_video");
+      // Filter out utility content
+      return (data as any[]).filter((e) => e.content.content_type !== "free_video") as Enrollment[];
     },
     enabled: !!talent?.id,
   });
@@ -118,82 +173,73 @@ export function MyCoursesTab({ onBrowseCatalog }: MyCoursesTabProps) {
 
   if (isLoading) {
     return (
-      <div className="space-y-3">
-        <Skeleton className="h-10 rounded-lg w-48" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {[1, 2].map((i) => <Skeleton key={i} className="h-48 rounded-xl" />)}
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {[1, 2, 3].map((i) => (
+          <Skeleton key={i} className="h-[300px] w-full rounded-[32px]" />
+        ))}
       </div>
     );
   }
-
-  if (error) {
-    return (
-      <Card>
-        <CardContent className="py-12 text-center">
-          <p className="text-destructive mb-4">Failed to load your courses</p>
-          <Button onClick={() => refetch()}>Try Again</Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  const handleBrowse = () => {
-    if (onBrowseCatalog) {
-      onBrowseCatalog();
-    } else {
-      navigate("/app/learning/courses");
-    }
-  };
 
   return (
-    <div className="space-y-3">
-      {/* Compact Stats Pills */}
+    <div className="space-y-6 animate-in fade-in duration-500">
+      {/* Stats Quick-View */}
       <div className="flex items-center gap-3">
-        <div className="flex items-center gap-1.5 bg-primary/10 text-primary rounded-full px-3 py-1.5 text-sm font-medium">
-          <Clock className="h-3.5 w-3.5" />
-          <span>{activeEnrollments.length} Active</span>
-        </div>
-        <div className="flex items-center gap-1.5 bg-green-100 dark:bg-green-950/30 text-green-700 dark:text-green-400 rounded-full px-3 py-1.5 text-sm font-medium">
-          <CheckCircle className="h-3.5 w-3.5" />
-          <span>{completedEnrollments.length} Completed</span>
-        </div>
+        <Badge className="bg-primary/10 text-primary border-none rounded-full px-4 py-1.5 text-[10px] font-black uppercase tracking-widest">
+          <Clock className="h-3 w-3 mr-2" /> {activeEnrollments.length} Ongoing Tracks
+        </Badge>
+        <Badge className="bg-emerald-500/10 text-emerald-600 border-none rounded-full px-4 py-1.5 text-[10px] font-black uppercase tracking-widest">
+          <CheckCircle className="h-3 w-3 mr-2" /> {completedEnrollments.length} Graduated
+        </Badge>
       </div>
 
-      {/* Enrollments Tabs */}
-      <Tabs defaultValue="active" className="space-y-3">
-        <TabsList className="w-full grid grid-cols-2 lg:w-[400px]">
-          <TabsTrigger value="active">Active ({activeEnrollments.length})</TabsTrigger>
-          <TabsTrigger value="completed">Completed ({completedEnrollments.length})</TabsTrigger>
+      <Tabs defaultValue="active" className="space-y-6">
+        <TabsList className="bg-muted/50 p-1 rounded-2xl w-full lg:w-[480px]">
+          <TabsTrigger value="active" className="rounded-xl font-bold text-xs">
+            Current Learning
+          </TabsTrigger>
+          <TabsTrigger value="completed" className="rounded-xl font-bold text-xs">
+            Achievement Archive
+          </TabsTrigger>
         </TabsList>
+
         <TabsContent value="active" className="mt-0">
           {activeEnrollments.length === 0 ? (
-            <Card className="border-dashed">
-              <CardContent className="py-8 text-center">
-                <BookOpen className="w-10 h-10 text-muted-foreground mx-auto mb-3 opacity-50" />
-                <h3 className="font-semibold mb-1 text-sm">No active courses</h3>
-                <p className="text-muted-foreground text-xs mb-4">Start a new course to see it here</p>
-                <Button size="sm" onClick={handleBrowse}>Browse Catalog</Button>
-              </CardContent>
+            <Card className="border-dashed bg-muted/10 rounded-[32px] p-20 text-center">
+              <BookOpen className="w-16 h-16 text-muted-foreground/20 mx-auto mb-6" />
+              <h3 className="font-black text-xl tracking-tight mb-2">No Active Curriculum</h3>
+              <p className="text-sm text-muted-foreground mb-8 max-w-xs mx-auto">
+                Your enrolled professional courses will appear here once started.
+              </p>
+              <Button
+                onClick={() => (onBrowseCatalog ? onBrowseCatalog() : navigate("/app/learning/courses"))}
+                className="rounded-2xl font-black uppercase tracking-widest px-8"
+              >
+                Browse Academy
+              </Button>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {activeEnrollments.map((enrollment) => <LearningCard key={enrollment.id} enrollment={enrollment} />)}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {activeEnrollments.map((enr) => (
+                <LearningCard key={enr.id} enrollment={enr} />
+              ))}
             </div>
           )}
         </TabsContent>
+
         <TabsContent value="completed" className="mt-0">
           {completedEnrollments.length === 0 ? (
-            <Card className="border-dashed">
-              <CardContent className="py-8 text-center">
-                <CheckCircle className="w-10 h-10 text-muted-foreground mx-auto mb-3 opacity-50" />
-                <h3 className="font-semibold mb-1 text-sm">No completed courses</h3>
-                <p className="text-muted-foreground text-xs">Finish a course to earn your certificate</p>
-              </CardContent>
-            </Card>
+            <div className="py-20 text-center border-2 border-dashed rounded-[32px] border-border/40">
+              <CheckCircle className="w-12 h-12 text-muted-foreground/10 mx-auto mb-4" />
+              <p className="text-xs font-black uppercase tracking-widest text-muted-foreground/40">
+                No completed certifications found
+              </p>
+            </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {completedEnrollments.map((enrollment) => <LearningCard key={enrollment.id} enrollment={enrollment} />)}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {completedEnrollments.map((enr) => (
+                <LearningCard key={enr.id} enrollment={enr} />
+              ))}
             </div>
           )}
         </TabsContent>
