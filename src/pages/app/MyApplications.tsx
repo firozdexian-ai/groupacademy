@@ -1,17 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  Briefcase,
-  Building2,
-  Clock,
-  ClipboardList,
-  Loader2,
-  PlayCircle,
-  Trophy,
-  FileText,
-  SearchX,
-  ArrowRight,
-} from "lucide-react";
+import { Briefcase, Building2, Clock, ClipboardList, Loader2, PlayCircle, Trophy, SearchX } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTalent } from "@/hooks/useTalent";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
@@ -20,7 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatDistanceToNow } from "date-fns";
-import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 interface Application {
@@ -37,7 +25,6 @@ interface Application {
   assessment_score: number | null;
 }
 
-// --- CTO FIX: Responsive Timeline (UI Polish Fix) ---
 const ApplicationTimeline = ({ status, isRejected }: { status: string; isRejected: boolean }) => {
   const steps = [
     { id: "submitted", label: "Applied" },
@@ -71,7 +58,7 @@ const ApplicationTimeline = ({ status, isRejected }: { status: string; isRejecte
           const isActive = index <= currentIndex;
           const isCurrent = index === currentIndex;
           return (
-            <div key={step.id} className="flex flex-col items-center flex-1">
+            <div key={step.id} className="flex flex-col items-center flex-1 relative">
               <div
                 className={cn(
                   "w-6 h-6 rounded-full flex items-center justify-center border-2 bg-background transition-all z-10",
@@ -84,7 +71,7 @@ const ApplicationTimeline = ({ status, isRejected }: { status: string; isRejecte
               </div>
               <span
                 className={cn(
-                  "text-[10px] font-medium mt-2 absolute transform translate-y-6 text-center w-full max-w-[60px] line-clamp-1",
+                  "text-[10px] font-medium mt-2 absolute top-6 text-center w-full max-w-[60px] line-clamp-1",
                   isActive ? "text-foreground" : "text-muted-foreground",
                 )}
               >
@@ -185,9 +172,12 @@ export default function MyApplications() {
   const [loading, setLoading] = useState(true);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
 
-  // Ref for background polling to prevent closure staleness
+  // CTO Audit Fix: Refs to prevent interval recreation and closure staleness
   const applicationsRef = useRef<Application[]>([]);
+  const generatingIdRef = useRef<string | null>(null);
+
   applicationsRef.current = applications;
+  generatingIdRef.current = generatingId;
 
   const fetchApplications = useCallback(
     async (silent = false) => {
@@ -231,22 +221,22 @@ export default function MyApplications() {
     [talent?.id],
   );
 
-  // CTO Fix: Optimized Background Polling (Audit #11)
   useEffect(() => {
     if (!talent?.id) return;
     fetchApplications();
 
     const pollInterval = setInterval(() => {
+      // Check ref directly to avoid effect dependency re-runs
       const needsUpdate = applicationsRef.current.some(
         (a) => a.ai_assessment_enabled && (!a.assessment_id || a.assessment_status === "generating"),
       );
-      if (needsUpdate || generatingId) {
+      if (needsUpdate || generatingIdRef.current) {
         fetchApplications(true);
       }
     }, 5000);
 
     return () => clearInterval(pollInterval);
-  }, [talent?.id, fetchApplications, !!generatingId]);
+  }, [talent?.id, fetchApplications]);
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 min-h-screen space-y-6">
