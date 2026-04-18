@@ -158,6 +158,7 @@ export function TalentAppShell() {
                         { icon: Wallet, label: "Disbursement Account", action: () => navigate("/app/profile") },
                         { icon: Bookmark, label: "Saved Jobs", action: () => navigate("/app/saved") },
                         { icon: BookOpen, label: "My Learning", action: () => navigate("/app/learning/my-courses") },
+                        { icon: Globe, label: "Career Abroad", action: () => navigate("/app/abroad") },
                         { icon: FileText, label: "Applications", action: () => navigate("/app/applications") },
                         { icon: Download, label: "Download CV", action: () => {
                           if (talent?.cvUrl) {
