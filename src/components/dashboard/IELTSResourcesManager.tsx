@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { DashboardTableSkeleton, DashboardErrorState } from "./DashboardSkeleton";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,8 +23,22 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Search, Edit, Trash2, BookOpen, Headphones, Eye, Pencil, Mic, ExternalLink } from "lucide-react";
+import {
+  Plus,
+  Search,
+  Edit,
+  Trash2,
+  BookOpen,
+  Headphones,
+  Eye,
+  Pencil,
+  Mic,
+  ExternalLink,
+  Filter,
+  RefreshCw,
+} from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 interface IELTSResource {
   id: string;
@@ -43,35 +57,21 @@ interface IELTSResource {
 }
 
 const SECTIONS = [
-  { value: "listening", label: "Listening", icon: Headphones, color: "text-blue-500" },
-  { value: "reading", label: "Reading", icon: Eye, color: "text-green-500" },
-  { value: "writing", label: "Writing", icon: Pencil, color: "text-orange-500" },
-  { value: "speaking", label: "Speaking", icon: Mic, color: "text-purple-500" },
-];
-
-const CONTENT_TYPES = [
-  { value: "video", label: "Video" },
-  { value: "article", label: "Article" },
-  { value: "practice_test", label: "Practice Test" },
-  { value: "audio", label: "Audio" },
-  { value: "pdf", label: "PDF" },
-];
-
-const DIFFICULTY_LEVELS = [
-  { value: "beginner", label: "Beginner" },
-  { value: "intermediate", label: "Intermediate" },
-  { value: "advanced", label: "Advanced" },
+  { value: "listening", label: "Listening", icon: Headphones, color: "text-blue-500", bgColor: "bg-blue-50" },
+  { value: "reading", label: "Reading", icon: Eye, color: "text-green-500", bgColor: "bg-green-50" },
+  { value: "writing", label: "Writing", icon: Pencil, color: "text-orange-500", bgColor: "bg-orange-50" },
+  { value: "speaking", label: "Speaking", icon: Mic, color: "text-purple-500", bgColor: "bg-purple-50" },
 ];
 
 const emptyResource = {
-  section: "",
+  section: "listening",
   title: "",
   description: "",
-  content_type: "",
+  content_type: "article",
   content_url: "",
   content_data: null,
-  duration_mins: null as number | null,
-  difficulty_level: "",
+  duration_mins: 0 as number | null,
+  difficulty_level: "intermediate",
   is_free: false,
   display_order: 0,
   is_active: true,
@@ -89,42 +89,33 @@ export function IELTSResourcesManager() {
   const [saving, setSaving] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadResources();
-  }, []);
-
-  const loadResources = async () => {
+  const loadResources = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const { data, error: queryError } = await withTimeout(
-        Promise.resolve(
-          supabase
-            .from("ielts_resources")
-            .select("*")
-            .order("section")
-            .order("display_order")
-        ).then(q => q),
-        TIMEOUTS.DEFAULT,
-        "Loading resources timed out"
-      );
+      const { data, error: queryError } = await supabase
+        .from("ielts_resources")
+        .select("*")
+        .order("section")
+        .order("display_order", { ascending: true });
 
       if (queryError) throw queryError;
       setResources(data || []);
     } catch (err: any) {
-      console.error("Error loading resources:", err);
-      setError(err.message || "Failed to load resources");
-      toast.error("Failed to load resources");
+      setError(err.message || "Failed to load data");
+      toast.error("Resource Sync Failed");
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const filteredResources = resources.filter((resource) => {
-    const matchesSearch =
-      resource.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (resource.description && resource.description.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchesSection = sectionFilter === "all" || resource.section === sectionFilter;
+  useEffect(() => {
+    loadResources();
+  }, [loadResources]);
+
+  const filteredResources = resources.filter((r) => {
+    const matchesSearch = r.title.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSection = sectionFilter === "all" || r.section === sectionFilter;
     return matchesSearch && matchesSection;
   });
 
@@ -132,17 +123,10 @@ export function IELTSResourcesManager() {
     if (resource) {
       setEditingResource(resource);
       setFormData({
-        section: resource.section,
-        title: resource.title,
+        ...resource,
         description: resource.description || "",
-        content_type: resource.content_type,
         content_url: resource.content_url || "",
-        content_data: resource.content_data,
-        duration_mins: resource.duration_mins,
-        difficulty_level: resource.difficulty_level || "",
-        is_free: resource.is_free,
-        display_order: resource.display_order,
-        is_active: resource.is_active,
+        difficulty_level: resource.difficulty_level || "intermediate",
       });
     } else {
       setEditingResource(null);
@@ -152,457 +136,284 @@ export function IELTSResourcesManager() {
   };
 
   const handleSave = async () => {
-    if (!formData.section || !formData.title.trim() || !formData.content_type) {
-      toast.error("Please fill in all required fields");
-      return;
-    }
-
+    if (!formData.title.trim()) return toast.error("Title is required");
     setSaving(true);
     try {
-      const resourceData = {
-        section: formData.section,
+      const payload = {
+        ...formData,
         title: formData.title.trim(),
-        description: formData.description?.trim() || null,
-        content_type: formData.content_type,
-        content_url: formData.content_url?.trim() || null,
-        content_data: formData.content_data,
-        duration_mins: formData.duration_mins,
-        difficulty_level: formData.difficulty_level || null,
-        is_free: formData.is_free,
-        display_order: formData.display_order,
-        is_active: formData.is_active,
+        duration_mins: formData.duration_mins ? Number(formData.duration_mins) : null,
       };
 
-      if (editingResource) {
-        const { error } = await withTimeout(
-          Promise.resolve(supabase.from("ielts_resources").update(resourceData).eq("id", editingResource.id)),
-          TIMEOUTS.DEFAULT,
-          "Update timed out"
-        );
-        if (error) throw error;
-        toast.success("Resource updated successfully");
-      } else {
-        const { error } = await withTimeout(
-          Promise.resolve(supabase.from("ielts_resources").insert(resourceData)),
-          TIMEOUTS.DEFAULT,
-          "Insert timed out"
-        );
-        if (error) throw error;
-        toast.success("Resource created successfully");
-      }
+      const { error: saveError } = editingResource
+        ? await supabase.from("ielts_resources").update(payload).eq("id", editingResource.id)
+        : await supabase.from("ielts_resources").insert([payload]);
 
+      if (saveError) throw saveError;
+      toast.success(editingResource ? "Resource Updated" : "Resource Created");
       setIsDialogOpen(false);
       loadResources();
-    } catch (error: any) {
-      console.error("Error saving resource:", error);
-      toast.error("Failed to save resource");
+    } catch (err: any) {
+      toast.error(err.message);
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDelete = async (id: string) => {
-    try {
-      const { error } = await withTimeout(
-        Promise.resolve(supabase.from("ielts_resources").delete().eq("id", id)),
-        TIMEOUTS.DEFAULT,
-        "Delete timed out"
-      );
-      if (error) throw error;
-      toast.success("Resource deleted successfully");
-      loadResources();
-    } catch (error: any) {
-      console.error("Error deleting resource:", error);
-      toast.error("Failed to delete resource");
-    }
-  };
-
   const handleToggleActive = async (resource: IELTSResource) => {
-    try {
-      const { error } = await withTimeout(
-        Promise.resolve(supabase.from("ielts_resources").update({ is_active: !resource.is_active }).eq("id", resource.id)),
-        TIMEOUTS.DEFAULT,
-        "Update timed out"
-      );
-      if (error) throw error;
-      toast.success(resource.is_active ? "Resource deactivated" : "Resource activated");
+    const { error } = await supabase
+      .from("ielts_resources")
+      .update({ is_active: !resource.is_active })
+      .eq("id", resource.id);
+    if (!error) {
+      toast.success(`Status set to ${!resource.is_active ? "Active" : "Inactive"}`);
       loadResources();
-    } catch (error: any) {
-      console.error("Error toggling resource:", error);
-      toast.error("Failed to update resource");
     }
   };
 
-  const getSectionIcon = (section: string) => {
-    const sectionData = SECTIONS.find(s => s.value === section);
-    if (!sectionData) return <BookOpen className="h-4 w-4" />;
-    const Icon = sectionData.icon;
-    return <Icon className={`h-4 w-4 ${sectionData.color}`} />;
-  };
-
-  const getSectionStats = (section: string) => {
-    const sectionResources = resources.filter(r => r.section === section);
-    return {
-      total: sectionResources.length,
-      free: sectionResources.filter(r => r.is_free).length,
-    };
-  };
-
-  if (loading) {
-    return <DashboardTableSkeleton rows={5} columns={6} />;
-  }
-
-  if (error) {
-    return <DashboardErrorState title="Failed to load resources" message={error} onRetry={loadResources} />;
-  }
+  if (loading) return <DashboardTableSkeleton rows={8} columns={6} />;
+  if (error) return <DashboardErrorState title="Sync Error" message={error} onRetry={loadResources} />;
 
   return (
-    <Card>
+    <Card className="shadow-sm border-muted">
       <CardHeader>
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <BookOpen className="h-5 w-5" />
-              IELTS Resources
+            <CardTitle className="text-xl flex items-center gap-2 font-bold">
+              <BookOpen className="h-5 w-5 text-primary" />
+              IELTS Curriculum Manager
             </CardTitle>
-            <div className="flex flex-wrap gap-3 mt-2 text-xs text-muted-foreground">
-              {SECTIONS.map(section => {
-                const stats = getSectionStats(section.value);
-                return (
-                  <span key={section.value} className="flex items-center gap-1">
-                    <section.icon className={`h-3 w-3 ${section.color}`} />
-                    {section.label}: {stats.total}
-                  </span>
-                );
-              })}
+            <div className="flex flex-wrap gap-4 mt-2">
+              {SECTIONS.map((s) => (
+                <div
+                  key={s.value}
+                  className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground uppercase tracking-wider"
+                >
+                  <s.icon className={cn("h-3 w-3", s.color)} />
+                  {s.label}: {resources.filter((r) => r.section === s.value).length}
+                </div>
+              ))}
             </div>
           </div>
-          <Button size="sm" onClick={() => handleOpenDialog()}>
-            <Plus className="h-4 w-4 sm:mr-2" />
-            <span className="hidden sm:inline">Add Resource</span>
+          <Button size="sm" onClick={() => handleOpenDialog()} className="shadow-sm">
+            <Plus className="h-4 w-4 mr-2" /> New Resource
           </Button>
         </div>
       </CardHeader>
-      <CardContent>
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-3 mb-4">
+
+      <CardContent className="space-y-4">
+        <div className="flex flex-col sm:flex-row gap-3 bg-muted/20 p-3 rounded-lg border">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search resources..."
+              placeholder="Search by title..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="pl-9 h-9"
             />
           </div>
           <Select value={sectionFilter} onValueChange={setSectionFilter}>
-            <SelectTrigger className="w-full sm:w-[180px]">
-              <SelectValue placeholder="Filter by section" />
+            <SelectTrigger className="w-full sm:w-[180px] h-9">
+              <Filter className="h-3.5 w-3.5 mr-2" />
+              <SelectValue placeholder="All Sections" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Sections</SelectItem>
-              {SECTIONS.map(section => (
-                <SelectItem key={section.value} value={section.value}>
-                  {section.label}
+              <SelectItem value="all">Global Catalog</SelectItem>
+              {SECTIONS.map((s) => (
+                <SelectItem key={s.value} value={s.value}>
+                  {s.label}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
 
-        {/* Mobile Cards */}
-        <div className="sm:hidden space-y-3">
-          {filteredResources.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">No resources found</p>
-          ) : (
-            filteredResources.map((resource) => (
-              <div key={resource.id} className="border rounded-lg p-3 space-y-2">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0 flex-1">
-                    {getSectionIcon(resource.section)}
-                    <div className="min-w-0">
-                      <p className="font-medium text-sm line-clamp-1">{resource.title}</p>
-                      {resource.description && (
-                        <p className="text-xs text-muted-foreground line-clamp-1">{resource.description}</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-1">
-                  <Badge variant="outline" className="text-[10px] capitalize">
-                    {resource.content_type.replace("_", " ")}
-                  </Badge>
-                  {resource.difficulty_level && (
-                    <Badge variant="secondary" className="text-[10px] capitalize">{resource.difficulty_level}</Badge>
-                  )}
-                  <Badge variant={resource.is_active ? "default" : "secondary"} className="text-[10px]">
-                    {resource.is_active ? "Active" : "Inactive"}
-                  </Badge>
-                  {resource.is_free && (
-                    <Badge variant="outline" className="text-[10px] text-green-600">Free</Badge>
-                  )}
-                </div>
-                {resource.duration_mins && (
-                  <p className="text-xs text-muted-foreground">{resource.duration_mins} mins</p>
-                )}
-                <div className="flex items-center justify-end gap-1 pt-1 border-t">
-                  {resource.content_url && (
-                    <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
-                      <a href={resource.content_url} target="_blank" rel="noopener noreferrer">
-                        <ExternalLink className="h-3.5 w-3.5" />
-                      </a>
-                    </Button>
-                  )}
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleOpenDialog(resource)}>
-                    <Edit className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleToggleActive(resource)}>
-                    {resource.is_active ? "🔴" : "🟢"}
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setDeleteId(resource.id)}>
-                    <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                  </Button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-
-        {/* Desktop Table */}
-        <div className="hidden sm:block rounded-md border">
+        <div className="rounded-xl border border-muted bg-background overflow-hidden">
           <Table>
-            <TableHeader>
+            <TableHeader className="bg-muted/30">
               <TableRow>
-                <TableHead>Section</TableHead>
-                <TableHead>Title</TableHead>
+                <TableHead className="w-[100px]">Section</TableHead>
+                <TableHead>Resource Details</TableHead>
                 <TableHead>Type</TableHead>
-                <TableHead>Duration</TableHead>
-                <TableHead>Difficulty</TableHead>
+                <TableHead>Free</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+                <TableHead className="text-right pr-6">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredResources.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                    No resources found
+              {filteredResources.map((r) => (
+                <TableRow key={r.id} className="hover:bg-muted/10">
+                  <TableCell>
+                    <Badge variant="outline" className="capitalize text-[10px] font-bold tracking-tight">
+                      {r.section}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="font-bold text-sm">{r.title}</div>
+                    <div className="text-[10px] text-muted-foreground uppercase flex gap-2">
+                      <span>Order: {r.display_order}</span>
+                      {r.duration_mins && <span>• {r.duration_mins} mins</span>}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge className="bg-muted text-muted-foreground border-none text-[10px] uppercase">
+                      {r.content_type}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {r.is_free ? (
+                      <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">YES</Badge>
+                    ) : (
+                      <span className="text-xs text-muted-foreground opacity-30">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <button
+                      onClick={() => handleToggleActive(r)}
+                      className="transition-transform active:scale-90"
+                      title="Click to toggle status"
+                    >
+                      {r.is_active ? "🟢" : "🔴"}
+                    </button>
+                  </TableCell>
+                  <TableCell className="text-right pr-6">
+                    <div className="flex justify-end gap-1">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleOpenDialog(r)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive"
+                        onClick={() => setDeleteId(r.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
-              ) : (
-                filteredResources.map((resource) => (
-                  <TableRow key={resource.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {getSectionIcon(resource.section)}
-                        <span className="capitalize">{resource.section}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{resource.title}</p>
-                        {resource.description && (
-                          <p className="text-sm text-muted-foreground line-clamp-1">{resource.description}</p>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="capitalize">
-                        {resource.content_type.replace("_", " ")}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {resource.duration_mins ? `${resource.duration_mins} mins` : "-"}
-                    </TableCell>
-                    <TableCell>
-                      {resource.difficulty_level ? (
-                        <Badge variant="secondary" className="capitalize">{resource.difficulty_level}</Badge>
-                      ) : "-"}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col gap-1">
-                        <Badge variant={resource.is_active ? "default" : "secondary"}>
-                          {resource.is_active ? "Active" : "Inactive"}
-                        </Badge>
-                        {resource.is_free && (
-                          <Badge variant="outline" className="text-xs text-green-600">Free</Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        {resource.content_url && (
-                          <Button variant="ghost" size="icon" asChild>
-                            <a href={resource.content_url} target="_blank" rel="noopener noreferrer">
-                              <ExternalLink className="h-4 w-4" />
-                            </a>
-                          </Button>
-                        )}
-                        <Button variant="ghost" size="icon" onClick={() => handleOpenDialog(resource)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleToggleActive(resource)}>
-                          {resource.is_active ? "🔴" : "🟢"}
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => setDeleteId(resource.id)}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
+              ))}
             </TableBody>
           </Table>
         </div>
       </CardContent>
 
-      {/* Form Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
-              {editingResource ? "Edit Resource" : "Add New Resource"}
+            <DialogTitle className="text-2xl font-bold">
+              {editingResource ? "Edit Resource" : "Create Curriculum Item"}
             </DialogTitle>
+            <DialogDescription>Define the metadata for this IELTS practice asset.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
+            <div className="space-y-4">
               <div className="space-y-2">
-                <Label>Section *</Label>
-                <Select value={formData.section} onValueChange={(v) => setFormData(prev => ({ ...prev, section: v }))}>
+                <Label className="text-xs font-bold uppercase">Target Section</Label>
+                <Select value={formData.section} onValueChange={(v) => setFormData((p) => ({ ...p, section: v }))}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select section" />
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {SECTIONS.map(section => (
-                      <SelectItem key={section.value} value={section.value}>
-                        {section.label}
+                    {SECTIONS.map((s) => (
+                      <SelectItem key={s.value} value={s.value}>
+                        {s.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Content Type *</Label>
-                <Select value={formData.content_type} onValueChange={(v) => setFormData(prev => ({ ...prev, content_type: v }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CONTENT_TYPES.map(type => (
-                      <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label className="text-xs font-bold uppercase">Resource Title</Label>
+                <Input value={formData.title} onChange={(e) => setFormData((p) => ({ ...p, title: e.target.value }))} />
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Title *</Label>
-              <Input
-                value={formData.title}
-                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                placeholder="e.g., Listening Practice Test 1"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Description</Label>
-              <Textarea
-                value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                placeholder="Brief description of the resource"
-                rows={3}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Content URL</Label>
-              <Input
-                value={formData.content_url}
-                onChange={(e) => setFormData(prev => ({ ...prev, content_url: e.target.value }))}
-                placeholder="https://..."
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Duration (minutes)</Label>
+                <Label className="text-xs font-bold uppercase">Content Link (URL)</Label>
                 <Input
-                  type="number"
-                  value={formData.duration_mins || ""}
-                  onChange={(e) => setFormData(prev => ({ ...prev, duration_mins: e.target.value ? parseInt(e.target.value) : null }))}
-                  placeholder="e.g., 30"
+                  value={formData.content_url}
+                  onChange={(e) => setFormData((p) => ({ ...p, content_url: e.target.value }))}
+                  placeholder="https://..."
                 />
               </div>
+            </div>
+            <div className="space-y-4">
               <div className="space-y-2">
-                <Label>Difficulty Level</Label>
-                <Select value={formData.difficulty_level} onValueChange={(v) => setFormData(prev => ({ ...prev, difficulty_level: v }))}>
+                <Label className="text-xs font-bold uppercase">Content Type</Label>
+                <Select
+                  value={formData.content_type}
+                  onValueChange={(v) => setFormData((p) => ({ ...p, content_type: v }))}
+                >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select level" />
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {DIFFICULTY_LEVELS.map(level => (
-                      <SelectItem key={level.value} value={level.value}>{level.label}</SelectItem>
-                    ))}
+                    <SelectItem value="video">Video</SelectItem>
+                    <SelectItem value="article">Article</SelectItem>
+                    <SelectItem value="audio">Audio</SelectItem>
+                    <SelectItem value="pdf">PDF</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Display Order</Label>
-              <Input
-                type="number"
-                value={formData.display_order}
-                onChange={(e) => setFormData(prev => ({ ...prev, display_order: parseInt(e.target.value) || 0 }))}
-                placeholder="0"
-              />
-            </div>
-
-            <div className="flex flex-wrap gap-6">
-              <div className="flex items-center space-x-2">
-                <Switch
-                  checked={formData.is_free}
-                  onCheckedChange={(v) => setFormData(prev => ({ ...prev, is_free: v }))}
-                />
-                <Label>Free Resource</Label>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase">Duration (Min)</Label>
+                  <Input
+                    type="number"
+                    value={formData.duration_mins || 0}
+                    onChange={(e) => setFormData((p) => ({ ...p, duration_mins: parseInt(e.target.value) }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase">Sort Order</Label>
+                  <Input
+                    type="number"
+                    value={formData.display_order}
+                    onChange={(e) => setFormData((p) => ({ ...p, display_order: parseInt(e.target.value) }))}
+                  />
+                </div>
               </div>
-              <div className="flex items-center space-x-2">
-                <Switch
-                  checked={formData.is_active}
-                  onCheckedChange={(v) => setFormData(prev => ({ ...prev, is_active: v }))}
-                />
-                <Label>Active</Label>
+              <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/10 mt-6">
+                <div className="flex items-center gap-3">
+                  <Switch
+                    checked={formData.is_free}
+                    onCheckedChange={(v) => setFormData((p) => ({ ...p, is_free: v }))}
+                  />
+                  <Label className="font-bold">Public/Free</Label>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Switch
+                    checked={formData.is_active}
+                    onCheckedChange={(v) => setFormData((p) => ({ ...p, is_active: v }))}
+                  />
+                  <Label className="font-bold">Published</Label>
+                </div>
               </div>
             </div>
-
-            <div className="flex justify-end gap-2 pt-4">
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-              <Button onClick={handleSave} disabled={saving}>
-                {saving ? "Saving..." : editingResource ? "Update Resource" : "Create Resource"}
-              </Button>
-            </div>
+          </div>
+          <div className="flex justify-end gap-3 pt-4 border-t">
+            <Button variant="ghost" onClick={() => setIsDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSave} disabled={saving} className="min-w-[120px]">
+              {saving ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : "Save Changes"}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Delete AlertDialog */}
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Resource</AlertDialogTitle>
+            <AlertDialogTitle>Permanent Deletion</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. Are you sure you want to delete this resource?
+              This will remove the resource from the platform immediately. Users who unlocked this may lose access.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => {
-                if (deleteId) handleDelete(deleteId);
-                setDeleteId(null);
-              }}
+              onClick={() => deleteId && handleDelete(deleteId)}
+              className="bg-destructive text-destructive-foreground"
             >
               Delete
             </AlertDialogAction>
