@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Pin, ExternalLink, Play, MoreHorizontal, MessageSquare } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { PostAuthor } from "./PostAuthor";
 import { ReactionBar, ReactionType } from "./ReactionBar";
@@ -206,7 +207,7 @@ export function PostCard({ post }: PostCardProps) {
             <ReactionBar
               reactions={reactions}
               userReaction={userReaction}
-              onReact={handleReact}
+              onReact={toggleReaction}
               disabled={reactionsLoading}
               inline
             />
