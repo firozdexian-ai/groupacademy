@@ -227,6 +227,8 @@ export function StudyAbroadManager() {
     }
   };
 
+  const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
+
   return (
     <Card className="shadow-sm border-muted">
       <CardHeader className="pb-4">
@@ -272,6 +274,8 @@ export function StudyAbroadManager() {
 
         {loading ? (
           <DashboardTableSkeleton rows={5} columns={6} />
+        ) : error ? (
+          <DashboardErrorState title="Error" message={error} onRetry={loadPrograms} />
         ) : (
           <div className="rounded-xl border border-muted bg-background overflow-hidden">
             <Table>
@@ -308,16 +312,20 @@ export function StudyAbroadManager() {
                       <TableCell>
                         <div className="text-[10px] space-y-0.5">
                           <div className="font-medium">{program.degree_type || "N/A"}</div>
-                          <div className="text-muted-foreground">{program.tuition_range || "Contact for pricing"}</div>
+                          <div className="text-muted-foreground">{program.tuition_range || "Contact"}</div>
                         </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex justify-center gap-1.5">
                           {program.featured && (
-                            <Star className="h-4 w-4 text-amber-500 fill-amber-500" title="Featured" />
+                            <span title="Featured Program">
+                              <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
+                            </span>
                           )}
                           {program.scholarship_available && (
-                            <Award className="h-4 w-4 text-emerald-500" title="Scholarship" />
+                            <span title="Scholarship Available">
+                              <Award className="h-4 w-4 text-emerald-500" />
+                            </span>
                           )}
                         </div>
                       </TableCell>
@@ -377,7 +385,7 @@ export function StudyAbroadManager() {
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
               >
-                Next <ChevronRight className="h-4 w-4 ml-1" />
+                Next <ChevronRight className="h-4 w-4 mr-1" />
               </Button>
             </div>
           </div>
@@ -421,7 +429,7 @@ export function StudyAbroadManager() {
                 <Input
                   value={formData.university_name}
                   onChange={(e) => setFormData((p) => ({ ...p, university_name: e.target.value }))}
-                  placeholder="e.g., University of Oxford"
+                  placeholder="University Name"
                 />
               </div>
               <div className="space-y-2">
@@ -446,19 +454,19 @@ export function StudyAbroadManager() {
 
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label className="font-bold">Program Full Name *</Label>
+                <Label className="font-bold">Program Name *</Label>
                 <Input
                   value={formData.program_name}
                   onChange={(e) => setFormData((p) => ({ ...p, program_name: e.target.value }))}
-                  placeholder="e.g., MSc in Artificial Intelligence"
+                  placeholder="Program Name"
                 />
               </div>
               <div className="space-y-2">
-                <Label className="font-bold">Annual Tuition (USD/Range)</Label>
+                <Label className="font-bold">Annual Tuition (USD)</Label>
                 <Input
                   value={formData.tuition_range || ""}
                   onChange={(e) => setFormData((p) => ({ ...p, tuition_range: e.target.value }))}
-                  placeholder="e.g., $25,000 - $35,000"
+                  placeholder="e.g., $25,000"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -496,9 +504,7 @@ export function StudyAbroadManager() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Program Listing?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This program will be removed from the public Study Abroad discovery portal immediately.
-            </AlertDialogDescription>
+            <AlertDialogDescription>This program will be removed from the portal immediately.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -514,5 +520,3 @@ export function StudyAbroadManager() {
     </Card>
   );
 }
-
-const totalPages = 0; // Calculated above in render block
