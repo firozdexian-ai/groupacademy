@@ -69,9 +69,10 @@ export function QuickActionsGrid() {
       const result: QuickAgent[] = [];
       const used = new Set<string>();
 
+      // Reserve last slot for the Abroad shortcut → max 7 agents
       for (const key of personalAgentKeys) {
         const agent = agentMap.get(key);
-        if (agent && result.length < 8) {
+        if (agent && result.length < 7) {
           result.push(agent);
           used.add(key);
         }
@@ -79,7 +80,7 @@ export function QuickActionsGrid() {
 
       // Fill remaining with popular agents
       for (const agent of allAgents) {
-        if (!used.has(agent.agent_key) && result.length < 8) {
+        if (!used.has(agent.agent_key) && result.length < 7) {
           result.push(agent);
           used.add(agent.agent_key);
         }
