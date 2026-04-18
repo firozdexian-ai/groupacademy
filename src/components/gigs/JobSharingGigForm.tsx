@@ -9,7 +9,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { JOB_TYPES } from "@/lib/constants/jobTypes";
 import {
   Loader2,
   Search,
@@ -35,7 +34,6 @@ interface JobSharingGigFormProps {
   onSubmitted: () => void;
 }
 
-// CTO Logic: Semantic Geo-Mapping for efficient filtering
 const COUNTRY_ALIASES: Record<string, string[]> = {
   Bangladesh: ["bangladesh", "dhaka", "banani", "gulshan", "uttara", "chattogram"],
   UAE: ["dubai", "abu dhabi", "uae", "emirates"],
@@ -110,25 +108,38 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
     ? `https://groupacademy.app/jobs/${selectedJob.id}${talentRefCode ? `?ref=${talentRefCode}` : ""}`
     : "";
 
-  const generateCaption = async (channel: string) => {
-    if (!selectedJob) return;
+  // RESTORED: Missing function definition
+  const handleSelectJob = (jobId: string) => {
+    setSelectedJobId(jobId);
+    setCaptions({}); // Clear old AI captions
+    setSharedChannels([]); // Reset sharing progress
+    // Trigger initial caption generation for the default channel
+    generateCaption(jobId, "linkedin");
+  };
+
+  const generateCaption = async (jobId: string, channel: string) => {
+    const job = jobs?.find((j) => j.id === jobId);
+    if (!job) return;
+
     setLoadingCaption(true);
     try {
       const { data, error } = await supabase.functions.invoke("generate-job-share-caption", {
-        body: { ...selectedJob, apply_link: shareUrl, channel },
+        body: { ...job, apply_link: shareUrl, channel },
       });
       if (error) throw error;
       setCaptions((prev) => ({ ...prev, [channel]: data.caption }));
     } catch (err) {
-      toast.error("AI Caption generation failed");
+      toast.error("AI was unable to generate a caption.");
     } finally {
       setLoadingCaption(false);
     }
   };
 
-  const handleAction = async (channel: (typeof CHANNELS)[number]["key"]) => {
-    if (!captions[channel]) await generateCaption(channel);
+  const handleChannelChange = async (channel: (typeof CHANNELS)[number]["key"]) => {
     setActiveChannel(channel);
+    if (!captions[channel] && selectedJobId) {
+      await generateCaption(selectedJobId, channel);
+    }
   };
 
   const handleShareTrigger = (channel: string) => {
@@ -139,8 +150,11 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
       linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`,
       facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`,
     };
+
     window.open(urls[channel], "_blank");
-    if (!sharedChannels.includes(channel)) setSharedChannels((prev) => [...prev, channel]);
+    if (!sharedChannels.includes(channel)) {
+      setSharedChannels((prev) => [...prev, channel]);
+    }
   };
 
   const handleSubmit = async () => {
@@ -158,10 +172,10 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
         },
       });
       if (error) throw error;
-      toast.success("Community share logged! Clicks are now being tracked.");
+      toast.success("Gig submitted! We are now tracking your referral link.");
       onSubmitted();
     } catch (err) {
-      toast.error("Submission failed");
+      toast.error("Submission failed. Check your connection.");
     } finally {
       setIsSubmitting(false);
     }
@@ -172,10 +186,10 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
-            1. Choose Opportunity
+            1. Select Opportunity
           </Label>
           <Badge variant="outline" className="text-[9px] font-black uppercase text-primary border-primary/20">
-            {filteredJobs.length} Jobs Live
+            {filteredJobs.length} Jobs Available
           </Badge>
         </div>
 
@@ -183,7 +197,7 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
           <div className="relative flex-1">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Filter by Role or Brand..."
+              placeholder="Search Role or Company..."
               className="pl-9 rounded-xl border-border/40 h-10 text-xs font-bold"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -246,7 +260,7 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
               {CHANNELS.map((ch) => (
                 <button
                   key={ch.key}
-                  onClick={() => handleAction(ch.key)}
+                  onClick={() => handleChannelChange(ch.key)}
                   className={cn(
                     "flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0",
                     activeChannel === ch.key ? "bg-primary text-white" : "bg-muted text-muted-foreground",
@@ -268,7 +282,7 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
             <Textarea
               value={captions[activeChannel] || ""}
               readOnly
-              placeholder="AI is preparing your professional caption..."
+              placeholder="Preparing professional social copy..."
               className="text-[11px] font-medium min-h-[120px] rounded-2xl border-border/40 bg-muted/20 resize-none italic"
             />
             <Button
@@ -277,7 +291,7 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
               className="absolute top-2 right-2 rounded-full h-8 w-8 hover:bg-primary/10"
               onClick={() => {
                 navigator.clipboard.writeText(captions[activeChannel]);
-                toast.success("Copying success!");
+                toast.success("Caption copied to clipboard");
               }}
             >
               <Copy className="h-3.5 w-3.5 text-primary" />
@@ -302,14 +316,14 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
               )}
             >
               {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Zap className="h-4 w-4 mr-2" />}
-              Submit Verified Share
+              Confirm Verified Share
             </Button>
 
             {sharedChannels.length > 0 && (
               <div className="flex items-center justify-center gap-2 text-emerald-600 animate-in zoom-in-95">
                 <CheckCircle className="h-4 w-4" />
                 <span className="text-[10px] font-black uppercase tracking-widest">
-                  Share Registered ({sharedChannels.length})
+                  Tracking Active ({sharedChannels.length} Platform)
                 </span>
               </div>
             )}
