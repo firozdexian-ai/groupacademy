@@ -11,6 +11,7 @@ import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { CreditGateModal } from "@/components/credits/CreditGateModal";
 import { CreditPurchaseSheet } from "@/components/credits/CreditPurchaseSheet";
 import { getCourseCredits } from "@/lib/creditPricing";
+import { cn } from "@/lib/utils"; // FIX: Added missing cn import
 import {
   ArrowLeft,
   BookOpen,
@@ -56,7 +57,6 @@ export default function AppCourseDetail({ inlineSlug, onBack }: { inlineSlug?: s
   const params = useParams();
   const slug = inlineSlug || params.slug;
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const { talent, refreshTalent } = useTalent();
   const { balance, deductCustomAmount, refreshBalance } = useCredits();
 
@@ -140,14 +140,17 @@ export default function AppCourseDetail({ inlineSlug, onBack }: { inlineSlug?: s
         .maybeSingle();
 
       if (!existingStudent) {
+        // FIX: Added required 'student_id' field.
+        // We use userId as a fallback for the student_id string requirement.
         const { data: newStudent, error: createError } = await supabase
           .from("students")
           .insert([
             {
+              student_id: talent.userId,
               user_id: talent.userId,
               full_name: talent.fullName,
               email: talent.email,
-              status: "enrolled", // Fixed enum value
+              status: "enrolled",
             },
           ])
           .select()
@@ -228,7 +231,6 @@ export default function AppCourseDetail({ inlineSlug, onBack }: { inlineSlug?: s
       </Button>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-        {/* Course Core Content */}
         <div className="lg:col-span-2 space-y-8">
           <div className="relative group rounded-[32px] overflow-hidden bg-black aspect-video shadow-2xl border-4 border-white dark:border-muted/20">
             {course.youtube_url ? (
@@ -271,7 +273,6 @@ export default function AppCourseDetail({ inlineSlug, onBack }: { inlineSlug?: s
           </div>
         </div>
 
-        {/* Action Sidebar */}
         <div className="lg:col-span-1">
           <Card className="sticky top-8 border-primary/20 shadow-2xl overflow-hidden rounded-[32px] bg-card/50 backdrop-blur-md">
             <div className="bg-primary/5 p-8 border-b border-primary/10">
@@ -325,18 +326,14 @@ export default function AppCourseDetail({ inlineSlug, onBack }: { inlineSlug?: s
                   </div>
                 )}
               </div>
-
-              <div className="pt-2">
-                <p className="text-[10px] text-center font-bold text-muted-foreground uppercase tracking-widest leading-relaxed">
-                  Enrollment includes lifetime access and digital certification
-                </p>
-              </div>
+              <p className="text-[10px] text-center font-bold text-muted-foreground uppercase tracking-widest pt-2">
+                Includes lifetime access and certification
+              </p>
             </CardContent>
           </Card>
         </div>
       </div>
 
-      {/* Persistence Modals */}
       <CreditGateModal
         isOpen={showCreditGate}
         onClose={() => setShowCreditGate(false)}
@@ -350,7 +347,6 @@ export default function AppCourseDetail({ inlineSlug, onBack }: { inlineSlug?: s
         }}
         isLoading={isEnrolling}
       />
-
       <CreditPurchaseSheet
         isOpen={showPurchaseSheet}
         onClose={() => setShowPurchaseSheet(false)}
