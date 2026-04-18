@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useTalent } from "@/hooks/useTalent";
 import type { Json } from "@/integrations/supabase/types";
 import { JOB_TYPES } from "@/lib/constants/jobTypes";
+import { Badge } from "@/components/ui/badge";
 import { Globe, Banknote, Building2 } from "lucide-react";
 
 interface JobPreferences {
