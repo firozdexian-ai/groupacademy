@@ -8,8 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
-import { Input } from "@/components/ui/input"; // Added Input for file upload
-import { Label } from "@/components/ui/label"; // Added Label
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   ArrowLeft,
   Building2,
@@ -22,7 +22,7 @@ import {
   Brain,
   ArrowRight,
   MessageCircle,
-  UploadCloud, // Added Icon
+  UploadCloud,
 } from "lucide-react";
 import { toast } from "sonner";
 import { SUPPORT_CONFIG, getExpediteMessage } from "@/lib/constants/support";
@@ -48,7 +48,7 @@ const SUBMISSION_STAGES = [
 export default function AppJobApplication() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { talent, refreshTalent } = useTalent(); // Added refreshTalent
+  const { talent, refreshTalent } = useTalent();
   const { balance, canAfford, deductCredits, getServiceCost, refreshBalance } = useCredits();
 
   const [job, setJob] = useState<Job | null>(null);
@@ -61,13 +61,9 @@ export default function AppJobApplication() {
   const [submissionProgress, setSubmissionProgress] = useState(0);
   const [submissionMessage, setSubmissionMessage] = useState("");
   const [generatedAssessmentId, setGeneratedAssessmentId] = useState<string | null>(null);
-
-  // New State for Inline CV Upload
   const [isUploadingCV, setIsUploadingCV] = useState(false);
 
-  // Prevent double submission
   const isSubmittingRef = useRef(false);
-
   const applicationCost = getServiceCost("JOB_APPLICATION");
   const hasEnoughCredits = canAfford("JOB_APPLICATION");
 
@@ -109,7 +105,6 @@ export default function AppJobApplication() {
     }
   };
 
-  // FIX: Inline CV Upload Logic
   const handleCVUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !talent) return;
@@ -122,23 +117,28 @@ export default function AppJobApplication() {
     setIsUploadingCV(true);
     try {
       const fileExt = file.name.split(".").pop();
-      const fileName = `${talent.id}/${Date.now()}-cv.${fileExt}`;
+      const filePath = `${talent.id}/${Date.now()}-cv.${fileExt}`;
 
-      const { error: uploadError } = await supabase.storage.from("cv_uploads").upload(fileName, file);
-
+      // FIX: Use 'talent-cvs' bucket as per Technical Reference
+      const { error: uploadError } = await supabase.storage.from("talent-cvs").upload(filePath, file);
       if (uploadError) throw uploadError;
 
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("cv_uploads").getPublicUrl(fileName);
+      // FIX: Create a Signed URL for private bucket access (valid for 1 year)
+      const { data: signedData, error: urlError } = await supabase.storage
+        .from("talent-cvs")
+        .createSignedUrl(filePath, 31536000); // 1 year expiry
 
-      // Update talent profile with new CV
-      const { error: updateError } = await supabase.from("talents").update({ cv_url: publicUrl }).eq("id", talent.id);
+      if (urlError) throw urlError;
+
+      const { error: updateError } = await supabase
+        .from("talents")
+        .update({ cv_url: signedData.signedUrl })
+        .eq("id", talent.id);
 
       if (updateError) throw updateError;
 
-      await refreshTalent(); // Refresh local state
-      toast.success("CV uploaded successfully!");
+      await refreshTalent();
+      toast.success("CV uploaded and secured successfully!");
     } catch (error) {
       console.error("Upload error:", error);
       toast.error("Failed to upload CV. Please try again.");
@@ -164,7 +164,6 @@ export default function AppJobApplication() {
       });
 
       if (error) throw error;
-
       if (data?.enhancedCoverLetter) {
         setCoverLetter(data.enhancedCoverLetter);
         toast.success("Cover letter generated!");
@@ -187,9 +186,7 @@ export default function AppJobApplication() {
 
     if (!talent.cvUrl) {
       toast.error("Please upload your CV above to continue.");
-      // Don't redirect, just highlight the section (or scroll to it)
-      const cvSection = document.getElementById("cv-upload-section");
-      cvSection?.scrollIntoView({ behavior: "smooth" });
+      document.getElementById("cv-upload-section")?.scrollIntoView({ behavior: "smooth" });
       return;
     }
 
@@ -362,7 +359,6 @@ export default function AppJobApplication() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-4">
-      {/* Header */}
       <div className="flex items-center gap-3 mb-4">
         <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-5 w-5" />
@@ -373,7 +369,6 @@ export default function AppJobApplication() {
         </div>
       </div>
 
-      {/* Job Info */}
       <Card className="mb-4">
         <CardContent className="p-4">
           <div className="flex gap-4 items-center">
@@ -396,7 +391,6 @@ export default function AppJobApplication() {
         </CardContent>
       </Card>
 
-      {/* CV Status - Inline Upload */}
       <Card className={`mb-4 ${!talent?.cvUrl ? "border-primary/50 bg-primary/5" : ""}`} id="cv-upload-section">
         <CardHeader className="pb-3 border-b">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -427,7 +421,6 @@ export default function AppJobApplication() {
                     View
                   </a>
                 </Button>
-                {/* Re-upload Option */}
                 <Label htmlFor="cv-upload" className="cursor-pointer">
                   <div className="flex items-center gap-2 h-8 px-3 text-xs font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-md">
                     Replace
@@ -474,7 +467,6 @@ export default function AppJobApplication() {
         </CardContent>
       </Card>
 
-      {/* Cover Letter */}
       <Card className="mb-4">
         <CardHeader className="pb-3 border-b flex flex-row items-center justify-between space-y-0">
           <div>
@@ -485,7 +477,7 @@ export default function AppJobApplication() {
             variant="outline"
             size="sm"
             onClick={handleGenerateCoverLetter}
-            disabled={isGeneratingCoverLetter || !talent?.cvUrl} // Still need CV for context
+            disabled={isGeneratingCoverLetter || !talent?.cvUrl}
             className="h-8 text-xs gap-1.5"
           >
             {isGeneratingCoverLetter ? (
@@ -507,7 +499,6 @@ export default function AppJobApplication() {
         </CardContent>
       </Card>
 
-      {/* Cost & Submit - positioned above mobile nav */}
       <div className="fixed bottom-16 left-0 right-0 p-4 bg-background border-t md:relative md:bottom-0 md:p-0 md:border-0 md:bg-transparent z-10">
         <div className="max-w-2xl mx-auto flex flex-col gap-3">
           <div className="flex items-center justify-between text-sm px-1">
@@ -536,7 +527,6 @@ export default function AppJobApplication() {
               className="w-full h-12 text-base shadow-lg"
               size="lg"
               onClick={handleSubmit}
-              // FIX: Button is only disabled if user is actively uploading, not if missing CV (we handle that with toast)
               disabled={isUploadingCV}
             >
               {!hasEnoughCredits ? (
@@ -553,8 +543,7 @@ export default function AppJobApplication() {
           )}
         </div>
       </div>
-      
-      {/* Spacer to prevent content from being hidden behind fixed footer */}
+
       <div className="h-32 md:hidden" />
 
       <CreditPurchaseSheet
