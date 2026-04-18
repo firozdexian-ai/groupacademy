@@ -47,7 +47,7 @@ export function QuickActionsGrid() {
           }
           personalAgentKeys = Array.from(countMap.entries())
             .sort((a, b) => b[1] - a[1])
-            .slice(0, 8)
+            .slice(0, 7) // reserve last slot for the Abroad shortcut
             .map(([key]) => key);
         }
       }
