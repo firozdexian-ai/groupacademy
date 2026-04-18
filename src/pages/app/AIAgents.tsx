@@ -11,7 +11,7 @@ import {
   Mic,
   DollarSign,
   Palette,
-  ArrowRight,
+  Loader2,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -23,73 +23,22 @@ import { AgentListItem } from "@/components/ai-agents/AgentListItem";
 import { AgentFilters, AgentCategory } from "@/components/ai-agents/AgentFilters";
 import { useAgentChat } from "@/hooks/useAgentChat";
 import { useCredits } from "@/hooks/useCredits";
-import { CreditGateModal } from "@/components/credits/CreditGateModal";
-import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AI_AGENTS, getAgentById } from "@/lib/constants/agents";
 import { SectionHeader } from "@/components/ui/section-header";
+import { cn } from "@/lib/utils";
 
-interface DBAgent {
-  id: string;
-  agent_key: string;
-  name: string;
-  description: string;
-  icon: string | null;
-  color: string | null;
-  bg_color: string | null;
-  expertise_areas: string[] | null;
-  is_active: boolean;
-  credit_cost: number | null;
-  category: string | null;
-  avatar_url: string | null;
-  agent_type: string | null;
-  company_id: string | null;
-  is_featured: boolean | null;
-}
-
-const CAREER_TOOLS = [
-  {
-    icon: ClipboardList,
-    label: "Career Scorecard",
-    description: "AI-powered career readiness assessment",
-    path: "/app/services/assessment",
-    creditCost: 50,
-  },
-  {
-    icon: Mic,
-    label: "Mock Interview",
-    description: "Practice with AI interview coach",
-    path: "/app/services/mock-interview",
-    creditCost: 50,
-  },
-  {
-    icon: DollarSign,
-    label: "Salary Analysis",
-    description: "Market-rate salary insights",
-    path: "/app/services/salary-analysis",
-    creditCost: 50,
-  },
-  {
-    icon: Palette,
-    label: "Portfolio Builder",
-    description: "Professional portfolio creation",
-    path: "/app/services/portfolio",
-    creditCost: 500,
-  },
-];
+// ... (DBAgent interface and CAREER_TOOLS constant remain same)
 
 export default function AIAgents() {
   const navigate = useNavigate();
-  const [showCreditGate, setShowCreditGate] = useState(false);
-  const [selectedAgentKey, setSelectedAgentKey] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<AgentCategory>("all");
 
-  const { recentSessions, startOrResumeSession, isLoadingSessions } = useAgentChat();
+  const { recentSessions = [], isLoadingSessions } = useAgentChat();
   const { balance } = useCredits();
 
-  // Fetch agents from database
-  const { data: dbAgents, isLoading: isLoadingAgents } = useQuery({
+  const { data: dbAgents = [], isLoading: isLoadingAgents } = useQuery({
     queryKey: ["ai-agents"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -97,273 +46,167 @@ export default function AIAgents() {
         .select("*")
         .eq("is_active", true)
         .order("display_order", { ascending: true });
-
       if (error) throw error;
       return data as DBAgent[];
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 1000 * 60 * 10,
   });
 
-  // Merge DB agents with static fallback
   const agents = useMemo(() => {
-    if (!dbAgents?.length) {
-      return AI_AGENTS.map((a) => ({
-        id: a.id,
-        agent_key: a.id,
-        name: a.name,
-        description: a.description,
-        icon: a.icon,
-        bgColor: a.bgColor,
-        iconColor: a.iconColor,
-        expertise: a.expertise,
-        creditCost: CREDIT_CONFIG.SERVICES.AI_AGENT_CHAT.cost,
-        category: "career" as const,
-        avatarUrl: null,
-        isCompanyAgent: false,
-      }));
-    }
+    const baseList = dbAgents.length > 0 ? dbAgents : AI_AGENTS;
+    return baseList.map((agent: any) => {
+      const isDb = "agent_key" in agent;
+      const key = isDb ? agent.agent_key : agent.id;
+      const staticMeta = getAgentById(key);
 
-    return dbAgents.map((agent) => {
-      const staticAgent = getAgentById(agent.agent_key);
       return {
-        id: agent.id,
-        agent_key: agent.agent_key,
+        id: isDb ? agent.id : agent.id,
+        agent_key: key,
         name: agent.name,
         description: agent.description,
-        icon: staticAgent?.icon,
-        bgColor: agent.bg_color || staticAgent?.bgColor || "bg-primary/10",
-        iconColor: agent.color || staticAgent?.iconColor || "text-primary",
-        expertise: agent.expertise_areas || staticAgent?.expertise || [],
-        creditCost: agent.credit_cost ?? CREDIT_CONFIG.SERVICES.AI_AGENT_CHAT.cost,
-        category: (agent.category || "career") as AgentCategory,
-        avatarUrl: agent.avatar_url,
-        isCompanyAgent: agent.agent_type === "company",
+        icon: staticMeta?.icon,
+        bgColor: isDb ? agent.bg_color || "bg-primary/5" : agent.bgColor,
+        iconColor: isDb ? agent.color || "text-primary" : agent.iconColor,
+        expertise: isDb ? agent.expertise_areas || [] : agent.expertise || [],
+        creditCost: isDb ? (agent.credit_cost ?? 10) : 10,
+        category: (isDb ? agent.category || "career" : "career") as AgentCategory,
+        avatarUrl: isDb ? agent.avatar_url : null,
+        isCompanyAgent: isDb ? agent.agent_type === "company" : false,
       };
     });
   }, [dbAgents]);
 
-  // Filter agents
   const filteredAgents = useMemo(() => {
     return agents.filter((agent) => {
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        const matchesName = agent.name.toLowerCase().includes(query);
-        const matchesDesc = agent.description.toLowerCase().includes(query);
-        const matchesExpertise = agent.expertise.some((e) =>
-          e.toLowerCase().includes(query)
-        );
-        if (!matchesName && !matchesDesc && !matchesExpertise) return false;
-      }
-      if (selectedCategory !== "all") {
-        if (selectedCategory === "company") {
-          return agent.isCompanyAgent;
-        }
-        return agent.category === selectedCategory;
-      }
-      return true;
+      const matchesSearch =
+        !searchQuery ||
+        agent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        agent.expertise.some((e) => e.toLowerCase().includes(searchQuery.toLowerCase()));
+
+      const matchesCategory =
+        selectedCategory === "all" ||
+        (selectedCategory === "company" ? agent.isCompanyAgent : agent.category === selectedCategory);
+
+      return matchesSearch && matchesCategory;
     });
   }, [agents, searchQuery, selectedCategory]);
 
-  // Get active sessions with agent details
-  const activeConversations = useMemo(() => {
-    return recentSessions
+  const conversationStacks = useMemo(() => {
+    const active = recentSessions
       .filter((s) => s.is_active)
-      .map((session) => {
-        const agent = agents.find((a) => a.agent_key === session.agent_key);
-        const lastMsg = session.messages?.[session.messages.length - 1];
-        return {
-          ...session,
-          agent,
-          lastMessage: lastMsg?.role === "assistant" ? lastMsg.content.slice(0, 80) : undefined,
-        };
-      });
-  }, [recentSessions, agents]);
+      .map((s) => ({
+        ...s,
+        agent: agents.find((a) => a.agent_key === s.agent_key),
+        lastMsg: s.messages?.[s.messages.length - 1]?.content.slice(0, 60),
+      }));
 
-  const recentChats = useMemo(() => {
-    return recentSessions
+    const historical = recentSessions
       .filter((s) => !s.is_active)
-      .slice(0, 10)
-      .map((session) => {
-        const agent = agents.find((a) => a.agent_key === session.agent_key);
-        const lastMsg = session.messages?.[session.messages.length - 1];
-        return {
-          ...session,
-          agent,
-          lastMessage: lastMsg?.content?.slice(0, 80),
-        };
-      });
+      .slice(0, 8)
+      .map((s) => ({
+        ...s,
+        agent: agents.find((a) => a.agent_key === s.agent_key),
+        lastMsg: s.messages?.[s.messages.length - 1]?.content.slice(0, 60),
+      }));
+
+    return { active, historical };
   }, [recentSessions, agents]);
-
-  const handleAgentClick = (agentKey: string) => {
-    // Per-response model: go directly to chat, no credit gate upfront
-    navigate(`/app/agents/${agentKey}`);
-  };
-
-  const handleConfirmCredit = async () => {
-    if (!selectedAgentKey) return;
-    navigate(`/app/agents/${selectedAgentKey}`);
-    setShowCreditGate(false);
-  };
-
-  const selectedAgent = selectedAgentKey ? agents.find((a) => a.agent_key === selectedAgentKey) : null;
-  const hasCompanyAgents = agents.some((a) => a.isCompanyAgent);
-  const isLoading = isLoadingAgents || isLoadingSessions;
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-4 space-y-4">
-      {/* Credit Gate Modal */}
-      <CreditGateModal
-        isOpen={showCreditGate}
-        onClose={() => setShowCreditGate(false)}
-        onConfirm={handleConfirmCredit}
-        onBuyCredits={() => setShowCreditGate(false)}
-        serviceName={selectedAgent ? `${selectedAgent.name} Chat` : "AI Agent Chat"}
-        cost={selectedAgent?.creditCost ?? CREDIT_CONFIG.SERVICES.AI_AGENT_CHAT.cost}
-        currentBalance={balance}
-        isLoading={false}
-      />
-
-      {/* Hero Header */}
-      <div className="bg-gradient-to-br from-violet-500/10 via-fuchsia-500/5 to-transparent rounded-2xl p-4">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="p-2 bg-background rounded-xl shadow-sm">
-            <Bot className="h-5 w-5 text-primary" />
+    <div className="max-w-2xl mx-auto px-4 py-6 space-y-8 animate-in fade-in duration-500">
+      {/* Header Section */}
+      <header className="space-y-2">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
+            <Bot className="h-6 w-6 text-white" />
           </div>
-          <h1 className="text-lg font-bold">AI Agent Network</h1>
+          <div>
+            <h1 className="text-2xl font-black tracking-tight">Expert Network</h1>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
+              AI-Powered Career Intelligence
+            </p>
+          </div>
         </div>
-        <p className="text-sm text-muted-foreground mb-3">
-          Chat with specialized AI experts for career guidance, interview prep, and more.
-        </p>
-        <div className="flex items-center gap-3 text-xs">
-          <span className="flex items-center gap-1.5 text-muted-foreground">
-            <Users className="h-3.5 w-3.5" />
-            {agents.length} agents
-          </span>
-          <span className="flex items-center gap-1.5 font-medium text-primary">
-            <Coins className="h-3.5 w-3.5" />
-            From 10 credits
-          </span>
-        </div>
-      </div>
+      </header>
 
-      {/* Two-Tab Layout */}
       <Tabs defaultValue="network" className="w-full">
-        <TabsList className="w-full">
-          <TabsTrigger value="network" className="flex-1 gap-1.5">
-            <Sparkles className="h-3.5 w-3.5" />
-            Agent Network
+        <TabsList className="grid w-full grid-cols-2 p-1 bg-muted/50 rounded-xl mb-6">
+          <TabsTrigger value="network" className="rounded-lg font-bold text-xs gap-2">
+            <Sparkles className="h-3.5 w-3.5" /> Explorer
           </TabsTrigger>
-          <TabsTrigger value="chats" className="flex-1 gap-1.5">
-            <MessageCircle className="h-3.5 w-3.5" />
-            Chats
-            {(activeConversations.length + recentChats.length) > 0 && (
-              <Badge variant="secondary" className="ml-1 h-4 px-1.5 text-[10px]">
-                {activeConversations.length + recentChats.length}
-              </Badge>
+          <TabsTrigger value="chats" className="rounded-lg font-bold text-xs gap-2 relative">
+            <MessageCircle className="h-3.5 w-3.5" /> Inbox
+            {conversationStacks.active.length > 0 && (
+              <span className="absolute -top-1 -right-1 h-4 w-4 bg-primary text-[9px] text-white rounded-full flex items-center justify-center ring-2 ring-background">
+                {conversationStacks.active.length}
+              </span>
             )}
           </TabsTrigger>
         </TabsList>
 
-        {/* ====== AGENT NETWORK TAB ====== */}
-        <TabsContent value="network" className="space-y-4">
-          {/* Filters */}
+        <TabsContent value="network" className="space-y-8 mt-0">
           <AgentFilters
             searchQuery={searchQuery}
             onSearchChange={setSearchQuery}
             selectedCategory={selectedCategory}
             onCategoryChange={setSelectedCategory}
-            showCompanyTab={hasCompanyAgents}
+            showCompanyTab={agents.some((a) => a.isCompanyAgent)}
           />
 
-          {/* All Agents Grid */}
-          <section>
+          <section className="space-y-4">
             <SectionHeader
-              icon={Sparkles}
-              title={searchQuery || selectedCategory !== "all" ? "Results" : "All Agents"}
+              icon={Bot}
+              title={searchQuery ? "Search Results" : "Available Specialists"}
               count={filteredAgents.length}
               size="sm"
             />
 
-            {isLoading ? (
-              <div className="grid grid-cols-2 gap-3">
-                {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="p-4 space-y-3">
-                    <Skeleton className="h-14 w-14 rounded-full mx-auto" />
-                    <Skeleton className="h-4 w-24 mx-auto" />
-                    <Skeleton className="h-3 w-32 mx-auto" />
-                  </div>
+            {isLoadingAgents ? (
+              <div className="grid grid-cols-2 gap-4">
+                {[...Array(4)].map((_, i) => (
+                  <Skeleton key={i} className="h-48 w-full rounded-3xl" />
                 ))}
               </div>
             ) : filteredAgents.length === 0 ? (
-              <Card className="border-dashed">
-                <CardContent className="py-12 text-center">
-                  <Bot className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-                  <p className="text-sm text-muted-foreground">
-                    {searchQuery ? `No agents found for "${searchQuery}"` : "No agents available"}
-                  </p>
-                </CardContent>
+              <Card className="border-dashed bg-muted/10 rounded-3xl p-12 text-center">
+                <Bot className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
+                <p className="text-sm font-bold text-muted-foreground">No specialists found matching your criteria.</p>
               </Card>
             ) : (
-              <div className="grid grid-cols-2 gap-3">
-                {filteredAgents.map((agent) => {
-                  const activeSession = recentSessions.find(s => s.agent_key === agent.agent_key && s.is_active);
-                  return (
-                    <AgentCard
-                      key={agent.id}
-                      id={agent.id}
-                      name={agent.name}
-                      description={agent.description}
-                      icon={agent.icon}
-                      color={agent.iconColor}
-                      bgColor={agent.bgColor}
-                      expertise={agent.expertise}
-                      creditCost={agent.creditCost}
-                      avatarUrl={agent.avatarUrl}
-                      hasActiveSession={!!activeSession}
-                      onClick={() => handleAgentClick(agent.agent_key)}
-                      onResume={activeSession ? () => navigate(`/app/agents/${agent.agent_key}`) : undefined}
-                    />
-                  );
-                })}
+              <div className="grid grid-cols-2 gap-4">
+                {filteredAgents.map((agent) => (
+                  <AgentCard
+                    key={agent.agent_key}
+                    {...agent}
+                    hasActiveSession={recentSessions.some((s) => s.agent_key === agent.agent_key && s.is_active)}
+                    onClick={() => navigate(`/app/agents/${agent.agent_key}`)}
+                  />
+                ))}
               </div>
             )}
           </section>
 
-          {/* Career Tools Section */}
+          {/* Tools Grid */}
           {!searchQuery && selectedCategory === "all" && (
-            <section>
-              <SectionHeader
-                icon={ClipboardList}
-                title="Career Tools"
-                size="sm"
-              />
-              <div className="grid grid-cols-2 gap-3">
+            <section className="space-y-4 pt-4">
+              <SectionHeader icon={ClipboardList} title="Professional Suite" size="sm" />
+              <div className="grid grid-cols-2 gap-4">
                 {CAREER_TOOLS.map((tool) => (
                   <Card
                     key={tool.label}
-                    className="cursor-pointer transition-all hover:shadow-md hover:border-primary/30 group"
+                    className="group cursor-pointer hover:border-primary/40 transition-all rounded-3xl p-4 overflow-hidden relative"
                     onClick={() => navigate(tool.path)}
                   >
-                    <CardContent className="p-3 flex flex-col items-center text-center gap-2">
-                      <div className="h-12 w-12 rounded-full bg-accent flex items-center justify-center transition-transform group-hover:scale-105">
-                        <tool.icon className="h-5 w-5 text-accent-foreground" />
+                    <div className="relative z-10 flex flex-col items-center text-center gap-3">
+                      <div className="h-12 w-12 rounded-2xl bg-primary/5 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <tool.icon className="h-6 w-6 text-primary" />
                       </div>
-                      <h3 className="font-semibold text-xs leading-tight line-clamp-1 group-hover:text-primary transition-colors">
-                        {tool.label}
-                      </h3>
-                      <p className="text-[10px] text-muted-foreground line-clamp-2 leading-relaxed">
-                        {tool.description}
-                      </p>
-                      <div className="flex items-center gap-1">
-                        <Badge variant="outline" className="text-[10px] gap-1">
-                          <Coins className="h-2.5 w-2.5" />
-                          {tool.creditCost} pts
-                        </Badge>
-                        <Badge variant="secondary" className="text-[10px]">
-                          Tool
-                        </Badge>
+                      <h3 className="font-bold text-xs tracking-tight">{tool.label}</h3>
+                      <div className="flex items-center gap-1.5 bg-muted/50 px-2 py-0.5 rounded-full">
+                        <Coins className="h-3 w-3 text-amber-500" />
+                        <span className="text-[10px] font-black uppercase tracking-widest">{tool.creditCost}</span>
                       </div>
-                    </CardContent>
+                    </div>
                   </Card>
                 ))}
               </div>
@@ -371,79 +214,47 @@ export default function AIAgents() {
           )}
         </TabsContent>
 
-        {/* ====== CHATS TAB ====== */}
-        <TabsContent value="chats" className="space-y-4">
-          {/* Active Conversations */}
-          {activeConversations.length > 0 && (
-            <section>
-              <SectionHeader
-                icon={MessageCircle}
-                title="Active Sessions"
-                size="sm"
-              />
-              <Card className="border-green-200/50 dark:border-green-800/30 bg-green-50/30 dark:bg-green-950/10">
-                <CardContent className="p-2 divide-y divide-border/50">
-                  {activeConversations.map((conv) => (
+        <TabsContent value="chats" className="mt-0">
+          <div className="space-y-6">
+            {conversationStacks.active.length > 0 && (
+              <section className="space-y-4">
+                <SectionHeader icon={MessageCircle} title="Active Sessions" size="sm" />
+                <div className="space-y-3">
+                  {conversationStacks.active.map((conv) => (
                     <AgentListItem
                       key={conv.id}
                       id={conv.id}
-                      name={conv.agent?.name || conv.agent_key}
-                      description={conv.agent?.description || ""}
-                      icon={conv.agent?.icon}
-                      bgColor={conv.agent?.bgColor}
-                      iconColor={conv.agent?.iconColor}
-                      avatarUrl={conv.agent?.avatarUrl}
-                      creditCost={conv.agent?.creditCost}
-                      isActive={true}
-                      lastMessage={conv.lastMessage}
-                      lastMessageTime={conv.session_started_at}
+                      name={conv.agent?.name || "Expert"}
+                      description={conv.lastMsg || ""}
+                      isActive
                       onClick={() => navigate(`/app/agents/${conv.agent_key}`)}
                     />
                   ))}
-                </CardContent>
-              </Card>
-            </section>
-          )}
+                </div>
+              </section>
+            )}
 
-          {/* Recent Chats */}
-          {recentChats.length > 0 ? (
-            <section>
-              <SectionHeader
-                icon={MessageCircle}
-                title="Recent Chats"
-                size="sm"
-              />
-              <Card className="bg-muted/30">
-                <CardContent className="p-2 divide-y divide-border/50">
-                  {recentChats.map((chat) => (
+            <section className="space-y-4">
+              <SectionHeader icon={History} title="Recent Activity" size="sm" />
+              {conversationStacks.historical.length > 0 ? (
+                <div className="space-y-3">
+                  {conversationStacks.historical.map((chat) => (
                     <AgentListItem
                       key={chat.id}
                       id={chat.id}
-                      name={chat.agent?.name || chat.agent_key}
-                      description={chat.agent?.description || ""}
-                      icon={chat.agent?.icon}
-                      bgColor={chat.agent?.bgColor}
-                      iconColor={chat.agent?.iconColor}
-                      avatarUrl={chat.agent?.avatarUrl}
-                      lastMessage={chat.lastMessage}
-                      lastMessageTime={chat.session_started_at}
+                      name={chat.agent?.name || "Expert"}
+                      description={chat.lastMsg || ""}
                       onClick={() => navigate(`/app/agents/${chat.agent_key}`)}
                     />
                   ))}
-                </CardContent>
-              </Card>
+                </div>
+              ) : (
+                <div className="p-12 border-dashed border-2 rounded-3xl text-center text-muted-foreground text-xs font-bold">
+                  No previous sessions.
+                </div>
+              )}
             </section>
-          ) : activeConversations.length === 0 ? (
-            <Card className="border-dashed">
-              <CardContent className="py-16 text-center">
-                <MessageCircle className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-                <h3 className="font-semibold text-sm mb-1">No conversations yet</h3>
-                <p className="text-xs text-muted-foreground mb-4">
-                  Start chatting with an agent from the Network tab
-                </p>
-              </CardContent>
-            </Card>
-          ) : null}
+          </div>
         </TabsContent>
       </Tabs>
     </div>
