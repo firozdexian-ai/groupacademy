@@ -4,12 +4,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { useTalent } from "@/hooks/useTalent";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { BookOpen, CheckCircle, Clock, MessageCircle, Award, PlayCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+// FIX: Added missing Props interface
+interface MyCoursesTabProps {
+  onBrowseCatalog?: () => void;
+}
 
 interface EnrollmentContent {
   id: string;
@@ -40,7 +45,6 @@ const LearningCard = ({ enrollment }: { enrollment: Enrollment }) => {
       className="group cursor-pointer hover:shadow-2xl transition-all duration-500 overflow-hidden border-border/40 bg-card/50 backdrop-blur-sm h-full flex flex-col rounded-[24px]"
       onClick={() => navigate(`/app/learn/${content.slug}`)}
     >
-      {/* Visual Header */}
       <div className="h-28 bg-muted relative overflow-hidden shrink-0">
         {imageSrc ? (
           <img
@@ -66,7 +70,7 @@ const LearningCard = ({ enrollment }: { enrollment: Enrollment }) => {
               variant="outline"
               className="text-[9px] font-black uppercase tracking-widest border-primary/20 text-primary"
             >
-              {content.content_type.replace(/_/g, " ")}
+              {content.content_type?.replace(/_/g, " ") || "Course"}
             </Badge>
             <Badge
               className={cn(
@@ -89,7 +93,6 @@ const LearningCard = ({ enrollment }: { enrollment: Enrollment }) => {
           )}
         </div>
 
-        {/* Action & Progress Layer */}
         <div className="space-y-3 mt-4">
           {status === "active" && (
             <div className="space-y-1.5">
@@ -162,7 +165,6 @@ export function MyCoursesTab({ onBrowseCatalog }: MyCoursesTabProps) {
         .order("last_accessed_at", { ascending: false });
 
       if (error) throw error;
-      // Filter out utility content
       return (data as any[]).filter((e) => e.content.content_type !== "free_video") as Enrollment[];
     },
     enabled: !!talent?.id,
@@ -181,9 +183,19 @@ export function MyCoursesTab({ onBrowseCatalog }: MyCoursesTabProps) {
     );
   }
 
+  if (error) {
+    return (
+      <div className="p-8 text-center bg-destructive/5 rounded-3xl border border-dashed border-destructive/20">
+        <p className="text-sm font-bold text-destructive mb-4">Failed to load learning history</p>
+        <Button onClick={() => refetch()} variant="outline" size="sm">
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      {/* Stats Quick-View */}
       <div className="flex items-center gap-3">
         <Badge className="bg-primary/10 text-primary border-none rounded-full px-4 py-1.5 text-[10px] font-black uppercase tracking-widest">
           <Clock className="h-3 w-3 mr-2" /> {activeEnrollments.length} Ongoing Tracks
