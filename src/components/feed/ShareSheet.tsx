@@ -1,14 +1,9 @@
-import { useState } from 'react';
-import { Share2, Copy, Check, MessageCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from '@/components/ui/sheet';
-import { useToast } from '@/hooks/use-toast';
+import { useState } from "react";
+import { Share2, Copy, Check, MessageCircle, Linkedin, Globe } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 interface ShareSheetProps {
   title: string;
@@ -22,105 +17,125 @@ export function ShareSheet({ title, url, description }: ShareSheetProps) {
   const { toast } = useToast();
 
   const shareText = description ? `${title}\n\n${description}` : title;
-  const fullUrl = url.startsWith('http') ? url : `${window.location.origin}${url}`;
+  const fullUrl = url.startsWith("http") ? url : `${window.location.origin}${url}`;
 
   const handleCopyLink = async () => {
     try {
       await navigator.clipboard.writeText(fullUrl);
       setCopied(true);
-      toast({ title: 'Link copied!' });
+      toast({
+        title: "Link Copied",
+        description: "You can now share it anywhere.",
+      });
       setTimeout(() => setCopied(false), 2000);
-    } catch {
-      toast({ title: 'Failed to copy link', variant: 'destructive' });
+    } catch (err) {
+      toast({
+        title: "Copy Failed",
+        description: "Please manually copy the URL.",
+        variant: "destructive",
+      });
     }
   };
 
-  const handleWhatsAppShare = () => {
-    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(`${shareText}\n\n${fullUrl}`)}`;
-    window.open(whatsappUrl, '_blank');
-    setOpen(false);
-  };
+  const handleSocialShare = (platform: "whatsapp" | "linkedin") => {
+    const urls = {
+      whatsapp: `https://wa.me/?text=${encodeURIComponent(`${shareText}\n\n${fullUrl}`)}`,
+      linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(fullUrl)}`,
+    };
 
-  const handleLinkedInShare = () => {
-    const linkedInUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(fullUrl)}`;
-    window.open(linkedInUrl, '_blank');
+    window.open(urls[platform], "_blank", "noopener,noreferrer");
     setOpen(false);
   };
 
   const handleNativeShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title,
-          text: description,
-          url: fullUrl,
-        });
-        setOpen(false);
-      } catch (err) {
-        // User cancelled
-      }
+    if (!navigator.share) return;
+
+    try {
+      await navigator.share({
+        title,
+        text: description,
+        url: fullUrl,
+      });
+      setOpen(false);
+    } catch (err) {
+      // User likely cancelled or platform denied
     }
   };
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="sm" className="h-9 text-xs gap-1.5 flex-1">
-          <Share2 className="h-4 w-4" />
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-9 text-[11px] font-bold uppercase tracking-wider gap-1.5 flex-1 hover:bg-primary/5 hover:text-primary transition-colors"
+        >
+          <Share2 className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">Share</span>
         </Button>
       </SheetTrigger>
-      <SheetContent side="bottom" className="rounded-t-2xl">
-        <SheetHeader className="text-left">
-          <SheetTitle className="text-base">Share this post</SheetTitle>
+
+      <SheetContent side="bottom" className="rounded-t-[32px] p-6 pb-10 border-t-primary/10">
+        <SheetHeader className="text-center mb-6">
+          <div className="mx-auto w-12 h-1.5 bg-muted rounded-full mb-4" />
+          <SheetTitle className="text-xl font-bold tracking-tight">Share Strategy</SheetTitle>
         </SheetHeader>
 
-        <div className="grid grid-cols-3 gap-3 py-6">
+        <div className="grid grid-cols-3 gap-4 max-w-sm mx-auto">
           {/* WhatsApp */}
           <button
-            onClick={handleWhatsAppShare}
-            className="flex flex-col items-center gap-2 p-4 rounded-xl bg-muted/50 hover:bg-muted transition-colors"
+            onClick={() => handleSocialShare("whatsapp")}
+            className="group flex flex-col items-center gap-3 outline-none"
           >
-            <div className="h-12 w-12 rounded-full bg-green-500 flex items-center justify-center">
-              <MessageCircle className="h-6 w-6 text-white" />
+            <div className="h-14 w-14 rounded-2xl bg-[#25D366] flex items-center justify-center shadow-lg shadow-green-500/20 group-hover:scale-110 transition-transform active:scale-95">
+              <MessageCircle className="h-7 w-7 text-white fill-current" />
             </div>
-            <span className="text-xs font-medium">WhatsApp</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">WhatsApp</span>
           </button>
 
           {/* LinkedIn */}
           <button
-            onClick={handleLinkedInShare}
-            className="flex flex-col items-center gap-2 p-4 rounded-xl bg-muted/50 hover:bg-muted transition-colors"
+            onClick={() => handleSocialShare("linkedin")}
+            className="group flex flex-col items-center gap-3 outline-none"
           >
-            <div className="h-12 w-12 rounded-full bg-blue-600 flex items-center justify-center">
-              <svg className="h-6 w-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
-              </svg>
+            <div className="h-14 w-14 rounded-2xl bg-[#0077b5] flex items-center justify-center shadow-lg shadow-blue-500/20 group-hover:scale-110 transition-transform active:scale-95">
+              <Linkedin className="h-7 w-7 text-white fill-current" />
             </div>
-            <span className="text-xs font-medium">LinkedIn</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">LinkedIn</span>
           </button>
 
           {/* Copy Link */}
-          <button
-            onClick={handleCopyLink}
-            className="flex flex-col items-center gap-2 p-4 rounded-xl bg-muted/50 hover:bg-muted transition-colors"
-          >
-            <div className="h-12 w-12 rounded-full bg-muted-foreground/20 flex items-center justify-center">
+          <button onClick={handleCopyLink} className="group flex flex-col items-center gap-3 outline-none">
+            <div
+              className={cn(
+                "h-14 w-14 rounded-2xl flex items-center justify-center shadow-lg transition-all active:scale-95 group-hover:scale-110",
+                copied ? "bg-emerald-500 shadow-emerald-500/20" : "bg-muted shadow-muted/20",
+              )}
+            >
               {copied ? (
-                <Check className="h-6 w-6 text-green-500" />
+                <Check className="h-7 w-7 text-white animate-in zoom-in duration-300" />
               ) : (
-                <Copy className="h-6 w-6 text-muted-foreground" />
+                <Copy className="h-7 w-7 text-muted-foreground" />
               )}
             </div>
-            <span className="text-xs font-medium">{copied ? 'Copied!' : 'Copy Link'}</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              {copied ? "Copied" : "Link"}
+            </span>
           </button>
         </div>
 
-        {/* Native Share (mobile) */}
+        {/* System Native Share */}
         {navigator.share && (
-          <Button onClick={handleNativeShare} variant="outline" className="w-full">
-            More options...
-          </Button>
+          <div className="mt-8 pt-6 border-t border-border/50">
+            <Button
+              onClick={handleNativeShare}
+              variant="outline"
+              className="w-full h-12 rounded-xl font-bold text-xs uppercase tracking-widest gap-2"
+            >
+              <Globe className="h-4 w-4" />
+              More Sharing Options
+            </Button>
+          </div>
         )}
       </SheetContent>
     </Sheet>
