@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Bot, Globe, LucideIcon, Zap } from "lucide-react";
+import { Bot, Globe, LucideIcon, Zap, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTalent } from "@/hooks/useTalent";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -31,7 +31,11 @@ export function QuickActionsGrid() {
   const navigate = useNavigate();
   const { talent } = useTalent();
 
-  const { data: actions = [], isLoading } = useQuery({
+  const {
+    data: actions = [],
+    isLoading,
+    error: queryError,
+  } = useQuery({
     queryKey: ["quick-actions", talent?.id],
     queryFn: async () => {
       let personalAgentKeys: string[] = [];
@@ -72,7 +76,6 @@ export function QuickActionsGrid() {
       const result: QuickAgent[] = [];
       const seen = new Set<string>();
 
-      // Fill up to 7 slots (leaving 1 for Abroad)
       const addToResult = (keys: string[]) => {
         for (const key of keys) {
           const agent = agentMap.get(key);
@@ -86,11 +89,12 @@ export function QuickActionsGrid() {
       addToResult(personalAgentKeys);
       addToResult(allAgents?.map((a) => a.agent_key) || []);
 
-      // Always append Abroad shortcut at the end
       result.push(ABROAD_SHORTCUT);
       return result;
     },
-    staleTime: 1000 * 60 * 10, // 10 minutes cache
+    staleTime: 1000 * 60 * 10,
+    // CTO Fix: Prevent the query from crashing the whole page if Supabase is down
+    retry: false,
   });
 
   if (isLoading) {
@@ -108,6 +112,15 @@ export function QuickActionsGrid() {
     );
   }
 
+  // CTO Fix: If there is an error, show a small warning instead of crashing
+  if (queryError) {
+    return (
+      <div className="p-4 border border-dashed rounded-2xl text-center text-[10px] text-muted-foreground uppercase font-bold tracking-widest">
+        Quick actions temporarily unavailable
+      </div>
+    );
+  }
+
   return (
     <div className="bg-card/50 backdrop-blur-sm rounded-2xl p-4 border border-border/40 shadow-sm">
       <div className="flex items-center gap-2 mb-4 px-1">
@@ -117,8 +130,17 @@ export function QuickActionsGrid() {
 
       <div className="grid grid-cols-4 gap-x-2 gap-y-5">
         {actions.map((item) => {
+          if (!item) return null;
+
           const isAbroad = item.agent_key === "__abroad";
-          const IconComponent = isAbroad ? Globe : ((item.icon ? iconMap[item.icon] : Bot) as LucideIcon);
+
+          // CTO Fix: Hardened Icon Resolution
+          // Logic: If isAbroad, use Globe. Otherwise, check iconMap. If not in iconMap, fallback to Bot.
+          const ResolvedIcon = isAbroad
+            ? Globe
+            : item.icon && iconMap[item.icon]
+              ? (iconMap[item.icon] as LucideIcon)
+              : Bot;
 
           return (
             <button
@@ -135,16 +157,24 @@ export function QuickActionsGrid() {
                 style={!isAbroad ? { backgroundColor: item.bg_color || undefined } : {}}
               >
                 {item.avatar_url ? (
-                  <img src={item.avatar_url} alt="" className="h-full w-full rounded-2xl object-cover" />
+                  <img
+                    src={item.avatar_url}
+                    alt=""
+                    className="h-full w-full rounded-2xl object-cover"
+                    onError={(e) => {
+                      // Fallback if image fails to load
+                      (e.target as HTMLImageElement).style.display = "none";
+                    }}
+                  />
                 ) : (
-                  <IconComponent
+                  <ResolvedIcon
                     className={cn("h-5 w-5", isAbroad ? "animate-pulse-slow" : "")}
                     style={{ color: !isAbroad && item.color ? item.color : "inherit" }}
                   />
                 )}
               </div>
               <span className="text-[10px] font-bold text-center text-muted-foreground group-hover:text-foreground transition-colors leading-tight line-clamp-1 px-1">
-                {item.name.split(" ")[0]}
+                {(item.name || "Agent").split(" ")[0]}
               </span>
             </button>
           );
