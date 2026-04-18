@@ -11,6 +11,7 @@ import {
   Mic,
   DollarSign,
   Palette,
+  History as HistoryIcon, // FIX: Renamed to avoid browser 'History' conflict
   Loader2,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -26,9 +27,57 @@ import { useCredits } from "@/hooks/useCredits";
 import { supabase } from "@/integrations/supabase/client";
 import { AI_AGENTS, getAgentById } from "@/lib/constants/agents";
 import { SectionHeader } from "@/components/ui/section-header";
-import { cn } from "@/lib/utils";
 
-// ... (DBAgent interface and CAREER_TOOLS constant remain same)
+// FIX: Added missing DBAgent interface
+interface DBAgent {
+  id: string;
+  agent_key: string;
+  name: string;
+  description: string;
+  icon: string | null;
+  color: string | null;
+  bg_color: string | null;
+  expertise_areas: string[] | null;
+  is_active: boolean;
+  credit_cost: number | null;
+  category: string | null;
+  avatar_url: string | null;
+  agent_type: string | null;
+  company_id: string | null;
+  is_featured: boolean | null;
+}
+
+// FIX: Added missing CAREER_TOOLS constant
+const CAREER_TOOLS = [
+  {
+    icon: ClipboardList,
+    label: "Career Scorecard",
+    description: "AI-powered career readiness assessment",
+    path: "/app/services/assessment",
+    creditCost: 50,
+  },
+  {
+    icon: Mic,
+    label: "Mock Interview",
+    description: "Practice with AI interview coach",
+    path: "/app/services/mock-interview",
+    creditCost: 50,
+  },
+  {
+    icon: DollarSign,
+    label: "Salary Analysis",
+    description: "Market-rate salary insights",
+    path: "/app/services/salary-analysis",
+    creditCost: 50,
+  },
+  {
+    icon: Palette,
+    label: "Portfolio Builder",
+    description: "Professional portfolio creation",
+    path: "/app/services/portfolio",
+    creditCost: 500,
+  },
+];
 
 export default function AIAgents() {
   const navigate = useNavigate();
@@ -65,8 +114,8 @@ export default function AIAgents() {
         name: agent.name,
         description: agent.description,
         icon: staticMeta?.icon,
-        bgColor: isDb ? agent.bg_color || "bg-primary/5" : agent.bgColor,
-        iconColor: isDb ? agent.color || "text-primary" : agent.iconColor,
+        bgColor: isDb ? agent.bg_color || "bg-primary/5" : agent.bgColor || "bg-primary/5",
+        color: isDb ? agent.color || "#7c3aed" : agent.iconColor || "#7c3aed", // FIX: Mapping color explicitly
         expertise: isDb ? agent.expertise_areas || [] : agent.expertise || [],
         creditCost: isDb ? (agent.credit_cost ?? 10) : 10,
         category: (isDb ? agent.category || "career" : "career") as AgentCategory,
@@ -114,7 +163,6 @@ export default function AIAgents() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-8 animate-in fade-in duration-500">
-      {/* Header Section */}
       <header className="space-y-2">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-2xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
@@ -167,17 +215,20 @@ export default function AIAgents() {
                   <Skeleton key={i} className="h-48 w-full rounded-3xl" />
                 ))}
               </div>
-            ) : filteredAgents.length === 0 ? (
-              <Card className="border-dashed bg-muted/10 rounded-3xl p-12 text-center">
-                <Bot className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
-                <p className="text-sm font-bold text-muted-foreground">No specialists found matching your criteria.</p>
-              </Card>
             ) : (
               <div className="grid grid-cols-2 gap-4">
                 {filteredAgents.map((agent) => (
                   <AgentCard
                     key={agent.agent_key}
-                    {...agent}
+                    id={agent.id}
+                    name={agent.name}
+                    description={agent.description}
+                    icon={agent.icon}
+                    color={agent.color} // FIX: Color mapped
+                    bgColor={agent.bgColor} // FIX: BgColor mapped
+                    expertise={agent.expertise}
+                    creditCost={agent.creditCost}
+                    avatarUrl={agent.avatarUrl}
                     hasActiveSession={recentSessions.some((s) => s.agent_key === agent.agent_key && s.is_active)}
                     onClick={() => navigate(`/app/agents/${agent.agent_key}`)}
                   />
@@ -186,7 +237,6 @@ export default function AIAgents() {
             )}
           </section>
 
-          {/* Tools Grid */}
           {!searchQuery && selectedCategory === "all" && (
             <section className="space-y-4 pt-4">
               <SectionHeader icon={ClipboardList} title="Professional Suite" size="sm" />
@@ -194,17 +244,17 @@ export default function AIAgents() {
                 {CAREER_TOOLS.map((tool) => (
                   <Card
                     key={tool.label}
-                    className="group cursor-pointer hover:border-primary/40 transition-all rounded-3xl p-4 overflow-hidden relative"
+                    className="group cursor-pointer hover:border-primary/40 transition-all rounded-3xl p-4"
                     onClick={() => navigate(tool.path)}
                   >
-                    <div className="relative z-10 flex flex-col items-center text-center gap-3">
+                    <div className="flex flex-col items-center text-center gap-3">
                       <div className="h-12 w-12 rounded-2xl bg-primary/5 flex items-center justify-center group-hover:scale-110 transition-transform">
                         <tool.icon className="h-6 w-6 text-primary" />
                       </div>
                       <h3 className="font-bold text-xs tracking-tight">{tool.label}</h3>
                       <div className="flex items-center gap-1.5 bg-muted/50 px-2 py-0.5 rounded-full">
                         <Coins className="h-3 w-3 text-amber-500" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">{tool.creditCost}</span>
+                        <span className="text-[10px] font-black tracking-widest">{tool.creditCost}</span>
                       </div>
                     </div>
                   </Card>
@@ -235,7 +285,7 @@ export default function AIAgents() {
             )}
 
             <section className="space-y-4">
-              <SectionHeader icon={History} title="Recent Activity" size="sm" />
+              <SectionHeader icon={HistoryIcon} title="Recent Activity" size="sm" />
               {conversationStacks.historical.length > 0 ? (
                 <div className="space-y-3">
                   {conversationStacks.historical.map((chat) => (
