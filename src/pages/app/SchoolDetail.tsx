@@ -25,7 +25,8 @@ interface ProfessionLine {
   icon: string;
   career_outcome: string;
   school_id: string;
-  ai_instructors: { name: string }[] | null;
+  // CTO FIX: Updated to handle both single object and array responses from Supabase joins
+  ai_instructors: { name: string } | { name: string }[] | null;
 }
 
 export default function SchoolDetail() {
@@ -63,7 +64,9 @@ export default function SchoolDetail() {
         .order("display_order", { ascending: true });
 
       if (profError) throw profError;
-      setProfessions((professionData as ProfessionLine[]) || []);
+
+      // CTO FIX: Double-casting via 'unknown' to satisfy TS2352 overlap requirements
+      setProfessions((professionData as unknown as ProfessionLine[]) || []);
     } catch (error: any) {
       console.error("Critical School Load Error:", error);
       setLoadingError(error.message || "Connection timed out.");
@@ -110,7 +113,6 @@ export default function SchoolDetail() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6 space-y-10 animate-in fade-in duration-700">
-      {/* Dynamic Navigation */}
       <header className="flex items-center justify-between">
         <Button
           variant="ghost"
@@ -124,11 +126,10 @@ export default function SchoolDetail() {
           variant="outline"
           className="border-primary/20 text-primary font-black uppercase text-[10px] tracking-tighter"
         >
-          System Verified
+          Faculty Verified
         </Badge>
       </header>
 
-      {/* Hero Section - Elevated Glassmorphism */}
       <section className="relative overflow-hidden rounded-[40px] border border-border/50 bg-card p-8 md:p-12 shadow-2xl">
         <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-primary/5 rounded-full blur-[100px] -mr-48 -mt-48" />
         <div className="relative space-y-6 max-w-3xl">
@@ -140,7 +141,7 @@ export default function SchoolDetail() {
               </Badge>
               <div className="h-1 w-1 rounded-full bg-muted-foreground/30" />
               <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
-                Faculty Department
+                Department
               </span>
             </div>
           )}
@@ -149,7 +150,6 @@ export default function SchoolDetail() {
         </div>
       </section>
 
-      {/* Program Grid */}
       <div className="space-y-8">
         <div className="flex items-center justify-between px-2">
           <div className="space-y-1">
@@ -160,16 +160,15 @@ export default function SchoolDetail() {
               Industry-Ready Certification Pathways
             </p>
           </div>
-          <Badge variant="secondary" className="h-7 px-3 rounded-lg font-black text-[10px] uppercase tracking-widest">
-            {professions.length} Modules
-          </Badge>
         </div>
 
         {professions.length > 0 ? (
           <div className="grid gap-6 md:grid-cols-2 pb-20">
             {professions.map((profession) => {
               const IconComponent = getIcon(profession.icon) || Briefcase;
-              const hasAIInstructor = Array.isArray(profession.ai_instructors) && profession.ai_instructors.length > 0;
+
+              // CTO FIX: Defensive check for instructor existence
+              const hasAIInstructor = !!profession.ai_instructors;
 
               return (
                 <Card
@@ -217,12 +216,9 @@ export default function SchoolDetail() {
           </div>
         ) : (
           <div className="py-24 text-center border-2 border-dashed rounded-[40px] border-border/40 bg-muted/10">
-            <div className="h-16 w-16 rounded-full bg-background mx-auto flex items-center justify-center mb-6 shadow-sm">
-              <GraduationCap className="h-8 w-8 text-muted-foreground/20" />
-            </div>
-            <h3 className="text-xl font-black tracking-tight">Curriculum Development in Progress</h3>
+            <h3 className="text-xl font-black tracking-tight">Curriculum Syncing</h3>
             <p className="text-sm text-muted-foreground mt-2 font-medium">
-              New career tracks are being synced for this department.
+              New career tracks are being designed for this department.
             </p>
           </div>
         )}
