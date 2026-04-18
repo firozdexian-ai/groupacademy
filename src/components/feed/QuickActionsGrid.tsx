@@ -106,7 +106,7 @@ export function QuickActionsGrid() {
     );
   }
 
-  if (agents.length === 0) return null;
+  // Note: even if no agents are available we still render the Abroad shortcut.
 
   return (
     <div className="bg-card rounded-xl p-3 shadow-sm">
