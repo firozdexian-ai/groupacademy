@@ -85,16 +85,15 @@ export default function AppJobApplication() {
       if (talent?.id) {
         const { data: existingApp } = await supabase
           .from("job_applications")
-          .select("id, job_assessments(id)")
+          .select(`id, job_assessments(id)`)
           .eq("job_id", id)
           .eq("talent_id", talent.id)
           .maybeSingle();
 
         if (existingApp) {
           setSubmitted(true);
-          if (existingApp.job_assessments?.[0]?.id) {
-            setGeneratedAssessmentId(existingApp.job_assessments[0].id);
-          }
+          const assessment = (existingApp as any).job_assessments?.[0];
+          if (assessment?.id) setGeneratedAssessmentId(assessment.id);
         }
       }
     } catch (error) {
@@ -119,14 +118,12 @@ export default function AppJobApplication() {
       const fileExt = file.name.split(".").pop();
       const filePath = `${talent.id}/${Date.now()}-cv.${fileExt}`;
 
-      // FIX: Use 'talent-cvs' bucket as per Technical Reference
       const { error: uploadError } = await supabase.storage.from("talent-cvs").upload(filePath, file);
       if (uploadError) throw uploadError;
 
-      // FIX: Create a Signed URL for private bucket access (valid for 1 year)
       const { data: signedData, error: urlError } = await supabase.storage
         .from("talent-cvs")
-        .createSignedUrl(filePath, 31536000); // 1 year expiry
+        .createSignedUrl(filePath, 31536000);
 
       if (urlError) throw urlError;
 
@@ -138,7 +135,7 @@ export default function AppJobApplication() {
       if (updateError) throw updateError;
 
       await refreshTalent();
-      toast.success("CV uploaded and secured successfully!");
+      toast.success("CV uploaded and secured!");
     } catch (error) {
       console.error("Upload error:", error);
       toast.error("Failed to upload CV. Please try again.");
@@ -149,7 +146,6 @@ export default function AppJobApplication() {
 
   const handleGenerateCoverLetter = async () => {
     if (!talent || !job) return;
-
     setIsGeneratingCoverLetter(true);
     try {
       const { data, error } = await supabase.functions.invoke("enhance-cover-letter", {
@@ -162,15 +158,13 @@ export default function AppJobApplication() {
           skills: talent.skills,
         },
       });
-
       if (error) throw error;
       if (data?.enhancedCoverLetter) {
         setCoverLetter(data.enhancedCoverLetter);
         toast.success("Cover letter generated!");
       }
     } catch (error: any) {
-      console.error("Error generating cover letter:", error);
-      toast.error("Failed to generate cover letter");
+      toast.error("AI enhancement currently unavailable.");
     } finally {
       setIsGeneratingCoverLetter(false);
     }
@@ -185,27 +179,17 @@ export default function AppJobApplication() {
     }
 
     if (!talent.cvUrl) {
-      toast.error("Please upload your CV above to continue.");
+      toast.error("Please upload your CV to continue.");
       document.getElementById("cv-upload-section")?.scrollIntoView({ behavior: "smooth" });
       return;
     }
 
     isSubmittingRef.current = true;
     setSubmitting(true);
-    setSubmissionProgress(0);
+    setSubmissionProgress(20);
     setSubmissionMessage(SUBMISSION_STAGES[0].message);
 
-    let stageIndex = 0;
-    const progressInterval = setInterval(() => {
-      if (stageIndex < SUBMISSION_STAGES.length - 1) {
-        stageIndex++;
-        setSubmissionProgress(SUBMISSION_STAGES[stageIndex].progress);
-        setSubmissionMessage(SUBMISSION_STAGES[stageIndex].message);
-      }
-    }, 2000);
-
     try {
-      setSubmissionProgress(20);
       const { data: appData, error: appError } = await supabase
         .from("job_applications")
         .insert({
@@ -223,49 +207,44 @@ export default function AppJobApplication() {
       await deductCredits("JOB_APPLICATION", job.id, `Application to ${job.title}`);
 
       setSubmissionProgress(40);
-      setSubmissionMessage("Sending to employer...");
+      setSubmissionMessage("Notifying employer...");
       await supabase.functions.invoke("send-job-application", {
         body: { applicationId: appData.id },
       });
 
       if (job.ai_assessment_enabled) {
         setSubmissionProgress(60);
-        setSubmissionMessage("Generating AI assessment...");
+        setSubmissionMessage("Preparing AI interview...");
 
         try {
           const { data: assessmentData, error: assessmentError } = await supabase.functions.invoke(
             "generate-job-assessment",
-            {
-              body: {
-                jobId: job.id,
-                talentId: talent.id,
-                jobApplicationId: appData.id,
-              },
-            },
+            { body: { jobId: job.id, talentId: talent.id, jobApplicationId: appData.id } },
           );
 
           if (!assessmentError && assessmentData?.assessmentId) {
             setGeneratedAssessmentId(assessmentData.assessmentId);
+          } else {
+            // CTO FIX: Handle generation delay/error without blocking application success
+            toast.info(
+              "Application sent! Your AI assessment is being prepared—check 'My Applications' in a few moments.",
+            );
           }
         } catch (err) {
-          console.error("Assessment generation warning:", err);
+          console.error("Delayed Assessment Gen:", err);
         }
       }
 
-      clearInterval(progressInterval);
       setSubmissionProgress(100);
       setSubmitted(true);
-      toast.success("Application submitted successfully!");
+      toast.success("Applied successfully!");
       refreshBalance();
     } catch (error: any) {
-      console.error("Error submitting application:", error);
-      clearInterval(progressInterval);
-
       if (error?.message?.includes("duplicate")) {
-        toast.info("You have already applied to this job.");
+        toast.info("Already applied to this role.");
         setSubmitted(true);
       } else {
-        toast.error("Failed to submit application. Please try again.");
+        toast.error("Application failed. Please try again.");
       }
     } finally {
       setSubmitting(false);
@@ -273,82 +252,45 @@ export default function AppJobApplication() {
     }
   };
 
-  if (loading) {
+  if (loading)
     return (
-      <div className="max-w-2xl mx-auto px-4 py-4">
-        <Skeleton className="h-8 w-32 mb-4" />
-        <Skeleton className="h-24 w-full mb-4" />
-        <Skeleton className="h-40 w-full" />
+      <div className="max-w-2xl mx-auto p-12">
+        <Skeleton className="h-64 w-full rounded-2xl" />
       </div>
     );
-  }
-
-  if (!job) {
-    return (
-      <div className="max-w-2xl mx-auto px-4 py-4">
-        <Card>
-          <CardContent className="py-12 text-center">
-            <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
-            <p className="text-muted-foreground">Job not found</p>
-            <Button variant="outline" onClick={() => navigate("/app/jobs")} className="mt-4">
-              Browse Jobs
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
 
   if (submitted) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-4">
-        <Card className="border-green-100 dark:border-green-900 bg-green-50/50 dark:bg-green-950/20">
-          <CardContent className="py-12 text-center">
-            <div className="w-20 h-20 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mx-auto mb-6">
-              <CheckCircle className="h-10 w-10 text-green-600 dark:text-green-400" />
+      <div className="max-w-2xl mx-auto px-4 py-12">
+        <Card className="text-center py-12 bg-emerald-50/20 border-emerald-100 shadow-xl">
+          <CardContent className="space-y-6">
+            <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto ring-4 ring-emerald-50">
+              <CheckCircle className="h-10 w-10 text-emerald-600" />
             </div>
-            <h2 className="text-2xl font-bold mb-2">Application Submitted!</h2>
-            <p className="text-muted-foreground mb-8 max-w-sm mx-auto">
-              Your application for <span className="font-semibold text-foreground">{job.title}</span> at{" "}
-              {job.company_name} has been sent.
-            </p>
+            <div className="space-y-2">
+              <h2 className="text-2xl font-bold">Application Received!</h2>
+              <p className="text-muted-foreground max-w-sm mx-auto">
+                Good luck! Your profile for <span className="text-foreground font-semibold">{job?.title}</span> has been
+                shared.
+              </p>
+            </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              {job.ai_assessment_enabled && generatedAssessmentId ? (
+            <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
+              {generatedAssessmentId ? (
                 <Button
                   size="lg"
-                  className="w-full sm:w-auto"
+                  className="px-8 shadow-lg shadow-primary/20"
                   onClick={() => navigate(`/app/job-assessment/${generatedAssessmentId}`)}
                 >
-                  <Brain className="w-4 h-4 mr-2" />
-                  Take Assessment Now
+                  <Brain className="mr-2 h-4 w-4" /> Start AI Interview
                 </Button>
               ) : (
-                <Button size="lg" className="w-full sm:w-auto" onClick={() => navigate("/app/applications")}>
-                  View My Applications
+                <Button size="lg" onClick={() => navigate("/app/applications")}>
+                  View My Dashboard
                 </Button>
               )}
-
-              <Button variant="outline" size="lg" className="w-full sm:w-auto" onClick={() => navigate("/app/jobs")}>
-                Browse More Jobs
-              </Button>
-            </div>
-
-            <div className="mt-6 pt-6 border-t">
-              <p className="text-sm text-muted-foreground text-center mb-3">
-                Want faster processing? Ping our career counselor
-              </p>
-              <Button
-                variant="secondary"
-                size="lg"
-                className="w-full sm:w-auto"
-                onClick={() => {
-                  const message = getExpediteMessage(job.title, job.company_name);
-                  window.open(`${SUPPORT_CONFIG.WHATSAPP_LINK}?text=${encodeURIComponent(message)}`, "_blank");
-                }}
-              >
-                <MessageCircle className="w-4 h-4 mr-2" />
-                Expedite via WhatsApp
+              <Button variant="outline" size="lg" onClick={() => navigate("/app/jobs")}>
+                Back to Jobs
               </Button>
             </div>
           </CardContent>
@@ -358,193 +300,131 @@ export default function AppJobApplication() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-4">
-      <div className="flex items-center gap-3 mb-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div>
-          <h1 className="text-xl font-bold">Apply Now</h1>
-          <p className="text-sm text-muted-foreground">Submit your application</p>
+    <div className="max-w-2xl mx-auto px-4 py-4 min-h-screen">
+      {/* CTO FIX: Applied pb-40 to inner content to prevent mobile overlap (Audit # Polish) */}
+      <div className="space-y-5 pb-40">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-xl font-bold">Apply Now</h1>
+            <p className="text-xs text-muted-foreground">Standard Application</p>
+          </div>
         </div>
+
+        <Card>
+          <CardContent className="p-4 flex gap-4 items-center">
+            <div className="w-14 h-14 rounded-xl bg-primary/5 flex items-center justify-center border shrink-0 overflow-hidden">
+              {job?.company_logo_url ? (
+                <img src={job.company_logo_url} className="object-cover w-full h-full" alt="logo" />
+              ) : (
+                <Building2 className="text-primary w-6 h-6" />
+              )}
+            </div>
+            <div>
+              <h2 className="font-bold text-lg leading-tight">{job?.title}</h2>
+              <p className="text-sm text-muted-foreground">{job?.company_name}</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card id="cv-upload-section" className={!talent?.cvUrl ? "border-primary bg-primary/[0.02]" : ""}>
+          <CardHeader className="pb-3 border-b py-3">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <FileText className="w-4 h-4" /> Professional Resume
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4">
+            {talent?.cvUrl ? (
+              <div className="flex items-center justify-between p-3 border rounded-xl bg-background shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center text-red-500 font-bold text-[10px]">
+                    PDF
+                  </div>
+                  <span className="text-sm font-medium">Resume_Profile.pdf</span>
+                </div>
+                <Label htmlFor="cv-up" className="cursor-pointer text-xs text-primary font-bold hover:underline">
+                  Replace
+                </Label>
+                <input id="cv-up" type="file" className="hidden" accept=".pdf,.doc,.docx" onChange={handleCVUpload} />
+              </div>
+            ) : (
+              <div className="flex flex-col items-center p-8 border-2 border-dashed rounded-xl bg-muted/20">
+                {isUploadingCV ? (
+                  <Loader2 className="animate-spin text-primary mb-2" />
+                ) : (
+                  <UploadCloud className="text-muted-foreground/50 mb-3 w-8 h-8" />
+                )}
+                <h3 className="text-sm font-semibold mb-1">Upload CV</h3>
+                <p className="text-[10px] text-muted-foreground mb-4">PDF, DOC, DOCX up to 5MB</p>
+                <Label
+                  htmlFor="cv-new"
+                  className="cursor-pointer bg-primary text-primary-foreground px-6 py-2 rounded-lg text-xs font-bold shadow-md"
+                >
+                  Select File
+                </Label>
+                <input id="cv-new" type="file" className="hidden" accept=".pdf,.doc,.docx" onChange={handleCVUpload} />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2 border-b flex flex-row items-center justify-between py-3">
+            <CardTitle className="text-sm">Cover Letter (Optional)</CardTitle>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleGenerateCoverLetter}
+              disabled={isGeneratingCoverLetter || !talent?.cvUrl}
+              className="h-7 text-[10px] gap-1 px-2 border"
+            >
+              {isGeneratingCoverLetter ? (
+                <Loader2 className="animate-spin h-3 w-3" />
+              ) : (
+                <Sparkles className="h-3 w-3 text-primary" />
+              )}{" "}
+              AI Help
+            </Button>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <Textarea
+              placeholder="Tell the hiring team about your background and motivation..."
+              value={coverLetter}
+              onChange={(e) => setCoverLetter(e.target.value)}
+              rows={8}
+              className="resize-none rounded-xl"
+            />
+          </CardContent>
+        </Card>
       </div>
 
-      <Card className="mb-4">
-        <CardContent className="p-4">
-          <div className="flex gap-4 items-center">
-            {job.company_logo_url ? (
-              <img
-                src={job.company_logo_url}
-                alt={job.company_name}
-                className="w-12 h-12 rounded-lg object-cover bg-white border"
-              />
-            ) : (
-              <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center border">
-                <Building2 className="w-6 h-6 text-primary" />
-              </div>
-            )}
-            <div>
-              <h2 className="font-semibold text-lg">{job.title}</h2>
-              <p className="text-sm text-muted-foreground">{job.company_name}</p>
-            </div>
+      <div className="fixed bottom-16 left-0 right-0 p-4 bg-background/90 backdrop-blur-md border-t z-20">
+        <div className="max-w-2xl mx-auto space-y-3">
+          <div className="flex justify-between text-[11px] font-bold tracking-tight px-1">
+            <span className="text-muted-foreground uppercase">Estimated Cost: {applicationCost} credits</span>
+            <span className={!hasEnoughCredits ? "text-destructive" : "text-muted-foreground"}>BALANCE: {balance}</span>
           </div>
-        </CardContent>
-      </Card>
-
-      <Card className={`mb-4 ${!talent?.cvUrl ? "border-primary/50 bg-primary/5" : ""}`} id="cv-upload-section">
-        <CardHeader className="pb-3 border-b">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <FileText className="h-4 w-4 text-primary" />
-            Resume / CV
-          </CardTitle>
-          {!talent?.cvUrl && (
-            <CardDescription className="text-xs text-primary font-medium">
-              Required: Please upload your CV to apply for this job.
-            </CardDescription>
-          )}
-        </CardHeader>
-        <CardContent className="pt-4">
-          {talent?.cvUrl ? (
-            <div className="flex items-center justify-between p-3 border rounded-lg bg-background">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-red-50 flex items-center justify-center">
-                  <FileText className="h-5 w-5 text-red-500" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium">Current Resume</p>
-                  <p className="text-xs text-muted-foreground">Ready for submission</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button variant="ghost" size="sm" asChild>
-                  <a href={talent.cvUrl} target="_blank" rel="noreferrer">
-                    View
-                  </a>
-                </Button>
-                <Label htmlFor="cv-upload" className="cursor-pointer">
-                  <div className="flex items-center gap-2 h-8 px-3 text-xs font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-md">
-                    Replace
-                  </div>
-                  <Input
-                    id="cv-upload"
-                    type="file"
-                    accept=".pdf,.doc,.docx"
-                    className="hidden"
-                    onChange={handleCVUpload}
-                    disabled={isUploadingCV}
-                  />
-                </Label>
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center border-2 border-dashed border-primary/20 rounded-lg p-6 bg-background">
-              <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-3">
-                {isUploadingCV ? (
-                  <Loader2 className="h-6 w-6 text-primary animate-spin" />
-                ) : (
-                  <UploadCloud className="h-6 w-6 text-primary" />
-                )}
-              </div>
-              <h3 className="text-sm font-semibold mb-1">Upload your CV</h3>
-              <p className="text-xs text-muted-foreground text-center mb-4 max-w-[200px]">
-                PDF or Word documents up to 5MB
-              </p>
-              <Label htmlFor="cv-upload-new">
-                <Button variant="outline" size="sm" className="cursor-pointer" asChild>
-                  <span>{isUploadingCV ? "Uploading..." : "Select File"}</span>
-                </Button>
-                <Input
-                  id="cv-upload-new"
-                  type="file"
-                  accept=".pdf,.doc,.docx"
-                  className="hidden"
-                  onChange={handleCVUpload}
-                  disabled={isUploadingCV}
-                />
-              </Label>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card className="mb-4">
-        <CardHeader className="pb-3 border-b flex flex-row items-center justify-between space-y-0">
-          <div>
-            <CardTitle className="text-sm font-medium">Cover Letter</CardTitle>
-            <CardDescription className="text-xs">Optional but recommended</CardDescription>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleGenerateCoverLetter}
-            disabled={isGeneratingCoverLetter || !talent?.cvUrl}
-            className="h-8 text-xs gap-1.5"
-          >
-            {isGeneratingCoverLetter ? (
-              <Loader2 className="h-3 w-3 animate-spin" />
-            ) : (
-              <Sparkles className="h-3 w-3 text-primary" />
-            )}
-            {isGeneratingCoverLetter ? "Generating..." : "AI Generate"}
-          </Button>
-        </CardHeader>
-        <CardContent className="pt-4">
-          <Textarea
-            placeholder="Introduce yourself and explain why you're a great fit for this role..."
-            value={coverLetter}
-            onChange={(e) => setCoverLetter(e.target.value)}
-            rows={6}
-            className="resize-none"
-          />
-        </CardContent>
-      </Card>
-
-      <div className="fixed bottom-16 left-0 right-0 p-4 bg-background border-t md:relative md:bottom-0 md:p-0 md:border-0 md:bg-transparent z-10">
-        <div className="max-w-2xl mx-auto flex flex-col gap-3">
-          <div className="flex items-center justify-between text-sm px-1">
-            <span className="text-muted-foreground">
-              Cost: <span className="font-medium text-foreground">{applicationCost} credits</span>
-            </span>
-            <span className={!hasEnoughCredits ? "text-destructive font-medium" : "text-muted-foreground"}>
-              Balance: {balance}
-            </span>
-          </div>
-
           {submitting ? (
-            <div className="w-full bg-primary/5 border rounded-lg p-4">
-              <div className="flex items-center gap-3 mb-3">
-                {job?.ai_assessment_enabled ? (
-                  <Brain className="h-5 w-5 text-primary animate-pulse" />
-                ) : (
-                  <Loader2 className="h-5 w-5 text-primary animate-spin" />
-                )}
-                <span className="text-sm font-medium">{submissionMessage}</span>
+            <div className="space-y-3 p-2 bg-primary/5 rounded-xl border border-primary/10">
+              <div className="flex items-center gap-3 text-xs font-bold">
+                <Brain className="h-4 w-4 animate-pulse text-primary" /> {submissionMessage}
               </div>
               <Progress value={submissionProgress} className="h-2" />
             </div>
           ) : (
             <Button
-              className="w-full h-12 text-base shadow-lg"
+              className="w-full h-14 text-base font-bold shadow-2xl rounded-xl"
               size="lg"
               onClick={handleSubmit}
               disabled={isUploadingCV}
             >
-              {!hasEnoughCredits ? (
-                <>
-                  <Coins className="h-4 w-4 mr-2" />
-                  Get Credits & Apply
-                </>
-              ) : (
-                <>
-                  Submit Application <ArrowRight className="h-4 w-4 ml-2" />
-                </>
-              )}
+              {hasEnoughCredits ? "Submit Application" : "Purchase Credits"} <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
           )}
         </div>
       </div>
-
-      <div className="h-32 md:hidden" />
 
       <CreditPurchaseSheet
         isOpen={showPurchaseSheet}
