@@ -76,7 +76,7 @@ interface PostFormData {
 }
 
 const defaultFormData: PostFormData = {
-  author_name: 'GRO10X Team',
+  author_name: 'GroUp Academy Team',
   author_avatar: '',
   author_title: 'Career Experts',
   content_type: 'text',

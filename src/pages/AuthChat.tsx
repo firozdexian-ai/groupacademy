@@ -286,6 +286,20 @@ const AuthChat = () => {
             </Button>
           </form>
 
+          {/* Classic auth fallback */}
+          <div className="mt-2 text-center">
+            <button
+              type="button"
+              onClick={() => {
+                const returnTo = searchParams.get("returnTo");
+                navigate(`/auth/classic${returnTo ? `?returnTo=${encodeURIComponent(returnTo)}` : ""}`);
+              }}
+              className="text-xs text-muted-foreground hover:text-foreground hover:underline"
+            >
+              Trouble logging in? Use classic login
+            </button>
+          </div>
+
           {/* Password strength for new passwords */}
           {currentAction === "set_password" && passwordValue.length > 0 && (
             <div className="mt-2">

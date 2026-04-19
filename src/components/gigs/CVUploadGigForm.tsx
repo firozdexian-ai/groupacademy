@@ -86,11 +86,14 @@ export function CVUploadGigForm({ gig, talentId, onSubmitted }: CVUploadGigFormP
   };
 
   const getWhatsAppLink = () => {
+    // Global-friendly: keep raw international digits as-is.
+    // If the parsed phone already has a +country code, use it; else just strip non-digits.
     const rawPhone = parsedData?.phone || parsedData?.contact?.phone || "";
-    // CTO Logic: Robust international sanitization
-    let clean = rawPhone.replace(/\D/g, "");
-    if (clean.startsWith("0")) clean = "880" + clean.slice(1);
-    else if (!clean.startsWith("880") && clean.length === 10) clean = "880" + clean;
+    const trimmed = String(rawPhone).trim();
+    // Preserve leading + if present, otherwise pass digits straight through (no country guessing).
+    const clean = trimmed.startsWith("+")
+      ? trimmed.replace(/[^\d]/g, "")
+      : trimmed.replace(/\D/g, "");
     return `https://wa.me/${clean}?text=${encodeURIComponent(outreachMessage)}`;
   };
 
