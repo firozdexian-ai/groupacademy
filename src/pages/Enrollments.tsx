@@ -185,7 +185,7 @@ export default function Enrollments() {
             <h2 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground ml-2">Record Stream</h2>
 
             {loading ? (
-              <CardGridSkeleton count={4} columns={1} />
+              <CardGridSkeleton count={4} columns={2} />
             ) : loadError ? (
               <ErrorState type="server" title="Ingestion Failed" description={loadError} onRetry={loadEnrollments} />
             ) : filteredEnrollments.length === 0 ? (
