@@ -14,19 +14,23 @@ import { CreditGateModal } from "@/components/credits/CreditGateModal";
 import { CreditPurchaseSheet } from "@/components/credits/CreditPurchaseSheet";
 import { 
   ArrowRight, 
-  User,
-  Loader2,
-  CheckCircle2
+  User, 
+  Loader2, 
+  CheckCircle2, 
+  ShieldCheck, 
+  MessageSquare,
+  Sparkles
 } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 const INTERVIEW_ANALYSIS_STAGES = [
-  { progress: 0, message: "Preparing your answers..." },
-  { progress: 15, message: "Sending to AI for analysis..." },
-  { progress: 35, message: "Evaluating your responses..." },
-  { progress: 55, message: "Assessing interview performance..." },
-  { progress: 75, message: "Generating detailed feedback..." },
-  { progress: 90, message: "Finalizing your score..." },
+  { progress: 0, message: "Aggregating performance nodes..." },
+  { progress: 15, message: "Transmitting responses to Gemini AI..." },
+  { progress: 35, message: "Evaluating technical logic..." },
+  { progress: 55, message: "Auditing behavioral patterns..." },
+  { progress: 75, message: "Generating strategic feedback..." },
+  { progress: 95, message: "Finalizing selection score..." },
 ];
 
 export default function MockInterviewCapture() {
@@ -45,14 +49,14 @@ export default function MockInterviewCapture() {
   const [showCreditGate, setShowCreditGate] = useState(false);
   const [showCreditSheet, setShowCreditSheet] = useState(false);
 
-  // Auto-fill from talent profile
+  // Sync Logic: Auto-populate identity from secure talent profile
   useEffect(() => {
     if (talent && !autoFilled) {
-      if (talent.fullName && !fullName) setFullName(talent.fullName);
-      if (talent.phone && !phone) setPhone(talent.phone);
+      setFullName(talent.fullName || "");
+      setPhone(talent.phone || "");
       setAutoFilled(true);
     }
-  }, [talent, autoFilled, fullName, phone]);
+  }, [talent, autoFilled]);
 
   useEffect(() => {
     if (id) loadInterview();
@@ -60,204 +64,130 @@ export default function MockInterviewCapture() {
 
   const loadInterview = async () => {
     try {
-      const { data, error } = await supabase
-        .from("mock_interviews")
-        .select("*")
-        .eq("id", id)
-        .single();
-
+      const { data, error } = await supabase.from("mock_interviews").select("*").eq("id", id).single();
       if (error) throw error;
-      
       if (data.status === "completed") {
-        navigate(`/mock-interview/results/${id}`);
+        navigate(`/mock-interview/results/${id}`, { replace: true });
         return;
       }
-
       setInterview(data);
-    } catch (error) {
-      console.error("Error loading interview:", error);
-      toast.error("Failed to load interview");
+    } catch (err) {
+      toast.error("Session Expired: Handshake failed.");
       navigate("/mock-interview");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSubmit = async () => {
-    if (!fullName.trim()) {
-      toast.error("Please enter your full name");
-      return;
-    }
-
-    // Check credits for logged-in users
-    if (talent && !canAfford('MOCK_INTERVIEW')) {
-      setShowCreditGate(true);
-      return;
-    }
-
+  const executeAnalysis = async () => {
     setIsSubmitting(true);
     setSubmissionError(null);
 
     try {
-      // Update interview with lead info and talent_id
-      await supabase
-        .from("mock_interviews")
-        .update({ 
+      // 1. Hardening Identity Record
+      await supabase.from("mock_interviews").update({ 
           full_name: fullName.trim(),
           phone: phone.trim() || null,
           talent_id: talent?.id || null
-        })
-        .eq("id", id);
+      }).eq("id", id);
 
-      // Call analysis edge function
+      // 2. Initializing AI Logic
       const { data, error } = await supabase.functions.invoke("analyze-mock-interview", {
         body: { interviewId: id }
       });
 
       if (error) throw error;
 
-      // Deduct credits and track service usage for logged-in users
+      // 3. Economy Settlement
       if (talent) {
-        await deductCredits('MOCK_INTERVIEW', id, 'AI Mock Interview Analysis');
+        await deductCredits('MOCK_INTERVIEW', id, 'Premium AI Mock Interview Analysis');
         await addServiceUsed("mock_interview");
       }
 
-      toast.success("Interview analyzed! Viewing your results...");
+      toast.success("Intelligence analysis complete.");
       navigate(`/mock-interview/results/${id}`);
-    } catch (error) {
-      console.error("Error submitting interview:", error);
-      setSubmissionError("Failed to analyze interview. Please try again.");
+    } catch (err) {
+      setSubmissionError("AI Neural link failed. Please retry.");
     }
   };
 
-  const handleBuyCredits = () => {
-    setShowCreditGate(false);
-    setShowCreditSheet(true);
+  const handleSubmitTrigger = () => {
+    if (!fullName.trim()) return toast.error("Identity confirmation required.");
+    if (talent && !canAfford('MOCK_INTERVIEW')) {
+      setShowCreditGate(true);
+      return;
+    }
+    executeAnalysis();
   };
 
-  const handleRetry = () => {
-    setSubmissionError(null);
-    setIsSubmitting(false);
-  };
+  if (loading) return (
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
+      <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Synchronizing Session</p>
+    </div>
+  );
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex flex-col">
-        <Navbar />
-        <main className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
-            <p className="text-muted-foreground">Loading...</p>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
-  if (isSubmitting) {
-    return (
-      <div className="min-h-screen bg-background flex flex-col">
-        <Navbar />
-        <main className="flex-1 flex items-center justify-center px-4 py-12">
-          <ProcessingCard
-            title="Analyzing Your Interview"
-            stages={INTERVIEW_ANALYSIS_STAGES}
-            duration={45000}
-            error={submissionError}
-            onRetry={handleRetry}
-          />
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
-  const answeredCount = (interview?.answers as any[])?.length || 0;
-  const totalQuestions = (interview?.questions as any[])?.length || 0;
-
-  return (
+  if (isSubmitting) return (
     <div className="min-h-screen bg-background flex flex-col">
       <Navbar />
+      <main className="flex-1 flex items-center justify-center p-6">
+        <ProcessingCard
+          title="Synthesizing Interview Performance"
+          stages={INTERVIEW_ANALYSIS_STAGES}
+          duration={45000}
+          error={submissionError}
+          onRetry={executeAnalysis}
+        />
+      </main>
+      <Footer />
+    </div>
+  );
+
+  const answered = (interview?.answers as any[])?.length || 0;
+  const total = (interview?.questions as any[])?.length || 0;
+
+  return (
+    <div className="min-h-screen bg-background flex flex-col selection:bg-primary/10">
+      <Navbar />
       
-      <main className="flex-1 container max-w-md mx-auto px-4 py-12">
-        <Card>
-          <CardHeader className="text-center">
-            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <User className="w-8 h-8 text-primary" />
+      <main className="flex-1 container max-w-lg mx-auto px-6 py-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <Card className="rounded-[32px] border-border/40 shadow-2xl overflow-hidden bg-card/50 backdrop-blur-xl">
+          <CardHeader className="text-center pb-2">
+            <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-primary/20">
+              <Sparkles className="w-8 h-8 text-primary" />
             </div>
-            <CardTitle>Almost Done!</CardTitle>
-            <CardDescription>
-              You've completed {answeredCount} of {totalQuestions} questions. 
-              {talent ? " Confirm your details to get your personalized feedback." : " Enter your details to get your personalized feedback."}
+            <CardTitle className="text-2xl font-black tracking-tighter">Final Handshake</CardTitle>
+            <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
+              Session Artifact: {answered}/{total} Modules Completed
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          
+          <CardContent className="space-y-6 pt-6">
             {talent && autoFilled && (
-              <div className="flex items-center gap-2 p-3 bg-primary/5 rounded-lg border border-primary/20 mb-4">
-                <CheckCircle2 className="h-4 w-4 text-primary" />
-                <span className="text-sm text-muted-foreground">
-                  We've pre-filled your details from your profile
+              <div className="flex items-center gap-3 p-4 bg-emerald-500/5 rounded-2xl border border-emerald-500/10 animate-in zoom-in-95">
+                <ShieldCheck className="h-5 w-5 text-emerald-500 shrink-0" />
+                <span className="text-[11px] font-bold text-muted-foreground leading-tight">
+                  Talent profile identified. Securely mapped identity details.
                 </span>
               </div>
             )}
             
-            <div className="space-y-2">
-              <Label htmlFor="fullName">Full Name *</Label>
-              <Input
-                id="fullName"
-                type="text"
-                placeholder="Enter your full name"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number (Optional)</Label>
-              <Input
-                id="phone"
-                type="tel"
-                placeholder="+880..."
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                We'll use this to send you career tips and opportunities
-              </p>
-            </div>
-
-            <Button 
-              className="w-full mt-6" 
-              onClick={handleSubmit}
-              disabled={!fullName.trim()}
-            >
-              Get My Results
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          </CardContent>
-        </Card>
-      </main>
-
-      <Footer />
-
-      {/* Credit Gate Modal */}
-      <CreditGateModal
-        isOpen={showCreditGate}
-        onClose={() => setShowCreditGate(false)}
-        serviceName="Mock Interview Analysis"
-        cost={getServiceCost('MOCK_INTERVIEW')}
-        currentBalance={balance}
-        onConfirm={handleSubmit}
-        onBuyCredits={handleBuyCredits}
-      />
-
-      {/* Credit Purchase Sheet */}
-      <CreditPurchaseSheet
-        isOpen={showCreditSheet}
-        onClose={() => setShowCreditSheet(false)}
-        currentBalance={balance}
-      />
-    </div>
-  );
-}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="fullName" className="text-[10px] font-black uppercase tracking-widest ml-1">Identity Confirmation *</Label>
+                <div className="relative">
+                   <User className="absolute left-3 top-3.5 h-4 w-4 text-primary/40" />
+                   <Input
+                    id="fullName"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Enter full legal name"
+                    className="h-11 rounded-xl border-border/40 bg-background/50 pl-10 font-bold"
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="phone" className="text-[10px] font-black uppercase tracking-widest ml-1">Contact Sequence (Optional)</Label>
+                <div className="relative">
+                   <MessageSquare className="absolute left-3 top-3.5 h-4 w
