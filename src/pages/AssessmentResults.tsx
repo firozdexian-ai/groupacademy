@@ -6,6 +6,7 @@ import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton"; // FIX: Added missing import
 import {
   Download,
   Share2,
@@ -29,7 +30,6 @@ import { generateScorecardPDF } from "@/lib/assessmentPdfGenerator";
 import { RetryErrorCard } from "@/components/ui/retry-error-card";
 import { cn } from "@/lib/utils";
 
-// CTO FIX: Standardized AI Analysis Interface
 interface AIAnalysis {
   strengths: string[];
   improvement_areas: string[];
@@ -46,7 +46,7 @@ interface Assessment {
   total_score: number;
   max_score: number;
   created_at: string;
-  ai_analysis: AIAnalysis | null; // Typed strictly for the UI
+  ai_analysis: AIAnalysis | null;
   improvement_areas: string[];
   profession_category_id: string;
   profession_categories?: { name: string } | null;
@@ -91,9 +91,6 @@ export default function AssessmentResults() {
   const [recommendedCourses, setRecommendedCourses] = useState<any[]>([]);
   const hasTriggeredAnalysis = useRef(false);
 
-  const shareText = `I scored ${assessment?.percentage}% on the Career Readiness Scorecard! 🎯 Check yours at GroUp Academy.`;
-  const shareUrl = window.location.href;
-
   useEffect(() => {
     if (id) loadAssessment();
   }, [id]);
@@ -113,7 +110,6 @@ export default function AssessmentResults() {
         return;
       }
 
-      // CTO FIX: Double-casting Json to Assessment to resolve TS2345
       const typedData = data as unknown as Assessment;
       setAssessment(typedData);
 
@@ -155,7 +151,9 @@ export default function AssessmentResults() {
     }
   };
 
-  // RESTORED: Social Engine Handlers
+  const shareText = `I scored ${assessment?.percentage}% on the Career Readiness Scorecard! 🎯 Check yours at GroUp Academy.`;
+  const shareUrl = window.location.href;
+
   const handleWhatsAppShare = () =>
     window.open(`https://wa.me/?text=${encodeURIComponent(shareText + " " + shareUrl)}`, "_blank");
   const handleLinkedInShare = () =>
@@ -183,7 +181,7 @@ export default function AssessmentResults() {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-xs font-black uppercase tracking-[0.2em] mt-4 text-muted-foreground">Synthesizing Results</p>
+        <p className="text-xs font-black uppercase tracking-[0.2em] mt-4 text-muted-foreground">Compiling Report</p>
       </div>
     );
 
@@ -400,7 +398,7 @@ export default function AssessmentResults() {
               onClick={() => navigate("/app/learning")}
               className="rounded-full font-black uppercase text-[10px] h-10 px-8"
             >
-              Visit Academy
+              Academy Hub
             </Button>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
