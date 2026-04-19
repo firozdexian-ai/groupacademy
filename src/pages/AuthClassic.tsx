@@ -53,7 +53,7 @@ const Auth = () => {
   const [showSignupPassword, setShowSignupPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
 
-  // REDIRECT GUARD: Unified with AuthChat
+  // REDIRECT GUARD
   useEffect(() => {
     if (!authLoading && user) {
       supabase.auth.getSession().then(({ data: { session } }) => {
@@ -76,9 +76,8 @@ const Auth = () => {
     setIsLoading(true);
     try {
       await signIn(loginData.identifier, loginData.password);
-      // Redirect logic handled by the useEffect guard above
     } catch (error) {
-      console.error("Login failed");
+      console.error("Login Handshake Failed");
     } finally {
       setIsLoading(false);
     }
@@ -86,35 +85,21 @@ const Auth = () => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (signupData.password.length < 8) {
-      toast.error("Security policy: Minimum 8 characters required.");
+      toast.error("Password entropy too low. Min 8 characters.");
       return;
     }
-
-    if (!signupData.phone || signupData.phone.length < 7) {
-      toast.error("Contact verification: Phone number required.");
-      return;
-    }
-
     setIsLoading(true);
     const fullPhone = `${signupData.countryCode}${signupData.phone}`;
 
     try {
-      // PRE-FLIGHT: Duplicate Identity Check
-      const { data: existing, error: checkError } = await supabase
-        .from("talents")
-        .select("id")
-        .eq("phone", fullPhone)
-        .maybeSingle();
-
+      const { data: existing } = await supabase.from("talents").select("id").eq("phone", fullPhone).maybeSingle();
       if (existing) {
-        toast.error("Identity already exists. Redirecting to login...");
+        toast.error("Node already exists. Transitioning to Login.");
         setActiveTab("login");
         setLoginData((prev) => ({ ...prev, identifier: fullPhone }));
         return;
       }
-
       await signUp(
         signupData.fullName,
         signupData.email,
@@ -124,7 +109,24 @@ const Auth = () => {
         signupData.countryCode,
       );
     } catch (error) {
-      console.error("Account creation failure");
+      console.error("Identity Creation Failed");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // FIX: Added missing handler for Access Recovery
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetEmail) return;
+    setIsLoading(true);
+    try {
+      await resetPassword(resetEmail);
+      setShowForgotPassword(false);
+      setResetEmail("");
+      toast.success("Recovery link transmitted.");
+    } catch (error) {
+      console.error("Recovery Transmission Failed");
     } finally {
       setIsLoading(false);
     }
@@ -159,20 +161,15 @@ const Auth = () => {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background">
         <Loader2 className="w-10 h-10 animate-spin text-primary" />
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] mt-4 text-muted-foreground">
-          Authenticating Access
-        </p>
       </div>
     );
 
   return (
     <div className="min-h-screen flex bg-background selection:bg-primary/10">
-      {/* Left Column - Conversion UI (Desktop) */}
       <div className="hidden lg:flex lg:w-1/2 bg-primary p-16 flex-col justify-between relative overflow-hidden">
         <div className="absolute top-0 right-0 p-12 opacity-10 rotate-12 pointer-events-none">
           <ShieldCheck className="w-64 h-64 text-white" />
         </div>
-
         <div className="relative z-10">
           <button onClick={() => navigate("/")} className="mb-12 hover:scale-105 transition-transform">
             <img src={logoLight} alt="GroUp" className="h-9" />
@@ -185,7 +182,6 @@ const Auth = () => {
             Join the ecosystem where AI mentors and professional opportunities converge.
           </p>
         </div>
-
         <div className="grid grid-cols-2 gap-8 relative z-10">
           {valueProps.map((prop, i) => (
             <div key={i} className="space-y-2">
@@ -199,10 +195,8 @@ const Auth = () => {
         </div>
       </div>
 
-      {/* Right Column - Handshake UI */}
       <div className="flex-1 flex items-center justify-center p-6 lg:p-12">
         <div className="w-full max-w-sm space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-700">
-          {/* Mobile Brand */}
           <div className="text-center lg:hidden space-y-4">
             <button onClick={() => navigate("/")}>
               <img src={theme === "dark" ? logoLight : logoDark} alt="GroUp" className="h-8 mx-auto" />
@@ -223,12 +217,10 @@ const Auth = () => {
             </TabsList>
 
             <TabsContent value="login" className="mt-6">
-              <Card className="rounded-[32px] border-border/40 shadow-2xl shadow-primary/5">
+              <Card className="rounded-[32px] border-border/40 shadow-2xl">
                 <CardHeader>
                   <CardTitle className="text-xl font-black tracking-tighter">Welcome Back</CardTitle>
-                  <CardDescription className="text-xs font-medium">
-                    Continue your professional trajectory
-                  </CardDescription>
+                  <CardDescription className="text-xs font-medium">Continue your trajectory</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleLogin} className="space-y-5">
@@ -238,7 +230,7 @@ const Auth = () => {
                       </Label>
                       <Input
                         type="text"
-                        placeholder="Email or phone number"
+                        placeholder="Email or phone"
                         value={loginData.identifier}
                         onChange={(e) => setLoginData({ ...loginData, identifier: e.target.value })}
                         className="rounded-xl border-border/40 h-11"
@@ -253,7 +245,7 @@ const Auth = () => {
                         <button
                           type="button"
                           onClick={() => setShowForgotPassword(true)}
-                          className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline"
+                          className="text-[10px] font-black uppercase text-primary hover:underline"
                         >
                           Lost Access?
                         </button>
@@ -277,7 +269,7 @@ const Auth = () => {
                     </div>
                     <Button
                       type="submit"
-                      className="w-full h-11 rounded-xl font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20"
+                      className="w-full h-11 rounded-xl font-black uppercase tracking-widest text-xs"
                       disabled={isLoading}
                     >
                       {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Authorize Entry"}
@@ -291,9 +283,7 @@ const Auth = () => {
               <Card className="rounded-[32px] border-border/40 shadow-2xl">
                 <CardHeader>
                   <CardTitle className="text-xl font-black tracking-tighter">New Node</CardTitle>
-                  <CardDescription className="text-xs font-medium">
-                    Claim your 250 bonus credits on setup
-                  </CardDescription>
+                  <CardDescription className="text-xs font-medium">Claim 250 bonus credits</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleSignup} className="space-y-4">
@@ -353,7 +343,6 @@ const Auth = () => {
                           {showSignupPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
                       </div>
-
                       {signupData.password && (
                         <div className="pt-1.5">
                           <div className="flex gap-1 h-1">
@@ -367,16 +356,12 @@ const Auth = () => {
                               />
                             ))}
                           </div>
-                          <p className="text-[9px] font-black uppercase text-right mt-1 text-muted-foreground/60">
-                            Strength: {strength.label}
-                          </p>
                         </div>
                       )}
                     </div>
-
                     <Button
                       type="submit"
-                      className="w-full h-11 rounded-xl font-black uppercase tracking-widest text-xs mt-2 shadow-lg shadow-primary/20"
+                      className="w-full h-11 rounded-xl font-black uppercase tracking-widest text-xs mt-2"
                       disabled={isLoading}
                     >
                       {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Create Identity"}
@@ -390,7 +375,7 @@ const Auth = () => {
           <div className="text-center">
             <button
               onClick={() => navigate(`/auth?${searchParams.toString()}`)}
-              className="text-[10px] font-black uppercase tracking-[0.2em] text-primary hover:text-primary/70 transition-colors"
+              className="text-[10px] font-black uppercase tracking-[0.2em] text-primary"
             >
               Initialize Chat Handshake
             </button>
@@ -398,14 +383,10 @@ const Auth = () => {
         </div>
       </div>
 
-      {/* Recovery Layer */}
       <Dialog open={showForgotPassword} onOpenChange={setShowForgotPassword}>
         <DialogContent className="rounded-[32px] border-border/40">
           <DialogHeader>
             <DialogTitle className="text-xl font-black tracking-tighter">Access Recovery</DialogTitle>
-            <DialogDescription className="text-xs font-medium uppercase tracking-widest">
-              Transmit a secure reset link
-            </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleForgotPassword} className="space-y-4 pt-4">
             <div className="space-y-1.5">
@@ -428,14 +409,6 @@ const Auth = () => {
                 className="flex-1 rounded-xl font-black uppercase text-xs h-11"
               >
                 {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Transmit Link"}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setShowForgotPassword(false)}
-                className="rounded-xl font-black uppercase text-xs h-11"
-              >
-                Cancel
               </Button>
             </div>
           </form>
