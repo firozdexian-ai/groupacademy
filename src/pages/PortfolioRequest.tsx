@@ -24,10 +24,10 @@ import {
   Loader2,
   FileUp,
   PenLine,
-  RefreshCw,
   Gift,
   Sparkles,
   ShieldCheck,
+  BriefcaseIcon,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { AuthGate } from "@/components/AuthGate";
@@ -36,12 +36,13 @@ import { ExistingCVCard } from "@/components/cv/ExistingCVCard";
 import { ProfileCompletionPrompt } from "@/components/profile/ProfileCompletionPrompt";
 import { cn } from "@/lib/utils";
 
+// Experience Protocols for 2026
 type Step = "personal" | "cv" | "certificates" | "social" | "review";
 
 const steps: { id: Step; label: string; icon: any }[] = [
   { id: "personal", label: "Identity", icon: User },
   { id: "cv", label: "Artifacts", icon: FileText },
-  { id: "certificates", label: "Verification", icon: Award },
+  { id: "certificates", label: "Evidence", icon: Award },
   { id: "social", label: "Network", icon: Globe },
   { id: "review", label: "Finalize", icon: CheckCircle },
 ];
@@ -65,41 +66,39 @@ function PortfolioRequestContent() {
     email: "",
     phone: "",
     professionCategoryId: "",
-    customProfession: "",
     cvInputMode: "upload",
     cvUrl: "",
-    cvExternalUrl: "",
-    profileData: { education: [], experience: [], skills: [], projects: [], achievements: [] },
+    profileData: { education: [], experience: [], skills: [] },
     certificates: [],
     achievements: "",
     socialLinks: {},
-    additionalNotes: "",
   });
 
+  // CTO Logic: Load core metadata and restore draft
   useEffect(() => {
-    loadData();
-    // CTO Note: Restore session backup
-    const backup = localStorage.getItem("portfolio_request_draft");
-    if (backup) {
-      try {
-        setFormData((prev: any) => ({ ...prev, ...JSON.parse(backup) }));
-      } catch (e) {
-        console.error("Backup corruption detected.");
+    const init = async () => {
+      const { data: cats } = await supabase
+        .from("profession_categories")
+        .select("id, name")
+        .eq("is_active", true)
+        .order("display_order");
+      const { count } = await supabase.from("portfolio_requests").select("*", { count: "exact", head: true });
+      if (cats) setProfessionCategories(cats);
+      setPortfolioCount(count || 0);
+
+      const backup = localStorage.getItem("portfolio_request_draft");
+      if (backup) {
+        try {
+          setFormData((prev: any) => ({ ...prev, ...JSON.parse(backup) }));
+        } catch (e) {
+          console.error("Cache purge required.");
+        }
       }
-    }
+    };
+    init();
   }, []);
 
-  const loadData = async () => {
-    const { data: cats } = await supabase
-      .from("profession_categories")
-      .select("id, name")
-      .eq("is_active", true)
-      .order("display_order");
-    const { count } = await supabase.from("portfolio_requests").select("*", { count: "exact", head: true });
-    if (cats) setProfessionCategories(cats);
-    setPortfolioCount(count || 0);
-  };
-
+  // Sync state with Talent Profile
   useEffect(() => {
     if (talent) {
       setFormData((prev: any) => ({
@@ -109,14 +108,15 @@ function PortfolioRequestContent() {
         phone: prev.phone || talent.phone || "",
         professionCategoryId: prev.professionCategoryId || talent.professionCategoryId || "",
         cvUrl: prev.cvUrl || talent.cvUrl || "",
-        cvInputMode: talent.cvUrl ? "existing" : prev.cvInputMode,
+        cvInputMode: prev.cvUrl || talent.cvUrl ? "existing" : "upload",
       }));
     }
   }, [talent]);
 
+  // Persistent Draft Logic
   useEffect(() => {
     const backupData = { ...formData };
-    delete backupData.certificates; // Heavy binary data excluded from LS
+    delete backupData.certificates; // Prevent storage overflow
     localStorage.setItem("portfolio_request_draft", JSON.stringify(backupData));
   }, [formData]);
 
@@ -132,11 +132,12 @@ function PortfolioRequestContent() {
         email: formData.email,
         phone: formData.phone,
         profession_category_id: formData.professionCategoryId,
-        cv_url: formData.cvInputMode === "url" ? formData.cvExternalUrl : formData.cvUrl,
+        cv_url: formData.cvUrl,
         profile_data: formData.profileData,
         certificates: formData.certificates,
         social_links: formData.socialLinks,
         talent_id: talent?.id || null,
+        status: "pending",
       });
 
       if (error) throw error;
@@ -145,9 +146,9 @@ function PortfolioRequestContent() {
       localStorage.removeItem("portfolio_request_draft");
       setRequestId(tempId);
       setIsSuccess(true);
-      toast({ title: "Identity Logged", description: "Your profile is in the engineering queue." });
+      toast({ title: "Request Logged", description: "Identity verified and queued." });
     } catch (e: any) {
-      toast({ title: "Handshake Failed", description: e.message, variant: "destructive" });
+      toast({ title: "Engineering Fault", description: e.message, variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
@@ -160,43 +161,22 @@ function PortfolioRequestContent() {
         <main className="flex-1 container max-w-2xl mx-auto px-6 py-20 animate-in fade-in zoom-in-95 duration-700">
           <Card className="rounded-[40px] border-border/40 shadow-2xl overflow-hidden text-center">
             <div className="bg-emerald-500/5 py-12 border-b border-emerald-500/10">
-              <div className="mx-auto w-20 h-20 bg-emerald-500/10 rounded-3xl flex items-center justify-center mb-6">
-                <ShieldCheck className="h-10 w-10 text-emerald-500" />
-              </div>
-              <CardTitle className="text-3xl font-black tracking-tighter">Request Authorized</CardTitle>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-600/60 mt-2">
-                Ticket ID: {requestId.slice(0, 8).toUpperCase()}
+              <ShieldCheck className="h-16 w-16 text-emerald-500 mx-auto mb-4" />
+              <CardTitle className="text-3xl font-black tracking-tighter uppercase">Protocol Authorized</CardTitle>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] mt-2">
+                Engineering ID: {requestId.slice(0, 8)}
               </p>
             </div>
-            <CardContent className="p-10 space-y-8">
-              <div className="text-left space-y-4 bg-muted/30 p-6 rounded-3xl border border-border/40">
-                <h4 className="text-[10px] font-black uppercase tracking-widest text-primary">Onboarding Protocol</h4>
-                <ol className="space-y-3 text-xs font-bold text-muted-foreground uppercase tracking-tight">
-                  <li className="flex gap-3">
-                    <div className="h-5 w-5 rounded-full bg-primary text-white flex items-center justify-center text-[10px] shrink-0">
-                      1
-                    </div>{" "}
-                    WhatsApp verification within 24h.
-                  </li>
-                  <li className="flex gap-3">
-                    <div className="h-5 w-5 rounded-full bg-primary text-white flex items-center justify-center text-[10px] shrink-0">
-                      2
-                    </div>{" "}
-                    Engineering phase: Site construction (3-5 days).
-                  </li>
-                  <li className="flex gap-3">
-                    <div className="h-5 w-5 rounded-full bg-primary text-white flex items-center justify-center text-[10px] shrink-0">
-                      3
-                    </div>{" "}
-                    Live credentials transmission.
-                  </li>
-                </ol>
-              </div>
+            <CardContent className="p-10 space-y-6">
+              <p className="text-sm font-medium text-muted-foreground leading-relaxed">
+                Your digital footprint is now being translated into a high-conversion artifact. Delivery expected within
+                48-72 standard operating hours.
+              </p>
               <Button
                 className="w-full h-14 rounded-2xl font-black uppercase text-xs"
                 onClick={() => navigate("/app/feed")}
               >
-                Return to Nexus
+                Return to Hub
               </Button>
             </CardContent>
           </Card>
@@ -212,14 +192,20 @@ function PortfolioRequestContent() {
         <ProfileCompletionPrompt variant="banner" className="mb-10 rounded-2xl" />
 
         <div className="max-w-3xl mx-auto space-y-12">
-          <header className="text-center space-y-4">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-primary/20 bg-primary/5 text-primary font-black uppercase text-[10px] tracking-[0.2em] animate-fade-in">
-              <Sparkles className="w-3 h-3" /> Strategic Identity Blueprint
+          {/* Executive Header */}
+          <header className="text-center space-y-6">
+            <div className="h-16 w-16 rounded-3xl bg-primary/5 border border-primary/10 flex items-center justify-center mx-auto shadow-sm">
+              <BriefcaseIcon className="h-8 w-8 text-primary" />
             </div>
-            <h1 className="text-5xl font-black tracking-tighter leading-[0.8] mb-4">Digital Portfolio</h1>
-            <p className="text-muted-foreground font-medium text-lg max-w-xl mx-auto">
-              Build a high-conversion professional landing page managed by our creative leads.
-            </p>
+            <div className="space-y-2">
+              <Badge
+                variant="outline"
+                className="rounded-full border-primary/20 bg-primary/5 text-primary font-black uppercase text-[10px] tracking-[0.2em] px-4 py-1"
+              >
+                <Sparkles className="h-3 w-3 mr-2" /> Digital Blueprint
+              </Badge>
+              <h1 className="text-5xl font-black tracking-tighter">Portfolio Build</h1>
+            </div>
           </header>
 
           {/* Stepper HUD */}
@@ -245,17 +231,17 @@ function PortfolioRequestContent() {
             ))}
           </nav>
 
-          <Card className="rounded-[40px] border-border/40 shadow-2xl bg-card/50 backdrop-blur-xl overflow-hidden animate-in slide-in-from-bottom-4 duration-700">
-            <CardHeader className="p-10 pb-6 border-b border-border/10 bg-muted/20">
+          <Card className="rounded-[40px] border-border/40 shadow-2xl bg-card/50 backdrop-blur-xl overflow-hidden">
+            <CardHeader className="p-10 pb-6 border-b border-border/10 bg-muted/10">
               <CardTitle className="text-2xl font-black tracking-tighter uppercase">
                 {steps[currentStepIndex].label}
               </CardTitle>
             </CardHeader>
             <CardContent className="p-10 space-y-8">
               {currentStep === "personal" && (
-                <div className="grid md:grid-cols-2 gap-6 animate-in fade-in">
+                <div className="grid md:grid-cols-2 gap-6 animate-in fade-in duration-500">
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Legal Identity</Label>
+                    <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Full Legal Identity</Label>
                     <Input
                       value={formData.fullName}
                       onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
@@ -264,7 +250,7 @@ function PortfolioRequestContent() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Contact Sequence</Label>
+                    <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Contact String</Label>
                     <Input
                       value={formData.phone}
                       onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
@@ -296,29 +282,40 @@ function PortfolioRequestContent() {
               )}
 
               {currentStep === "cv" && (
-                <div className="space-y-6 animate-in fade-in">
+                <div className="space-y-6 animate-in fade-in duration-500">
                   {formData.cvInputMode === "existing" && talent?.cvUrl ? (
                     <div className="space-y-4">
                       <p className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
-                        Verified Artifact Identified
+                        Verified Artifact Detected
                       </p>
                       <ExistingCVCard
                         talent={talent}
                         onUploadNew={() => setFormData({ ...formData, cvInputMode: "upload" })}
                         showActions={false}
+                        onUseExisting={async () => {
+                          setFormData({ ...formData, cvUrl: talent.cvUrl });
+                          toast({ title: "Artifact Locked", description: "Using profile source." });
+                        }}
                       />
                     </div>
                   ) : (
                     <SimpleFileUpload
-                      onFileUploaded={async (url) => setFormData({ ...formData, cvUrl: url })}
+                      onFileUploaded={async (url) => {
+                        setFormData({ ...formData, cvUrl: url });
+                        if (talent?.id) {
+                          await updateTalent({ cvUrl: url });
+                          refreshTalent();
+                        }
+                      }}
                       currentValue={formData.cvUrl}
+                      onUrlProvided={(url) => setFormData({ ...formData, cvUrl: url })}
                     />
                   )}
                 </div>
               )}
 
               {currentStep === "certificates" && (
-                <div className="space-y-6 animate-in slide-in-from-right-4">
+                <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
                   <MultiFileUpload
                     bucket="portfolio-uploads"
                     value={formData.certificates}
@@ -327,21 +324,21 @@ function PortfolioRequestContent() {
                   />
                   <div className="space-y-2">
                     <Label className="text-[10px] font-black uppercase tracking-widest ml-1">
-                      Value Propositions (Achievements)
+                      Key Performance Achievements
                     </Label>
                     <Textarea
                       value={formData.achievements}
                       onChange={(e) => setFormData({ ...formData, achievements: e.target.value })}
                       rows={5}
                       className="rounded-2xl resize-none"
-                      placeholder="Major projects or KPI results..."
+                      placeholder="Major projects, awards, or quantifiable results..."
                     />
                   </div>
                 </div>
               )}
 
               {currentStep === "social" && (
-                <div className="grid sm:grid-cols-2 gap-6 animate-in zoom-in-95">
+                <div className="grid sm:grid-cols-2 gap-6 animate-in zoom-in-95 duration-500">
                   {["linkedin", "github", "website"].map((key) => (
                     <div key={key} className="space-y-2">
                       <Label className="text-[10px] font-black uppercase tracking-widest ml-1 capitalize">
@@ -361,23 +358,23 @@ function PortfolioRequestContent() {
               )}
 
               {currentStep === "review" && (
-                <div className="space-y-6 animate-in fade-in">
+                <div className="space-y-6 animate-in fade-in duration-500">
                   <div className="p-6 bg-emerald-500/5 rounded-[32px] border border-emerald-500/10 flex items-start gap-4">
                     <ShieldCheck className="h-6 w-6 text-emerald-500 mt-1" />
                     <div className="space-y-1">
-                      <h4 className="font-black uppercase text-xs tracking-tight">Logic Verification</h4>
+                      <h4 className="font-black uppercase text-xs tracking-tight">Final Validation</h4>
                       <p className="text-xs font-medium text-muted-foreground leading-relaxed">
-                        Ensure all artifacts are authentic. Verified data significantly reduces engineering latency.
+                        Identity and artifacts are ready for engineering. Discrepancies will delay build time by 40%.
                       </p>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="p-4 rounded-2xl bg-muted/30">
-                      <p className="text-[8px] font-black text-muted-foreground uppercase">Identity</p>
+                      <p className="text-[8px] font-black text-muted-foreground uppercase">Target Identity</p>
                       <p className="text-xs font-bold">{formData.fullName}</p>
                     </div>
                     <div className="p-4 rounded-2xl bg-muted/30">
-                      <p className="text-[8px] font-black text-muted-foreground uppercase">Artifact</p>
+                      <p className="text-[8px] font-black text-muted-foreground uppercase">Data Source</p>
                       <p className="text-xs font-bold uppercase">{formData.cvInputMode}</p>
                     </div>
                   </div>
@@ -403,7 +400,7 @@ function PortfolioRequestContent() {
                   {isSubmitting ? (
                     <Loader2 className="animate-spin" />
                   ) : currentStep === "review" ? (
-                    "Verify & Authorize"
+                    "Commit & Authorize"
                   ) : (
                     "Proceed"
                   )}
@@ -421,7 +418,7 @@ function PortfolioRequestContent() {
 
 export default function PortfolioRequest() {
   return (
-    <AuthGate message="Secure your professional identity. Results are archived to your encrypted career profile.">
+    <AuthGate message="Secure your professional identity. Build artifacts are archived to your encrypted talent profile.">
       <PortfolioRequestContent />
     </AuthGate>
   );
