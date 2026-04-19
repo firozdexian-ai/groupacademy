@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { ArrowLeft, Loader2, Globe, Layers, Youtube, MessageSquare, MapPin, Calendar, Sparkles } from "lucide-react";
 import { ImageUpload } from "@/components/ImageUpload";
