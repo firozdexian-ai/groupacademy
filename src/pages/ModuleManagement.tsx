@@ -156,6 +156,11 @@ export default function ModuleManagement() {
     setModules(updated);
   };
 
+  const removeModule = (index: number) => {
+    const updated = modules.filter((_, i) => i !== index);
+    setModules(updated.map((m, i) => ({ ...m, display_order: i })));
+  };
+
   const moveModule = (index: number, direction: "up" | "down") => {
     const newIndex = direction === "up" ? index - 1 : index + 1;
     if (newIndex < 0 || newIndex >= modules.length) return;
