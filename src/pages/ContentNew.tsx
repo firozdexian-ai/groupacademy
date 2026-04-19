@@ -9,11 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2, Globe, Layers, Youtube, MessageSquare, MapPin, Calendar, Sparkles } from "lucide-react";
 import { ImageUpload } from "@/components/ImageUpload";
 import { youtubeUrlSchema, whatsappUrlSchema } from "@/lib/validations";
-import { withTimeout } from "@/hooks/useQueryWithTimeout";
-import { TIMEOUTS } from "@/lib/timeoutConfig";
+import { cn } from "@/lib/utils";
 
 const ContentNew = () => {
   const navigate = useNavigate();
@@ -21,7 +20,7 @@ const ContentNew = () => {
   const [formData, setFormData] = useState({
     title: "",
     slug: "",
-    content_type: "free_video" as "free_video" | "recorded_course" | "live_webinar" | "batch_class" | "offline_seminar",
+    content_type: "recorded_course" as any,
     description: "",
     price: 0,
     youtube_url: "",
@@ -46,352 +45,370 @@ const ContentNew = () => {
     setIsLoading(true);
 
     try {
-      // Validate URLs if provided
-      if (formData.youtube_url) {
-        const ytValidation = youtubeUrlSchema.safeParse(formData.youtube_url);
-        if (!ytValidation.success) {
-          toast.error(ytValidation.error.errors[0].message);
-          setIsLoading(false);
-          return;
-        }
+      // 1. Logic Validation
+      if (formData.youtube_url && !youtubeUrlSchema.safeParse(formData.youtube_url).success) {
+        throw new Error("Invalid YouTube reference format.");
+      }
+      if (formData.whatsapp_group_link && !whatsappUrlSchema.safeParse(formData.whatsapp_group_link).success) {
+        throw new Error("Invalid WhatsApp link sequence.");
       }
 
-      if (formData.whatsapp_group_link) {
-        const waValidation = whatsappUrlSchema.safeParse(formData.whatsapp_group_link);
-        if (!waValidation.success) {
-          toast.error(waValidation.error.errors[0].message);
-          setIsLoading(false);
-          return;
-        }
-      }
+      // 2. SEO & Pathing
+      const finalSlug =
+        formData.slug ||
+        formData.title
+          .toLowerCase()
+          .replace(/\s+/g, "-")
+          .replace(/[^a-z0-9-]/g, "");
 
-      // Generate slug from title if not provided
-      const slug = formData.slug || formData.title.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+      // 3. Payload Normalization (Sanitizing irrelevant fields per type)
+      const isEvent = ["live_webinar", "batch_class", "offline_seminar"].includes(formData.content_type);
 
-      const { error } = await withTimeout(
-        Promise.resolve(supabase.from("content").insert([
-          {
-            ...formData,
-            slug,
-            youtube_url: formData.youtube_url || null,
-            cover_image_url: formData.cover_image_url || null,
-            whatsapp_group_link: formData.whatsapp_group_link || null,
-            display_order: formData.display_order,
-            duration_hours: formData.content_type === "recorded_course" ? formData.duration_hours : null,
-            modules_count: formData.content_type === "recorded_course" ? formData.modules_count : null,
-            event_date: ["live_webinar", "batch_class", "offline_seminar"].includes(formData.content_type)
-              ? formData.event_date || null
-              : null,
-            event_duration_minutes: ["live_webinar", "batch_class", "offline_seminar"].includes(formData.content_type)
-              ? formData.event_duration_minutes
-              : null,
-            max_capacity: ["live_webinar", "batch_class", "offline_seminar"].includes(formData.content_type)
-              ? formData.max_capacity
-              : null,
-            venue_name: formData.content_type === "offline_seminar" ? formData.venue_name : null,
-            venue_address: formData.content_type === "offline_seminar" ? formData.venue_address : null,
-          },
-        ])),
-        TIMEOUTS.DEFAULT,
-        "Creating content timed out"
-      );
+      const payload = {
+        ...formData,
+        slug: finalSlug,
+        duration_hours: formData.content_type === "recorded_course" ? formData.duration_hours : null,
+        modules_count: formData.content_type === "recorded_course" ? formData.modules_count : null,
+        event_date: isEvent ? formData.event_date || null : null,
+        max_capacity: isEvent ? formData.max_capacity : null,
+        venue_name: formData.content_type === "offline_seminar" ? formData.venue_name : null,
+        venue_address: formData.content_type === "offline_seminar" ? formData.venue_address : null,
+      };
 
+      const { error } = await supabase.from("content").insert([payload]);
       if (error) throw error;
 
-      toast.success("Content created successfully!");
+      toast.success("Academy Record Created");
       navigate("/dashboard");
     } catch (error: any) {
-      toast.error(error.message || "Failed to create content");
+      toast.error(error.message || "Blueprint creation failed");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-6 py-4">
-          <Button variant="ghost" onClick={() => navigate("/dashboard")}>
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Dashboard
+    <div className="min-h-screen bg-background pb-20">
+      <header className="border-b bg-card/50 backdrop-blur-xl sticky top-0 z-10">
+        <div className="container mx-auto px-6 py-4 flex items-center justify-between">
+          <Button
+            variant="ghost"
+            onClick={() => navigate("/dashboard")}
+            className="rounded-xl font-bold uppercase text-[10px] tracking-widest"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" /> Back to Nexus
           </Button>
+          <Badge
+            variant="outline"
+            className="font-black uppercase text-[10px] tracking-tighter border-primary/20 text-primary"
+          >
+            New Content Draft
+          </Badge>
         </div>
       </header>
 
-      <main className="container mx-auto px-6 py-8 max-w-3xl">
-        <Card>
-          <CardHeader>
-            <CardTitle>Create New Content</CardTitle>
-            <CardDescription>Add new educational content to the platform</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Cover Image Upload */}
-              <ImageUpload
-                value={formData.cover_image_url}
-                onUpload={(url) => setFormData({ ...formData, cover_image_url: url })}
-                onRemove={() => setFormData({ ...formData, cover_image_url: "" })}
-              />
+      <main className="container mx-auto px-6 py-12 max-w-4xl">
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-[1fr,320px] gap-8">
+          <div className="space-y-8">
+            {/* Step 1: Identity */}
+            <Card className="rounded-[32px] border-border/40 overflow-hidden shadow-2xl shadow-primary/5">
+              <CardHeader className="bg-muted/30 pb-6 border-b border-border/20">
+                <CardTitle className="text-sm font-black uppercase tracking-[0.2em] flex items-center gap-2">
+                  <Layers className="h-4 w-4 text-primary" /> Core Blueprint
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-8 space-y-6 pt-10">
+                <ImageUpload
+                  value={formData.cover_image_url}
+                  onUpload={(url) => setFormData({ ...formData, cover_image_url: url })}
+                  onRemove={() => setFormData({ ...formData, cover_image_url: "" })}
+                />
 
-              {/* Basic Info */}
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="title">Title *</Label>
-                  <Input
-                    id="title"
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="content_type">Content Type *</Label>
-                  <Select
-                    value={formData.content_type}
-                    onValueChange={(value: any) => setFormData({ ...formData, content_type: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="free_video">Free Video</SelectItem>
-                      <SelectItem value="recorded_course">Recorded Course</SelectItem>
-                      <SelectItem value="live_webinar">Live Webinar</SelectItem>
-                      <SelectItem value="batch_class">Batch Class</SelectItem>
-                      <SelectItem value="offline_seminar">Offline Seminar</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    rows={4}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="instructor">Instructor/Speaker</Label>
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+                      Internal Title *
+                    </Label>
                     <Input
-                      id="instructor"
-                      value={formData.instructor_name}
-                      onChange={(e) => setFormData({ ...formData, instructor_name: e.target.value })}
+                      placeholder="e.g. Mastering Advanced AI Prompting"
+                      value={formData.title}
+                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                      className="h-12 rounded-xl border-border/40 text-sm font-bold"
+                      required
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="price">Price (USD)</Label>
-                    <Input
-                      id="price"
-                      type="number"
-                      min="0"
-                      step="1"
-                      value={formData.price}
-                      onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Set to 0 for free courses
-                    </p>
-                  </div>
-                </div>
-
-                {/* YouTube Video - Available for all content types */}
-                <div className="space-y-2">
-                  <Label htmlFor="youtube_url">
-                    {formData.content_type === "free_video" 
-                      ? "YouTube Video URL *" 
-                      : "Trailer Video (YouTube URL)"}
-                  </Label>
-                  <Input
-                    id="youtube_url"
-                    type="url"
-                    placeholder="https://www.youtube.com/watch?v=..."
-                    value={formData.youtube_url}
-                    onChange={(e) => setFormData({ ...formData, youtube_url: e.target.value })}
-                    required={formData.content_type === "free_video"}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    {formData.content_type === "free_video" 
-                      ? "YouTube URL for the main video content" 
-                      : "Add a trailer or preview video (optional)"}
-                  </p>
-                </div>
-
-                {/* WhatsApp Group Link */}
-                <div className="space-y-2">
-                  <Label htmlFor="whatsapp_group_link">WhatsApp Group Link</Label>
-                  <Input
-                    id="whatsapp_group_link"
-                    type="url"
-                    placeholder="https://chat.whatsapp.com/..."
-                    value={formData.whatsapp_group_link}
-                    onChange={(e) => setFormData({ ...formData, whatsapp_group_link: e.target.value })}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Share your course WhatsApp group link with enrolled students
-                  </p>
-                </div>
-
-                {/* Content Type Specific Fields */}
-
-                {formData.content_type === "recorded_course" && (
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="duration">Duration (Hours)</Label>
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                        URL Path (Slug)
+                      </Label>
                       <Input
-                        id="duration"
+                        placeholder="auto-generated"
+                        value={formData.slug}
+                        onChange={(e) =>
+                          setFormData({ ...formData, slug: e.target.value.toLowerCase().replace(/\s+/g, "-") })
+                        }
+                        className="rounded-xl border-border/40 font-mono text-xs"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                        Catalog Type *
+                      </Label>
+                      <Select
+                        value={formData.content_type}
+                        onValueChange={(val) => setFormData({ ...formData, content_type: val })}
+                      >
+                        <SelectTrigger className="rounded-xl border-border/40 font-bold">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="recorded_course">Recorded Course</SelectItem>
+                          <SelectItem value="free_video">Free Video</SelectItem>
+                          <SelectItem value="live_webinar">Live Webinar</SelectItem>
+                          <SelectItem value="batch_class">Batch Class</SelectItem>
+                          <SelectItem value="offline_seminar">Offline Seminar</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+                      Marketplace Meta Description
+                    </Label>
+                    <Textarea
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      rows={5}
+                      className="rounded-2xl border-border/40 resize-none font-medium leading-relaxed"
+                    />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Step 2: Logistics (Conditional rendering) */}
+            {formData.content_type !== "free_video" && (
+              <Card className="rounded-[32px] border-border/40 overflow-hidden animate-in fade-in slide-in-from-top-2">
+                <CardHeader className="bg-muted/30 pb-6 border-b border-border/20">
+                  <CardTitle className="text-sm font-black uppercase tracking-[0.2em] flex items-center gap-2">
+                    <Globe className="h-4 w-4 text-primary" /> Delivery Logic
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-8 grid gap-6">
+                  {["live_webinar", "batch_class", "offline_seminar"].includes(formData.content_type) && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2 col-span-2">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                          Event Schedule
+                        </Label>
+                        <Input
+                          type="datetime-local"
+                          value={formData.event_date}
+                          onChange={(e) => setFormData({ ...formData, event_date: e.target.value })}
+                          className="rounded-xl"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                          Seats/Capacity
+                        </Label>
+                        <Input
+                          type="number"
+                          value={formData.max_capacity}
+                          onChange={(e) => setFormData({ ...formData, max_capacity: parseInt(e.target.value) || 0 })}
+                          className="rounded-xl"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                          Duration (Mins)
+                        </Label>
+                        <Input
+                          type="number"
+                          value={formData.event_duration_minutes}
+                          onChange={(e) =>
+                            setFormData({ ...formData, event_duration_minutes: parseInt(e.target.value) || 0 })
+                          }
+                          className="rounded-xl"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {formData.content_type === "offline_seminar" && (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                          Venue Brand
+                        </Label>
+                        <Input
+                          value={formData.venue_name}
+                          onChange={(e) => setFormData({ ...formData, venue_name: e.target.value })}
+                          className="rounded-xl"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                          Physical Address
+                        </Label>
+                        <Input
+                          value={formData.venue_address}
+                          onChange={(e) => setFormData({ ...formData, venue_address: e.target.value })}
+                          className="rounded-xl"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                        Lead Mentor
+                      </Label>
+                      <Input
+                        value={formData.instructor_name}
+                        onChange={(e) => setFormData({ ...formData, instructor_name: e.target.value })}
+                        className="rounded-xl font-bold"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                        Target Hours
+                      </Label>
+                      <Input
                         type="number"
-                        min="0"
                         value={formData.duration_hours}
                         onChange={(e) => setFormData({ ...formData, duration_hours: parseInt(e.target.value) || 0 })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="modules">Number of Modules</Label>
-                      <Input
-                        id="modules"
-                        type="number"
-                        min="0"
-                        value={formData.modules_count}
-                        onChange={(e) => setFormData({ ...formData, modules_count: parseInt(e.target.value) || 0 })}
+                        className="rounded-xl"
                       />
                     </div>
                   </div>
-                )}
+                </CardContent>
+              </Card>
+            )}
 
-                {["live_webinar", "batch_class", "offline_seminar"].includes(formData.content_type) && (
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="event_date">Event Date & Time</Label>
-                      <Input
-                        id="event_date"
-                        type="datetime-local"
-                        value={formData.event_date}
-                        onChange={(e) => setFormData({ ...formData, event_date: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="duration_minutes">Duration (Minutes)</Label>
-                      <Input
-                        id="duration_minutes"
-                        type="number"
-                        min="0"
-                        value={formData.event_duration_minutes}
-                        onChange={(e) =>
-                          setFormData({ ...formData, event_duration_minutes: parseInt(e.target.value) || 0 })
-                        }
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {["live_webinar", "batch_class", "offline_seminar"].includes(formData.content_type) && (
-                  <div className="space-y-2">
-                    <Label htmlFor="capacity">Max Capacity</Label>
-                    <Input
-                      id="capacity"
-                      type="number"
-                      min="0"
-                      value={formData.max_capacity}
-                      onChange={(e) => setFormData({ ...formData, max_capacity: parseInt(e.target.value) || 0 })}
-                    />
-                  </div>
-                )}
-
-                {formData.content_type === "offline_seminar" && (
-                  <>
-                    <div className="space-y-2">
-                      <Label htmlFor="venue_name">Venue Name</Label>
-                      <Input
-                        id="venue_name"
-                        value={formData.venue_name}
-                        onChange={(e) => setFormData({ ...formData, venue_name: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="venue_address">Venue Address</Label>
-                      <Textarea
-                        id="venue_address"
-                        value={formData.venue_address}
-                        onChange={(e) => setFormData({ ...formData, venue_address: e.target.value })}
-                        rows={2}
-                      />
-                    </div>
-                  </>
-                )}
-
+            {/* Step 3: Media Integrations */}
+            <Card className="rounded-[32px] border-border/40 overflow-hidden">
+              <CardHeader className="bg-muted/30 pb-6 border-b border-border/20">
+                <CardTitle className="text-sm font-black uppercase tracking-[0.2em] flex items-center gap-2">
+                  <Youtube className="h-4 w-4 text-primary" /> Signal Channels
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-8 space-y-6">
                 <div className="space-y-2">
-                  <Label htmlFor="display_order">Display Order</Label>
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+                    Stream Endpoint (YouTube)
+                  </Label>
                   <Input
-                    id="display_order"
-                    type="number"
-                    value={formData.display_order}
-                    onChange={(e) =>
-                      setFormData({ ...formData, display_order: parseInt(e.target.value) || 0 })
-                    }
-                    placeholder="0"
+                    value={formData.youtube_url}
+                    onChange={(e) => setFormData({ ...formData, youtube_url: e.target.value })}
+                    placeholder="https://youtube.com/watch?v=..."
+                    className="rounded-xl border-border/40"
                   />
-                  <p className="text-xs text-muted-foreground">
-                    Lower numbers appear first in the course catalog
-                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
+                    Community Hub (WhatsApp)
+                  </Label>
+                  <Input
+                    value={formData.whatsapp_group_link}
+                    onChange={(e) => setFormData({ ...formData, whatsapp_group_link: e.target.value })}
+                    placeholder="https://chat.whatsapp.com/..."
+                    className="rounded-xl border-border/40"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Side Controller Panel */}
+          <aside className="space-y-6">
+            <Card className="rounded-[32px] border-primary/20 bg-primary/[0.02] shadow-xl overflow-hidden sticky top-24">
+              <CardHeader className="bg-primary/5 pb-4">
+                <CardTitle className="text-[10px] font-black uppercase tracking-widest text-primary">
+                  Platform Engine
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 space-y-6">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-[9px] font-black uppercase tracking-tighter text-muted-foreground">
+                      Market Price (USD)
+                    </Label>
+                    <Input
+                      type="number"
+                      value={formData.price}
+                      onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
+                      className="rounded-xl border-border/40 h-11 font-black text-primary"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-[9px] font-black uppercase tracking-tighter text-muted-foreground">
+                      Catalog Priority
+                    </Label>
+                    <Input
+                      type="number"
+                      value={formData.display_order}
+                      onChange={(e) => setFormData({ ...formData, display_order: parseInt(e.target.value) || 0 })}
+                      className="rounded-xl border-border/40 h-11"
+                    />
+                  </div>
                 </div>
 
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-2">
+                <div className="pt-6 border-t border-border/20 space-y-5">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-[10px] font-black uppercase tracking-widest">Publicity</Label>
                     <Switch
-                      id="published"
                       checked={formData.is_published}
-                      onCheckedChange={(checked) => setFormData({ ...formData, is_published: checked })}
+                      onCheckedChange={(c) => setFormData({ ...formData, is_published: c })}
                     />
-                    <Label htmlFor="published">Publish immediately</Label>
                   </div>
-
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label className="text-[10px] font-black uppercase tracking-widest">Private</Label>
+                      <p className="text-[8px] text-muted-foreground font-bold uppercase tracking-tighter">
+                        B2B Link Only
+                      </p>
+                    </div>
                     <Switch
-                      id="private"
                       checked={formData.is_private}
-                      onCheckedChange={(checked) => setFormData({ ...formData, is_private: checked })}
+                      onCheckedChange={(c) => setFormData({ ...formData, is_private: c })}
                     />
-                    <Label htmlFor="private" className="flex flex-col gap-1">
-                      <span>Private (B2B Only)</span>
-                      <span className="text-xs text-muted-foreground font-normal">
-                        Hide from public catalog - accessible only via direct link
-                      </span>
-                    </Label>
                   </div>
-
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label className="text-[10px] font-black uppercase tracking-widest">Assessment</Label>
+                      <p className="text-[8px] text-muted-foreground font-bold uppercase tracking-tighter">
+                        Certification Quiz
+                      </p>
+                    </div>
                     <Switch
-                      id="quiz_enabled"
                       checked={formData.quiz_enabled}
-                      onCheckedChange={(checked) => setFormData({ ...formData, quiz_enabled: checked })}
+                      onCheckedChange={(c) => setFormData({ ...formData, quiz_enabled: c })}
                     />
-                    <Label htmlFor="quiz_enabled" className="flex flex-col gap-1">
-                      <span>Enable Quiz</span>
-                      <span className="text-xs text-muted-foreground font-normal">
-                        Require students to pass a quiz to complete this course
-                      </span>
-                    </Label>
                   </div>
                 </div>
-              </div>
 
-              <div className="flex gap-4">
-                <Button type="submit" disabled={isLoading} className="flex-1">
-                  {isLoading ? "Creating..." : "Create Content"}
+                <Button
+                  className="w-full h-14 rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20 group"
+                  disabled={isLoading}
+                  type="submit"
+                >
+                  {isLoading ? (
+                    <Loader2 className="animate-spin" />
+                  ) : (
+                    <Sparkles className="mr-2 group-hover:scale-110 transition-transform" />
+                  )}
+                  Initialize Content
                 </Button>
-                <Button type="button" variant="outline" onClick={() => navigate("/dashboard")}>
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          </aside>
+        </form>
       </main>
     </div>
   );
