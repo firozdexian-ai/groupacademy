@@ -4,13 +4,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Download, 
-  Share2, 
-  RefreshCw, 
-  CheckCircle, 
+import {
+  Download,
+  Share2,
+  RefreshCw,
+  CheckCircle,
   AlertCircle,
   TrendingUp,
   Target,
@@ -19,7 +19,9 @@ import {
   MessageCircle,
   Linkedin,
   Twitter,
-  History
+  History,
+  ShieldCheck,
+  Zap,
 } from "lucide-react";
 import { toast } from "sonner";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
@@ -27,6 +29,7 @@ import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { ScorecardPDFTemplate } from "@/components/assessment/ScorecardPDFTemplate";
 import { generateScorecardPDF } from "@/lib/assessmentPdfGenerator";
 import { RetryErrorCard, getErrorType } from "@/components/ui/retry-error-card";
+import { cn } from "@/lib/utils";
 
 interface Assessment {
   id: string;
@@ -37,12 +40,15 @@ interface Assessment {
   total_score: number;
   max_score: number;
   created_at: string;
-  ai_analysis: any;
+  ai_analysis: {
+    strengths: string[];
+    improvement_areas: string[];
+    recommendations: string[];
+    career_tips: string;
+  } | null;
   improvement_areas: string[];
   profession_category_id: string;
-  profession_categories?: {
-    name: string;
-  };
+  profession_categories?: { name: string };
 }
 
 interface RecommendedCourse {
@@ -54,20 +60,32 @@ interface RecommendedCourse {
   thumbnail_url: string | null;
 }
 
-const readinessColors: Record<string, string> = {
-  beginner: "bg-destructive/10 text-destructive",
-  developing: "bg-warning/10 text-warning",
-  competent: "bg-primary/10 text-primary",
-  proficient: "bg-secondary/10 text-secondary",
-  expert: "bg-accent/10 text-accent",
-};
-
-const readinessDescriptions: Record<string, string> = {
-  beginner: "Starting your career journey - focus on building foundational skills",
-  developing: "Making progress - continue developing your professional capabilities",
-  competent: "Solid foundation - ready for growth opportunities",
-  proficient: "Strong performer - well-positioned for advancement",
-  expert: "Exceptional readiness - ready for leadership roles",
+const readinessConfig: Record<string, { color: string; label: string; desc: string }> = {
+  beginner: {
+    color: "text-rose-500 bg-rose-50",
+    label: "Foundational",
+    desc: "Focus on establishing core technical principles.",
+  },
+  developing: {
+    color: "text-amber-500 bg-amber-50",
+    label: "Developing",
+    desc: "You are building momentum. Time to specialize.",
+  },
+  competent: {
+    color: "text-emerald-500 bg-emerald-50",
+    label: "Professional",
+    desc: "Solid performance. Optimized for growth.",
+  },
+  proficient: {
+    color: "text-blue-500 bg-blue-50",
+    label: "Proficient",
+    desc: "High market readiness. Focus on leadership.",
+  },
+  expert: {
+    color: "text-violet-500 bg-violet-50",
+    label: "Industry Expert",
+    desc: "Exceptional mastery. Ready for senior roles.",
+  },
 };
 
 export default function AssessmentResults() {
@@ -76,12 +94,9 @@ export default function AssessmentResults() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
-  const [analysisRetryCount, setAnalysisRetryCount] = useState(0);
   const [downloading, setDownloading] = useState(false);
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [recommendedCourses, setRecommendedCourses] = useState<RecommendedCourse[]>([]);
-  const [loadingCourses, setLoadingCourses] = useState(false);
-  const maxRetries = 3;
   const hasTriggeredAnalysis = useRef(false);
 
   useEffect(() => {
@@ -90,544 +105,340 @@ export default function AssessmentResults() {
 
   const loadAssessment = async () => {
     setLoading(true);
-    setLoadError(null);
-    
-    console.log("[AssessmentResults] Loading assessment:", id);
-    
     try {
-      const result = await withTimeout(
-        (async () => {
-          const { data, error } = await supabase
-            .from("career_assessments")
-            .select(`
-              *,
-              profession_categories (name)
-            `)
-            .eq("id", id)
-            .maybeSingle();
-          return { data, error };
-        })(),
-        TIMEOUTS.DEFAULT,
-        "Loading assessment timed out"
-      );
-
-      const { data, error } = result;
-
-      if (error) {
-        console.error("[AssessmentResults] Query error:", error);
-        throw error;
-      }
-      
+      const { data, error } = await supabase
+        .from("career_assessments")
+        .select(`*, profession_categories (name)`)
+        .eq("id", id)
+        .maybeSingle();
+      if (error) throw error;
       if (!data) {
-        console.log("[AssessmentResults] Assessment not found");
-        setLoadError("Assessment not found. It may have expired or been deleted.");
-        setLoading(false);
+        setLoadError("Record not found.");
         return;
       }
 
-      console.log("[AssessmentResults] Loaded assessment:", data.id, "AI analysis:", !!data.ai_analysis);
       setAssessment(data);
-
-      // Load recommended courses based on profession
-      if (data.profession_category_id) {
-        loadRecommendedCourses(data.profession_category_id);
-      }
-
-      // Trigger AI analysis if not already done (only once)
+      if (data.profession_category_id) loadRecommendedCourses(data.profession_category_id);
       if (!data.ai_analysis && !hasTriggeredAnalysis.current) {
         hasTriggeredAnalysis.current = true;
         triggerAIAnalysis(data.id);
       }
-    } catch (error: any) {
-      console.error("[AssessmentResults] Error loading assessment:", error);
-      const errorMessage = error.message?.includes("timed out")
-        ? "Loading took too long. Please try again."
-        : "Failed to load assessment. Please try again.";
-      setLoadError(errorMessage);
+    } catch (err: any) {
+      setLoadError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
   const loadRecommendedCourses = async (professionCategoryId: string) => {
-    setLoadingCourses(true);
-    try {
-      const { data, error } = await supabase
-        .from("content")
-        .select("id, title, slug, description, estimated_hours, thumbnail_url")
-        .eq("profession_line_id", professionCategoryId)
-        .eq("is_published", true)
-        .order("display_order", { ascending: true })
-        .limit(3);
-
-      if (error) {
-        console.error("[AssessmentResults] Error loading courses:", error);
-        return;
-      }
-
-      console.log("[AssessmentResults] Loaded recommended courses:", data?.length || 0);
-      setRecommendedCourses(data || []);
-    } catch (error) {
-      console.error("[AssessmentResults] Error fetching courses:", error);
-    } finally {
-      setLoadingCourses(false);
-    }
+    const { data } = await supabase
+      .from("content")
+      .select("id, title, slug, description, estimated_hours, thumbnail_url")
+      .eq("profession_line_id", professionCategoryId)
+      .eq("is_published", true)
+      .limit(3);
+    setRecommendedCourses(data || []);
   };
 
-  const triggerAIAnalysis = async (assessmentId: string, isRetry = false) => {
-    if (isRetry) {
-      setAnalysisRetryCount(prev => prev + 1);
-    }
-    
+  const triggerAIAnalysis = async (assessmentId: string) => {
     setAnalyzing(true);
-    console.log("[AssessmentResults] Triggering AI analysis for:", assessmentId, "Retry:", analysisRetryCount);
-    
     try {
-      const { data, error } = await supabase.functions.invoke("analyze-career-assessment", {
-        body: { assessmentId }
-      });
-
-      if (error) {
-        console.error("[AssessmentResults] AI analysis error:", error);
-        
-        // Auto-retry up to maxRetries
-        if (analysisRetryCount < maxRetries - 1) {
-          console.log("[AssessmentResults] Auto-retrying AI analysis...");
-          setTimeout(() => triggerAIAnalysis(assessmentId, true), 2000);
-          return;
-        }
-        
-        toast.error("Could not generate AI insights. You can refresh to try again.");
-        return;
-      }
-
+      const { data, error } = await supabase.functions.invoke("analyze-career-assessment", { body: { assessmentId } });
+      if (error) throw error;
       if (data?.analysis) {
-        console.log("[AssessmentResults] AI analysis received successfully");
-        setAssessment(prev => prev ? {
-          ...prev,
-          ai_analysis: data.analysis,
-          improvement_areas: data.analysis.improvement_areas || []
-        } : null);
-        toast.success("AI analysis complete!");
+        setAssessment((prev) => (prev ? { ...prev, ai_analysis: data.analysis } : null));
+        toast.success("Intelligence report generated.");
       }
-    } catch (error) {
-      console.error("[AssessmentResults] Error calling AI analysis:", error);
-      
-      // Auto-retry up to maxRetries
-      if (analysisRetryCount < maxRetries - 1) {
-        console.log("[AssessmentResults] Auto-retrying after error...");
-        setTimeout(() => triggerAIAnalysis(assessmentId, true), 2000);
-        return;
-      }
+    } catch (err) {
+      console.error("AI Error:", err);
     } finally {
       setAnalyzing(false);
     }
   };
 
-  const handleManualRetry = () => {
-    if (id) {
-      setAnalysisRetryCount(0);
-      triggerAIAnalysis(id, false);
-    }
-  };
-
-  const shareText = `I scored ${assessment?.percentage}% on the Career Readiness Scorecard! 🎯 Check your career readiness at GroUp Academy.`;
-  const shareUrl = typeof window !== "undefined" ? window.location.href : "";
-
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
-    toast.success("Link copied to clipboard!");
-  };
-
-  const handleWhatsAppShare = () => {
-    const url = `https://wa.me/?text=${encodeURIComponent(`${shareText}\n${shareUrl}`)}`;
-    window.open(url, "_blank");
-  };
-
-  const handleLinkedInShare = () => {
-    const url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`;
-    window.open(url, "_blank");
-  };
-
-  const handleTwitterShare = () => {
-    const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
-    window.open(url, "_blank");
-  };
-
   const handleDownloadPDF = async () => {
     if (!assessment) return;
-    
     setDownloading(true);
     try {
       await generateScorecardPDF(assessment);
-      toast.success("PDF downloaded successfully!");
-    } catch (error) {
-      console.error("Error generating PDF:", error);
-      toast.error("Failed to generate PDF. Please try again.");
+      toast.success("Scorecard Exported.");
+    } catch (err) {
+      toast.error("Export failed.");
     } finally {
       setDownloading(false);
     }
   };
 
-  if (loading) {
+  if (loading)
     return (
-      <div className="min-h-screen bg-background flex flex-col">
-        <Navbar />
-        <main className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto" />
-            <p className="mt-4 text-muted-foreground">Loading your results...</p>
-          </div>
-        </main>
-        <Footer />
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <p className="text-xs font-black uppercase tracking-[0.2em] mt-4 text-muted-foreground">Compiling Analytics</p>
       </div>
     );
-  }
 
-  if (loadError || !assessment) {
+  if (loadError || !assessment)
     return (
-      <div className="min-h-screen bg-background flex flex-col">
-        <Navbar />
-        <main className="flex-1 flex items-center justify-center p-4">
-          <div className="max-w-md w-full">
-            <RetryErrorCard
-              type={getErrorType({ message: loadError })}
-              title="Unable to Load Results"
-              description={loadError || "Assessment not found."}
-              onRetry={loadAssessment}
-            />
-            <div className="mt-4 text-center">
-              <Button variant="outline" onClick={() => navigate("/career-assessment")}>
-                Start New Assessment
-              </Button>
-            </div>
-          </div>
-        </main>
-        <Footer />
+      <div className="min-h-screen bg-background flex flex-col p-8 items-center justify-center">
+        <RetryErrorCard title="Sync Failed" description={loadError || ""} onRetry={loadAssessment} />
       </div>
     );
-  }
 
-  const readinessLevel = assessment.readiness_level || "beginner";
+  const level = readinessConfig[assessment.readiness_level?.toLowerCase()] || readinessConfig.beginner;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background selection:bg-primary/10">
       <Navbar />
-      
-      <main className="flex-1 py-12">
-        <div className="container max-w-3xl mx-auto px-4">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold mb-2">Your Career Readiness Report</h1>
-            <p className="text-muted-foreground">
-              {assessment.profession_categories?.name || "General"} Assessment
-            </p>
-          </div>
+      <main className="container max-w-5xl py-12 px-4 space-y-8 animate-in fade-in duration-1000">
+        {/* Hero Section */}
+        <section className="grid lg:grid-cols-[1fr,350px] gap-8">
+          <div className="space-y-6">
+            <header className="space-y-2">
+              <Badge className="bg-primary/10 text-primary border-none text-[10px] font-black uppercase tracking-widest">
+                Performance Audit
+              </Badge>
+              <h1 className="text-4xl font-black tracking-tighter leading-tight">Your Career Readiness Strategy</h1>
+              <p className="text-muted-foreground font-medium">
+                {assessment.profession_categories?.name || "Professional"} Certification Roadmap
+              </p>
+            </header>
 
-          {/* Score Card */}
-          <Card className="mb-6">
-            <CardContent className="pt-8 pb-6">
-              <div className="text-center mb-6">
-                <div className="relative inline-flex items-center justify-center">
-                  <svg className="w-32 h-32" viewBox="0 0 100 100">
+            <Card className="rounded-[32px] border-border/40 bg-card shadow-2xl overflow-hidden relative group">
+              <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+                <ShieldCheck className="h-32 w-32 text-primary" />
+              </div>
+              <CardContent className="p-8 md:p-12 flex flex-col md:flex-row items-center gap-12">
+                <div className="relative h-48 w-48 flex items-center justify-center">
+                  <svg className="h-full w-full transform -rotate-90">
                     <circle
-                      className="text-muted stroke-current"
-                      strokeWidth="8"
-                      fill="none"
-                      r="42"
-                      cx="50"
-                      cy="50"
+                      cx="96"
+                      cy="96"
+                      r="88"
+                      stroke="currentColor"
+                      strokeWidth="12"
+                      fill="transparent"
+                      className="text-muted/10"
                     />
                     <circle
-                      className="text-primary stroke-current transition-all duration-1000"
-                      strokeWidth="8"
+                      cx="96"
+                      cy="96"
+                      r="88"
+                      stroke="currentColor"
+                      strokeWidth="12"
+                      fill="transparent"
+                      strokeDasharray={553}
+                      strokeDashoffset={553 - (553 * assessment.percentage) / 100}
                       strokeLinecap="round"
-                      fill="none"
-                      r="42"
-                      cx="50"
-                      cy="50"
-                      strokeDasharray={`${assessment.percentage * 2.64} 264`}
-                      strokeDashoffset="0"
-                      transform="rotate(-90 50 50)"
+                      className="text-primary transition-all duration-1000 ease-out"
                     />
                   </svg>
-                  <div className="absolute">
-                    <span className="text-4xl font-bold">{assessment.percentage}%</span>
+                  <div className="absolute flex flex-col items-center">
+                    <span className="text-5xl font-black tracking-tighter">{assessment.percentage}%</span>
+                    <span className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest">
+                      Global Index
+                    </span>
                   </div>
                 </div>
-                <div className="mt-4">
-                  <Badge className={`text-sm px-4 py-1 ${readinessColors[readinessLevel]}`}>
-                    {readinessLevel.charAt(0).toUpperCase() + readinessLevel.slice(1)}
-                  </Badge>
-                </div>
-                <p className="text-sm text-muted-foreground mt-2 max-w-md mx-auto">
-                  {readinessDescriptions[readinessLevel]}
-                </p>
-              </div>
 
-              <div className="grid grid-cols-3 gap-4 text-center border-t pt-6">
-                <div>
-                  <p className="text-2xl font-bold text-primary">{assessment.total_score}</p>
-                  <p className="text-xs text-muted-foreground">Points Earned</p>
+                <div className="flex-1 space-y-6 text-center md:text-left">
+                  <div className="space-y-2">
+                    <Badge
+                      className={cn(
+                        "rounded-full px-4 py-1 text-xs font-black uppercase tracking-widest border-none",
+                        level.color,
+                      )}
+                    >
+                      {level.label}
+                    </Badge>
+                    <p className="text-lg font-bold leading-tight">{level.desc}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-4 bg-muted/30 rounded-2xl border border-border/40">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mb-1">
+                        Score
+                      </p>
+                      <p className="text-xl font-black">
+                        {assessment.total_score} / {assessment.max_score}
+                      </p>
+                    </div>
+                    <div className="p-4 bg-muted/30 rounded-2xl border border-border/40">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mb-1">
+                        Status
+                      </p>
+                      <p className="text-xl font-black text-primary">Verified</p>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-2xl font-bold">{assessment.max_score}</p>
-                  <p className="text-xs text-muted-foreground">Max Points</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <aside className="space-y-4">
+            <Card className="rounded-[32px] border-primary/10 shadow-xl overflow-hidden sticky top-24">
+              <CardContent className="p-6 space-y-4">
+                <Button
+                  className="w-full h-12 rounded-2xl font-black uppercase tracking-widest text-xs"
+                  onClick={handleDownloadPDF}
+                  disabled={downloading}
+                >
+                  {downloading ? (
+                    <Loader2 className="animate-spin mr-2 h-4 w-4" />
+                  ) : (
+                    <Download className="mr-2 h-4 w-4" />
+                  )}
+                  Download Certificate
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full h-12 rounded-2xl font-black uppercase tracking-widest text-xs"
+                  onClick={() => navigate("/career-assessment")}
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" /> Retake Test
+                </Button>
+                <div className="pt-4 border-t border-border/40 flex justify-center gap-3">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="rounded-full hover:bg-primary/10 text-primary"
+                    onClick={handleLinkedInShare}
+                  >
+                    <Linkedin className="h-5 w-5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="rounded-full hover:bg-sky-100 text-sky-500"
+                    onClick={handleTwitterShare}
+                  >
+                    <Twitter className="h-5 w-5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="rounded-full hover:bg-emerald-100 text-emerald-600"
+                    onClick={handleWhatsAppShare}
+                  >
+                    <MessageCircle className="h-5 w-5" />
+                  </Button>
                 </div>
-                <div>
-                  <p className="text-2xl font-bold text-accent">
-                    {new Date(assessment.created_at).toLocaleDateString()}
-                  </p>
-                  <p className="text-xs text-muted-foreground">Assessment Date</p>
-                </div>
-              </div>
+              </CardContent>
+            </Card>
+          </aside>
+        </section>
+
+        {/* Intelligence Grid */}
+        <section className="grid md:grid-cols-2 gap-6">
+          <Card className="rounded-[32px] border-border/40 bg-card/50">
+            <CardHeader>
+              <CardTitle className="text-sm font-black uppercase tracking-[0.2em] flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-emerald-500" /> Professional Strengths
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {analyzing ? (
+                <Loader2 className="animate-spin h-6 w-6 text-primary" />
+              ) : (
+                assessment.ai_analysis?.strengths.map((s, i) => (
+                  <div key={i} className="flex gap-3 items-start group">
+                    <CheckCircle className="h-5 w-5 text-emerald-500 shrink-0 mt-0.5" />
+                    <p className="text-sm font-medium leading-relaxed group-hover:text-primary transition-colors">
+                      {s}
+                    </p>
+                  </div>
+                ))
+              )}
             </CardContent>
           </Card>
 
-          {/* Quick Actions */}
-          <div className="flex flex-wrap gap-3 mb-4 justify-center">
-            <Button onClick={handleDownloadPDF} variant="outline" disabled={downloading}>
-              {downloading ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          <Card className="rounded-[32px] border-border/40 bg-card/50">
+            <CardHeader>
+              <CardTitle className="text-sm font-black uppercase tracking-[0.2em] flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-rose-500" /> Velocity Gaps
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {analyzing ? (
+                <Loader2 className="animate-spin h-6 w-6 text-primary" />
               ) : (
-                <Download className="h-4 w-4 mr-2" />
+                (assessment.ai_analysis?.improvement_areas || assessment.improvement_areas).map((s, i) => (
+                  <div key={i} className="flex gap-3 items-start group">
+                    <AlertCircle className="h-5 w-5 text-rose-500 shrink-0 mt-0.5" />
+                    <p className="text-sm font-medium leading-relaxed group-hover:text-primary transition-colors">
+                      {s}
+                    </p>
+                  </div>
+                ))
               )}
-              {downloading ? "Generating..." : "Download PDF"}
-            </Button>
-            <Button onClick={() => navigate("/career-assessment")} variant="outline">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Retake Assessment
-            </Button>
-            <Button onClick={() => navigate("/app/my-results")} variant="ghost">
-              <History className="h-4 w-4 mr-2" />
-              View History
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* Personalized Roadmap */}
+        <section className="space-y-6">
+          <div className="flex items-center gap-3">
+            <Zap className="h-5 w-5 text-amber-500 fill-amber-500" />
+            <h2 className="text-xl font-black tracking-tight uppercase">Strategic Recommendations</h2>
+          </div>
+          <div className="grid md:grid-cols-3 gap-6">
+            {assessment.ai_analysis?.recommendations.map((rec, i) => (
+              <Card
+                key={i}
+                className="rounded-3xl border-primary/5 bg-primary/[0.02] hover:bg-primary/[0.04] transition-all"
+              >
+                <CardContent className="p-6 flex flex-col gap-4">
+                  <div className="h-8 w-8 rounded-xl bg-primary text-white flex items-center justify-center text-xs font-black">
+                    {i + 1}
+                  </div>
+                  <p className="text-sm font-bold leading-tight">{rec}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
+
+        {/* Academy Integration */}
+        <section className="bg-gradient-to-br from-primary/10 to-violet-500/10 rounded-[40px] p-8 md:p-12 border border-primary/20">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 mb-12">
+            <div className="space-y-2">
+              <h2 className="text-2xl font-black tracking-tighter uppercase">Closing the Gap</h2>
+              <p className="text-sm font-medium text-muted-foreground uppercase tracking-widest">
+                Recommended Training for your career level
+              </p>
+            </div>
+            <Button
+              onClick={() => navigate("/courses")}
+              className="rounded-full font-black uppercase text-[10px] tracking-widest h-10 px-8"
+            >
+              Explor Full Academy
             </Button>
           </div>
-
-          {/* Social Sharing */}
-          <div className="flex flex-wrap gap-2 mb-8 justify-center">
-            <Button onClick={handleCopyLink} variant="ghost" size="sm">
-              <Share2 className="h-4 w-4 mr-2" />
-              Copy Link
-            </Button>
-            <Button onClick={handleWhatsAppShare} variant="ghost" size="sm" className="text-green-600 hover:text-green-700 hover:bg-green-50">
-              <MessageCircle className="h-4 w-4 mr-2" />
-              WhatsApp
-            </Button>
-            <Button onClick={handleLinkedInShare} variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50">
-              <Linkedin className="h-4 w-4 mr-2" />
-              LinkedIn
-            </Button>
-            <Button onClick={handleTwitterShare} variant="ghost" size="sm" className="text-sky-500 hover:text-sky-600 hover:bg-sky-50">
-              <Twitter className="h-4 w-4 mr-2" />
-              Twitter/X
-            </Button>
-          </div>
-
-          {/* Analysis Sections */}
-          <div className="space-y-6">
-            {/* Strengths */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <CheckCircle className="h-5 w-5 text-accent" />
-                  Your Strengths
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {assessment.ai_analysis?.strengths ? (
-                  <ul className="space-y-2">
-                    {assessment.ai_analysis.strengths.map((strength: string, idx: number) => (
-                      <li key={idx} className="flex items-start gap-2">
-                        <CheckCircle className="h-4 w-4 text-accent mt-0.5 flex-shrink-0" />
-                        <span>{strength}</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : analyzing ? (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span className="text-sm">Analyzing your responses...</span>
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground text-sm">
-                    AI analysis will be available soon. Check back later for detailed insights.
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Areas for Improvement */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <TrendingUp className="h-5 w-5 text-warning" />
-                  Areas for Improvement
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {assessment.ai_analysis?.improvement_areas || assessment.improvement_areas?.length > 0 ? (
-                  <ul className="space-y-2">
-                    {(assessment.ai_analysis?.improvement_areas || assessment.improvement_areas).map((area: string, idx: number) => (
-                      <li key={idx} className="flex items-start gap-2">
-                        <AlertCircle className="h-4 w-4 text-warning mt-0.5 flex-shrink-0" />
-                        <span>{area}</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : analyzing ? (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span className="text-sm">Identifying improvement areas...</span>
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground text-sm">
-                    AI analysis will identify specific improvement areas based on your responses.
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Recommendations */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Target className="h-5 w-5 text-primary" />
-                  Personalized Recommendations
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {assessment.ai_analysis?.recommendations ? (
-                  <ul className="space-y-3">
-                    {assessment.ai_analysis.recommendations.map((rec: string, idx: number) => (
-                      <li key={idx} className="flex items-start gap-2">
-                        <span className="bg-primary text-primary-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs flex-shrink-0">
-                          {idx + 1}
-                        </span>
-                        <span>{rec}</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : analyzing ? (
-                  <div className="text-center py-4">
-                    <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2 text-primary" />
-                    <p className="text-muted-foreground text-sm">
-                      AI is analyzing your responses...
-                    </p>
-                    {analysisRetryCount > 0 && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Retry attempt {analysisRetryCount} of {maxRetries}
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  <div className="text-center py-4">
-                    <p className="text-muted-foreground text-sm mb-4">
-                      Personalized recommendations could not be generated automatically.
-                    </p>
-                    <Button variant="outline" size="sm" onClick={handleManualRetry}>
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                      Generate Analysis
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Career Tips */}
-            {assessment.ai_analysis?.career_tips && (
-              <Card className="border-accent/30 bg-accent/5">
-                <CardContent className="py-6">
-                  <p className="text-center italic text-muted-foreground">
-                    "{assessment.ai_analysis.career_tips}"
+          <div className="grid md:grid-cols-3 gap-6">
+            {recommendedCourses.map((course) => (
+              <Card
+                key={course.id}
+                className="rounded-[28px] border-none shadow-2xl overflow-hidden hover:-translate-y-1 transition-transform cursor-pointer"
+                onClick={() => navigate(`/courses/${course.slug}`)}
+              >
+                <div className="aspect-[4/3] bg-muted relative">
+                  {course.thumbnail_url && <img src={course.thumbnail_url} className="w-full h-full object-cover" />}
+                  <Badge className="absolute top-4 left-4 bg-black/40 backdrop-blur-md border-none font-black text-[9px] uppercase tracking-widest">
+                    Academy Certified
+                  </Badge>
+                </div>
+                <CardContent className="p-5">
+                  <h4 className="font-bold text-sm leading-tight line-clamp-1">{course.title}</h4>
+                  <p className="text-[10px] font-black uppercase text-primary tracking-widest mt-2">
+                    {course.estimated_hours} Hours Total
                   </p>
                 </CardContent>
               </Card>
-            )}
-
-            {/* Course Recommendations */}
-            <Card className="bg-gradient-to-r from-primary/10 to-secondary/10 border-primary/20">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <BookOpen className="h-5 w-5 text-primary" />
-                  Recommended Courses
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {loadingCourses ? (
-                  <div className="flex items-center justify-center py-4">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                  </div>
-                ) : recommendedCourses.length > 0 ? (
-                  <div className="space-y-3">
-                    {recommendedCourses.map((course) => (
-                      <div
-                        key={course.id}
-                        className="flex items-start gap-3 p-3 rounded-lg bg-background/50 hover:bg-background transition-colors cursor-pointer"
-                        onClick={() => navigate(`/courses/${course.slug}`)}
-                      >
-                        {course.thumbnail_url ? (
-                          <img
-                            src={course.thumbnail_url}
-                            alt={course.title}
-                            className="w-16 h-12 object-cover rounded"
-                          />
-                        ) : (
-                          <div className="w-16 h-12 bg-muted rounded flex items-center justify-center">
-                            <BookOpen className="h-6 w-6 text-muted-foreground" />
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-sm line-clamp-1">{course.title}</h4>
-                          {course.description && (
-                            <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
-                              {course.description}
-                            </p>
-                          )}
-                          {course.estimated_hours && (
-                            <span className="text-xs text-muted-foreground">
-                              {course.estimated_hours}h estimated
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                    <div className="text-center pt-2">
-                      <Button variant="outline" size="sm" onClick={() => navigate("/courses")}>
-                        View All Courses
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-4">
-                    <BookOpen className="h-10 w-10 text-primary mx-auto mb-4" />
-                    <h3 className="text-lg font-bold mb-2">Ready to Level Up?</h3>
-                    <p className="text-muted-foreground mb-4 max-w-md mx-auto text-sm">
-                      Explore our courses designed to help you improve your career readiness.
-                    </p>
-                    <Button onClick={() => navigate("/courses")}>
-                      Browse Courses
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            ))}
           </div>
-
-          {/* Footer Info */}
-          <div className="text-center mt-8 text-sm text-muted-foreground">
-            <p>
-              Assessment ID: {assessment.id.slice(0, 8)}... • 
-              Valid for 90 days from {new Date(assessment.created_at).toLocaleDateString()}
-            </p>
-          </div>
-        </div>
+        </section>
       </main>
-
       <Footer />
-
-      {/* Hidden PDF Template */}
-      {assessment && <ScorecardPDFTemplate assessment={assessment} />}
+      {/* Hidden for Export Rendering */}
+      <div className="hidden">{assessment && <ScorecardPDFTemplate assessment={assessment} />}</div>
     </div>
   );
 }
