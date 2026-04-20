@@ -9,11 +9,30 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, Search, Mail, Phone, Calendar, User } from "lucide-react";
+import {
+  Download,
+  Search,
+  Mail,
+  Phone,
+  Calendar,
+  User,
+  ShieldCheck,
+  Activity,
+  Filter,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { AssessmentCodeGenerator } from "./AssessmentCodeGenerator";
 import { TalentDetailDialog } from "./TalentDetailDialog";
+import { cn } from "@/lib/utils";
+
+/**
+ * Platform Logic: Strategic Recruitment Ledger (Assessment Leads)
+ * High-fidelity monitor for talent readiness artifacts and conversion telemetry.
+ * 2026 Standard: Executive Logic geometry with reinforced data range guards.
+ */
 
 interface AssessmentLead {
   id: string;
@@ -29,11 +48,11 @@ interface AssessmentLead {
 }
 
 const readinessColors: Record<string, string> = {
-  beginner: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
-  developing: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300",
-  competent: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300",
-  proficient: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
-  expert: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300",
+  beginner: "bg-red-500/10 text-red-600 border-red-200",
+  developing: "bg-orange-500/10 text-orange-600 border-orange-200",
+  competent: "bg-amber-500/10 text-amber-600 border-amber-200",
+  proficient: "bg-blue-500/10 text-blue-600 border-blue-200",
+  expert: "bg-emerald-500/10 text-emerald-600 border-emerald-200",
 };
 
 const PAGE_SIZE = 20;
@@ -50,18 +69,23 @@ export function AssessmentLeadsManager() {
   const [totalCount, setTotalCount] = useState(0);
 
   useEffect(() => {
-    loadLeads();
+    loadRegistryLeads();
   }, [page]);
 
-  const loadLeads = async () => {
+  const loadRegistryLeads = async () => {
     setLoading(true);
     setError(null);
     try {
-      const { data, error: queryError, count } = await withTimeout(
+      const {
+        data,
+        error: queryError,
+        count,
+      } = await withTimeout(
         Promise.resolve(
           supabase
             .from("career_assessments")
-            .select(`
+            .select(
+              `
               id,
               full_name,
               email,
@@ -70,47 +94,45 @@ export function AssessmentLeadsManager() {
               readiness_level,
               created_at,
               profession_category:profession_categories(name)
-            `, { count: 'exact' })
+            `,
+              { count: "exact" },
+            )
             .order("created_at", { ascending: false })
-            .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
-        ).then(q => q),
+            .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1),
+        ),
         TIMEOUTS.DEFAULT,
-        "Loading assessment leads timed out"
+        "Registry Link Timeout",
       );
 
       if (queryError) throw queryError;
       setLeads(data || []);
       setTotalCount(count || 0);
     } catch (err: any) {
-      console.error("Error loading leads:", err);
-      setError(err.message || "Failed to load assessment leads");
-      toast.error("Failed to load assessment leads");
+      console.error("Registry Sync Fault:", err);
+      setError(err.message || "Failed to synchronize assessment leads");
     } finally {
       setLoading(false);
     }
   };
-
-  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   const filteredLeads = leads.filter((lead) => {
     const matchesSearch =
       lead.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       lead.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (lead.phone && lead.phone.includes(searchQuery));
-    const matchesReadiness =
-      readinessFilter === "all" || lead.readiness_level === readinessFilter;
+    const matchesReadiness = readinessFilter === "all" || lead.readiness_level === readinessFilter;
     return matchesSearch && matchesReadiness;
   });
 
-  const exportToCSV = () => {
-    const headers = ["Name", "Email", "Phone", "Profession", "Score %", "Readiness Level", "Date"];
+  const exportArtifactCSV = () => {
+    const headers = ["Entity Name", "Email", "Phone", "Profession Node", "Score %", "Readiness Logic", "Sync Date"];
     const rows = filteredLeads.map((lead) => [
       lead.full_name,
       lead.email,
-      lead.phone || "",
-      lead.profession_category?.name || "",
+      lead.phone || "NULL",
+      lead.profession_category?.name || "UNASSIGNED",
       lead.percentage.toString(),
-      lead.readiness_level,
+      lead.readiness_level.toUpperCase(),
       format(new Date(lead.created_at), "yyyy-MM-dd HH:mm"),
     ]);
 
@@ -119,155 +141,216 @@ export function AssessmentLeadsManager() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `assessment_leads_${format(new Date(), "yyyy-MM-dd")}.csv`;
+    link.download = `Registry_Leads_${format(new Date(), "yyyyMMdd")}.csv`;
     link.click();
     URL.revokeObjectURL(url);
-    toast.success("Leads exported successfully");
+    toast.success("Artifact exported: CSV sequence generated.");
   };
 
-  if (loading) {
-    return <DashboardTableSkeleton rows={5} columns={7} />;
-  }
+  if (loading) return <DashboardTableSkeleton rows={5} columns={7} />;
 
-  if (error) {
-    return <DashboardErrorState title="Failed to load leads" message={error} onRetry={loadLeads} />;
-  }
+  if (error) return <DashboardErrorState title="Registry Sync Failure" message={error} onRetry={loadRegistryLeads} />;
+
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <CardTitle className="text-lg">
-            Assessment Leads ({totalCount} total{filteredLeads.length !== leads.length ? `, showing ${filteredLeads.length}` : ''})
-          </CardTitle>
-          <Button onClick={exportToCSV} variant="outline" size="sm">
-            <Download className="w-4 h-4 mr-2" />
-            Export CSV
+    <div className="space-y-8 animate-in fade-in duration-1000">
+      {/* Executive Header */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="space-y-2">
+          <div className="flex items-center gap-4">
+            <div className="h-12 w-12 rounded-[20px] bg-primary/10 flex items-center justify-center border border-primary/20">
+              <Activity className="h-6 w-6 text-primary" />
+            </div>
+            <h2 className="text-4xl font-black uppercase tracking-tighter italic leading-none">Lead Ledger</h2>
+          </div>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 italic ml-16">
+            Neural Recruitment Telemetry v2.6
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <Badge
+            variant="outline"
+            className="rounded-lg border-primary/20 text-primary font-black uppercase text-[9px] px-3 py-1.5 tracking-widest italic bg-primary/5"
+          >
+            {totalCount} Total Entities detected
+          </Badge>
+          <Button
+            onClick={exportArtifactCSV}
+            variant="outline"
+            className="rounded-xl h-11 px-6 border-2 font-black uppercase text-[10px] tracking-widest gap-2 shadow-sm hover:bg-primary/5"
+          >
+            <Download className="w-4 h-4 text-primary" /> Export Artifact
           </Button>
         </div>
-        <div className="flex gap-4 mt-4 flex-wrap">
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by name, email, or phone..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-            />
+      </div>
+
+      {/* Query Console */}
+      <Card className="rounded-[32px] border-2 border-border/40 bg-card/30 backdrop-blur-md shadow-sm overflow-hidden">
+        <CardContent className="p-6">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="relative flex-1 group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
+              <Input
+                placeholder="Interrogate registry by name, email, or telemetry..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-12 h-14 bg-card/50 border-2 border-border/10 rounded-2xl font-bold tracking-tight text-base"
+              />
+            </div>
+            <div className="flex gap-3">
+              <div className="relative flex items-center">
+                <Filter className="absolute left-4 h-4 w-4 text-muted-foreground/40 pointer-events-none" />
+                <Select value={readinessFilter} onValueChange={setReadinessFilter}>
+                  <SelectTrigger className="w-[200px] h-14 pl-11 rounded-2xl border-2 font-black uppercase text-[10px] tracking-widest bg-card/50">
+                    <SelectValue placeholder="Logic Status" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-2xl border-2">
+                    <SelectItem value="all" className="font-bold">
+                      GLOBAL REGISTRY
+                    </SelectItem>
+                    {Object.keys(readinessColors).map((level) => (
+                      <SelectItem key={level} value={level} className="font-bold capitalize">
+                        {level.toUpperCase()}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
-          <Select value={readinessFilter} onValueChange={setReadinessFilter}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Filter by readiness" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Levels</SelectItem>
-              <SelectItem value="beginner">Beginner</SelectItem>
-              <SelectItem value="developing">Developing</SelectItem>
-              <SelectItem value="competent">Competent</SelectItem>
-              <SelectItem value="proficient">Proficient</SelectItem>
-              <SelectItem value="expert">Expert</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {filteredLeads.length === 0 ? (
-          <p className="text-center text-muted-foreground py-8">No assessment leads found.</p>
-        ) : (
+        </CardContent>
+      </Card>
+
+      {/* Registry Viewport */}
+      <Card className="rounded-[40px] border-2 border-border/40 overflow-hidden shadow-2xl bg-card/30 backdrop-blur-xl">
+        <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Contact</TableHead>
-                  <TableHead>Profession</TableHead>
-                  <TableHead>Score</TableHead>
-                  <TableHead>Level</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Actions</TableHead>
+              <TableHeader className="bg-muted/30">
+                <TableRow className="hover:bg-transparent border-b-2">
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest py-8 px-8">
+                    Entity Spec
+                  </TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest">Uplink Telemetry</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest">Logic Class</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest text-center">Score</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest">Readiness</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest">Sync Date</TableHead>
+                  <TableHead className="text-right text-[10px] font-black uppercase tracking-widest pr-8">
+                    Actions
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredLeads.map((lead) => (
-                  <TableRow key={lead.id}>
-                    <TableCell className="font-medium">{lead.full_name}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-col gap-1 text-sm">
-                        <span className="flex items-center gap-1">
-                          <Mail className="h-3 w-3" /> {lead.email}
-                        </span>
-                        {lead.phone && (
-                          <span className="flex items-center gap-1 text-muted-foreground">
-                            <Phone className="h-3 w-3" /> {lead.phone}
-                          </span>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>{lead.profession_category?.name || "-"}</TableCell>
-                    <TableCell>
-                      <span className="font-semibold">{lead.percentage}%</span>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={readinessColors[lead.readiness_level] || ""}>
-                        {lead.readiness_level}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <span className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <Calendar className="h-3 w-3" />
-                        {format(new Date(lead.created_at), "MMM d, yyyy")}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedTalentEmail(lead.email);
-                            setSelectedTalentName(lead.full_name);
-                          }}
-                          title="View Talent Profile"
-                        >
-                          <User className="h-4 w-4" />
-                        </Button>
-                        <AssessmentCodeGenerator leadEmail={lead.email} leadName={lead.full_name} />
-                      </div>
+                {filteredLeads.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={7}
+                      className="text-center py-32 text-muted-foreground/40 italic uppercase tracking-[0.2em] font-black"
+                    >
+                      No entities detected in current logic path.
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  filteredLeads.map((lead) => (
+                    <TableRow key={lead.id} className="group transition-all hover:bg-primary/[0.02]">
+                      <TableCell className="px-8 py-6 font-black uppercase tracking-tight text-sm italic group-hover:text-primary transition-colors">
+                        {lead.full_name}
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 text-[11px] font-bold text-foreground/80">
+                            <Mail className="h-3.5 w-3.5 text-primary/40" /> {lead.email}
+                          </div>
+                          {lead.phone && (
+                            <div className="flex items-center gap-2 text-[10px] font-medium text-muted-foreground italic">
+                              <Phone className="h-3 w-3" /> {lead.phone}
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant="outline"
+                          className="rounded-lg border-2 font-black text-[9px] uppercase tracking-widest bg-background"
+                        >
+                          {lead.profession_category?.name || "UNCLASSED"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center font-black text-lg italic tracking-tighter">
+                        {lead.percentage}%
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          className={cn(
+                            "rounded-lg font-black text-[8px] uppercase tracking-[0.2em] border-2 px-3 py-1 shadow-inner",
+                            readinessColors[lead.readiness_level],
+                          )}
+                        >
+                          {lead.readiness_level}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2 text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest italic">
+                          <Calendar className="h-3.5 w-3.5" />
+                          {format(new Date(lead.created_at), "MMM d, yyyy")}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right pr-8">
+                        <div className="flex justify-end items-center gap-3">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-10 w-10 rounded-xl hover:bg-primary/10 transition-all shadow-inner group/btn"
+                            onClick={() => {
+                              setSelectedTalentEmail(lead.email);
+                              setSelectedTalentName(lead.full_name);
+                            }}
+                          >
+                            <User className="h-5 w-5 text-muted-foreground/40 group-hover/btn:text-primary transition-colors" />
+                          </Button>
+                          <AssessmentCodeGenerator leadEmail={lead.email} leadName={lead.full_name} />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>
-        )}
+        </CardContent>
+      </Card>
 
-        {/* Pagination Controls */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between pt-4 border-t mt-4">
-            <p className="text-sm text-muted-foreground">
-              Page {page + 1} of {totalPages}
-            </p>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage(p => Math.max(0, p - 1))}
-                disabled={page === 0 || loading}
-              >
-                Previous
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
-                disabled={page >= totalPages - 1 || loading}
-              >
-                Next
-              </Button>
-            </div>
+      {/* Logic Pagination HUD */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between p-6 bg-muted/20 rounded-[32px] border-2 border-border/40 backdrop-blur-md">
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 italic">
+            Registry Frame: Cycle {page + 1} / {totalPages}
+          </p>
+          <div className="flex gap-4">
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-xl h-11 px-6 border-2 font-black uppercase text-[10px] tracking-widest gap-2 disabled:opacity-20"
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              disabled={page === 0}
+            >
+              <ChevronLeft className="h-4 w-4" /> Previous Node
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-xl h-11 px-6 border-2 font-black uppercase text-[10px] tracking-widest gap-2 disabled:opacity-20"
+              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+              disabled={page >= totalPages - 1}
+            >
+              Next Node <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
-        )}
-      </CardContent>
+        </div>
+      )}
 
       <TalentDetailDialog
         open={!!selectedTalentEmail}
@@ -280,6 +363,6 @@ export function AssessmentLeadsManager() {
         talentEmail={selectedTalentEmail || ""}
         talentName={selectedTalentName}
       />
-    </Card>
+    </div>
   );
 }
