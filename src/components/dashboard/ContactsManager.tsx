@@ -9,7 +9,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,7 +30,6 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
-import { Dialog as ImportDialog, DialogContent as ImportDialogContent, DialogHeader as ImportDialogHeader, DialogTitle as ImportDialogTitle } from "@/components/ui/dialog";
 import { LinkedInJsonUpload } from "./LinkedInJsonUpload";
 
 import {
@@ -43,21 +49,23 @@ import {
   ChevronRight,
   Star,
   PhoneOff,
+  ShieldCheck,
+  Zap,
+  Activity,
+  Terminal,
+  Database,
 } from "lucide-react";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { DashboardTableSkeleton, DashboardErrorState } from "./DashboardSkeleton";
 import { getDexianWhatsAppLink } from "@/lib/companyOutreachTemplates";
+import { cn } from "@/lib/utils";
 
-// --- Internal Hook for Debounce ---
-function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedValue(value), delay);
-    return () => clearTimeout(timer);
-  }, [value, delay]);
-  return debouncedValue;
-}
+/**
+ * Platform Logic: Stakeholder Registry Hub (Contacts)
+ * High-fidelity orchestrator for institutional relationship mapping and outreach telemetry.
+ * 2026 Standard: Executive Logic geometry with reinforced contact-sync guards.
+ */
 
 interface Contact {
   id: string;
@@ -103,21 +111,27 @@ const emptyContact = {
 
 const ITEMS_PER_PAGE = 10;
 
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+  return debouncedValue;
+}
+
 export function ContactsManager() {
-  // Data State
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  // Pagination & Search
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearch = useDebounce(searchQuery, 500);
   const [companyFilter, setCompanyFilter] = useState<string>("all");
 
-  // UI State
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [formData, setFormData] = useState(emptyContact);
@@ -125,7 +139,6 @@ export function ContactsManager() {
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [linkedinImportOpen, setLinkedinImportOpen] = useState(false);
 
-  // Fetch Data (Paginated)
   const loadData = useCallback(async () => {
     setIsLoading(true);
     setLoadError(null);
@@ -142,40 +155,31 @@ export function ContactsManager() {
 
       if (debouncedSearch) {
         const safe = sanitizeIlike(debouncedSearch);
-        if (safe) {
-          query = query.or(
-            `full_name.ilike.%${safe}%,email.ilike.%${safe}%,phone.ilike.%${safe}%`,
-          );
-        }
+        if (safe) query = query.or(`full_name.ilike.%${safe}%,email.ilike.%${safe}%,phone.ilike.%${safe}%`);
       }
 
-      if (companyFilter !== "all") {
-        query = query.eq("company_id", companyFilter);
-      }
+      if (companyFilter !== "all") query = query.eq("company_id", companyFilter);
 
       const from = (page - 1) * ITEMS_PER_PAGE;
       const to = from + ITEMS_PER_PAGE - 1;
       query = query.range(from, to);
 
-      const result = await withTimeout(Promise.resolve(query), TIMEOUTS.DEFAULT, "Loading contacts timed out");
-
+      const result = await withTimeout(Promise.resolve(query), TIMEOUTS.DEFAULT, "Registry Sync Timeout");
       if (result.error) throw result.error;
 
       setContacts((result.data as unknown as Contact[]) || []);
       setTotalCount(result.count || 0);
     } catch (error: any) {
-      console.error("Error loading data:", error);
-      setLoadError(error.message || "Failed to load contacts");
-      toast.error("Failed to load contacts");
+      setLoadError(error.message || "Failed to synchronize contacts");
+      toast.error("Transmission Error: Sync failure");
     } finally {
       setIsLoading(false);
     }
-  }, [page, debouncedSearch, companyFilter]);
+  }, [page, debouncedSearch, companyFilter, companies.length]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
-
   useEffect(() => {
     setPage(1);
   }, [debouncedSearch, companyFilter]);
@@ -203,604 +207,526 @@ export function ContactsManager() {
     setIsDialogOpen(true);
   };
 
-  const handleSave = async () => {
-    if (!formData.full_name.trim()) {
-      toast.error("Contact name is required");
-      return;
-    }
-
+  const handleSaveArtifact = async () => {
+    if (!formData.full_name.trim()) return toast.error("Logic Fault: Name identifier required");
     setSaving(true);
     try {
-      const contactData = {
-        company_id: formData.company_id || null,
+      const payload = {
+        ...formData,
         full_name: formData.full_name.trim(),
-        designation: formData.designation?.trim() || null,
-        department: formData.department?.trim() || null,
-        email: formData.email?.trim() || null,
-        phone: formData.phone?.trim() || null,
+        company_id: formData.company_id || null,
         whatsapp_number: formData.whatsapp_number?.trim() || formData.phone?.trim() || null,
-        linkedin_url: formData.linkedin_url?.trim() || null,
-        source: formData.source || "manual",
-        is_primary: formData.is_primary,
-        notes: formData.notes?.trim() || null,
       };
 
-      if (editingContact) {
-        const { error } = await supabase.from("contacts").update(contactData).eq("id", editingContact.id);
-        if (error) throw error;
-        toast.success("Contact updated");
-      } else {
-        const { error } = await supabase.from("contacts").insert(contactData);
-        if (error) throw error;
-        toast.success("Contact created");
-      }
+      const { error } = editingContact
+        ? await supabase.from("contacts").update(payload).eq("id", editingContact.id)
+        : await supabase.from("contacts").insert(payload);
 
+      if (error) throw error;
+      toast.success("Registry Synchronized");
       setIsDialogOpen(false);
       loadData();
     } catch (error: any) {
-      console.error("Error saving contact:", error);
-      toast.error("Failed to save contact");
+      toast.error("Handshake Failed: Data rejection");
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDelete = async (id: string) => {
-    try {
-      const { error } = await supabase.from("contacts").delete().eq("id", id);
-      if (error) throw error;
-      toast.success("Contact deleted");
-      setDeleteTarget(null);
-      loadData();
-    } catch (error: any) {
-      toast.error("Failed to delete contact");
-    }
-  };
-
-  const handleWhatsApp = async (contact: Contact) => {
+  const handleWhatsAppOutreach = async (contact: Contact) => {
     const phone = contact.whatsapp_number || contact.phone;
-    if (!phone) {
-      toast.error("No phone number available");
-      return;
-    }
+    if (!phone) return toast.error("No communication endpoint available");
 
-    const companyName = contact.company?.name || "your organization";
-    const whatsappLink = getDexianWhatsAppLink(phone, "intro", contact.full_name, companyName);
-    window.open(whatsappLink, "_blank");
+    const companyName = contact.company?.name || "Target Organization";
+    window.open(getDexianWhatsAppLink(phone, "intro", contact.full_name, companyName), "_blank");
 
     try {
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (user) {
-        supabase
-          .from("contact_outreach")
-          .insert({
-            contact_id: contact.id,
-            channel: "whatsapp",
-            message_type: "intro",
-            message_content: `Dexian intro message to ${contact.full_name} at ${companyName}`,
-            sent_by: user.id,
-          })
-          .then(() => {
-            toast.success("WhatsApp outreach logged");
-          });
+        await supabase.from("contact_outreach").insert({
+          contact_id: contact.id,
+          channel: "whatsapp",
+          message_type: "intro",
+          message_content: `Handshake initialized with ${contact.full_name} at ${companyName}`,
+          sent_by: user.id,
+        });
+        toast.success("Outreach Protocol Registered");
       }
     } catch (error) {
-      console.error("Failed to log outreach:", error);
+      console.error("Telemetry log fault:", error);
     }
   };
 
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
-
-  // KPI derived values
   const primaryCount = contacts.filter((c) => c.is_primary).length;
   const neverContactedCount = contacts.filter((c) => !c.last_contacted_at).length;
 
   return (
-    <div className="space-y-4">
-      {/* KPI Summary Cards */}
-      <div className="grid grid-cols-3 gap-2">
-        <Card className="p-3">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-md bg-primary/10">
-              <Users className="w-3.5 h-3.5 text-primary" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Total</p>
-              <p className="text-lg font-bold">{totalCount}</p>
-            </div>
-          </div>
-        </Card>
-        <Card className="p-3">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-md bg-amber-100">
-              <Star className="w-3.5 h-3.5 text-amber-600" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Primary</p>
-              <p className="text-lg font-bold">{primaryCount}</p>
-            </div>
-          </div>
-        </Card>
-        <Card className="p-3">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-md bg-orange-100">
-              <PhoneOff className="w-3.5 h-3.5 text-orange-600" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">No Contact</p>
-              <p className="text-lg font-bold">{neverContactedCount}</p>
-            </div>
-          </div>
-        </Card>
+    <div className="space-y-10 animate-in fade-in duration-1000">
+      {/* HUD: Registry Telemetry */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {[
+          { label: "Stakeholder Nodes", val: totalCount, icon: Users, color: "text-blue-500", bg: "bg-blue-500/10" },
+          { label: "Primary Entities", val: primaryCount, icon: Star, color: "text-amber-500", bg: "bg-amber-500/10" },
+          {
+            label: "Silent Logic (No Contact)",
+            val: neverContactedCount,
+            icon: PhoneOff,
+            color: "text-orange-500",
+            bg: "bg-orange-500/10",
+          },
+        ].map((kpi, i) => (
+          <Card
+            key={i}
+            className="rounded-[32px] border-2 border-border/40 bg-card/30 backdrop-blur-sm overflow-hidden group hover:border-primary/20 transition-all duration-500 shadow-sm"
+          >
+            <CardContent className="p-6 flex items-center gap-6">
+              <div
+                className={cn(
+                  "h-14 w-14 rounded-2xl flex items-center justify-center border-2 transition-transform duration-500 group-hover:rotate-6 shadow-inner",
+                  kpi.bg,
+                  "border-white/5",
+                )}
+              >
+                <kpi.icon className={cn("h-7 w-7", kpi.color)} />
+              </div>
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 mb-1">
+                  {kpi.label}
+                </p>
+                <p className="text-3xl font-black tracking-tighter italic leading-none">{kpi.val}</p>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <div>
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <Users className="w-5 h-5" />
-                Contacts
+      <Card className="rounded-[40px] border-2 border-border/40 shadow-2xl overflow-hidden bg-card/30 backdrop-blur-xl">
+        <div className="h-1.5 w-full bg-gradient-to-r from-primary/20 via-primary to-primary/20" />
+        <CardHeader className="p-8 border-b border-border/10 bg-muted/10">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="space-y-1">
+              <CardTitle className="text-3xl font-black uppercase tracking-tighter italic flex items-center gap-3">
+                <Users className="h-8 w-8 text-primary" /> Stakeholder Registry
               </CardTitle>
-              <CardDescription>{totalCount} contacts found</CardDescription>
+              <p className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.3em] italic">
+                Authorized Relationship Artifacts: {totalCount} Nodes Detected
+              </p>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="icon" onClick={loadData} disabled={isLoading}>
-                <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={loadData}
+                className="rounded-xl h-11 px-5 border-2 font-black uppercase text-[10px] tracking-widest gap-2"
+              >
+                <RefreshCw className={cn("w-4 h-4 text-primary", isLoading && "animate-spin")} /> Re-Sync
               </Button>
-              <Button onClick={() => handleOpenDialog()} size="sm">
-                <Plus className="w-4 h-4 mr-1" />
-                <span className="hidden sm:inline">Add Contact</span>
-                <span className="sm:hidden">Add</span>
+              <Button
+                variant="outline"
+                onClick={() => setLinkedinImportOpen(true)}
+                className="rounded-xl h-11 px-5 border-2 font-black uppercase text-[10px] tracking-widest gap-2"
+              >
+                <Linkedin className="w-4 h-4 text-blue-600" /> Ingest JSON
               </Button>
-              <Button variant="outline" onClick={() => setLinkedinImportOpen(true)} size="sm">
-                <Linkedin className="w-4 h-4 mr-1" />
-                <span className="hidden sm:inline">Import LinkedIn</span>
-                <span className="sm:hidden">Import</span>
+              <Button
+                size="sm"
+                onClick={() => handleOpenDialog()}
+                className="rounded-xl h-11 px-8 font-black uppercase text-[10px] tracking-widest shadow-xl shadow-primary/20"
+              >
+                <Plus className="w-4 h-4 mr-2" /> Add Entity
               </Button>
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="flex gap-3 mb-4 flex-col sm:flex-row">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+
+        <CardContent className="p-8">
+          {/* Query Console */}
+          <div className="mb-8 flex flex-col md:flex-row gap-4 bg-muted/20 p-4 rounded-[28px] border-2 border-border/40 backdrop-blur-md">
+            <div className="relative flex-1 group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
               <Input
-                placeholder="Search by name, email, phone..."
+                placeholder="Query registry by name, email, or endpoint..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
+                className="pl-12 h-14 bg-card/50 border-2 border-border/10 rounded-2xl font-bold tracking-tight text-base"
               />
             </div>
-            <Select value={companyFilter} onValueChange={setCompanyFilter}>
-              <SelectTrigger className="w-full sm:w-[200px]">
-                <SelectValue placeholder="Filter by company" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Companies</SelectItem>
-                {companies.map((company) => (
-                  <SelectItem key={company.id} value={company.id}>
-                    {company.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {isLoading ? (
-            <DashboardTableSkeleton rows={5} columns={6} />
-          ) : loadError ? (
-            <DashboardErrorState title="Error" message={loadError} onRetry={loadData} />
-          ) : contacts.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <Users className="w-12 h-12 mx-auto mb-4 opacity-20" />
-              <p>No contacts found. Add your first contact!</p>
-            </div>
-          ) : (
-            <>
-              {/* Mobile Card View */}
-              <div className="sm:hidden space-y-3">
-                {contacts.map((contact) => (
-                  <div key={contact.id} className="rounded-lg border bg-card p-3 space-y-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <p className="font-medium text-sm truncate flex items-center gap-1.5">
-                          {contact.full_name}
-                          {contact.is_primary && (
-                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                              Primary
-                            </Badge>
-                          )}
-                        </p>
-                        {contact.designation && (
-                          <p className="text-xs text-muted-foreground truncate">{contact.designation}</p>
-                        )}
-                      </div>
-                      <Badge variant="outline" className="text-[10px] shrink-0">
-                        {contact.source || "manual"}
-                      </Badge>
-                    </div>
-
-                    {contact.company && (
-                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                        <Building2 className="w-3 h-3 shrink-0" />
-                        <span className="truncate">{contact.company.name}</span>
-                        {contact.company.industry && (
-                          <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-                            {contact.company.industry}
-                          </Badge>
-                        )}
-                      </div>
-                    )}
-
-                    <div className="flex items-center gap-3 text-xs">
-                      {contact.email && (
-                        <a href={`mailto:${contact.email}`} className="text-primary hover:underline flex items-center gap-1 truncate min-w-0">
-                          <Mail className="w-3 h-3 shrink-0" />
-                          <span className="truncate">{contact.email}</span>
-                        </a>
-                      )}
-                      {contact.phone && (
-                        <span className="text-muted-foreground flex items-center gap-1 shrink-0">
-                          <Phone className="w-3 h-3" />
-                          {contact.phone}
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="flex items-center justify-end gap-1 pt-1 border-t">
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-green-600"
-                              onClick={() => handleWhatsApp(contact)}
-                              disabled={!contact.phone && !contact.whatsapp_number}
-                            >
-                              <MessageCircle className="w-3.5 h-3.5" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>WhatsApp</TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                      {contact.linkedin_url && (
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => window.open(contact.linkedin_url!, "_blank")}>
-                          <Linkedin className="w-3.5 h-3.5" />
-                        </Button>
-                      )}
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleOpenDialog(contact)}>
-                        <Edit className="w-3.5 h-3.5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-destructive hover:text-destructive"
-                        onClick={() => setDeleteTarget(contact.id)}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Desktop Table View */}
-              <div className="hidden sm:block rounded-md border overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Contact</TableHead>
-                      <TableHead>Company</TableHead>
-                      <TableHead>Contact Info</TableHead>
-                      <TableHead>Source</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {contacts.map((contact) => (
-                      <TableRow key={contact.id}>
-                        <TableCell>
-                          <div>
-                            <p className="font-medium flex items-center gap-2">
-                              {contact.full_name}
-                              {contact.is_primary && (
-                                <Badge variant="secondary" className="text-xs">
-                                  Primary
-                                </Badge>
-                              )}
-                            </p>
-                            {contact.designation && (
-                              <p className="text-sm text-muted-foreground">{contact.designation}</p>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {contact.company ? (
-                            <div className="flex items-center gap-2">
-                              <Building2 className="w-4 h-4 text-muted-foreground" />
-                              <div>
-                                <p className="text-sm">{contact.company.name}</p>
-                                {contact.company.industry && (
-                                  <Badge variant="outline" className="text-xs">
-                                    {contact.company.industry}
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="space-y-1">
-                            {contact.email && (
-                              <a
-                                href={`mailto:${contact.email}`}
-                                className="text-sm text-primary hover:underline flex items-center gap-1"
-                              >
-                                <Mail className="w-3 h-3" />
-                                {contact.email}
-                              </a>
-                            )}
-                            {contact.phone && (
-                              <p className="text-sm flex items-center gap-1 text-muted-foreground">
-                                <Phone className="w-3 h-3" />
-                                {contact.phone}
-                              </p>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{contact.source || "manual"}</Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-1">
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleWhatsApp(contact)}
-                                    disabled={!contact.phone && !contact.whatsapp_number}
-                                    className="text-green-600 hover:text-green-700"
-                                  >
-                                    <MessageCircle className="w-4 h-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>WhatsApp (Dexian Intro)</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                            {contact.linkedin_url && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => window.open(contact.linkedin_url!, "_blank")}
-                              >
-                                <Linkedin className="w-4 h-4" />
-                              </Button>
-                            )}
-                            <Button variant="ghost" size="sm" onClick={() => handleOpenDialog(contact)}>
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setDeleteTarget(contact.id)}
-                              className="text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-end space-x-2 py-4">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    disabled={page === 1}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <span className="text-sm text-muted-foreground">
-                    {page} / {totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={page === totalPages}
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              )}
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Add/Edit Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{editingContact ? "Edit Contact" : "Add Contact"}</DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="company_id">Company</Label>
-              <Select
-                value={formData.company_id}
-                onValueChange={(value) => setFormData({ ...formData, company_id: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a company" />
+            <div className="relative flex items-center">
+              <Database className="absolute left-4 h-4 w-4 text-muted-foreground/40 pointer-events-none" />
+              <Select value={companyFilter} onValueChange={setCompanyFilter}>
+                <SelectTrigger className="w-full md:w-[240px] h-14 pl-11 rounded-2xl border-2 font-black uppercase text-[10px] tracking-widest bg-card/50">
+                  <SelectValue placeholder="Company Protocol" />
                 </SelectTrigger>
-                <SelectContent>
-                  {companies.map((company) => (
-                    <SelectItem key={company.id} value={company.id}>
-                      {company.name}
+                <SelectContent className="rounded-2xl border-2">
+                  <SelectItem value="all" className="font-bold">
+                    GLOBAL REGISTRY
+                  </SelectItem>
+                  {companies.map((c) => (
+                    <SelectItem key={c.id} value={c.id} className="font-bold uppercase text-[9px]">
+                      {c.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+          </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="full_name">Full Name *</Label>
-                <Input
-                  id="full_name"
-                  value={formData.full_name}
-                  onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                  placeholder="e.g., John Doe"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="designation">Designation</Label>
-                <Input
-                  id="designation"
-                  value={formData.designation}
-                  onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
-                  placeholder="e.g., HR Manager"
-                />
-              </div>
+          {isLoading ? (
+            <DashboardTableSkeleton rows={5} columns={6} />
+          ) : (
+            <div className="rounded-[24px] border-2 border-border/20 overflow-hidden bg-background/50">
+              <Table>
+                <TableHeader className="bg-muted/30">
+                  <TableRow className="hover:bg-transparent border-b-2">
+                    <TableHead className="text-[10px] font-black uppercase tracking-widest py-8 px-8">
+                      Stakeholder Spec
+                    </TableHead>
+                    <TableHead className="text-[10px] font-black uppercase tracking-widest">Parent Node</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase tracking-widest">Logic Endpoints</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase tracking-widest">Source</TableHead>
+                    <TableHead className="text-right text-[10px] font-black uppercase tracking-widest pr-8">
+                      Interrogate
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {contacts.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={5}
+                        className="text-center py-32 text-muted-foreground/40 italic uppercase tracking-[0.2em] font-black"
+                      >
+                        No stakeholder entities detected.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    contacts.map((contact) => (
+                      <TableRow key={contact.id} className="group transition-all hover:bg-primary/[0.02]">
+                        <TableCell className="px-8 py-6">
+                          <div className="space-y-1">
+                            <p className="font-black text-sm uppercase tracking-tight italic group-hover:text-primary transition-colors flex items-center gap-2">
+                              {contact.full_name}
+                              {contact.is_primary && <Star className="h-3 w-3 fill-amber-500 text-amber-500" />}
+                            </p>
+                            {contact.designation && (
+                              <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest italic">
+                                {contact.designation}
+                              </p>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {contact.company ? (
+                            <div className="flex items-center gap-3">
+                              <div className="h-8 w-8 rounded-lg bg-muted flex items-center justify-center border border-border/40">
+                                <Building2 className="h-4 w-4 text-muted-foreground/40" />
+                              </div>
+                              <div>
+                                <p className="text-[11px] font-black uppercase tracking-tighter italic leading-none">
+                                  {contact.company.name}
+                                </p>
+                                {contact.company.industry && (
+                                  <p className="text-[8px] font-bold text-primary/40 uppercase tracking-widest mt-1">
+                                    {contact.company.industry}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-[10px] opacity-20 italic">ORPHAN_NODE</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-1.5">
+                            {contact.email && (
+                              <div className="flex items-center gap-2 text-[11px] font-bold text-foreground/80 group/mail">
+                                <Mail className="h-3.5 w-3.5 text-primary/40 group-hover/mail:text-primary transition-colors" />
+                                <span className="truncate max-w-[120px]">{contact.email}</span>
+                              </div>
+                            )}
+                            {contact.phone && (
+                              <div className="flex items-center gap-2 text-[10px] font-medium text-muted-foreground italic">
+                                <Phone className="h-3 w-3 opacity-40" /> {contact.phone}
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant="outline"
+                            className="rounded-lg border-2 font-black text-[8px] uppercase tracking-widest bg-background"
+                          >
+                            {contact.source || "MANUAL"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right pr-8">
+                          <div className="flex justify-end gap-2">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-10 w-10 rounded-xl hover:bg-emerald-500 group-hover:text-white transition-all shadow-inner"
+                                    onClick={() => handleWhatsAppOutreach(contact)}
+                                    disabled={!contact.phone && !contact.whatsapp_number}
+                                  >
+                                    <MessageCircle className="h-5 w-5" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent className="bg-emerald-600 text-white font-black text-[9px] uppercase tracking-widest border-none">
+                                  Initialize WhatsApp Handshake
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-10 w-10 rounded-xl hover:bg-primary group-hover:text-white transition-all shadow-inner"
+                              onClick={() => handleOpenDialog(contact)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-10 w-10 rounded-xl hover:bg-destructive/10 text-destructive transition-all"
+                              onClick={() => setDeleteTarget(contact.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
             </div>
+          )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="department">Department</Label>
-                <Input
-                  id="department"
-                  value={formData.department}
-                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                  placeholder="e.g., Human Resources"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="john@company.com"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone</Label>
-                <Input
-                  id="phone"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="+880..."
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="whatsapp_number">WhatsApp Number</Label>
-                <Input
-                  id="whatsapp_number"
-                  value={formData.whatsapp_number}
-                  onChange={(e) => setFormData({ ...formData, whatsapp_number: e.target.value })}
-                  placeholder="Leave empty to use phone"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="linkedin_url">LinkedIn URL</Label>
-              <Input
-                id="linkedin_url"
-                type="url"
-                value={formData.linkedin_url}
-                onChange={(e) => setFormData({ ...formData, linkedin_url: e.target.value })}
-                placeholder="https://linkedin.com/in/..."
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="notes">Notes</Label>
-              <Textarea
-                id="notes"
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="Any additional notes..."
-                rows={3}
-              />
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Switch
-                id="is_primary"
-                checked={formData.is_primary}
-                onCheckedChange={(checked) => setFormData({ ...formData, is_primary: checked })}
-              />
-              <Label htmlFor="is_primary">Primary Contact for this company</Label>
-            </div>
-
-            <div className="flex justify-end gap-2 pt-4">
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                Cancel
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-6 mt-10">
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-11 w-11 rounded-xl border-2"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+              >
+                <ChevronLeft />
               </Button>
-              <Button onClick={handleSave} disabled={saving}>
-                {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                {editingContact ? "Update" : "Create"} Contact
+              <span className="text-[10px] font-black uppercase tracking-[0.3em] italic">
+                Cycle {page} / {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-11 w-11 rounded-xl border-2"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+              >
+                <ChevronRight />
               </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Recalibration Node (Dialog) */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-4xl rounded-[40px] border-4 border-border/40 bg-background/95 backdrop-blur-2xl p-0 overflow-hidden shadow-2xl">
+          <div className="h-2 w-full bg-gradient-to-r from-primary via-blue-600 to-primary" />
+          <div className="p-10 max-h-[85vh] overflow-y-auto no-scrollbar">
+            <DialogHeader className="mb-10">
+              <div className="flex items-center gap-5">
+                <Activity className="h-8 w-8 text-primary" />
+                <DialogTitle className="text-3xl font-black uppercase tracking-tighter italic">
+                  {editingContact ? "Recalibrate Entity" : "Initialize Stakeholder Node"}
+                </DialogTitle>
+              </div>
+            </DialogHeader>
+            <div className="space-y-8">
+              <div className="space-y-4">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                  Parent Node (Company)
+                </Label>
+                <Select value={formData.company_id} onValueChange={(v) => setFormData({ ...formData, company_id: v })}>
+                  <SelectTrigger className="h-14 rounded-2xl border-2 font-bold bg-muted/20">
+                    <SelectValue placeholder="Link to corporate registry..." />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-2xl border-2">
+                    {companies.map((c) => (
+                      <SelectItem key={c.id} value={c.id} className="font-bold">
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                      Entity Identity *
+                    </Label>
+                    <Input
+                      value={formData.full_name}
+                      onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                      className="h-12 rounded-xl border-2 font-bold"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                      Designation
+                    </Label>
+                    <Input
+                      value={formData.designation}
+                      onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
+                      className="h-12 rounded-xl border-2"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                      Communication Endpoint (Email)
+                    </Label>
+                    <Input
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      className="h-12 rounded-xl border-2"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                      Logic Path (LinkedIn)
+                    </Label>
+                    <Input
+                      value={formData.linkedin_url}
+                      onChange={(e) => setFormData({ ...formData, linkedin_url: e.target.value })}
+                      className="h-12 rounded-xl border-2"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                  Internal Relationship Notes
+                </Label>
+                <Textarea
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  className="min-h-[120px] rounded-2xl border-2 p-6 italic"
+                />
+              </div>
+
+              <div className="flex items-center gap-3 p-4 rounded-2xl bg-muted/20 border-2 border-border/10">
+                <Switch
+                  checked={formData.is_primary}
+                  onCheckedChange={(v) => setFormData({ ...formData, is_primary: v })}
+                />
+                <Label className="text-[10px] font-black uppercase tracking-widest">
+                  Designate as Primary Point of Contact
+                </Label>
+              </div>
+
+              <div className="flex justify-end gap-4 pt-6 border-t border-border/10">
+                <Button
+                  variant="ghost"
+                  onClick={() => setIsDialogOpen(false)}
+                  className="h-14 px-8 font-black uppercase text-[10px] tracking-widest"
+                >
+                  Abort
+                </Button>
+                <Button
+                  onClick={handleSaveArtifact}
+                  disabled={saving}
+                  className="h-14 px-12 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-primary/30"
+                >
+                  {saving ? (
+                    <Loader2 className="animate-spin mr-2 h-4 w-4" />
+                  ) : (
+                    <ShieldCheck className="mr-2 h-4 w-4" />
+                  )}
+                  {saving ? "Syncing..." : editingContact ? "Commit Recalibration" : "Authorize Creation"}
+                </Button>
+              </div>
             </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-[32px] border-4 border-destructive/20 bg-background/95 p-8 shadow-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Contact</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete this contact and any associated outreach history. This action cannot be undone.
+            <div className="h-12 w-12 rounded-2xl bg-destructive/10 flex items-center justify-center mb-4">
+              <Trash2 className="h-6 w-6 text-destructive" />
+            </div>
+            <AlertDialogTitle className="text-2xl font-black uppercase tracking-tighter italic">
+              Purge Entity?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm font-medium text-muted-foreground italic leading-relaxed">
+              System warning: Purging this stakeholder will permanently terminate all associated outreach logs and
+              relationship telemetry. This logic cycle cannot be reverted.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogFooter className="mt-8 gap-4">
+            <AlertDialogCancel className="rounded-xl font-black uppercase text-[10px] tracking-widest border-2 h-12 px-8">
+              Decline Purge
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={() => deleteTarget && handleDelete(deleteTarget)}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-destructive text-white rounded-xl font-black uppercase text-[10px] tracking-widest h-12 px-10 hover:bg-destructive/90"
             >
-              Delete
+              Confirm Termination
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* LinkedIn JSON Import Dialog */}
-      <ImportDialog open={linkedinImportOpen} onOpenChange={setLinkedinImportOpen}>
-        <ImportDialogContent className="max-w-lg">
-          <ImportDialogHeader>
-            <ImportDialogTitle>Import Contacts from LinkedIn JSON</ImportDialogTitle>
-          </ImportDialogHeader>
-          <LinkedInJsonUpload mode="contact" onComplete={() => { setLinkedinImportOpen(false); loadData(); }} />
-        </ImportDialogContent>
-      </ImportDialog>
+      <Dialog open={linkedinImportOpen} onOpenChange={setLinkedinImportOpen}>
+        <DialogContent className="max-w-xl rounded-[32px] border-4 border-blue-600/20 bg-background p-10">
+          <DialogHeader className="mb-6">
+            <div className="flex items-center gap-4">
+              <Linkedin className="h-8 w-8 text-blue-600" />
+              <DialogTitle className="text-2xl font-black uppercase tracking-tighter italic">
+                Ingest LinkedIn Payload
+              </DialogTitle>
+            </div>
+          </DialogHeader>
+          <LinkedInJsonUpload
+            mode="contact"
+            onComplete={() => {
+              setLinkedinImportOpen(false);
+              loadData();
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Operational Trace Footer */}
+      <footer className="mt-20 pt-10 border-t border-border/40 flex items-center justify-between opacity-30">
+        <div className="space-y-1">
+          <p className="text-[9px] font-black uppercase tracking-[0.4em] italic">
+            Stakeholder Registry: Secured Management
+          </p>
+          <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">
+            Node: Registry Contacts v2.6.4
+          </p>
+        </div>
+        <div className="flex gap-2">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="h-1 w-8 rounded-full bg-primary/20" />
+          ))}
+        </div>
+      </footer>
     </div>
   );
 }
