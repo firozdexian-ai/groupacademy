@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Filter, Layers, Zap, ArrowDownWideArrow } from "lucide-react";
+import { Filter, Layers, Zap, ArrowDownWideNarrow } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -126,7 +126,7 @@ const ContentFilters = ({ values, onChange, className }: ContentFiltersProps) =>
       <Select value={values.sortBy} onValueChange={(v) => updateLogic("sortBy", v)}>
         <SelectTrigger className="w-[150px] h-11 rounded-xl border-2 bg-card/50 font-black uppercase text-[10px] tracking-widest transition-all hover:border-primary/40 focus:ring-0">
           <div className="flex items-center gap-2">
-            <ArrowDownWideArrow className="w-3.5 h-3.5 text-primary/60" />
+            <ArrowDownWideNarrow className="w-3.5 h-3.5 text-primary/60" />
             <SelectValue placeholder="Sequence" />
           </div>
         </SelectTrigger>
