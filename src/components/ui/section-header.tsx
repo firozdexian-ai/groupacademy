@@ -1,7 +1,12 @@
 import { useNavigate } from "react-router-dom";
 import { ChevronRight, LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
+/**
+ * Platform Logic: Node Descriptor Protocol
+ * Establishes hierarchical landmarks for content registries and dashboard partitions.
+ */
 interface SectionHeaderProps {
   icon?: LucideIcon;
   title: string;
@@ -24,7 +29,7 @@ export function SectionHeader({
   title,
   count,
   viewAllPath,
-  viewAllLabel = "View all",
+  viewAllLabel = "Inspect All",
   onViewAll,
   className,
   size = "default",
@@ -39,32 +44,61 @@ export function SectionHeader({
     }
   };
 
-  const showViewAll = viewAllPath || onViewAll;
+  const showViewAll = !!(viewAllPath || onViewAll);
 
   return (
-    <div className={`flex items-center justify-between mb-3 sm:mb-4 ${className || ""}`}>
-      <div className="flex items-center gap-2">
+    <div
+      className={cn(
+        "flex items-center justify-between transition-all duration-300",
+        size === "sm" ? "mb-4" : "mb-6",
+        className,
+      )}
+    >
+      {/* Identity Hub */}
+      <div className="flex items-center gap-3">
         {Icon && (
-          <div className={`${size === "sm" ? "p-1" : "p-1.5"} rounded-lg bg-primary/10`}>
-            <Icon className={`${size === "sm" ? "h-3.5 w-3.5" : "h-4 w-4"} text-primary`} />
+          <div
+            className={cn(
+              "flex items-center justify-center rounded-xl bg-primary/10 border border-primary/5 shadow-sm transition-transform hover:scale-110",
+              size === "sm" ? "h-8 w-8" : "h-10 w-10",
+            )}
+          >
+            <Icon className={cn("text-primary", size === "sm" ? "h-4 w-4" : "h-5 w-5")} />
           </div>
         )}
-        <h2 className={`${size === "sm" ? "text-sm" : "text-base"} font-bold`}>
-          {title}
-        </h2>
-        {count !== undefined && (
-          <span className="text-xs text-muted-foreground">({count})</span>
-        )}
+
+        <div className="flex items-baseline gap-2">
+          <h2
+            className={cn(
+              "font-black uppercase tracking-tighter text-foreground leading-none",
+              size === "sm" ? "text-sm" : "text-xl md:text-2xl",
+            )}
+          >
+            {title}
+          </h2>
+
+          {count !== undefined && (
+            <span className="text-[10px] font-black font-mono tracking-widest text-muted-foreground/40 px-1.5 py-0.5 bg-muted/50 rounded-md border border-border/10">
+              {count.toString().padStart(2, "0")}
+            </span>
+          )}
+        </div>
       </div>
+
+      {/* Global Sequence Trigger */}
       {showViewAll && (
         <Button
           variant="ghost"
           size="sm"
-          className="text-primary font-medium h-8 text-xs gap-0.5 px-2"
+          className={cn(
+            "h-8 rounded-xl font-black uppercase text-[10px] tracking-[0.2em] transition-all",
+            "hover:bg-primary/10 hover:text-primary active:scale-95 group",
+            size === "sm" ? "px-2" : "px-4",
+          )}
           onClick={handleViewAll}
         >
           {viewAllLabel}
-          <ChevronRight className="h-3.5 w-3.5" />
+          <ChevronRight className="ml-1.5 h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
         </Button>
       )}
     </div>
