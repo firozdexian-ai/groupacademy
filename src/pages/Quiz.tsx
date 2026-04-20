@@ -19,13 +19,13 @@ import {
   Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
-import { withTimeout } from "@/hooks/useDataFetch";
-import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { ErrorState } from "@/components/ui/error-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import type { Database } from "@/integrations/supabase/types";
 
+// Type definition for single quiz question
 interface Question {
   id: string;
   question_text: string;
@@ -50,6 +50,7 @@ export default function Quiz() {
   const [showResults, setShowResults] = useState(false);
   const [score, setScore] = useState(0);
   const [passed, setPassed] = useState(false);
+  const [studentId, setStudentId] = useState<string | null>(null);
   const [enrollmentId, setEnrollmentId] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -66,27 +67,42 @@ export default function Quiz() {
       } = await supabase.auth.getUser();
       if (!user) return navigate("/auth");
 
-      const { data: student } = await supabase.from("students").select("id").eq("user_id", user.id).single();
-      if (!student) throw new Error("Academic Identity Not Found");
+      // 1. Fetch Student Context
+      const { data: student, error: studentError } = await supabase
+        .from("students")
+        .select("id")
+        .eq("user_id", user.id)
+        .single();
 
-      const { data: courseData } = await supabase.from("content").select("*").eq("slug", slug).single();
-      if (!courseData) throw new Error("Blueprint Missing");
+      if (studentError || !student) throw new Error("Academic Identity Not Found");
+      setStudentId(student.id);
+
+      // 2. Fetch Course Context
+      const { data: courseData, error: courseError } = await supabase
+        .from("content")
+        .select("*")
+        .eq("slug", slug)
+        .single();
+
+      if (courseError || !courseData) throw new Error("Blueprint Missing");
       if (!courseData.quiz_enabled) return navigate(`/learn/${slug}`);
 
-      const { data: enrollment } = await supabase
+      // 3. Verify Enrollment Integrity
+      const { data: enrollment, error: enrollError } = await supabase
         .from("enrollments")
         .select("id, status")
         .eq("student_id", student.id)
         .eq("content_id", courseData.id)
         .single();
 
-      if (!enrollment || !["active", "completed"].includes(enrollment.status)) {
+      if (enrollError || !enrollment || !["active", "completed"].includes(enrollment.status)) {
         return navigate(`/courses/${slug}`);
       }
 
       setEnrollmentId(enrollment.id);
       setCourse(courseData);
 
+      // 4. Fetch Logic Nodes (Questions)
       const { data: questionsData } = await supabase
         .from("quiz_questions")
         .select("*")
@@ -117,14 +133,18 @@ export default function Quiz() {
       const percentage = Math.round((correctCount / questions.length) * 100);
       const isPassed = percentage >= (course.pass_threshold || 70);
 
-      const { error: attemptError } = await supabase.from("quiz_attempts").insert({
-        enrollment_id: enrollmentId,
+      // CTO FIX: Explicitly typed payload to resolve TS2769 Overload Error
+      const attemptData: Database["public"]["Tables"]["quiz_attempts"]["Insert"] = {
+        enrollment_id: enrollmentId as string,
+        student_id: studentId as string,
         content_id: course.id,
         score: correctCount,
         total_questions: questions.length,
         passed: isPassed,
-        answers: answers,
-      });
+        answers: answers as any, // Cast to Json-compatible type
+      };
+
+      const { error: attemptError } = await supabase.from("quiz_attempts").insert(attemptData);
 
       if (attemptError) throw attemptError;
 
@@ -138,7 +158,9 @@ export default function Quiz() {
       setScore(correctCount);
       setPassed(isPassed);
       setShowResults(true);
+      toast.success(isPassed ? "Assessment Optimized: You Passed." : "Logic Sequence Finished.");
     } catch (e) {
+      console.error("Submission failed:", e);
       toast.error("Handshake Error: Failed to log results.");
     } finally {
       setSubmitting(false);
@@ -173,7 +195,7 @@ export default function Quiz() {
             <div className="space-y-2">
               <CardTitle className="text-3xl font-black tracking-tighter uppercase">Module Incomplete</CardTitle>
               <CardDescription className="text-xs font-bold uppercase tracking-widest leading-relaxed">
-                The assessment nodes for this course are currently being calibrated by GroUp engineers.
+                The assessment nodes for this course are currently being calibrated.
               </CardDescription>
             </div>
             <Button
@@ -215,9 +237,6 @@ export default function Quiz() {
                 <h2 className="text-4xl font-black tracking-tighter uppercase">
                   {passed ? "Qualified" : "Iteration Required"}
                 </h2>
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">
-                  {passed ? "Assessment logic satisfied" : "Knowledge gaps detected in evaluation"}
-                </p>
               </div>
             </div>
             <CardContent className="p-12 space-y-10">
@@ -248,7 +267,7 @@ export default function Quiz() {
                 )}
                 <Button
                   variant="outline"
-                  className="h-14 rounded-2xl font-black uppercase text-[10px] tracking-widest border-border/40"
+                  className="h-14 rounded-2xl font-black uppercase text-[10px] tracking-widest"
                   onClick={() => navigate(`/learn/${slug}`)}
                 >
                   Course Hub
@@ -280,17 +299,10 @@ export default function Quiz() {
               variant="secondary"
               className="bg-background border-border/40 text-[10px] font-black uppercase tracking-widest px-4 py-1"
             >
-              Node {currentIndex + 1} <span className="opacity-30 mx-2">/</span> {questions.length}
+              Node {currentIndex + 1} / {questions.length}
             </Badge>
           </div>
-          <div className="space-y-2">
-            <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-              <div
-                className="h-full bg-primary transition-all duration-700 ease-out"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-          </div>
+          <Progress value={progress} className="h-1.5" />
         </header>
 
         <Card className="rounded-[40px] border-border/40 shadow-2xl overflow-hidden bg-card/80 backdrop-blur-xl">
@@ -300,7 +312,7 @@ export default function Quiz() {
           <CardContent className="p-10 pt-0 space-y-10">
             <RadioGroup
               value={answers[currentQ.id] || ""}
-              onValueChange={(v) => setAnswers((prev) => ({ ...prev, [currentQ.id]: v }))}
+              onValueChange={(v) => handleAnswerChange(currentQ.id, v)}
               className="grid gap-3"
             >
               {["A", "B", "C", "D"].map((opt) => {
@@ -365,4 +377,8 @@ export default function Quiz() {
       </div>
     </div>
   );
+
+  function handleAnswerChange(id: string, val: string) {
+    setAnswers((prev) => ({ ...prev, [id]: val }));
+  }
 }
