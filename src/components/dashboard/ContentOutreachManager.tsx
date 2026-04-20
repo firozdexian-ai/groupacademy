@@ -21,14 +21,25 @@ import {
   Users,
   RefreshCw,
   Filter,
+  ShieldCheck,
+  Zap,
+  Globe,
+  Terminal,
+  ExternalLink,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { getOutreachWhatsAppLink, getFirstName } from "@/lib/outreachTemplates";
+import { cn } from "@/lib/utils";
 
-// --- Interfaces ---
+/**
+ * Platform Logic: Market Penetration Terminal (Content Outreach)
+ * High-fidelity orchestrator for multi-channel promotion and individual pitch telemetry.
+ * 2026 Standard: Executive Logic geometry with reinforced distribution guards.
+ */
+
 interface Content {
   id: string;
   title: string;
@@ -59,24 +70,18 @@ interface ShareLog {
 }
 
 export function ContentOutreachManager() {
-  // Data State
   const [contents, setContents] = useState<Content[]>([]);
   const [selectedContent, setSelectedContent] = useState<Content | null>(null);
   const [talents, setTalents] = useState<Talent[]>([]);
   const [outreachRecords, setOutreachRecords] = useState<OutreachRecord[]>([]);
   const [shareLogs, setShareLogs] = useState<ShareLog[]>([]);
-
-  // UI State
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState<string | null>(null);
   const [filterType, setFilterType] = useState<"not_enrolled" | "not_pitched" | "all">("not_pitched");
-
-  // Share Dialog State
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("linkedin");
   const [customChannel, setCustomChannel] = useState("");
 
-  // 1. Load Content
   const loadContents = useCallback(async () => {
     const { data, error } = await supabase
       .from("content")
@@ -85,10 +90,7 @@ export function ContentOutreachManager() {
       .in("content_type", ["recorded_course", "batch_class", "live_webinar"])
       .order("title");
 
-    if (error) {
-      console.error("Error loading content:", error);
-      return;
-    }
+    if (error) return console.error("Registry Fault:", error);
     setContents(data || []);
     setIsLoading(false);
   }, []);
@@ -97,7 +99,6 @@ export function ContentOutreachManager() {
     loadContents();
   }, [loadContents]);
 
-  // 2. Load Talents & Records
   const loadTalents = useCallback(async () => {
     if (!selectedContent) return;
     setIsLoading(true);
@@ -110,9 +111,8 @@ export function ContentOutreachManager() {
       .limit(200);
 
     if (talentError) {
-      console.error("Error loading talents:", talentError);
       setIsLoading(false);
-      return;
+      return console.error("Talent Registry Fault:", talentError);
     }
 
     const { data: outreachData } = await supabase
@@ -133,7 +133,6 @@ export function ContentOutreachManager() {
     setIsLoading(false);
   }, [selectedContent, filterType]);
 
-  // 3. Load Share Logs (Ticks)
   const loadShareLogs = async () => {
     if (!selectedContent) return;
     const { data } = await supabase
@@ -150,7 +149,6 @@ export function ContentOutreachManager() {
     }
   }, [selectedContent, loadTalents, isShareOpen]);
 
-  // --- Handlers ---
   const handleSendOutreach = async (talent: Talent) => {
     if (!talent.phone || !selectedContent) return;
     setIsSending(talent.id);
@@ -170,9 +168,9 @@ export function ContentOutreachManager() {
       window.open(whatsappUrl, "_blank");
 
       setOutreachRecords((prev) => [...prev, { talent_id: talent.id, course_id: selectedContent.id }]);
-      toast.success(`Outreach sent to ${talent.full_name}`);
+      toast.success(`Handshake Synchronized: ${talent.full_name}`);
     } catch (err) {
-      toast.error("Failed to record outreach");
+      toast.error("Handshake Failed: Registry rejection");
     } finally {
       setIsSending(null);
     }
@@ -181,25 +179,19 @@ export function ContentOutreachManager() {
   const isPitched = (talentId: string) =>
     outreachRecords.some((r) => r.talent_id === talentId && r.course_id === selectedContent?.id);
 
-  // --- Bulk Share Handlers ---
   const recordShare = async (channel: string) => {
     if (!selectedContent) return;
-
-    // Optimistic Update
     setShareLogs((prev) => [...prev, { channel, shared_at: new Date().toISOString() }]);
-
     const { error } = await supabase.from("content_share_logs").insert({
       content_id: selectedContent.id,
       channel: channel,
       shared_at: new Date().toISOString(),
     });
-
     if (error) {
-      // Revert if failed
       setShareLogs((prev) => prev.filter((l) => l.channel !== channel));
-      toast.error("Failed to save progress. Check connection.");
+      toast.error("Log Fault: Distribution update failed");
     } else {
-      toast.success(`Marked as shared on ${channel}`);
+      toast.success(`Protocol Logged: Shared via ${channel}`);
     }
   };
 
@@ -207,7 +199,6 @@ export function ContentOutreachManager() {
 
   const getShareLink = (source: string) => {
     if (!selectedContent) return "";
-    // Use slug for public route - CourseDetail.tsx routes by slug
     return `${window.location.origin}/courses/${selectedContent.slug}?source=${source}`;
   };
 
@@ -215,26 +206,19 @@ export function ContentOutreachManager() {
     const link = getShareLink(source);
     try {
       await navigator.clipboard.writeText(link);
-      toast.success("Link copied!");
+      toast.success("Artifact Link Synced to Clipboard");
     } catch {}
   };
 
   const contentTypeLabel = (type: string) =>
-    ({ recorded_course: "Course", batch_class: "Batch", live_webinar: "Webinar" })[type] || type;
+    ({ recorded_course: "COURSE", batch_class: "BATCH", live_webinar: "WEBINAR" })[type] || type;
 
   const templates = selectedContent
     ? {
-        english: `🚀 Learning Opportunity: ${selectedContent.title}\n📚 Type: ${contentTypeLabel(selectedContent.content_type)}\n🔥 Join now: ${getShareLink(activeTab)}\n\n#learning #career`,
-        bangla: `📢 নতুন কোর্স: ${selectedContent.title}\n📚 ধরণ: ${contentTypeLabel(selectedContent.content_type)}\n🔗 লিংক: ${getShareLink(activeTab)}\n\n#bdjobs #learning`,
+        english: `🚀 Career Uplink: ${selectedContent.title}\n📚 Logic: ${contentTypeLabel(selectedContent.content_type)}\n🔥 Sync here: ${getShareLink(activeTab)}\n\n#intel #growth`,
+        bangla: `📢 নতুন সুযোগ: ${selectedContent.title}\n📚 ধরণ: ${contentTypeLabel(selectedContent.content_type)}\n🔗 লিংক: ${getShareLink(activeTab)}\n\n#bdjobs #learning`,
       }
     : { english: "", bangla: "" };
-
-  const copyTemplate = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      toast.success("Caption copied!");
-    } catch {}
-  };
 
   const handleSocialShare = (platform: "linkedin" | "facebook" | "whatsapp" | "telegram") => {
     if (!selectedContent) return;
@@ -249,7 +233,7 @@ export function ContentOutreachManager() {
         url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}`;
         break;
       case "whatsapp":
-        url = `https://wa.me/?text=${encodeURIComponent(`Check this out: ${selectedContent.title}\n${link}`)}`;
+        url = `https://wa.me/?text=${encodeURIComponent(`Career Artifact: ${selectedContent.title}\n${link}`)}`;
         break;
       case "telegram":
         url = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(selectedContent.title)}`;
@@ -260,349 +244,306 @@ export function ContentOutreachManager() {
 
   if (isLoading && contents.length === 0)
     return (
-      <div className="space-y-4">
-        <Skeleton className="h-10 w-full" />
-        <Skeleton className="h-64 w-full" />
+      <div className="space-y-8 animate-pulse">
+        <Skeleton className="h-40 rounded-[32px] bg-muted/40" />
+        <Skeleton className="h-[500px] rounded-[40px] bg-muted/40" />
       </div>
     );
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BookOpen className="h-5 w-5" /> Content Outreach
-          </CardTitle>
-          <CardDescription>Select content to promote broadly or pitch individually.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Selectors */}
-          <div className="grid gap-6 md:grid-cols-2">
+    <div className="max-w-6xl mx-auto space-y-10 animate-in fade-in duration-1000 pb-20">
+      {/* Executive Header Card */}
+      <Card className="rounded-[40px] border-2 border-border/40 bg-card/30 backdrop-blur-xl shadow-2xl overflow-hidden">
+        <div className="h-1.5 w-full bg-gradient-to-r from-primary via-blue-600 to-primary" />
+        <CardHeader className="p-10 border-b border-border/10 bg-muted/10">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Select Content</label>
+              <CardTitle className="text-3xl font-black uppercase tracking-tighter italic flex items-center gap-4">
+                <Zap className="h-8 w-8 text-primary" /> Distribution Hub
+              </CardTitle>
+              <CardDescription className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 italic">
+                Authorized Market Penetration & Individual Target Telemetry
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="space-y-1 text-right">
+                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 italic">
+                  Artifact Pool
+                </p>
+                <p className="text-2xl font-black italic tracking-tighter leading-none">{contents.length}</p>
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-10 space-y-8">
+          <div className="grid gap-8 md:grid-cols-2">
+            <div className="space-y-3">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                Target Artifact
+              </Label>
               <Select
                 value={selectedContent?.id || ""}
-                onValueChange={(v) => {
-                  const c = contents.find((x) => x.id === v);
-                  setSelectedContent(c || null);
-                }}
+                onValueChange={(v) => setSelectedContent(contents.find((x) => x.id === v) || null)}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose content..." />
+                <SelectTrigger className="h-14 rounded-2xl border-2 font-bold bg-muted/20">
+                  <SelectValue placeholder="Identify content node..." />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="rounded-2xl border-2">
                   {contents.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-xs">
-                          {contentTypeLabel(c.content_type)}
-                        </Badge>{" "}
-                        {c.title}
-                      </div>
+                    <SelectItem key={c.id} value={c.id} className="font-bold uppercase text-[10px]">
+                      [{contentTypeLabel(c.content_type)}] {c.title}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Filter Individual Audience</label>
+            <div className="space-y-3">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                Audience Filter Protocol
+              </Label>
               <Select value={filterType} onValueChange={(v: any) => setFilterType(v)}>
-                <SelectTrigger>
+                <SelectTrigger className="h-14 rounded-2xl border-2 font-bold bg-muted/20">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="not_pitched">
-                    <div className="flex gap-2 items-center">
-                      <Filter className="h-4 w-4" /> Never pitched
-                    </div>
+                <SelectContent className="rounded-2xl border-2">
+                  <SelectItem value="not_pitched" className="font-bold text-[10px] uppercase">
+                    Protocol: Zero Pitch Nodes
                   </SelectItem>
-                  <SelectItem value="all">
-                    <div className="flex gap-2 items-center">
-                      <Users className="h-4 w-4" /> All talents
-                    </div>
+                  <SelectItem value="all" className="font-bold text-[10px] uppercase">
+                    Protocol: Global Talent Pool
                   </SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
 
-          {/* Action Bar */}
           {selectedContent && (
-            <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
-              <div>
-                <h3 className="font-medium">{selectedContent.title}</h3>
-                <p className="text-sm text-muted-foreground">{talents.length} individual targets found</p>
+            <div className="flex items-center justify-between p-8 rounded-[32px] border-2 bg-primary/5 border-primary/20 shadow-inner animate-in slide-in-from-bottom-2">
+              <div className="space-y-1">
+                <h3 className="text-xl font-black uppercase tracking-tighter italic text-primary">
+                  {selectedContent.title}
+                </h3>
+                <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest italic">
+                  {talents.length} VALID TARGETS IN RANGE
+                </p>
               </div>
-              <Button onClick={() => setIsShareOpen(true)} className="gap-2 bg-blue-600 hover:bg-blue-700 shadow-sm">
-                <Share2 className="w-4 h-4" /> Promote to Socials
+              <Button
+                onClick={() => setIsShareOpen(true)}
+                className="h-14 px-8 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-2xl shadow-primary/30 group"
+              >
+                <Share2 className="w-5 h-5 mr-3 group-hover:scale-110 transition-transform" /> Broad Distrubution
               </Button>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Share Dialog */}
+      {/* Distribution Dialog */}
       <Dialog open={isShareOpen} onOpenChange={setIsShareOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Promote: {selectedContent?.title}</DialogTitle>
-            <DialogDescription>Share widely to increase enrollments.</DialogDescription>
-          </DialogHeader>
+        <DialogContent className="max-w-3xl rounded-[40px] border-4 border-border/40 bg-background/95 backdrop-blur-2xl p-0 overflow-hidden shadow-2xl">
+          <div className="h-2 w-full bg-gradient-to-r from-blue-600 via-primary to-blue-600" />
+          <div className="p-12">
+            <DialogHeader className="mb-10">
+              <div className="flex items-center gap-5">
+                <Globe className="h-10 w-10 text-primary" />
+                <div className="text-left">
+                  <DialogTitle className="text-3xl font-black uppercase tracking-tighter italic">
+                    Broad Distribution Node
+                  </DialogTitle>
+                  <DialogDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
+                    Mass Artifact Promotion Protocols
+                  </DialogDescription>
+                </div>
+              </div>
+            </DialogHeader>
 
-          <div className="flex flex-col sm:flex-row gap-6 mt-4">
-            <div className="w-full sm:w-1/3 sm:border-r sm:pr-6 space-y-4 border-b sm:border-b-0 pb-4 sm:pb-0">
-              <div className="space-y-2">
+            <div className="flex flex-col md:flex-row gap-10">
+              <div className="w-full md:w-1/3 space-y-3">
                 {[
-                  { id: "linkedin", label: "LinkedIn", icon: Linkedin, color: "text-blue-600" },
-                  { id: "facebook", label: "Facebook", icon: Facebook, color: "text-blue-500" },
-                  { id: "whatsapp", label: "WhatsApp", icon: MessageCircle, color: "text-green-500" },
-                  { id: "telegram", label: "Telegram", icon: Send, color: "text-sky-500" },
+                  { id: "linkedin", label: "LINKEDIN", icon: Linkedin, color: "text-blue-600", bg: "bg-blue-600/10" },
+                  { id: "facebook", label: "FACEBOOK", icon: Facebook, color: "text-blue-500", bg: "bg-blue-500/10" },
+                  {
+                    id: "whatsapp",
+                    label: "WHATSAPP",
+                    icon: MessageCircle,
+                    color: "text-green-500",
+                    bg: "bg-green-500/10",
+                  },
+                  { id: "telegram", label: "TELEGRAM", icon: Send, color: "text-sky-500", bg: "bg-sky-500/10" },
+                  { id: "custom", label: "LOGIC LINK", icon: LinkIcon, color: "text-primary", bg: "bg-primary/10" },
                 ].map((ch) => (
                   <button
                     key={ch.id}
                     onClick={() => setActiveTab(ch.id)}
-                    className={`w-full flex items-center justify-between p-3 rounded-lg text-sm transition-all ${activeTab === ch.id ? "bg-primary/10 ring-1 ring-primary" : "hover:bg-muted"}`}
+                    className={cn(
+                      "w-full flex items-center justify-between p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border-2",
+                      activeTab === ch.id
+                        ? "bg-primary border-primary text-white shadow-xl"
+                        : "bg-muted/10 border-border/10 hover:border-primary/20",
+                    )}
                   >
-                    <div className="flex items-center gap-3">
-                      <ch.icon className={`w-4 h-4 ${ch.color}`} /> <span>{ch.label}</span>
+                    <div className="flex items-center gap-4">
+                      <ch.icon className={cn("w-4 h-4", activeTab === ch.id ? "text-white" : ch.color)} />
+                      <span>{ch.label}</span>
                     </div>
-                    {isShared(ch.id) && <CheckCircle2 className="w-4 h-4 text-green-600" />}
+                    {isShared(ch.id) && <ShieldCheck className="w-4 h-4" />}
                   </button>
                 ))}
-                <div className="pt-2 mt-2 border-t">
-                  <button
-                    onClick={() => setActiveTab("custom")}
-                    className={`w-full flex items-center justify-between p-3 rounded-lg text-sm transition-all ${activeTab === "custom" ? "bg-primary/10 ring-1 ring-primary" : "hover:bg-muted"}`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <LinkIcon className="w-4 h-4 text-gray-500" />
-                      <span>Custom Link</span>
-                    </div>
-                  </button>
-                </div>
               </div>
-            </div>
 
-            <div className="flex-1 space-y-6">
-              {(activeTab === "linkedin" || activeTab === "facebook") && (
-                <div className="space-y-4">
-                  <div className="bg-blue-50 p-3 rounded-md text-sm border border-blue-100">
-                    <p className="font-semibold mb-1">Social Strategy</p>Post on feed & groups.
+              <div className="flex-1 space-y-8 animate-in fade-in duration-500">
+                {activeTab !== "custom" ? (
+                  <div className="space-y-6">
+                    <div className="space-y-3">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                        Synthesis Payload ({activeTab})
+                      </Label>
+                      <div className="relative">
+                        <Textarea
+                          value={activeTab === "linkedin" ? templates.english : templates.bangla}
+                          readOnly
+                          rows={6}
+                          className="rounded-2xl border-2 bg-muted/5 font-mono text-xs p-6 italic focus-visible:ring-0 leading-relaxed"
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => copyTemplate(activeTab === "linkedin" ? templates.english : templates.bangla)}
+                          className="absolute bottom-4 right-4 h-10 w-10 rounded-xl hover:bg-primary hover:text-white transition-all shadow-inner border-2 border-border/10"
+                        >
+                          <Copy className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    <Button
+                      className="w-full h-16 rounded-[20px] font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-primary/30 group"
+                      onClick={() => handleSocialShare(activeTab as any)}
+                    >
+                      <ExternalLink className="w-5 h-5 mr-3" /> Authorize Channel Sync
+                    </Button>
                   </div>
-                  <div>
-                    <Label className="mb-2 block">Post Template ({activeTab})</Label>
-                    <Textarea
-                      value={activeTab === "linkedin" ? templates.english : templates.bangla}
-                      readOnly
-                      rows={6}
-                      className="text-xs bg-muted/30"
-                    />
+                ) : (
+                  <div className="space-y-8 animate-in slide-in-from-top-4">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                        Channel Logic Name
+                      </Label>
+                      <Input
+                        placeholder="e.g. CORE_NEWSLETTER_BETA"
+                        value={customChannel}
+                        onChange={(e) => setCustomChannel(e.target.value)}
+                        className="h-12 rounded-xl border-2 font-bold"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                        Tracking Artifact Link
+                      </Label>
+                      <div className="flex gap-2">
+                        <Input
+                          readOnly
+                          value={getShareLink(customChannel || "custom")}
+                          className="h-12 rounded-xl border-2 bg-muted/5 font-mono text-xs"
+                        />
+                        <Button onClick={() => copyLink(customChannel || "custom")} className="h-12 w-12 rounded-xl">
+                          <Copy className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
                     <Button
                       variant="outline"
-                      size="sm"
-                      onClick={() => copyTemplate(activeTab === "linkedin" ? templates.english : templates.bangla)}
-                      className="mt-2 w-full"
+                      className="w-full h-14 rounded-2xl border-2 font-black uppercase text-[10px] tracking-widest"
+                      onClick={() => recordShare(customChannel || "custom")}
                     >
-                      <Copy className="w-3 h-3 mr-2" /> Copy Caption
+                      <ShieldCheck className="w-4 h-4 mr-3" /> Commit Share Record
                     </Button>
                   </div>
-                  <Button
-                    className="w-full bg-blue-600 hover:bg-blue-700"
-                    onClick={() => handleSocialShare(activeTab as any)}
-                  >
-                    <Share2 className="w-4 h-4 mr-2" /> Share Direct
-                  </Button>
-                </div>
-              )}
-
-              {(activeTab === "whatsapp" || activeTab === "telegram") && (
-                <div className="space-y-4">
-                  <div className="bg-green-50 p-3 rounded-md text-sm border border-green-100">
-                    <p className="font-semibold mb-1">Direct Share</p>Share in channels/groups.
-                  </div>
-
-                  {/* DIRECT BUTTON */}
-                  <Button
-                    className="w-full bg-green-600 hover:bg-green-700"
-                    onClick={() => handleSocialShare(activeTab as any)}
-                  >
-                    Open App
-                  </Button>
-
-                  <div className="relative flex py-2 items-center">
-                    <div className="flex-grow border-t border-gray-200"></div>
-                    <span className="flex-shrink-0 mx-4 text-gray-400 text-xs">OR COPY LINK</span>
-                    <div className="flex-grow border-t border-gray-200"></div>
-                  </div>
-
-                  {/* COPY BUTTON */}
-                  <div className="flex gap-2">
-                    <Input readOnly value={getShareLink(activeTab)} className="bg-muted text-xs" />
-                    <Button variant="outline" onClick={() => copyLink(activeTab)}>
-                      <Copy className="w-4 h-4" />
-                    </Button>
-                  </div>
-
-                  {/* MANUAL MARK BUTTON */}
-                  <Button
-                    variant="secondary"
-                    className="w-full"
-                    onClick={() => {
-                      recordShare(activeTab);
-                      toast.success("Marked!");
-                    }}
-                    disabled={isShared(activeTab)}
-                  >
-                    {isShared(activeTab) ? (
-                      <>
-                        <Check className="w-4 h-4 mr-2" /> Done
-                      </>
-                    ) : (
-                      "Mark as Done Manually"
-                    )}
-                  </Button>
-                </div>
-              )}
-
-              {activeTab === "custom" && (
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Channel Name</Label>
-                    <Input
-                      placeholder="e.g. newsletter"
-                      value={customChannel}
-                      onChange={(e) => setCustomChannel(e.target.value)}
-                    />
-                  </div>
-                  <div className="pt-2">
-                    <Label>Tracking Link</Label>
-                    <div className="flex gap-2">
-                      <Input readOnly value={getShareLink(customChannel || "custom")} className="bg-muted" />
-                      <Button onClick={() => copyLink(customChannel || "custom")}>
-                        <Copy className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                  <Button
-                    variant="secondary"
-                    className="w-full mt-4"
-                    onClick={() => {
-                      recordShare(customChannel || "custom");
-                      toast.success("Marked!");
-                    }}
-                  >
-                    <Check className="w-4 h-4 mr-2" /> Mark as Done
-                  </Button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Talent List (Individual Outreach) */}
+      {/* Talent Registry Viewport */}
       {selectedContent && (
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" /> Individual Outreach
-              </CardTitle>
-              <CardDescription>Send personal WhatsApp messages to talents</CardDescription>
+        <Card className="rounded-[40px] border-2 border-border/40 bg-card/30 backdrop-blur-xl shadow-2xl overflow-hidden">
+          <CardHeader className="p-10 bg-muted/10 border-b border-border/10">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <CardTitle className="text-2xl font-black uppercase tracking-tighter italic flex items-center gap-4">
+                  <Terminal className="h-6 w-6 text-primary" /> Target Registry
+                </CardTitle>
+                <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest italic">
+                  Interrogating individualized pitch logic nodes
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={loadTalents}
+                className="h-12 w-12 rounded-full hover:bg-primary/10"
+              >
+                <RefreshCw className="h-5 w-5 text-primary" />
+              </Button>
             </div>
-            <Button variant="outline" size="icon" onClick={loadTalents}>
-              <RefreshCw className="h-4 w-4" />
-            </Button>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0">
             {talents.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">No talents found matching criteria.</div>
+              <div className="py-32 text-center space-y-4 opacity-20 italic">
+                <Users className="h-16 w-16 mx-auto" />
+                <p className="text-[11px] font-black uppercase tracking-[0.4em]">Target Node Null</p>
+              </div>
             ) : (
-              <>
-                {/* Desktop Table */}
-                <div className="hidden sm:block rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Phone</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Action</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {talents.map((talent) => (
-                        <TableRow key={talent.id}>
-                          <TableCell>
-                            <div>
-                              <p className="font-medium">{talent.full_name}</p>
-                              <p className="text-xs text-muted-foreground">{talent.email}</p>
-                            </div>
-                          </TableCell>
-                          <TableCell className="font-mono text-sm">{talent.phone}</TableCell>
-                          <TableCell>
-                            {isPitched(talent.id) ? (
-                              <Badge variant="secondary" className="bg-green-100 text-green-700">
-                                <Check className="h-3 w-3 mr-1" /> Pitched
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline">Pending</Badge>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {talent.phone && !isPitched(talent.id) && (
-                              <Button
-                                size="sm"
-                                onClick={() => handleSendOutreach(talent)}
-                                disabled={isSending === talent.id}
-                              >
-                                {isSending === talent.id ? (
-                                  <RefreshCw className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <>
-                                    <Send className="h-4 w-4 mr-1" /> WhatsApp
-                                  </>
-                                )}
-                              </Button>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-                {/* Mobile Cards */}
-                <div className="sm:hidden space-y-2">
-                  {talents.map((talent) => (
-                    <div key={talent.id} className="p-3 border rounded-lg flex items-center justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <p className="font-medium text-sm truncate">{talent.full_name}</p>
-                        <p className="text-xs text-muted-foreground font-mono">{talent.phone}</p>
+              <div className="divide-y divide-border/10">
+                {talents.map((talent) => (
+                  <div
+                    key={talent.id}
+                    className="group p-8 flex items-center justify-between transition-all hover:bg-primary/[0.02]"
+                  >
+                    <div className="flex items-center gap-6">
+                      <div className="h-14 w-14 rounded-2xl bg-muted/50 flex items-center justify-center border-2 border-border/40 shadow-inner group-hover:rotate-3 transition-transform">
+                        <Users className="h-6 w-6 text-muted-foreground/40" />
                       </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        {isPitched(talent.id) ? (
-                          <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
-                            <Check className="h-3 w-3" />
-                          </Badge>
-                        ) : talent.phone ? (
-                          <Button
-                            size="sm"
-                            onClick={() => handleSendOutreach(talent)}
-                            disabled={isSending === talent.id}
-                          >
-                            {isSending === talent.id ? (
-                              <RefreshCw className="h-3 w-3 animate-spin" />
-                            ) : (
-                              <Send className="h-3 w-3" />
-                            )}
-                          </Button>
-                        ) : null}
+                      <div className="space-y-1">
+                        <p className="text-lg font-black uppercase tracking-tight italic leading-none group-hover:text-primary transition-colors">
+                          {talent.full_name}
+                        </p>
+                        <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest italic flex items-center gap-3">
+                          <Globe className="h-3 w-3" /> {talent.email}{" "}
+                          <span className="h-1 w-1 rounded-full bg-border" /> {talent.phone}
+                        </p>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </>
+                    <div className="flex items-center gap-8">
+                      <Badge
+                        className={cn(
+                          "rounded-lg font-black text-[9px] uppercase tracking-widest px-4 py-1.5 border-none shadow-sm",
+                          isPitched(talent.id) ? "bg-emerald-500 text-white" : "bg-muted text-muted-foreground",
+                        )}
+                      >
+                        {isPitched(talent.id) ? "SYNC'D_PITCH" : "PENDING_NODE"}
+                      </Badge>
+                      {!isPitched(talent.id) && talent.phone && (
+                        <Button
+                          className="h-12 px-8 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-primary/20"
+                          onClick={() => handleSendOutreach(talent)}
+                          disabled={isSending === talent.id}
+                        >
+                          {isSending === talent.id ? (
+                            <RefreshCw className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <>
+                              <Send className="h-4 w-4 mr-2" /> Handshake
+                            </>
+                          )}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </CardContent>
         </Card>
