@@ -28,6 +28,7 @@ import { ErrorState } from "@/components/ui/error-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { Navbar } from "@/components/Navbar";
 
 interface ReportData {
   student: { id: string; full_name: string; student_id: string; email: string };
