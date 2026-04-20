@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, BellOff, CheckCheck, Zap, ShieldCheck, Target, Signal } from "lucide-react";
 import { format } from "date-fns";
 import { getNotificationIcon } from "@/lib/notificationHelpers";
