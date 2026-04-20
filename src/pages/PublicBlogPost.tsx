@@ -53,7 +53,8 @@ export default function PublicBlogPost() {
 
   const viewMutation = useMutation({
     mutationFn: async (postId: string) => {
-      await supabase.rpc("increment_blog_views", { post_id: postId });
+      const { data } = await supabase.from("blog_posts").select("views").eq("id", postId).single();
+      await supabase.from("blog_posts").update({ views: (data?.views || 0) + 1 }).eq("id", postId);
     },
   });
 
