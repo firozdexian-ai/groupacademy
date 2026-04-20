@@ -259,6 +259,18 @@ export function ContactsManager() {
     }
   };
 
+  const handleDelete = async (id: string) => {
+    try {
+      const { error } = await supabase.from("contacts").delete().eq("id", id);
+      if (error) throw error;
+      toast.success("Entity Purged");
+      setDeleteTarget(null);
+      loadData();
+    } catch (error: any) {
+      toast.error("Purge Failed: " + (error.message || "Unknown error"));
+    }
+  };
+
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
   const primaryCount = contacts.filter((c) => c.is_primary).length;
   const neverContactedCount = contacts.filter((c) => !c.last_contacted_at).length;
