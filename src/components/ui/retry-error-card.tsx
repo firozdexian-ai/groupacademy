@@ -1,7 +1,13 @@
-import { AlertCircle, RefreshCw, Wifi, Clock, ServerCrash } from "lucide-react";
+import * as React from "react";
+import { AlertCircle, RefreshCw, Wifi, Clock, ServerCrash, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
+/**
+ * Platform Logic: Fault Recovery Terminal
+ * High-fidelity diagnostic feedback node for managing data handshake failures.
+ */
 export type ErrorType = "network" | "timeout" | "server" | "rate_limit" | "generic";
 
 interface RetryErrorCardProps {
@@ -18,29 +24,29 @@ interface RetryErrorCardProps {
 const ERROR_CONFIG: Record<ErrorType, { icon: typeof AlertCircle; title: string; description: string }> = {
   network: {
     icon: Wifi,
-    title: "Connection Failed",
-    description: "Please check your internet connection and try again."
+    title: "Sync Blocked: Network",
+    description: "Connectivity handshake failed. Verify local uplink and re-initialize.",
   },
   timeout: {
     icon: Clock,
-    title: "Request Timed Out",
-    description: "The server took too long to respond. Please try again."
+    title: "Sync Blocked: Timeout",
+    description: "The protocol exceeded the defined TTL limit. Request aborted.",
   },
   server: {
     icon: ServerCrash,
-    title: "Server Error",
-    description: "Something went wrong on our end. Please try again in a moment."
+    title: "Sync Blocked: Registry",
+    description: "Logic node at destination returned an internal exception (500).",
   },
   rate_limit: {
-    icon: Clock,
-    title: "Too Many Requests",
-    description: "You've made too many requests. Please wait a moment before trying again."
+    icon: ShieldAlert,
+    title: "Sync Blocked: Quota",
+    description: "Handshake frequency exceeds security parameters. Please wait.",
   },
   generic: {
     icon: AlertCircle,
-    title: "Something Went Wrong",
-    description: "An unexpected error occurred. Please try again."
-  }
+    title: "Sync Blocked: Unknown",
+    description: "An unhandled exception occurred during the data sequence.",
+  },
 };
 
 export function RetryErrorCard({
@@ -48,10 +54,10 @@ export function RetryErrorCard({
   title,
   description,
   onRetry,
-  retryLabel = "Try Again",
+  retryLabel = "Re-initialize Sync",
   isRetrying = false,
   className = "",
-  compact = false
+  compact = false,
 }: RetryErrorCardProps) {
   const config = ERROR_CONFIG[type];
   const Icon = config.icon;
@@ -60,26 +66,36 @@ export function RetryErrorCard({
 
   if (compact) {
     return (
-      <div className={`flex items-center gap-4 p-4 bg-destructive/10 border border-destructive/20 rounded-lg ${className}`}>
-        <div className="p-2 rounded-full bg-destructive/10">
-          <Icon className="h-5 w-5 text-destructive" />
+      <div
+        className={cn(
+          "flex items-center gap-4 p-4 rounded-2xl border-2 border-rose-500/20 bg-rose-500/[0.03] animate-in fade-in slide-in-from-top-1 duration-300",
+          className,
+        )}
+      >
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-500/10">
+          <Icon className="h-5 w-5 text-rose-500" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-medium text-destructive">{displayTitle}</p>
-          <p className="text-sm text-muted-foreground truncate">{displayDescription}</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-rose-600 leading-none mb-1">
+            {displayTitle}
+          </p>
+          <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-tight truncate">
+            {displayDescription}
+          </p>
         </div>
         {onRetry && (
-          <Button 
-            variant="outline" 
+          <Button
+            variant="ghost"
             size="sm"
             onClick={onRetry}
             disabled={isRetrying}
+            className="h-9 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-rose-500/10 hover:text-rose-600 transition-all"
           >
             {isRetrying ? (
-              <RefreshCw className="h-4 w-4 animate-spin" />
+              <RefreshCw className="h-3 w-3 animate-spin" />
             ) : (
               <>
-                <RefreshCw className="h-4 w-4 mr-1" />
+                <RefreshCw className="h-3 w-3 mr-2" />
                 {retryLabel}
               </>
             )}
@@ -90,29 +106,48 @@ export function RetryErrorCard({
   }
 
   return (
-    <Card className={`border-destructive/20 ${className}`}>
-      <CardHeader className="text-center pb-2">
-        <div className="mx-auto p-3 rounded-full bg-destructive/10 w-fit mb-2">
-          <Icon className="h-8 w-8 text-destructive" />
+    <Card
+      className={cn(
+        "max-w-md mx-auto rounded-[40px] border-2 border-dashed border-rose-500/20 bg-rose-500/[0.02] shadow-2xl animate-in zoom-in-95 duration-500",
+        className,
+      )}
+    >
+      <CardHeader className="text-center p-10 pb-4 space-y-5">
+        {/* Diagnostic Icon Hub */}
+        <div className="relative mx-auto h-20 w-20">
+          <div className="absolute inset-0 bg-rose-500/10 rounded-[28px] rotate-6 animate-pulse" />
+          <div className="absolute inset-0 bg-background border border-rose-500/20 rounded-[28px] flex items-center justify-center shadow-xl">
+            <Icon className="h-10 w-10 text-rose-500" />
+          </div>
         </div>
-        <CardTitle className="text-lg">{displayTitle}</CardTitle>
-        <CardDescription>{displayDescription}</CardDescription>
+
+        <div className="space-y-2">
+          <CardTitle className="text-2xl font-black tracking-tighter uppercase leading-none">{displayTitle}</CardTitle>
+          <CardDescription className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60 italic leading-relaxed max-w-[280px] mx-auto">
+            {displayDescription}
+          </CardDescription>
+        </div>
       </CardHeader>
+
       {onRetry && (
-        <CardContent className="pt-2">
-          <Button 
+        <CardContent className="text-center p-10 pt-4">
+          <Button
             onClick={onRetry}
-            className="w-full"
             disabled={isRetrying}
+            className={cn(
+              "h-12 w-full rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] transition-all",
+              "bg-rose-500 hover:bg-rose-600 text-white shadow-lg shadow-rose-500/20 active:scale-[0.98]",
+              isRetrying && "opacity-80",
+            )}
           >
             {isRetrying ? (
               <>
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                Retrying...
+                <RefreshCw className="h-4 w-4 mr-3 animate-spin" />
+                Syncing Registry...
               </>
             ) : (
               <>
-                <RefreshCw className="h-4 w-4 mr-2" />
+                <RefreshCw className="h-4 w-4 mr-3" />
                 {retryLabel}
               </>
             )}
@@ -123,28 +158,20 @@ export function RetryErrorCard({
   );
 }
 
-// Utility to detect error type from error object
+/**
+ * Utility: Error Intelligence Node
+ * Detects failure type from protocol artifacts.
+ */
 export function getErrorType(error: any): ErrorType {
   if (!error) return "generic";
-  
+
   const message = error?.message?.toLowerCase() || "";
   const name = error?.name?.toLowerCase() || "";
-  
-  if (name === "aborterror" || message.includes("timeout") || message.includes("timed out")) {
-    return "timeout";
-  }
-  
-  if (message.includes("network") || message.includes("fetch") || message.includes("failed to fetch")) {
-    return "network";
-  }
-  
-  if (message.includes("rate limit") || message.includes("429") || message.includes("too many")) {
-    return "rate_limit";
-  }
-  
-  if (message.includes("500") || message.includes("server") || message.includes("internal")) {
-    return "server";
-  }
-  
+
+  if (name === "aborterror" || message.includes("timeout") || message.includes("timed out")) return "timeout";
+  if (message.includes("network") || message.includes("fetch") || message.includes("failed to fetch")) return "network";
+  if (message.includes("rate limit") || message.includes("429") || message.includes("too many")) return "rate_limit";
+  if (message.includes("500") || message.includes("server") || message.includes("internal")) return "server";
+
   return "generic";
 }
