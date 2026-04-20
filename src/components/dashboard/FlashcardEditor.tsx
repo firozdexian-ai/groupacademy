@@ -17,6 +17,8 @@ import {
   RotateCcw,
   ArrowLeft,
   ArrowRight,
+  ChevronLeft,
+  ChevronRight,
   Sparkles,
   Layers,
   Terminal,
