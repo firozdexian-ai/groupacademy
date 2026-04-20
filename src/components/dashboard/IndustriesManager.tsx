@@ -6,7 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import {
@@ -22,10 +29,21 @@ import {
   Loader2,
   ChevronLeft,
   ChevronRight,
+  ShieldCheck,
+  Activity,
+  Zap,
+  Database,
 } from "lucide-react";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { DashboardTableSkeleton, DashboardErrorState } from "./DashboardSkeleton";
+import { cn } from "@/lib/utils";
+
+/**
+ * Platform Logic: Market Sector Normalization Terminal (Industries)
+ * High-fidelity orchestrator for sectoral aggregation and registry deduplication.
+ * 2026 Standard: Executive Logic geometry with reinforced aggregation guards.
+ */
 
 interface IndustryRow {
   industry: string;
@@ -40,83 +58,63 @@ export function IndustriesManager() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [page, setPage] = useState(1);
 
-  // KPI
+  // Telemetry
   const [totalIndustries, setTotalIndustries] = useState(0);
   const [noIndustryCount, setNoIndustryCount] = useState(0);
   const [topIndustry, setTopIndustry] = useState("");
 
-  // Merge
+  // Transformation State
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
   const [mergeTarget, setMergeTarget] = useState("");
   const [isMerging, setIsMerging] = useState(false);
 
-  // Rename
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [renameFrom, setRenameFrom] = useState("");
   const [renameTo, setRenameTo] = useState("");
   const [isRenaming, setIsRenaming] = useState(false);
 
-  // Pagination
-  const [page, setPage] = useState(1);
-
-  const loadIndustries = useCallback(async () => {
+  const loadRegistryTelemetry = useCallback(async () => {
     setIsLoading(true);
     setLoadError(null);
     try {
-      // Fetch all companies with industry
+      // 1. Ingest Raw Sectoral Data
       const { data: companies, error: compErr } = await withTimeout(
-        Promise.resolve(supabase.from("companies").select("industry")),
+        Promise.resolve(supabase.from("companies").select("id, industry")),
         TIMEOUTS.DEFAULT,
-        "Loading industries timed out",
+        "Sector Ingestion Timeout",
       );
       if (compErr) throw compErr;
 
-      // Fetch job counts by company_name (since jobs don't have company_id reliably)
+      // 2. Map Job Dependencies
       const { data: jobs, error: jobErr } = await withTimeout(
         Promise.resolve(supabase.from("jobs").select("company_id")),
         TIMEOUTS.DEFAULT,
-        "Loading job counts timed out",
+        "Job Dependency Sync Timeout",
       );
       if (jobErr) throw jobErr;
 
-      // Build company_id -> count map from jobs
-      const jobCountByCompanyId: Record<string, number> = {};
+      const jobCountMap: Record<string, number> = {};
       jobs?.forEach((j: any) => {
-        if (j.company_id) {
-          jobCountByCompanyId[j.company_id] = (jobCountByCompanyId[j.company_id] || 0) + 1;
-        }
+        if (j.company_id) jobCountMap[j.company_id] = (jobCountMap[j.company_id] || 0) + 1;
       });
 
-      // We need company_id -> industry mapping for job counts
-      const { data: companyFull } = await supabase.from("companies").select("id, industry");
-
-      const companyIndustryMap: Record<string, string> = {};
-      companyFull?.forEach((c: any) => {
-        if (c.industry) companyIndustryMap[c.id] = c.industry;
-      });
-
-      // Aggregate
+      // 3. Aggregate Logic Nodes
       const industryMap: Record<string, { companyCount: number; jobCount: number }> = {};
-      let noInd = 0;
+      let unassigned = 0;
 
       companies?.forEach((c: any) => {
         const ind = c.industry?.trim();
         if (!ind) {
-          noInd++;
+          unassigned++;
           return;
         }
+
         if (!industryMap[ind]) industryMap[ind] = { companyCount: 0, jobCount: 0 };
         industryMap[ind].companyCount++;
-      });
-
-      // Add job counts
-      Object.entries(jobCountByCompanyId).forEach(([compId, count]) => {
-        const ind = companyIndustryMap[compId];
-        if (ind && industryMap[ind]) {
-          industryMap[ind].jobCount += count;
-        }
+        if (jobCountMap[c.id]) industryMap[ind].jobCount += jobCountMap[c.id];
       });
 
       const rows: IndustryRow[] = Object.entries(industryMap)
@@ -125,67 +123,31 @@ export function IndustriesManager() {
 
       setIndustries(rows);
       setTotalIndustries(rows.length);
-      setNoIndustryCount(noInd);
-      setTopIndustry(rows[0]?.industry || "N/A");
+      setNoIndustryCount(unassigned);
+      setTopIndustry(rows[0]?.industry || "NULL_SECTOR");
     } catch (error: any) {
-      console.error("Error loading industries:", error);
-      setLoadError(error.message || "Failed to load industries");
+      setLoadError(error.message || "Registry Sync Failed");
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    loadIndustries();
-  }, [loadIndustries]);
+    loadRegistryTelemetry();
+  }, [loadRegistryTelemetry]);
 
-  // Filter
-  const filtered = industries.filter((i) =>
-    i.industry.toLowerCase().includes(searchQuery.toLowerCase()),
-  );
-
+  const filtered = industries.filter((i) => i.industry.toLowerCase().includes(searchQuery.toLowerCase()));
   const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
   const paginated = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
-  // Selection
   const toggleSelect = (industry: string) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(industry)) next.delete(industry);
-      else next.add(industry);
-      return next;
-    });
+    const next = new Set(selected);
+    selected.has(industry) ? next.delete(industry) : next.add(industry);
+    setSelected(next);
   };
 
-  const handleSelectAll = () => {
-    if (selected.size === paginated.length) {
-      setSelected(new Set());
-    } else {
-      setSelected(new Set(paginated.map((i) => i.industry)));
-    }
-  };
-
-  // Merge
-  const openMergeDialog = () => {
-    if (selected.size < 2) {
-      toast.error("Select at least 2 industries to merge");
-      return;
-    }
-    // Default merge target to the one with most companies
-    const sorted = [...selected].sort((a, b) => {
-      const aRow = industries.find((i) => i.industry === a);
-      const bRow = industries.find((i) => i.industry === b);
-      return (bRow?.companyCount || 0) - (aRow?.companyCount || 0);
-    });
-    setMergeTarget(sorted[0]);
-    setMergeDialogOpen(true);
-  };
-
-  const executeMerge = async () => {
-    if (!mergeTarget.trim()) {
-      toast.error("Enter a target industry name");
-      return;
-    }
+  const executeMergeProtocol = async () => {
+    if (!mergeTarget.trim()) return toast.error("Merge Fault: Target identifier required");
     setIsMerging(true);
     try {
       const sources = [...selected].filter((s) => s !== mergeTarget.trim());
@@ -196,29 +158,19 @@ export function IndustriesManager() {
           .eq("industry", source);
         if (error) throw error;
       }
-      toast.success(`Merged ${sources.length} industries into "${mergeTarget.trim()}"`);
+      toast.success(`Protocol Committed: ${sources.length} sectors normalized into "${mergeTarget}"`);
       setMergeDialogOpen(false);
       setSelected(new Set());
-      loadIndustries();
-    } catch (error: any) {
-      toast.error("Merge failed: " + error.message);
+      loadRegistryTelemetry();
+    } catch (err: any) {
+      toast.error("Handshake Failed: " + err.message);
     } finally {
       setIsMerging(false);
     }
   };
 
-  // Rename
-  const openRenameDialog = (industry: string) => {
-    setRenameFrom(industry);
-    setRenameTo(industry);
-    setRenameDialogOpen(true);
-  };
-
-  const executeRename = async () => {
-    if (!renameTo.trim() || renameTo.trim() === renameFrom) {
-      toast.error("Enter a different name");
-      return;
-    }
+  const executeRenameProtocol = async () => {
+    if (!renameTo.trim() || renameTo.trim() === renameFrom) return toast.error("Logic Fault: Invalid identifier");
     setIsRenaming(true);
     try {
       const { error } = await supabase
@@ -226,267 +178,363 @@ export function IndustriesManager() {
         .update({ industry: renameTo.trim() })
         .eq("industry", renameFrom);
       if (error) throw error;
-      toast.success(`Renamed "${renameFrom}" → "${renameTo.trim()}"`);
+      toast.success(`Node Recalibrated: "${renameFrom}" → "${renameTo}"`);
       setRenameDialogOpen(false);
-      loadIndustries();
-    } catch (error: any) {
-      toast.error("Rename failed: " + error.message);
+      loadRegistryTelemetry();
+    } catch (err: any) {
+      toast.error("Rename failed: " + err.message);
     } finally {
       setIsRenaming(false);
     }
   };
 
   return (
-    <div className="space-y-6">
-      {/* KPI Cards */}
-      <div className="grid grid-cols-3 gap-3">
-        <Card className="p-3">
-          <div className="flex items-center gap-2 text-muted-foreground mb-1">
-            <Factory className="w-4 h-4" />
-            <span className="text-xs font-medium">Industries</span>
-          </div>
-          <p className="text-xl font-bold">{totalIndustries}</p>
-        </Card>
-        <Card className="p-3">
-          <div className="flex items-center gap-2 text-muted-foreground mb-1">
-            <AlertCircle className="w-4 h-4" />
-            <span className="text-xs font-medium">Unassigned</span>
-          </div>
-          <p className="text-xl font-bold">{noIndustryCount}</p>
-        </Card>
-        <Card className="p-3">
-          <div className="flex items-center gap-2 text-muted-foreground mb-1">
-            <TrendingUp className="w-4 h-4" />
-            <span className="text-xs font-medium">Top</span>
-          </div>
-          <p className="text-xl font-bold truncate" title={topIndustry}>{topIndustry}</p>
-        </Card>
+    <div className="space-y-10 animate-in fade-in duration-1000">
+      {/* Executive Telemetry HUD */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {[
+          {
+            label: "Market Sectors",
+            val: totalIndustries,
+            icon: Factory,
+            color: "text-blue-500",
+            bg: "bg-blue-500/10",
+          },
+          {
+            label: "Unassigned Nodes",
+            val: noIndustryCount,
+            icon: AlertCircle,
+            color: "text-amber-500",
+            bg: "bg-amber-500/10",
+          },
+          {
+            label: "Dominant Sector",
+            val: topIndustry,
+            icon: TrendingUp,
+            color: "text-emerald-500",
+            bg: "bg-emerald-500/10",
+          },
+        ].map((kpi, i) => (
+          <Card
+            key={i}
+            className="rounded-[32px] border-2 border-border/40 bg-card/30 backdrop-blur-sm overflow-hidden group hover:border-primary/20 transition-all duration-500 shadow-sm"
+          >
+            <CardContent className="p-6 flex items-center gap-6">
+              <div
+                className={cn(
+                  "h-14 w-14 rounded-2xl flex items-center justify-center border-2 transition-transform duration-500 group-hover:rotate-6 shadow-inner",
+                  kpi.bg,
+                  "border-white/5",
+                )}
+              >
+                <kpi.icon className={cn("h-7 w-7", kpi.color)} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 mb-1">
+                  {kpi.label}
+                </p>
+                <p className="text-2xl font-black tracking-tighter italic leading-none truncate">{kpi.val}</p>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Factory className="w-5 h-5" />
-                Industries
+      <Card className="rounded-[40px] border-2 border-border/40 shadow-2xl overflow-hidden bg-card/30 backdrop-blur-xl">
+        <div className="h-1.5 w-full bg-gradient-to-r from-primary via-blue-600 to-primary" />
+        <CardHeader className="p-8 border-b border-border/10 bg-muted/10">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="space-y-1">
+              <CardTitle className="text-3xl font-black uppercase tracking-tighter italic flex items-center gap-3">
+                <Database className="h-8 w-8 text-primary" /> Sector Registry
               </CardTitle>
-              <CardDescription>
-                {totalIndustries} unique industries across {totalIndustries + noIndustryCount > 0 ? "all" : "0"} companies
-              </CardDescription>
+              <p className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.3em] italic">
+                De-duplication & Sector Normalization Active
+              </p>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={loadIndustries} disabled={isLoading}>
-                <RefreshCw className={`w-4 h-4 sm:mr-2 ${isLoading ? "animate-spin" : ""}`} />
-                <span className="hidden sm:inline">Refresh</span>
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={loadRegistryTelemetry}
+                className="rounded-xl h-11 px-5 border-2 font-black uppercase text-[10px] tracking-widest gap-2"
+              >
+                <RefreshCw className={cn("w-4 h-4 text-primary", isLoading && "animate-spin")} /> Re-Sync
               </Button>
               {selected.size >= 2 && (
-                <Button onClick={openMergeDialog} variant="default">
-                  <Merge className="w-4 h-4 mr-2" />
-                  Merge ({selected.size})
+                <Button
+                  onClick={() => {
+                    const sorted = [...selected].sort(
+                      (a, b) =>
+                        (industries.find((i) => i.industry === b)?.companyCount || 0) -
+                        (industries.find((i) => i.industry === a)?.companyCount || 0),
+                    );
+                    setMergeTarget(sorted[0]);
+                    setMergeDialogOpen(true);
+                  }}
+                  className="rounded-xl h-11 px-6 font-black uppercase text-[10px] tracking-widest shadow-xl shadow-primary/20 bg-primary animate-in zoom-in-95"
+                >
+                  <Merge className="w-4 h-4 mr-2" /> Normalize ({selected.size})
                 </Button>
               )}
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="mb-4">
-            <div className="relative max-w-sm">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+
+        <CardContent className="p-8">
+          <div className="mb-8 flex flex-col md:flex-row gap-4 bg-muted/20 p-4 rounded-[28px] border-2 border-border/40 backdrop-blur-md">
+            <div className="relative flex-1 group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
               <Input
-                placeholder="Search industries..."
+                placeholder="Query market sectors..."
                 value={searchQuery}
-                onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
-                className="pl-9"
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setPage(1);
+                }}
+                className="pl-12 h-14 bg-card/50 border-2 border-border/10 rounded-2xl font-bold tracking-tight text-base"
               />
             </div>
           </div>
 
           {isLoading ? (
-            <DashboardTableSkeleton rows={8} columns={5} />
+            <DashboardTableSkeleton rows={10} columns={5} />
           ) : loadError ? (
-            <DashboardErrorState title="Failed to load industries" message={loadError} onRetry={loadIndustries} />
-          ) : filtered.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <Factory className="w-12 h-12 mx-auto mb-4 opacity-20" />
-              <p>No industries found.</p>
-            </div>
+            <DashboardErrorState title="Registry Fault" message={loadError} onRetry={loadRegistryTelemetry} />
           ) : (
-            <>
-              {/* Desktop Table */}
-              <div className="rounded-md border hidden md:block">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-12">
-                        <Checkbox
-                          checked={selected.size === paginated.length && paginated.length > 0}
-                          onCheckedChange={handleSelectAll}
-                        />
-                      </TableHead>
-                      <TableHead>Industry</TableHead>
-                      <TableHead className="text-center">Companies</TableHead>
-                      <TableHead className="text-center">Jobs</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {paginated.map((row) => (
-                      <TableRow key={row.industry}>
-                        <TableCell>
-                          <Checkbox
-                            checked={selected.has(row.industry)}
-                            onCheckedChange={() => toggleSelect(row.industry)}
-                          />
-                        </TableCell>
-                        <TableCell className="font-medium">{row.industry}</TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant="outline" className="gap-1">
-                            <Building2 className="w-3 h-3" />
-                            {row.companyCount}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant="outline" className="gap-1">
-                            <Briefcase className="w-3 h-3" />
-                            {row.jobCount}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openRenameDialog(row.industry)}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-
-              {/* Mobile Cards */}
-              <div className="md:hidden space-y-3">
-                {paginated.map((row) => (
-                  <Card key={row.industry} className="p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-3">
+            <div className="rounded-[24px] border-2 border-border/20 overflow-hidden bg-background/50">
+              <Table>
+                <TableHeader className="bg-muted/30">
+                  <TableRow className="hover:bg-transparent border-b-2">
+                    <TableHead className="w-12 px-6">
+                      <Checkbox
+                        checked={selected.size === paginated.length && paginated.length > 0}
+                        onCheckedChange={() =>
+                          setSelected(
+                            selected.size === paginated.length ? new Set() : new Set(paginated.map((i) => i.industry)),
+                          )
+                        }
+                      />
+                    </TableHead>
+                    <TableHead className="text-[10px] font-black uppercase tracking-widest py-8">
+                      Market Sector
+                    </TableHead>
+                    <TableHead className="text-center text-[10px] font-black uppercase tracking-widest">
+                      Entity Count
+                    </TableHead>
+                    <TableHead className="text-center text-[10px] font-black uppercase tracking-widest">
+                      Logic Nodes (Jobs)
+                    </TableHead>
+                    <TableHead className="text-right text-[10px] font-black uppercase tracking-widest pr-8">
+                      Interrogate
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginated.map((row) => (
+                    <TableRow
+                      key={row.industry}
+                      className="group transition-all hover:bg-primary/[0.02] border-b-2 border-border/5 last:border-0"
+                    >
+                      <TableCell className="px-6">
                         <Checkbox
                           checked={selected.has(row.industry)}
                           onCheckedChange={() => toggleSelect(row.industry)}
                         />
-                        <div>
-                          <p className="font-medium">{row.industry}</p>
-                          <div className="flex gap-2 mt-1">
-                            <Badge variant="outline" className="text-xs gap-1">
-                              <Building2 className="w-3 h-3" /> {row.companyCount}
-                            </Badge>
-                            <Badge variant="outline" className="text-xs gap-1">
-                              <Briefcase className="w-3 h-3" /> {row.jobCount}
-                            </Badge>
-                          </div>
-                        </div>
-                      </div>
-                      <Button variant="ghost" size="sm" onClick={() => openRenameDialog(row.industry)}>
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </Card>
-                ))}
-              </div>
+                      </TableCell>
+                      <TableCell className="py-6 font-black text-sm uppercase tracking-tight italic group-hover:text-primary transition-colors">
+                        {row.industry}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge
+                          variant="outline"
+                          className="rounded-lg border-2 font-black text-[9px] gap-2 bg-background"
+                        >
+                          <Building2 className="h-3 w-3 opacity-40" /> {row.companyCount}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge
+                          variant="outline"
+                          className="rounded-lg border-2 font-black text-[9px] gap-2 bg-background"
+                        >
+                          <Briefcase className="h-3 w-3 opacity-40" /> {row.jobCount}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right pr-8">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-10 w-10 rounded-xl hover:bg-primary/10 transition-all"
+                          onClick={() => {
+                            setRenameFrom(row.industry);
+                            setRenameTo(row.industry);
+                            setRenameDialogOpen(true);
+                          }}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
 
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-end space-x-2 py-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    disabled={page === 1}
-                  >
-                    <ChevronLeft className="h-4 w-4 sm:mr-1" />
-                    <span className="hidden sm:inline">Previous</span>
-                  </Button>
-                  <span className="text-sm text-muted-foreground">
-                    {page}/{totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={page === totalPages}
-                  >
-                    <span className="hidden sm:inline">Next</span>
-                    <ChevronRight className="h-4 w-4 sm:ml-1" />
-                  </Button>
-                </div>
-              )}
-            </>
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-10 p-8 bg-muted/20 rounded-[32px] border-2 border-border/40 backdrop-blur-md">
+              <div className="space-y-1 text-left">
+                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground/40 italic leading-none">
+                  Registry Frame
+                </p>
+                <p className="text-xl font-black italic tracking-tighter leading-none">
+                  {page} <span className="text-xs opacity-20">of</span> {totalPages}
+                </p>
+              </div>
+              <div className="flex gap-4">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-14 w-14 rounded-2xl border-2 hover:bg-primary hover:text-white transition-all shadow-sm"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                >
+                  <ChevronLeft className="h-6 w-6" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-14 w-14 rounded-2xl border-2 hover:bg-primary hover:text-white transition-all shadow-sm"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                >
+                  <ChevronRight className="h-6 w-6" />
+                </Button>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>
 
       {/* Merge Dialog */}
       <Dialog open={mergeDialogOpen} onOpenChange={setMergeDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Merge Industries</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <p className="text-sm text-muted-foreground">
-              Merging {selected.size} industries into one. All companies with these industries will be updated.
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {[...selected].map((s) => (
-                <Badge key={s} variant="secondary">{s}</Badge>
-              ))}
+        <DialogContent className="max-w-xl rounded-[40px] border-4 border-border/40 bg-background/95 backdrop-blur-2xl p-0 overflow-hidden shadow-2xl">
+          <div className="h-2 w-full bg-gradient-to-r from-primary via-blue-600 to-primary" />
+          <div className="p-10">
+            <DialogHeader className="mb-8 text-left">
+              <div className="flex items-center gap-4">
+                <Activity className="h-8 w-8 text-primary" />
+                <div className="text-left">
+                  <DialogTitle className="text-3xl font-black uppercase tracking-tighter italic">
+                    Normalization Protocol
+                  </DialogTitle>
+                  <DialogDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 italic">
+                    Merging logic nodes into primary market sector
+                  </DialogDescription>
+                </div>
+              </div>
+            </DialogHeader>
+
+            <div className="space-y-8 py-4">
+              <div className="p-6 rounded-[28px] border-2 bg-muted/20 border-border/10">
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 mb-4 italic">
+                  Source Nodes for Fusion:
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {[...selected].map((s) => (
+                    <Badge key={s} className="bg-primary/10 text-primary border-none font-bold text-[9px] uppercase">
+                      {s}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                  Target Sector Identifier
+                </Label>
+                <Input
+                  value={mergeTarget}
+                  onChange={(e) => setMergeTarget(e.target.value)}
+                  className="h-14 rounded-2xl border-2 font-black italic text-lg uppercase"
+                  placeholder="Enter final sector designation..."
+                />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Target Industry Name</Label>
-              <Input
-                value={mergeTarget}
-                onChange={(e) => setMergeTarget(e.target.value)}
-                placeholder="Final industry name..."
-              />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setMergeDialogOpen(false)}>Cancel</Button>
-              <Button onClick={executeMerge} disabled={isMerging}>
-                {isMerging && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                Merge
+
+            <DialogFooter className="mt-10 pt-8 border-t border-border/10">
+              <Button
+                variant="ghost"
+                onClick={() => setMergeDialogOpen(false)}
+                className="h-14 px-8 font-black uppercase text-[10px] tracking-widest"
+              >
+                Abort
               </Button>
-            </div>
+              <Button
+                onClick={executeMergeProtocol}
+                disabled={isMerging || !mergeTarget.trim()}
+                className="h-14 px-12 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-primary/30 flex items-center gap-3"
+              >
+                {isMerging ? <Loader2 className="animate-spin h-4 w-4" /> : <ShieldCheck className="h-4 w-4" />}
+                Execute Fusion
+              </Button>
+            </DialogFooter>
           </div>
         </DialogContent>
       </Dialog>
 
       {/* Rename Dialog */}
       <Dialog open={renameDialogOpen} onOpenChange={setRenameDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Rename Industry</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <p className="text-sm text-muted-foreground">
-              Renaming "<strong>{renameFrom}</strong>" will update all companies with this industry.
-            </p>
-            <div className="space-y-2">
-              <Label>New Name</Label>
-              <Input
-                value={renameTo}
-                onChange={(e) => setRenameTo(e.target.value)}
-                placeholder="New industry name..."
-              />
+        <DialogContent className="max-w-xl rounded-[40px] border-4 border-border/40 bg-background/95 backdrop-blur-2xl p-0 overflow-hidden shadow-2xl">
+          <div className="h-2 w-full bg-primary" />
+          <div className="p-10">
+            <DialogHeader className="mb-8 text-left">
+              <div className="flex items-center gap-4">
+                <Zap className="h-8 w-8 text-primary" />
+                <div className="text-left">
+                  <DialogTitle className="text-3xl font-black uppercase tracking-tighter italic">
+                    Node Recalibration
+                  </DialogTitle>
+                  <DialogDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
+                    Updating sector identifier across global registry
+                  </DialogDescription>
+                </div>
+              </div>
+            </DialogHeader>
+            <div className="space-y-6 py-4">
+              <p className="text-sm font-medium italic text-muted-foreground leading-relaxed">
+                Renaming node "<strong>{renameFrom}</strong>" will trigger a recursive update for all linked company
+                artifacts.
+              </p>
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                  New Descriptor
+                </Label>
+                <Input
+                  value={renameTo}
+                  onChange={(e) => setRenameTo(e.target.value)}
+                  className="h-14 rounded-2xl border-2 font-black italic text-lg uppercase"
+                />
+              </div>
             </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setRenameDialogOpen(false)}>Cancel</Button>
-              <Button onClick={executeRename} disabled={isRenaming}>
-                {isRenaming && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                Rename
+            <DialogFooter className="mt-10 pt-8 border-t border-border/10">
+              <Button
+                variant="ghost"
+                onClick={() => setRenameDialogOpen(false)}
+                className="h-14 px-8 font-black uppercase text-[10px] tracking-widest"
+              >
+                Abort
               </Button>
-            </div>
+              <Button
+                onClick={executeRenameProtocol}
+                disabled={isRenaming}
+                className="h-14 px-12 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-primary/30 flex items-center gap-3"
+              >
+                {isRenaming ? <Loader2 className="animate-spin h-4 w-4" /> : <ShieldCheck className="h-4 w-4" />}
+                Update Node
+              </Button>
+            </DialogFooter>
           </div>
         </DialogContent>
       </Dialog>
