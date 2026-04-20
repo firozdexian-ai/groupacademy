@@ -8,29 +8,27 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
-import { Calendar as CalendarIcon, ArrowLeft, Trash2 } from "lucide-react";
+import { format, parseISO } from "date-fns";
+import {
+  Calendar as CalendarIcon,
+  ArrowLeft,
+  Trash2,
+  Link2,
+  Video,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  Save,
+} from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -47,11 +45,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 const formSchema = z.object({
   content_id: z.string().min(1, "Please select a course"),
-  instructor_id: z.string().optional(),
+  instructor_id: z.string().optional().nullable(),
   title: z.string().min(1, "Session title is required"),
   description: z.string().optional(),
   scheduled_date: z.date({
-    required_error: "Please select a date and time",
+    required_error: "Please select a date",
   }),
   scheduled_time: z.string().min(1, "Please select a time"),
   duration_minutes: z.coerce.number().min(1, "Duration must be at least 1 minute"),
@@ -67,14 +65,15 @@ export default function SessionEdit() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { data: session, isLoading, error: sessionError, refetch } = useQueryWithTimeout({
+  const {
+    data: session,
+    isLoading,
+    error: sessionError,
+    refetch,
+  } = useQueryWithTimeout({
     queryKey: ["session", id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("course_sessions")
-        .select("*")
-        .eq("id", id!)
-        .single();
+      const { data, error } = await supabase.from("course_sessions").select("*").eq("id", id!).single();
       if (error) throw error;
       return data;
     },
@@ -82,11 +81,12 @@ export default function SessionEdit() {
   });
 
   const { data: courses } = useQueryWithTimeout({
-    queryKey: ["courses"],
+    queryKey: ["courses-list"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("content")
-        .select("id, title, slug")
+        .select("id, title")
+        .eq("is_published", true)
         .order("title");
       if (error) throw error;
       return data;
@@ -95,7 +95,7 @@ export default function SessionEdit() {
   });
 
   const { data: instructors } = useQueryWithTimeout({
-    queryKey: ["instructors"],
+    queryKey: ["instructors-list"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("instructors")
@@ -123,18 +123,18 @@ export default function SessionEdit() {
 
   useEffect(() => {
     if (session) {
-      const sessionDate = new Date(session.scheduled_date);
+      const dateObj = parseISO(session.scheduled_date);
       form.reset({
         content_id: session.content_id,
-        instructor_id: session.instructor_id || undefined,
+        instructor_id: session.instructor_id,
         title: session.title,
         description: session.description || "",
-        scheduled_date: sessionDate,
-        scheduled_time: format(sessionDate, "HH:mm"),
+        scheduled_date: dateObj,
+        scheduled_time: format(dateObj, "HH:mm"),
         duration_minutes: session.duration_minutes,
         meeting_link: session.meeting_link || "",
         recording_link: session.recording_link || "",
-        status: session.status,
+        status: session.status as any,
       });
     }
   }, [session, form]);
@@ -149,9 +149,9 @@ export default function SessionEdit() {
         .from("course_sessions")
         .update({
           content_id: values.content_id,
-          instructor_id: values.instructor_id || null,
+          instructor_id: values.instructor_id,
           title: values.title,
-          description: values.description || null,
+          description: values.description,
           scheduled_date: scheduledDateTime.toISOString(),
           duration_minutes: values.duration_minutes,
           meeting_link: values.meeting_link || null,
@@ -164,349 +164,381 @@ export default function SessionEdit() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sessions"] });
-      queryClient.invalidateQueries({ queryKey: ["session", id] });
-      toast.success("Session updated successfully");
+      toast.success("Session logic synchronized.");
       navigate("/sessions");
     },
-    onError: (error) => {
-      console.error("Error updating session:", error);
-      toast.error("Failed to update session");
+    onError: (err: any) => {
+      toast.error(`Update failed: ${err.message}`);
     },
   });
 
   const deleteSession = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase
-        .from("course_sessions")
-        .delete()
-        .eq("id", id!);
+      const { error } = await supabase.from("course_sessions").delete().eq("id", id!);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sessions"] });
-      toast.success("Session deleted successfully");
+      toast.success("Session node purged.");
       navigate("/sessions");
-    },
-    onError: (error) => {
-      console.error("Error deleting session:", error);
-      toast.error("Failed to delete session");
     },
   });
 
-  const onSubmit = (values: FormValues) => {
-    updateSession.mutate(values);
-  };
-
-  if (isLoading) {
+  if (isLoading)
     return (
-      <div className="container mx-auto py-8 max-w-3xl">
-        <Skeleton className="h-9 w-36 mb-6" />
-        <div className="space-y-4">
-          <Skeleton className="h-10 w-64" />
-          <Skeleton className="h-4 w-48" />
-          <Skeleton className="h-32 w-full" />
-          <Skeleton className="h-32 w-full" />
-        </div>
+      <div className="container max-w-3xl mx-auto py-12 px-6 space-y-8 animate-pulse">
+        <Skeleton className="h-10 w-48 rounded-xl" />
+        <Card className="rounded-[32px] border-border/40 p-8 space-y-6">
+          <Skeleton className="h-12 w-full rounded-xl" />
+          <Skeleton className="h-32 w-full rounded-xl" />
+          <div className="grid grid-cols-2 gap-4">
+            <Skeleton className="h-12 w-full rounded-xl" />
+            <Skeleton className="h-12 w-full rounded-xl" />
+          </div>
+        </Card>
       </div>
     );
-  }
-
-  if (sessionError) {
-    const isTimeout = (sessionError as any)?.message?.includes("timed out");
-    return (
-      <div className="container mx-auto py-8 max-w-3xl text-center">
-        <p className="text-destructive mb-4">
-          {isTimeout ? "Loading took too long. Please try again." : "Failed to load session."}
-        </p>
-        <div className="flex gap-2 justify-center">
-          <Button onClick={() => refetch()}>Try Again</Button>
-          <Button variant="outline" onClick={() => navigate("/sessions")}>Back to Sessions</Button>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div className="container mx-auto py-8 max-w-3xl">
-      <Button
-        variant="ghost"
-        className="mb-6"
-        onClick={() => navigate("/sessions")}
-      >
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Back to Sessions
-      </Button>
-
-      <div className="flex justify-between items-start mb-8">
-        <div>
-          <h1 className="text-4xl font-bold mb-2">Edit Session</h1>
-          <p className="text-muted-foreground">
-            Update session details and meeting information
-          </p>
-        </div>
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="destructive" size="sm">
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete Session</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to delete this session? This action cannot be
-                undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => deleteSession.mutate()}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                Delete
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </div>
-
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <FormField
-            control={form.control}
-            name="content_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Course *</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a course" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {courses?.map((course) => (
-                      <SelectItem key={course.id} value={course.id}>
-                        {course.title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="title"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Session Title *</FormLabel>
-                <FormControl>
-                  <Input placeholder="e.g., Week 1: Introduction to AI" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="description"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Description</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="What will be covered in this session?"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <div className="grid grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="scheduled_date"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Date *</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value ? (
-                            format(field.value, "PPP")
-                          ) : (
-                            <span>Pick a date</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        initialFocus
-                        className="pointer-events-auto"
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="scheduled_time"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Time *</FormLabel>
-                  <FormControl>
-                    <Input type="time" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="duration_minutes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Duration (minutes) *</FormLabel>
-                  <FormControl>
-                    <Input type="number" min="1" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="instructor_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Instructor</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select instructor" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {instructors?.map((instructor) => (
-                        <SelectItem key={instructor.id} value={instructor.id}>
-                          {instructor.full_name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-
-          <FormField
-            control={form.control}
-            name="meeting_link"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Meeting Link</FormLabel>
-                <FormControl>
-                  <Input
-                    type="url"
-                    placeholder="https://zoom.us/j/..."
-                    {...field}
-                  />
-                </FormControl>
-                <FormDescription>
-                  Zoom, Google Meet, or any other meeting platform link
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="recording_link"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Recording Link</FormLabel>
-                <FormControl>
-                  <Input
-                    type="url"
-                    placeholder="https://youtube.com/..."
-                    {...field}
-                  />
-                </FormControl>
-                <FormDescription>
-                  Add after the session is completed
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="status"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Status *</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="scheduled">Scheduled</SelectItem>
-                    <SelectItem value="ongoing">Ongoing</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <div className="flex gap-4">
+    <div className="min-h-screen bg-muted/20 pb-20 selection:bg-primary/10">
+      <main className="container max-w-3xl mx-auto py-12 px-6 space-y-8 animate-in fade-in duration-700">
+        {/* Navigation HUD */}
+        <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+          <div className="space-y-1">
             <Button
-              type="button"
-              variant="outline"
+              variant="ghost"
               onClick={() => navigate("/sessions")}
+              className="rounded-xl font-bold uppercase text-[10px] tracking-widest pl-0 hover:bg-transparent"
             >
-              Cancel
+              <ArrowLeft className="mr-2 h-4 w-4" /> Global Registry
             </Button>
-            <Button type="submit" disabled={updateSession.isPending}>
-              {updateSession.isPending ? "Saving..." : "Save Changes"}
-            </Button>
+            <h1 className="text-4xl font-black tracking-tighter uppercase">Edit Session</h1>
           </div>
-        </form>
-      </Form>
+
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-10 rounded-xl font-black uppercase text-[10px] tracking-widest text-rose-500 hover:text-rose-600 hover:bg-rose-500/5"
+              >
+                <Trash2 className="h-4 w-4 mr-2" /> Purge Node
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent className="rounded-[32px] border-border/40 shadow-2xl">
+              <AlertDialogHeader>
+                <AlertDialogTitle className="text-2xl font-black tracking-tighter uppercase">
+                  Confirm Purge
+                </AlertDialogTitle>
+                <AlertDialogDescription className="font-medium">
+                  This action will permanently delete this session from the curriculum ledger. Enrollment history for
+                  this specific node will be lost.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel className="rounded-xl font-black uppercase text-[10px]">Abort</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => deleteSession.mutate()}
+                  className="bg-rose-500 hover:bg-rose-600 rounded-xl font-black uppercase text-[10px]"
+                >
+                  Execute Purge
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </header>
+
+        <Card className="rounded-[40px] border-border/40 shadow-2xl overflow-hidden bg-card/50 backdrop-blur-xl">
+          <CardContent className="p-8 md:p-12">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit((v) => updateSession.mutate(v))} className="space-y-8">
+                {/* Curriculum Assignment */}
+                <FormField
+                  control={form.control}
+                  name="content_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-[10px] font-black uppercase tracking-widest ml-1">
+                        Target Curriculum
+                      </FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="h-12 rounded-xl bg-background/50 font-bold border-border/40">
+                            <SelectValue placeholder="Assign course node" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent className="rounded-xl">
+                          {courses?.map((c) => (
+                            <SelectItem key={c.id} value={c.id} className="text-xs font-bold">
+                              {c.title}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage className="text-[10px] font-bold uppercase" />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="space-y-6">
+                  <FormField
+                    control={form.control}
+                    name="title"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-[10px] font-black uppercase tracking-widest ml-1">
+                          Session Identity
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="e.g. Masterclass: Advanced Neural Logic"
+                            {...field}
+                            className="h-12 rounded-xl bg-background/50 border-border/40 font-bold"
+                          />
+                        </FormControl>
+                        <FormMessage className="text-[10px] font-bold uppercase" />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-[10px] font-black uppercase tracking-widest ml-1">
+                          Operational Brief
+                        </FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Define logic covered in this node..."
+                            {...field}
+                            className="min-h-[120px] rounded-2xl bg-background/50 border-border/40 resize-none font-medium text-sm"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Scheduling HUD */}
+                <div className="grid md:grid-cols-2 gap-6 p-6 rounded-[32px] bg-muted/30 border border-border/10">
+                  <FormField
+                    control={form.control}
+                    name="scheduled_date"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel className="text-[10px] font-black uppercase tracking-widest ml-1">
+                          Target Date
+                        </FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                className={cn(
+                                  "h-12 rounded-xl bg-background/50 border-border/40 font-bold pl-4",
+                                  !field.value && "text-muted-foreground",
+                                )}
+                              >
+                                <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
+                                {field.value ? format(field.value, "PPP") : <span>Pick Date</span>}
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0 rounded-2xl" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={field.value}
+                              onSelect={field.onChange}
+                              initialFocus
+                              className="pointer-events-auto"
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="scheduled_time"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-[10px] font-black uppercase tracking-widest ml-1">
+                          Identity Time (24h)
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type="time"
+                            {...field}
+                            className="h-12 rounded-xl bg-background/50 border-border/40 font-bold"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Logistics */}
+                <div className="grid md:grid-cols-2 gap-6">
+                  <FormField
+                    control={form.control}
+                    name="duration_minutes"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-[10px] font-black uppercase tracking-widest ml-1">
+                          Duration (Min)
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            {...field}
+                            className="h-12 rounded-xl bg-background/50 border-border/40 font-bold"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="instructor_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-[10px] font-black uppercase tracking-widest ml-1">
+                          Lead Instructor
+                        </FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value || ""}>
+                          <FormControl>
+                            <SelectTrigger className="h-12 rounded-xl bg-background/50 border-border/40 font-bold">
+                              <SelectValue placeholder="Assign Identity" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent className="rounded-xl">
+                            {instructors?.map((i) => (
+                              <SelectItem key={i.id} value={i.id} className="text-xs font-bold">
+                                {i.full_name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Communication Nodes */}
+                <div className="space-y-4 pt-4 border-t border-border/10">
+                  <FormField
+                    control={form.control}
+                    name="meeting_link"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-[10px] font-black uppercase tracking-widest ml-1 flex items-center gap-2">
+                          <Video className="h-3 w-3 text-primary" /> Live Handshake Link
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="https://zoom.us/..."
+                            {...field}
+                            className="h-12 rounded-xl bg-background/50 border-border/40 font-mono text-xs"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="recording_link"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-[10px] font-black uppercase tracking-widest ml-1 flex items-center gap-2">
+                          <Link2 className="h-3 w-3 text-primary" /> Archive Artifact Link
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="https://youtube.com/..."
+                            {...field}
+                            className="h-12 rounded-xl bg-background/50 border-border/40 font-mono text-xs"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Protocol Status */}
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-[10px] font-black uppercase tracking-widest ml-1">
+                        Lifecycle Status
+                      </FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="h-12 rounded-xl bg-primary/5 border-primary/20 font-black uppercase text-[10px] tracking-widest">
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent className="rounded-xl">
+                          <SelectItem value="scheduled" className="text-[10px] font-black uppercase">
+                            Scheduled
+                          </SelectItem>
+                          <SelectItem value="ongoing" className="text-[10px] font-black uppercase text-blue-500">
+                            Live / Ongoing
+                          </SelectItem>
+                          <SelectItem value="completed" className="text-[10px] font-black uppercase text-emerald-500">
+                            Completed
+                          </SelectItem>
+                          <SelectItem value="cancelled" className="text-[10px] font-black uppercase text-rose-500">
+                            Terminated
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="flex gap-4 pt-6">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => navigate("/sessions")}
+                    className="flex-1 h-14 rounded-2xl font-black uppercase text-[10px] tracking-widest border-border/40"
+                  >
+                    Abort Changes
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={updateSession.isPending}
+                    className="flex-[2] h-14 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-primary/20"
+                  >
+                    {updateSession.isPending ? (
+                      <Loader2 className="animate-spin" />
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4 mr-2" /> Synchronize Session
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+      </main>
     </div>
   );
 }
