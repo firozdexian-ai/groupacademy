@@ -15,7 +15,14 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { KeyRound, Copy, Check } from "lucide-react";
+import { KeyRound, Copy, Check, Loader2, ShieldCheck, Zap } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+/**
+ * Platform Logic: Cryptographic Handshake Node
+ * High-fidelity orchestrator for generating single-use assessment access artifacts.
+ * 2026 Standard: Executive Logic geometry with reinforced auth telemetry.
+ */
 
 interface AssessmentCodeGeneratorProps {
   leadEmail: string;
@@ -37,16 +44,17 @@ export function AssessmentCodeGenerator({ leadEmail, leadName }: AssessmentCodeG
     return code;
   };
 
-  const handleGenerate = async () => {
+  const handleGenerateHandshake = async () => {
     setGenerating(true);
     try {
       const { data: { user } } = await withTimeout(
         supabase.auth.getUser(),
         TIMEOUTS.AUTH,
-        "Authentication check timed out"
+        "Auth Registry Link Timeout"
       );
+      
       if (!user) {
-        toast.error("You must be logged in to generate codes");
+        toast.error("Handshake Refused: Administrative privileges required.");
         return;
       }
 
@@ -62,28 +70,27 @@ export function AssessmentCodeGenerator({ leadEmail, leadName }: AssessmentCodeG
             expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
           })),
         TIMEOUTS.DEFAULT,
-        "Code generation timed out"
+        "Protocol Registry Sync Timeout"
       );
 
       if (error) throw error;
 
       setGeneratedCode(code);
-      toast.success("Access code generated successfully!");
+      toast.success("Logic Synchronized: Access code generated.");
     } catch (error: any) {
-      console.error("Error generating code:", error);
-      const isTimeout = error.message?.includes("timed out");
-      toast.error(isTimeout ? "Operation timed out. Please try again." : "Failed to generate access code");
+      console.error("Code Generation Fault:", error);
+      toast.error("Transmission Error: Failed to synchronize access node.");
     } finally {
       setGenerating(false);
     }
   };
 
-  const handleCopy = () => {
+  const handleArtifactExport = () => {
     if (generatedCode) {
-      const message = `Hi ${leadName},\n\nYour Career Readiness Assessment retake access code is: ${generatedCode}\n\nThis code is valid for 30 days.\n\nVisit: ${window.location.origin}/career-assessment\n\nThank you,\nGroUp Academy`;
+      const message = `Hi ${leadName},\n\nYour Career Readiness Assessment retake access code is: ${generatedCode}\n\nThis code is valid for 30 days.\n\nVisit: ${window.location.origin}/career-assessment\n\nProtocol Secure,\nAcademy Administration`;
       navigator.clipboard.writeText(message);
       setCopied(true);
-      toast.success("Code and message copied to clipboard!");
+      toast.success("Payload exported to clipboard.");
       setTimeout(() => setCopied(false), 2000);
     }
   };
@@ -91,60 +98,101 @@ export function AssessmentCodeGenerator({ leadEmail, leadName }: AssessmentCodeG
   return (
     <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setGeneratedCode(null); setCopied(false); } }}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <KeyRound className="h-4 w-4 mr-1" />
-          Generate Code
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="rounded-xl font-black uppercase text-[10px] tracking-widest border-2 hover:bg-primary/5 gap-2 transition-all active:scale-95"
+        >
+          <KeyRound className="h-3.5 w-3.5 text-primary" />
+          Authorize Retake
         </Button>
       </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Generate Retake Access Code</DialogTitle>
-          <DialogDescription>
-            Generate a paid access code for {leadName} ({leadEmail}) to retake the assessment.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="rounded-[32px] border-2 border-border/40 bg-card/30 backdrop-blur-xl shadow-2xl p-0 overflow-hidden max-w-md">
+        <div className="h-1.5 w-full bg-gradient-to-r from-primary via-blue-600 to-primary opacity-50" />
         
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label>Email</Label>
-            <Input value={leadEmail} disabled />
-          </div>
+        <div className="p-8">
+          <DialogHeader className="mb-6">
+            <div className="flex items-center gap-4 mb-2">
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
+                <ShieldCheck className="h-5 w-5 text-primary" />
+              </div>
+              <div className="space-y-0.5">
+                <DialogTitle className="text-xl font-black uppercase tracking-tighter italic">Generate Access node</DialogTitle>
+                <DialogDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
+                  Target: {leadName}
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
           
-          {generatedCode ? (
-            <div className="space-y-2">
-              <Label>Generated Code</Label>
-              <div className="flex items-center gap-2">
-                <Input 
-                  value={generatedCode} 
-                  readOnly 
-                  className="font-mono text-lg tracking-widest text-center"
-                />
-                <Button variant="outline" size="icon" onClick={handleCopy}>
-                  {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+          <div className="space-y-6">
+            <div className="space-y-2 px-1">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">Entity Telemetry (Email)</Label>
+              <Input 
+                value={leadEmail} 
+                disabled 
+                className="h-11 rounded-xl bg-muted/20 border-2 font-bold opacity-60"
+              />
+            </div>
+            
+            {generatedCode ? (
+              <div className="space-y-4 animate-in zoom-in-95 duration-500">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-emerald-500 ml-1">Logic Artifact (Code)</Label>
+                  <div className="flex items-center gap-3">
+                    <Input 
+                      value={generatedCode} 
+                      readOnly 
+                      className="h-14 rounded-2xl bg-primary/5 border-2 border-primary/20 font-mono text-2xl font-black tracking-[0.3em] text-center text-primary shadow-inner"
+                    />
+                    <Button 
+                      variant="outline" 
+                      className="h-14 w-14 rounded-2xl border-2 shrink-0 transition-all hover:bg-primary hover:text-white group" 
+                      onClick={handleArtifactExport}
+                    >
+                      {copied ? <Check className="h-5 w-5 text-green-500 group-hover:text-white" /> : <Copy className="h-5 w-5" />}
+                    </Button>
+                  </div>
+                </div>
+                <div className="p-4 rounded-2xl bg-muted/30 border border-border/40 flex items-start gap-3">
+                  <Zap className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                  <p className="text-[9px] font-bold leading-relaxed text-muted-foreground uppercase tracking-widest italic">
+                    Artifact expires in 30 days. Export payload to transmit credentials via secondary channel.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="py-10 text-center space-y-8 animate-in slide-in-from-bottom-4">
+                <div className="space-y-2">
+                   <p className="text-sm font-medium italic text-muted-foreground/80">Authorize retake protocol for this user identifier.</p>
+                   <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/40">Temporal Span: 720 Hours</p>
+                </div>
+                <Button 
+                  onClick={handleGenerateHandshake} 
+                  disabled={generating}
+                  className="w-full h-16 rounded-[20px] font-black uppercase tracking-[0.3em] text-[11px] shadow-2xl shadow-primary/30 group relative overflow-hidden"
+                >
+                  <span className="relative z-10 flex items-center gap-3">
+                    {generating ? <Loader2 className="h-5 w-5 animate-spin" /> : <KeyRound className="h-5 w-5" />}
+                    {generating ? "SYNCING..." : "INITIALIZE HANDSHAKE"}
+                  </span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-primary via-blue-600 to-primary opacity-50 group-hover:opacity-100 transition-opacity" />
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Click copy to get the full message with code to send to the user.
-              </p>
-            </div>
-          ) : (
-            <div className="text-center py-4">
-              <p className="text-sm text-muted-foreground mb-4">
-                This will generate an 8-character access code valid for 30 days.
-              </p>
-              <Button onClick={handleGenerate} disabled={generating}>
-                {generating ? "Generating..." : "Generate Access Code"}
-              </Button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>
-            Close
+        <DialogFooter className="bg-muted/20 p-6 border-t border-border/10">
+          <Button 
+            variant="ghost" 
+            onClick={() => setOpen(false)} 
+            className="rounded-xl font-black uppercase text-[10px] tracking-widest w-full h-11"
+          >
+            Terminate Node
           </Button>
         </DialogFooter>
-      </DialogContent>
+      </Card>
     </Dialog>
   );
 }
