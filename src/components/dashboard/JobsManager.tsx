@@ -43,6 +43,7 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
+  Share2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { DashboardTableSkeleton } from "./DashboardSkeleton";
@@ -51,11 +52,10 @@ import { cn } from "@/lib/utils";
 
 /**
  * Platform Logic: Marketplace Inventory Terminal (Jobs Manager)
- * High-fidelity orchestrator for job lifecycle and engagement telemetry.
- * 2026 Standard: Executive Logic geometry with reinforced recursion guards.
+ * High-fidelity orchestrator for job lifecycle and multi-channel engagement.
+ * 2026 Standard: Executive Logic geometry with reinforced sharing telemetry.
  */
 
-// CTO FIX: Included "remote" to synchronize with DB Enums
 const JOB_TYPES = ["full_time", "part_time", "contract", "internship", "freelance", "remote"] as const;
 const EXPERIENCE_LEVELS = ["entry", "junior", "mid", "senior", "lead", "executive"] as const;
 const APPLICATION_TYPES = ["internal", "email", "link"] as const;
@@ -126,6 +126,7 @@ interface EngagementData {
   clicks: number;
   saves: number;
   recommendations: number;
+  shares: number;
 }
 
 export function JobsManager() {
@@ -151,18 +152,19 @@ export function JobsManager() {
 
   const fetchEngagementTelemetry = useCallback(async (jobIds: string[]) => {
     if (jobIds.length === 0) return;
-    const sb: any = supabase;
-    const [clicksRes, savesRes, recsRes] = await Promise.all([
-      sb.from("job_analytics").select("job_id").in("job_id", jobIds),
-      sb.from("saved_items").select("item_id").eq("kind", "job").in("item_id", jobIds),
-      sb.from("ai_job_recommendations").select("job_id").in("job_id", jobIds),
+    const [clicksRes, savesRes, recsRes, sharesRes] = await Promise.all([
+      supabase.from("job_analytics").select("job_id").in("job_id", jobIds),
+      supabase.from("saved_items").select("item_id").eq("kind", "job").in("item_id", jobIds),
+      supabase.from("ai_job_recommendations").select("job_id").in("job_id", jobIds),
+      supabase.from("gig_share_logs").select("job_id").in("job_id", jobIds), // CTO RESTORATION: Shares logic
     ]);
 
     const stats: Record<string, EngagementData> = {};
-    jobIds.forEach((id) => (stats[id] = { job_id: id, clicks: 0, saves: 0, recommendations: 0 }));
+    jobIds.forEach((id) => (stats[id] = { job_id: id, clicks: 0, saves: 0, recommendations: 0, shares: 0 }));
     ((clicksRes.data as any[]) ?? []).forEach((c) => stats[c.job_id] && stats[c.job_id].clicks++);
     ((savesRes.data as any[]) ?? []).forEach((s) => stats[s.item_id] && stats[s.item_id].saves++);
     ((recsRes.data as any[]) ?? []).forEach((r) => stats[r.job_id] && stats[r.job_id].recommendations++);
+    ((sharesRes.data as any[]) ?? []).forEach((sh) => stats[sh.job_id] && stats[sh.job_id].shares++);
     setEngagement(stats);
   }, []);
 
@@ -181,7 +183,6 @@ export function JobsManager() {
       const { data, count, error } = await query.range(from, from + 9);
       if (error) throw error;
 
-      // CTO FIX: Explicit flattening to avoid TS2589 infinite recursion
       const rawData = (data as any[]) || [];
       const sanitizedJobs = rawData as Job[];
 
@@ -223,7 +224,7 @@ export function JobsManager() {
         data: { publicUrl },
       } = supabase.storage.from("job-assets").getPublicUrl(fileName);
       updateField("company_logo_url", publicUrl);
-      toast.success("Logo Logic Synced");
+      toast.success("Visual Node Synced");
     } catch (err: any) {
       toast.error("Upload Fault: " + err.message);
     } finally {
@@ -232,7 +233,7 @@ export function JobsManager() {
   };
 
   const handleSaveProtocol = async () => {
-    if (!form.title.trim() || !form.company_name.trim()) return toast.error("Protocol Error: Identity required");
+    if (!form.title.trim() || !form.company_name.trim()) return toast.error("Identity Fault: Identity required");
     setIsSaving(true);
     try {
       const payload: any = {
@@ -278,6 +279,7 @@ export function JobsManager() {
 
   return (
     <div className="space-y-10 animate-in fade-in duration-1000">
+      {/* Executive Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-muted/20 p-8 rounded-[40px] border-2 border-border/40 backdrop-blur-md">
         <div className="space-y-1 text-left">
           <div className="flex items-center gap-3 text-primary">
@@ -310,146 +312,279 @@ export function JobsManager() {
         </div>
       </div>
 
-      <Card className="rounded-[40px] border-2 border-border/40 shadow-2xl overflow-hidden bg-card/30 backdrop-blur-xl">
-        <div className="h-1.5 w-full bg-gradient-to-r from-primary via-blue-600 to-primary" />
-        <CardHeader className="p-8 border-b border-border/10">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1 group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
-              <Input
-                placeholder="Query artifact by role or entity..."
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setPage(1);
-                }}
-                className="pl-12 h-14 bg-muted/20 border-2 border-border/10 rounded-2xl font-bold tracking-tight shadow-inner"
-              />
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="p-12">
-              <DashboardTableSkeleton rows={8} columns={4} />
-            </div>
-          ) : (
-            <Table>
-              <TableHeader className="bg-muted/30">
-                <TableRow className="hover:bg-transparent border-b-2">
-                  <TableHead className="text-[10px] font-black uppercase tracking-widest py-8 px-8 text-left">
-                    Logic Node (Role)
-                  </TableHead>
-                  <TableHead className="text-[10px] font-black uppercase tracking-widest text-left">
-                    Protocol Status
-                  </TableHead>
-                  <TableHead className="text-[10px] font-black uppercase tracking-widest text-left">
-                    Location Index
-                  </TableHead>
-                  <TableHead className="text-right text-[10px] font-black uppercase tracking-widest pr-8">
-                    Interrogate
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {jobs.map((job) => (
-                  <TableRow
-                    key={job.id}
-                    className="group transition-all hover:bg-primary/[0.02] border-b border-border/5"
-                  >
-                    <TableCell className="px-8 py-6 text-left">
-                      <div className="space-y-1">
-                        <p className="font-black text-sm uppercase tracking-tight italic group-hover:text-primary transition-colors leading-none">
-                          {job.title}
-                        </p>
-                        <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest italic">
-                          {job.company_name}
-                        </p>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-left">
-                      <Badge
-                        className={cn(
-                          "rounded-lg font-black text-[8px] uppercase tracking-[0.2em] px-3 py-1 border-none",
-                          job.is_active ? "bg-emerald-500 text-white" : "bg-muted text-muted-foreground/60",
-                        )}
-                      >
-                        {job.is_active ? "ACTIVE_LOG" : "IDLE_DRAFT"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest italic text-left">
-                      {job.location || "REMOTE_ACCESS"}
-                    </TableCell>
-                    <TableCell className="text-right pr-8">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-10 w-10 rounded-xl hover:bg-primary/10 transition-all shadow-inner"
-                          onClick={() => openEdit(job)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-10 w-10 rounded-xl hover:bg-destructive/10 text-destructive transition-all"
-                          onClick={async () => {
-                            if (confirm("Purge artifact?")) {
-                              await supabase.from("jobs").delete().eq("id", job.id);
-                              loadRegistry();
-                            }
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between p-8 border-t border-border/10 bg-muted/5">
-              <div className="space-y-1 text-left">
-                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground/40 italic">
-                  Registry Frame
-                </p>
-                <p className="text-xl font-black italic tracking-tighter leading-none">
-                  {page} <span className="text-xs opacity-20">of</span> {totalPages}
-                </p>
-              </div>
-              <div className="flex gap-4">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-14 w-14 rounded-2xl border-2 hover:bg-primary hover:text-white transition-all shadow-sm"
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                >
-                  <ChevronLeft className="h-6 w-6" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-14 w-14 rounded-2xl border-2 hover:bg-primary hover:text-white transition-all shadow-sm"
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages}
-                >
-                  <ChevronRight className="h-6 w-6" />
-                </Button>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <Tabs defaultValue="inventory" className="w-full">
+        <TabsList className="bg-muted/30 backdrop-blur-md rounded-[24px] border-2 border-border/40 p-1.5 mb-8 w-full max-w-md">
+          <TabsTrigger
+            value="inventory"
+            className="flex-1 rounded-xl font-black uppercase text-[10px] tracking-widest gap-2 py-3"
+          >
+            <Layers className="w-4 h-4" /> Registry
+          </TabsTrigger>
+          <TabsTrigger
+            value="engagement"
+            className="flex-1 rounded-xl font-black uppercase text-[10px] tracking-widest gap-2 py-3"
+          >
+            <Activity className="w-4 h-4" /> Analytics
+          </TabsTrigger>
+        </TabsList>
 
-      <BatchLinkedInJobUpload
-        isOpen={isLinkedInImportOpen}
-        onClose={() => setIsLinkedInImportOpen(false)}
-        onComplete={loadRegistry}
-      />
+        <TabsContent value="inventory" className="space-y-8 animate-in slide-in-from-bottom-2 duration-500">
+          <Card className="rounded-[40px] border-2 border-border/40 shadow-2xl overflow-hidden bg-card/30 backdrop-blur-xl">
+            <div className="h-1.5 w-full bg-gradient-to-r from-primary via-blue-600 to-primary" />
+            <CardHeader className="p-8 border-b border-border/10">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="relative flex-1 group">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
+                  <Input
+                    placeholder="Query artifact by role or entity..."
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setPage(1);
+                    }}
+                    className="pl-12 h-14 bg-muted/20 border-2 border-border/10 rounded-2xl font-bold tracking-tight shadow-inner"
+                  />
+                </div>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-full sm:w-56 h-14 rounded-2xl border-2 font-black uppercase text-[10px] tracking-widest bg-muted/20">
+                    <SelectValue placeholder="Protocol" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-2 shadow-2xl">
+                    <SelectItem value="all" className="font-bold">
+                      GLOBAL_REGISTRY
+                    </SelectItem>
+                    <SelectItem value="active" className="font-bold text-emerald-500">
+                      ACTIVE_NODES
+                    </SelectItem>
+                    <SelectItem value="featured" className="font-bold text-primary">
+                      FEATURED_PRIORITY
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              {loading ? (
+                <div className="p-12">
+                  <DashboardTableSkeleton rows={8} columns={4} />
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader className="bg-muted/30">
+                    <TableRow className="hover:bg-transparent border-b-2">
+                      <TableHead className="text-[10px] font-black uppercase tracking-widest py-8 px-8 text-left">
+                        Logic Node (Role)
+                      </TableHead>
+                      <TableHead className="text-[10px] font-black uppercase tracking-widest text-left">
+                        Protocol Status
+                      </TableHead>
+                      <TableHead className="text-[10px] font-black uppercase tracking-widest text-left">
+                        Location Index
+                      </TableHead>
+                      <TableHead className="text-right text-[10px] font-black uppercase tracking-widest pr-8">
+                        Interrogate
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {jobs.map((job) => (
+                      <TableRow
+                        key={job.id}
+                        className="group transition-all hover:bg-primary/[0.02] border-b border-border/5"
+                      >
+                        <TableCell className="px-8 py-6 text-left">
+                          <div className="space-y-1 text-left">
+                            <p className="font-black text-sm uppercase tracking-tight italic group-hover:text-primary transition-colors leading-none">
+                              {job.title}
+                            </p>
+                            <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest italic">
+                              {job.company_name}
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-left">
+                          <Badge
+                            className={cn(
+                              "rounded-lg font-black text-[8px] uppercase tracking-[0.2em] px-3 py-1 border-none",
+                              job.is_active ? "bg-emerald-500 text-white" : "bg-muted text-muted-foreground/60",
+                            )}
+                          >
+                            {job.is_active ? "ACTIVE_LOG" : "IDLE_DRAFT"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest italic text-left">
+                          {job.location || "REMOTE_ACCESS"}
+                        </TableCell>
+                        <TableCell className="text-right pr-8">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-10 w-10 rounded-xl hover:bg-primary/10 transition-all shadow-inner"
+                              onClick={() => openEdit(job)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-10 w-10 rounded-xl hover:bg-destructive/10 text-destructive transition-all"
+                              onClick={async () => {
+                                if (confirm("Purge artifact?")) {
+                                  await supabase.from("jobs").delete().eq("id", job.id);
+                                  loadRegistry();
+                                }
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between p-8 border-t border-border/10 bg-muted/5">
+                  <div className="space-y-1 text-left">
+                    <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground/40 italic leading-none">
+                      Registry Frame
+                    </p>
+                    <p className="text-xl font-black italic tracking-tighter leading-none">
+                      {page} <span className="text-xs opacity-20">of</span> {totalPages}
+                    </p>
+                  </div>
+                  <div className="flex gap-4">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-14 w-14 rounded-2xl border-2 hover:bg-primary hover:text-white transition-all shadow-sm"
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                    >
+                      <ChevronLeft className="h-6 w-6" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-14 w-14 rounded-2xl border-2 hover:bg-primary hover:text-white transition-all shadow-sm"
+                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={page === totalPages}
+                    >
+                      <ChevronRight className="h-6 w-6" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="engagement" className="space-y-8 animate-in slide-in-from-bottom-2 duration-500">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            {[
+              {
+                label: "Handshakes",
+                val: Object.values(engagement).reduce((a, b) => a + b.clicks, 0),
+                icon: MousePointer2,
+                color: "text-primary",
+                bg: "bg-primary/5",
+              },
+              {
+                label: "Pitch Distribution",
+                val: Object.values(engagement).reduce((a, b) => a + b.shares, 0),
+                icon: Share2,
+                color: "text-emerald-500",
+                bg: "bg-emerald-500/5",
+              }, // CTO RESTORATION
+              {
+                label: "AI Matches",
+                val: Object.values(engagement).reduce((a, b) => a + b.recommendations, 0),
+                icon: Brain,
+                color: "text-purple-500",
+                bg: "bg-purple-500/5",
+              },
+              {
+                label: "Retention",
+                val: Object.values(engagement).reduce((a, b) => a + b.saves, 0),
+                icon: Bookmark,
+                color: "text-amber-500",
+                bg: "bg-amber-500/5",
+              },
+            ].map((k, i) => (
+              <Card
+                key={i}
+                className="rounded-[32px] border-2 border-border/40 bg-card/30 p-6 flex items-center gap-6 group hover:border-primary/20 transition-all"
+              >
+                <div
+                  className={cn(
+                    "h-14 w-14 rounded-2xl flex items-center justify-center border-2 shadow-inner group-hover:rotate-6 transition-transform",
+                    k.bg,
+                  )}
+                >
+                  <k.icon className={cn("h-7 w-7", k.color)} />
+                </div>
+                <div>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 mb-1">
+                    {k.label}
+                  </p>
+                  <p className="text-3xl font-black tracking-tighter italic leading-none">{k.val}</p>
+                </div>
+              </Card>
+            ))}
+          </div>
+
+          <Card className="rounded-[40px] border-2 border-border/40 shadow-2xl overflow-hidden bg-card/30">
+            <CardHeader className="p-8 border-b border-border/10">
+              <CardTitle className="text-xl font-black uppercase tracking-tighter italic flex items-center gap-3 text-left">
+                <BarChart3 className="h-5 w-5 text-primary" /> Engagement Scoreboard
+              </CardTitle>
+              <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-left">
+                Weighted Artifact Performance Index
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader className="bg-muted/30">
+                  <TableRow className="hover:bg-transparent border-b-2">
+                    <TableHead className="text-[10px] font-black uppercase py-8 px-8 text-left">Logic Node</TableHead>
+                    <TableHead className="text-center text-[10px] font-black uppercase">Clicks</TableHead>
+                    <TableHead className="text-center text-[10px] font-black uppercase">Shares</TableHead>
+                    <TableHead className="text-center text-[10px] font-black uppercase">AI_Impact</TableHead>
+                    <TableHead className="text-right text-[10px] font-black uppercase pr-8">Intensity</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {jobs.map((job) => {
+                    const stats = engagement[job.id] || { clicks: 0, saves: 0, recommendations: 0, shares: 0 };
+                    const score = stats.clicks + stats.shares * 10 + stats.recommendations * 2;
+                    return (
+                      <TableRow key={job.id} className="group hover:bg-primary/[0.02] border-b border-border/5">
+                        <TableCell className="px-8 py-5 font-black text-xs uppercase italic tracking-tighter text-left">
+                          {job.title}
+                        </TableCell>
+                        <TableCell className="text-center font-mono font-bold text-primary">{stats.clicks}</TableCell>
+                        <TableCell className="text-center font-mono font-bold text-emerald-500">
+                          {stats.shares}
+                        </TableCell>
+                        <TableCell className="text-center font-mono font-bold text-purple-500">
+                          {stats.recommendations}
+                        </TableCell>
+                        <TableCell className="text-right pr-8">
+                          <Badge className="bg-primary/10 text-primary border-none font-black text-[10px] italic">
+                            {score} PTS
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-4xl rounded-[40px] border-4 border-border/40 bg-background/95 backdrop-blur-2xl p-0 overflow-hidden shadow-2xl">
@@ -462,7 +597,7 @@ export function JobsManager() {
                   <DialogTitle className="text-3xl font-black uppercase tracking-tighter italic">
                     Recalibration Node
                   </DialogTitle>
-                  <DialogDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 italic">
+                  <DialogDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 italic text-left">
                     Job Marketplace Configuration Protocol
                   </DialogDescription>
                 </div>
@@ -511,7 +646,7 @@ export function JobsManager() {
                   ) : (
                     <label className="h-20 w-20 rounded-xl border-4 border-dashed border-border/40 hover:border-primary/40 flex flex-col items-center justify-center cursor-pointer transition-all">
                       {isUploadingLogo ? (
-                        <Loader2 className="animate-spin h-5 w-5" />
+                        <Loader2 className="animate-spin" />
                       ) : (
                         <Upload className="h-6 w-6 text-muted-foreground/40" />
                       )}
