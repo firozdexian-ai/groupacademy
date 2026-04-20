@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label"; // CTO RESTORATION
 import {
   Coins,
   Search,
@@ -42,7 +43,7 @@ import { cn } from "@/lib/utils";
 /**
  * Platform Logic: Fiscal Intelligence Terminal (Credits Manager)
  * High-fidelity orchestrator for platform currency and consumption telemetry.
- * 2026 Standard: Executive Logic geometry with reinforced transaction guards.
+ * 2026 Standard: Executive Logic geometry with reinforced recursion guards.
  */
 
 interface ConsumptionStats {
@@ -181,7 +182,9 @@ export function CreditsManager() {
       );
       if (result.error) throw result.error;
 
-      selectedTab === "balances" ? setCredits((result.data as any) || []) : setTransactions((result.data as any) || []);
+      if (selectedTab === "balances") setCredits((result.data as any) || []);
+      else setTransactions((result.data as any) || []);
+
       setTotalCount(result.count || 0);
     } catch (err) {
       toast.error("Handshake Failed: Registry sync error");
@@ -204,7 +207,7 @@ export function CreditsManager() {
     try {
       const amount = parseInt(adjustAmount);
       const finalAmount = adjustDialog.type === "add" ? amount : -amount;
-      const newBalance = adjustDialog.talent.balance + finalAmount;
+      const newBalance = (adjustDialog.talent.balance || 0) + finalAmount;
       if (newBalance < 0) return toast.error("Logic Fault: Insufficient balance for debit");
 
       const { error: updateError } = await supabase
@@ -255,14 +258,15 @@ export function CreditsManager() {
     toast.success("Ledger Exported");
   };
 
-  const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
+  const totalPages = Math.max(1, Math.ceil(totalCount / ITEMS_PER_PAGE));
 
   return (
     <div className="space-y-10 animate-in fade-in duration-1000">
-      {/* Executive Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-2">
-          <h2 className="text-4xl font-black uppercase tracking-tighter italic leading-none">Fiscal Intelligence</h2>
+          <h2 className="text-4xl font-black uppercase tracking-tighter italic leading-none text-foreground">
+            Fiscal Intelligence
+          </h2>
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 italic">
             Platform Token Registry & Consumption Telemetry v2.6
           </p>
@@ -276,7 +280,6 @@ export function CreditsManager() {
         </Button>
       </div>
 
-      {/* Consumption HUD */}
       {selectedTab === "balances" && (
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           <Card className="rounded-[32px] border-2 border-border/40 bg-card/30 backdrop-blur-sm overflow-hidden group hover:border-primary/20 transition-all duration-500 shadow-sm">
@@ -350,7 +353,6 @@ export function CreditsManager() {
         </div>
       )}
 
-      {/* Main Terminal Viewport */}
       <Card className="rounded-[40px] border-2 border-border/40 shadow-2xl overflow-hidden bg-card/30 backdrop-blur-xl">
         <div className="h-1.5 w-full bg-gradient-to-r from-primary via-blue-600 to-primary" />
         <CardHeader className="p-8 border-b border-border/10">
@@ -379,7 +381,6 @@ export function CreditsManager() {
                 Ledger
               </button>
             </div>
-
             <div className="flex flex-col sm:flex-row gap-4">
               {selectedTab === "transactions" && (
                 <div className="flex items-center gap-4">
@@ -387,7 +388,7 @@ export function CreditsManager() {
                     <SelectTrigger className="w-[180px] h-12 rounded-xl border-2 font-black uppercase text-[10px] tracking-widest bg-muted/20">
                       <SelectValue placeholder="Protocol Class" />
                     </SelectTrigger>
-                    <SelectContent className="rounded-xl border-2">
+                    <SelectContent className="rounded-xl border-2 shadow-2xl">
                       <SelectItem value="all" className="font-bold">
                         ALL PROTOCOLS
                       </SelectItem>
@@ -397,9 +398,6 @@ export function CreditsManager() {
                       <SelectItem value="admin_debit" className="font-bold">
                         EXECUTIVE_DEBIT
                       </SelectItem>
-                      <SelectItem value="service_usage" className="font-bold">
-                        SERVICE_BURN
-                      </SelectItem>
                     </SelectContent>
                   </Select>
                   <Button
@@ -407,7 +405,7 @@ export function CreditsManager() {
                     onClick={exportFiscalLedger}
                     className="h-12 rounded-xl border-2 font-black uppercase text-[10px] tracking-widest gap-2"
                   >
-                    <Download className="h-4 w-4" /> Export Ledger
+                    <Download className="h-4 w-4" /> Export
                   </Button>
                 </div>
               )}
@@ -417,7 +415,7 @@ export function CreditsManager() {
                   placeholder="Search registry..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-11 h-12 w-full sm:w-72 bg-muted/20 border-2 border-border/10 rounded-xl font-bold tracking-tight"
+                  className="pl-11 h-12 w-full sm:w-72 bg-muted/20 border-2 border-border/10 rounded-xl font-bold"
                 />
               </div>
             </div>
@@ -432,102 +430,93 @@ export function CreditsManager() {
               <Skeleton className="h-12 w-full rounded-2xl" />
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader className="bg-muted/30">
-                  <TableRow className="hover:bg-transparent border-b-2">
-                    <TableHead className="text-[10px] font-black uppercase tracking-widest py-8 px-8">
-                      {selectedTab === "balances" ? "Talent Entity" : "Temporal Index"}
-                    </TableHead>
-                    <TableHead className="text-[10px] font-black uppercase tracking-widest">
-                      {selectedTab === "balances" ? "Logic Endpoint" : "Target Entity"}
-                    </TableHead>
-                    <TableHead className="text-[10px] font-black uppercase tracking-widest">
-                      {selectedTab === "balances" ? "Current Liquidity" : "Protocol Type"}
-                    </TableHead>
-                    <TableHead className="text-right text-[10px] font-black uppercase tracking-widest pr-8">
-                      Interrogate
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {selectedTab === "balances"
-                    ? credits.map((credit) => (
-                        <TableRow key={credit.id} className="group transition-all hover:bg-primary/[0.02]">
-                          <TableCell className="px-8 py-6">
-                            <p className="font-black text-sm uppercase tracking-tight italic group-hover:text-primary transition-colors">
-                              {credit.talent?.full_name || "ANONYMOUS_NODE"}
-                            </p>
-                          </TableCell>
-                          <TableCell>
-                            <span className="text-[11px] font-bold text-muted-foreground/60">
-                              {credit.talent?.email}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              variant="outline"
-                              className="font-mono text-xs border-2 rounded-lg bg-background px-3"
+            <Table>
+              <TableHeader className="bg-muted/30">
+                <TableRow className="hover:bg-transparent border-b-2">
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest py-8 px-8">
+                    {selectedTab === "balances" ? "Talent Entity" : "Temporal Index"}
+                  </TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest">
+                    {selectedTab === "balances" ? "Logic Endpoint" : "Target Entity"}
+                  </TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest">
+                    {selectedTab === "balances" ? "Current Liquidity" : "Protocol Type"}
+                  </TableHead>
+                  <TableHead className="text-right text-[10px] font-black uppercase tracking-widest pr-8">
+                    Interrogate
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {selectedTab === "balances"
+                  ? credits.map((credit) => (
+                      <TableRow key={credit.id} className="group transition-all hover:bg-primary/[0.02]">
+                        <TableCell className="px-8 py-6 font-black text-sm uppercase tracking-tight italic group-hover:text-primary transition-colors">
+                          {credit.talent?.full_name || "ANONYMOUS_NODE"}
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-[11px] font-bold text-muted-foreground/60">{credit.talent?.email}</span>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="font-mono text-xs border-2 rounded-lg bg-background px-3">
+                            {credit.balance.toLocaleString()} TKN
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right pr-8">
+                          <div className="flex gap-2 justify-end">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-10 w-10 rounded-xl hover:bg-emerald-500 group-hover:text-white transition-all shadow-inner"
+                              onClick={() => setAdjustDialog({ open: true, talent: credit, type: "add" })}
                             >
-                              {credit.balance.toLocaleString()} TKN
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right pr-8">
-                            <div className="flex gap-2 justify-end">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-10 w-10 rounded-xl hover:bg-emerald-500 group-hover:text-white transition-all shadow-inner"
-                                onClick={() => setAdjustDialog({ open: true, talent: credit, type: "add" })}
-                              >
-                                <Plus className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-10 w-10 rounded-xl hover:bg-destructive/10 text-destructive transition-all"
-                                onClick={() => setAdjustDialog({ open: true, talent: credit, type: "deduct" })}
-                              >
-                                <Minus className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    : transactions.map((tx) => (
-                        <TableRow key={tx.id} className="group transition-all hover:bg-primary/[0.02]">
-                          <TableCell className="px-8 py-6 font-mono text-[10px] text-muted-foreground/60 italic">
-                            {format(new Date(tx.created_at), "MMM d, HH:mm:ss")}
-                          </TableCell>
-                          <TableCell>
-                            <p className="font-black text-xs uppercase tracking-tight italic">
-                              {tx.talent?.full_name || "NODE_AUTO"}
-                            </p>
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              className={cn(
-                                "rounded-lg font-black text-[8px] uppercase tracking-widest px-3 py-1 border-none shadow-sm",
-                                tx.amount > 0 ? "bg-emerald-500 text-white" : "bg-muted text-muted-foreground",
-                              )}
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-10 w-10 rounded-xl hover:bg-destructive/10 text-destructive transition-all"
+                              onClick={() => setAdjustDialog({ open: true, talent: credit, type: "deduct" })}
                             >
-                              {tx.transaction_type}
-                            </Badge>
-                          </TableCell>
-                          <TableCell
+                              <Minus className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  : transactions.map((tx) => (
+                      <TableRow key={tx.id} className="group transition-all hover:bg-primary/[0.02]">
+                        <TableCell className="px-8 py-6 font-mono text-[10px] text-muted-foreground/60 italic">
+                          {format(new Date(tx.created_at), "MMM d, HH:mm:ss")}
+                        </TableCell>
+                        <TableCell>
+                          <p className="font-black text-xs uppercase tracking-tight italic">
+                            {tx.talent?.full_name || "NODE_AUTO"}
+                          </p>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
                             className={cn(
-                              "text-right pr-8 font-mono text-sm font-black",
-                              tx.amount > 0 ? "text-emerald-500" : "text-destructive",
+                              "rounded-lg font-black text-[8px] uppercase tracking-widest px-3 py-1 border-none shadow-sm",
+                              tx.amount > 0 ? "bg-emerald-500 text-white" : "bg-muted text-muted-foreground",
                             )}
                           >
-                            {tx.amount > 0 ? "+" : ""}
-                            {tx.amount}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                </TableBody>
-              </Table>
-            </div>
+                            {tx.transaction_type}
+                          </Badge>
+                        </TableCell>
+                        <TableCell
+                          className={cn(
+                            "text-right pr-8 font-mono text-sm font-black",
+                            tx.amount > 0 ? "text-emerald-500" : "text-destructive",
+                          )}
+                        >
+                          {tx.amount > 0 ? "+" : ""}
+                          {tx.amount}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+              </TableBody>
+            </Table>
           )}
 
           {totalPages > 1 && (
@@ -565,7 +554,6 @@ export function CreditsManager() {
         </CardContent>
       </Card>
 
-      {/* Adjust Dialog */}
       <Dialog open={adjustDialog.open} onOpenChange={(open) => !open && setAdjustDialog({ open: false, type: "add" })}>
         <DialogContent className="max-w-xl rounded-[40px] border-4 border-border/40 bg-background/95 backdrop-blur-2xl p-0 overflow-hidden shadow-2xl">
           <div className="h-2 w-full bg-gradient-to-r from-primary via-blue-600 to-primary" />
@@ -583,7 +571,6 @@ export function CreditsManager() {
                 </div>
               </div>
             </DialogHeader>
-
             <div className="space-y-8 py-4">
               <div className="p-6 rounded-[28px] border-2 bg-muted/20 border-border/10 flex items-center justify-between">
                 <div>
@@ -603,8 +590,7 @@ export function CreditsManager() {
                   </p>
                 </div>
               </div>
-
-              <div className="space-y-2">
+              <div className="space-y-2 text-left">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
                   Protocol Value (Tokens)
                 </Label>
@@ -614,24 +600,21 @@ export function CreditsManager() {
                   onChange={(e) => setAdjustAmount(e.target.value)}
                   placeholder="0000"
                   className="h-14 rounded-2xl border-2 font-black italic text-xl"
-                  min={1}
                 />
               </div>
-
-              <div className="space-y-2">
+              <div className="space-y-2 text-left">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
                   Override Justification
                 </Label>
                 <Textarea
                   value={adjustReason}
                   onChange={(e) => setAdjustReason(e.target.value)}
-                  placeholder="Define administrative reason for delta..."
+                  placeholder="Define administrative reason..."
                   rows={3}
                   className="rounded-2xl border-2 p-6 italic font-medium"
                 />
               </div>
             </div>
-
             <DialogFooter className="mt-10 pt-8 border-t border-border/10">
               <Button
                 variant="ghost"
@@ -646,7 +629,7 @@ export function CreditsManager() {
                 className="h-14 px-12 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-primary/30"
               >
                 {isAdjusting ? (
-                  <Loader2 className="animate-spin mr-2 h-4 w-4" />
+                  <Loader2 className="animate-spin h-4 w-4 mr-2" />
                 ) : (
                   <ShieldCheck className="mr-2 h-4 w-4" />
                 )}
