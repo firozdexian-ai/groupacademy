@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress"; // CTO FIX: Restored UI Primitive
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import {
   Upload,
