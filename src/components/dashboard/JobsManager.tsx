@@ -9,7 +9,14 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -25,10 +32,28 @@ import {
   MousePointer2,
   Upload,
   X,
+  Activity,
+  ShieldCheck,
+  Zap,
+  Terminal,
+  Layers,
+  Globe,
+  Briefcase,
+  RefreshCw,
+  Search,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { DashboardTableSkeleton } from "./DashboardSkeleton";
 import { BatchLinkedInJobUpload } from "./BatchLinkedInJobUpload";
+import { cn } from "@/lib/utils";
+
+/**
+ * Platform Logic: Marketplace Inventory Terminal (Jobs Manager)
+ * High-fidelity orchestrator for job lifecycle, AI-enhancement, and engagement telemetry.
+ * 2026 Standard: Executive Logic geometry with reinforced cross-table analytics.
+ */
 
 const JOB_TYPES = ["full_time", "part_time", "contract", "internship", "freelance"] as const;
 const EXPERIENCE_LEVELS = ["entry", "junior", "mid", "senior", "lead", "executive"] as const;
@@ -41,16 +66,16 @@ type JobFormState = {
   company_name: string;
   company_logo_url: string;
   location: string;
-  job_type: typeof JOB_TYPES[number];
-  experience_level: typeof EXPERIENCE_LEVELS[number];
+  job_type: (typeof JOB_TYPES)[number];
+  experience_level: (typeof EXPERIENCE_LEVELS)[number];
   salary_range_min: string;
   salary_range_max: string;
   salary_currency: string;
   description: string;
-  application_type: typeof APPLICATION_TYPES[number];
+  application_type: (typeof APPLICATION_TYPES)[number];
   application_email: string;
   application_url: string;
-  source_platform: typeof SOURCE_PLATFORMS[number];
+  source_platform: (typeof SOURCE_PLATFORMS)[number];
   source_image_url: string;
   is_active: boolean;
   is_featured: boolean;
@@ -119,21 +144,23 @@ export function JobsManager() {
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isLinkedInImportOpen, setIsLinkedInImportOpen] = useState(false);
 
-  const fetchEngagement = useCallback(async (jobIds: string[]) => {
+  const fetchEngagementTelemetry = useCallback(async (jobIds: string[]) => {
     if (jobIds.length === 0) return;
-    const clicksRes = await supabase.from("job_analytics").select("job_id").in("job_id", jobIds);
-    const savesRes = await (supabase.from("saved_items") as any).select("item_id").eq("kind", "job").in("item_id", jobIds);
-    const recsRes = await supabase.from("ai_job_recommendations").select("job_id").in("job_id", jobIds);
+    const [clicksRes, savesRes, recsRes] = await Promise.all([
+      supabase.from("job_analytics").select("job_id").in("job_id", jobIds),
+      supabase.from("saved_items").select("item_id").eq("kind", "job").in("item_id", jobIds),
+      supabase.from("ai_job_recommendations").select("job_id").in("job_id", jobIds),
+    ]);
 
     const stats: Record<string, EngagementData> = {};
     jobIds.forEach((id) => (stats[id] = { job_id: id, clicks: 0, saves: 0, recommendations: 0 }));
-    ((clicksRes.data ?? []) as Array<{ job_id: string }>).forEach((c) => stats[c.job_id] && stats[c.job_id].clicks++);
-    ((savesRes.data ?? []) as Array<{ item_id: string }>).forEach((s) => stats[s.item_id] && stats[s.item_id].saves++);
-    ((recsRes.data ?? []) as Array<{ job_id: string }>).forEach((r) => stats[r.job_id] && stats[r.job_id].recommendations++);
+    (clicksRes.data ?? []).forEach((c: any) => stats[c.job_id] && stats[c.job_id].clicks++);
+    (savesRes.data ?? []).forEach((s: any) => stats[s.item_id] && stats[s.item_id].saves++);
+    (recsRes.data ?? []).forEach((r: any) => stats[r.job_id] && stats[r.job_id].recommendations++);
     setEngagement(stats);
   }, []);
 
-  const loadJobs = useCallback(async () => {
+  const loadRegistry = useCallback(async () => {
     setLoading(true);
     try {
       let query = supabase.from("jobs").select("*", { count: "exact" }).order("created_at", { ascending: false });
@@ -149,313 +176,346 @@ export function JobsManager() {
       if (error) throw error;
       setJobs(data as Job[]);
       setTotalCount(count || 0);
-      if (data) fetchEngagement(data.map((j) => j.id));
+      if (data) fetchEngagementTelemetry(data.map((j) => j.id));
     } finally {
       setLoading(false);
     }
-  }, [page, searchQuery, statusFilter, fetchEngagement]);
+  }, [page, searchQuery, statusFilter, fetchEngagementTelemetry]);
 
-  useEffect(() => { loadJobs(); }, [loadJobs]);
+  useEffect(() => {
+    loadRegistry();
+  }, [loadRegistry]);
 
-  const openNew = () => {
-    setEditingJobId(null);
-    setForm(EMPTY_FORM);
-    setIsDialogOpen(true);
-  };
-
-  const openEdit = async (job: Job) => {
-    setEditingJobId(job.id);
-    const { data, error } = await supabase.from("jobs").select("*").eq("id", job.id).single();
-    if (error || !data) {
-      toast.error("Failed to load job");
-      return;
-    }
-    setForm({
-      title: data.title || "",
-      company_name: data.company_name || "",
-      company_logo_url: data.company_logo_url || "",
-      location: data.location || "",
-      job_type: (data.job_type as any) || "full_time",
-      experience_level: (data.experience_level as any) || "entry",
-      salary_range_min: data.salary_range_min?.toString() || "",
-      salary_range_max: data.salary_range_max?.toString() || "",
-      salary_currency: data.salary_currency || "BDT",
-      description: data.description || "",
-      application_type: (data.application_type as any) || "internal",
-      application_email: data.application_email || "",
-      application_url: data.application_url || "",
-      source_platform: (data.source_platform as any) || "other",
-      source_image_url: data.source_image_url || "",
-      is_active: data.is_active ?? true,
-      is_featured: data.is_featured ?? false,
-      ai_assessment_enabled: data.ai_assessment_enabled ?? false,
-      vacancies: data.vacancies?.toString() || "1",
-      deadline: data.deadline ? new Date(data.deadline).toISOString().slice(0, 10) : "",
-    });
-    setIsDialogOpen(true);
-  };
-
-  const updateField = <K extends keyof JobFormState>(key: K, value: JobFormState[K]) => {
-    setForm((f) => ({ ...f, [key]: value }));
-  };
-
-  const handleLogoUpload = async (file: File) => {
-    setIsUploadingLogo(true);
-    try {
-      const fileName = `job-logos/${Date.now()}-${file.name}`;
-      const { error } = await supabase.storage.from("job-assets").upload(fileName, file);
-      if (error) throw error;
-      const { data: { publicUrl } } = supabase.storage.from("job-assets").getPublicUrl(fileName);
-      updateField("company_logo_url", publicUrl);
-      toast.success("Logo uploaded");
-    } catch (err: any) {
-      toast.error("Upload failed: " + err.message);
-    } finally {
-      setIsUploadingLogo(false);
-    }
-  };
-
-  const handleEnhanceDescription = async () => {
-    if (form.description.length < 30) {
-      toast.error("Add at least 30 characters before enhancing");
-      return;
-    }
-    setIsEnhancing(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("enhance-job-description", {
-        body: {
-          title: form.title,
-          company: form.company_name,
-          description: form.description,
-        },
-      });
-      if (error) throw error;
-      const enhanced = data?.enhanced || data?.description;
-      if (enhanced) {
-        updateField("description", enhanced);
-        toast.success("Description enhanced");
-      } else {
-        toast.info("No enhancement returned");
-      }
-    } catch (err: any) {
-      toast.error("AI enhance failed: " + err.message);
-    } finally {
-      setIsEnhancing(false);
-    }
-  };
-
-  const handleSave = async () => {
-    if (!form.title.trim() || !form.company_name.trim()) {
-      toast.error("Title and company are required");
-      return;
-    }
-    if (!form.description.trim()) {
-      toast.error("Description is required");
-      return;
-    }
-    if (form.application_type === "email" && !form.application_email) {
-      toast.error("Email is required for email applications");
-      return;
-    }
-    if (form.application_type === "link" && !form.application_url) {
-      toast.error("URL is required for link applications");
-      return;
-    }
-
+  const handleSaveProtocol = async () => {
+    if (!form.title.trim() || !form.company_name.trim())
+      return toast.error("Identity Fault: Title and Company required");
     setIsSaving(true);
     try {
       const payload: any = {
-        title: form.title.trim(),
-        company_name: form.company_name.trim(),
-        company_logo_url: form.company_logo_url || null,
-        location: form.location || null,
-        job_type: form.job_type,
-        experience_level: form.experience_level,
+        ...form,
         salary_range_min: form.salary_range_min ? parseInt(form.salary_range_min) : null,
         salary_range_max: form.salary_range_max ? parseInt(form.salary_range_max) : null,
-        salary_currency: form.salary_currency,
-        description: form.description,
-        application_type: form.application_type,
-        application_email: form.application_type === "email" ? form.application_email : null,
-        application_url: form.application_type === "link" ? form.application_url : null,
-        source_platform: form.source_platform,
-        source_image_url: form.source_image_url || null,
-        is_active: form.is_active,
-        is_featured: form.is_featured,
-        ai_assessment_enabled: form.ai_assessment_enabled,
         vacancies: parseInt(form.vacancies) || 1,
         deadline: form.deadline ? new Date(form.deadline).toISOString() : null,
       };
 
-      if (editingJobId) {
-        const { error } = await supabase.from("jobs").update(payload).eq("id", editingJobId);
-        if (error) throw error;
-        toast.success("Job updated");
-      } else {
-        const { error } = await supabase.from("jobs").insert(payload);
-        if (error) throw error;
-        toast.success("Job created");
-      }
+      const { error } = editingJobId
+        ? await supabase.from("jobs").update(payload).eq("id", editingJobId)
+        : await supabase.from("jobs").insert(payload);
 
+      if (error) throw error;
+      toast.success(editingJobId ? "Artifact Recalibrated" : "Marketplace Node Initialized");
       setIsDialogOpen(false);
-      loadJobs();
+      loadRegistry();
     } catch (err: any) {
-      toast.error(err.message || "Save failed");
+      toast.error(err.message || "Protocol Error");
     } finally {
       setIsSaving(false);
     }
   };
 
+  const handleEnhanceSynthesis = async () => {
+    if (form.description.length < 30) return toast.error("Payload too low for AI synthesis");
+    setIsEnhancing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("enhance-job-description", {
+        body: { title: form.title, company: form.company_name, description: form.description },
+      });
+      if (error) throw error;
+      if (data?.enhanced) {
+        setForm((f) => ({ ...f, description: data.enhanced }));
+        toast.success("Description Synthesized");
+      }
+    } finally {
+      setIsEnhancing(false);
+    }
+  };
+
+  const totalPages = Math.ceil(totalCount / 10);
+
   return (
-    <div className="max-w-6xl mx-auto space-y-6 pb-20">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Marketplace Manager</h1>
-          <p className="text-sm text-muted-foreground">Monitor performance and pipeline status.</p>
+    <div className="space-y-10 animate-in fade-in duration-1000">
+      {/* Executive Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-muted/20 p-8 rounded-[40px] border-2 border-border/40 backdrop-blur-md">
+        <div className="space-y-1">
+          <div className="flex items-center gap-3 text-primary">
+            <Briefcase className="h-8 w-8" />
+            <h2 className="text-4xl font-black uppercase tracking-tighter italic leading-none">Job Inventory</h2>
+          </div>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 italic">
+            Marketplace Liquidity & Talent Engagement Registry
+          </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => setIsLinkedInImportOpen(true)}>
-            <Linkedin className="w-4 h-4 mr-2" /> Batch Upload
+        <div className="flex gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsLinkedInImportOpen(true)}
+            className="rounded-xl h-12 px-6 border-2 font-black uppercase text-[10px] tracking-widest gap-2"
+          >
+            <Linkedin className="w-4 h-4 text-primary" /> Batch Sync
           </Button>
-          <Button size="sm" onClick={openNew}>
-            <Plus className="w-4 h-4 mr-2" /> New Job
+          <Button
+            onClick={() => {
+              setEditingJobId(null);
+              setForm(EMPTY_FORM);
+              setIsDialogOpen(true);
+            }}
+            className="rounded-xl h-12 px-8 font-black uppercase text-[10px] tracking-widest shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95"
+          >
+            <Plus className="h-4 w-4 mr-2" /> Initialize Node
           </Button>
         </div>
       </div>
 
       <Tabs defaultValue="inventory" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 max-w-[400px] mb-4">
-          <TabsTrigger value="inventory">Inventory</TabsTrigger>
-          <TabsTrigger value="engagement">Engagement AI</TabsTrigger>
+        <TabsList className="bg-muted/30 backdrop-blur-md rounded-[24px] border-2 border-border/40 p-1.5 mb-8 w-full max-w-md">
+          <TabsTrigger
+            value="inventory"
+            className="flex-1 rounded-xl font-black uppercase text-[10px] tracking-widest gap-2 py-3"
+          >
+            <Layers className="w-4 h-4" /> Registry
+          </TabsTrigger>
+          <TabsTrigger
+            value="engagement"
+            className="flex-1 rounded-xl font-black uppercase text-[10px] tracking-widest gap-2 py-3"
+          >
+            <Activity className="w-4 h-4" /> Analytics
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="inventory" className="space-y-4">
-          <Card>
-            <CardHeader className="pb-3">
-              <div className="flex flex-wrap gap-2">
-                <Input
-                  placeholder="Search jobs/companies..."
-                  className="max-w-xs h-9"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
+        <TabsContent value="inventory" className="space-y-8 animate-in slide-in-from-bottom-2 duration-500">
+          <Card className="rounded-[40px] border-2 border-border/40 shadow-2xl overflow-hidden bg-card/30 backdrop-blur-xl">
+            <div className="h-1.5 w-full bg-gradient-to-r from-primary via-blue-600 to-primary" />
+            <CardHeader className="p-8 border-b border-border/10">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="relative flex-1 group">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
+                  <Input
+                    placeholder="Query artifact by role or entity..."
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setPage(1);
+                    }}
+                    className="pl-12 h-14 bg-muted/20 border-2 border-border/10 rounded-2xl font-bold tracking-tight"
+                  />
+                </div>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-[150px] h-9">
-                    <SelectValue placeholder="Status" />
+                  <SelectTrigger className="w-full sm:w-56 h-14 rounded-2xl border-2 font-black uppercase text-[10px] tracking-widest bg-muted/20">
+                    <SelectValue placeholder="Protocol" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Postings</SelectItem>
-                    <SelectItem value="active">Active Only</SelectItem>
-                    <SelectItem value="featured">Featured Only</SelectItem>
+                  <SelectContent className="rounded-xl border-2 shadow-2xl">
+                    <SelectItem value="all" className="font-bold">
+                      GLOBAL_REGISTRY
+                    </SelectItem>
+                    <SelectItem value="active" className="font-bold text-emerald-500">
+                      ACTIVE_NODES
+                    </SelectItem>
+                    <SelectItem value="featured" className="font-bold text-primary">
+                      FEATURED_PRIORITY
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
               {loading ? (
-                <DashboardTableSkeleton rows={5} columns={5} />
+                <div className="p-12">
+                  <DashboardTableSkeleton rows={8} columns={5} />
+                </div>
               ) : (
                 <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Job Detail</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Location</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+                  <TableHeader className="bg-muted/30">
+                    <TableRow className="hover:bg-transparent border-b-2">
+                      <TableHead className="text-[10px] font-black uppercase tracking-widest py-8 px-8">
+                        Logic Node (Role)
+                      </TableHead>
+                      <TableHead className="text-[10px] font-black uppercase tracking-widest">
+                        Protocol Status
+                      </TableHead>
+                      <TableHead className="text-[10px] font-black uppercase tracking-widest">Temporal Log</TableHead>
+                      <TableHead className="text-right text-[10px] font-black uppercase tracking-widest pr-8">
+                        Interrogate
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {jobs.map((job) => (
-                      <TableRow key={job.id}>
-                        <TableCell>
-                          <p className="font-bold text-sm">{job.title}</p>
-                          <p className="text-xs text-muted-foreground">{job.company_name}</p>
+                      <TableRow key={job.id} className="group transition-all hover:bg-primary/[0.02]">
+                        <TableCell className="px-8 py-6">
+                          <div className="space-y-1">
+                            <p className="font-black text-sm uppercase tracking-tight italic group-hover:text-primary transition-colors leading-none">
+                              {job.title}
+                            </p>
+                            <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest italic">
+                              {job.company_name}
+                            </p>
+                          </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={job.is_active ? "default" : "secondary"}>
-                            {job.is_active ? "Live" : "Draft"}
+                          <Badge
+                            className={cn(
+                              "rounded-lg font-black text-[8px] uppercase tracking-[0.2em] px-3 py-1 border-none",
+                              job.is_active ? "bg-emerald-500 text-white" : "bg-muted text-muted-foreground/60",
+                            )}
+                          >
+                            {job.is_active ? "ACTIVE_LOG" : "IDLE_DRAFT"}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">{job.location || "Remote"}</TableCell>
-                        <TableCell className="text-right space-x-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(job)}>
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive"
-                            onClick={async () => {
-                              if (confirm("Remove listing?")) {
-                                await supabase.from("jobs").delete().eq("id", job.id);
-                                loadJobs();
-                              }
-                            }}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                        <TableCell className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest italic">
+                          {new Date(job.created_at).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell className="text-right pr-8">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-10 w-10 rounded-xl hover:bg-primary/10 transition-all"
+                              onClick={() => openEdit(job)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-10 w-10 rounded-xl hover:bg-destructive/10 text-destructive transition-all"
+                              onClick={async () => {
+                                if (confirm("Purge artifact?")) {
+                                  await supabase.from("jobs").delete().eq("id", job.id);
+                                  loadRegistry();
+                                }
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
               )}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between p-8 border-t border-border/10 bg-muted/5">
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground/40 italic">
+                      Registry Frame
+                    </p>
+                    <p className="text-xl font-black italic tracking-tighter">
+                      {page} <span className="text-xs opacity-20">of</span> {totalPages}
+                    </p>
+                  </div>
+                  <div className="flex gap-4">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-14 w-14 rounded-2xl border-2 hover:bg-primary hover:text-white transition-all shadow-sm"
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                    >
+                      <ChevronLeft className="h-6 w-6" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-14 w-14 rounded-2xl border-2 hover:bg-primary hover:text-white transition-all shadow-sm"
+                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={page === totalPages}
+                    >
+                      <ChevronRight className="h-6 w-6" />
+                    </Button>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="engagement">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <Card className="bg-primary/5">
-              <CardContent className="p-4">
-                <p className="text-xs font-medium text-muted-foreground mb-1">Total Job Clicks</p>
-                <h3 className="text-2xl font-bold">{Object.values(engagement).reduce((a, b) => a + b.clicks, 0)}</h3>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4">
-                <p className="text-xs font-medium text-muted-foreground mb-1">AI Recommendation Hits</p>
-                <h3 className="text-2xl font-bold">{Object.values(engagement).reduce((a, b) => a + b.recommendations, 0)}</h3>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="p-4">
-                <p className="text-xs font-medium text-muted-foreground mb-1">Talent Bookmarks</p>
-                <h3 className="text-2xl font-bold">{Object.values(engagement).reduce((a, b) => a + b.saves, 0)}</h3>
-              </CardContent>
-            </Card>
+        <TabsContent value="engagement" className="space-y-8 animate-in slide-in-from-bottom-2 duration-500">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[
+              {
+                label: "Global Handshakes (Clicks)",
+                val: Object.values(engagement).reduce((a, b) => a + b.clicks, 0),
+                icon: MousePointer2,
+                color: "text-primary",
+                bg: "bg-primary/5",
+              },
+              {
+                label: "AI Match Success (Recs)",
+                val: Object.values(engagement).reduce((a, b) => a + b.recommendations, 0),
+                icon: Brain,
+                color: "text-purple-500",
+                bg: "bg-purple-500/5",
+              },
+              {
+                label: "Talent Retention (Saves)",
+                val: Object.values(engagement).reduce((a, b) => a + b.saves, 0),
+                icon: Bookmark,
+                color: "text-amber-500",
+                bg: "bg-amber-500/5",
+              },
+            ].map((k, i) => (
+              <Card
+                key={i}
+                className="rounded-[32px] border-2 border-border/40 bg-card/30 p-6 flex items-center gap-6 group hover:border-primary/20 transition-all"
+              >
+                <div
+                  className={cn(
+                    "h-14 w-14 rounded-2xl flex items-center justify-center border-2 shadow-inner group-hover:rotate-6 transition-transform",
+                    k.bg,
+                  )}
+                >
+                  <k.icon className={cn("h-7 w-7", k.color)} />
+                </div>
+                <div>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 mb-1">
+                    {k.label}
+                  </p>
+                  <p className="text-3xl font-black tracking-tighter italic leading-none">{k.val}</p>
+                </div>
+              </Card>
+            ))}
           </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm flex items-center gap-2">
-                <BarChart3 className="w-4 h-4" /> Engagement Rankings
+          <Card className="rounded-[40px] border-2 border-border/40 shadow-2xl overflow-hidden bg-card/30">
+            <CardHeader className="p-8 border-b border-border/10">
+              <CardTitle className="text-xl font-black uppercase tracking-tighter italic flex items-center gap-3">
+                <BarChart3 className="h-5 w-5 text-primary" /> Engagement Scoreboard
               </CardTitle>
-              <CardDescription>Top jobs by talent interest and AI matching</CardDescription>
+              <CardDescription className="text-[10px] font-bold uppercase tracking-widest">
+                Weighted Artifact Performance Index
+              </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
               <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Role</TableHead>
-                    <TableHead className="text-center"><MousePointer2 className="w-3 h-3 mx-auto" /> Clicks</TableHead>
-                    <TableHead className="text-center"><Bookmark className="w-3 h-3 mx-auto" /> Saves</TableHead>
-                    <TableHead className="text-center"><Brain className="w-3 h-3 mx-auto" /> AI Hits</TableHead>
-                    <TableHead className="text-right">Engagement</TableHead>
+                <TableHeader className="bg-muted/30">
+                  <TableRow className="hover:bg-transparent border-b-2">
+                    <TableHead className="text-[10px] font-black uppercase py-8 px-8">Logic Node</TableHead>
+                    <TableHead className="text-center text-[10px] font-black uppercase">Handshakes</TableHead>
+                    <TableHead className="text-center text-[10px] font-black uppercase">Retention</TableHead>
+                    <TableHead className="text-center text-[10px] font-black uppercase">AI_Impact</TableHead>
+                    <TableHead className="text-right text-[10px] font-black uppercase pr-8">Intensity_Index</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {jobs.map((job) => {
                     const stats = engagement[job.id] || { clicks: 0, saves: 0, recommendations: 0 };
+                    const score = stats.clicks + stats.saves * 5 + stats.recommendations * 2;
                     return (
-                      <TableRow key={job.id}>
-                        <TableCell className="font-medium text-xs">{job.title}</TableCell>
-                        <TableCell className="text-center text-xs">{stats.clicks}</TableCell>
-                        <TableCell className="text-center text-xs">{stats.saves}</TableCell>
-                        <TableCell className="text-center text-xs">{stats.recommendations}</TableCell>
-                        <TableCell className="text-right">
-                          <Badge variant="outline" className="text-[10px]">
-                            {stats.clicks + stats.saves * 3} pts
+                      <TableRow key={job.id} className="group hover:bg-primary/[0.02] border-b border-border/5">
+                        <TableCell className="px-8 py-5 font-black text-xs uppercase italic tracking-tighter">
+                          {job.title}
+                        </TableCell>
+                        <TableCell className="text-center font-mono font-bold text-primary">{stats.clicks}</TableCell>
+                        <TableCell className="text-center font-mono font-bold text-amber-500">{stats.saves}</TableCell>
+                        <TableCell className="text-center font-mono font-bold text-purple-500">
+                          {stats.recommendations}
+                        </TableCell>
+                        <TableCell className="text-right pr-8">
+                          <Badge className="bg-primary/10 text-primary border-none font-black text-[10px] italic">
+                            {score} PTS
                           </Badge>
                         </TableCell>
                       </TableRow>
@@ -468,184 +528,203 @@ export function JobsManager() {
         </TabsContent>
       </Tabs>
 
-      <BatchLinkedInJobUpload
-        isOpen={isLinkedInImportOpen}
-        onClose={() => setIsLinkedInImportOpen(false)}
-        onComplete={loadJobs}
-      />
-
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{editingJobId ? "Edit Job Posting" : "New Job Posting"}</DialogTitle>
-          </DialogHeader>
+        <DialogContent className="max-w-4xl rounded-[40px] border-4 border-border/40 bg-background/95 backdrop-blur-2xl p-0 overflow-hidden shadow-2xl">
+          <div className="h-2 w-full bg-gradient-to-r from-primary via-blue-600 to-primary" />
+          <div className="p-10 max-h-[85vh] overflow-y-auto no-scrollbar">
+            <DialogHeader className="mb-10 text-left">
+              <div className="flex items-center gap-5">
+                <ShieldCheck className="h-10 w-10 text-primary" />
+                <div className="space-y-1">
+                  <DialogTitle className="text-3xl font-black uppercase tracking-tighter italic">
+                    {editingJobId ? "Recalibrate Node" : "Initialize Artifact"}
+                  </DialogTitle>
+                  <DialogDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 italic">
+                    Job Marketplace Configuration Protocol
+                  </DialogDescription>
+                </div>
+              </div>
+            </DialogHeader>
 
-          <div className="space-y-5 py-2">
-            {/* Basics */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1.5 md:col-span-2">
-                <Label>Title *</Label>
-                <Input value={form.title} onChange={(e) => updateField("title", e.target.value)} placeholder="Senior Frontend Developer" />
+            <div className="space-y-10">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-4">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                    Job Title *
+                  </Label>
+                  <Input
+                    value={form.title}
+                    onChange={(e) => updateField("title", e.target.value)}
+                    className="h-12 rounded-xl border-2 font-bold"
+                  />
+                </div>
+                <div className="space-y-4">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                    Entity Name *
+                  </Label>
+                  <Input
+                    value={form.company_name}
+                    onChange={(e) => updateField("company_name", e.target.value)}
+                    className="h-12 rounded-xl border-2 font-bold"
+                  />
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <Label>Company Name *</Label>
-                <Input value={form.company_name} onChange={(e) => updateField("company_name", e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Location</Label>
-                <Input value={form.location} onChange={(e) => updateField("location", e.target.value)} placeholder="Dhaka, Bangladesh" />
-              </div>
-            </div>
 
-            {/* Logo */}
-            <div className="space-y-1.5">
-              <Label>Company Logo</Label>
-              <div className="flex items-center gap-3">
-                {form.company_logo_url ? (
-                  <div className="relative">
-                    <img src={form.company_logo_url} alt="Logo" className="h-14 w-14 rounded-lg object-cover border" />
-                    <button
-                      onClick={() => updateField("company_logo_url", "")}
-                      className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground rounded-full p-0.5"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                ) : (
-                  <label className="h-14 w-14 border-2 border-dashed border-border rounded-lg flex items-center justify-center cursor-pointer hover:border-primary transition-colors">
-                    {isUploadingLogo ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4 text-muted-foreground" />}
-                    <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleLogoUpload(e.target.files[0])} />
-                  </label>
-                )}
-                <Input
-                  value={form.company_logo_url}
-                  onChange={(e) => updateField("company_logo_url", e.target.value)}
-                  placeholder="…or paste logo URL"
-                  className="flex-1"
+              <div className="space-y-4">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                  Visual Identity (Logo)
+                </Label>
+                <div className="flex items-center gap-4 bg-muted/20 p-4 rounded-2xl border-2 border-border/10">
+                  {form.company_logo_url ? (
+                    <div className="relative h-20 w-20 rounded-xl overflow-hidden border-2 shadow-inner">
+                      <img src={form.company_logo_url} className="h-full w-full object-cover" />
+                      <button
+                        onClick={() => updateField("company_logo_url", "")}
+                        className="absolute inset-0 bg-destructive/60 opacity-0 hover:opacity-100 flex items-center justify-center text-white transition-opacity"
+                      >
+                        <X className="h-6 w-6" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="h-20 w-20 rounded-xl border-4 border-dashed border-border/40 hover:border-primary/40 flex flex-col items-center justify-center cursor-pointer transition-all">
+                      <Upload className="h-6 w-6 text-muted-foreground/40" />
+                      <input
+                        type="file"
+                        className="hidden"
+                        onChange={(e) => e.target.files?.[0] && handleLogoUpload(e.target.files[0])}
+                      />
+                    </label>
+                  )}
+                  <Input
+                    value={form.company_logo_url}
+                    onChange={(e) => updateField("company_logo_url", e.target.value)}
+                    placeholder="Sync Logo via URL..."
+                    className="flex-1 h-12 rounded-xl border-2 italic"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                    Role Specification *
+                  </Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleEnhanceSynthesis}
+                    disabled={isEnhancing}
+                    className="rounded-lg border-2 h-10 px-4 font-black uppercase text-[9px] tracking-widest text-primary"
+                  >
+                    {isEnhancing ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-4 w-4 mr-2" />
+                    )}{" "}
+                    Synthesize Payload
+                  </Button>
+                </div>
+                <Textarea
+                  value={form.description}
+                  onChange={(e) => updateField("description", e.target.value)}
+                  rows={10}
+                  className="rounded-3xl border-2 bg-muted/5 font-mono text-sm p-6 italic"
                 />
               </div>
-            </div>
 
-            {/* Type / Level / Source */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-1.5">
-                <Label>Job Type</Label>
-                <Select value={form.job_type} onValueChange={(v) => updateField("job_type", v as any)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{JOB_TYPES.map((t) => <SelectItem key={t} value={t}>{t.replace("_", " ")}</SelectItem>)}</SelectContent>
-                </Select>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase">Job Type</Label>
+                  <Select value={form.job_type} onValueChange={(v) => updateField("job_type", v as any)}>
+                    <SelectTrigger className="h-12 rounded-xl border-2 font-bold">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {JOB_TYPES.map((t) => (
+                        <SelectItem key={t} value={t}>
+                          {t.replace("_", " ")}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase">Experience</Label>
+                  <Select
+                    value={form.experience_level}
+                    onValueChange={(v) => updateField("experience_level", v as any)}
+                  >
+                    <SelectTrigger className="h-12 rounded-xl border-2 font-bold">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {EXPERIENCE_LEVELS.map((t) => (
+                        <SelectItem key={t} value={t}>
+                          {t}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase">Origin</Label>
+                  <Select value={form.source_platform} onValueChange={(v) => updateField("source_platform", v as any)}>
+                    <SelectTrigger className="h-12 rounded-xl border-2 font-bold">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {SOURCE_PLATFORMS.map((t) => (
+                        <SelectItem key={t} value={t}>
+                          {t}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <Label>Experience</Label>
-                <Select value={form.experience_level} onValueChange={(v) => updateField("experience_level", v as any)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{EXPERIENCE_LEVELS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Source Platform</Label>
-                <Select value={form.source_platform} onValueChange={(v) => updateField("source_platform", v as any)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{SOURCE_PLATFORMS.map((t) => <SelectItem key={t} value={t}>{t.replace("_", " ")}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-            </div>
 
-            {/* Salary */}
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-1.5">
-                <Label>Salary Min</Label>
-                <Input type="number" value={form.salary_range_min} onChange={(e) => updateField("salary_range_min", e.target.value)} />
+              <div className="flex items-center gap-12 p-6 rounded-[28px] border-2 bg-muted/20 border-border/10">
+                <div className="flex items-center gap-3">
+                  <Switch checked={form.is_active} onCheckedChange={(v) => updateField("is_active", v)} />
+                  <Label className="text-[10px] font-black uppercase tracking-widest">Active_Node</Label>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Switch checked={form.is_featured} onCheckedChange={(v) => updateField("is_featured", v)} />
+                  <Label className="text-[10px] font-black uppercase tracking-widest">Featured_Priority</Label>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Switch
+                    checked={form.ai_assessment_enabled}
+                    onCheckedChange={(v) => updateField("ai_assessment_enabled", v)}
+                  />
+                  <Label className="text-[10px] font-black uppercase tracking-widest">AI_Vetting_Logic</Label>
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <Label>Salary Max</Label>
-                <Input type="number" value={form.salary_range_max} onChange={(e) => updateField("salary_range_max", e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Currency</Label>
-                <Select value={form.salary_currency} onValueChange={(v) => updateField("salary_currency", v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{CURRENCIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-            </div>
 
-            {/* Description */}
-            <div className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <Label>Description *</Label>
-                <Button type="button" variant="ghost" size="sm" onClick={handleEnhanceDescription} disabled={isEnhancing}>
-                  {isEnhancing ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}
-                  AI Enhance
+              <div className="flex justify-end gap-4 pt-8 border-t border-border/10">
+                <Button
+                  variant="ghost"
+                  onClick={() => setIsDialogOpen(false)}
+                  className="h-14 px-8 font-black uppercase text-[10px] tracking-widest"
+                >
+                  Abort
+                </Button>
+                <Button
+                  onClick={handleSaveProtocol}
+                  disabled={isSaving}
+                  className="h-14 px-12 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-primary/30"
+                >
+                  {isSaving ? (
+                    <Loader2 className="animate-spin h-4 w-4 mr-2" />
+                  ) : (
+                    <ShieldCheck className="h-4 w-4 mr-2" />
+                  )}
+                  {editingJobId ? "Commit Recalibration" : "Authorize Node"}
                 </Button>
               </div>
-              <Textarea
-                value={form.description}
-                onChange={(e) => updateField("description", e.target.value)}
-                rows={8}
-                placeholder="Role responsibilities, requirements, benefits…"
-              />
-            </div>
-
-            {/* Application */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label>Application Type</Label>
-                <Select value={form.application_type} onValueChange={(v) => updateField("application_type", v as any)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>{APPLICATION_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              {form.application_type === "email" && (
-                <div className="space-y-1.5">
-                  <Label>Application Email *</Label>
-                  <Input type="email" value={form.application_email} onChange={(e) => updateField("application_email", e.target.value)} />
-                </div>
-              )}
-              {form.application_type === "link" && (
-                <div className="space-y-1.5">
-                  <Label>Application URL *</Label>
-                  <Input type="url" placeholder="https://…" value={form.application_url} onChange={(e) => updateField("application_url", e.target.value)} />
-                </div>
-              )}
-            </div>
-
-            {/* Meta */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              <div className="space-y-1.5">
-                <Label>Vacancies</Label>
-                <Input type="number" min="1" value={form.vacancies} onChange={(e) => updateField("vacancies", e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Deadline</Label>
-                <Input type="date" value={form.deadline} onChange={(e) => updateField("deadline", e.target.value)} />
-              </div>
-            </div>
-
-            {/* Toggles */}
-            <div className="flex flex-wrap gap-6 pt-2">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <Switch checked={form.is_active} onCheckedChange={(v) => updateField("is_active", v)} />
-                <span className="text-sm">Active</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <Switch checked={form.is_featured} onCheckedChange={(v) => updateField("is_featured", v)} />
-                <span className="text-sm">Featured</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <Switch checked={form.ai_assessment_enabled} onCheckedChange={(v) => updateField("ai_assessment_enabled", v)} />
-                <span className="text-sm">AI Assessment</span>
-              </label>
             </div>
           </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)} disabled={isSaving}>Cancel</Button>
-            <Button onClick={handleSave} disabled={isSaving}>
-              {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {editingJobId ? "Save Changes" : "Create Job"}
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
