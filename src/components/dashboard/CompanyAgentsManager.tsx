@@ -49,7 +49,7 @@ import {
   ShieldCheck,
   Activity,
   Terminal,
-  ExternalLink,
+  Loader2,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
@@ -305,11 +305,40 @@ export function CompanyAgentsManager() {
     }));
   };
 
-  // Telemetry Aggregation
+  // CTO RESTORATION: Export Logic
+  const exportLeadsCSV = () => {
+    const filtered = leadFilter === "all" ? leads : leads.filter((l) => l.company_agent_id === leadFilter);
+    if (filtered.length === 0) {
+      toast.error("No leads detected in query.");
+      return;
+    }
+
+    const headers = ["Name", "Email", "Phone", "Interest", "Status", "Timestamp"];
+    const rows = filtered.map((l) => [
+      l.lead_name || "N/A",
+      l.lead_email || "N/A",
+      l.lead_phone || "N/A",
+      l.lead_interest || "N/A",
+      l.status || "new",
+      l.created_at ? new Date(l.created_at).toISOString() : "N/A",
+    ]);
+
+    const csvContent = [headers.join(","), ...rows.map((r) => r.map((c) => `"${c}"`).join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `Partner_Leads_${new Date().getTime()}.csv`);
+    link.click();
+    toast.success("Lead Ledger Exported");
+  };
+
+  // CTO RESTORATION: Telemetry Constants
   const totalAgents = companyAgents.length;
   const activeNodes = companyAgents.filter((a) => a.is_active).length;
   const totalLeads = leads.length;
   const totalInteractions = companyAgents.reduce((sum, a) => sum + (a.ai_agents?.total_conversations || 0), 0);
+  const totalBudget = companyAgents.reduce((sum, a) => sum + (a.monthly_budget || 0), 0);
 
   if (loadingAgents || loadingCompanies)
     return (
@@ -559,6 +588,11 @@ export function CompanyAgentsManager() {
                   disabled={createAgentMutation.isPending}
                   className="h-14 px-12 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-primary/30"
                 >
+                  {createAgentMutation.isPending ? (
+                    <Loader2 className="animate-spin mr-2" />
+                  ) : (
+                    <ShieldCheck className="mr-2 h-4 w-4" />
+                  )}
                   {createAgentMutation.isPending ? "Syncing..." : "Authorize Creation"}
                 </Button>
               </DialogFooter>
