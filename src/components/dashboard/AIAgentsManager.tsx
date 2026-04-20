@@ -7,8 +7,27 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Bot, Edit2, Save, X, MessageSquare, Users, ChevronRight } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Bot,
+  Edit2,
+  Save,
+  X,
+  MessageSquare,
+  Users,
+  Zap,
+  ShieldCheck,
+  Activity,
+  Terminal,
+  Settings2,
+} from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
+
+/**
+ * Platform Logic: Neural Command Center (AI Agents Manager)
+ * High-fidelity orchestrator for system prompt calibration and agent performance audit.
+ * 2026 Standard: Executive Logic geometry with real-time session telemetry.
+ */
 
 interface AIAgent {
   id: string;
@@ -54,8 +73,6 @@ export function AIAgentsManager() {
       if (agentsError) throw agentsError;
       setAgents(agentsData || []);
 
-      // Load session stats - Optimization: Use count instead of fetching all rows if possible
-      // For now, fetching lightweight columns
       const { data: sessionsData, error: sessionsError } = await supabase
         .from("agent_chat_sessions")
         .select("agent_key, is_active");
@@ -72,14 +89,11 @@ export function AIAgentsManager() {
           };
         }
         statsMap[session.agent_key].total_sessions++;
-        if (session.is_active) {
-          statsMap[session.agent_key].active_sessions++;
-        }
+        if (session.is_active) statsMap[session.agent_key].active_sessions++;
       });
       setStats(statsMap);
     } catch (error: any) {
-      console.error("Error loading agents:", error);
-      toast.error("Failed to load AI agents");
+      toast.error("Transmission Error: Neural registry sync failed.");
     } finally {
       setIsLoading(false);
     }
@@ -88,162 +102,200 @@ export function AIAgentsManager() {
   const handleToggleActive = async (agent: AIAgent) => {
     try {
       const { error } = await supabase.from("ai_agents").update({ is_active: !agent.is_active }).eq("id", agent.id);
-
       if (error) throw error;
-
       setAgents((prev) => prev.map((a) => (a.id === agent.id ? { ...a, is_active: !a.is_active } : a)));
-      toast.success(`${agent.name} ${!agent.is_active ? "activated" : "deactivated"}`);
+      toast.success(`Node ${agent.name} status updated.`);
     } catch (error: any) {
-      console.error("Error toggling agent:", error);
-      toast.error("Failed to update agent status");
+      toast.error("Handshake Failed: Logic state immutable.");
     }
-  };
-
-  const handleEdit = (agent: AIAgent) => {
-    setEditingAgent(agent);
-    setEditedPrompt(agent.system_prompt);
-    setEditedDescription(agent.description);
   };
 
   const handleSave = async () => {
     if (!editingAgent) return;
     setIsSaving(true);
-
     try {
       const { error } = await supabase
         .from("ai_agents")
-        .update({
-          system_prompt: editedPrompt,
-          description: editedDescription,
-        })
+        .update({ system_prompt: editedPrompt, description: editedDescription })
         .eq("id", editingAgent.id);
 
       if (error) throw error;
-
       setAgents((prev) =>
         prev.map((a) =>
           a.id === editingAgent.id ? { ...a, system_prompt: editedPrompt, description: editedDescription } : a,
         ),
       );
       setEditingAgent(null);
-      toast.success("Agent updated successfully");
+      toast.success("Artifact Calibrated: Logic chain updated.");
     } catch (error: any) {
-      console.error("Error saving agent:", error);
-      toast.error("Failed to save agent");
+      toast.error("Logic Fault: Prompt injection rejected.");
     } finally {
       setIsSaving(false);
     }
   };
 
-  if (isLoading) {
+  if (isLoading)
     return (
-      <div className="space-y-6">
-        <Skeleton className="h-8 w-48" />
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="space-y-8 animate-pulse">
+        <Skeleton className="h-10 w-64 rounded-xl bg-muted/40" />
+        <div className="grid gap-6 md:grid-cols-3">
           {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-64 w-full rounded-xl" />
+            <Skeleton key={i} className="h-32 rounded-[32px] bg-muted/40" />
+          ))}
+        </div>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-64 rounded-[32px] bg-muted/40" />
           ))}
         </div>
       </div>
     );
-  }
 
   const totalSessions = Object.values(stats).reduce((sum, s) => sum + s.total_sessions, 0);
   const activeSessions = Object.values(stats).reduce((sum, s) => sum + s.active_sessions, 0);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">AI Agents Manager</h2>
-          <p className="text-muted-foreground">Configure system prompts and monitor agent performance</p>
+    <div className="space-y-10 animate-in fade-in duration-1000">
+      {/* Executive Header */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="space-y-2">
+          <h2 className="text-4xl font-black uppercase tracking-tighter italic leading-none">Neural Hub</h2>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 italic">
+            Core Logic Management & Performance Auditing v2.6
+          </p>
         </div>
+        <Button
+          variant="outline"
+          onClick={loadAgents}
+          className="rounded-xl h-11 px-6 border-2 font-black uppercase text-[10px] tracking-widest gap-3 shadow-sm hover:bg-primary/5"
+        >
+          <Activity className="h-4 w-4 text-primary" /> Re-Sync Registry
+        </Button>
       </div>
 
-      {/* Summary Stats */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="p-3 rounded-lg bg-primary/10">
-              <Bot className="h-6 w-6 text-primary" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Total Agents</p>
-              <p className="text-2xl font-bold">{agents.length}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="p-3 rounded-lg bg-secondary/10">
-              <MessageSquare className="h-6 w-6 text-secondary" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Total Sessions</p>
-              <p className="text-2xl font-bold">{totalSessions}</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="p-3 rounded-lg bg-accent/10">
-              <Users className="h-6 w-6 text-accent" />
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Active Now</p>
-              <p className="text-2xl font-bold">{activeSessions}</p>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Logic Telemetry HUD */}
+      <div className="grid gap-6 md:grid-cols-3">
+        {[
+          { label: "Total Artifacts", val: agents.length, icon: Bot, color: "text-blue-500", bg: "bg-blue-500/10" },
+          {
+            label: "Global Sessions",
+            val: totalSessions,
+            icon: MessageSquare,
+            color: "text-purple-500",
+            bg: "bg-purple-500/10",
+          },
+          { label: "Active Nodes", val: activeSessions, icon: Zap, color: "text-amber-500", bg: "bg-amber-500/10" },
+        ].map((stat, i) => (
+          <Card
+            key={i}
+            className="rounded-[32px] border-2 border-border/40 bg-card/30 backdrop-blur-sm overflow-hidden group hover:border-primary/20 transition-all duration-500"
+          >
+            <CardContent className="p-8">
+              <div className="flex items-center gap-5">
+                <div
+                  className={cn(
+                    "h-14 w-14 rounded-2xl flex items-center justify-center border-2 transition-transform duration-500 group-hover:rotate-6 shadow-inner",
+                    stat.bg,
+                    "border-white/5",
+                  )}
+                >
+                  <stat.icon className={cn("h-7 w-7", stat.color)} />
+                </div>
+                <div>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 mb-1">
+                    {stat.label}
+                  </p>
+                  <p className="text-3xl font-black tracking-tighter italic leading-none">{stat.val}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      {/* Agents Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {/* Agent Registry Grid */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {agents.map((agent) => {
-          const agentStats = stats[agent.agent_key] || {
-            total_sessions: 0,
-            active_sessions: 0,
-          };
+          const agentStats = stats[agent.agent_key] || { total_sessions: 0, active_sessions: 0 };
+          const isActive = agent.is_active;
 
           return (
             <Card
               key={agent.id}
-              className={`transition-all hover:shadow-md ${!agent.is_active ? "opacity-75 bg-muted/30" : ""}`}
+              className={cn(
+                "group rounded-[32px] border-2 border-border/40 bg-card/30 backdrop-blur-sm transition-all duration-500 hover:border-primary/40 hover:shadow-2xl overflow-hidden flex flex-col",
+                !isActive && "opacity-60 grayscale-[0.5] border-dashed",
+              )}
             >
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="p-3 rounded-xl" style={{ backgroundColor: agent.bg_color || "#e5e7eb" }}>
-                    <Bot className="h-6 w-6" style={{ color: agent.color || "#374151" }} />
+              <CardHeader className="p-8 pb-4">
+                <div className="flex items-start justify-between mb-6">
+                  <div
+                    className="h-14 w-14 rounded-2xl border-2 border-white/5 flex items-center justify-center transition-transform duration-500 group-hover:rotate-3 shadow-inner"
+                    style={{ backgroundColor: agent.bg_color || "rgba(var(--primary-rgb), 0.1)" }}
+                  >
+                    <Bot className="h-7 w-7" style={{ color: agent.color || "var(--primary)" }} />
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Switch checked={agent.is_active ?? true} onCheckedChange={() => handleToggleActive(agent)} />
-                    <Button variant="ghost" size="icon" onClick={() => handleEdit(agent)}>
+                  <div className="flex items-center gap-3">
+                    <Switch
+                      checked={isActive ?? true}
+                      onCheckedChange={() => handleToggleActive(agent)}
+                      className="data-[state=checked]:bg-primary"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-10 w-10 rounded-xl hover:bg-primary hover:text-white transition-all shadow-inner"
+                      onClick={() => handleEdit(agent)}
+                    >
                       <Edit2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
+                <CardTitle className="text-2xl font-black uppercase tracking-tighter italic leading-none group-hover:text-primary transition-colors">
+                  {agent.name}
+                </CardTitle>
+                <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest mt-1 italic">
+                  Protocol: {agent.agent_key}
+                </p>
               </CardHeader>
-              <CardContent>
-                <CardTitle className="text-lg mb-1">{agent.name}</CardTitle>
-                <p className="text-sm text-muted-foreground mb-4 line-clamp-2 min-h-[40px]">{agent.description}</p>
+              <CardContent className="p-8 pt-0 flex-1 flex flex-col justify-between">
+                <p className="text-sm font-medium leading-relaxed text-muted-foreground italic mb-6 line-clamp-2 min-h-[40px] tracking-tight">
+                  "{agent.description}"
+                </p>
 
-                <div className="space-y-3">
+                <div className="space-y-6">
                   <div className="flex flex-wrap gap-2">
                     {agent.expertise_areas?.slice(0, 3).map((area) => (
-                      <Badge key={area} variant="secondary" className="text-xs">
+                      <Badge
+                        key={area}
+                        className="rounded-lg bg-primary/5 text-primary border-none text-[8px] font-black uppercase px-2.5 py-1 tracking-widest"
+                      >
                         {area}
                       </Badge>
                     ))}
                   </div>
 
-                  <div className="pt-3 border-t grid grid-cols-2 gap-4 text-sm">
+                  <div className="pt-6 border-t border-border/10 grid grid-cols-2 gap-6">
                     <div>
-                      <span className="text-muted-foreground block text-xs uppercase tracking-wider">Sessions</span>
-                      <span className="font-semibold">{agentStats.total_sessions}</span>
+                      <span className="text-muted-foreground/40 block text-[8px] font-black uppercase tracking-widest mb-1 italic">
+                        Dimensions
+                      </span>
+                      <span className="text-lg font-black italic tracking-tighter">
+                        {agentStats.total_sessions} NODES
+                      </span>
                     </div>
-                    <div>
-                      <span className="text-muted-foreground block text-xs uppercase tracking-wider">Active</span>
-                      <span className="font-semibold text-green-600">{agentStats.active_sessions}</span>
+                    <div className="text-right">
+                      <span className="text-muted-foreground/40 block text-[8px] font-black uppercase tracking-widest mb-1 italic">
+                        Uplink Status
+                      </span>
+                      <span
+                        className={cn(
+                          "text-lg font-black italic tracking-tighter",
+                          agentStats.active_sessions > 0 ? "text-emerald-500" : "text-muted-foreground/20",
+                        )}
+                      >
+                        {agentStats.active_sessions} LIVE
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -253,54 +305,101 @@ export function AIAgentsManager() {
         })}
       </div>
 
-      {/* Edit Dialog */}
+      {/* Logic Injection Node (Edit Dialog) */}
       <Dialog open={!!editingAgent} onOpenChange={() => setEditingAgent(null)}>
-        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit {editingAgent?.name}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div>
-              <label className="text-sm font-medium mb-2 block">Description (User Facing)</label>
-              <Textarea
-                value={editedDescription}
-                onChange={(e) => setEditedDescription(e.target.value)}
-                rows={2}
-                placeholder="Agent description..."
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-2 block">System Prompt (Internal Logic)</label>
-              <div className="relative">
-                <Textarea
-                  value={editedPrompt}
-                  onChange={(e) => setEditedPrompt(e.target.value)}
-                  rows={15}
-                  placeholder="System prompt for the AI agent..."
-                  className="font-mono text-sm bg-muted/30 min-h-[300px]"
-                />
-                <div className="absolute bottom-2 right-2 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded border">
-                  {editedPrompt.length} chars
+        <DialogContent className="max-w-4xl rounded-[40px] border-4 border-border/40 bg-background/95 backdrop-blur-2xl p-0 overflow-hidden shadow-2xl">
+          <div className="h-2 w-full bg-gradient-to-r from-primary via-blue-600 to-primary" />
+          <div className="p-10 max-h-[85vh] overflow-y-auto no-scrollbar">
+            <DialogHeader className="mb-8">
+              <div className="flex items-center gap-4">
+                <Settings2 className="h-8 w-8 text-primary" />
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary italic">
+                    Neural Recalibration Node
+                  </p>
+                  <DialogTitle className="text-3xl font-black uppercase tracking-tighter italic">
+                    Calibration: {editingAgent?.name}
+                  </DialogTitle>
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                This prompt defines the agent's personality, constraints, and knowledge base. Changes here affect live
-                behavior immediately.
-              </p>
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => setEditingAgent(null)}>
-                <X className="h-4 w-4 mr-2" />
-                Cancel
-              </Button>
-              <Button onClick={handleSave} disabled={isSaving}>
-                <Save className="h-4 w-4 mr-2" />
-                {isSaving ? "Saving..." : "Save Changes"}
-              </Button>
+            </DialogHeader>
+
+            <div className="space-y-8">
+              <div className="space-y-3">
+                <label className="text-[10px] font-black uppercase tracking-widest text-primary ml-2">
+                  External Briefing (User Facing)
+                </label>
+                <Textarea
+                  value={editedDescription}
+                  onChange={(e) => setEditedDescription(e.target.value)}
+                  className="rounded-2xl border-2 bg-card/50 p-6 italic font-medium leading-relaxed resize-none focus:border-primary/40 transition-all"
+                />
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between px-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-primary">
+                    System Logic Payload (Internal)
+                  </label>
+                  <Badge variant="outline" className="font-mono text-[9px] border-primary/20 text-primary">
+                    {editedPrompt.length} BITS
+                  </Badge>
+                </div>
+                <div className="relative group">
+                  <Terminal className="absolute top-4 left-4 h-5 w-5 text-primary opacity-20 group-focus-within:opacity-100 transition-opacity" />
+                  <Textarea
+                    value={editedPrompt}
+                    onChange={(e) => setEditedPrompt(e.target.value)}
+                    className="font-mono text-sm bg-black/90 text-emerald-500 rounded-3xl min-h-[400px] p-10 pl-14 border-2 border-border/40 focus:border-emerald-500/50 transition-all selection:bg-emerald-500/20"
+                  />
+                </div>
+                <p className="text-[9px] font-bold text-muted-foreground/40 uppercase tracking-widest italic mt-2 px-2 leading-relaxed">
+                  Warning: Logic modification affects live agent behavior in real-time. Unauthorized prompt injection
+                  may corrupt user experience protocols.
+                </p>
+              </div>
+
+              <div className="flex justify-end gap-4 pt-6 border-t border-border/10">
+                <Button
+                  variant="ghost"
+                  onClick={() => setEditingAgent(null)}
+                  className="h-14 px-8 font-black uppercase text-[10px] tracking-widest"
+                >
+                  Terminate
+                </Button>
+                <Button
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  className="h-14 px-10 rounded-[20px] font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-primary/30 group relative overflow-hidden"
+                >
+                  <span className="relative z-10 flex items-center gap-3">
+                    {isSaving ? <Loader2 className="h-5 w-5 animate-spin" /> : <ShieldCheck className="h-5 w-5" />}
+                    {isSaving ? "Syncing..." : "Authorize Update"}
+                  </span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-primary via-blue-600 to-primary opacity-50 group-hover:opacity-100 transition-opacity" />
+                </Button>
+              </div>
             </div>
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Operational Trace Footer */}
+      <footer className="mt-20 pt-10 border-t border-border/40 flex items-center justify-between opacity-30">
+        <div className="space-y-1">
+          <p className="text-[9px] font-black uppercase tracking-[0.4em] italic">
+            Neural Network Registry: Authorized Access Active
+          </p>
+          <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">
+            Core Logic: Verified Executive v2.6.4
+          </p>
+        </div>
+        <div className="flex gap-2">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="h-1 w-8 rounded-full bg-primary/20" />
+          ))}
+        </div>
+      </footer>
     </div>
   );
 }
