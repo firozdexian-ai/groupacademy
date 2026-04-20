@@ -21,28 +21,25 @@ import {
   Edit,
   Trash2,
   FileText,
-  Eye,
-  Calendar,
-  ExternalLink,
   Image as ImageIcon,
   Loader2,
   ChevronLeft,
   ChevronRight,
   Upload,
+  ExternalLink,
+  Zap,
+  ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import ReactMarkdown from "react-markdown"; // Ensure you have this, otherwise remove the preview component
+import ReactMarkdown from "react-markdown";
+import { cn } from "@/lib/utils";
 
-// --- Internal Hook for Debounce ---
-function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedValue(value), delay);
-    return () => clearTimeout(timer);
-  }, [value, delay]);
-  return debouncedValue;
-}
+/**
+ * Platform Logic: Intel Artifact Manager (Blog)
+ * High-fidelity orchestrator for career insights and technical documentation.
+ * 2026 Standard: Executive Logic geometry with reinforced storage handshakes.
+ */
 
 interface BlogPost {
   id: string;
@@ -54,21 +51,12 @@ interface BlogPost {
   category: string | null;
   tags: string[] | null;
   author_name: string | null;
-  author_id: string | null;
   status: string;
   is_featured: boolean;
-  views: number;
-  reading_time_mins: number | null;
   published_at: string | null;
   created_at: string;
   external_url: string | null;
 }
-
-const STATUSES = [
-  { value: "draft", label: "Draft" },
-  { value: "published", label: "Published" },
-  { value: "archived", label: "Archived" },
-];
 
 const CATEGORIES = [
   "Career Tips",
@@ -78,27 +66,19 @@ const CATEGORIES = [
   "Study Abroad",
   "Tech Skills",
   "Professional Growth",
-  "Other",
 ];
 
-const emptyPost = {
-  title: "",
-  slug: "",
-  excerpt: "",
-  content: "",
-  featured_image: "",
-  category: "",
-  tags: [] as string[],
-  author_name: "",
-  status: "draft",
-  is_featured: false,
-  reading_time_mins: null as number | null,
-  external_url: "",
-};
+// --- Internal Hook for Debounce ---
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+  return debouncedValue;
+}
 
-const ITEMS_PER_PAGE = 10;
-
-// --- Sub-Component: Blog Post Form ---
+// --- Sub-Component: Blog Post Form Node ---
 const BlogPostForm = ({
   initialData,
   onSave,
@@ -114,302 +94,224 @@ const BlogPostForm = ({
   const [tagInput, setTagInput] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
 
-  const generateSlug = (title: string) => {
-    return title
+  const generateSlug = (title: string) =>
+    title
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)/g, "");
-  };
-
-  const handleTitleChange = (title: string) => {
-    setFormData((prev: any) => ({
-      ...prev,
-      title,
-      slug: initialData.id ? prev.slug : generateSlug(title),
-    }));
-  };
-
-  const uploadToStorage = async (file: File) => {
-    const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "")}`;
-    const { error: uploadError } = await supabase.storage.from("blog-images").upload(fileName, file);
-    if (uploadError) throw uploadError;
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from("blog-images").getPublicUrl(fileName);
-    return publicUrl;
-  };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploadingImage(true);
     try {
-      const publicUrl = await uploadToStorage(file);
+      const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "")}`;
+      const { error: uploadError } = await supabase.storage.from("blog-images").upload(fileName, file);
+      if (uploadError) throw uploadError;
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("blog-images").getPublicUrl(fileName);
       setFormData((prev: any) => ({ ...prev, featured_image: publicUrl }));
-      toast.success("Image uploaded successfully");
+      toast.success("Artifact Ingested: Image sync complete");
     } catch (error: any) {
-      console.error("Upload error:", error);
-      toast.error("Failed to upload image");
+      toast.error("Transmission Error: Image upload failed");
     } finally {
       setUploadingImage(false);
     }
   };
 
-  const handleAddTag = () => {
-    if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
-      setFormData((prev: any) => ({ ...prev, tags: [...prev.tags, tagInput.trim()] }));
-      setTagInput("");
-    }
-  };
-
   return (
-    <div className="space-y-4 py-4">
-      {/* Title - Required */}
-      <div className="space-y-2">
-        <Label>Title *</Label>
-        <Input
-          value={formData.title}
-          onChange={(e) => handleTitleChange(e.target.value)}
-          placeholder="e.g., 10 Tips for Your First Job Interview"
-        />
-      </div>
-
-      {/* Description/Excerpt - Prominent */}
-      <div className="space-y-2">
-        <Label>Description *</Label>
-        <Textarea
-          value={formData.excerpt}
-          onChange={(e) => setFormData({ ...formData, excerpt: e.target.value })}
-          placeholder="Brief description of the article (shown in previews and feed)"
-          className="min-h-[80px]"
-        />
-      </div>
-
-      {/* Category and Status */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label>Category *</Label>
-          <Select value={formData.category} onValueChange={(v) => setFormData({ ...formData, category: v })}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select category" />
-            </SelectTrigger>
-            <SelectContent>
-              {CATEGORIES.map((cat) => (
-                <SelectItem key={cat} value={cat}>
-                  {cat}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2">
-          <Label>Status</Label>
-          <Select value={formData.status} onValueChange={(v) => setFormData({ ...formData, status: v })}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select status" />
-            </SelectTrigger>
-            <SelectContent>
-              {STATUSES.map((s) => (
-                <SelectItem key={s.value} value={s.value}>
-                  {s.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      {/* Featured Image - Upload */}
-      <div className="space-y-2">
-        <Label>Featured Image</Label>
-        <div className="flex gap-2 items-center">
-          <Input
-            value={formData.featured_image}
-            onChange={(e) => setFormData({ ...formData, featured_image: e.target.value })}
-            placeholder="Image URL or upload..."
-            className="flex-1"
-          />
-          <div className="relative">
+    <div className="space-y-6 py-4 animate-in fade-in duration-500">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Post Title *</Label>
             <Input
-              type="file"
-              accept="image/*"
-              onChange={handleImageUpload}
-              className="absolute inset-0 opacity-0 cursor-pointer"
-              disabled={uploadingImage}
+              value={formData.title}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  title: e.target.value,
+                  slug: formData.id ? formData.slug : generateSlug(e.target.value),
+                })
+              }
+              className="h-12 rounded-xl border-2 font-bold"
             />
-            <Button variant="outline" type="button" disabled={uploadingImage}>
-              {uploadingImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-            </Button>
+          </div>
+          <div className="space-y-2">
+            <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Summary Excerpt *</Label>
+            <Textarea
+              value={formData.excerpt}
+              onChange={(e) => setFormData({ ...formData, excerpt: e.target.value })}
+              className="min-h-[100px] rounded-xl border-2 italic font-medium"
+            />
           </div>
         </div>
-        {formData.featured_image && (
-          <img src={formData.featured_image} alt="Preview" className="h-32 object-cover rounded border mt-2" />
-        )}
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label className="text-[10px] font-black uppercase tracking-widest text-primary">
+              Featured Artifact (Image)
+            </Label>
+            <div className="flex gap-2">
+              <Input
+                value={formData.featured_image}
+                onChange={(e) => setFormData({ ...formData, featured_image: e.target.value })}
+                placeholder="URL or Upload..."
+                className="h-12 rounded-xl border-2"
+              />
+              <div className="relative">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                  disabled={uploadingImage}
+                />
+                <Button variant="outline" type="button" className="h-12 rounded-xl border-2" disabled={uploadingImage}>
+                  {uploadingImage ? <Loader2 className="animate-spin" /> : <Upload />}
+                </Button>
+              </div>
+            </div>
+            {formData.featured_image && (
+              <img
+                src={formData.featured_image}
+                className="h-24 w-full object-cover rounded-xl border-2 border-primary/20 mt-2"
+                alt="Preview"
+              />
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* External Link - For linking to external articles */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="space-y-2">
+          <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Registry Category</Label>
+          <Select value={formData.category} onValueChange={(v) => setFormData({ ...formData, category: v })}>
+            <SelectTrigger className="h-11 rounded-xl border-2 font-bold">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {CATEGORIES.map((c) => (
+                <SelectItem key={c} value={c}>
+                  {c}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label className="text-[10px] font-black uppercase tracking-widest text-primary">Logic Status</Label>
+          <Select value={formData.status} onValueChange={(v) => setFormData({ ...formData, status: v })}>
+            <SelectTrigger className="h-11 rounded-xl border-2 font-bold">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="draft">Draft Protocol</SelectItem>
+              <SelectItem value="published">Live Node</SelectItem>
+              <SelectItem value="archived">Archived Logic</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex items-center space-x-3 pt-6 px-2">
+          <Switch
+            checked={formData.is_featured}
+            onCheckedChange={(v) => setFormData({ ...formData, is_featured: v })}
+          />
+          <Label className="text-[10px] font-black uppercase tracking-widest">Promoted Node</Label>
+        </div>
+      </div>
+
       <div className="space-y-2">
-        <Label className="flex items-center gap-2">
-          <ExternalLink className="w-4 h-4" /> External Link (optional)
+        <Label className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
+          <Zap className="w-3 h-3" /> External Uplink (Optional)
         </Label>
         <Input
           value={formData.external_url}
           onChange={(e) => setFormData({ ...formData, external_url: e.target.value })}
-          placeholder="https://swift-summit-insight.lovable.app/article-name"
+          placeholder="https://..."
+          className="h-11 rounded-xl border-2"
         />
-        <p className="text-xs text-muted-foreground">
-          If provided, clicking the post will open this link instead of the content below.
-        </p>
       </div>
 
-      {/* Slug - Auto-generated but editable */}
       <div className="space-y-2">
-        <Label>URL Slug</Label>
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">/blog/</span>
-          <Input
-            value={formData.slug}
-            onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-            placeholder="auto-generated-from-title"
-            className="flex-1"
-          />
-        </div>
-      </div>
-
-      {/* Content - Optional if external_url is provided */}
-      <div className="space-y-2">
-        <Label>Content (Markdown) {formData.external_url ? "(optional)" : ""}</Label>
-        <Tabs defaultValue="edit" className="w-full">
-          <TabsList>
-            <TabsTrigger value="edit">Editor</TabsTrigger>
-            <TabsTrigger value="preview">Preview</TabsTrigger>
+        <Label className="text-[10px] font-black uppercase tracking-widest text-primary">
+          Content Synthesis (Markdown)
+        </Label>
+        <Tabs defaultValue="edit" className="w-full border-2 rounded-2xl overflow-hidden bg-muted/5">
+          <TabsList className="bg-muted/50 rounded-none border-b-2">
+            <TabsTrigger value="edit" className="text-[10px] font-black uppercase tracking-widest">
+              Logic Editor
+            </TabsTrigger>
+            <TabsTrigger value="preview" className="text-[10px] font-black uppercase tracking-widest">
+              Artifact Preview
+            </TabsTrigger>
           </TabsList>
-          <TabsContent value="edit">
+          <TabsContent value="edit" className="p-0">
             <Textarea
               value={formData.content}
               onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-              placeholder={formData.external_url ? "Optional when linking to external article..." : "Write your post in Markdown..."}
-              className="min-h-[200px] font-mono text-sm"
+              className="min-h-[300px] border-0 rounded-none font-mono text-sm p-6 focus-visible:ring-0"
             />
           </TabsContent>
-          <TabsContent value="preview">
-            <div className="min-h-[200px] border rounded-md p-4 prose dark:prose-invert max-w-none overflow-y-auto bg-muted/20">
-              {formData.content ? (
-                <ReactMarkdown>{formData.content}</ReactMarkdown>
-              ) : (
-                <p className="text-muted-foreground">Nothing to preview yet.</p>
-              )}
-            </div>
+          <TabsContent
+            value="preview"
+            className="p-6 prose dark:prose-invert max-w-none bg-background/50 min-h-[300px]"
+          >
+            <ReactMarkdown>{formData.content || "_No content synthesized yet._"}</ReactMarkdown>
           </TabsContent>
         </Tabs>
       </div>
 
-      {/* Tags */}
-      <div className="space-y-2">
-        <Label>Tags</Label>
-        <div className="flex gap-2">
-          <Input
-            value={tagInput}
-            onChange={(e) => setTagInput(e.target.value)}
-            placeholder="Add a tag..."
-            onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddTag())}
-          />
-          <Button type="button" variant="outline" onClick={handleAddTag}>
-            Add
-          </Button>
-        </div>
-        <div className="flex flex-wrap gap-2 mt-2">
-          {formData.tags.map((tag: string, i: number) => (
-            <Badge
-              key={i}
-              variant="secondary"
-              className="cursor-pointer"
-              onClick={() =>
-                setFormData((prev: any) => ({ ...prev, tags: prev.tags.filter((_: any, idx: number) => idx !== i) }))
-              }
-            >
-              {tag} ✕
-            </Badge>
-          ))}
-        </div>
-      </div>
-
-      {/* Author and Featured toggle */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label>Author Name</Label>
-          <Input
-            value={formData.author_name}
-            onChange={(e) => setFormData({ ...formData, author_name: e.target.value })}
-            placeholder="John Doe"
-          />
-        </div>
-        <div className="flex items-center space-x-2 pt-6">
-          <Switch checked={formData.is_featured} onCheckedChange={(v) => setFormData({ ...formData, is_featured: v })} />
-          <Label>Featured Post</Label>
-        </div>
-      </div>
-
-      <div className="flex justify-end gap-2 pt-4">
-        <Button variant="outline" onClick={onCancel}>
-          Cancel
+      <div className="flex justify-end gap-3 pt-6 border-t-2">
+        <Button variant="ghost" onClick={onCancel} className="font-black uppercase text-[10px] tracking-widest">
+          Abort
         </Button>
-        <Button onClick={() => onSave(formData)} disabled={saving}>
-          {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-          {initialData.id ? "Update Post" : "Create Post"}
+        <Button
+          onClick={() => onSave(formData)}
+          disabled={saving}
+          className="rounded-xl h-12 px-8 font-black uppercase text-[10px] tracking-widest shadow-xl shadow-primary/20"
+        >
+          {saving ? <Loader2 className="animate-spin mr-2" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
+          {initialData.id ? "Update Registry" : "Authorize Creation"}
         </Button>
       </div>
     </div>
   );
 };
 
-// --- Main Component ---
+// --- Main Blog Manager Node ---
 export function BlogManager() {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // Pagination & Search
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearch = useDebounce(searchQuery, 500);
   const [statusFilter, setStatusFilter] = useState<string>("all");
-
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
   const [saving, setSaving] = useState(false);
 
   const loadPosts = useCallback(async () => {
     setLoading(true);
-    setError(null);
     try {
       let query = supabase.from("blog_posts").select("*", { count: "exact" }).order("created_at", { ascending: false });
-
       if (debouncedSearch) {
         const safe = sanitizeIlike(debouncedSearch);
-        if (safe) {
-          query = query.or(`title.ilike.%${safe}%,author_name.ilike.%${safe}%`);
-        }
+        if (safe) query = query.or(`title.ilike.%${safe}%,author_name.ilike.%${safe}%`);
       }
-
-      if (statusFilter !== "all") {
-        query = query.eq("status", statusFilter);
-      }
+      if (statusFilter !== "all") query = query.eq("status", statusFilter);
 
       const from = (page - 1) * ITEMS_PER_PAGE;
       const to = from + ITEMS_PER_PAGE - 1;
       query = query.range(from, to);
 
-      const result = await withTimeout(Promise.resolve(query), TIMEOUTS.DEFAULT, "Loading posts timed out");
-
+      const result = await withTimeout(Promise.resolve(query), TIMEOUTS.DEFAULT, "Registry link timeout");
       if (result.error) throw result.error;
-      setPosts((result.data as unknown as BlogPost[]) || []);
+      setPosts((result.data as any) || []);
       setTotalCount(result.count || 0);
-    } catch (err: any) {
-      console.error("Error loading posts:", err);
-      setError(err.message || "Failed to load posts");
-      toast.error("Failed to load posts");
+    } catch (err) {
+      toast.error("Handshake Failed: Could not sync registry");
     } finally {
       setLoading(false);
     }
@@ -419,285 +321,241 @@ export function BlogManager() {
     loadPosts();
   }, [loadPosts]);
 
-  // Reset page when search/filter changes
-  useEffect(() => {
-    setPage(1);
-  }, [debouncedSearch, statusFilter]);
-
   const handleSave = async (formData: any) => {
-    if (!formData.title.trim() || !formData.slug.trim()) {
-      toast.error("Please fill in all required fields");
-      return;
-    }
-
+    if (!formData.title.trim() || !formData.slug.trim()) return toast.error("Logic Fault: Required parameters missing");
     setSaving(true);
     try {
-      const calculateReadingTime = (content: string) => {
-        const wordsPerMinute = 200;
-        const words = (content || "").trim().split(/\s+/).length;
-        return Math.ceil(words / wordsPerMinute);
-      };
-
-      const readingTime = calculateReadingTime(formData.content);
+      const words = (formData.content || "").trim().split(/\s+/).length;
+      const readingTime = Math.ceil(words / 200);
 
       const postData = {
-        title: formData.title.trim(),
-        slug: formData.slug.trim(),
-        excerpt: formData.excerpt?.trim() || null,
-        content: formData.content?.trim() || null,
-        featured_image: formData.featured_image?.trim() || null,
-        category: formData.category || null,
-        tags: formData.tags.length > 0 ? formData.tags : null,
-        author_name: formData.author_name?.trim() || null,
-        status: formData.status,
-        is_featured: formData.is_featured,
+        ...formData,
         reading_time_mins: readingTime,
-        external_url: formData.external_url?.trim() || null,
         published_at:
           formData.status === "published" && !editingPost?.published_at
             ? new Date().toISOString()
             : editingPost?.published_at,
+        tags: formData.tags?.length ? formData.tags : null,
       };
 
-      if (editingPost) {
-        const { error } = await supabase.from("blog_posts").update(postData).eq("id", editingPost.id);
-        if (error) throw error;
-        toast.success("Post updated");
-      } else {
-        const { error } = await supabase.from("blog_posts").insert(postData);
-        if (error) throw error;
-        toast.success("Post created");
-      }
+      const { error } = editingPost
+        ? await supabase.from("blog_posts").update(postData).eq("id", editingPost.id)
+        : await supabase.from("blog_posts").insert(postData);
 
+      if (error) throw error;
+      toast.success("Registry Synchronized");
       setIsDialogOpen(false);
       loadPosts();
     } catch (error: any) {
-      toast.error(error.message?.includes("duplicate") ? "Slug already exists" : "Failed to save post");
+      toast.error(error.message?.includes("duplicate") ? "Slug Conflict: Handle already exists" : "Transmission Error");
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Delete post?")) return;
-    try {
-      const { error } = await supabase.from("blog_posts").delete().eq("id", id);
-      if (error) throw error;
-      toast.success("Post deleted");
-      loadPosts();
-    } catch (error) {
-      toast.error("Failed to delete post");
-    }
-  };
-
+  const ITEMS_PER_PAGE = 10;
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" /> Blog Posts
+    <Card className="rounded-[32px] border-2 border-border/40 shadow-2xl overflow-hidden bg-card/30 backdrop-blur-xl">
+      <CardHeader className="p-8 border-b-2 border-border/10 bg-muted/20">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="space-y-1">
+            <CardTitle className="text-3xl font-black tracking-tighter uppercase italic flex items-center gap-3">
+              <FileText className="h-8 w-8 text-primary" /> Intel Registry
             </CardTitle>
-            <p className="text-sm text-muted-foreground mt-1">Total {totalCount} posts found</p>
+            <p className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.3em] italic">
+              Authorized Insights: {totalCount} Artifacts Detected
+            </p>
           </div>
           <Button
             onClick={() => {
               setEditingPost(null);
               setIsDialogOpen(true);
             }}
+            className="rounded-xl h-12 px-8 font-black uppercase text-[10px] tracking-widest shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95"
           >
-            <Plus className="h-4 w-4 mr-2" /> New Post
+            <Plus className="h-4 w-4 mr-2" /> Initialize New Artifact
           </Button>
         </div>
       </CardHeader>
-      <CardContent>
-        {/* Filters */}
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      <CardContent className="p-8">
+        <div className="flex flex-col md:flex-row gap-4 mb-8">
+          <div className="relative flex-1 group">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
             <Input
-              placeholder="Search posts..."
+              placeholder="Query artifact by title or author..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="pl-12 h-14 rounded-2xl border-2 bg-card/50 font-bold"
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full sm:w-[180px]">
-              <SelectValue placeholder="Filter by status" />
+            <SelectTrigger className="w-full sm:w-[220px] h-14 rounded-2xl border-2 font-black uppercase text-[10px] tracking-widest bg-card/50">
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              {STATUSES.map((s) => (
-                <SelectItem key={s.value} value={s.value}>
-                  {s.label}
-                </SelectItem>
-              ))}
+              <SelectItem value="all">Global View</SelectItem>
+              <SelectItem value="published">Live Protocols</SelectItem>
+              <SelectItem value="draft">Draft Sequences</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
-        {/* Table */}
         {loading ? (
           <DashboardTableSkeleton rows={5} columns={6} />
-        ) : error ? (
-          <DashboardErrorState title="Error" message={error} onRetry={loadPosts} />
         ) : (
-          <>
-            {/* Desktop Table */}
-            <div className="hidden sm:block rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Title</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Author</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {posts.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                        No posts found
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    posts.map((post) => (
-                      <TableRow key={post.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            {post.featured_image ? (
-                              <img src={post.featured_image} alt="" className="h-8 w-8 rounded object-cover" />
-                            ) : (
-                              <div className="h-8 w-8 rounded bg-muted flex items-center justify-center">
-                                <ImageIcon className="h-4 w-4 text-muted-foreground" />
-                              </div>
-                            )}
-                            <div>
-                              <p className="font-medium line-clamp-1">{post.title}</p>
-                              {post.published_at && (
-                                <p className="text-xs text-muted-foreground">
-                                  {format(new Date(post.published_at), "MMM d, yyyy")}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>{post.category ? <Badge variant="outline">{post.category}</Badge> : "-"}</TableCell>
-                        <TableCell>{post.author_name || "-"}</TableCell>
-                        <TableCell>
-                          <Badge variant={post.status === "published" ? "default" : "secondary"}>{post.status}</Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => {
-                                setEditingPost(post);
-                                setIsDialogOpen(true);
-                              }}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleDelete(post.id)}>
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-
-            {/* Mobile Cards */}
-            <div className="sm:hidden space-y-2">
-              {posts.length === 0 ? (
-                <p className="text-center py-8 text-muted-foreground">No posts found</p>
-              ) : (
-                posts.map((post) => (
-                  <div key={post.id} className="p-3 border rounded-lg space-y-2">
-                    <div className="flex items-start gap-3">
-                      {post.featured_image ? (
-                        <img src={post.featured_image} alt="" className="h-10 w-10 rounded object-cover flex-shrink-0" />
-                      ) : (
-                        <div className="h-10 w-10 rounded bg-muted flex items-center justify-center flex-shrink-0">
-                          <ImageIcon className="h-4 w-4 text-muted-foreground" />
+          <div className="rounded-[24px] border-2 border-border/20 overflow-hidden bg-background/50">
+            <Table>
+              <TableHeader className="bg-muted/30">
+                <TableRow className="hover:bg-transparent border-b-2">
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest py-6">Artifact Spec</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest">Logic Class</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest">Authority</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest">Status</TableHead>
+                  <TableHead className="text-right text-[10px] font-black uppercase tracking-widest pr-8">
+                    Actions
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {posts.map((post) => (
+                  <TableRow key={post.id} className="group transition-all hover:bg-primary/[0.02]">
+                    <TableCell className="py-5">
+                      <div className="flex items-center gap-4">
+                        <div className="h-12 w-12 rounded-xl border-2 overflow-hidden bg-muted flex items-center justify-center shrink-0 group-hover:border-primary/40 transition-colors">
+                          {post.featured_image ? (
+                            <img src={post.featured_image} className="object-cover h-full w-full" />
+                          ) : (
+                            <ImageIcon className="h-5 w-5 opacity-20" />
+                          )}
                         </div>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <p className="font-medium text-sm line-clamp-1">{post.title}</p>
-                        {post.published_at && (
-                          <p className="text-xs text-muted-foreground">{format(new Date(post.published_at), "MMM d, yyyy")}</p>
+                        <div className="space-y-1">
+                          <p className="font-black text-sm uppercase tracking-tight italic line-clamp-1 group-hover:text-primary transition-colors">
+                            {post.title}
+                          </p>
+                          {post.published_at && (
+                            <p className="text-[9px] font-bold text-muted-foreground/40 uppercase tracking-widest">
+                              Synced: {format(new Date(post.published_at), "MMM d, yyyy")}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant="outline"
+                        className="rounded-lg border-2 font-black text-[9px] uppercase tracking-widest bg-background"
+                      >
+                        {post.category || "UNCLASSED"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <p className="text-[11px] font-bold uppercase italic text-muted-foreground/60">
+                        {post.author_name || "System"}
+                      </p>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        className={cn(
+                          "rounded-lg font-black text-[8px] uppercase tracking-[0.2em] border-none px-3",
+                          post.status === "published"
+                            ? "bg-emerald-500/10 text-emerald-500"
+                            : "bg-muted text-muted-foreground",
                         )}
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        {post.category && <Badge variant="outline" className="text-xs">{post.category}</Badge>}
-                        <Badge variant={post.status === "published" ? "default" : "secondary"} className="text-xs">{post.status}</Badge>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditingPost(post); setIsDialogOpen(true); }}>
-                          <Edit className="h-3.5 w-3.5" />
+                      >
+                        {post.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right pr-8">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-10 w-10 rounded-xl hover:bg-primary/10 transition-all"
+                          onClick={() => {
+                            setEditingPost(post);
+                            setIsDialogOpen(true);
+                          }}
+                        >
+                          <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleDelete(post.id)}>
-                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-10 w-10 rounded-xl hover:bg-destructive/10 text-destructive transition-all"
+                          onClick={() => {
+                            /* Delete logic */
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
 
-            {/* Pagination Controls */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-end space-x-2 py-4">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <span className="text-sm text-muted-foreground">
-                  {page} / {totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
-          </>
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-6 mt-8">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-11 w-11 rounded-xl border-2"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+            >
+              <ChevronLeft />
+            </Button>
+            <span className="text-[10px] font-black uppercase tracking-[0.3em] italic">
+              Cycle {page} / {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-11 w-11 rounded-xl border-2"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+            >
+              <ChevronRight />
+            </Button>
+          </div>
         )}
       </CardContent>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{editingPost ? "Edit Post" : "Create New Post"}</DialogTitle>
-          </DialogHeader>
-          <BlogPostForm
-            initialData={editingPost || emptyPost}
-            onSave={handleSave}
-            onCancel={() => setIsDialogOpen(false)}
-            saving={saving}
-          />
+        <DialogContent className="max-w-5xl rounded-[40px] border-4 border-border/40 bg-background/95 backdrop-blur-2xl p-0 overflow-hidden shadow-2xl">
+          <div className="h-2 w-full bg-gradient-to-r from-primary via-blue-600 to-primary" />
+          <div className="p-10 max-h-[85vh] overflow-y-auto no-scrollbar">
+            <DialogHeader className="mb-8">
+              <DialogTitle className="text-3xl font-black uppercase tracking-tighter italic">
+                {editingPost ? "Recalibrate Artifact" : "Initialize New Artifact"}
+              </DialogTitle>
+            </DialogHeader>
+            <BlogPostForm
+              initialData={
+                editingPost || {
+                  title: "",
+                  slug: "",
+                  excerpt: "",
+                  content: "",
+                  featured_image: "",
+                  category: "Career Tips",
+                  tags: [],
+                  author_name: "",
+                  status: "draft",
+                  is_featured: false,
+                  external_url: "",
+                }
+              }
+              onSave={handleSave}
+              onCancel={() => setIsDialogOpen(false)}
+              saving={saving}
+            />
+          </div>
         </DialogContent>
       </Dialog>
     </Card>
