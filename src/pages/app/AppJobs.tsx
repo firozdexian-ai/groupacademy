@@ -7,22 +7,21 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Search, Briefcase, X, SlidersHorizontal, AlertCircle, RefreshCw } from "lucide-react";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-  SheetFooter,
-} from "@/components/ui/sheet";
+import { ArrowLeft, Search, Briefcase, X, SlidersHorizontal, RefreshCw, Zap, Target } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetFooter } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { JobCard, type JobCardData } from "@/components/jobs/JobCard";
 import { JOB_TYPES } from "@/lib/constants/jobTypes";
+import { cn } from "@/lib/utils";
+
+/**
+ * Platform Logic: Career Market Registry
+ * Orchestrates high-fidelity role discovery with debounced telemetry.
+ * 2026 Standard: Executive Logic geometry with glassmorphic filter layers.
+ */
 
 interface JobWithSalary extends JobCardData {
   salary_range_min?: number | null;
@@ -65,7 +64,7 @@ export default function AppJobs() {
       setSearchParams(newParams, { replace: true });
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchQuery, setSearchParams]);
+  }, [searchQuery, setSearchParams, searchParams]);
 
   const fetchJobs = useCallback(
     async (pageNum = 0, append = false) => {
@@ -83,10 +82,10 @@ export default function AppJobs() {
           .from("jobs")
           .select(
             `
-          id, title, company_name, company_logo_url, location, job_type, 
-          experience_level, is_featured, created_at, deadline, 
-          salary_range_min, salary_range_max, salary_currency
-        `,
+            id, title, company_name, company_logo_url, location, job_type, 
+            experience_level, is_featured, created_at, deadline, 
+            salary_range_min, salary_range_max, salary_currency
+          `,
           )
           .eq("is_active", true)
           .or("deadline.is.null,deadline.gte.now()");
@@ -105,7 +104,7 @@ export default function AppJobs() {
         setJobs((prev) => (append ? [...prev, ...newJobs] : newJobs));
         setPage(pageNum);
       } catch (err: any) {
-        setError(err.message || "Failed to load jobs.");
+        setError(err.message || "Registry Handshake Failure.");
       } finally {
         setLoading(false);
         setLoadingMore(false);
@@ -158,97 +157,128 @@ export default function AppJobs() {
   };
 
   return (
-    // CTO FIX: Standardized max-w-6xl for platform consistency (Audit Polish)
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-6 min-h-screen">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/app/jobs")}>
-            <ArrowLeft className="h-5 w-5" />
+    <div className="max-w-6xl mx-auto px-6 py-10 space-y-10 min-h-screen animate-in fade-in slide-in-from-bottom-4 duration-700">
+      {/* Registry Header: Discovery Context */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
+        <div className="flex items-center gap-5">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-xl h-12 w-12 hover:bg-primary/10 transition-all active:scale-90"
+            onClick={() => navigate("/app/jobs")}
+          >
+            <ArrowLeft className="h-6 w-6 text-primary" />
           </Button>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">
-              {targetCompany ? `${targetCompany} Jobs` : "All Jobs"}
+          <div className="space-y-1">
+            <h1 className="text-4xl font-black uppercase tracking-tighter italic">
+              {targetCompany ? `${targetCompany} Registry` : "Market Registry"}
             </h1>
-            <p className="text-xs text-muted-foreground">
-              {loading ? "Scanning..." : `${filteredJobs.length} roles available`}
-            </p>
+            <div className="flex items-center gap-3">
+              <Badge className="bg-primary/5 text-primary border-primary/20 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest italic">
+                {loading ? "Scanning Neural Feed..." : `${filteredJobs.length} Artifacts Discovered`}
+              </Badge>
+              <span className="h-1 w-1 rounded-full bg-muted-foreground/30" />
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 italic">
+                Secure Handshake Active
+              </p>
+            </div>
           </div>
         </div>
 
-        <div className="flex gap-2 w-full md:w-auto md:min-w-[400px]">
+        {/* Search Console */}
+        <div className="flex gap-3 w-full md:w-auto md:min-w-[480px]">
           <div className="relative group flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/40 transition-colors group-focus-within:text-primary" />
             <Input
-              placeholder="Role, company, or keyword..."
+              placeholder="Initialize discovery sequence..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 h-11 bg-background"
+              className="pl-12 h-14 bg-card/50 backdrop-blur-sm border-2 border-border/40 rounded-2xl font-bold tracking-tight focus-visible:ring-primary/10 transition-all shadow-inner"
             />
             {searchQuery && (
               <Button
                 variant="ghost"
                 size="icon"
-                className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
+                className="absolute right-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-xl"
                 onClick={() => setSearchQuery("")}
               >
-                <X className="h-4 w-4" />
+                <X className="h-5 w-5" />
               </Button>
             )}
           </div>
 
           <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
             <SheetTrigger asChild>
-              <Button variant="outline" className="h-11 px-4 border-dashed">
-                <SlidersHorizontal className="h-4 w-4 mr-2" /> Filters
+              <Button className="h-14 w-14 rounded-2xl bg-primary shadow-2xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all">
+                <SlidersHorizontal className="h-6 w-6" />
                 {selectedJobTypes.length + selectedExpLevels.length > 0 && (
-                  <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
+                  <span className="absolute -top-1 -right-1 h-5 w-5 rounded-lg bg-emerald-500 border-2 border-background flex items-center justify-center text-[10px] font-black text-white shadow-lg">
                     !
                   </span>
                 )}
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-full sm:w-[400px]">
-              <SheetHeader>
-                <SheetTitle>Refine Results</SheetTitle>
+            <SheetContent
+              side="right"
+              className="w-full sm:w-[440px] bg-background/80 backdrop-blur-2xl border-l-2 border-border/40"
+            >
+              <SheetHeader className="pb-8 border-b border-border/10">
+                <SheetTitle className="text-2xl font-black uppercase tracking-tighter">Refine Discovery</SheetTitle>
               </SheetHeader>
-              <ScrollArea className="h-[calc(100vh-180px)] pr-4 mt-4">
-                <div className="space-y-6">
-                  <div className="space-y-3">
-                    <Label>Job Type</Label>
-                    <div className="grid grid-cols-2 gap-3">
+              <ScrollArea className="h-[calc(100vh-220px)] pr-6 mt-8">
+                <div className="space-y-10">
+                  <div className="space-y-4">
+                    <Label className="text-[11px] font-black uppercase tracking-[0.3em] text-primary">
+                      Job Type Logic
+                    </Label>
+                    <div className="grid grid-cols-1 gap-3">
                       {Object.entries(JOB_TYPES).map(([key, value]) => (
-                        <div key={key} className="flex items-center space-x-2">
-                          <Checkbox
-                            id={key}
-                            checked={selectedJobTypes.includes(key)}
-                            onCheckedChange={(c) =>
-                              c
-                                ? setSelectedJobTypes([...selectedJobTypes, key])
-                                : setSelectedJobTypes(selectedJobTypes.filter((t) => t !== key))
-                            }
-                          />
-                          <label htmlFor={key} className="text-sm cursor-pointer">
-                            {value.label}
-                          </label>
+                        <div
+                          key={key}
+                          className="flex items-center justify-between p-4 rounded-xl bg-card/50 border border-border/40 group hover:border-primary/40 transition-all cursor-pointer"
+                          onClick={() => {
+                            const active = selectedJobTypes.includes(key);
+                            setSelectedJobTypes(
+                              active ? selectedJobTypes.filter((t) => t !== key) : [...selectedJobTypes, key],
+                            );
+                          }}
+                        >
+                          <div className="flex items-center gap-4">
+                            <Checkbox checked={selectedJobTypes.includes(key)} className="h-5 w-5 rounded-lg" />
+                            <span className="text-sm font-bold uppercase tracking-tight">{value.label}</span>
+                          </div>
+                          <Briefcase className="h-4 w-4 text-muted-foreground/20 group-hover:text-primary/40" />
                         </div>
                       ))}
                     </div>
                   </div>
-                  <div className="space-y-4">
-                    <div className="flex justify-between">
-                      <Label>Min Salary (USD Eq.)</Label>
-                      <span className="text-xs font-mono">{salaryRange[0] > 0 ? `$${salaryRange[0]}k+` : "Any"}</span>
+
+                  <div className="space-y-6">
+                    <div className="flex justify-between items-end">
+                      <Label className="text-[11px] font-black uppercase tracking-[0.3em] text-primary text-left">
+                        Salary Telemetry
+                      </Label>
+                      <span className="text-[11px] font-black text-muted-foreground uppercase tracking-widest italic">
+                        {salaryRange[0] > 0 ? `$${salaryRange[0]}k+ Threshold` : "Open Scale"}
+                      </span>
                     </div>
-                    <Slider value={salaryRange} onValueChange={setSalaryRange} max={150} step={5} />
+                    <Slider value={salaryRange} onValueChange={setSalaryRange} max={150} step={5} className="py-4" />
                   </div>
                 </div>
               </ScrollArea>
-              <SheetFooter className="mt-4 gap-2">
-                <Button variant="outline" className="flex-1" onClick={clearFilters}>
-                  Reset
+              <SheetFooter className="absolute bottom-0 left-0 right-0 p-8 bg-background/50 border-t border-border/10 flex gap-4">
+                <Button
+                  variant="outline"
+                  className="flex-1 h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] border-2"
+                  onClick={clearFilters}
+                >
+                  Purge Filters
                 </Button>
-                <Button className="flex-1" onClick={() => setIsFilterOpen(false)}>
-                  Show Results
+                <Button
+                  className="flex-1 h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl shadow-primary/20"
+                  onClick={() => setIsFilterOpen(false)}
+                >
+                  Engage Logic
                 </Button>
               </SheetFooter>
             </SheetContent>
@@ -256,28 +286,40 @@ export default function AppJobs() {
         </div>
       </div>
 
+      {/* Grid Viewport: Neural Registry */}
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3].map((i) => (
-            <Card key={i} className="h-48">
-              <CardContent className="p-4 space-y-4">
-                <Skeleton className="h-12 w-12 rounded-xl" />
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-4 w-full" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Card key={i} className="rounded-[32px] overflow-hidden border-2 border-muted/20 bg-muted/5">
+              <CardContent className="p-8 space-y-6">
+                <Skeleton className="h-16 w-16 rounded-[24px] bg-muted/40" />
+                <div className="space-y-3">
+                  <Skeleton className="h-6 w-3/4 bg-muted/40" />
+                  <Skeleton className="h-4 w-full bg-muted/40" />
+                </div>
               </CardContent>
             </Card>
           ))}
         </div>
       ) : filteredJobs.length === 0 ? (
-        <div className="py-20 text-center">
-          <Briefcase className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold">No matches found</h3>
-          <Button variant="link" onClick={clearFilters}>
-            Clear filters
+        <div className="py-40 text-center animate-in zoom-in-95 duration-700">
+          <div className="h-24 w-24 rounded-[40px] bg-muted/10 flex items-center justify-center mx-auto mb-8 border-2 border-dashed border-border/40 rotate-3">
+            <Target className="h-12 w-12 text-muted-foreground/20" />
+          </div>
+          <h3 className="text-3xl font-black uppercase tracking-tighter mb-2">Registry Mismatch</h3>
+          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 italic mb-10">
+            No role artifacts found for this logic sequence.
+          </p>
+          <Button
+            variant="outline"
+            className="rounded-xl px-10 h-12 font-black uppercase tracking-widest text-[10px] border-2"
+            onClick={clearFilters}
+          >
+            Clear Logic Handshake
           </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
           {filteredJobs.map((job) => (
             <JobCard
               key={job.id}
@@ -288,9 +330,19 @@ export default function AppJobs() {
             />
           ))}
           {hasMore && (
-            <div className="col-span-full flex justify-center py-8">
-              <Button variant="outline" onClick={() => fetchJobs(page + 1, true)} disabled={loadingMore}>
-                {loadingMore ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : null}Load More
+            <div className="col-span-full flex justify-center py-12">
+              <Button
+                variant="outline"
+                className="rounded-2xl h-14 px-12 border-2 font-black uppercase tracking-widest text-[10px] hover:bg-primary/5 transition-all"
+                onClick={() => fetchJobs(page + 1, true)}
+                disabled={loadingMore}
+              >
+                {loadingMore ? (
+                  <RefreshCw className="h-5 w-5 animate-spin mr-3" />
+                ) : (
+                  <Zap className="h-5 w-5 mr-3 text-primary" />
+                )}
+                Sync More Artifacts
               </Button>
             </div>
           )}
