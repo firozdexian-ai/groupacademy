@@ -267,8 +267,8 @@ export default function Students() {
                                   </p>
                                 </div>
                                 <Badge
-                                  variant="ghost"
-                                  className="text-[8px] font-black uppercase tracking-tighter px-2 h-5 bg-muted/50"
+                                  variant="outline"
+                                  className="text-[8px] font-black uppercase tracking-tighter px-2 h-5 border-border/40 bg-muted/30"
                                 >
                                   {en.status}
                                 </Badge>
