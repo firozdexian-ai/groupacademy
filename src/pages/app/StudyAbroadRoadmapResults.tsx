@@ -20,11 +20,20 @@ import {
   Globe,
   TrendingUp,
   Sparkles,
+  Zap,
+  ShieldCheck,
+  ChevronRight,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { RoadmapTimeline } from "@/components/abroad/RoadmapTimeline";
 import { getCountryFlag } from "@/lib/constants/countries";
 import { cn } from "@/lib/utils";
+
+/**
+ * Platform Logic: Global Roadmap Result Viewport
+ * High-fidelity synthesis of AI-generated academic trajectories.
+ * 2026 Standard: Executive Logic geometry with real-time polling telemetry.
+ */
 
 interface RoadmapResult {
   profileSummary: {
@@ -89,12 +98,10 @@ export default function StudyAbroadRoadmapResults() {
       const { data, error } = await supabase.from("study_abroad_roadmaps").select("*").eq("id", id).single();
 
       if (error) {
-        console.error("Fetch error:", error);
         setLoading(false);
         return;
       }
 
-      // CTO FIX: Double casting to bridge Supabase Json type to our interface
       const rawResult = data.roadmap_result as unknown as RoadmapResult | null;
 
       setRoadmap({
@@ -109,7 +116,6 @@ export default function StudyAbroadRoadmapResults() {
 
       setLoading(false);
 
-      // Continue polling if the AI is still generating
       if ((data.status === "pending" || data.status === "processing") && pollCount < 30) {
         setTimeout(() => setPollCount((p) => p + 1), 4000);
       }
@@ -120,208 +126,246 @@ export default function StudyAbroadRoadmapResults() {
 
   if (loading)
     return (
-      <div className="max-w-4xl mx-auto p-8 space-y-6">
-        <Skeleton className="h-10 w-48" />
-        <Skeleton className="h-64 w-full rounded-2xl" />
-        <div className="grid grid-cols-2 gap-4">
-          <Skeleton className="h-32" />
-          <Skeleton className="h-32" />
+      <div className="max-w-5xl mx-auto p-12 space-y-10 animate-pulse">
+        <Skeleton className="h-10 w-48 rounded-xl bg-muted/40" />
+        <Skeleton className="h-64 w-full rounded-[40px] bg-muted/40" />
+        <div className="grid grid-cols-2 gap-8">
+          <Skeleton className="h-40 rounded-[32px] bg-muted/40" />
+          <Skeleton className="h-40 rounded-[32px] bg-muted/40" />
         </div>
       </div>
     );
 
   if (!roadmap)
     return (
-      <div className="p-20 text-center flex flex-col items-center">
-        <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
-        <h3 className="text-xl font-bold">Roadmap not found</h3>
-        <Button variant="link" onClick={() => navigate("/app/abroad")}>
-          Return to Abroad Hub
+      <div className="max-w-2xl mx-auto py-32 text-center animate-in fade-in zoom-in-95">
+        <AlertCircle className="h-16 w-16 text-destructive/20 mx-auto mb-6 rotate-12" />
+        <h2 className="text-3xl font-black uppercase tracking-tighter">Registry Missing</h2>
+        <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest mt-2 italic">
+          Artifact vanished or restricted by protocol.
+        </p>
+        <Button
+          variant="outline"
+          onClick={() => navigate("/app/abroad")}
+          className="mt-8 rounded-xl px-10 h-12 font-black uppercase text-[10px] tracking-widest border-2"
+        >
+          Return to Dashboard
         </Button>
       </div>
     );
 
-  // --- STATE: Processing ---
   if (roadmap.status === "pending" || roadmap.status === "processing") {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-12 flex flex-col items-center justify-center min-h-[60vh] text-center space-y-6">
-        <div className="relative">
-          <Loader2 className="h-16 w-16 text-primary animate-spin" />
-          <Sparkles className="h-6 w-6 text-amber-500 absolute -top-1 -right-1 animate-pulse" />
-        </div>
-        <div className="space-y-2">
-          <h2 className="text-2xl font-bold tracking-tight">Curating Your Global Journey...</h2>
-          <p className="text-muted-foreground max-w-sm mx-auto">
-            Our admissions AI is matching your profile against universities in {roadmap.target_countries.join(", ")}.
-          </p>
-        </div>
-        <div className="flex gap-2 justify-center flex-wrap">
-          {roadmap.target_countries.map((c) => (
-            <Badge key={c} variant="secondary" className="px-3 py-1">
-              {getCountryFlag(c)} {c}
-            </Badge>
-          ))}
-        </div>
-        <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest animate-pulse">
-          Establishing Academic Timeline...
-        </p>
+      <div className="max-w-4xl mx-auto px-6 py-20">
+        <Card className="rounded-[48px] border-2 border-primary/20 bg-card/30 backdrop-blur-xl shadow-2xl overflow-hidden py-24 text-center">
+          <CardContent className="space-y-12">
+            <div className="relative">
+              <div className="absolute inset-0 bg-primary/20 blur-[100px] rounded-full" />
+              <Loader2 className="h-20 w-20 animate-spin mx-auto text-primary relative z-10 stroke-[1.5px]" />
+            </div>
+            <div className="space-y-6 max-w-md mx-auto relative z-10">
+              <div className="space-y-2">
+                <h2 className="text-3xl font-black uppercase tracking-tighter italic">Synthesizing Pathway...</h2>
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary animate-pulse italic">
+                  Neural Analysis Active
+                </p>
+              </div>
+              <p className="text-sm text-muted-foreground leading-relaxed italic">
+                Matching your logic parameters against academic nodes in {roadmap.target_countries.join(", ")}.
+              </p>
+              <div className="flex gap-2 justify-center flex-wrap">
+                {roadmap.target_countries.map((c) => (
+                  <Badge
+                    key={c}
+                    variant="secondary"
+                    className="px-4 py-1.5 rounded-lg font-black text-[9px] uppercase tracking-widest bg-muted/50"
+                  >
+                    {getCountryFlag(c)} {c}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
-  // --- STATE: Failed ---
-  if (roadmap.status === "failed" || !roadmap.roadmap_result) {
+  if (roadmap.status === "failed" || !roadmap.roadmap_result)
     return (
-      <Card className="max-w-md mx-auto mt-20 border-destructive/20 bg-destructive/5 shadow-none">
-        <CardContent className="p-8 text-center space-y-4">
-          <AlertCircle className="h-12 w-12 text-destructive mx-auto" />
-          <h3 className="font-bold text-lg text-destructive">Generation Interrupted</h3>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            The AI consultant encountered an error while building your plan. Your credits will be automatically
-            restored.
+      <div className="max-w-2xl mx-auto py-20">
+        <Card className="rounded-[40px] border-2 border-destructive/20 bg-destructive/5 shadow-none p-12 text-center">
+          <AlertCircle className="h-16 w-16 text-destructive/40 mx-auto mb-8 rotate-12" />
+          <h3 className="text-3xl font-black uppercase tracking-tighter italic">Synthesis Interrupted</h3>
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-3 mb-10 max-w-xs mx-auto leading-relaxed">
+            The AI consultant encountered a logic fault. Credits have been reverted.
           </p>
-          <Button onClick={() => navigate("/app/abroad/roadmap")} className="w-full">
-            Restart Intake Form
+          <Button
+            onClick={() => navigate("/app/abroad/roadmap")}
+            className="rounded-xl h-12 px-10 font-black uppercase text-[10px] tracking-widest"
+          >
+            Restart Intake Sequence
           </Button>
-        </CardContent>
-      </Card>
+        </Card>
+      </div>
     );
-  }
 
   const res = roadmap.roadmap_result;
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6 space-y-8 pb-24">
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/app/abroad")} className="shrink-0">
-            <ArrowLeft />
+    <div className="max-w-6xl mx-auto px-6 py-10 pb-40 space-y-12 animate-in fade-in duration-1000">
+      {/* Header Section: Trajectory Identity */}
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8">
+        <div className="flex items-center gap-6">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-xl h-12 w-12 hover:bg-primary/5"
+            onClick={() => navigate("/app/abroad")}
+          >
+            <ArrowLeft className="h-6 w-6 text-primary" />
           </Button>
-          <div>
-            <h1 className="text-3xl font-extrabold tracking-tight flex items-center gap-3">
-              <Map className="text-primary h-8 w-8" /> Your Global Roadmap
+          <div className="space-y-1">
+            <h1 className="text-4xl font-black uppercase tracking-tighter italic leading-none flex items-center gap-4">
+              <Map className="text-primary h-10 w-10" /> Strategic Roadmap
             </h1>
-            <p className="text-muted-foreground font-medium">
-              {roadmap.degree_level} in {roadmap.field_of_study || "Selected Field"} • {roadmap.target_intake}
+            <p className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.4em] italic">
+              {roadmap.degree_level} in {roadmap.field_of_study || "Generic Field"} • {roadmap.target_intake}
             </p>
           </div>
         </div>
         <Button
           onClick={() => navigate("/app/agents/study-abroad-advisor")}
-          className="shadow-lg shadow-primary/20 bg-primary hover:scale-105 transition-transform"
+          className="rounded-2xl h-14 px-8 font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-primary/30 transition-all hover:scale-[1.02] active:scale-95 group"
         >
-          <MessageCircle className="mr-2 h-4 w-4" /> Discuss with AI Advisor
+          <MessageCircle className="mr-3 h-5 w-5 fill-current group-hover:rotate-12 transition-transform" /> Initialize
+          AI Consultation
         </Button>
-      </div>
+      </header>
 
-      {/* Profile Assessment Overview */}
-      <Card className="border-primary/10 shadow-sm overflow-hidden">
-        <CardHeader className="bg-primary/[0.02] border-b">
+      {/* Profile Assessment: Competitive Analysis */}
+      <Card className="rounded-[48px] border-2 border-border/40 bg-card/30 backdrop-blur-xl shadow-2xl overflow-hidden relative group">
+        <div className="absolute top-0 right-0 p-10 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity">
+          <TrendingUp className="h-48 w-48" />
+        </div>
+        <CardHeader className="p-10 border-b border-border/10 bg-muted/20">
           <div className="flex justify-between items-center">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" /> Profile Readiness
-            </CardTitle>
+            <div className="space-y-1">
+              <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary italic">Logic Sync Status</p>
+              <CardTitle className="text-3xl font-black tracking-tighter uppercase italic">
+                Profile Readiness Matrix
+              </CardTitle>
+            </div>
             <Badge
               className={cn(
-                "px-4 py-1 text-xs font-bold uppercase",
+                "px-6 py-2 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-xl border-none",
                 res.profileSummary.overallReadiness === "high"
-                  ? "bg-emerald-100 text-emerald-700"
-                  : res.profileSummary.overallReadiness === "medium"
-                    ? "bg-amber-100 text-amber-700"
-                    : "bg-rose-100 text-rose-700",
+                  ? "bg-emerald-500 text-white"
+                  : "bg-amber-500 text-white",
               )}
             >
-              {res.profileSummary.overallReadiness} Readiness
+              {res.profileSummary.overallReadiness} Readiness Node
             </Badge>
           </div>
         </CardHeader>
-        <CardContent className="pt-6 grid md:grid-cols-2 gap-8">
-          <div className="space-y-4">
-            <h4 className="text-sm font-bold text-emerald-700 flex items-center gap-2 tracking-wide uppercase">
-              <CheckCircle2 className="h-4 w-4" /> Competitive Strengths
+        <CardContent className="p-10 grid md:grid-cols-2 gap-12">
+          <div className="space-y-8">
+            <h4 className="text-[11px] font-black text-emerald-600 flex items-center gap-3 uppercase tracking-[0.3em] italic">
+              <ShieldCheck className="h-5 w-5" /> Competitive Assets
             </h4>
-            <ul className="space-y-2">
+            <div className="grid gap-4">
               {res.profileSummary.strengths.map((s, i) => (
-                <li key={i} className="text-sm flex gap-2 leading-relaxed">
-                  <span className="text-emerald-500 font-bold">•</span> {s}
-                </li>
+                <div
+                  key={i}
+                  className="flex gap-4 p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 italic text-sm font-medium leading-relaxed group/item"
+                >
+                  <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 mt-2 shrink-0 group-hover/item:scale-150 transition-transform" />
+                  <span className="text-foreground/80">{s}</span>
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
-          <div className="space-y-4">
-            <h4 className="text-sm font-bold text-amber-700 flex items-center gap-2 tracking-wide uppercase">
-              <AlertCircle className="h-4 w-4" /> Areas to Strengthen
+          <div className="space-y-8">
+            <h4 className="text-[11px] font-black text-amber-600 flex items-center gap-3 uppercase tracking-[0.3em] italic">
+              <Zap className="h-5 w-5" /> Logic Calibration Req'd
             </h4>
-            <ul className="space-y-2">
+            <div className="grid gap-4">
               {res.profileSummary.gaps.map((g, i) => (
-                <li key={i} className="text-sm flex gap-2 leading-relaxed">
-                  <span className="text-amber-500 font-bold">•</span> {g}
-                </li>
+                <div
+                  key={i}
+                  className="flex gap-4 p-4 rounded-2xl bg-amber-500/5 border border-amber-500/10 italic text-sm font-medium leading-relaxed group/item"
+                >
+                  <div className="h-1.5 w-1.5 rounded-full bg-amber-500 mt-2 shrink-0 group-hover/item:scale-150 transition-transform" />
+                  <span className="text-foreground/80">{g}</span>
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Main Insights Tabs */}
+      {/* Main Orchestration HUD */}
       <Tabs defaultValue="universities" className="w-full">
-        <TabsList className="grid w-full grid-cols-5 h-12 bg-muted/50 p-1 rounded-xl">
-          <TabsTrigger value="universities" className="text-xs sm:text-sm rounded-lg">
-            Universities
-          </TabsTrigger>
-          <TabsTrigger value="timeline" className="text-xs sm:text-sm rounded-lg">
-            Timeline
-          </TabsTrigger>
-          <TabsTrigger value="documents" className="text-xs sm:text-sm rounded-lg">
-            Docs
-          </TabsTrigger>
-          <TabsTrigger value="budget" className="text-xs sm:text-sm rounded-lg">
-            Budget
-          </TabsTrigger>
-          <TabsTrigger value="scholarships" className="text-xs sm:text-sm rounded-lg">
-            Scholarships
-          </TabsTrigger>
+        <TabsList className="grid w-full grid-cols-5 h-16 bg-muted/30 backdrop-blur-md rounded-[32px] border border-border/40 p-1.5 shadow-xl">
+          {[
+            { id: "universities", label: "Artifacts", icon: Globe },
+            { id: "timeline", label: "Temporal", icon: Calendar },
+            { id: "documents", label: "Payload", icon: FileText },
+            { id: "budget", label: "Ledger", icon: Wallet },
+            { id: "scholarships", label: "Rewards", icon: Award },
+          ].map((tab) => (
+            <TabsTrigger
+              key={tab.id}
+              value={tab.id}
+              className="rounded-[24px] font-black uppercase text-[9px] tracking-widest gap-2 data-[state=active]:bg-background data-[state=active]:shadow-lg transition-all"
+            >
+              <tab.icon className="h-3.5 w-3.5" /> <span className="hidden sm:inline">{tab.label}</span>
+            </TabsTrigger>
+          ))}
         </TabsList>
 
-        {/* Tab: Universities */}
-        <TabsContent value="universities" className="pt-6">
-          <div className="grid md:grid-cols-2 gap-4">
+        {/* Tab Viewport: Universities */}
+        <TabsContent value="universities" className="pt-10 outline-none animate-in slide-in-from-bottom-6 duration-700">
+          <div className="grid md:grid-cols-2 gap-8">
             {res.recommendedUniversities.map((uni, idx) => (
-              <Card key={idx} className="group hover:border-primary/40 transition-all shadow-sm border-muted">
-                <CardContent className="p-5 space-y-4">
+              <Card
+                key={idx}
+                className="group rounded-[32px] border-2 border-border/40 bg-card/30 backdrop-blur-sm transition-all duration-500 hover:border-primary/40 hover:shadow-2xl overflow-hidden cursor-pointer"
+              >
+                <CardContent className="p-8 space-y-6">
                   <div className="flex justify-between items-start">
                     <Badge
-                      variant="secondary"
                       className={cn(
-                        "uppercase text-[10px] font-bold px-2 py-0.5",
+                        "rounded-lg font-black uppercase text-[8px] tracking-[0.2em] px-3 py-1 border-none",
                         uni.tier === "reach"
-                          ? "bg-purple-50 text-purple-700 border-purple-100"
+                          ? "bg-purple-500 text-white"
                           : uni.tier === "target"
-                            ? "bg-blue-50 text-blue-700 border-blue-100"
-                            : "bg-emerald-50 text-emerald-700 border-emerald-100",
+                            ? "bg-blue-500 text-white"
+                            : "bg-emerald-500 text-white",
                       )}
                     >
-                      {uni.tier}
+                      {uni.tier} Node
                     </Badge>
-                    <span className="text-xs font-bold text-primary bg-primary/5 px-2 py-1 rounded-lg border border-primary/10">
-                      {uni.tuitionRange}
-                    </span>
+                    <div className="flex items-center gap-2 bg-primary/5 px-3 py-1 rounded-lg border border-primary/10">
+                      <Zap className="h-3 w-3 text-primary fill-current" />
+                      <span className="text-[10px] font-black text-primary italic">{uni.tuitionRange}</span>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="font-bold text-lg leading-tight group-hover:text-primary transition-colors">
+                  <div className="space-y-2">
+                    <h4 className="text-2xl font-black uppercase tracking-tighter italic leading-none group-hover:text-primary transition-colors line-clamp-1">
                       {uni.name}
                     </h4>
-                    <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1 font-medium">
-                      <Globe className="h-3 w-3" /> {uni.country} • {uni.program}
-                    </p>
+                    <div className="flex items-center gap-3 text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest italic">
+                      <Globe className="h-3.5 w-3.5 text-primary/30" /> {uni.country}{" "}
+                      <span className="h-1 w-1 rounded-full bg-muted-foreground/20" /> {uni.program}
+                    </div>
                   </div>
-                  <div className="p-3 bg-muted/40 rounded-xl text-[13px] leading-relaxed italic text-muted-foreground">
+                  <div className="p-5 rounded-[24px] bg-muted/20 border-2 border-dashed border-border/60 italic text-sm font-medium text-foreground/70 leading-relaxed shadow-inner">
                     "{uni.fitReason}"
                   </div>
-                  <div className="flex justify-between items-center pt-3 border-t text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
-                    <span>Final Application Deadline</span>
-                    <span className="text-foreground">{uni.deadline}</span>
+                  <div className="flex justify-between items-center pt-4 border-t border-border/10 text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground/40 italic">
+                    <span>Synchronization Deadline</span>
+                    <span className="text-foreground tracking-normal">{uni.deadline}</span>
                   </div>
                 </CardContent>
               </Card>
@@ -329,42 +373,41 @@ export default function StudyAbroadRoadmapResults() {
           </div>
         </TabsContent>
 
-        {/* Tab: Timeline */}
-        <TabsContent value="timeline">
-          <div className="py-4">
+        {/* Tab Viewport: Timeline */}
+        <TabsContent value="timeline" className="pt-10 outline-none">
+          <div className="bg-card/30 backdrop-blur-sm rounded-[48px] border-2 border-border/40 p-10 shadow-2xl">
             <RoadmapTimeline timeline={res.timeline} />
           </div>
         </TabsContent>
 
-        {/* Tab: Documents */}
-        <TabsContent value="documents">
-          <Card className="border-muted shadow-none">
-            <CardContent className="p-0 divide-y">
+        {/* Tab Viewport: Documents */}
+        <TabsContent value="documents" className="pt-10 outline-none">
+          <Card className="rounded-[40px] border-2 border-border/40 bg-card/30 backdrop-blur-xl overflow-hidden shadow-2xl">
+            <CardContent className="p-0 divide-y divide-border/10">
               {res.documents.map((doc, i) => (
-                <div key={i} className="p-5 flex gap-5 items-start hover:bg-muted/10 transition-colors">
+                <div key={i} className="p-8 flex gap-8 items-start hover:bg-primary/[0.02] transition-all group">
                   <div
                     className={cn(
-                      "p-2.5 rounded-xl border shadow-sm",
+                      "w-16 h-16 rounded-2xl flex items-center justify-center border-2 shrink-0 transition-all group-hover:rotate-6",
                       doc.required
-                        ? "bg-primary/5 text-primary border-primary/10"
-                        : "bg-muted text-muted-foreground border-transparent",
+                        ? "bg-primary/5 border-primary/20 text-primary shadow-xl shadow-primary/5"
+                        : "bg-muted border-border/60 text-muted-foreground/40",
                     )}
                   >
-                    <FileText className="h-5 w-5" />
+                    <FileText className="h-8 w-8" />
                   </div>
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <h5 className="font-bold text-sm">{doc.name}</h5>
+                  <div className="space-y-3 pt-1">
+                    <div className="flex items-center gap-4">
+                      <h5 className="text-xl font-black uppercase tracking-tighter italic">{doc.name}</h5>
                       {doc.required && (
-                        <Badge
-                          variant="outline"
-                          className="h-4 text-[9px] font-extrabold text-primary border-primary/20"
-                        >
-                          MANDATORY
+                        <Badge className="bg-primary text-white border-none text-[8px] font-black tracking-widest px-3">
+                          MANDATORY_LOGIC
                         </Badge>
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground leading-relaxed">{doc.tips}</p>
+                    <p className="text-sm font-medium italic text-muted-foreground/80 leading-relaxed max-w-2xl">
+                      {doc.tips}
+                    </p>
                   </div>
                 </div>
               ))}
@@ -372,58 +415,113 @@ export default function StudyAbroadRoadmapResults() {
           </Card>
         </TabsContent>
 
-        {/* Tab: Budget */}
-        <TabsContent value="budget">
-          <div className="grid sm:grid-cols-3 gap-4">
-            <Card className="bg-blue-50/20 border-blue-100 shadow-none">
-              <CardContent className="p-5">
-                <p className="text-[10px] font-bold text-blue-700 uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                  <Wallet className="h-3 w-3" /> Tuition (Annual)
-                </p>
-                <p className="text-xl font-black text-blue-900">{res.budget.tuitionRange}</p>
-              </CardContent>
-            </Card>
-            <Card className="bg-emerald-50/20 border-emerald-100 shadow-none">
-              <CardContent className="p-5">
-                <p className="text-[10px] font-bold text-emerald-700 uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                  <Map className="h-3 w-3" /> Living Cost
-                </p>
-                <p className="text-xl font-black text-emerald-900">{res.budget.livingExpenses}</p>
-              </CardContent>
-            </Card>
-            <Card className="bg-primary/5 border-primary/20 shadow-none">
-              <CardContent className="p-5">
-                <p className="text-[10px] font-bold text-primary uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                  <TrendingUp className="h-3 w-3" /> Total Year 1 Est.
-                </p>
-                <p className="text-xl font-black text-primary">{res.budget.totalEstimate}</p>
-              </CardContent>
-            </Card>
+        {/* Tab Viewport: Ledger (Budget) */}
+        <TabsContent value="budget" className="pt-10 outline-none">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              {
+                label: "Temporal Cost (Tuition)",
+                val: res.budget.tuitionRange,
+                icon: Wallet,
+                color: "text-blue-500",
+                bg: "bg-blue-500/5",
+                border: "border-blue-500/20",
+              },
+              {
+                label: "Environment Cost (Living)",
+                val: res.budget.livingExpenses,
+                icon: Globe,
+                color: "text-emerald-500",
+                bg: "bg-emerald-500/5",
+                border: "border-emerald-500/20",
+              },
+              {
+                label: "Total Economic Load",
+                val: res.budget.totalEstimate,
+                icon: TrendingUp,
+                color: "text-primary",
+                bg: "bg-primary/5",
+                border: "border-primary/20",
+              },
+            ].map((node, i) => (
+              <Card
+                key={i}
+                className={cn(
+                  "rounded-[32px] border-2 shadow-xl overflow-hidden group hover:scale-[1.02] transition-all",
+                  node.bg,
+                  node.border,
+                )}
+              >
+                <CardContent className="p-8 space-y-6">
+                  <div
+                    className={cn(
+                      "h-14 w-14 rounded-2xl flex items-center justify-center border transition-all duration-500 group-hover:rotate-6",
+                      node.bg,
+                      node.border,
+                    )}
+                  >
+                    <node.icon className={cn("h-7 w-7", node.color)} />
+                  </div>
+                  <div>
+                    <p className={cn("text-[9px] font-black uppercase tracking-[0.3em] mb-2 italic", node.color)}>
+                      {node.label}
+                    </p>
+                    <p className="text-3xl font-black italic tracking-tighter leading-none">{node.val}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </TabsContent>
 
-        {/* Tab: Scholarships */}
-        <TabsContent value="scholarships">
-          <div className="grid gap-4">
+        {/* Tab Viewport: Rewards (Scholarships) */}
+        <TabsContent value="scholarships" className="pt-10 outline-none">
+          <div className="grid gap-6">
             {res.scholarships.map((s, i) => (
-              <Card key={i} className="border-l-4 border-l-amber-500 shadow-sm">
-                <CardContent className="p-5 flex justify-between items-center gap-4">
-                  <div className="space-y-1 flex-1">
-                    <div className="flex items-center gap-2">
-                      <Award className="h-4 w-4 text-amber-600" />
-                      <h5 className="font-bold text-base">{s.name}</h5>
+              <Card
+                key={i}
+                className="group rounded-[32px] border-2 border-border/40 bg-card/30 backdrop-blur-sm overflow-hidden hover:border-amber-500/30 transition-all duration-500 shadow-lg"
+              >
+                <CardContent className="p-10 flex flex-col md:flex-row justify-between items-center gap-8">
+                  <div className="flex gap-8 items-start flex-1">
+                    <div className="h-16 w-16 rounded-[24px] bg-amber-500/10 border-2 border-amber-500/20 flex items-center justify-center shrink-0 shadow-xl shadow-amber-500/5 group-hover:rotate-6 transition-transform">
+                      <Award className="h-8 w-8 text-amber-600" />
                     </div>
-                    <p className="text-xs text-muted-foreground leading-relaxed">{s.eligibility}</p>
+                    <div className="space-y-2">
+                      <h5 className="text-2xl font-black uppercase tracking-tighter italic">{s.name}</h5>
+                      <p className="text-sm font-medium italic text-muted-foreground/60 leading-relaxed max-w-xl">
+                        {s.eligibility}
+                      </p>
+                    </div>
                   </div>
-                  <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100 border-none font-black px-4 py-1.5">
-                    {s.amount}
-                  </Badge>
+                  <div className="text-right w-full md:w-auto">
+                    <Badge className="bg-amber-500 text-white text-lg font-black italic tracking-tighter px-8 py-3 rounded-2xl shadow-2xl shadow-amber-500/30 border-none">
+                      {s.amount}
+                    </Badge>
+                  </div>
                 </CardContent>
               </Card>
             ))}
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Operational Trace Footer */}
+      <footer className="mt-20 pt-10 border-t border-border/40 flex items-center justify-between opacity-30">
+        <div className="space-y-1">
+          <p className="text-[9px] font-black uppercase tracking-[0.4em] italic">
+            Roadmap Artifact Registry: Synchronized
+          </p>
+          <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">
+            Logic Node: Global Academic v2.6.4
+          </p>
+        </div>
+        <div className="flex gap-2">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="h-1 w-8 rounded-full bg-primary/20" />
+          ))}
+        </div>
+      </footer>
     </div>
   );
 }
