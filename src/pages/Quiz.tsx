@@ -6,12 +6,25 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, ArrowRight, CheckCircle, XCircle } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  CheckCircle2,
+  XCircle,
+  Trophy,
+  BookOpen,
+  Clock,
+  AlertCircle,
+  Loader2,
+  Sparkles,
+} from "lucide-react";
 import { toast } from "sonner";
 import { withTimeout } from "@/hooks/useDataFetch";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { ErrorState } from "@/components/ui/error-state";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 interface Question {
   id: string;
@@ -37,340 +50,208 @@ export default function Quiz() {
   const [showResults, setShowResults] = useState(false);
   const [score, setScore] = useState(0);
   const [passed, setPassed] = useState(false);
-  const [studentId, setStudentId] = useState<string | null>(null);
   const [enrollmentId, setEnrollmentId] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadQuiz();
+    if (slug) loadQuiz();
   }, [slug]);
 
   const loadQuiz = async () => {
     setLoading(true);
     setLoadError(null);
     try {
-      const { data: { user } } = await withTimeout(
-        supabase.auth.getUser(),
-        TIMEOUTS.AUTH,
-        "Authentication timed out"
-      );
-      if (!user) {
-        navigate("/auth");
-        return;
-      }
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return navigate("/auth");
 
-      // Get student profile
-      const { data: student } = await withTimeout(
-        Promise.resolve(
-          supabase
-            .from("students")
-            .select("id")
-            .eq("user_id", user.id)
-            .single()
-        ),
-        TIMEOUTS.DEFAULT,
-        "Loading profile timed out"
-      );
+      const { data: student } = await supabase.from("students").select("id").eq("user_id", user.id).single();
+      if (!student) throw new Error("Academic Identity Not Found");
 
-      if (!student) {
-        toast.error("Student profile not found");
-        navigate("/my-learning");
-        return;
-      }
+      const { data: courseData } = await supabase.from("content").select("*").eq("slug", slug).single();
+      if (!courseData) throw new Error("Blueprint Missing");
+      if (!courseData.quiz_enabled) return navigate(`/learn/${slug}`);
 
-      setStudentId(student.id);
-
-      // Get course details
-      const { data: courseData, error: courseError } = await withTimeout(
-        Promise.resolve(
-          supabase
-            .from("content")
-            .select("*")
-            .eq("slug", slug)
-            .single()
-        ),
-        TIMEOUTS.DEFAULT,
-        "Loading course timed out"
-      );
-
-      if (courseError || !courseData) {
-        toast.error("Course not found");
-        navigate("/courses");
-        return;
-      }
-
-      if (!courseData.quiz_enabled) {
-        toast.error("Quiz is not available for this course");
-        navigate(`/learn/${slug}`);
-        return;
-      }
-
-      // Check enrollment
-      const { data: enrollment } = await withTimeout(
-        Promise.resolve(
-          supabase
-            .from("enrollments")
-            .select("id, status")
-            .eq("student_id", student.id)
-            .eq("content_id", courseData.id)
-            .single()
-        ),
-        TIMEOUTS.DEFAULT,
-        "Checking enrollment timed out"
-      );
+      const { data: enrollment } = await supabase
+        .from("enrollments")
+        .select("id, status")
+        .eq("student_id", student.id)
+        .eq("content_id", courseData.id)
+        .single();
 
       if (!enrollment || !["active", "completed"].includes(enrollment.status)) {
-        toast.error("You must be enrolled to take this quiz");
-        navigate(`/courses/${slug}`);
-        return;
+        return navigate(`/courses/${slug}`);
       }
 
       setEnrollmentId(enrollment.id);
       setCourse(courseData);
 
-      // Load questions
-      const { data: questionsData, error: questionsError } = await withTimeout(
-        Promise.resolve(
-          supabase
-            .from("quiz_questions")
-            .select("*")
-            .eq("content_id", courseData.id)
-            .order("display_order")
-        ),
-        TIMEOUTS.DEFAULT,
-        "Loading questions timed out"
-      );
+      const { data: questionsData } = await supabase
+        .from("quiz_questions")
+        .select("*")
+        .eq("content_id", courseData.id)
+        .order("display_order");
 
-      if (questionsError) throw questionsError;
-
-      if (!questionsData || questionsData.length === 0) {
-        toast.error("No questions available for this quiz");
-        navigate(`/learn/${slug}`);
-        return;
-      }
-
-      setQuestions(questionsData);
+      if (questionsData) setQuestions(questionsData);
     } catch (error: any) {
-      console.error("Error loading quiz:", error);
-      const errorMessage = error.message || "Failed to load quiz";
-      setLoadError(errorMessage);
-      toast.error(errorMessage);
+      setLoadError(error.message || "Logic Fetch Failed");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAnswerChange = (questionId: string, answer: string) => {
-    setAnswers(prev => ({ ...prev, [questionId]: answer }));
-  };
-
   const handleSubmit = async () => {
-    // Check if all questions are answered
-    const unanswered = questions.filter(q => !answers[q.id]);
+    const unanswered = questions.filter((q) => !answers[q.id]);
     if (unanswered.length > 0) {
-      toast.error(`Please answer all questions (${unanswered.length} remaining)`);
-      return;
+      return toast.error(`Incomplete Nodes: ${unanswered.length} items remaining.`);
     }
 
     setSubmitting(true);
     try {
-      // Calculate score
       let correctCount = 0;
-      questions.forEach(q => {
-        if (answers[q.id] === q.correct_answer) {
-          correctCount++;
-        }
+      questions.forEach((q) => {
+        if (answers[q.id] === q.correct_answer) correctCount++;
       });
 
-      const totalQuestions = questions.length;
-      const percentage = Math.round((correctCount / totalQuestions) * 100);
-      const passThreshold = course.pass_threshold || 70;
-      const isPassed = percentage >= passThreshold;
+      const percentage = Math.round((correctCount / questions.length) * 100);
+      const isPassed = percentage >= (course.pass_threshold || 70);
+
+      const { error: attemptError } = await supabase.from("quiz_attempts").insert({
+        enrollment_id: enrollmentId,
+        content_id: course.id,
+        score: correctCount,
+        total_questions: questions.length,
+        passed: isPassed,
+        answers: answers,
+      });
+
+      if (attemptError) throw attemptError;
+
+      if (isPassed) {
+        await supabase
+          .from("enrollments")
+          .update({ status: "completed", completed_at: new Date().toISOString() })
+          .eq("id", enrollmentId);
+      }
 
       setScore(correctCount);
       setPassed(isPassed);
       setShowResults(true);
-
-      // Save quiz attempt
-      const { error: attemptError } = await supabase
-        .from("quiz_attempts")
-        .insert({
-          enrollment_id: enrollmentId,
-          student_id: studentId,
-          content_id: course.id,
-          score: correctCount,
-          total_questions: totalQuestions,
-          passed: isPassed,
-          answers: answers,
-        });
-
-      if (attemptError) throw attemptError;
-
-      // Update enrollment status to completed if passed
-      if (isPassed) {
-        const { error: updateError } = await supabase
-          .from("enrollments")
-          .update({ 
-            status: "completed",
-            completed_at: new Date().toISOString()
-          })
-          .eq("id", enrollmentId);
-
-        if (updateError) throw updateError;
-      }
-
-      toast.success(isPassed ? "Congratulations! You passed!" : "Quiz submitted successfully");
-    } catch (error: any) {
-      console.error("Error submitting quiz:", error);
-      toast.error("Failed to submit quiz");
+    } catch (e) {
+      toast.error("Handshake Error: Failed to log results.");
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading) {
+  if (loading)
     return (
-      <div className="min-h-screen bg-background py-12">
-        <div className="container max-w-3xl mx-auto px-4">
-          <div className="mb-6 space-y-2">
-            <div className="flex items-center justify-between">
-              <Skeleton className="h-8 w-32" />
-              <Skeleton className="h-4 w-24" />
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center space-y-4">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">
+          Initializing Evaluation Module
+        </p>
+      </div>
+    );
+
+  if (loadError)
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <ErrorState type="server" title="Access Denied" description={loadError} onRetry={loadQuiz} />
+      </div>
+    );
+
+  if (questions.length === 0)
+    return (
+      <div className="min-h-screen bg-muted/20 flex flex-col">
+        <div className="flex-1 container max-w-xl mx-auto px-6 flex items-center justify-center">
+          <Card className="rounded-[40px] border-border/40 shadow-2xl p-10 text-center space-y-6">
+            <div className="h-20 w-20 rounded-3xl bg-primary/5 flex items-center justify-center mx-auto">
+              <Clock className="h-10 w-10 text-primary/40" />
             </div>
-            <Skeleton className="h-2 w-full" />
-          </div>
-          <Card>
-            <CardHeader>
-              <Skeleton className="h-6 w-3/4" />
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {[1, 2, 3, 4].map((i) => (
-                <Skeleton key={i} className="h-14 w-full" />
-              ))}
-              <div className="flex justify-between pt-4">
-                <Skeleton className="h-10 w-24" />
-                <Skeleton className="h-10 w-24" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
-  if (loadError) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <ErrorState
-          type="generic"
-          title="Failed to Load Quiz"
-          description={loadError}
-          onRetry={loadQuiz}
-        />
-      </div>
-    );
-  }
-
-  if (!course) {
-    return null;
-  }
-
-  // Show coming soon message if no questions
-  if (questions.length === 0) {
-    return (
-      <div className="min-h-screen bg-background py-12">
-        <div className="container max-w-2xl mx-auto px-4">
-          <Card>
-            <CardHeader className="text-center">
-              <div className="mx-auto mb-4">
-                <CheckCircle className="h-16 w-16 text-muted-foreground" />
-              </div>
-              <CardTitle className="text-2xl">Quiz Coming Soon</CardTitle>
-              <CardDescription>
-                The quiz for this course is being prepared. Check back soon!
+            <div className="space-y-2">
+              <CardTitle className="text-3xl font-black tracking-tighter uppercase">Module Incomplete</CardTitle>
+              <CardDescription className="text-xs font-bold uppercase tracking-widest leading-relaxed">
+                The assessment nodes for this course are currently being calibrated by GroUp engineers.
               </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-center text-muted-foreground">
-                Our team is creating engaging quiz questions to test your learning.
-              </p>
-              <div className="flex flex-col gap-3">
-                <Button 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={() => navigate(`/learn/${slug}`)}
-                >
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Course
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={() => navigate("/my-learning")}
-                >
-                  My Learning Dashboard
-                </Button>
-              </div>
-            </CardContent>
+            </div>
+            <Button
+              variant="outline"
+              className="w-full h-14 rounded-2xl font-black uppercase text-[10px] tracking-widest"
+              onClick={() => navigate(`/learn/${slug}`)}
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" /> Return to Course
+            </Button>
           </Card>
         </div>
       </div>
     );
-  }
 
   if (showResults) {
     const percentage = Math.round((score / questions.length) * 100);
-    
     return (
-      <div className="min-h-screen bg-background py-12">
-        <div className="container max-w-2xl mx-auto px-4">
-          <Card>
-            <CardHeader className="text-center">
-              <div className="mx-auto mb-4">
-                {passed ? (
-                  <CheckCircle className="h-16 w-16 text-green-500" />
-                ) : (
-                  <XCircle className="h-16 w-16 text-destructive" />
-                )}
+      <div className="min-h-screen bg-muted/10 flex flex-col py-20">
+        <div className="container max-w-2xl mx-auto px-6">
+          <Card className="rounded-[40px] border-border/40 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-700">
+            <div className={cn("p-12 text-center space-y-6", passed ? "bg-emerald-500/[0.03]" : "bg-rose-500/[0.03]")}>
+              <div className="relative mx-auto w-24 h-24">
+                <div
+                  className={cn(
+                    "absolute inset-0 rounded-full animate-ping opacity-20",
+                    passed ? "bg-emerald-500" : "bg-rose-500",
+                  )}
+                />
+                <div
+                  className={cn(
+                    "relative h-24 w-24 rounded-[32px] flex items-center justify-center shadow-2xl",
+                    passed ? "bg-emerald-500 text-white" : "bg-rose-500 text-white",
+                  )}
+                >
+                  {passed ? <Trophy className="h-10 w-10" /> : <AlertCircle className="h-10 w-10" />}
+                </div>
               </div>
-              <CardTitle className="text-2xl">
-                {passed ? "Congratulations!" : "Keep Learning"}
-              </CardTitle>
-              <CardDescription>
-                {passed 
-                  ? "You have successfully completed the assessment"
-                  : "You need more practice to pass this assessment"
-                }
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="text-center space-y-2">
-                <p className="text-4xl font-bold">{score}/{questions.length}</p>
-                <p className="text-xl text-muted-foreground">{percentage}%</p>
-                <p className="text-sm text-muted-foreground">
-                  Pass threshold: {course.pass_threshold || 70}%
+              <div className="space-y-2">
+                <h2 className="text-4xl font-black tracking-tighter uppercase">
+                  {passed ? "Qualified" : "Iteration Required"}
+                </h2>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                  {passed ? "Assessment logic satisfied" : "Knowledge gaps detected in evaluation"}
                 </p>
               </div>
-
-              <div className="space-y-3">
+            </div>
+            <CardContent className="p-12 space-y-10">
+              <div className="flex justify-between items-center bg-muted/30 p-8 rounded-[32px] border border-border/20">
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Raw Score</p>
+                  <p className="text-3xl font-black tracking-tight">
+                    {score} <span className="text-sm font-medium opacity-40">/ {questions.length}</span>
+                  </p>
+                </div>
+                <div className="text-right space-y-1">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Match Index</p>
+                  <p
+                    className={cn("text-3xl font-black tracking-tight", passed ? "text-emerald-600" : "text-rose-600")}
+                  >
+                    {percentage}%
+                  </p>
+                </div>
+              </div>
+              <div className="grid gap-3">
                 {passed && (
-                  <Button className="w-full" onClick={() => navigate(`/report-card/${enrollmentId}`)}>
-                    View Report Card
+                  <Button
+                    className="h-14 rounded-2xl font-black uppercase text-xs shadow-xl shadow-primary/20"
+                    onClick={() => navigate(`/report-card/${enrollmentId}`)}
+                  >
+                    <Sparkles className="mr-2 h-4 w-4" /> Generate Certificate
                   </Button>
                 )}
-                <Button 
-                  variant="outline" 
-                  className="w-full"
+                <Button
+                  variant="outline"
+                  className="h-14 rounded-2xl font-black uppercase text-[10px] tracking-widest border-border/40"
                   onClick={() => navigate(`/learn/${slug}`)}
                 >
-                  Back to Course
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={() => navigate("/my-learning")}
-                >
-                  My Learning Dashboard
+                  Course Hub
                 </Button>
               </div>
             </CardContent>
@@ -380,69 +261,105 @@ export default function Quiz() {
     );
   }
 
-  const currentQuestion = questions[currentIndex];
-  const progressPercentage = ((currentIndex + 1) / questions.length) * 100;
+  const currentQ = questions[currentIndex];
+  const progress = ((currentIndex + 1) / questions.length) * 100;
 
   return (
-    <div className="min-h-screen bg-background py-12">
-      <div className="container max-w-3xl mx-auto px-4">
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-2">
-            <Button variant="ghost" size="sm" onClick={() => navigate(`/learn/${slug}`)}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Course
-            </Button>
-            <span className="text-sm text-muted-foreground">
-              Question {currentIndex + 1} of {questions.length}
-            </span>
-          </div>
-          <Progress value={progressPercentage} className="h-2" />
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>{currentQuestion.question_text}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <RadioGroup
-              value={answers[currentQuestion.id] || ""}
-              onValueChange={(value) => handleAnswerChange(currentQuestion.id, value)}
+    <div className="min-h-screen bg-muted/20 flex flex-col py-12 selection:bg-primary/10">
+      <div className="container max-w-3xl mx-auto px-6">
+        <header className="mb-10 space-y-6">
+          <div className="flex items-center justify-between">
+            <Button
+              variant="ghost"
+              className="rounded-xl font-bold uppercase text-[10px] tracking-widest pl-0 hover:bg-transparent"
+              onClick={() => navigate(`/learn/${slug}`)}
             >
-              {["A", "B", "C", "D"].map((option) => {
-                const optionText = currentQuestion[`option_${option.toLowerCase()}` as keyof Question];
+              <ArrowLeft className="mr-2 h-4 w-4" /> Abort Session
+            </Button>
+            <Badge
+              variant="secondary"
+              className="bg-background border-border/40 text-[10px] font-black uppercase tracking-widest px-4 py-1"
+            >
+              Node {currentIndex + 1} <span className="opacity-30 mx-2">/</span> {questions.length}
+            </Badge>
+          </div>
+          <div className="space-y-2">
+            <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+              <div
+                className="h-full bg-primary transition-all duration-700 ease-out"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
+        </header>
+
+        <Card className="rounded-[40px] border-border/40 shadow-2xl overflow-hidden bg-card/80 backdrop-blur-xl">
+          <CardHeader className="p-10 pb-6">
+            <CardTitle className="text-2xl font-black tracking-tight leading-tight">{currentQ.question_text}</CardTitle>
+          </CardHeader>
+          <CardContent className="p-10 pt-0 space-y-10">
+            <RadioGroup
+              value={answers[currentQ.id] || ""}
+              onValueChange={(v) => setAnswers((prev) => ({ ...prev, [currentQ.id]: v }))}
+              className="grid gap-3"
+            >
+              {["A", "B", "C", "D"].map((opt) => {
+                const text = currentQ[`option_${opt.toLowerCase()}` as keyof Question];
+                const isSelected = answers[currentQ.id] === opt;
                 return (
-                  <div key={option} className="flex items-center space-x-3 p-4 rounded-lg border hover:bg-accent cursor-pointer">
-                    <RadioGroupItem value={option} id={`${currentQuestion.id}-${option}`} />
-                    <Label htmlFor={`${currentQuestion.id}-${option}`} className="flex-1 cursor-pointer">
-                      <span className="font-semibold mr-2">{option}.</span>
-                      {optionText as string}
-                    </Label>
-                  </div>
+                  <Label
+                    key={opt}
+                    htmlFor={`opt-${opt}`}
+                    className={cn(
+                      "flex items-center gap-4 p-5 rounded-2xl border-2 transition-all cursor-pointer group",
+                      isSelected
+                        ? "border-primary bg-primary/[0.03] shadow-lg shadow-primary/5"
+                        : "border-muted hover:border-primary/20 hover:bg-muted/30",
+                    )}
+                  >
+                    <RadioGroupItem value={opt} id={`opt-${opt}`} className="sr-only" />
+                    <div
+                      className={cn(
+                        "h-8 w-8 rounded-xl border-2 flex items-center justify-center text-[10px] font-black transition-colors",
+                        isSelected
+                          ? "bg-primary border-primary text-white"
+                          : "border-muted text-muted-foreground group-hover:border-primary/40",
+                      )}
+                    >
+                      {opt}
+                    </div>
+                    <span className="text-sm font-medium leading-snug">{text as string}</span>
+                  </Label>
                 );
               })}
             </RadioGroup>
 
-            <div className="flex justify-between pt-4">
+            <footer className="flex justify-between items-center pt-6 border-t border-border/10">
               <Button
-                variant="outline"
-                onClick={() => setCurrentIndex(prev => prev - 1)}
+                variant="ghost"
+                className="rounded-xl font-black uppercase text-[10px] tracking-widest"
+                onClick={() => setCurrentIndex((prev) => prev - 1)}
                 disabled={currentIndex === 0}
               >
-                <ArrowLeft className="h-4 w-4 mr-2" />
                 Previous
               </Button>
-
               {currentIndex === questions.length - 1 ? (
-                <Button onClick={handleSubmit} disabled={submitting}>
-                  {submitting ? "Submitting..." : "Submit Quiz"}
+                <Button
+                  className="h-12 px-8 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20"
+                  onClick={handleSubmit}
+                  disabled={submitting}
+                >
+                  {submitting ? <Loader2 className="animate-spin h-4 w-4" /> : "Finalize Assessment"}
                 </Button>
               ) : (
-                <Button onClick={() => setCurrentIndex(prev => prev + 1)}>
-                  Next
-                  <ArrowRight className="h-4 w-4 ml-2" />
+                <Button
+                  className="h-12 px-8 rounded-2xl font-black uppercase text-[10px] tracking-widest"
+                  onClick={() => setCurrentIndex((prev) => prev + 1)}
+                >
+                  Next Node <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               )}
-            </div>
+            </footer>
           </CardContent>
         </Card>
       </div>
