@@ -1,32 +1,77 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Upload,
-  Link,
-  Loader2,
-  MessageSquare,
+  BookOpen,
+  Share2,
+  Linkedin,
+  Facebook,
+  MessageCircle,
+  Send,
+  CheckCircle2,
+  Link as LinkIcon,
   Copy,
+  Check,
+  Users,
+  RefreshCw,
+  Filter,
+  ShieldCheck,
+  Zap,
+  Globe,
+  Terminal,
   ExternalLink,
-  User,
-  Briefcase,
-  CheckCircle,
-  Phone,
   BarChart2,
   TrendingUp,
   PieChart,
 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { withTimeout } from "@/hooks/useQueryWithTimeout";
-import { TIMEOUTS } from "@/lib/timeoutConfig";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { getOutreachWhatsAppLink, getFirstName } from "@/lib/outreachTemplates";
+import { cn } from "@/lib/utils";
+
+/**
+ * Platform Logic: Market Penetration Terminal (Content Outreach)
+ * High-fidelity orchestrator for multi-channel promotion and individual pitch telemetry.
+ * 2026 Standard: Executive Logic geometry with reinforced distribution guards.
+ */
+
+interface Content {
+  id: string;
+  title: string;
+  slug: string;
+  content_type: string;
+  current_enrollment: number;
+  is_published: boolean;
+  description?: string;
+}
+
+interface Talent {
+  id: string;
+  full_name: string;
+  email: string;
+  phone: string | null;
+  profession_category_id: string | null;
+  country: string | null;
+}
+
+interface OutreachRecord {
+  talent_id: string;
+  course_id: string | null;
+}
+
+interface ShareLog {
+  channel: string;
+  shared_at: string;
+}
 
 const PRODUCTS = [
   { id: "digital-portfolio", name: "Digital Portfolio Creation", badge: "First 1000 FREE" },
@@ -36,715 +81,560 @@ const PRODUCTS = [
   { id: "salary-analysis", name: "AI Salary Analysis", badge: null },
 ];
 
-// Fallback categories in case database fetch fails
-const DEFAULT_PROFESSION_CATEGORIES = [
-  { id: "a1c5d82c-1a1a-4b0e-89e8-19c264a3a915", name: "Banking & Finance" },
-  { id: "cd947727-350e-4fd3-813b-0034d4cf208e", name: "Sales & Distribution" },
-  { id: "5ee052f8-2aaf-45b5-8f90-731c23097fef", name: "Sales & Marketing" },
-  { id: "1e71843c-d202-4d96-834e-04fa6c784f16", name: "Technology & IT" },
-  { id: "e5489921-ce14-448b-a017-b762a3b72a8d", name: "Human Resources" },
-  { id: "a8c5f269-03bd-4589-954e-51eb1e1fbf32", name: "Operations & Supply Chain" },
-  { id: "2c541af4-1cc0-4704-81aa-78df992aad6b", name: "Healthcare & Pharma" },
-  { id: "30dbc71e-26de-4131-bd97-073e593f9d93", name: "Student (Undergraduate)" },
-  { id: "30e1aff7-a7fa-4bb1-ac5e-d226e4754930", name: "Student (Graduate/Masters)" },
-  { id: "1d65c422-6eef-412c-b843-8ae3d9ac37d5", name: "Fresh Graduate" },
-  { id: "ba50f709-610e-4770-9d2c-918a39073175", name: "Career Changer" },
-  { id: "b4038064-ec0f-4814-a966-ca4c9984bca2", name: "Other" },
-];
-
-const LANGUAGE_OPTIONS = [
-  { id: "auto", name: "Auto-Detect", description: "AI selects based on CV" },
-  { id: "english", name: "English", description: "Professional English only" },
-  { id: "bangla", name: "Bangla (বাংলা)", description: "Full Bangla message" },
-];
-
-const SENDER_OPTIONS = [
-  { id: "firoz", name: "Firoz" },
-  { id: "anika", name: "Anika" },
-  { id: "rodoshi", name: "Rodoshi" },
-  { id: "custom", name: "Custom..." },
-];
-
-interface OutreachResult {
-  name: string;
-  phone: string;
-  phoneNumbers: string[];
-  gender: string;
-  whatsappLink: string | null;
-  message: string;
-  professionCategory: string;
-  productLink: string;
-}
-
-const GENDER_OPTIONS = [
-  { id: "male", name: "♂ Male (ভাই)", description: "Uses ভাই (Bhai) greeting" },
-  { id: "female", name: "♀ Female (আপু)", description: "Uses আপু (Apu) greeting" },
-  { id: "unknown", name: "? Neutral", description: "No gender-specific greeting" },
-];
-
-export function CVOutreachGenerator() {
+export function ContentOutreachManager() {
   const [activeTab, setActiveTab] = useState<"generator" | "analytics">("generator");
-
-  // Generator State
-  const [inputMode, setInputMode] = useState<"upload" | "url" | "text">("url");
-  const [cvUrl, setCvUrl] = useState("");
-  const [cvText, setCvText] = useState("");
-  const [cvFile, setCvFile] = useState<File | null>(null);
-  const [selectedProduct, setSelectedProduct] = useState("digital-portfolio");
-  const [selectedLanguage, setSelectedLanguage] = useState("auto");
-  const [selectedSender, setSelectedSender] = useState("firoz");
-  const [customSenderName, setCustomSenderName] = useState("");
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [result, setResult] = useState<OutreachResult | null>(null);
-  const [parsedCV, setParsedCV] = useState<any>(null);
-  const [selectedPhone, setSelectedPhone] = useState<string>("");
-  const [overrideGender, setOverrideGender] = useState<string | null>(null);
-  const [isRegenerating, setIsRegenerating] = useState(false);
-  const [professionCategories, setProfessionCategories] = useState(DEFAULT_PROFESSION_CATEGORIES);
-
-  // Analytics State
+  const [contents, setContents] = useState<Content[]>([]);
+  const [selectedContent, setSelectedContent] = useState<Content | null>(null);
+  const [talents, setTalents] = useState<Talent[]>([]);
+  const [outreachRecords, setOutreachRecords] = useState<OutreachRecord[]>([]);
+  const [shareLogs, setShareLogs] = useState<ShareLog[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSending, setIsSending] = useState<string | null>(null);
+  const [filterType, setFilterType] = useState<"not_enrolled" | "not_pitched" | "all">("not_pitched");
+  const [isShareOpen, setIsShareOpen] = useState(false);
+  const [shareTab, setShareTab] = useState("linkedin");
+  const [customChannel, setCustomChannel] = useState("");
   const [analyticsData, setAnalyticsData] = useState<any>(null);
   const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
 
-  // Load profession categories from database on mount
-  useEffect(() => {
-    const loadCategories = async () => {
-      try {
-        const { data, error } = await withTimeout(
-          Promise.resolve(
-            supabase.from("profession_categories").select("id, name").eq("is_active", true).order("display_order"),
-          ),
-          TIMEOUTS.CATEGORY_LOAD,
-          "Loading categories timed out",
-        );
-        if (error) throw error;
-        if (data && data.length > 0) {
-          setProfessionCategories(data);
-        }
-      } catch (error) {
-        console.log("Using fallback profession categories");
-      }
-    };
-    loadCategories();
+  const loadContents = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("content")
+      .select("id, title, slug, content_type, current_enrollment, is_published, description")
+      .eq("is_published", true)
+      .in("content_type", ["recorded_course", "batch_class", "live_webinar"])
+      .order("title");
+
+    if (error) return console.error("Registry Fault:", error);
+    setContents(data || []);
+    setIsLoading(false);
   }, []);
 
-  // Load Analytics when tab changes
   useEffect(() => {
-    if (activeTab === "analytics") {
-      loadAnalytics();
+    loadContents();
+  }, [loadContents]);
+
+  const loadTalents = useCallback(async () => {
+    if (!selectedContent) return;
+    setIsLoading(true);
+
+    const { data: talentData, error: talentError } = await supabase
+      .from("talents")
+      .select("id, full_name, email, phone, profession_category_id, country")
+      .not("phone", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(200);
+
+    if (talentError) {
+      setIsLoading(false);
+      return console.error("Talent Registry Fault:", talentError);
     }
-  }, [activeTab]);
+
+    const { data: outreachData } = await supabase
+      .from("outreach_messages")
+      .select("talent_id, course_id")
+      .eq("product", "course")
+      .eq("course_id", selectedContent.id);
+
+    setOutreachRecords(outreachData || []);
+
+    let filteredTalents = talentData || [];
+    if (filterType === "not_pitched") {
+      const pitchedTalentIds = new Set((outreachData || []).map((r) => r.talent_id));
+      filteredTalents = filteredTalents.filter((t) => !pitchedTalentIds.has(t.id));
+    }
+
+    setTalents(filteredTalents);
+    setIsLoading(false);
+  }, [selectedContent, filterType]);
 
   const loadAnalytics = async () => {
     setIsLoadingAnalytics(true);
     try {
-      // Fetch outreach messages
       const { data, error } = await supabase
         .from("outreach_messages")
         .select("*")
         .order("sent_at", { ascending: false });
-
       if (error) throw error;
-
-      // Process stats
-      const totalMessages = data?.length || 0;
-
-      // Product Breakdown
       const productCounts: Record<string, number> = {};
       data?.forEach((msg) => {
         const prod = msg.product || "unknown";
         productCounts[prod] = (productCounts[prod] || 0) + 1;
       });
-
-      // Recent Activity (Top 10)
-      const recentActivity = data?.slice(0, 10) || [];
-
       setAnalyticsData({
-        totalMessages,
+        totalMessages: data?.length || 0,
         productCounts,
-        recentActivity,
+        recentActivity: data?.slice(0, 10) || [],
       });
-    } catch (error) {
-      console.error("Error loading analytics:", error);
-      toast.error("Failed to load analytics");
     } finally {
       setIsLoadingAnalytics(false);
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setCvFile(file);
-    }
+  useEffect(() => {
+    if (activeTab === "analytics") loadAnalytics();
+  }, [activeTab]);
+
+  const loadShareLogs = async () => {
+    if (!selectedContent) return;
+    const { data } = await supabase
+      .from("content_share_logs")
+      .select("channel, shared_at")
+      .eq("content_id", selectedContent.id);
+    setShareLogs(data || []);
   };
 
-  const getSenderName = () => {
-    if (selectedSender === "custom") {
-      return customSenderName || "GroUp Academy Team";
+  useEffect(() => {
+    if (selectedContent) {
+      loadTalents();
+      if (isShareOpen) loadShareLogs();
     }
-    return SENDER_OPTIONS.find((s) => s.id === selectedSender)?.name || "Firoz";
-  };
+  }, [selectedContent, loadTalents, isShareOpen]);
 
-  const processCV = async () => {
-    if (inputMode === "url" && !cvUrl) {
-      toast.error("Please enter a CV URL");
-      return;
-    }
-    if (inputMode === "upload" && !cvFile) {
-      toast.error("Please upload a CV file");
-      return;
-    }
-    if (inputMode === "text" && !cvText.trim()) {
-      toast.error("Please paste profile text");
-      return;
-    }
-
-    setIsProcessing(true);
-    setResult(null);
-    setParsedCV(null);
-    setSelectedPhone("");
-    setOverrideGender(null);
-
-    const createTimeoutPromise = (seconds: number) =>
-      new Promise((_, reject) => setTimeout(() => reject(new Error("Request timed out")), seconds * 1000));
+  const handleSendOutreach = async (talent: Talent) => {
+    if (!talent.phone || !selectedContent) return;
+    setIsSending(talent.id);
 
     try {
-      let cvTextOrUrl = cvUrl;
-      let useTextMode = false;
-
-      if (inputMode === "upload" && cvFile) {
-        toast.info("Uploading CV...");
-        const fileName = `outreach-cvs/${Date.now()}-${cvFile.name}`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from("portfolio-uploads")
-          .upload(fileName, cvFile);
-
-        if (uploadError) {
-          throw new Error("Failed to upload CV: " + uploadError.message);
-        }
-
-        const {
-          data: { publicUrl },
-        } = supabase.storage.from("portfolio-uploads").getPublicUrl(fileName);
-
-        cvTextOrUrl = publicUrl;
-      } else if (inputMode === "text") {
-        cvTextOrUrl = cvText;
-        useTextMode = true;
-      }
-
-      toast.info("Parsing CV...");
-      const parsePromise = supabase.functions.invoke("parse-cv", {
-        body: useTextMode
-          ? { cvText: cvTextOrUrl, serviceType: "cv_outreach" }
-          : { cvUrl: cvTextOrUrl, serviceType: "cv_outreach" },
+      const { error } = await supabase.from("outreach_messages").insert({
+        talent_id: talent.id,
+        product: "course",
+        course_id: selectedContent.id,
+        message_content: `Course pitch: ${selectedContent.title}`,
       });
 
-      const parseResult = (await Promise.race([parsePromise, createTimeoutPromise(30)])) as any;
-      const { data: parseData, error: parseError } = parseResult;
+      if (error) throw error;
 
-      if (parseError) throw new Error(parseError.message || "Failed to parse CV");
-      if (!parseData?.success) throw new Error(parseData?.error || "Failed to parse CV");
+      const firstName = getFirstName(talent.full_name);
+      const whatsappUrl = getOutreachWhatsAppLink(talent.phone, "course", firstName, selectedContent.title);
+      window.open(whatsappUrl, "_blank");
 
-      setParsedCV(parseData.parsed);
-
-      const professionCategoryId = parseData.professional?.profession_category_id || parseData.professionCategoryId;
-      const professionCategory =
-        professionCategories.find((c) => c.id === professionCategoryId)?.name ||
-        determineProfessionFromCV(parseData.parsed);
-
-      toast.info("Generating personalized message...");
-      const messagePromise = supabase.functions.invoke("generate-outreach-message", {
-        body: {
-          parsedCV: parseData.parsed,
-          product: selectedProduct,
-          professionCategory,
-          senderName: getSenderName(),
-          language: selectedLanguage,
-        },
-      });
-
-      const messageResult = (await Promise.race([messagePromise, createTimeoutPromise(30)])) as any;
-      const { data: messageData, error: messageError } = messageResult;
-
-      if (messageError) throw new Error(messageError.message || "Failed to generate message");
-      if (!messageData?.success) throw new Error(messageData?.error || "Failed to generate message");
-
-      const phoneNumbers = messageData.phoneNumbers || (messageData.phone ? [messageData.phone] : []);
-
-      setResult({
-        name: messageData.name,
-        phone: messageData.phone,
-        phoneNumbers,
-        gender: messageData.gender || "unknown",
-        whatsappLink: messageData.whatsappLink,
-        message: messageData.message,
-        professionCategory: messageData.professionCategory,
-        productLink: messageData.productLink,
-      });
-
-      if (phoneNumbers.length > 0) {
-        setSelectedPhone(phoneNumbers[0]);
-      }
-
-      toast.success("Outreach message generated!");
-    } catch (error: any) {
-      console.error("Error processing CV:", error);
-      const errorMessage =
-        error?.message === "Request timed out"
-          ? "Request timed out. Please try again."
-          : error.message || "Failed to process CV";
-      toast.error(errorMessage);
+      setOutreachRecords((prev) => [...prev, { talent_id: talent.id, course_id: selectedContent.id }]);
+      toast.success(`Handshake Synchronized: ${talent.full_name}`);
+    } catch (err) {
+      toast.error("Handshake Failed: Registry rejection");
     } finally {
-      setIsProcessing(false);
+      setIsSending(null);
     }
   };
 
-  const determineProfessionFromCV = (parsed: any): string => {
-    const text = JSON.stringify(parsed).toLowerCase();
-    if (text.includes("bank") || text.includes("finance") || text.includes("accounting")) return "Banking & Finance";
-    if (text.includes("sales") || text.includes("marketing") || text.includes("distribution"))
-      return "Sales & Marketing";
-    if (text.includes("software") || text.includes("developer") || text.includes("engineer") || text.includes("it"))
-      return "Technology & IT";
-    if (text.includes("hr") || text.includes("human resource")) return "Human Resources";
-    if (text.includes("operations") || text.includes("supply chain") || text.includes("logistics"))
-      return "Operations & Supply Chain";
-    if (text.includes("health") || text.includes("pharma") || text.includes("medical")) return "Healthcare & Pharma";
-    if (text.includes("student") || text.includes("university") || text.includes("college")) return "Student";
-    return "Professional";
-  };
+  const isPitched = (talentId: string) =>
+    outreachRecords.some((r) => r.talent_id === talentId && r.course_id === selectedContent?.id);
 
-  const copyMessage = () => {
-    if (result?.message) {
-      navigator.clipboard.writeText(result.message);
-      toast.success("Message copied to clipboard");
+  const recordShare = async (channel: string) => {
+    if (!selectedContent) return;
+    setShareLogs((prev) => [...prev, { channel, shared_at: new Date().toISOString() }]);
+    const { error } = await supabase.from("content_share_logs").insert({
+      content_id: selectedContent.id,
+      channel: channel,
+      shared_at: new Date().toISOString(),
+    });
+    if (error) {
+      setShareLogs((prev) => prev.filter((l) => l.channel !== channel));
+      toast.error("Log Fault: Distribution update failed");
+    } else {
+      toast.success(`Protocol Logged: Shared via ${channel}`);
     }
   };
 
-  const getWhatsAppLink = (phone: string, message: string) => {
-    let formattedPhone = phone.replace(/[\s\-\(\)\+]/g, "");
-    if (formattedPhone.startsWith("880")) {
-    } else if (formattedPhone.startsWith("0")) {
-      formattedPhone = "880" + formattedPhone.slice(1);
-    } else if (formattedPhone.length === 10 || formattedPhone.length === 11) {
-      formattedPhone = "880" + formattedPhone;
-    }
-    return `https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`;
+  const isShared = (channel: string) => shareLogs.some((log) => log.channel === channel);
+
+  const getShareLink = (source: string) => {
+    if (!selectedContent) return "";
+    return `${window.location.origin}/courses/${selectedContent.slug}?source=${source}`;
   };
 
-  const openWhatsApp = async () => {
-    if (result?.message && (selectedPhone || result.phone)) {
-      const link = getWhatsAppLink(selectedPhone || result.phone, result.message);
-      window.open(link, "_blank");
-
-      // Track the message sent event (optional, fire-and-forget)
-      try {
-        await supabase.from("outreach_messages").insert({
-          talent_id: parsedCV?.id, // Might be null if parsed CV isn't linked to a user yet
-          product: selectedProduct,
-          message_content: result.message,
-          sent_at: new Date().toISOString(),
-        });
-      } catch (err) {
-        console.error("Failed to log outreach", err);
-      }
-    }
-  };
-
-  const regenerateWithGender = async (newGender: string) => {
-    if (!parsedCV || !result) return;
-
-    setIsRegenerating(true);
-    setOverrideGender(newGender);
-
+  const copyLink = async (source: string) => {
+    const link = getShareLink(source);
     try {
-      const updatedCV = { ...parsedCV, gender: newGender };
-
-      const { data: messageData, error: messageError } = await supabase.functions.invoke("generate-outreach-message", {
-        body: {
-          parsedCV: updatedCV,
-          product: selectedProduct,
-          professionCategory: result.professionCategory,
-          senderName: getSenderName(),
-          language: selectedLanguage,
-        },
-      });
-
-      if (messageError) throw new Error(messageError.message);
-      if (!messageData?.success) throw new Error(messageData?.error || "Failed to regenerate");
-
-      setResult((prev) =>
-        prev
-          ? {
-              ...prev,
-              gender: newGender,
-              message: messageData.message,
-              whatsappLink: messageData.whatsappLink,
-            }
-          : null,
-      );
-
-      toast.success(`Message regenerated with ${newGender} greeting`);
-    } catch (error: any) {
-      console.error("Error regenerating message:", error);
-      toast.error("Failed to regenerate message");
-    } finally {
-      setIsRegenerating(false);
-    }
+      await navigator.clipboard.writeText(link);
+      toast.success("Artifact Link Synced to Clipboard");
+    } catch {}
   };
+
+  const copyTemplate = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Payload Caption Synced");
+    } catch {}
+  };
+
+  const contentTypeLabel = (type: string) =>
+    ({ recorded_course: "COURSE", batch_class: "BATCH", live_webinar: "WEBINAR" })[type] || type;
+
+  const templates = selectedContent
+    ? {
+        english: `🚀 Career Uplink: ${selectedContent.title}\n📚 Logic: ${contentTypeLabel(selectedContent.content_type)}\n🔥 Sync here: ${getShareLink(shareTab)}\n\n#intel #growth`,
+        bangla: `📢 নতুন সুযোগ: ${selectedContent.title}\n📚 ধরণ: ${contentTypeLabel(selectedContent.content_type)}\n🔗 লিংক: ${getShareLink(shareTab)}\n\n#bdjobs #learning`,
+      }
+    : { english: "", bangla: "" };
+
+  const handleSocialShare = (platform: "linkedin" | "facebook" | "whatsapp" | "telegram") => {
+    if (!selectedContent) return;
+    const link = getShareLink(platform);
+    recordShare(platform);
+    let url = "";
+    switch (platform) {
+      case "linkedin":
+        url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(link)}`;
+        break;
+      case "facebook":
+        url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}`;
+        break;
+      case "whatsapp":
+        url = `https://wa.me/?text=${encodeURIComponent(`Career Artifact: ${selectedContent.title}\n${link}`)}`;
+        break;
+      case "telegram":
+        url = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(selectedContent.title)}`;
+        break;
+    }
+    window.open(url, "_blank", "width=600,height=600");
+  };
+
+  if (isLoading && contents.length === 0) return <Skeleton className="h-[600px] w-full rounded-[40px]" />;
 
   return (
-    <div className="space-y-6">
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "generator" | "analytics")} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 mb-4">
-          <TabsTrigger value="generator" className="flex items-center gap-2">
-            <MessageSquare className="w-4 h-4" />
-            Generator
+    <div className="max-w-6xl mx-auto space-y-10 animate-in fade-in duration-1000 pb-20">
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
+        <TabsList className="bg-muted/30 backdrop-blur-md rounded-[24px] border-2 border-border/40 p-1.5 mb-8 w-full max-w-md">
+          <TabsTrigger
+            value="generator"
+            className="flex-1 rounded-xl font-black uppercase text-[10px] tracking-widest gap-2"
+          >
+            <Zap className="w-4 h-4" /> Distribution
           </TabsTrigger>
-          <TabsTrigger value="analytics" className="flex items-center gap-2">
-            <BarChart2 className="w-4 h-4" />
-            Analytics
+          <TabsTrigger
+            value="analytics"
+            className="flex-1 rounded-xl font-black uppercase text-[10px] tracking-widest gap-2"
+          >
+            <BarChart2 className="w-4 h-4" /> Analytics
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="generator" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MessageSquare className="w-5 h-5" />
-                CV Outreach Generator
-              </CardTitle>
-              <CardDescription>
-                Upload or paste a CV URL, select a product, and generate personalized WhatsApp outreach messages
-              </CardDescription>
+        <TabsContent value="generator" className="space-y-10">
+          <Card className="rounded-[40px] border-2 border-border/40 bg-card/30 backdrop-blur-xl shadow-2xl overflow-hidden">
+            <div className="h-1.5 w-full bg-gradient-to-r from-primary via-blue-600 to-primary" />
+            <CardHeader className="p-10 border-b border-border/10 bg-muted/10">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="space-y-2">
+                  <CardTitle className="text-3xl font-black uppercase tracking-tighter italic flex items-center gap-4">
+                    <BookOpen className="h-8 w-8 text-primary" /> Outreach Terminal
+                  </CardTitle>
+                  <CardDescription className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 italic">
+                    Authorized Market Penetration & Individual Target Telemetry
+                  </CardDescription>
+                </div>
+              </div>
             </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Input Section */}
-              <div className="grid gap-6 md:grid-cols-2">
-                <div className="space-y-4">
-                  <Tabs value={inputMode} onValueChange={(v) => setInputMode(v as "upload" | "url" | "text")}>
-                    <TabsList className="grid w-full grid-cols-3">
-                      <TabsTrigger value="url" className="flex items-center gap-2">
-                        <Link className="w-4 h-4" /> URL
-                      </TabsTrigger>
-                      <TabsTrigger value="upload" className="flex items-center gap-2">
-                        <Upload className="w-4 h-4" /> Upload
-                      </TabsTrigger>
-                      <TabsTrigger value="text" className="flex items-center gap-2">
-                        <User className="w-4 h-4" /> Text
-                      </TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="url" className="mt-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="cvUrl">CV URL</Label>
-                        <Input
-                          id="cvUrl"
-                          placeholder="https://...supabase.co/storage/.../cv.pdf"
-                          value={cvUrl}
-                          onChange={(e) => setCvUrl(e.target.value)}
-                        />
-                      </div>
-                    </TabsContent>
-                    <TabsContent value="upload" className="mt-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="cvFile">Upload CV File</Label>
-                        <Input id="cvFile" type="file" accept=".pdf,.doc,.docx" onChange={handleFileChange} />
-                        {cvFile && <p className="text-sm text-muted-foreground">Selected: {cvFile.name}</p>}
-                      </div>
-                    </TabsContent>
-                    <TabsContent value="text" className="mt-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="cvText">Paste Profile Text</Label>
-                        <Textarea
-                          id="cvText"
-                          placeholder="Paste LinkedIn profile or resume text..."
-                          value={cvText}
-                          onChange={(e) => setCvText(e.target.value)}
-                          rows={6}
-                        />
-                      </div>
-                    </TabsContent>
-                  </Tabs>
+            <CardContent className="p-10 space-y-8">
+              <div className="grid gap-8 md:grid-cols-2">
+                <div className="space-y-3 text-left">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                    Target Artifact
+                  </Label>
+                  <Select
+                    value={selectedContent?.id || ""}
+                    onValueChange={(v) => setSelectedContent(contents.find((x) => x.id === v) || null)}
+                  >
+                    <SelectTrigger className="h-14 rounded-2xl border-2 font-bold bg-muted/20">
+                      <SelectValue placeholder="Identify content node..." />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-2xl border-2">
+                      {contents.map((c) => (
+                        <SelectItem key={c.id} value={c.id} className="font-bold uppercase text-[10px]">
+                          [{contentTypeLabel(c.content_type)}] {c.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="product">Product to Promote</Label>
-                    <Select value={selectedProduct} onValueChange={setSelectedProduct}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {PRODUCTS.map((product) => (
-                          <SelectItem key={product.id} value={product.id}>
-                            <div className="flex items-center gap-2">
-                              {product.name}
-                              {product.badge && (
-                                <Badge variant="secondary" className="text-xs">
-                                  {product.badge}
-                                </Badge>
-                              )}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="language">Message Language</Label>
-                    <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {LANGUAGE_OPTIONS.map((lang) => (
-                          <SelectItem key={lang.id} value={lang.id}>
-                            {lang.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="senderName">Sender Name</Label>
-                    <Select value={selectedSender} onValueChange={setSelectedSender}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {SENDER_OPTIONS.map((sender) => (
-                          <SelectItem key={sender.id} value={sender.id}>
-                            {sender.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {selectedSender === "custom" && (
-                      <Input
-                        placeholder="Enter custom sender name"
-                        value={customSenderName}
-                        onChange={(e) => setCustomSenderName(e.target.value)}
-                        className="mt-2"
-                      />
-                    )}
-                  </div>
+                <div className="space-y-3 text-left">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                    Audience Filter Protocol
+                  </Label>
+                  <Select value={filterType} onValueChange={(v: any) => setFilterType(v)}>
+                    <SelectTrigger className="h-14 rounded-2xl border-2 font-bold bg-muted/20">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-2xl border-2">
+                      <SelectItem value="not_pitched" className="font-bold text-[10px] uppercase">
+                        Protocol: Zero Pitch Nodes
+                      </SelectItem>
+                      <SelectItem value="all" className="font-bold text-[10px] uppercase">
+                        Protocol: Global Talent Pool
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
-              <Button onClick={processCV} disabled={isProcessing} className="w-full" size="lg">
-                {isProcessing ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Processing...
-                  </>
-                ) : (
-                  <>
-                    <MessageSquare className="w-4 h-4 mr-2" /> Generate Outreach Message
-                  </>
-                )}
-              </Button>
+              {selectedContent && (
+                <div className="flex items-center justify-between p-8 rounded-[32px] border-2 bg-primary/5 border-primary/20 shadow-inner animate-in slide-in-from-bottom-2">
+                  <div className="space-y-1 text-left">
+                    <h3 className="text-xl font-black uppercase tracking-tighter italic text-primary">
+                      {selectedContent.title}
+                    </h3>
+                    <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest italic">
+                      {talents.length} VALID TARGETS IN RANGE
+                    </p>
+                  </div>
+                  <Button
+                    onClick={() => setIsShareOpen(true)}
+                    className="h-14 px-8 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-2xl shadow-primary/30 group"
+                  >
+                    <Share2 className="w-5 h-5 mr-3 group-hover:scale-110 transition-transform" /> Broad Distrubution
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
 
-          {/* Results Section */}
-          {result && (
-            <Card className="border-primary/50">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-primary">
-                  <CheckCircle className="w-5 h-5" /> Outreach Ready
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
-                  <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                    <User className="w-5 h-5 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Name</p>
-                      <p className="font-semibold">{result.name}</p>
-                    </div>
+          {selectedContent && (
+            <Card className="rounded-[40px] border-2 border-border/40 bg-card/30 backdrop-blur-xl shadow-2xl overflow-hidden">
+              <CardHeader className="p-10 bg-muted/10 border-b border-border/10">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1 text-left">
+                    <CardTitle className="text-2xl font-black uppercase tracking-tighter italic flex items-center gap-4">
+                      <Terminal className="h-6 w-6 text-primary" /> Target Registry
+                    </CardTitle>
+                    <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest italic">
+                      Individualized pitch logic nodes
+                    </p>
                   </div>
-                  <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                    <Briefcase className="w-5 h-5 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Category</p>
-                      <Badge variant="outline">{result.professionCategory}</Badge>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                    <Phone className="w-5 h-5 text-muted-foreground" />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Phone(s)</p>
-                      <p className="font-semibold">{result.phoneNumbers?.length || 0} found</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-2 p-4 rounded-lg border bg-muted/20">
-                  <Label className="flex items-center gap-2">
-                    Gender Detection{" "}
-                    <Badge
-                      variant={
-                        result.gender === "male" ? "default" : result.gender === "female" ? "secondary" : "outline"
-                      }
-                    >
-                      {result.gender}
-                    </Badge>
-                  </Label>
-                  <div className="flex flex-wrap gap-2">
-                    {GENDER_OPTIONS.map((gender) => (
-                      <Button
-                        key={gender.id}
-                        variant={result.gender === gender.id ? "default" : "outline"}
-                        size="sm"
-                        disabled={isRegenerating || result.gender === gender.id}
-                        onClick={() => regenerateWithGender(gender.id)}
-                      >
-                        {isRegenerating && overrideGender === gender.id ? (
-                          <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                        ) : null}
-                        {gender.name}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-
-                {result.phoneNumbers && result.phoneNumbers.length > 1 && (
-                  <div className="space-y-2">
-                    <Label>Select Phone Number for WhatsApp</Label>
-                    <div className="flex flex-wrap gap-2">
-                      {result.phoneNumbers.map((phone, idx) => (
-                        <Button
-                          key={idx}
-                          variant={selectedPhone === phone ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setSelectedPhone(phone)}
-                        >
-                          <Phone className="w-3 h-3 mr-1" /> {phone}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div className="space-y-3">
-                  <Label>Generated Message</Label>
-                  <Textarea value={result.message} readOnly className="min-h-[150px] bg-muted/30" />
-                </div>
-
-                <div className="flex flex-wrap gap-3">
-                  {selectedPhone || result.phone ? (
-                    <Button onClick={openWhatsApp} className="flex-1 bg-green-600 hover:bg-green-700">
-                      <ExternalLink className="w-4 h-4 mr-2" /> Open WhatsApp ({selectedPhone || result.phone})
-                    </Button>
-                  ) : (
-                    <Button disabled className="flex-1">
-                      <MessageSquare className="w-4 h-4 mr-2" /> No phone number
-                    </Button>
-                  )}
-                  <Button variant="outline" onClick={copyMessage} className="flex-1">
-                    <Copy className="w-4 h-4 mr-2" /> Copy Message
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={loadTalents}
+                    className="h-12 w-12 rounded-full hover:bg-primary/10"
+                  >
+                    <RefreshCw className="h-5 w-5 text-primary" />
                   </Button>
                 </div>
+              </CardHeader>
+              <CardContent className="p-0">
+                {talents.length === 0 ? (
+                  <div className="py-32 text-center space-y-4 opacity-20 italic">
+                    <Users className="h-16 w-16 mx-auto" />
+                    <p className="text-[11px] font-black uppercase tracking-[0.4em]">Target Node Null</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-border/10">
+                    {talents.map((talent) => (
+                      <div
+                        key={talent.id}
+                        className="group p-8 flex items-center justify-between transition-all hover:bg-primary/[0.02]"
+                      >
+                        <div className="flex items-center gap-6">
+                          <div className="h-14 w-14 rounded-2xl bg-muted/50 flex items-center justify-center border-2 border-border/40 shadow-inner group-hover:rotate-3 transition-transform">
+                            <Users className="h-6 w-6 text-muted-foreground/40" />
+                          </div>
+                          <div className="space-y-1 text-left">
+                            <p className="text-lg font-black uppercase tracking-tight italic leading-none group-hover:text-primary transition-colors">
+                              {talent.full_name}
+                            </p>
+                            <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest italic flex items-center gap-3">
+                              <Globe className="h-3 w-3" /> {talent.email}{" "}
+                              <span className="h-1 w-1 rounded-full bg-border" /> {talent.phone}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-8">
+                          <Badge
+                            className={cn(
+                              "rounded-lg font-black text-[9px] uppercase tracking-widest px-4 py-1.5 border-none shadow-sm",
+                              isPitched(talent.id) ? "bg-emerald-500 text-white" : "bg-muted text-muted-foreground",
+                            )}
+                          >
+                            {isPitched(talent.id) ? "SYNC'D_PITCH" : "PENDING_NODE"}
+                          </Badge>
+                          {!isPitched(talent.id) && (
+                            <Button
+                              className="h-12 px-8 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-primary/20"
+                              onClick={() => handleSendOutreach(talent)}
+                              disabled={isSending === talent.id}
+                            >
+                              {isSending === talent.id ? (
+                                <RefreshCw className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <>
+                                  <Send className="h-4 w-4 mr-2" /> Handshake
+                                </>
+                              )}
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
         </TabsContent>
 
-        <TabsContent value="analytics" className="space-y-6">
+        <TabsContent value="analytics" className="space-y-8">
           {isLoadingAnalytics ? (
-            <div className="text-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
-            </div>
-          ) : !analyticsData ? (
-            <div className="text-center py-12 text-muted-foreground">No analytics data available</div>
+            <Skeleton className="h-96 rounded-[40px]" />
           ) : (
-            <div className="grid gap-6 md:grid-cols-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5" /> Total Messages
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{analyticsData.totalMessages}</div>
-                  <p className="text-sm text-muted-foreground">All time outreach messages sent</p>
-                </CardContent>
+            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+              <Card className="rounded-[32px] border-2 border-border/40 bg-card/30 p-8 shadow-xl">
+                <div className="flex items-center gap-5 mb-4">
+                  <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center border-2 border-primary/20">
+                    <TrendingUp className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 italic">
+                      Global Handshakes
+                    </p>
+                    <p className="text-4xl font-black italic tracking-tighter leading-none">
+                      {analyticsData?.totalMessages}
+                    </p>
+                  </div>
+                </div>
               </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <PieChart className="w-5 h-5" /> Product Breakdown
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {Object.entries(analyticsData.productCounts).map(([product, count]: [string, any]) => (
-                    <div
-                      key={product}
-                      className="flex justify-between items-center text-sm border-b pb-1 last:border-0"
-                    >
-                      <span className="capitalize">{product.replace(/_/g, " ")}</span>
-                      <Badge variant="outline">{count}</Badge>
+              <Card className="rounded-[32px] border-2 border-border/40 bg-card/30 p-8 shadow-xl md:col-span-2">
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 mb-6 italic">
+                  Artifact Distribution Breakdown
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
+                  {Object.entries(analyticsData?.productCounts || {}).map(([prod, count]: any) => (
+                    <div key={prod} className="space-y-1">
+                      <p className="text-[9px] font-bold text-muted-foreground uppercase">{prod.replace(/-/g, " ")}</p>
+                      <p className="text-xl font-black italic">{count}</p>
+                      <Progress value={(count / (analyticsData?.totalMessages || 1)) * 100} className="h-1" />
                     </div>
                   ))}
-                </CardContent>
-              </Card>
-
-              <Card className="md:col-span-2">
-                <CardHeader>
-                  <CardTitle>Recent Outreach Activity</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {/* Desktop Table */}
-                  <div className="hidden sm:block">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Product</TableHead>
-                          <TableHead>Message Snippet</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {analyticsData.recentActivity.map((msg: any) => (
-                          <TableRow key={msg.id}>
-                            <TableCell className="text-xs text-muted-foreground">
-                              {new Date(msg.sent_at).toLocaleDateString()}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="secondary" className="text-xs">
-                                {msg.product}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="max-w-[300px] truncate text-xs text-muted-foreground">
-                              {msg.message_content}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                  {/* Mobile Cards */}
-                  <div className="sm:hidden space-y-2">
-                    {analyticsData.recentActivity.map((msg: any) => (
-                      <div key={msg.id} className="p-3 border rounded-lg space-y-1">
-                        <div className="flex items-center justify-between">
-                          <Badge variant="secondary" className="text-xs">{msg.product}</Badge>
-                          <span className="text-xs text-muted-foreground">{new Date(msg.sent_at).toLocaleDateString()}</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground line-clamp-2">{msg.message_content}</p>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
+                </div>
               </Card>
             </div>
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Distribution Dialog */}
+      <Dialog open={isShareOpen} onOpenChange={setIsShareOpen}>
+        <DialogContent className="max-w-3xl rounded-[40px] border-4 border-border/40 bg-background/95 backdrop-blur-2xl p-0 overflow-hidden shadow-2xl">
+          <div className="h-2 w-full bg-gradient-to-r from-blue-600 via-primary to-blue-600" />
+          <div className="p-12">
+            <DialogHeader className="mb-10 text-left">
+              <div className="flex items-center gap-5">
+                <Globe className="h-10 w-10 text-primary" />
+                <div>
+                  <DialogTitle className="text-3xl font-black uppercase tracking-tighter italic">
+                    Broad Distribution Node
+                  </DialogTitle>
+                  <DialogDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
+                    Mass Artifact Promotion Protocols
+                  </DialogDescription>
+                </div>
+              </div>
+            </DialogHeader>
+
+            <div className="flex flex-col md:flex-row gap-10">
+              <div className="w-full md:w-1/3 space-y-3">
+                {[
+                  { id: "linkedin", label: "LINKEDIN", icon: Linkedin, color: "text-blue-600" },
+                  { id: "facebook", label: "FACEBOOK", icon: Facebook, color: "text-blue-500" },
+                  { id: "whatsapp", label: "WHATSAPP", icon: MessageCircle, color: "text-green-500" },
+                  { id: "telegram", label: "TELEGRAM", icon: Send, color: "text-sky-500" },
+                  { id: "custom", label: "LOGIC LINK", icon: LinkIcon, color: "text-primary" },
+                ].map((ch) => (
+                  <button
+                    key={ch.id}
+                    onClick={() => setShareTab(ch.id)}
+                    className={cn(
+                      "w-full flex items-center justify-between p-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border-2",
+                      shareTab === ch.id
+                        ? "bg-primary border-primary text-white shadow-xl"
+                        : "bg-muted/10 border-border/10 hover:border-primary/20",
+                    )}
+                  >
+                    <div className="flex items-center gap-4">
+                      <ch.icon className={cn("w-4 h-4", shareTab === ch.id ? "text-white" : ch.color)} />
+                      <span>{ch.label}</span>
+                    </div>
+                    {isShared(ch.id) && <ShieldCheck className="w-4 h-4" />}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex-1 space-y-8 animate-in fade-in duration-500 text-left">
+                {shareTab !== "custom" ? (
+                  <div className="space-y-6">
+                    <div className="space-y-3">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1 block">
+                        Synthesis Payload ({shareTab})
+                      </Label>
+                      <div className="relative">
+                        <Textarea
+                          value={shareTab === "linkedin" ? templates.english : templates.bangla}
+                          readOnly
+                          rows={6}
+                          className="rounded-2xl border-2 bg-muted/5 font-mono text-xs p-6 italic focus-visible:ring-0 leading-relaxed"
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => copyTemplate(shareTab === "linkedin" ? templates.english : templates.bangla)}
+                          className="absolute bottom-4 right-4 h-10 w-10 rounded-xl hover:bg-primary hover:text-white transition-all shadow-inner border-2 border-border/10"
+                        >
+                          <Copy className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    <Button
+                      className="w-full h-16 rounded-[20px] font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-primary/30 group"
+                      onClick={() => handleSocialShare(shareTab as any)}
+                    >
+                      <ExternalLink className="w-5 h-5 mr-3" /> Authorize Channel Sync
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-8 animate-in slide-in-from-top-4">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                        Channel Logic Name
+                      </Label>
+                      <Input
+                        placeholder="e.g. CORE_NEWSLETTER_BETA"
+                        value={customChannel}
+                        onChange={(e) => setCustomChannel(e.target.value)}
+                        className="h-12 rounded-xl border-2 font-bold"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                        Tracking Artifact Link
+                      </Label>
+                      <div className="flex gap-2">
+                        <Input
+                          readOnly
+                          value={getShareLink(customChannel || "custom")}
+                          className="h-12 rounded-xl border-2 bg-muted/5 font-mono text-xs"
+                        />
+                        <Button
+                          onClick={() => copyLink(customChannel || "custom")}
+                          className="h-12 w-12 rounded-xl border-2 border-border/10"
+                        >
+                          <Copy className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      className="w-full h-14 rounded-2xl border-2 font-black uppercase text-[10px] tracking-widest"
+                      onClick={() => recordShare(customChannel || "custom")}
+                    >
+                      <ShieldCheck className="w-4 h-4 mr-3" /> Commit Share Record
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
