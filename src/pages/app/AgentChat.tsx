@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Loader2, MessageSquare, ShieldAlert } from "lucide-react";
+import { Loader2, MessageSquare, ShieldAlert, Zap } from "lucide-react";
 import { AgentChatDialog } from "@/components/ai-agents/AgentChatDialog";
 import { useAgentChat } from "@/hooks/useAgentChat";
 import { useCredits } from "@/hooks/useCredits";
@@ -10,7 +10,13 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { getIcon } from "@/lib/iconMap";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
+/**
+ * Platform Logic: Neural Interface Hub
+ * Orchestrates high-fidelity AI agent sessions with real-time credit telemetry.
+ * 2026 Layout Standard: Fixed-viewport containment to prevent mobile bounce.
+ */
 export default function AgentChat() {
   const { agentKey } = useParams<{ agentKey: string }>();
   const navigate = useNavigate();
@@ -101,17 +107,23 @@ export default function AgentChat() {
 
   if (!agentKey) return null;
 
-  // CTO FIX: Standardized Loading Shell
+  // CTO FIX: High-Fidelity Loading Shell
   if (isInitializing || isLoadingDbAgent) {
     return (
-      <div className="flex flex-col items-center justify-center h-[80dvh] space-y-4">
-        <div className="relative">
-          <Loader2 className="h-10 w-10 animate-spin text-primary opacity-20" />
-          <MessageSquare className="h-5 w-5 text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background p-6">
+        <div className="relative mb-6">
+          <div className="absolute inset-0 rounded-full bg-primary/20 blur-2xl animate-pulse" />
+          <Loader2 className="h-16 w-16 animate-spin text-primary opacity-20 stroke-[1.5px]" />
+          <MessageSquare className="h-8 w-8 text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
         </div>
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground animate-pulse">
-          Establishing Secure Channel...
-        </p>
+        <div className="text-center space-y-2">
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary animate-pulse">
+            Establishing Secure Channel
+          </p>
+          <p className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground/60 italic">
+            Synchronizing Neural Handshake...
+          </p>
+        </div>
       </div>
     );
   }
@@ -121,12 +133,16 @@ export default function AgentChat() {
   const IconComponent = getIcon(activeAgent.iconName) || MessageSquare;
 
   return (
-    /** * CTO ARCHITECTURAL NOTE:
-     * fixed inset-0 + padding-top/bottom is the only way to stop mobile "bounce"
-     * 60px = Top Navigation | 65px = Bottom Nav Bar
+    /** * ARCHITECTURAL HUB:
+     * fixed inset-0 + precise navigation offsets to prevent browser chrome jumping.
      */
-    <div className="fixed inset-0 top-[60px] bottom-[65px] flex flex-col overflow-hidden bg-background z-10">
-      <main className="flex-1 w-full max-w-5xl mx-auto flex flex-col overflow-hidden shadow-2xl bg-card">
+    <div className="fixed inset-0 top-[60px] bottom-[65px] flex flex-col overflow-hidden bg-background">
+      <main
+        className={cn(
+          "flex-1 w-full max-w-5xl mx-auto flex flex-col overflow-hidden transition-all duration-500",
+          "bg-card/30 backdrop-blur-xl border-x border-border/40 shadow-2xl",
+        )}
+      >
         {session ? (
           <AgentChatDialog
             agent={{
@@ -147,11 +163,23 @@ export default function AgentChat() {
             perResponseCost={activeAgent.creditCost || perResponseCost}
           />
         ) : (
-          <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-            <ShieldAlert className="h-12 w-12 text-destructive/30 mb-4" />
-            <h3 className="font-bold text-lg">Session Interrupted</h3>
-            <p className="text-sm text-muted-foreground mb-6">We lost the handshake with the AI specialist.</p>
-            <Button onClick={() => window.location.reload()}>Re-establish Connection</Button>
+          /* Error State: Diagnostic Protocol */
+          <div className="flex flex-col items-center justify-center h-full p-12 text-center animate-in fade-in zoom-in-95">
+            <div className="h-24 w-24 rounded-[40px] bg-destructive/10 flex items-center justify-center mb-8 rotate-3">
+              <ShieldAlert className="h-12 w-12 text-destructive shadow-sm" />
+            </div>
+            <h3 className="font-black uppercase tracking-tighter text-2xl mb-2">Session Interrupted</h3>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 italic mb-8 max-w-[280px]">
+              The secure uplink with the specialist has been severed. Registry handshake failed.
+            </p>
+            <Button
+              size="lg"
+              onClick={() => window.location.reload()}
+              className="rounded-2xl px-10 font-black uppercase tracking-widest text-[10px] h-12 shadow-xl shadow-primary/20"
+            >
+              <Zap className="mr-2 h-4 w-4" />
+              Re-establish Connection
+            </Button>
           </div>
         )}
       </main>
