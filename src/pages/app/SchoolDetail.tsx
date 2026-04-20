@@ -6,8 +6,25 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getIcon } from "@/lib/iconMap";
-import { ArrowLeft, ArrowRight, Bot, RefreshCw, AlertCircle, GraduationCap, Briefcase, Sparkles } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Bot,
+  RefreshCw,
+  AlertCircle,
+  GraduationCap,
+  Briefcase,
+  Sparkles,
+  ShieldCheck,
+  Target,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
+
+/**
+ * Platform Logic: Faculty Knowledge Node
+ * High-fidelity orchestrator for department-specific career pathways.
+ * 2026 Standard: Executive Logic geometry with reinforced join telemetry.
+ */
 
 interface School {
   id: string;
@@ -25,7 +42,6 @@ interface ProfessionLine {
   icon: string;
   career_outcome: string;
   school_id: string;
-  // CTO FIX: Updated to handle both single object and array responses from Supabase joins
   ai_instructors: { name: string } | { name: string }[] | null;
 }
 
@@ -52,7 +68,7 @@ export default function SchoolDetail() {
         .maybeSingle();
 
       if (schoolError) throw schoolError;
-      if (!schoolData) throw new Error("School not found");
+      if (!schoolData) throw new Error("School registry node not found");
 
       setSchool(schoolData as School);
 
@@ -65,148 +81,167 @@ export default function SchoolDetail() {
 
       if (profError) throw profError;
 
-      // CTO FIX: Double-casting via 'unknown' to satisfy TS2352 overlap requirements
+      // Logic Synchronization: Ensure array integrity for the view layer
       setProfessions((professionData as unknown as ProfessionLine[]) || []);
     } catch (error: any) {
       console.error("Critical School Load Error:", error);
-      setLoadingError(error.message || "Connection timed out.");
+      setLoadingError(error.message || "Uplink timed out.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (isLoading) {
+  if (isLoading)
     return (
-      <div className="max-w-5xl mx-auto px-4 py-8 space-y-10">
-        <Skeleton className="h-8 w-40 rounded-full" />
-        <div className="space-y-4">
-          <Skeleton className="h-[200px] w-full rounded-[32px]" />
-        </div>
+      <div className="max-w-5xl mx-auto px-6 py-10 space-y-12 animate-pulse">
+        <Skeleton className="h-10 w-48 rounded-xl bg-muted/40" />
+        <Skeleton className="h-[240px] w-full rounded-[40px] bg-muted/40" />
         <div className="grid gap-6 md:grid-cols-2">
-          {[...Array(4)].map((_, i) => (
-            <Skeleton key={i} className="h-48 rounded-[24px]" />
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-64 rounded-[32px] bg-muted/40" />
           ))}
         </div>
       </div>
     );
-  }
 
-  if (loadingError || !school) {
+  if (loadingError || !school)
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] px-6 text-center">
-        <div className="p-4 rounded-3xl bg-destructive/5 mb-6">
-          <AlertCircle className="h-10 w-10 text-destructive" />
+      <div className="flex flex-col items-center justify-center min-h-[70vh] px-6 text-center animate-in fade-in zoom-in-95 duration-700">
+        <div className="p-6 rounded-[32px] bg-destructive/5 mb-8 border-2 border-destructive/10">
+          <AlertCircle className="h-12 w-12 text-destructive opacity-40" />
         </div>
-        <h1 className="text-2xl font-black tracking-tight">Faculty Offline</h1>
-        <p className="text-muted-foreground mt-2 max-w-sm">This school is currently undergoing curriculum updates.</p>
-        <div className="flex flex-col sm:flex-row gap-3 mt-8">
-          <Button onClick={loadSchoolData} className="rounded-xl h-11 px-8 font-bold">
-            <RefreshCw className="mr-2 h-4 w-4" /> Reconnect
+        <h1 className="text-3xl font-black uppercase tracking-tighter">Faculty Registry Offline</h1>
+        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 mt-3 italic">
+          Curriculum parameters undergoing recalibration.
+        </p>
+        <div className="flex gap-4 mt-10">
+          <Button
+            onClick={loadSchoolData}
+            className="rounded-xl h-12 px-10 font-black uppercase text-[10px] tracking-widest shadow-2xl shadow-primary/20"
+          >
+            <RefreshCw className="mr-3 h-4 w-4" /> Re-Sync
           </Button>
-          <Button variant="ghost" onClick={() => navigate("/app/learning/tracks")} className="font-bold">
-            Learning Hub
+          <Button
+            variant="ghost"
+            onClick={() => navigate("/app/learning/tracks")}
+            className="rounded-xl h-12 px-10 font-black uppercase text-[10px] tracking-widest"
+          >
+            Return to Hub
           </Button>
         </div>
       </div>
     );
-  }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6 space-y-10 animate-in fade-in duration-700">
+    <div className="max-w-6xl mx-auto px-6 py-10 pb-40 space-y-12 animate-in fade-in duration-1000">
+      {/* Immersive Header Handshake */}
       <header className="flex items-center justify-between">
         <Button
           variant="ghost"
           size="sm"
           onClick={() => navigate("/app/learning/tracks")}
-          className="rounded-full h-10 pl-2 pr-5 font-bold text-xs uppercase tracking-widest hover:bg-primary/5 transition-all"
+          className="group rounded-xl h-11 pl-3 pr-6 font-black text-[10px] uppercase tracking-[0.3em] hover:bg-primary/5 -ml-3 transition-all"
         >
-          <ArrowLeft className="mr-2 h-4 w-4" /> Hub
+          <ArrowLeft className="mr-3 h-4 w-4 transition-transform group-hover:-translate-x-1" />
+          Back to Hub
         </Button>
-        <Badge
-          variant="outline"
-          className="border-primary/20 text-primary font-black uppercase text-[10px] tracking-tighter"
-        >
-          Faculty Verified
-        </Badge>
+        <div className="flex items-center gap-3">
+          <Badge
+            variant="outline"
+            className="border-primary/20 text-primary font-black uppercase text-[9px] tracking-widest italic px-3 py-1"
+          >
+            Faculty Verified Node
+          </Badge>
+          <ShieldCheck className="h-5 w-5 text-emerald-500 opacity-40" />
+        </div>
       </header>
 
-      <section className="relative overflow-hidden rounded-[40px] border border-border/50 bg-card p-8 md:p-12 shadow-2xl">
-        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-primary/5 rounded-full blur-[100px] -mr-48 -mt-48" />
-        <div className="relative space-y-6 max-w-3xl">
+      {/* Hero Module: Knowledge Context */}
+      <section className="relative overflow-hidden rounded-[48px] border-2 border-border/40 bg-card/30 backdrop-blur-xl p-10 md:p-16 shadow-[0_40px_80px_-20px_rgba(0,0,0,0.2)]">
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px] -mr-64 -mt-64" />
+        <div className="relative space-y-8 max-w-3xl">
           {school.academies && (
-            <div className="flex items-center gap-2">
-              <Badge className="px-4 py-1.5 bg-primary/10 text-primary border-none text-[10px] font-black uppercase tracking-widest rounded-full">
-                <GraduationCap className="w-3.5 h-3.5 mr-2" />
+            <div className="flex items-center gap-4">
+              <Badge className="px-5 py-2 bg-primary text-primary-foreground border-none text-[9px] font-black uppercase tracking-widest rounded-xl shadow-xl shadow-primary/20">
+                <GraduationCap className="w-4 h-4 mr-2.5 fill-current" />
                 {school.academies.name}
               </Badge>
-              <div className="h-1 w-1 rounded-full bg-muted-foreground/30" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
-                Department
+              <div className="h-[1px] w-8 bg-muted-foreground/20" />
+              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40 italic">
+                Primary Department
               </span>
             </div>
           )}
-          <h1 className="text-4xl md:text-5xl font-black tracking-tighter leading-none">{school.name}</h1>
-          <p className="text-lg text-muted-foreground leading-relaxed font-medium max-w-2xl">{school.description}</p>
+          <div className="space-y-4">
+            <h1 className="text-5xl md:text-7xl font-black tracking-tighter uppercase italic leading-[0.85] selection:bg-primary/20">
+              {school.name}
+            </h1>
+            <p className="text-lg md:text-xl text-muted-foreground/80 leading-relaxed font-medium max-w-2xl italic">
+              {school.description}
+            </p>
+          </div>
         </div>
       </section>
 
-      <div className="space-y-8">
-        <div className="flex items-center justify-between px-2">
+      {/* Registry Grid: Specialized Tracks */}
+      <div className="space-y-10">
+        <div className="flex items-center justify-between px-2 border-b border-border/10 pb-6">
           <div className="space-y-1">
-            <h2 className="text-2xl font-black tracking-tight flex items-center gap-2">
-              Specialized Tracks <Sparkles className="h-5 w-5 text-amber-500" />
+            <h2 className="text-3xl font-black uppercase tracking-tighter italic flex items-center gap-3">
+              Specialized Tracks <Sparkles className="h-6 w-6 text-amber-500 fill-amber-500/20" />
             </h2>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
-              Industry-Ready Certification Pathways
+            <p className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-[0.4em] italic">
+              Industry-Ready Certification Registry
             </p>
           </div>
         </div>
 
         {professions.length > 0 ? (
-          <div className="grid gap-6 md:grid-cols-2 pb-20">
+          <div className="grid gap-8 md:grid-cols-2 pb-20">
             {professions.map((profession) => {
               const IconComponent = getIcon(profession.icon) || Briefcase;
-
-              // CTO FIX: Defensive check for instructor existence
               const hasAIInstructor = !!profession.ai_instructors;
 
               return (
                 <Card
                   key={profession.id}
-                  className="group cursor-pointer hover:shadow-2xl transition-all duration-500 rounded-[32px] border-border/40 bg-card/50 backdrop-blur-sm overflow-hidden flex flex-col hover:border-primary/30"
+                  className="group cursor-pointer rounded-[40px] border-2 border-border/40 bg-card/30 backdrop-blur-sm transition-all duration-500 hover:border-primary/40 hover:shadow-2xl overflow-hidden flex flex-col hover:-translate-y-1"
                   onClick={() => navigate(`/app/learning/tracks/${profession.slug}`)}
                 >
-                  <CardHeader className="p-8 pb-4">
-                    <div className="flex items-center justify-between mb-6">
-                      <div className="h-14 w-14 rounded-2xl bg-primary/5 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all duration-500 shadow-inner">
-                        <IconComponent className="h-7 w-7" />
+                  <CardHeader className="p-10 pb-4">
+                    <div className="flex items-center justify-between mb-8">
+                      <div className="h-16 w-16 rounded-[24px] bg-primary/5 border border-primary/10 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all duration-700 shadow-inner group-hover:rotate-3 group-hover:shadow-primary/30">
+                        <IconComponent className="h-8 w-8" />
                       </div>
                       {hasAIInstructor && (
-                        <Badge className="bg-emerald-500/10 text-emerald-600 border-none px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-lg">
-                          <Bot className="h-3 w-3 mr-1.5" /> AI Synced
+                        <Badge className="bg-emerald-500/10 text-emerald-500 border-none px-4 py-1.5 text-[8px] font-black uppercase tracking-widest rounded-lg shadow-sm italic">
+                          <Bot className="h-3 w-3 mr-2 fill-current" /> Neural Sync Active
                         </Badge>
                       )}
                     </div>
-                    <CardTitle className="text-xl font-black tracking-tight leading-tight group-hover:text-primary transition-colors">
+                    <CardTitle className="text-3xl font-black tracking-tighter uppercase italic leading-none group-hover:text-primary transition-colors">
                       {profession.name}
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="px-8 pb-8 flex-1 flex flex-col">
-                    <CardDescription className="line-clamp-3 text-[13px] font-medium leading-relaxed text-muted-foreground/80">
+                  <CardContent className="px-10 pb-10 flex-1 flex flex-col space-y-8">
+                    <CardDescription className="line-clamp-3 text-sm font-medium leading-relaxed text-muted-foreground/70 italic">
                       {profession.description}
                     </CardDescription>
 
-                    <div className="pt-8 mt-auto border-t border-border/40 flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60">
-                          Career Outcome
-                        </p>
-                        <p className="text-[11px] font-bold text-foreground line-clamp-1">
-                          {profession.career_outcome || "Professional Placement"}
+                    <div className="pt-8 mt-auto border-t border-border/10 flex items-end justify-between">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Target className="h-3 w-3 text-primary opacity-40" />
+                          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 italic">
+                            Career Outcome Protocol
+                          </p>
+                        </div>
+                        <p className="text-sm font-black uppercase tracking-tight text-foreground selection:bg-primary/20">
+                          {profession.career_outcome || "Full Professional Integration"}
                         </p>
                       </div>
-                      <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center group-hover:bg-primary/10 group-hover:text-primary transition-all">
-                        <ArrowRight className="h-5 w-5 group-hover:translate-x-0.5 transition-transform" />
+                      <div className="h-14 w-14 rounded-2xl bg-muted/50 border border-border/20 flex items-center justify-center transition-all group-hover:bg-primary/10 group-hover:text-primary group-hover:scale-110">
+                        <ArrowRight className="h-6 w-6 group-hover:translate-x-1 transition-transform" />
                       </div>
                     </div>
                   </CardContent>
@@ -215,14 +250,29 @@ export default function SchoolDetail() {
             })}
           </div>
         ) : (
-          <div className="py-24 text-center border-2 border-dashed rounded-[40px] border-border/40 bg-muted/10">
-            <h3 className="text-xl font-black tracking-tight">Curriculum Syncing</h3>
-            <p className="text-sm text-muted-foreground mt-2 font-medium">
-              New career tracks are being designed for this department.
+          <div className="py-32 text-center border-2 border-dashed rounded-[48px] border-border/40 bg-muted/5 animate-in zoom-in-95 duration-700">
+            <h3 className="text-3xl font-black uppercase tracking-tighter italic">Logic Synthesis in Progress</h3>
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 mt-4 max-w-xs mx-auto italic leading-relaxed">
+              New career artifacts and certification logic paths are being designed for this faculty node.
             </p>
           </div>
         )}
       </div>
+
+      {/* Operational Trace Footer */}
+      <footer className="mt-20 pt-10 border-t border-border/40 flex items-center justify-between opacity-30">
+        <div className="space-y-1">
+          <p className="text-[9px] font-black uppercase tracking-[0.4em] italic">
+            Faculty Registry: Encrypted Synchronization Active
+          </p>
+          <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">Logic Path v2.6.4</p>
+        </div>
+        <div className="flex gap-2">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="h-1 w-8 rounded-full bg-primary/20" />
+          ))}
+        </div>
+      </footer>
     </div>
   );
 }
