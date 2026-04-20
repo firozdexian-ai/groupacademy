@@ -9,41 +9,36 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, Target, TrendingUp, CheckCircle, Sparkles, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Target, TrendingUp, CheckCircle, Sparkles, Zap } from "lucide-react";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { useTalent } from "@/hooks/useTalent";
 import { useCredits } from "@/hooks/useCredits";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
+/**
+ * Platform Logic: Career Readiness Handshake
+ * Orchestrates high-fidelity career diagnostics with AI-powered telemetry.
+ */
 const ASSESSMENT_PROCESSING_STAGES = [
-  { progress: 0, message: "Preparing your assessment..." },
-  { progress: 15, message: "Analyzing your responses..." },
-  { progress: 35, message: "AI is evaluating your career readiness..." },
-  { progress: 55, message: "Identifying strengths and improvement areas..." },
-  { progress: 75, message: "Generating personalized insights..." },
-  { progress: 90, message: "Creating your report..." },
+  { progress: 0, message: "Initializing Handshake..." },
+  { progress: 15, message: "Parsing Logic Artifacts..." },
+  { progress: 35, message: "AI Neural Evaluation Active..." },
+  { progress: 55, message: "Mapping Competency Gaps..." },
+  { progress: 75, message: "Generating Executive Report..." },
+  { progress: 90, message: "Finalizing Registry Entry..." },
 ];
 
-interface ProfessionCategory {
-  id: string;
-  name: string;
-  slug: string;
-  description: string | null;
-  icon: string | null;
-}
+export type AssessmentStep = "intro" | "profession" | "questions" | "lead-capture" | "processing";
 
-type AssessmentStep = "intro" | "profession" | "questions" | "lead-capture" | "processing";
-
-// Progress Map for Step Indicator
 const STEP_PROGRESS: Record<AssessmentStep, number> = {
-  intro: 0,
+  intro: 5,
   profession: 25,
   questions: 50,
   "lead-capture": 75,
-  processing: 90,
+  processing: 95,
 };
 
-const IS_PAID_ASSESSMENT = true;
 const ASSESSMENT_COST = 50;
 
 export default function AppCareerAssessment() {
@@ -55,47 +50,23 @@ export default function AppCareerAssessment() {
 
   const [step, setStep] = useState<AssessmentStep>("intro");
   const [email, setEmail] = useState("");
-  const [categories, setCategories] = useState<ProfessionCategory[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<ProfessionCategory | null>(null);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<any | null>(null);
   const [answers, setAnswers] = useState<Record<string, any>>({});
-  const [urlProfessionId] = useState(() => searchParams.get("profession"));
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Ref to prevent double-processing in Strict Mode
   const hasProcessedRef = useRef(false);
 
   useEffect(() => {
-    if (talent?.email) {
-      setEmail(talent.email);
-    } else if (user?.email) {
-      setEmail(user.email);
+    if (talent?.email || user?.email) {
+      setEmail(talent?.email || user?.email || "");
     }
   }, [talent, user]);
-
-  useEffect(() => {
-    if (categories.length === 0) return;
-
-    if (urlProfessionId && !selectedCategory) {
-      const urlCategory = categories.find((c) => c.id === urlProfessionId);
-      if (urlCategory) {
-        setSelectedCategory(urlCategory);
-        return;
-      }
-    }
-
-    if (talent?.professionCategoryId && !selectedCategory) {
-      const talentCategory = categories.find((c) => c.id === talent.professionCategoryId);
-      if (talentCategory) {
-        setSelectedCategory(talentCategory);
-      }
-    }
-  }, [talent, categories, selectedCategory, urlProfessionId]);
 
   useEffect(() => {
     loadCategories();
   }, []);
 
-  // Trigger processing ONLY when step becomes 'processing'
   useEffect(() => {
     if (step === "processing" && !isProcessing && !hasProcessedRef.current) {
       processAssessment();
@@ -119,23 +90,8 @@ export default function AppCareerAssessment() {
       if (data) setCategories(data);
     } catch (error: any) {
       clearTimeout(timeoutId);
-      console.error("Error loading categories:", error);
+      console.error("Diagnostic Failure: Category Load", error);
     }
-  };
-
-  const handleCategorySelect = (category: ProfessionCategory) => {
-    setSelectedCategory(category);
-    setStep("questions");
-  };
-
-  const handleQuestionsComplete = (questionAnswers: Record<string, any>) => {
-    setAnswers(questionAnswers);
-    setStep("lead-capture");
-  };
-
-  const handleLeadCaptureComplete = (capturedEmail?: string) => {
-    if (capturedEmail) setEmail(capturedEmail);
-    setStep("processing");
   };
 
   const processAssessment = async () => {
@@ -145,203 +101,177 @@ export default function AppCareerAssessment() {
     hasProcessedRef.current = true;
 
     try {
-      // 1. Credit Check
-      if (IS_PAID_ASSESSMENT && !canAfford("CAREER_ASSESSMENT")) {
+      // 1. Credit Protocol
+      if (!canAfford("CAREER_ASSESSMENT")) {
         toast({
-          title: "Insufficient Credits",
-          description: `This detailed analysis requires ${ASSESSMENT_COST} credits.`,
+          title: "Protocol Blocked: Credits",
+          description: `This diagnostic requires ${ASSESSMENT_COST} credits.`,
           variant: "destructive",
         });
         setStep("lead-capture");
-        hasProcessedRef.current = false; // Reset lock
+        hasProcessedRef.current = false;
         return;
       }
 
-      // 2. Deduct Credits
-      if (IS_PAID_ASSESSMENT) {
-        const paid = await deductCredits("CAREER_ASSESSMENT", undefined, "Career Assessment Analysis");
-        if (!paid) throw new Error("Payment failed");
-      }
+      // 2. Handshake Deduction
+      const paid = await deductCredits("CAREER_ASSESSMENT", undefined, "Career Assessment Diagnostic");
+      if (!paid) throw new Error("Credit handshake failed.");
 
-      // 3. Analyze
+      // 3. Neural Analysis
       const { data, error } = await supabase.functions.invoke("analyze-career-assessment", {
-        body: {
-          answers,
-          professionCategoryId: selectedCategory.id,
-          email,
-          talentId: talent?.id,
-        },
+        body: { answers, professionCategoryId: selectedCategory.id, email, talentId: talent?.id },
       });
 
       if (error) throw error;
 
-      // 4. Record Usage
-      if (talent?.id) {
-        await addServiceUsed("CAREER_ASSESSMENT");
-      }
+      // 4. Registry Update
+      if (talent?.id) await addServiceUsed("CAREER_ASSESSMENT");
 
-      toast({
-        title: "Assessment Complete",
-        description: "Your personalized report is ready!",
-      });
+      toast({ title: "Analysis Finalized", description: "Your executive report is now active." });
 
-      // 5. Navigate
-      if (data?.assessmentId) {
-        navigate(`/assessment-results/${data.assessmentId}`);
-      } else {
-        // Safe fallback
-        navigate("/app/services");
-      }
+      // 5. Navigate to Results
+      if (data?.assessmentId) navigate(`/assessment-results/${data.assessmentId}`);
+      else navigate("/app/services");
     } catch (error: any) {
-      console.error("Assessment processing failed:", error);
       toast({
-        title: "Analysis Failed",
-        description: "We couldn't generate your report. Please try again.",
+        title: "Handshake Failed",
+        description: "Network logic error. Re-initialize sequence.",
         variant: "destructive",
       });
       setStep("lead-capture");
-      hasProcessedRef.current = false; // Reset lock to allow retry
+      hasProcessedRef.current = false;
     } finally {
       setIsProcessing(false);
     }
   };
 
-  // Safe navigation fallback for 'Back' button
-  const handleBack = () => {
-    if (step === "intro") navigate("/app/services");
-    else if (step === "profession") setStep("intro");
-    else if (step === "questions") setStep("profession");
-    else if (step === "lead-capture") setStep("questions");
-  };
-
   return (
-    <div className="max-w-4xl mx-auto px-4 py-4 min-h-screen">
-      {/* Progress Bar (Visual Step Indicator) */}
-      <div className="mb-4">
-        <div className="flex justify-between text-xs text-muted-foreground mb-2 px-1">
-          <span>Start</span>
-          <span>Role</span>
-          <span>Questions</span>
-          <span>Review</span>
-          <span>Finish</span>
+    <div className="max-w-4xl mx-auto px-6 py-10 min-h-svh space-y-10">
+      {/* Structural Telemetry: Progress */}
+      <header className="space-y-4">
+        <div className="flex justify-between items-end px-1">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Assessment Sequence</p>
+            <h2 className="text-sm font-bold uppercase tracking-tight text-muted-foreground/60">
+              {step.replace("-", " ")}
+            </h2>
+          </div>
+          <span className="text-[10px] font-mono text-muted-foreground/40">{STEP_PROGRESS[step]}% Completion</span>
         </div>
-        <Progress value={STEP_PROGRESS[step]} className="h-1.5" />
-      </div>
+        <Progress value={STEP_PROGRESS[step]} className="h-1.5 rounded-full bg-primary/10" />
+      </header>
 
-      {/* Back Button */}
+      {/* Back Sequence Trigger */}
       {step !== "processing" && (
-        <Button variant="ghost" className="mb-4 -ml-2" onClick={handleBack}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          {step === "intro" ? "Back to Services" : "Back"}
+        <Button
+          variant="ghost"
+          className="rounded-xl h-10 text-[10px] font-black uppercase tracking-widest hover:bg-primary/5 group"
+          onClick={() => {
+            if (step === "intro") navigate("/app/services");
+            else if (step === "profession") setStep("intro");
+            else if (step === "questions") setStep("profession");
+            else if (step === "lead-capture") setStep("questions");
+          }}
+        >
+          <ArrowLeft className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1" />
+          Terminate / Revert
         </Button>
       )}
 
-      {/* Intro Step */}
-      {step === "intro" && (
-        <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="text-center space-y-4">
-            <Badge variant="secondary" className="px-4 py-1">
-              Career Readiness Assessment
-            </Badge>
-            <h1 className="text-3xl font-bold tracking-tight">Discover Your Career Potential</h1>
-            <p className="text-muted-foreground max-w-lg mx-auto">
-              Our AI-powered assessment analyzes your skills, interests, and experience to provide actionable career
-              insights tailored just for you.
-            </p>
-          </div>
+      {/* Content Viewport */}
+      <main className="relative">
+        {step === "intro" && (
+          <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div className="text-center space-y-4">
+              <Badge
+                variant="outline"
+                className="rounded-lg px-4 py-1 border-primary/20 text-primary font-black uppercase tracking-widest text-[9px]"
+              >
+                Diagnostic Protocol 2.0
+              </Badge>
+              <h1 className="text-5xl font-black uppercase tracking-tighter leading-none">Career Readiness</h1>
+              <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60 italic max-w-lg mx-auto">
+                AI-powered skill mapping and neural career intelligence.
+              </p>
+            </div>
 
-          <Card className="border-border/50 shadow-lg">
-            <CardContent className="pt-8 pb-8 px-6">
-              <div className="grid gap-8 md:grid-cols-3">
-                <div className="flex flex-col items-center text-center space-y-3">
-                  <div className="p-4 bg-primary/10 rounded-full">
-                    <Target className="h-8 w-8 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-lg">Role Specific</h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      Questions tailored to your target profession line.
-                    </p>
-                  </div>
+            <Card className="rounded-[40px] border-2 border-dashed border-border/40 bg-card/30 backdrop-blur-xl shadow-2xl">
+              <CardContent className="p-12">
+                <div className="grid gap-12 md:grid-cols-3 mb-12">
+                  {[
+                    { icon: Target, title: "Precision Mapping", desc: "Role-specific telemetry." },
+                    { icon: Sparkles, title: "Neural Logic", desc: "Deep gap analysis." },
+                    { icon: TrendingUp, title: "Strategic Plan", desc: "Executive roadmap." },
+                  ].map((item, idx) => (
+                    <div key={idx} className="flex flex-col items-center text-center space-y-4">
+                      <div className="p-5 bg-primary/10 rounded-[24px] rotate-3 shadow-xl">
+                        <item.icon className="h-8 w-8 text-primary" />
+                      </div>
+                      <div className="space-y-1">
+                        <h3 className="font-black uppercase tracking-tighter text-lg">{item.title}</h3>
+                        <p className="text-[10px] font-bold text-muted-foreground/60 uppercase leading-relaxed">
+                          {item.desc}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="flex flex-col items-center text-center space-y-3">
-                  <div className="p-4 bg-primary/10 rounded-full">
-                    <Sparkles className="h-8 w-8 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-lg">AI Analysis</h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      Get a detailed breakdown of your strengths & gaps.
-                    </p>
-                  </div>
-                </div>
-                <div className="flex flex-col items-center text-center space-y-3">
-                  <div className="p-4 bg-primary/10 rounded-full">
-                    <TrendingUp className="h-8 w-8 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-lg">Action Plan</h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      Receive a personalized roadmap for growth.
-                    </p>
-                  </div>
-                </div>
-              </div>
 
-              <div className="mt-10 flex justify-center">
                 <Button
-                  className="w-full md:w-auto md:min-w-[200px] h-12 text-base shadow-lg"
-                  size="lg"
+                  className="w-full rounded-2xl h-14 text-[11px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-95"
                   onClick={() => setStep("profession")}
                 >
-                  Start Assessment
-                  <CheckCircle className="ml-2 h-5 w-5" />
+                  <Zap className="mr-3 h-5 w-5" />
+                  Initialize Assessment
                 </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
-      {/* Profession Selection */}
-      {step === "profession" && (
-        <div className="animate-in fade-in zoom-in-95 duration-300">
-          <ProfessionSelector categories={categories} onSelect={handleCategorySelect} onBack={() => setStep("intro")} />
-        </div>
-      )}
+        {step === "profession" && (
+          <div className="animate-in zoom-in-95 duration-500">
+            <ProfessionSelector
+              categories={categories}
+              onSelect={(c) => {
+                setSelectedCategory(c);
+                setStep("questions");
+              }}
+            />
+          </div>
+        )}
 
-      {/* Questions */}
-      {step === "questions" && selectedCategory && (
-        <div className="animate-in fade-in slide-in-from-right-8 duration-300">
-          <AssessmentStepper
-            categoryId={selectedCategory.id}
-            categoryName={selectedCategory.name}
-            onComplete={handleQuestionsComplete}
-            onBack={() => setStep("profession")}
-          />
-        </div>
-      )}
+        {step === "questions" && selectedCategory && (
+          <div className="animate-in slide-in-from-right-10 duration-500">
+            <AssessmentStepper
+              categoryId={selectedCategory.id}
+              categoryName={selectedCategory.name}
+              onComplete={(a) => {
+                setAnswers(a);
+                setStep("lead-capture");
+              }}
+            />
+          </div>
+        )}
 
-      {/* Lead Capture */}
-      {step === "lead-capture" && selectedCategory && (
-        <div className="animate-in fade-in zoom-in-95 duration-300">
-          <LeadCaptureForm
-            categoryId={selectedCategory.id}
-            categoryName={selectedCategory.name}
-            answers={answers}
-            email={email}
-            onComplete={handleLeadCaptureComplete}
-            onBack={() => setStep("questions")}
-          />
-        </div>
-      )}
+        {step === "lead-capture" && selectedCategory && (
+          <div className="animate-in fade-in zoom-in-95 duration-500">
+            <LeadCaptureForm
+              email={email}
+              onComplete={(e) => {
+                if (e) setEmail(e);
+                setStep("processing");
+              }}
+            />
+          </div>
+        )}
 
-      {/* Processing */}
-      {step === "processing" && (
-        <div className="py-12 animate-in fade-in duration-700">
-          <ProcessingCard stages={ASSESSMENT_PROCESSING_STAGES} title="Generating Your Career Report" />
-        </div>
-      )}
+        {step === "processing" && (
+          <div className="py-20 animate-in fade-in duration-1000">
+            <ProcessingCard stages={ASSESSMENT_PROCESSING_STAGES} title="Neural Registry Sync" />
+          </div>
+        )}
+      </main>
     </div>
   );
 }
