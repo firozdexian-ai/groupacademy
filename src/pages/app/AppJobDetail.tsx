@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   Flame,
   Sparkles,
+  Zap,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AIJobInsights } from "@/components/jobs/AIJobInsights";
@@ -27,6 +28,13 @@ import { useCredits } from "@/hooks/useCredits";
 import { CREDIT_CONFIG } from "@/lib/creditPricing";
 import { RelatedJobs } from "@/components/jobs/RelatedJobs";
 import { getJobTypeLabel, getExperienceLevelLabel, isDeadlinePassed } from "@/lib/constants/jobTypes";
+import { cn } from "@/lib/utils";
+
+/**
+ * Platform Logic: Job Artifact Registry
+ * High-fidelity role orchestration with neural fit analysis.
+ * 2026 Standard: Executive Logic geometry with reinforced CTA hierarchy.
+ */
 
 interface Job {
   id: string;
@@ -63,7 +71,7 @@ export default function AppJobDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { talent } = useTalent();
-  const { isSaved: checkIsSaved, toggleSave, isLoading: saveLoading } = useSavedItems();
+  const { isSaved: checkIsSaved, toggleSave } = useSavedItems();
   const { balance } = useCredits();
 
   const [job, setJob] = useState<Job | null>(null);
@@ -101,7 +109,7 @@ export default function AppJobDetail() {
         }
       }
     } catch (error) {
-      toast.error("Failed to load job details");
+      toast.error("Failed to load registry entry.");
     } finally {
       setLoading(false);
     }
@@ -114,7 +122,7 @@ export default function AppJobDetail() {
   const handleApply = () => {
     if (job?.application_type === "link") {
       const cost = CREDIT_CONFIG.SERVICES.EXTERNAL_APPLICATION.cost;
-      if ((balance ?? 0) < cost) return toast.error(`Need ${cost} credits`);
+      if ((balance ?? 0) < cost) return toast.error(`Need ${cost} credits.`);
       setShowApplyAI(true);
     } else {
       navigate(`/app/jobs/${id}/apply`);
@@ -123,130 +131,182 @@ export default function AppJobDetail() {
 
   if (loading)
     return (
-      <div className="p-8 space-y-4">
-        <Skeleton className="h-12 w-3/4" />
-        <Skeleton className="h-64 w-full" />
+      <div className="max-w-6xl mx-auto p-8 space-y-10 animate-pulse">
+        <Skeleton className="h-12 w-48 rounded-full bg-muted/40" />
+        <Skeleton className="h-40 w-full rounded-[32px] bg-muted/40" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <Skeleton className="lg:col-span-2 h-[600px] rounded-[32px] bg-muted/40" />
+          <Skeleton className="h-[400px] rounded-[32px] bg-muted/40" />
+        </div>
       </div>
     );
-  if (!job) return <div className="p-20 text-center">Job not found.</div>;
+
+  if (!job)
+    return (
+      <div className="p-32 text-center text-[10px] font-black uppercase tracking-[0.3em] opacity-20">
+        Registry Entry Not Found.
+      </div>
+    );
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6 pb-24 space-y-8">
-      {/* Header / Hero */}
-      <div className="flex flex-col md:flex-row gap-6 items-start justify-between bg-card p-6 rounded-2xl border shadow-sm">
-        <div className="flex gap-4 items-start">
-          <div className="w-16 h-16 rounded-2xl bg-primary/5 flex items-center justify-center border shrink-0 overflow-hidden">
+    <div className="max-w-6xl mx-auto px-6 py-10 pb-40 space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      {/* Structural Handshake: Navigation */}
+      <header className="flex items-center">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate(-1)}
+          className="group rounded-xl px-4 h-11 font-black text-[10px] uppercase tracking-[0.3em] hover:bg-primary/5 transition-all"
+        >
+          <ArrowLeft className="mr-3 h-4 w-4 transition-transform group-hover:-translate-x-1" />
+          Back to Career Registry
+        </Button>
+      </header>
+
+      {/* Artifact Hero: Role Identity */}
+      <div
+        className={cn(
+          "flex flex-col md:flex-row gap-8 items-start justify-between p-10 rounded-[40px] transition-all",
+          "bg-card/30 backdrop-blur-xl border-2 border-border/40 shadow-2xl",
+        )}
+      >
+        <div className="flex gap-6 items-center">
+          <div className="w-20 h-20 rounded-[24px] bg-primary/5 flex items-center justify-center border-2 border-border/40 shrink-0 overflow-hidden shadow-inner">
             {job.company_logo_url ? (
               <img src={job.company_logo_url} alt="logo" className="object-cover w-full h-full" />
             ) : (
               <Building2 className="text-primary w-8 h-8" />
             )}
           </div>
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold">{job.title}</h1>
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-4xl font-black uppercase tracking-tighter leading-none italic">{job.title}</h1>
               {job.is_featured && (
-                <Badge className="bg-amber-500/10 text-amber-600 border-amber-200 gap-1">
-                  <Flame className="w-3 h-3" /> Featured
+                <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest italic">
+                  <Flame className="w-3 h-3 mr-1.5" /> Featured Logic
                 </Badge>
               )}
             </div>
-            <p className="text-muted-foreground flex items-center gap-2">
-              <span className="font-semibold text-foreground">{job.company_name}</span>
-              <span className="w-1 h-1 rounded-full bg-muted-foreground" />
-              <MapPin className="w-3.5 h-3.5" /> {job.location || "Remote"}
+            <p className="flex items-center gap-3 text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 italic">
+              <span className="text-foreground">{job.company_name}</span>
+              <span className="h-1 w-1 rounded-full bg-primary/30" />
+              <span className="flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5" /> {job.location || "Remote Registry"}
+              </span>
             </p>
           </div>
         </div>
-        <div className="flex gap-2 w-full md:w-auto">
+
+        <div className="flex gap-4 w-full md:w-auto">
           <Button
             variant={isSaved ? "default" : "outline"}
-            className="flex-1 md:flex-none"
+            className="h-14 w-14 rounded-2xl border-2 transition-all active:scale-90"
             onClick={() => toggleSave(job.id, "job")}
           >
-            <Bookmark className={isSaved ? "fill-current" : ""} />
+            <Bookmark className={cn("w-5 h-5", isSaved ? "fill-current" : "")} />
           </Button>
           <Button
             size="lg"
-            className="flex-1 md:min-w-[160px]"
+            className="flex-1 md:min-w-[200px] h-14 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all"
             onClick={handleApply}
             disabled={deadlinePassed || !!existingApp}
           >
-            {deadlinePassed ? "Closed" : existingApp ? "Applied" : "Apply Now"}
+            {deadlinePassed ? "Protocol Closed" : existingApp ? "Registry Ingested" : "Initialize Application"}
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Main Content */}
-        <div className="lg:col-span-2 space-y-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+        {/* Main Content: Neural Analysis & Artifacts */}
+        <div className="lg:col-span-2 space-y-12">
           {talent?.id && <AIJobInsights jobId={job.id} talentId={talent.id} />}
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Job Description</CardTitle>
+          <Card className="rounded-[32px] border-border/40 shadow-xl overflow-hidden">
+            <CardHeader className="bg-muted/20 px-8 py-6 border-b">
+              <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-primary">
+                Registry Narrative
+              </CardTitle>
             </CardHeader>
-            <CardContent className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
-              {job.ai_enhanced_description || job.description}
+            <CardContent className="p-8 text-foreground/80 font-medium leading-relaxed italic text-sm selection:bg-primary/10">
+              <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">
+                {job.ai_enhanced_description || job.description}
+              </div>
             </CardContent>
           </Card>
 
-          {/* CTO FIX: Satisfying RelatedJobsProps interface requirements */}
           <RelatedJobs
             currentJobId={job.id}
             companyName={job.company_name}
-            location={job.location || "Remote"}
+            location={job.location || "Remote Registry"}
             linkPrefix="/app/jobs"
           />
         </div>
 
-        {/* Sidebar */}
-        <div className="space-y-6">
+        {/* Sidebar: Operational Parameters */}
+        <aside className="space-y-8 sticky top-24">
           {existingApp && job.ai_assessment_enabled && existingApp.assessment_status !== "completed" && (
-            <Card className="border-primary bg-primary/5 shadow-md">
-              <CardContent className="p-6 space-y-4">
-                <div className="flex items-center gap-2 text-primary">
-                  <Brain className="w-5 h-5 animate-pulse" />
-                  <span className="font-bold">AI Interview Pending</span>
+            <Card className="rounded-[32px] border-2 border-primary/20 bg-primary/5 shadow-2xl animate-in zoom-in-95 duration-1000">
+              <CardContent className="p-8 space-y-6 text-center">
+                <div className="w-16 h-16 bg-primary/10 rounded-[24px] flex items-center justify-center mx-auto border border-primary/20 rotate-3">
+                  <Brain className="w-8 h-8 text-primary animate-pulse" />
                 </div>
-                <p className="text-sm">
-                  This employer uses AI interviewing. Take it now to appear at the top of their list.
-                </p>
-                <Button className="w-full" onClick={() => navigate(`/app/job-assessment/${existingApp.assessment_id}`)}>
-                  Take Assessment <ArrowRight className="ml-2 w-4 h-4" />
+                <div className="space-y-2">
+                  <h4 className="font-black uppercase tracking-tighter text-lg">AI Interview Required</h4>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 leading-relaxed italic">
+                    Initialize the neural assessment to finalize your registry ranking.
+                  </p>
+                </div>
+                <Button
+                  className="w-full h-12 rounded-xl font-black uppercase tracking-widest text-[10px] shadow-xl shadow-primary/20"
+                  onClick={() => navigate(`/app/job-assessment/${existingApp.assessment_id}`)}
+                >
+                  Start Assessment <ArrowRight className="ml-2 w-4 h-4" />
                 </Button>
               </CardContent>
             </Card>
           )}
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground">Job Details</CardTitle>
+          <Card className="rounded-[32px] border-border/40 shadow-lg bg-card/50 backdrop-blur-sm overflow-hidden">
+            <CardHeader className="bg-muted/20 px-8 py-5 border-b">
+              <CardTitle className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 italic">
+                Operational Details
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex justify-between items-center text-sm">
-                <span className="flex items-center gap-2">
-                  <Briefcase className="w-4 h-4" /> Type
-                </span>
-                <Badge variant="secondary">{getJobTypeLabel(job.job_type)}</Badge>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4" /> Experience
-                </span>
-                <span className="font-medium">{getExperienceLevelLabel(job.experience_level)}</span>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="flex items-center gap-2">
-                  <Clock className="w-4 h-4" /> Deadline
-                </span>
-                <span className={deadlinePassed ? "text-destructive font-bold" : ""}>
-                  {job.deadline ? new Date(job.deadline).toLocaleDateString() : "Open"}
-                </span>
+            <CardContent className="p-8 space-y-6">
+              {[
+                { icon: Briefcase, label: "Type", value: getJobTypeLabel(job.job_type) },
+                { icon: ShieldCheck, label: "Exp Level", value: getExperienceLevelLabel(job.experience_level) },
+                {
+                  icon: Clock,
+                  label: "Deadline",
+                  value: job.deadline ? new Date(job.deadline).toLocaleDateString() : "Open Sequence",
+                  destructive: deadlinePassed,
+                },
+              ].map((item, idx) => (
+                <div
+                  key={idx}
+                  className="flex justify-between items-center text-[11px] font-black uppercase tracking-widest"
+                >
+                  <span className="flex items-center gap-3 text-muted-foreground/40">
+                    <item.icon className="w-4 h-4" /> {item.label}
+                  </span>
+                  <span className={cn("text-foreground text-right", item.destructive ? "text-destructive italic" : "")}>
+                    {item.value}
+                  </span>
+                </div>
+              ))}
+
+              <div className="pt-6 border-t border-border/40">
+                <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10 flex items-center gap-3">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                  <p className="text-[9px] font-black uppercase tracking-widest text-primary/60 italic leading-none">
+                    Neural Match Active
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>
-        </div>
+        </aside>
       </div>
 
       {showApplyAI && job.application_url && (
