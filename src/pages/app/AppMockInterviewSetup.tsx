@@ -1,15 +1,25 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowRight, ArrowLeft, BriefcaseIcon, Settings, Loader2, Coins, Trash2, Save } from "lucide-react";
+import {
+  ArrowRight,
+  ArrowLeft,
+  BriefcaseIcon,
+  Settings,
+  Loader2,
+  Coins,
+  Trash2,
+  Save,
+  Zap,
+  Sparkles,
+} from "lucide-react";
 import { toast } from "sonner";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { useProgressiveLoadingMessage } from "@/hooks/useProgressiveLoadingMessage";
@@ -17,6 +27,13 @@ import { useTalent } from "@/hooks/useTalent";
 import { useCredits } from "@/hooks/useCredits";
 import { ProfileCompletionPrompt } from "@/components/profile/ProfileCompletionPrompt";
 import { RetryErrorCard, getErrorType } from "@/components/ui/retry-error-card";
+import { cn } from "@/lib/utils";
+
+/**
+ * Platform Logic: Neural Interview Orchestrator
+ * High-fidelity setup for AI-driven mock interviews with auto-drafting.
+ * Synchronized with the 2026 'Executive Logic' depth and transaction tokens.
+ */
 
 interface ProfessionCategory {
   id: string;
@@ -40,7 +57,7 @@ const DRAFT_STORAGE_KEY = "mock_interview_draft";
 export default function AppMockInterviewSetup() {
   const navigate = useNavigate();
   const { talent, user, addServiceUsed } = useTalent();
-  const { deductCredits, canAfford, refreshBalance, addCredits } = useCredits();
+  const { deductCredits, canAfford, addCredits } = useCredits();
 
   const [step, setStep] = useState<SetupStep>("job-description");
   const [email, setEmail] = useState("");
@@ -48,7 +65,7 @@ export default function AppMockInterviewSetup() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationError, setGenerationError] = useState<Error | null>(null);
 
-  // Initialize state from LocalStorage (Draft Saving)
+  // Initialize state from LocalStorage (Draft Persistence Layer)
   const [jobDescription, setJobDescription] = useState(() => {
     try {
       const saved = localStorage.getItem(DRAFT_STORAGE_KEY);
@@ -81,15 +98,12 @@ export default function AppMockInterviewSetup() {
     }
   });
 
-  // Save draft on change
   useEffect(() => {
-    const draftData = { jobDescription, config };
-    localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftData));
+    localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify({ jobDescription, config }));
   }, [jobDescription, config]);
 
   useEffect(() => {
-    if (talent?.email) setEmail(talent.email);
-    else if (user?.email) setEmail(user.email);
+    if (talent?.email || user?.email) setEmail(talent?.email || user?.email || "");
   }, [talent, user]);
 
   useEffect(() => {
@@ -105,7 +119,6 @@ export default function AppMockInterviewSetup() {
   const loadCategories = async () => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), TIMEOUTS.CATEGORY_LOAD);
-
     try {
       const { data, error } = await supabase
         .from("profession_categories")
@@ -113,48 +126,30 @@ export default function AppMockInterviewSetup() {
         .eq("is_active", true)
         .order("display_order")
         .abortSignal(controller.signal);
-
       clearTimeout(timeoutId);
       if (error) throw error;
       if (data) setCategories(data);
-    } catch (error: any) {
+    } catch (error) {
       clearTimeout(timeoutId);
-      console.error("Error loading categories:", error);
+      console.error("Diagnostic Failure: Category Load", error);
     }
   };
 
   const { message: loadingMessage } = useProgressiveLoadingMessage(isGenerating);
 
-  const handleClearDraft = () => {
-    setJobDescription("");
-    localStorage.removeItem(DRAFT_STORAGE_KEY);
-    toast.success("Draft cleared");
-  };
-
-  const handleJobDescriptionSubmit = () => {
-    if (!jobDescription.trim() || jobDescription.length < 50) {
-      toast.error("Please enter a complete job description (at least 50 characters)");
-      return;
-    }
-    setStep("configuration");
-  };
-
   const handleRefund = async () => {
     if (!talent?.id) return;
     try {
-      const success = await addCredits(MOCK_INTERVIEW_COST, "refund", "Refund: Mock Interview Generation Failed");
-      if (success) {
-        toast.info("Credits have been refunded to your account.");
-      }
+      await addCredits(MOCK_INTERVIEW_COST, "refund", "Refund: Neural Sync Failure");
+      toast.info("Credits restored to registry.");
     } catch (err) {
-      console.error("Refund failed:", err);
+      console.error("Refund block failure:", err);
     }
   };
 
   const handleStartInterview = async () => {
-    // --- PAYMENT CHECK ---
     if (!canAfford("MOCK_INTERVIEW")) {
-      toast.error(`Insufficient credits. You need ${MOCK_INTERVIEW_COST} credits.`);
+      toast.error(`Registry balance low. Need ${MOCK_INTERVIEW_COST} credits.`);
       return;
     }
 
@@ -163,15 +158,13 @@ export default function AppMockInterviewSetup() {
     setStep("generating");
 
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error("Generation timed out")), TIMEOUTS.AI_GENERATION);
+      setTimeout(() => reject(new Error("Neural handshake timeout")), TIMEOUTS.AI_GENERATION);
     });
 
     try {
-      // 1. Deduct Credits
-      const paid = await deductCredits("MOCK_INTERVIEW", undefined, "AI Mock Interview Generation");
-      if (!paid) throw new Error("Payment failed. Please try again.");
+      const paid = await deductCredits("MOCK_INTERVIEW", undefined, "AI Interview Synthesis");
+      if (!paid) throw new Error("Credit handshake failed.");
 
-      // 2. Prepare Context
       let candidateProfile = null;
       if (config.useProfileContext && talent) {
         candidateProfile = {
@@ -188,30 +181,27 @@ export default function AppMockInterviewSetup() {
         };
       }
 
-      // 3. Call AI
-      const functionPromise = supabase.functions.invoke("generate-interview-questions", {
-        body: {
-          jobDescription,
-          questionCount: config.questionCount,
-          difficulty: config.difficulty,
-          professionCategoryId: config.professionCategoryId,
-          additionalNotes: config.additionalNotes,
-          candidateProfile,
-        },
-      });
+      const { data, error } = (await Promise.race([
+        supabase.functions.invoke("generate-interview-questions", {
+          body: {
+            jobDescription,
+            questionCount: config.questionCount,
+            difficulty: config.difficulty,
+            professionCategoryId: config.professionCategoryId,
+            additionalNotes: config.additionalNotes,
+            candidateProfile,
+          },
+        }),
+        timeoutPromise,
+      ])) as any;
 
-      const { data, error } = (await Promise.race([functionPromise, timeoutPromise])) as any;
+      if (error) throw new Error(error.message || "Synthesis failed");
 
-      if (error) throw new Error(error.message || "Failed to generate questions");
-      if (!data || !data.questions) throw new Error("Invalid response from AI. Please try again.");
-
-      // 4. Save Interview
       const tempInterviewId = crypto.randomUUID();
       const { error: insertError } = await supabase.from("mock_interviews").insert({
         id: tempInterviewId,
         email: email.toLowerCase().trim(),
         full_name: talent?.fullName || "",
-        phone: talent?.phone || null,
         job_description: jobDescription,
         job_title: data.jobTitle,
         company_name: data.companyName,
@@ -225,21 +215,14 @@ export default function AppMockInterviewSetup() {
         talent_id: talent?.id || null,
       });
 
-      if (insertError) throw new Error("Failed to save interview. Please try again.");
-
+      if (insertError) throw new Error("Registry insertion failed.");
       if (talent?.id) await addServiceUsed("MOCK_INTERVIEW");
 
-      // Clear draft on success
       localStorage.removeItem(DRAFT_STORAGE_KEY);
-
-      toast.success("Questions generated! Starting your interview...");
+      toast.success("Neural Link Active. Commencing Interview.");
       navigate(`/mock-interview/questions/${tempInterviewId}`);
     } catch (error: any) {
-      console.error("Error generating questions:", error);
-
-      // Attempt Refund since service failed
       await handleRefund();
-
       setGenerationError(error);
       setStep("configuration");
       setIsGenerating(false);
@@ -247,217 +230,253 @@ export default function AppMockInterviewSetup() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-4">
-      {/* Back Button */}
-      <Button variant="ghost" className="mb-4" onClick={() => navigate("/app/services")}>
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Back to Services
-      </Button>
+    <div className="max-w-3xl mx-auto px-6 py-10 min-h-svh space-y-8 animate-in fade-in duration-700">
+      <header className="flex items-center justify-between">
+        <Button
+          variant="ghost"
+          className="rounded-xl h-10 text-[10px] font-black uppercase tracking-widest hover:bg-primary/5 group"
+          onClick={() => navigate("/app/services")}
+        >
+          <ArrowLeft className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1" /> Back to Registry
+        </Button>
+        <Badge
+          variant="outline"
+          className="rounded-lg border-primary/20 text-primary font-black uppercase text-[9px] tracking-widest"
+        >
+          Neural Interface 2026
+        </Badge>
+      </header>
 
-      <ProfileCompletionPrompt variant="banner" className="mb-6" />
+      <ProfileCompletionPrompt variant="banner" className="rounded-[24px] border-2 border-dashed border-primary/20" />
 
-      {/* Job Description Step */}
-      {step === "job-description" && (
-        <Card>
-          <CardHeader className="text-center">
-            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <BriefcaseIcon className="w-8 h-8 text-primary" />
-            </div>
-            <CardTitle>Describe the Job Position</CardTitle>
-            <CardDescription>Paste the job description for the position you're preparing for</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <Label htmlFor="jobDescription">Job Description</Label>
-                {jobDescription.length > 0 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleClearDraft}
-                    className="h-6 text-xs text-muted-foreground hover:text-destructive"
+      <main className="relative">
+        {step === "job-description" && (
+          <Card className="rounded-[40px] border-2 border-border/40 bg-card/30 backdrop-blur-xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-500">
+            <CardHeader className="text-center p-10 border-b border-border/10">
+              <div className="w-20 h-20 bg-primary/10 rounded-[28px] flex items-center justify-center mx-auto mb-6 rotate-3 shadow-xl">
+                <BriefcaseIcon className="w-10 h-10 text-primary" />
+              </div>
+              <CardTitle className="text-3xl font-black uppercase tracking-tighter italic">Job Telemetry</CardTitle>
+              <CardDescription className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60 italic">
+                Input the target position parameters for neural calibration.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-10 space-y-8">
+              <div className="space-y-4">
+                <div className="flex justify-between items-end">
+                  <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">
+                    Job Description
+                  </Label>
+                  {jobDescription.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setJobDescription("");
+                        localStorage.removeItem(DRAFT_STORAGE_KEY);
+                      }}
+                      className="h-8 text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 hover:text-destructive transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 mr-2" /> Purge Draft
+                    </Button>
+                  )}
+                </div>
+                <Textarea
+                  placeholder="Paste the target role artifacts here..."
+                  value={jobDescription}
+                  onChange={(e) => setJobDescription(e.target.value)}
+                  className="min-h-[240px] rounded-2xl bg-muted/10 border-2 border-border/40 p-6 italic font-medium text-sm leading-relaxed"
+                />
+                <div className="flex justify-between text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground/40">
+                  <span className="flex items-center gap-2">
+                    <Save className="w-3 h-3" /> Auto-Sync Active
+                  </span>
+                  <span className={cn(jobDescription.length < 50 ? "text-amber-500" : "text-emerald-500")}>
+                    {jobDescription.length} / 50 min. chars
+                  </span>
+                </div>
+              </div>
+              <Button
+                className="w-full rounded-2xl h-14 font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all"
+                onClick={() => setStep("configuration")}
+                disabled={jobDescription.length < 50}
+              >
+                Next Phase: Configuration <ArrowRight className="ml-3 h-4 w-4" />
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {step === "configuration" && (
+          <Card className="rounded-[40px] border-2 border-border/40 bg-card/30 backdrop-blur-xl shadow-2xl overflow-hidden animate-in slide-in-from-right-10 duration-500">
+            <CardHeader className="text-center p-10 border-b border-border/10">
+              <div className="w-20 h-20 bg-primary/10 rounded-[28px] flex items-center justify-center mx-auto mb-6 -rotate-3 shadow-xl">
+                <Settings className="w-10 h-10 text-primary" />
+              </div>
+              <CardTitle className="text-3xl font-black uppercase tracking-tighter italic">Calibration</CardTitle>
+              <CardDescription className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60 italic">
+                Fine-tune the neural simulation complexity.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-10 space-y-10">
+              {generationError && (
+                <RetryErrorCard
+                  type={getErrorType(generationError)}
+                  onRetry={handleStartInterview}
+                  description={generationError.message}
+                />
+              )}
+
+              <div className="space-y-8">
+                <div className="space-y-4">
+                  <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-primary text-left">
+                    Quantity: Logic Iterations
+                  </Label>
+                  <RadioGroup
+                    value={String(config.questionCount)}
+                    onValueChange={(v) => setConfig((prev) => ({ ...prev, questionCount: Number(v) }))}
+                    className="flex gap-6"
                   >
-                    <Trash2 className="w-3 h-3 mr-1" /> Clear Draft
-                  </Button>
+                    {[3, 5, 7, 10].map((num) => (
+                      <div key={num} className="flex items-center space-x-3">
+                        <RadioGroupItem value={String(num)} id={`q-${num}`} className="h-5 w-5" />
+                        <Label htmlFor={`q-${num}`} className="font-black text-sm cursor-pointer">
+                          {num}
+                        </Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                </div>
+
+                <div className="space-y-4">
+                  <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-primary text-left">
+                    Difficulty: Neural Load
+                  </Label>
+                  <RadioGroup
+                    value={config.difficulty}
+                    onValueChange={(v: any) => setConfig((prev) => ({ ...prev, difficulty: v }))}
+                    className="flex gap-6"
+                  >
+                    {["easy", "medium", "hard"].map((level) => (
+                      <div key={level} className="flex items-center space-x-3">
+                        <RadioGroupItem value={level} id={`d-${level}`} className="h-5 w-5" />
+                        <Label
+                          htmlFor={`d-${level}`}
+                          className="font-black uppercase tracking-tighter text-sm cursor-pointer"
+                        >
+                          {level}
+                        </Label>
+                      </div>
+                    ))}
+                  </RadioGroup>
+                </div>
+
+                <div className="space-y-3">
+                  <Label className="text-[10px] font-black uppercase tracking-[0.3em] text-primary text-left">
+                    Sector Selection
+                  </Label>
+                  <Select
+                    value={config.professionCategoryId || ""}
+                    onValueChange={(v) => setConfig((prev) => ({ ...prev, professionCategoryId: v || null }))}
+                  >
+                    <SelectTrigger className="h-12 rounded-xl border-2 border-border/40 bg-background/50 font-bold">
+                      <SelectValue placeholder="Standard Sector Selection" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id} className="font-bold">
+                          {cat.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {talent && (
+                  <div className="p-6 rounded-[24px] bg-primary/5 border border-primary/20 flex gap-4">
+                    <input
+                      type="checkbox"
+                      id="useProfile"
+                      checked={config.useProfileContext}
+                      onChange={(e) => setConfig((prev) => ({ ...prev, useProfileContext: e.target.checked }))}
+                      className="mt-1 h-5 w-5 rounded-md"
+                    />
+                    <div className="space-y-1">
+                      <Label
+                        htmlFor="useProfile"
+                        className="cursor-pointer font-black uppercase tracking-tighter text-sm"
+                      >
+                        Integrate Talent Profile
+                      </Label>
+                      <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest leading-relaxed">
+                        The simulation will utilize your skills registry for higher fidelity targeting.
+                      </p>
+                    </div>
+                  </div>
                 )}
               </div>
-              <Textarea
-                id="jobDescription"
-                placeholder="Paste the full job description here..."
-                value={jobDescription}
-                onChange={(e) => setJobDescription(e.target.value)}
-                className="min-h-[200px]"
-              />
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span className="flex items-center gap-1">
-                  <Save className="w-3 h-3" /> Draft saved automatically
-                </span>
-                <span>{jobDescription.length} / 50 characters</span>
-              </div>
-            </div>
-            <Button className="w-full" onClick={handleJobDescriptionSubmit} disabled={jobDescription.length < 50}>
-              Continue to Configuration
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          </CardContent>
-        </Card>
-      )}
 
-      {/* Configuration Step */}
-      {step === "configuration" && (
-        <Card>
-          <CardHeader className="text-center">
-            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Settings className="w-8 h-8 text-primary" />
-            </div>
-            <CardTitle>Configure Your Interview</CardTitle>
-            <CardDescription>Customize the interview to match your preparation needs</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {generationError && (
-              <RetryErrorCard
-                type={getErrorType(generationError)}
-                onRetry={handleStartInterview}
-                description={generationError.message}
-              />
-            )}
-
-            {/* Config Form Fields */}
-            <div className="space-y-4">
-              <div className="space-y-3">
-                <Label>Number of Questions</Label>
-                <RadioGroup
-                  value={String(config.questionCount)}
-                  onValueChange={(v) => setConfig((prev) => ({ ...prev, questionCount: Number(v) }))}
-                  className="flex gap-4"
-                >
-                  {[3, 5, 7, 10].map((num) => (
-                    <div key={num} className="flex items-center space-x-2">
-                      <RadioGroupItem value={String(num)} id={`q-${num}`} />
-                      <Label htmlFor={`q-${num}`} className="cursor-pointer">
-                        {num}
-                      </Label>
-                    </div>
-                  ))}
-                </RadioGroup>
-              </div>
-
-              <div className="space-y-3">
-                <Label>Difficulty Level</Label>
-                <RadioGroup
-                  value={config.difficulty}
-                  onValueChange={(v: "easy" | "medium" | "hard") => setConfig((prev) => ({ ...prev, difficulty: v }))}
-                  className="flex gap-4"
-                >
-                  {["easy", "medium", "hard"].map((level) => (
-                    <div key={level} className="flex items-center space-x-2">
-                      <RadioGroupItem value={level} id={`d-${level}`} />
-                      <Label htmlFor={`d-${level}`} className="cursor-pointer capitalize">
-                        {level}
-                      </Label>
-                    </div>
-                  ))}
-                </RadioGroup>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Profession Category (Optional)</Label>
-                <Select
-                  value={config.professionCategoryId || ""}
-                  onValueChange={(v) => setConfig((prev) => ({ ...prev, professionCategoryId: v || null }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select category for targeted questions" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id}>
-                        {cat.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="notes">Additional Notes (Optional)</Label>
-                <Textarea
-                  id="notes"
-                  placeholder="Any specific topics or skills you want to focus on..."
-                  value={config.additionalNotes}
-                  onChange={(e) => setConfig((prev) => ({ ...prev, additionalNotes: e.target.value }))}
-                  className="min-h-[80px]"
-                />
-              </div>
-
-              {talent && (
-                <div className="flex items-start space-x-3 p-3 bg-muted/50 rounded-lg border border-border/50">
-                  <input
-                    type="checkbox"
-                    id="useProfile"
-                    checked={config.useProfileContext}
-                    onChange={(e) => setConfig((prev) => ({ ...prev, useProfileContext: e.target.checked }))}
-                    className="mt-1"
-                  />
-                  <div>
-                    <Label htmlFor="useProfile" className="cursor-pointer font-medium">
-                      Use my profile context
-                    </Label>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      AI will use your skills and experience to generate more relevant questions.
-                    </p>
+              <div className="pt-8 border-t border-border/10">
+                <div className="flex items-center justify-between mb-8 px-2">
+                  <div className="flex items-center gap-3">
+                    <Coins className="h-5 w-5 text-amber-500" />
+                    <span className="text-[11px] font-black uppercase tracking-widest text-muted-foreground/60">
+                      Execution Cost
+                    </span>
                   </div>
+                  <div className="text-xl font-black uppercase tracking-tighter">{MOCK_INTERVIEW_COST} Credits</div>
                 </div>
-              )}
-            </div>
 
-            {/* Footer Actions */}
-            <div className="pt-4 border-t border-border/50">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <Coins className="h-4 w-4 text-amber-500" />
-                  <span className="text-sm font-medium">Service Cost</span>
+                <div className="flex gap-4">
+                  <Button
+                    variant="outline"
+                    className="rounded-2xl h-14 px-8 border-2 font-black uppercase tracking-widest text-[10px]"
+                    onClick={() => setStep("job-description")}
+                    disabled={isGenerating}
+                  >
+                    <ArrowLeft className="mr-3 h-4 w-4" /> Revert
+                  </Button>
+                  <Button
+                    className="flex-1 rounded-2xl h-14 font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-primary/30"
+                    onClick={handleStartInterview}
+                    disabled={isGenerating}
+                  >
+                    {isGenerating ? (
+                      <>
+                        <Loader2 className="mr-3 h-5 w-5 animate-spin" /> {loadingMessage}
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="mr-3 h-5 w-5" /> Initialize Simulation
+                      </>
+                    )}
+                  </Button>
                 </div>
-                <div className="text-sm font-bold">{MOCK_INTERVIEW_COST} Credits</div>
               </div>
+            </CardContent>
+          </Card>
+        )}
 
-              <div className="flex gap-3">
-                <Button variant="outline" onClick={() => setStep("job-description")} disabled={isGenerating}>
-                  <ArrowLeft className="mr-2 h-4 w-4" /> Back
-                </Button>
-                <Button className="flex-1" onClick={handleStartInterview} disabled={isGenerating}>
-                  {isGenerating ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {loadingMessage}
-                    </>
-                  ) : (
-                    <>
-                      Start Interview <ArrowRight className="ml-2 h-4 w-4" />
-                    </>
-                  )}
-                </Button>
+        {step === "generating" && (
+          <Card className="rounded-[40px] border-2 border-border/40 bg-card/30 backdrop-blur-xl shadow-2xl overflow-hidden py-24 text-center">
+            <CardContent className="space-y-10">
+              <div className="relative">
+                <div className="absolute inset-0 bg-primary/20 blur-[100px] rounded-full" />
+                <Loader2 className="h-20 w-20 animate-spin mx-auto text-primary relative z-10 stroke-[1.5px]" />
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Generating Step */}
-      {step === "generating" && (
-        <Card>
-          <CardContent className="py-12">
-            <div className="text-center space-y-4">
-              <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" />
-              <div>
-                <h3 className="font-semibold text-lg">Generating Your Interview</h3>
-                <p className="text-muted-foreground">{loadingMessage}</p>
-                <p className="text-xs text-muted-foreground mt-2">This usually takes about 20-30 seconds.</p>
+              <div className="space-y-4">
+                <h3 className="text-3xl font-black uppercase tracking-tighter italic">Neural Synthesis Active</h3>
+                <p className="text-[11px] font-bold uppercase tracking-widest text-primary animate-pulse italic">
+                  {loadingMessage}
+                </p>
+                <div className="flex items-center justify-center gap-3 pt-6 text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground/30">
+                  <Sparkles className="h-4 w-4" /> Handshake Est. 20-30s
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+            </CardContent>
+          </Card>
+        )}
+      </main>
     </div>
   );
 }
