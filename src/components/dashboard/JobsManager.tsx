@@ -9,14 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -51,8 +44,8 @@ import { cn } from "@/lib/utils";
 
 /**
  * Platform Logic: Marketplace Inventory Terminal (Jobs Manager)
- * High-fidelity orchestrator for job lifecycle, AI-enhancement, and engagement telemetry.
- * 2026 Standard: Executive Logic geometry with reinforced cross-table analytics.
+ * High-fidelity orchestrator for job lifecycle and engagement telemetry.
+ * 2026 Standard: Executive Logic geometry with reinforced recursion guards.
  */
 
 const JOB_TYPES = ["full_time", "part_time", "contract", "internship", "freelance"] as const;
@@ -144,6 +137,11 @@ export function JobsManager() {
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isLinkedInImportOpen, setIsLinkedInImportOpen] = useState(false);
 
+  // --- INTERNAL UTILITIES ---
+  const updateField = <K extends keyof JobFormState>(key: K, value: JobFormState[K]) => {
+    setForm((f) => ({ ...f, [key]: value }));
+  };
+
   const fetchEngagementTelemetry = useCallback(async (jobIds: string[]) => {
     if (jobIds.length === 0) return;
     const [clicksRes, savesRes, recsRes] = await Promise.all([
@@ -154,9 +152,9 @@ export function JobsManager() {
 
     const stats: Record<string, EngagementData> = {};
     jobIds.forEach((id) => (stats[id] = { job_id: id, clicks: 0, saves: 0, recommendations: 0 }));
-    (clicksRes.data ?? []).forEach((c: any) => stats[c.job_id] && stats[c.job_id].clicks++);
-    (savesRes.data ?? []).forEach((s: any) => stats[s.item_id] && stats[s.item_id].saves++);
-    (recsRes.data ?? []).forEach((r: any) => stats[r.job_id] && stats[r.job_id].recommendations++);
+    ((clicksRes.data as any[]) ?? []).forEach((c) => stats[c.job_id] && stats[c.job_id].clicks++);
+    ((savesRes.data as any[]) ?? []).forEach((s) => stats[s.item_id] && stats[s.item_id].saves++);
+    ((recsRes.data as any[]) ?? []).forEach((r) => stats[r.job_id] && stats[r.job_id].recommendations++);
     setEngagement(stats);
   }, []);
 
@@ -174,9 +172,12 @@ export function JobsManager() {
       const from = (page - 1) * 10;
       const { data, count, error } = await query.range(from, from + 9);
       if (error) throw error;
-      setJobs(data as Job[]);
+
+      // CTO FIX: Explicit type coercion for rawData prevents TS2589 burn
+      const rawData = data as any[];
+      setJobs(rawData as Job[]);
       setTotalCount(count || 0);
-      if (data) fetchEngagementTelemetry(data.map((j) => j.id));
+      if (rawData.length) fetchEngagementTelemetry(rawData.map((j) => j.id));
     } finally {
       setLoading(false);
     }
@@ -186,9 +187,43 @@ export function JobsManager() {
     loadRegistry();
   }, [loadRegistry]);
 
+  // --- LOGIC HANDLERS ---
+  const openEdit = async (job: Job) => {
+    setEditingJobId(job.id);
+    const { data, error } = await supabase.from("jobs").select("*").eq("id", job.id).single();
+    if (error || !data) return toast.error("Handshake Failed: Resource unreachable");
+
+    setForm({
+      ...EMPTY_FORM,
+      ...data,
+      salary_range_min: data.salary_range_min?.toString() || "",
+      salary_range_max: data.salary_range_max?.toString() || "",
+      vacancies: data.vacancies?.toString() || "1",
+      deadline: data.deadline ? new Date(data.deadline).toISOString().slice(0, 10) : "",
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleLogoUpload = async (file: File) => {
+    setIsUploadingLogo(true);
+    try {
+      const fileName = `job-logos/${Date.now()}-${file.name}`;
+      const { error } = await supabase.storage.from("job-assets").upload(fileName, file);
+      if (error) throw error;
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("job-assets").getPublicUrl(fileName);
+      updateField("company_logo_url", publicUrl);
+      toast.success("Logo Artifact Synced");
+    } catch (err: any) {
+      toast.error("Upload Fault: " + err.message);
+    } finally {
+      setIsUploadingLogo(false);
+    }
+  };
+
   const handleSaveProtocol = async () => {
-    if (!form.title.trim() || !form.company_name.trim())
-      return toast.error("Identity Fault: Title and Company required");
+    if (!form.title.trim() || !form.company_name.trim()) return toast.error("Identity Fault: Identity required");
     setIsSaving(true);
     try {
       const payload: any = {
@@ -204,11 +239,11 @@ export function JobsManager() {
         : await supabase.from("jobs").insert(payload);
 
       if (error) throw error;
-      toast.success(editingJobId ? "Artifact Recalibrated" : "Marketplace Node Initialized");
+      toast.success(editingJobId ? "Recalibration Complete" : "Node Initialized");
       setIsDialogOpen(false);
       loadRegistry();
     } catch (err: any) {
-      toast.error(err.message || "Protocol Error");
+      toast.error(err.message || "Protocol Failure");
     } finally {
       setIsSaving(false);
     }
@@ -218,12 +253,11 @@ export function JobsManager() {
     if (form.description.length < 30) return toast.error("Payload too low for AI synthesis");
     setIsEnhancing(true);
     try {
-      const { data, error } = await supabase.functions.invoke("enhance-job-description", {
+      const { data } = await supabase.functions.invoke("enhance-job-description", {
         body: { title: form.title, company: form.company_name, description: form.description },
       });
-      if (error) throw error;
       if (data?.enhanced) {
-        setForm((f) => ({ ...f, description: data.enhanced }));
+        updateField("description", data.enhanced);
         toast.success("Description Synthesized");
       }
     } finally {
@@ -240,10 +274,10 @@ export function JobsManager() {
         <div className="space-y-1">
           <div className="flex items-center gap-3 text-primary">
             <Briefcase className="h-8 w-8" />
-            <h2 className="text-4xl font-black uppercase tracking-tighter italic leading-none">Job Inventory</h2>
+            <h2 className="text-4xl font-black uppercase tracking-tighter italic leading-none">Inventory</h2>
           </div>
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 italic">
-            Marketplace Liquidity & Talent Engagement Registry
+            Job Marketplace Liquidity Registry
           </p>
         </div>
         <div className="flex gap-3">
@@ -253,7 +287,7 @@ export function JobsManager() {
             onClick={() => setIsLinkedInImportOpen(true)}
             className="rounded-xl h-12 px-6 border-2 font-black uppercase text-[10px] tracking-widest gap-2"
           >
-            <Linkedin className="w-4 h-4 text-primary" /> Batch Sync
+            <Linkedin className="w-4 h-4" /> Batch Sync
           </Button>
           <Button
             onClick={() => {
@@ -268,265 +302,142 @@ export function JobsManager() {
         </div>
       </div>
 
-      <Tabs defaultValue="inventory" className="w-full">
-        <TabsList className="bg-muted/30 backdrop-blur-md rounded-[24px] border-2 border-border/40 p-1.5 mb-8 w-full max-w-md">
-          <TabsTrigger
-            value="inventory"
-            className="flex-1 rounded-xl font-black uppercase text-[10px] tracking-widest gap-2 py-3"
-          >
-            <Layers className="w-4 h-4" /> Registry
-          </TabsTrigger>
-          <TabsTrigger
-            value="engagement"
-            className="flex-1 rounded-xl font-black uppercase text-[10px] tracking-widest gap-2 py-3"
-          >
-            <Activity className="w-4 h-4" /> Analytics
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="inventory" className="space-y-8 animate-in slide-in-from-bottom-2 duration-500">
-          <Card className="rounded-[40px] border-2 border-border/40 shadow-2xl overflow-hidden bg-card/30 backdrop-blur-xl">
-            <div className="h-1.5 w-full bg-gradient-to-r from-primary via-blue-600 to-primary" />
-            <CardHeader className="p-8 border-b border-border/10">
-              <div className="flex flex-col sm:flex-row gap-4">
-                <div className="relative flex-1 group">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
-                  <Input
-                    placeholder="Query artifact by role or entity..."
-                    value={searchQuery}
-                    onChange={(e) => {
-                      setSearchQuery(e.target.value);
-                      setPage(1);
-                    }}
-                    className="pl-12 h-14 bg-muted/20 border-2 border-border/10 rounded-2xl font-bold tracking-tight"
-                  />
-                </div>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-full sm:w-56 h-14 rounded-2xl border-2 font-black uppercase text-[10px] tracking-widest bg-muted/20">
-                    <SelectValue placeholder="Protocol" />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-xl border-2 shadow-2xl">
-                    <SelectItem value="all" className="font-bold">
-                      GLOBAL_REGISTRY
-                    </SelectItem>
-                    <SelectItem value="active" className="font-bold text-emerald-500">
-                      ACTIVE_NODES
-                    </SelectItem>
-                    <SelectItem value="featured" className="font-bold text-primary">
-                      FEATURED_PRIORITY
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              {loading ? (
-                <div className="p-12">
-                  <DashboardTableSkeleton rows={8} columns={5} />
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader className="bg-muted/30">
-                    <TableRow className="hover:bg-transparent border-b-2">
-                      <TableHead className="text-[10px] font-black uppercase tracking-widest py-8 px-8">
-                        Logic Node (Role)
-                      </TableHead>
-                      <TableHead className="text-[10px] font-black uppercase tracking-widest">
-                        Protocol Status
-                      </TableHead>
-                      <TableHead className="text-[10px] font-black uppercase tracking-widest">Temporal Log</TableHead>
-                      <TableHead className="text-right text-[10px] font-black uppercase tracking-widest pr-8">
-                        Interrogate
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {jobs.map((job) => (
-                      <TableRow key={job.id} className="group transition-all hover:bg-primary/[0.02]">
-                        <TableCell className="px-8 py-6">
-                          <div className="space-y-1">
-                            <p className="font-black text-sm uppercase tracking-tight italic group-hover:text-primary transition-colors leading-none">
-                              {job.title}
-                            </p>
-                            <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest italic">
-                              {job.company_name}
-                            </p>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            className={cn(
-                              "rounded-lg font-black text-[8px] uppercase tracking-[0.2em] px-3 py-1 border-none",
-                              job.is_active ? "bg-emerald-500 text-white" : "bg-muted text-muted-foreground/60",
-                            )}
-                          >
-                            {job.is_active ? "ACTIVE_LOG" : "IDLE_DRAFT"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest italic">
-                          {new Date(job.created_at).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell className="text-right pr-8">
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-10 w-10 rounded-xl hover:bg-primary/10 transition-all"
-                              onClick={() => openEdit(job)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-10 w-10 rounded-xl hover:bg-destructive/10 text-destructive transition-all"
-                              onClick={async () => {
-                                if (confirm("Purge artifact?")) {
-                                  await supabase.from("jobs").delete().eq("id", job.id);
-                                  loadRegistry();
-                                }
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between p-8 border-t border-border/10 bg-muted/5">
-                  <div className="space-y-1">
-                    <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground/40 italic">
-                      Registry Frame
-                    </p>
-                    <p className="text-xl font-black italic tracking-tighter">
-                      {page} <span className="text-xs opacity-20">of</span> {totalPages}
-                    </p>
-                  </div>
-                  <div className="flex gap-4">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-14 w-14 rounded-2xl border-2 hover:bg-primary hover:text-white transition-all shadow-sm"
-                      onClick={() => setPage((p) => Math.max(1, p - 1))}
-                      disabled={page === 1}
-                    >
-                      <ChevronLeft className="h-6 w-6" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-14 w-14 rounded-2xl border-2 hover:bg-primary hover:text-white transition-all shadow-sm"
-                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                      disabled={page === totalPages}
-                    >
-                      <ChevronRight className="h-6 w-6" />
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="engagement" className="space-y-8 animate-in slide-in-from-bottom-2 duration-500">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[
-              {
-                label: "Global Handshakes (Clicks)",
-                val: Object.values(engagement).reduce((a, b) => a + b.clicks, 0),
-                icon: MousePointer2,
-                color: "text-primary",
-                bg: "bg-primary/5",
-              },
-              {
-                label: "AI Match Success (Recs)",
-                val: Object.values(engagement).reduce((a, b) => a + b.recommendations, 0),
-                icon: Brain,
-                color: "text-purple-500",
-                bg: "bg-purple-500/5",
-              },
-              {
-                label: "Talent Retention (Saves)",
-                val: Object.values(engagement).reduce((a, b) => a + b.saves, 0),
-                icon: Bookmark,
-                color: "text-amber-500",
-                bg: "bg-amber-500/5",
-              },
-            ].map((k, i) => (
-              <Card
-                key={i}
-                className="rounded-[32px] border-2 border-border/40 bg-card/30 p-6 flex items-center gap-6 group hover:border-primary/20 transition-all"
-              >
-                <div
-                  className={cn(
-                    "h-14 w-14 rounded-2xl flex items-center justify-center border-2 shadow-inner group-hover:rotate-6 transition-transform",
-                    k.bg,
-                  )}
-                >
-                  <k.icon className={cn("h-7 w-7", k.color)} />
-                </div>
-                <div>
-                  <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 mb-1">
-                    {k.label}
-                  </p>
-                  <p className="text-3xl font-black tracking-tighter italic leading-none">{k.val}</p>
-                </div>
-              </Card>
-            ))}
+      <Card className="rounded-[40px] border-2 border-border/40 shadow-2xl overflow-hidden bg-card/30 backdrop-blur-xl">
+        <div className="h-1.5 w-full bg-gradient-to-r from-primary via-blue-600 to-primary" />
+        <CardHeader className="p-8 border-b border-border/10">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="relative flex-1 group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
+              <Input
+                placeholder="Query artifact by role or entity..."
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setPage(1);
+                }}
+                className="pl-12 h-14 bg-muted/20 border-2 border-border/10 rounded-2xl font-bold tracking-tight shadow-inner"
+              />
+            </div>
           </div>
-
-          <Card className="rounded-[40px] border-2 border-border/40 shadow-2xl overflow-hidden bg-card/30">
-            <CardHeader className="p-8 border-b border-border/10">
-              <CardTitle className="text-xl font-black uppercase tracking-tighter italic flex items-center gap-3">
-                <BarChart3 className="h-5 w-5 text-primary" /> Engagement Scoreboard
-              </CardTitle>
-              <CardDescription className="text-[10px] font-bold uppercase tracking-widest">
-                Weighted Artifact Performance Index
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader className="bg-muted/30">
-                  <TableRow className="hover:bg-transparent border-b-2">
-                    <TableHead className="text-[10px] font-black uppercase py-8 px-8">Logic Node</TableHead>
-                    <TableHead className="text-center text-[10px] font-black uppercase">Handshakes</TableHead>
-                    <TableHead className="text-center text-[10px] font-black uppercase">Retention</TableHead>
-                    <TableHead className="text-center text-[10px] font-black uppercase">AI_Impact</TableHead>
-                    <TableHead className="text-right text-[10px] font-black uppercase pr-8">Intensity_Index</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {jobs.map((job) => {
-                    const stats = engagement[job.id] || { clicks: 0, saves: 0, recommendations: 0 };
-                    const score = stats.clicks + stats.saves * 5 + stats.recommendations * 2;
-                    return (
-                      <TableRow key={job.id} className="group hover:bg-primary/[0.02] border-b border-border/5">
-                        <TableCell className="px-8 py-5 font-black text-xs uppercase italic tracking-tighter">
+        </CardHeader>
+        <CardContent className="p-0">
+          {loading ? (
+            <div className="p-12">
+              <DashboardTableSkeleton rows={8} columns={4} />
+            </div>
+          ) : (
+            <Table>
+              <TableHeader className="bg-muted/30">
+                <TableRow className="hover:bg-transparent border-b-2">
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest py-8 px-8">
+                    Logic Node (Role)
+                  </TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest">Protocol Status</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest">Location Index</TableHead>
+                  <TableHead className="text-right text-[10px] font-black uppercase tracking-widest pr-8">
+                    Interrogate
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {jobs.map((job) => (
+                  <TableRow
+                    key={job.id}
+                    className="group transition-all hover:bg-primary/[0.02] border-b border-border/5"
+                  >
+                    <TableCell className="px-8 py-6">
+                      <div className="space-y-1">
+                        <p className="font-black text-sm uppercase tracking-tight italic group-hover:text-primary transition-colors leading-none">
                           {job.title}
-                        </TableCell>
-                        <TableCell className="text-center font-mono font-bold text-primary">{stats.clicks}</TableCell>
-                        <TableCell className="text-center font-mono font-bold text-amber-500">{stats.saves}</TableCell>
-                        <TableCell className="text-center font-mono font-bold text-purple-500">
-                          {stats.recommendations}
-                        </TableCell>
-                        <TableCell className="text-right pr-8">
-                          <Badge className="bg-primary/10 text-primary border-none font-black text-[10px] italic">
-                            {score} PTS
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                        </p>
+                        <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest italic">
+                          {job.company_name}
+                        </p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        className={cn(
+                          "rounded-lg font-black text-[8px] uppercase tracking-[0.2em] px-3 py-1 border-none",
+                          job.is_active ? "bg-emerald-500 text-white" : "bg-muted text-muted-foreground/60",
+                        )}
+                      >
+                        {job.is_active ? "ACTIVE_LOG" : "IDLE_DRAFT"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest italic">
+                      {job.location || "REMOTE_ACCESS"}
+                    </TableCell>
+                    <TableCell className="text-right pr-8">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-10 w-10 rounded-xl hover:bg-primary/10 transition-all shadow-inner"
+                          onClick={() => openEdit(job)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-10 w-10 rounded-xl hover:bg-destructive/10 text-destructive transition-all"
+                          onClick={async () => {
+                            if (confirm("Purge artifact?")) {
+                              await supabase.from("jobs").delete().eq("id", job.id);
+                              loadRegistry();
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between p-8 border-t border-border/10 bg-muted/5">
+              <div className="space-y-1">
+                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground/40 italic">
+                  Registry Frame
+                </p>
+                <p className="text-xl font-black italic tracking-tighter leading-none">
+                  {page} <span className="text-xs opacity-20">of</span> {totalPages}
+                </p>
+              </div>
+              <div className="flex gap-4">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-14 w-14 rounded-2xl border-2 hover:bg-primary hover:text-white transition-all shadow-sm"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                >
+                  <ChevronLeft className="h-6 w-6" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-14 w-14 rounded-2xl border-2 hover:bg-primary hover:text-white transition-all shadow-sm"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                >
+                  <ChevronRight className="h-6 w-6" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <BatchLinkedInJobUpload
+        isOpen={isLinkedInImportOpen}
+        onClose={() => setIsLinkedInImportOpen(false)}
+        onComplete={loadRegistry}
+      />
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-4xl rounded-[40px] border-4 border-border/40 bg-background/95 backdrop-blur-2xl p-0 overflow-hidden shadow-2xl">
@@ -548,7 +459,7 @@ export function JobsManager() {
 
             <div className="space-y-10">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-4">
+                <div className="space-y-4 text-left">
                   <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
                     Job Title *
                   </Label>
@@ -558,7 +469,7 @@ export function JobsManager() {
                     className="h-12 rounded-xl border-2 font-bold"
                   />
                 </div>
-                <div className="space-y-4">
+                <div className="space-y-4 text-left">
                   <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
                     Entity Name *
                   </Label>
@@ -570,7 +481,7 @@ export function JobsManager() {
                 </div>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-4 text-left">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
                   Visual Identity (Logo)
                 </Label>
@@ -580,14 +491,18 @@ export function JobsManager() {
                       <img src={form.company_logo_url} className="h-full w-full object-cover" />
                       <button
                         onClick={() => updateField("company_logo_url", "")}
-                        className="absolute inset-0 bg-destructive/60 opacity-0 hover:opacity-100 flex items-center justify-center text-white transition-opacity"
+                        className="absolute inset-0 bg-destructive/60 flex items-center justify-center text-white opacity-0 hover:opacity-100 transition-opacity"
                       >
                         <X className="h-6 w-6" />
                       </button>
                     </div>
                   ) : (
                     <label className="h-20 w-20 rounded-xl border-4 border-dashed border-border/40 hover:border-primary/40 flex flex-col items-center justify-center cursor-pointer transition-all">
-                      <Upload className="h-6 w-6 text-muted-foreground/40" />
+                      {isUploadingLogo ? (
+                        <Loader2 className="animate-spin" />
+                      ) : (
+                        <Upload className="h-6 w-6 text-muted-foreground/40" />
+                      )}
                       <input
                         type="file"
                         className="hidden"
@@ -604,7 +519,7 @@ export function JobsManager() {
                 </div>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-4 text-left">
                 <div className="flex items-center justify-between">
                   <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
                     Role Specification *
@@ -617,11 +532,7 @@ export function JobsManager() {
                     disabled={isEnhancing}
                     className="rounded-lg border-2 h-10 px-4 font-black uppercase text-[9px] tracking-widest text-primary"
                   >
-                    {isEnhancing ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <Sparkles className="h-4 w-4 mr-2" />
-                    )}{" "}
+                    {isEnhancing ? <Loader2 className="animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}{" "}
                     Synthesize Payload
                   </Button>
                 </div>
@@ -633,7 +544,7 @@ export function JobsManager() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase">Job Type</Label>
                   <Select value={form.job_type} onValueChange={(v) => updateField("job_type", v as any)}>
