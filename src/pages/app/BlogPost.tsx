@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Clock,
   ArrowLeft,
+  ArrowRight,
   User,
   Calendar,
   Tag,
