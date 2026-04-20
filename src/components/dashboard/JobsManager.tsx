@@ -9,7 +9,14 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription, // CTO FIX: Restored missing UI node
+} from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -48,7 +55,8 @@ import { cn } from "@/lib/utils";
  * 2026 Standard: Executive Logic geometry with reinforced recursion guards.
  */
 
-const JOB_TYPES = ["full_time", "part_time", "contract", "internship", "freelance"] as const;
+// CTO FIX: Added "remote" to match Database Enum to resolve TS2345
+const JOB_TYPES = ["full_time", "part_time", "contract", "internship", "freelance", "remote"] as const;
 const EXPERIENCE_LEVELS = ["entry", "junior", "mid", "senior", "lead", "executive"] as const;
 const APPLICATION_TYPES = ["internal", "email", "link"] as const;
 const SOURCE_PLATFORMS = ["linkedin", "facebook", "indeed", "company_website", "other"] as const;
@@ -137,7 +145,6 @@ export function JobsManager() {
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isLinkedInImportOpen, setIsLinkedInImportOpen] = useState(false);
 
-  // --- INTERNAL UTILITIES ---
   const updateField = <K extends keyof JobFormState>(key: K, value: JobFormState[K]) => {
     setForm((f) => ({ ...f, [key]: value }));
   };
@@ -173,8 +180,8 @@ export function JobsManager() {
       const { data, count, error } = await query.range(from, from + 9);
       if (error) throw error;
 
-      // CTO FIX: Explicit type coercion for rawData prevents TS2589 burn
-      const rawData = data as any[];
+      // CTO FIX: Explicit type coercion to any[] prevents TS2589 deep instantiation crash
+      const rawData = (data as any[]) || [];
       setJobs(rawData as Job[]);
       setTotalCount(count || 0);
       if (rawData.length) fetchEngagementTelemetry(rawData.map((j) => j.id));
@@ -187,15 +194,15 @@ export function JobsManager() {
     loadRegistry();
   }, [loadRegistry]);
 
-  // --- LOGIC HANDLERS ---
   const openEdit = async (job: Job) => {
     setEditingJobId(job.id);
     const { data, error } = await supabase.from("jobs").select("*").eq("id", job.id).single();
     if (error || !data) return toast.error("Handshake Failed: Resource unreachable");
 
+    // CTO FIX: Asserting data to JobFormState ensures 'remote' and other fields sync correctly
     setForm({
       ...EMPTY_FORM,
-      ...data,
+      ...(data as any),
       salary_range_min: data.salary_range_min?.toString() || "",
       salary_range_max: data.salary_range_max?.toString() || "",
       vacancies: data.vacancies?.toString() || "1",
@@ -223,7 +230,7 @@ export function JobsManager() {
   };
 
   const handleSaveProtocol = async () => {
-    if (!form.title.trim() || !form.company_name.trim()) return toast.error("Identity Fault: Identity required");
+    if (!form.title.trim() || !form.company_name.trim()) return toast.error("Identity Fault: Identification required");
     setIsSaving(true);
     try {
       const payload: any = {
@@ -239,7 +246,7 @@ export function JobsManager() {
         : await supabase.from("jobs").insert(payload);
 
       if (error) throw error;
-      toast.success(editingJobId ? "Recalibration Complete" : "Node Initialized");
+      toast.success(editingJobId ? "Artifact Recalibrated" : "Marketplace Node Initialized");
       setIsDialogOpen(false);
       loadRegistry();
     } catch (err: any) {
@@ -271,13 +278,13 @@ export function JobsManager() {
     <div className="space-y-10 animate-in fade-in duration-1000">
       {/* Executive Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-muted/20 p-8 rounded-[40px] border-2 border-border/40 backdrop-blur-md">
-        <div className="space-y-1">
+        <div className="space-y-1 text-left">
           <div className="flex items-center gap-3 text-primary">
             <Briefcase className="h-8 w-8" />
             <h2 className="text-4xl font-black uppercase tracking-tighter italic leading-none">Inventory</h2>
           </div>
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 italic">
-            Job Marketplace Liquidity Registry
+            Marketplace Liquidity & Talent Engagement Registry
           </p>
         </div>
         <div className="flex gap-3">
@@ -346,7 +353,7 @@ export function JobsManager() {
                     className="group transition-all hover:bg-primary/[0.02] border-b border-border/5"
                   >
                     <TableCell className="px-8 py-6">
-                      <div className="space-y-1">
+                      <div className="space-y-1 text-left">
                         <p className="font-black text-sm uppercase tracking-tight italic group-hover:text-primary transition-colors leading-none">
                           {job.title}
                         </p>
@@ -400,8 +407,8 @@ export function JobsManager() {
           )}
           {totalPages > 1 && (
             <div className="flex items-center justify-between p-8 border-t border-border/10 bg-muted/5">
-              <div className="space-y-1">
-                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground/40 italic">
+              <div className="space-y-1 text-left">
+                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground/40 italic leading-none">
                   Registry Frame
                 </p>
                 <p className="text-xl font-black italic tracking-tighter leading-none">
@@ -532,7 +539,11 @@ export function JobsManager() {
                     disabled={isEnhancing}
                     className="rounded-lg border-2 h-10 px-4 font-black uppercase text-[9px] tracking-widest text-primary"
                   >
-                    {isEnhancing ? <Loader2 className="animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}{" "}
+                    {isEnhancing ? (
+                      <Loader2 className="animate-spin h-4 w-4 mr-2" />
+                    ) : (
+                      <Sparkles className="h-4 w-4 mr-2" />
+                    )}{" "}
                     Synthesize Payload
                   </Button>
                 </div>
