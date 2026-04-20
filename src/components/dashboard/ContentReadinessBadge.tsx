@@ -1,6 +1,13 @@
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Sparkles, FileText, Video } from "lucide-react";
+import { Sparkles, FileText, Video, Activity } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+/**
+ * Platform Logic: Readiness Telemetry Node
+ * High-fidelity diagnostic artifact for auditing module maturity and AI synthesis.
+ * 2026 Standard: Executive Logic geometry with reinforced percentage rounding.
+ */
 
 export interface ModuleStats {
   module_count: number;
@@ -10,41 +17,67 @@ export interface ModuleStats {
 
 interface ContentReadinessBadgeProps {
   stats: ModuleStats | undefined;
+  className?: string;
 }
 
-const ContentReadinessBadge = ({ stats }: ContentReadinessBadgeProps) => {
+const ContentReadinessBadge = ({ stats, className }: ContentReadinessBadgeProps) => {
   if (!stats || stats.module_count === 0) {
     return (
-      <div className="text-xs text-muted-foreground italic">No modules</div>
+      <div
+        className={cn(
+          "text-[10px] font-black uppercase tracking-widest text-muted-foreground/30 italic flex items-center gap-2",
+          className,
+        )}
+      >
+        <Activity className="w-3 h-3" /> Registry Node Null
+      </div>
     );
   }
 
   const descPct = Math.round((stats.modules_with_desc / stats.module_count) * 100);
   const videoPct = Math.round((stats.modules_with_video / stats.module_count) * 100);
-  const overallPct = Math.round(((descPct + videoPct) / 2));
-  const hasAI = descPct === 100; // Note: modules_with_desc counts descriptions >= 500 chars
 
-  const colorClass = (pct: number) =>
-    pct === 100 ? "text-emerald-600" : pct > 0 ? "text-amber-500" : "text-destructive";
+  // Logic Handshake: Overall readiness is the weighted average of core artifacts
+  const overallPct = Math.round((descPct + videoPct) / 2);
+  const isFullySynthesized = descPct === 100;
+
+  const getStatusColor = (pct: number) =>
+    pct === 100 ? "text-emerald-500" : pct > 0 ? "text-amber-500" : "text-destructive";
 
   return (
-    <div className="space-y-1.5">
-      <div className="flex items-center gap-2">
-        <Progress value={overallPct} className="h-1.5 flex-1" />
-        {hasAI && (
-          <Badge variant="secondary" className="text-[10px] px-1.5 py-0 gap-0.5 h-4">
-            <Sparkles className="w-2.5 h-2.5" /> AI
+    <div className={cn("space-y-2.5", className)}>
+      <div className="flex items-center gap-3">
+        <div className="flex-1 h-1.5 bg-muted/20 rounded-full overflow-hidden">
+          <Progress
+            value={overallPct}
+            className={cn(
+              "h-full transition-all duration-1000 ease-in-out",
+              overallPct === 100 ? "bg-emerald-500" : "bg-primary",
+            )}
+          />
+        </div>
+        {isFullySynthesized && (
+          <Badge className="bg-primary/10 text-primary border-none text-[8px] font-black uppercase tracking-tighter px-1.5 h-4 gap-1 animate-in zoom-in-50">
+            <Sparkles className="w-2.5 h-2.5 fill-current" /> SYNC'D
           </Badge>
         )}
       </div>
-      <div className="flex items-center gap-3 text-[11px]">
-        <span className="text-muted-foreground">{stats.module_count} modules</span>
-        <span className={`flex items-center gap-0.5 ${colorClass(descPct)}`} title="AI-generated descriptions (>200 chars)">
-          <FileText className="w-3 h-3" /> {descPct}% desc
-        </span>
-        <span className={`flex items-center gap-0.5 ${colorClass(videoPct)}`}>
-          <Video className="w-3 h-3" /> {videoPct}%
-        </span>
+
+      <div className="flex items-center gap-4 text-[9px] font-black uppercase tracking-widest">
+        <div className="flex items-center gap-1.5 text-muted-foreground/60 italic">
+          <span className="h-1 w-1 rounded-full bg-muted-foreground/40" />
+          {stats.module_count} NODES
+        </div>
+
+        <div className={cn("flex items-center gap-1 transition-colors", getStatusColor(descPct))}>
+          <FileText className="w-3 h-3 opacity-70" />
+          <span>{descPct}% SPEC</span>
+        </div>
+
+        <div className={cn("flex items-center gap-1 transition-colors", getStatusColor(videoPct))}>
+          <Video className="w-3 h-3 opacity-70" />
+          <span>{videoPct}% VISUAL</span>
+        </div>
       </div>
     </div>
   );
