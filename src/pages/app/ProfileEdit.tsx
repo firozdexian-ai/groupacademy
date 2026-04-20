@@ -86,6 +86,54 @@ export default function ProfileEdit() {
   const [languages, setLanguages] = useState<LanguageEntry[]>([]);
   const [achievements, setAchievements] = useState<AchievementEntry[]>([]);
 
+  // --- LOGIC HANDLERS ---
+  const handleChange = useCallback((field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    setIsDirty(true);
+  }, []);
+
+  const handleSkillsChange = useCallback((newSkills: string[]) => {
+    setSkills(newSkills);
+    setIsDirty(true);
+  }, []);
+
+  const handleExperienceChange = useCallback((newExp: ExperienceEntry[]) => {
+    setExperience(newExp);
+    setIsDirty(true);
+  }, []);
+
+  const handleEducationChange = useCallback((newEdu: EducationEntry[]) => {
+    setEducation(newEdu);
+    setIsDirty(true);
+  }, []);
+
+  const addLanguage = () => {
+    setLanguages((prev) => [...prev, { language: "", proficiency: "Intermediate" }]);
+    setIsDirty(true);
+  };
+  const removeLanguage = (index: number) => {
+    setLanguages((prev) => prev.filter((_, i) => i !== index));
+    setIsDirty(true);
+  };
+  const updateLanguage = (index: number, field: keyof LanguageEntry, value: string) => {
+    setLanguages((prev) => prev.map((l, i) => (i === index ? { ...l, [field]: value } : l)));
+    setIsDirty(true);
+  };
+
+  const addAchievement = () => {
+    setAchievements((prev) => [...prev, { title: "", issuer: "", date: "" }]);
+    setIsDirty(true);
+  };
+  const removeAchievement = (index: number) => {
+    setAchievements((prev) => prev.filter((_, i) => i !== index));
+    setIsDirty(true);
+  };
+  const updateAchievement = (index: number, field: keyof AchievementEntry, value: string) => {
+    setAchievements((prev) => prev.map((a, i) => (i === index ? { ...a, [field]: value } : a)));
+    setIsDirty(true);
+  };
+
+  // --- DATA INITIALIZATION ---
   useEffect(() => {
     if (talent) {
       setFormData({
@@ -190,7 +238,13 @@ export default function ProfileEdit() {
 
       if (parseResult?.success && parseResult.parsed) {
         const parsed = parseResult.parsed;
-        // Logic mapping omitted for brevity, keeping existing setter logic...
+        setFormData((prev) => ({
+          ...prev,
+          fullName: parsed.full_name || prev.fullName,
+          phone: parsed.phone || prev.phone,
+          linkedinUrl: parsed.linkedin_url || prev.linkedinUrl,
+          portfolioUrl: parsed.portfolio_url || prev.portfolioUrl,
+        }));
         await updateTalent({ cvUrl: publicUrl, cvParsedAt: new Date().toISOString() });
         await refreshTalent();
         toast.success("Registry Calibrated", { description: "CV artifacts successfully integrated." });
@@ -233,7 +287,6 @@ export default function ProfileEdit() {
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-10 pb-40 space-y-10 animate-in fade-in duration-700">
-      {/* Dynamic Action Badge */}
       {isDirty && (
         <div className="fixed top-20 right-6 z-50 animate-in slide-in-from-right-4">
           <Badge
@@ -245,7 +298,6 @@ export default function ProfileEdit() {
         </div>
       )}
 
-      {/* Terminal Header */}
       <header className="flex items-center justify-between">
         <div className="flex items-center gap-5">
           <Button
@@ -266,7 +318,6 @@ export default function ProfileEdit() {
       </header>
 
       <form onSubmit={handleSubmit} className="space-y-8">
-        {/* Artifact Capture: Media */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card className="rounded-[32px] border-2 border-border/40 bg-card/30 backdrop-blur-sm overflow-hidden">
             <CardHeader className="pb-4">
@@ -303,7 +354,6 @@ export default function ProfileEdit() {
           </Card>
         </div>
 
-        {/* Intelligence Ingestion: CV */}
         <Card className="rounded-[32px] border-2 border-primary/20 bg-primary/5 shadow-2xl overflow-hidden relative group">
           <CardHeader className="p-8 border-b border-primary/10">
             <div className="flex justify-between items-center">
@@ -391,7 +441,6 @@ export default function ProfileEdit() {
           </CardContent>
         </Card>
 
-        {/* Global Registry parameters */}
         <div
           ref={(el) => {
             sectionRefs.current["about"] = el;
@@ -456,7 +505,6 @@ export default function ProfileEdit() {
           </Card>
         </div>
 
-        {/* Modular Registry Sheets */}
         <div className="space-y-8">
           <div
             ref={(el) => {
@@ -491,9 +539,136 @@ export default function ProfileEdit() {
               </CardContent>
             </Card>
           </div>
+
+          <Card
+            ref={(el) => {
+              sectionRefs.current["achievements"] = el;
+            }}
+            className="rounded-[32px] border-2 border-border/40"
+          >
+            <CardHeader className="p-8 pb-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-primary">
+                  Reward Artifacts
+                </CardTitle>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={addAchievement}
+                  className="font-black text-[9px] uppercase tracking-widest"
+                >
+                  <Plus className="h-3 w-3 mr-1" /> Add Node
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-8 space-y-4">
+              {achievements.map((award, i) => (
+                <div key={i} className="border-2 rounded-2xl p-6 space-y-4 relative bg-muted/5 group">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-4 right-4 h-8 w-8 text-destructive opacity-20 group-hover:opacity-100 transition-opacity"
+                    onClick={() => removeAchievement(i)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                  <div className="space-y-2">
+                    <Label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
+                      Award Title
+                    </Label>
+                    <Input
+                      value={award.title}
+                      onChange={(e) => updateAchievement(i, "title", e.target.value)}
+                      className="rounded-lg"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
+                        Issuer
+                      </Label>
+                      <Input
+                        value={award.issuer}
+                        onChange={(e) => updateAchievement(i, "issuer", e.target.value)}
+                        className="rounded-lg"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
+                        Date
+                      </Label>
+                      <Input
+                        value={award.date}
+                        onChange={(e) => updateAchievement(i, "date", e.target.value)}
+                        className="rounded-lg"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          <Card
+            ref={(el) => {
+              sectionRefs.current["languages"] = el;
+            }}
+            className="rounded-[32px] border-2 border-border/40"
+          >
+            <CardHeader className="p-8 pb-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-primary">
+                  Language Logic
+                </CardTitle>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={addLanguage}
+                  className="font-black text-[9px] uppercase tracking-widest"
+                >
+                  <Plus className="h-3 w-3 mr-1" /> Add Node
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-8 space-y-3">
+              {languages.map((lang, i) => (
+                <div key={i} className="flex items-center gap-4">
+                  <Input
+                    className="flex-1 rounded-lg"
+                    value={lang.language}
+                    onChange={(e) => updateLanguage(i, "language", e.target.value)}
+                    placeholder="Language"
+                  />
+                  <Select value={lang.proficiency} onValueChange={(val) => updateLanguage(i, "proficiency", val)}>
+                    <SelectTrigger className="w-40 rounded-lg">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {["Native", "Fluent", "Intermediate", "Basic"].map((p) => (
+                        <SelectItem key={p} value={p}>
+                          {p}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="text-destructive"
+                    onClick={() => removeLanguage(i)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Global Control HUD */}
         <div className="fixed bottom-0 left-0 right-0 p-8 bg-background/80 backdrop-blur-2xl border-t-2 border-border/10 z-50 shadow-[0_-20px_50px_rgba(0,0,0,0.1)]">
           <div className="max-w-2xl mx-auto flex gap-6">
             <Button
