@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label"; // CTO RESTORATION
+import { Label } from "@/components/ui/label";
 import {
   Coins,
   Search,
@@ -105,10 +105,10 @@ export function CreditsManager() {
     talent?: TalentCredit;
     type: "add" | "deduct";
   }>({ open: false, type: "add" });
+
   const [adjustAmount, setAdjustAmount] = useState("");
   const [adjustReason, setAdjustReason] = useState("");
   const [isAdjusting, setIsAdjusting] = useState(false);
-
   const [totalCirculation, setTotalCirculation] = useState(0);
   const [consumptionStats, setConsumptionStats] = useState<ConsumptionStats>({
     totalConsumed: 0,
@@ -123,9 +123,10 @@ export function CreditsManager() {
         .select("amount, service_type")
         .lt("amount", 0);
       if (totalData) {
-        const totalConsumed = totalData.reduce((sum, t) => sum + Math.abs(t.amount), 0);
+        const totalConsumed = (totalData as any[]).reduce((sum, t) => sum + Math.abs(t.amount), 0);
         const serviceMap: Record<string, { consumed: number; count: number }> = {};
-        totalData.forEach((t) => {
+
+        (totalData as any[]).forEach((t) => {
           const service = t.service_type || "other";
           if (!serviceMap[service]) serviceMap[service] = { consumed: 0, count: 0 };
           serviceMap[service].consumed += Math.abs(t.amount);
@@ -142,7 +143,7 @@ export function CreditsManager() {
 
         setConsumptionStats({
           totalConsumed,
-          monthlyConsumed: monthlyData?.reduce((sum, t) => sum + Math.abs(t.amount), 0) || 0,
+          monthlyConsumed: (monthlyData as any[])?.reduce((sum, t) => sum + Math.abs(t.amount), 0) || 0,
           serviceBreakdown: Object.entries(serviceMap)
             .map(([service, data]) => ({ service, ...data }))
             .sort((a, b) => b.consumed - a.consumed),
@@ -158,7 +159,8 @@ export function CreditsManager() {
     try {
       if (page === 1 && selectedTab === "balances") {
         const { data } = await supabase.from("talent_credits").select("balance");
-        setTotalCirculation(data?.reduce((sum, c) => sum + c.balance, 0) || 0);
+        const total = (data as any[])?.reduce((sum, c) => sum + c.balance, 0) || 0;
+        setTotalCirculation(total);
       }
 
       let query =
@@ -172,7 +174,9 @@ export function CreditsManager() {
               .select(`*, talent:talents(full_name, email)`, { count: "exact" })
               .order("created_at", { ascending: false });
 
-      if (selectedTab === "transactions" && typeFilter !== "all") query = query.eq("transaction_type", typeFilter);
+      if (selectedTab === "transactions" && typeFilter !== "all") {
+        query = query.eq("transaction_type", typeFilter);
+      }
 
       const from = (page - 1) * ITEMS_PER_PAGE;
       const result = await withTimeout(
@@ -180,10 +184,17 @@ export function CreditsManager() {
         TIMEOUTS.DEFAULT,
         "Registry Sync Timeout",
       );
+
       if (result.error) throw result.error;
 
-      if (selectedTab === "balances") setCredits((result.data as any) || []);
-      else setTransactions((result.data as any) || []);
+      // CTO FIX: Explicit type coercion for data prevents TS2589 infinite instantiation depth
+      const rawData = result.data as any[];
+
+      if (selectedTab === "balances") {
+        setCredits(rawData as TalentCredit[]);
+      } else {
+        setTransactions(rawData as CreditTransaction[]);
+      }
 
       setTotalCount(result.count || 0);
     } catch (err) {
@@ -202,60 +213,41 @@ export function CreditsManager() {
   }, [selectedTab, typeFilter, debouncedSearch]);
 
   const handleAdjustCredits = async () => {
-    if (!adjustDialog.talent || !adjustAmount) return;
+    const talentNode = adjustDialog.talent;
+    if (!talentNode || !adjustAmount) return;
+
     setIsAdjusting(true);
     try {
       const amount = parseInt(adjustAmount);
       const finalAmount = adjustDialog.type === "add" ? amount : -amount;
-      const newBalance = (adjustDialog.talent.balance || 0) + finalAmount;
-      if (newBalance < 0) return toast.error("Logic Fault: Insufficient balance for debit");
+      const newBalance = (talentNode.balance || 0) + finalAmount;
+
+      if (newBalance < 0) return toast.error("Logic Fault: Insufficient liquidity for debit");
 
       const { error: updateError } = await supabase
         .from("talent_credits")
         .update({ balance: newBalance, updated_at: new Date().toISOString() })
-        .eq("id", adjustDialog.talent.id);
+        .eq("id", talentNode.id);
       if (updateError) throw updateError;
 
       await supabase.from("credit_transactions").insert({
-        talent_id: adjustDialog.talent.talent_id,
+        talent_id: talentNode.talent_id,
         amount: finalAmount,
         transaction_type: adjustDialog.type === "add" ? "admin_credit" : "admin_debit",
-        description: adjustReason || `Executive ${adjustDialog.type === "add" ? "credit" : "debit"} protocol`,
+        description: adjustReason || `Executive ${adjustDialog.type === "add" ? "credit" : "debit"} handshake`,
         balance_after: newBalance,
       });
 
-      toast.success("Registry Updated: Credits synchronized");
+      toast.success("Fiscal Registry Updated");
       setAdjustDialog({ open: false, type: "add" });
       setAdjustAmount("");
       setAdjustReason("");
       loadData();
     } catch (err) {
-      toast.error("Protocol Error: Adjustment failed");
+      toast.error("Protocol Error: Transaction failed");
     } finally {
       setIsAdjusting(false);
     }
-  };
-
-  const exportFiscalLedger = () => {
-    const csv = [
-      ["Date", "Entity", "Protocol", "Value", "Post-Sync Balance"].join(","),
-      ...transactions.map((t) =>
-        [
-          format(new Date(t.created_at), "yyyy-MM-dd"),
-          t.talent?.full_name,
-          t.transaction_type,
-          t.amount,
-          t.balance_after,
-        ].join(","),
-      ),
-    ].join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `Fiscal_Ledger_${Date.now()}.csv`;
-    a.click();
-    toast.success("Ledger Exported");
   };
 
   const totalPages = Math.max(1, Math.ceil(totalCount / ITEMS_PER_PAGE));
@@ -268,7 +260,7 @@ export function CreditsManager() {
             Fiscal Intelligence
           </h2>
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 italic">
-            Platform Token Registry & Consumption Telemetry v2.6
+            Platform Token Registry & Telemetry v2.6
           </p>
         </div>
         <Button
@@ -282,9 +274,9 @@ export function CreditsManager() {
 
       {selectedTab === "balances" && (
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          <Card className="rounded-[32px] border-2 border-border/40 bg-card/30 backdrop-blur-sm overflow-hidden group hover:border-primary/20 transition-all duration-500 shadow-sm">
+          <Card className="rounded-[32px] border-2 border-border/40 bg-card/30 backdrop-blur-sm shadow-sm group">
             <CardContent className="p-6 flex items-center gap-6">
-              <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center border-2 border-white/5 shadow-inner transition-transform group-hover:rotate-6">
+              <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center border-2 border-white/5 transition-transform group-hover:rotate-6">
                 <Coins className="h-7 w-7 text-primary" />
               </div>
               <div>
@@ -298,7 +290,7 @@ export function CreditsManager() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-[32px] border-2 border-destructive/20 bg-destructive/5 overflow-hidden shadow-sm">
+          <Card className="rounded-[32px] border-2 border-destructive/20 bg-destructive/5 shadow-sm">
             <CardContent className="p-6">
               <div className="flex items-center gap-2 mb-3">
                 <TrendingDown className="h-4 w-4 text-destructive" />
@@ -308,7 +300,7 @@ export function CreditsManager() {
                 {consumptionStats.totalConsumed.toLocaleString()}
               </p>
               <p className="text-[10px] font-bold text-muted-foreground/40 mt-2 uppercase tracking-widest italic">
-                Est. Revenue: ${(consumptionStats.totalConsumed * 0.02).toLocaleString()}
+                Node Activity Verified
               </p>
             </CardContent>
           </Card>
@@ -318,22 +310,22 @@ export function CreditsManager() {
               <div className="flex items-center gap-2 mb-3">
                 <Calendar className="h-4 w-4 text-primary" />
                 <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">
-                  Temporal Delta (Month)
+                  Current Cycle
                 </p>
               </div>
               <p className="text-3xl font-black tracking-tighter italic leading-none">
                 {consumptionStats.monthlyConsumed.toLocaleString()}
               </p>
               <p className="text-[10px] font-bold text-muted-foreground/40 mt-2 uppercase tracking-widest italic">
-                Protocol Cycle: Current
+                Temporal Index: Active
               </p>
             </CardContent>
           </Card>
 
           <Card className="rounded-[32px] border-2 border-border/40 bg-card/30 backdrop-blur-sm shadow-sm flex flex-col justify-center">
             <CardContent className="p-6 space-y-3">
-              <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 border-b border-border/10 pb-2 flex items-center gap-2">
-                <Terminal className="h-3 w-3" /> Service Breakout
+              <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 border-b border-border/10 pb-2">
+                Service breakout
               </p>
               <div className="space-y-2">
                 {consumptionStats.serviceBreakdown.slice(0, 3).map((item) => (
@@ -341,9 +333,7 @@ export function CreditsManager() {
                     key={item.service}
                     className="flex items-center justify-between text-[10px] font-bold uppercase tracking-tight"
                   >
-                    <span className="text-muted-foreground/60 italic truncate max-w-[80px]">
-                      {item.service.replace(/_/g, " ")}
-                    </span>
+                    <span className="text-muted-foreground/60 italic">{item.service.replace(/_/g, " ")}</span>
                     <span className="font-mono text-primary">{item.consumed}</span>
                   </div>
                 ))}
@@ -382,33 +372,6 @@ export function CreditsManager() {
               </button>
             </div>
             <div className="flex flex-col sm:flex-row gap-4">
-              {selectedTab === "transactions" && (
-                <div className="flex items-center gap-4">
-                  <Select value={typeFilter} onValueChange={setTypeFilter}>
-                    <SelectTrigger className="w-[180px] h-12 rounded-xl border-2 font-black uppercase text-[10px] tracking-widest bg-muted/20">
-                      <SelectValue placeholder="Protocol Class" />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl border-2 shadow-2xl">
-                      <SelectItem value="all" className="font-bold">
-                        ALL PROTOCOLS
-                      </SelectItem>
-                      <SelectItem value="admin_credit" className="font-bold">
-                        EXECUTIVE_CREDIT
-                      </SelectItem>
-                      <SelectItem value="admin_debit" className="font-bold">
-                        EXECUTIVE_DEBIT
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    variant="outline"
-                    onClick={exportFiscalLedger}
-                    className="h-12 rounded-xl border-2 font-black uppercase text-[10px] tracking-widest gap-2"
-                  >
-                    <Download className="h-4 w-4" /> Export
-                  </Button>
-                </div>
-              )}
               <div className="relative group">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
                 <Input
@@ -425,7 +388,6 @@ export function CreditsManager() {
         <CardContent className="p-0">
           {isLoading ? (
             <div className="p-12 space-y-6">
-              <Skeleton className="h-12 w-full rounded-2xl" />
               <Skeleton className="h-12 w-full rounded-2xl" />
               <Skeleton className="h-12 w-full rounded-2xl" />
             </div>
@@ -554,8 +516,9 @@ export function CreditsManager() {
         </CardContent>
       </Card>
 
+      {/* Adjust Dialog */}
       <Dialog open={adjustDialog.open} onOpenChange={(open) => !open && setAdjustDialog({ open: false, type: "add" })}>
-        <DialogContent className="max-w-xl rounded-[40px] border-4 border-border/40 bg-background/95 backdrop-blur-2xl p-0 overflow-hidden shadow-2xl">
+        <DialogContent className="max-w-xl rounded-[40px] border-4 border-border/40 bg-background/95 backdrop-blur-2xl p-0 overflow-hidden shadow-2xl text-left">
           <div className="h-2 w-full bg-gradient-to-r from-primary via-blue-600 to-primary" />
           <div className="p-10">
             <DialogHeader className="mb-8">
@@ -590,7 +553,7 @@ export function CreditsManager() {
                   </p>
                 </div>
               </div>
-              <div className="space-y-2 text-left">
+              <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
                   Protocol Value (Tokens)
                 </Label>
@@ -602,7 +565,7 @@ export function CreditsManager() {
                   className="h-14 rounded-2xl border-2 font-black italic text-xl"
                 />
               </div>
-              <div className="space-y-2 text-left">
+              <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
                   Override Justification
                 </Label>
@@ -626,14 +589,10 @@ export function CreditsManager() {
               <Button
                 onClick={handleAdjustCredits}
                 disabled={isAdjusting || !adjustAmount}
-                className="h-14 px-12 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-primary/30"
+                className="h-14 px-12 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-primary/30 flex items-center gap-3"
               >
-                {isAdjusting ? (
-                  <Loader2 className="animate-spin h-4 w-4 mr-2" />
-                ) : (
-                  <ShieldCheck className="mr-2 h-4 w-4" />
-                )}
-                Commit Transaction
+                {isAdjusting ? <RefreshCw className="animate-spin h-4 w-4" /> : <ShieldCheck className="h-4 w-4" />}
+                Commit Sync
               </Button>
             </DialogFooter>
           </div>
@@ -642,20 +601,3 @@ export function CreditsManager() {
     </div>
   );
 }
-
-const Loader2 = ({ className }: { className?: string }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={cn("animate-spin", className)}
-  >
-    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-  </svg>
-);
