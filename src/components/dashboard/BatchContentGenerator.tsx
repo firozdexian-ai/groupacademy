@@ -34,6 +34,7 @@ import {
   ShieldCheck,
   Zap,
   Terminal,
+  Calendar,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
