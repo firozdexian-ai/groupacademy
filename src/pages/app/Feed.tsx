@@ -79,6 +79,10 @@ export default function Feed() {
     }
   };
 
+  /**
+   * CTO Logic: Telemetry Registry
+   * Synchronized counts to satisfy FeedFilters interface requirements.
+   */
   const counts = useMemo(
     () => ({
       all: items.length,
@@ -86,6 +90,7 @@ export default function Feed() {
       video: items.filter((i) => i.type === "video").length,
       blog: items.filter((i) => i.type === "blog").length,
       post: items.filter((i) => i.type === "post").length,
+      poll: items.filter((i) => i.type === "post" && i.contentType === "poll").length,
     }),
     [items],
   );
