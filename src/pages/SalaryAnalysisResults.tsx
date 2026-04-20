@@ -27,6 +27,7 @@ import {
   ShieldCheck,
   Globe,
   Zap,
+  RefreshCw,
 } from "lucide-react";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
