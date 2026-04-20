@@ -43,9 +43,9 @@ import {
   Briefcase,
   ShieldCheck,
   PhoneOff,
-  Zap,
   Activity,
   Filter,
+  Zap,
 } from "lucide-react";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
@@ -57,7 +57,7 @@ import { cn } from "@/lib/utils";
 /**
  * Platform Logic: Employer Registry Hub
  * High-fidelity orchestrator for corporate data synthesis and outreach telemetry.
- * 2026 Standard: Executive Logic geometry with reinforced data range guards.
+ * 2026 Standard: Executive Logic geometry with reinforced type-safe ingestion.
  */
 
 interface Company {
@@ -156,10 +156,15 @@ export function CompaniesManager() {
 
       if (result.error) throw result.error;
 
-      const mappedCompanies: Company[] = (result.data || []).map((company) => ({
+      // CTO FIX: Type Guard & Handshake
+      // Transforming Json[] from DB to strictly validated string[]
+      const mappedCompanies: Company[] = (result.data || []).map((company: any) => ({
         ...company,
-        secondary_emails: Array.isArray(company.secondary_emails) ? company.secondary_emails : [],
+        secondary_emails: Array.isArray(company.secondary_emails)
+          ? company.secondary_emails.map((e: any) => String(e))
+          : [],
       }));
+
       setCompanies(mappedCompanies);
       setTotalCount(result.count || 0);
     } catch (error: any) {
@@ -170,20 +175,16 @@ export function CompaniesManager() {
     }
   }, [page, debouncedSearch, industryFilter]);
 
-  useEffect(() => {
-    const loadKPIs = async () => {
-      const [verifiedRes, outreachRes] = await Promise.all([
-        supabase.from("companies").select("id", { count: "exact", head: true }).eq("is_verified", true),
-        supabase.from("contact_outreach").select("company_id"),
-      ]);
-      setKpiVerified(verifiedRes.count || 0);
-      const contactedIds = new Set((outreachRes.data || []).map((r: any) => r.company_id).filter(Boolean));
-      const totalRes = await supabase.from("companies").select("id", { count: "exact", head: true });
-      setKpiNeverContacted((totalRes.count || 0) - contactedIds.size);
-    };
-    loadKPIs();
-    loadIndustryOptions();
-  }, []);
+  const loadKPIs = async () => {
+    const [verifiedRes, outreachRes] = await Promise.all([
+      supabase.from("companies").select("id", { count: "exact", head: true }).eq("is_verified", true),
+      supabase.from("contact_outreach").select("company_id"),
+    ]);
+    setKpiVerified(verifiedRes.count || 0);
+    const contactedIds = new Set((outreachRes.data || []).map((r: any) => r.company_id).filter(Boolean));
+    const totalRes = await supabase.from("companies").select("id", { count: "exact", head: true });
+    setKpiNeverContacted((totalRes.count || 0) - contactedIds.size);
+  };
 
   const loadIndustryOptions = async () => {
     const { data } = await supabase.from("companies").select("industry");
@@ -214,6 +215,8 @@ export function CompaniesManager() {
 
   useEffect(() => {
     loadRegistryData();
+    loadKPIs();
+    loadIndustryOptions();
   }, [loadRegistryData]);
   useEffect(() => {
     if (companies.length > 0) loadOutreachTelemetry(companies.map((c) => c.id));
@@ -242,6 +245,17 @@ export function CompaniesManager() {
       setFormData(emptyCompany);
     }
     setIsDialogOpen(true);
+  };
+
+  const handleAddEmail = () => {
+    if (emailInput.trim() && !formData.secondary_emails.includes(emailInput.trim())) {
+      setFormData((prev) => ({ ...prev, secondary_emails: [...prev.secondary_emails, emailInput.trim()] }));
+      setEmailInput("");
+    }
+  };
+
+  const handleRemoveEmail = (email: string) => {
+    setFormData((prev) => ({ ...prev, secondary_emails: prev.secondary_emails.filter((e) => e !== email) }));
   };
 
   const handleSaveHandshake = async () => {
@@ -433,7 +447,6 @@ export function CompaniesManager() {
         </CardHeader>
 
         <CardContent className="p-8">
-          {/* Query Console */}
           <div className="mb-8 flex flex-col md:flex-row gap-4 bg-muted/20 p-4 rounded-[28px] border-2 border-border/40 backdrop-blur-md">
             <div className="relative flex-1 group">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
@@ -625,7 +638,6 @@ export function CompaniesManager() {
         </CardContent>
       </Card>
 
-      {/* Recalibration Node (Dialog) */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-4xl rounded-[40px] border-4 border-border/40 bg-background/95 backdrop-blur-2xl p-0 overflow-hidden shadow-2xl">
           <div className="h-2 w-full bg-gradient-to-r from-primary via-blue-600 to-primary" />
@@ -638,90 +650,166 @@ export function CompaniesManager() {
                 </DialogTitle>
               </div>
             </DialogHeader>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                      Company Identity *
+                    </Label>
+                    <Input
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      className="h-12 rounded-xl border-2 font-bold"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                      Industry Logic
+                    </Label>
+                    <Input
+                      value={formData.industry}
+                      onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
+                      className="h-12 rounded-xl border-2"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                      Website Uplink
+                    </Label>
+                    <Input
+                      value={formData.website}
+                      onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                      className="h-12 rounded-xl border-2"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                      Logo Metadata URL
+                    </Label>
+                    <Input
+                      value={formData.logo_url}
+                      onChange={(e) => setFormData({ ...formData, logo_url: e.target.value })}
+                      className="h-12 rounded-xl border-2"
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
-                    Company Identity *
+                    Primary Email Endpoint
                   </Label>
                   <Input
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="h-12 rounded-xl border-2 font-bold"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
-                    Industry Logic
-                  </Label>
-                  <Input
-                    value={formData.industry}
-                    onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
+                    value={formData.primary_email}
+                    onChange={(e) => setFormData({ ...formData, primary_email: e.target.value })}
                     className="h-12 rounded-xl border-2"
                   />
+                </div>
+
+                <div className="space-y-3">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                    Secondary Endpoints
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={emailInput}
+                      onChange={(e) => setEmailInput(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddEmail())}
+                      placeholder="Inject additional email..."
+                      className="h-12 rounded-xl border-2"
+                    />
+                    <Button
+                      variant="outline"
+                      onClick={handleAddEmail}
+                      className="h-12 rounded-xl border-2 px-6 font-bold"
+                    >
+                      ADD
+                    </Button>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {formData.secondary_emails.map((email) => (
+                      <Badge key={email} variant="secondary" className="px-3 py-1 rounded-lg font-bold">
+                        {email}{" "}
+                        <XCircle
+                          className="ml-2 h-3 w-3 cursor-pointer opacity-40 hover:opacity-100"
+                          onClick={() => handleRemoveEmail(email)}
+                        />
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
               </div>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
-                    Website Uplink
-                  </Label>
-                  <Input
-                    value={formData.website}
-                    onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-                    className="h-12 rounded-xl border-2"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
-                    Logo Metadata URL
-                  </Label>
-                  <Input
-                    value={formData.logo_url}
-                    onChange={(e) => setFormData({ ...formData, logo_url: e.target.value })}
-                    className="h-12 rounded-xl border-2"
-                  />
-                </div>
+
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                  Internal Registry Notes
+                </Label>
+                <Textarea
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  className="min-h-[120px] rounded-2xl border-2 p-6 italic"
+                />
               </div>
-            </div>
-            {/* ... remaining form logic ... */}
-            <div className="flex justify-end gap-4 mt-10 pt-6 border-t border-border/10">
-              <Button
-                variant="ghost"
-                onClick={() => setIsDialogOpen(false)}
-                className="h-14 px-8 font-black uppercase text-[10px] tracking-widest"
-              >
-                Abort
-              </Button>
-              <Button
-                onClick={handleSaveHandshake}
-                disabled={saving}
-                className="h-14 px-12 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-primary/30"
-              >
-                {saving ? "Syncing..." : editingCompany ? "Commit Update" : "Authorize Creation"}
-              </Button>
+
+              <div className="flex items-center gap-3 p-4 rounded-2xl bg-muted/20 border-2 border-border/10">
+                <Switch
+                  checked={formData.is_verified}
+                  onCheckedChange={(v) => setFormData({ ...formData, is_verified: v })}
+                />
+                <Label className="text-[10px] font-black uppercase tracking-widest">Verified Strategic Partner</Label>
+              </div>
+
+              <div className="flex justify-end gap-4 pt-6 border-t border-border/10">
+                <Button
+                  variant="ghost"
+                  onClick={() => setIsDialogOpen(false)}
+                  className="h-14 px-8 font-black uppercase text-[10px] tracking-widest"
+                >
+                  Abort
+                </Button>
+                <Button
+                  onClick={handleSaveHandshake}
+                  disabled={saving}
+                  className="h-14 px-12 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-primary/30"
+                >
+                  {saving ? (
+                    <Loader2 className="animate-spin mr-2 h-4 w-4" />
+                  ) : (
+                    <ShieldCheck className="mr-2 h-4 w-4" />
+                  )}
+                  {saving ? "Syncing..." : editingCompany ? "Commit Recalibration" : "Authorize Creation"}
+                </Button>
+              </div>
             </div>
           </div>
         </DialogContent>
       </Dialog>
 
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <AlertDialogContent className="rounded-[32px] border-4 border-destructive/20 bg-background/95 p-8">
+        <AlertDialogContent className="rounded-[32px] border-4 border-destructive/20 bg-background/95 p-8 shadow-2xl">
           <AlertDialogHeader>
+            <div className="h-12 w-12 rounded-2xl bg-destructive/10 flex items-center justify-center mb-4">
+              <Trash2 className="h-6 w-6 text-destructive" />
+            </div>
             <AlertDialogTitle className="text-2xl font-black uppercase tracking-tighter italic">
               Purge "{deleteTarget?.name}"?
             </AlertDialogTitle>
             <AlertDialogDescription className="text-sm font-medium text-muted-foreground italic leading-relaxed">
-              System warning: Purging this artifact will orphan linked job nodes. This logic cycle cannot be reverted.
+              System warning: Purging this artifact will orphan all linked job nodes. This logic cycle cannot be
+              reverted.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-8 gap-4">
-            <AlertDialogCancel className="rounded-xl font-black uppercase text-[10px] tracking-widest">
+            <AlertDialogCancel className="rounded-xl font-black uppercase text-[10px] tracking-widest border-2 h-12 px-8">
               Decline Purge
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handlePurgeArtifact}
-              className="bg-destructive text-white rounded-xl font-black uppercase text-[10px] tracking-widest px-10"
+              className="bg-destructive text-white rounded-xl font-black uppercase text-[10px] tracking-widest h-12 px-10 hover:bg-destructive/90"
             >
               Confirm Termination
             </AlertDialogAction>
@@ -750,3 +838,24 @@ export function CompaniesManager() {
     </div>
   );
 }
+
+// Missing component from Lucide import
+const XCircle = ({ className, onClick }: { className?: string; onClick?: () => void }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="24"
+    height="24"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+    onClick={onClick}
+  >
+    <circle cx="12" cy="12" r="10" />
+    <path d="m15 9-6 6" />
+    <path d="m9 9 6 6" />
+  </svg>
+);
