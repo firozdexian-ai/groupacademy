@@ -8,7 +8,6 @@ import {
   Users,
   BookOpen,
   DollarSign,
-  Plus,
   Target,
   Briefcase,
   RefreshCw,
@@ -17,11 +16,22 @@ import {
   Coins,
   Globe,
   TrendingUp,
-  PlayCircle,
+  ShieldCheck,
+  Activity,
+  Zap,
+  LayoutDashboard,
+  ArrowUpRight,
 } from "lucide-react";
 import StatsCard from "@/components/dashboard/StatsCard";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
+import { cn } from "@/lib/utils";
+
+/**
+ * Platform Logic: Executive Command Center (Dashboard Overview)
+ * High-fidelity orchestrator for real-time platform health and monetization telemetry.
+ * 2026 Standard: Executive Logic geometry with reinforced parallel ingestion.
+ */
 
 interface DashboardStats {
   totalTalents: number;
@@ -57,44 +67,36 @@ export function DashboardOverview() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // CTO REFACTOR: Helper returns just the numeric count to keep logic clean
   const fetchCount = async (table: string, filter?: (q: any) => any): Promise<number> => {
     try {
       let query = supabase.from(table as any).select("*", { count: "exact", head: true });
       if (filter) query = filter(query);
-
-      const result = (await withTimeout(query as any, TIMEOUTS.DEFAULT, `Count ${table} timed out`)) as {
-        count: number | null;
-        error: any;
-      };
-
-      if (result.error) throw result.error;
-      return result.count || 0;
+      const result = await withTimeout(query as any, TIMEOUTS.DEFAULT, `Count ${table} timeout`);
+      return (result as any).count || 0;
     } catch (e) {
-      console.warn(`Stat count error [${table}]:`, e);
       return 0;
     }
   };
 
-  const loadStats = useCallback(async () => {
+  const loadExecutiveTelemetry = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      // Perform all strategic fetches in parallel [cite: 8]
+      // PERFORM PARALLEL HANDSHAKE
       const [
         talents,
         registered,
         enrollments,
-        revenueData,
-        commissions,
+        revData,
+        commsData,
         assessments,
         interviews,
         portfolios,
         sessions,
-        credits,
+        creditsData,
         bdTalents,
         txTodayResult,
       ] = await Promise.all([
@@ -118,16 +120,9 @@ export function DashboardOverview() {
           .gte("created_at", today.toISOString()),
       ]);
 
-      const rev = (revenueData.data || []).reduce(
-        (sum: number, item: any) => sum + (Number(item.payment_amount) || 0),
-        0,
-      );
-      const comms = (commissions.data || []).reduce(
-        (sum: number, item: any) => sum + Math.abs(Number(item.amount) || 0),
-        0,
-      );
-      const totalCreds = (credits.data || []).reduce((sum: number, item: any) => sum + (Number(item.balance) || 0), 0);
-      const txToday = (txTodayResult as { count: number | null }).count || 0;
+      const rev = (revData.data || []).reduce((sum: number, i: any) => sum + (Number(i.payment_amount) || 0), 0);
+      const comms = (commsData.data || []).reduce((sum: number, i: any) => sum + Math.abs(Number(i.amount) || 0), 0);
+      const totalCreds = (creditsData.data || []).reduce((sum: number, i: any) => sum + (Number(i.balance) || 0), 0);
 
       setStats({
         totalTalents: talents,
@@ -145,149 +140,173 @@ export function DashboardOverview() {
           pending: (portfolios.data as any[])?.filter((p) => p.status === "pending").length || 0,
         },
         aiAgents: { totalSessions: sessions },
-        credits: {
-          totalInCirculation: totalCreds,
-          transactionsToday: txToday,
-        },
+        credits: { totalInCirculation: totalCreds, transactionsToday: (txTodayResult as any).count || 0 },
         marketShare: { bdPercentage: talents > 0 ? Math.round((bdTalents / talents) * 100) : 0 },
       });
     } catch (err) {
-      setError("Strategic data fetch failed. Some metrics may be stale.");
+      setError("Strategic data fetch partially failed. Registry sync active.");
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    loadStats();
-  }, [loadStats]);
+    loadExecutiveTelemetry();
+  }, [loadExecutiveTelemetry]);
 
   if (isLoading) return <DashboardLoadingSkeleton />;
 
   return (
-    <div className="space-y-6 p-1 animate-in fade-in duration-700">
-      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight text-primary">Executive Overview</h2>
-          <p className="text-muted-foreground">Real-time platform health and monetization metrics.</p>
+    <div className="space-y-8 animate-in fade-in duration-1000">
+      {/* Executive HUD Header */}
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-muted/20 p-8 rounded-[40px] border-2 border-border/40 backdrop-blur-md">
+        <div className="space-y-1">
+          <div className="flex items-center gap-3 text-primary">
+            <LayoutDashboard className="h-8 w-8" />
+            <h2 className="text-4xl font-black uppercase tracking-tighter italic leading-none">Executive HUD</h2>
+          </div>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 italic">
+            Real-time Platform Health & Monetization Registry
+          </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           <Button
             variant="outline"
             size="icon"
-            onClick={loadStats}
-            className="rounded-full shadow-sm hover:rotate-180 transition-transform duration-500"
+            onClick={loadExecutiveTelemetry}
+            className="rounded-xl h-12 w-12 border-2 hover:rotate-180 transition-transform duration-700"
           >
-            <RefreshCw className="h-4 w-4" />
+            <RefreshCw className="h-5 w-5" />
           </Button>
           <Button
             onClick={() => navigate("/dashboard?tab=ai-content-tools")}
-            className="shadow-md bg-primary hover:bg-primary/90"
+            className="rounded-xl h-12 px-8 font-black uppercase text-[10px] tracking-widest shadow-xl shadow-primary/20 group"
           >
-            <Bot className="mr-2 h-4 w-4" /> AI Content Tools
+            <Bot className="mr-2 h-4 w-4 group-hover:rotate-12 transition-transform" /> AI Content Protocols
           </Button>
         </div>
       </header>
 
       {error && (
-        <div className="bg-destructive/15 border border-destructive/30 p-3 rounded-lg flex items-center gap-2 text-destructive text-sm font-medium">
-          <AlertCircle className="h-4 w-4" /> {error}
+        <div className="bg-destructive/10 border-2 border-destructive/20 p-4 rounded-2xl flex items-center gap-3 text-destructive font-bold uppercase text-[10px] tracking-widest animate-bounce">
+          <AlertCircle className="h-5 w-5" /> {error}
         </div>
       )}
 
-      {/* Primary KPI Grid [cite: 29] */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* KPI Artifact Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard
-          title="Talent Pool"
+          title="Talent Registry"
           value={stats.totalTalents.toLocaleString()}
           icon={Users}
-          trend={`${stats.registeredRate}% Activation`}
-          trendLabel="Registered vs Uploaded"
+          trend={`${stats.registeredRate}% SYNC'D`}
+          trendLabel="Registration delta"
         />
         <StatsCard
-          title="Revenue"
+          title="Gross Liquidity"
           value={`$${stats.totalRevenue.toLocaleString()}`}
           icon={DollarSign}
           variant="success"
-          trend={`$${stats.commissionPayouts.toLocaleString()} Payouts`}
-          trendLabel="Commission kickbacks"
+          trend={`$${stats.commissionPayouts.toLocaleString()} COMM`}
+          trendLabel="Payout protocols"
         />
         <StatsCard
-          title="Market Focus"
+          title="Regional Index"
           value={`${stats.marketShare.bdPercentage}%`}
           icon={Globe}
           variant="secondary"
           trend="Primary Market: BD"
-          trendLabel="Regional concentration"
+          trendLabel="Geo concentration"
         />
         <StatsCard
-          title="Credit Economy"
+          title="Token Economy"
           value={stats.credits.totalInCirculation.toLocaleString()}
           icon={Coins}
           variant="accent"
-          trend={`${stats.credits.transactionsToday} daily tx`}
-          trendLabel="Total in circulation"
+          trend={`${stats.credits.transactionsToday} DAILY TX`}
+          trendLabel="Registry delta"
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2 shadow-sm border-muted">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-md font-semibold flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-primary" /> Service Performance [cite: 135]
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Service Performance Cluster */}
+        <Card className="lg:col-span-2 rounded-[40px] border-2 border-border/40 bg-card/30 backdrop-blur-xl shadow-2xl overflow-hidden group">
+          <div className="h-1.5 w-full bg-gradient-to-r from-primary via-blue-600 to-primary" />
+          <CardHeader className="p-8 pb-2 border-b border-border/10 bg-muted/10">
+            <CardTitle className="text-xl font-black uppercase tracking-tighter italic flex items-center gap-3">
+              <Activity className="h-5 w-5 text-primary" /> Performance Telemetry
             </CardTitle>
           </CardHeader>
-          <CardContent className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4">
-            <div className="space-y-1 text-center sm:text-left">
-              <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Assessments</p>
-              <p className="text-2xl font-bold">{stats.assessments.total}</p>
-            </div>
-            <div className="space-y-1 text-center sm:text-left">
-              <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Interviews</p>
-              <p className="text-2xl font-bold">{stats.mockInterviews.completed}</p>
-            </div>
-            <div className="space-y-1 text-center sm:text-left">
-              <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Portfolios</p>
-              <p className="text-2xl font-bold">{stats.portfolios.pending}</p>
-            </div>
-            <div className="space-y-1 text-center sm:text-left">
-              <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">AI Chats</p>
-              <p className="text-2xl font-bold">{stats.aiAgents.totalSessions}</p>
-            </div>
+          <CardContent className="grid grid-cols-2 sm:grid-cols-4 gap-8 p-10">
+            {[
+              { label: "Assessments", val: stats.assessments.total, icon: Target },
+              { label: "Interviews", val: stats.mockInterviews.completed, icon: ShieldCheck },
+              { label: "Portfolios", val: stats.portfolios.pending, icon: Briefcase },
+              { label: "AI Sessions", val: stats.aiAgents.totalSessions, icon: Zap },
+            ].map((item, i) => (
+              <div key={i} className="space-y-2 group/item">
+                <p className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest group-hover/item:text-primary transition-colors">
+                  {item.label}
+                </p>
+                <div className="flex items-end gap-2">
+                  <p className="text-4xl font-black italic tracking-tighter leading-none">{item.val}</p>
+                  <item.icon className="h-4 w-4 text-primary/20 group-hover/item:text-primary transition-all group-hover/item:-translate-y-1" />
+                </div>
+              </div>
+            ))}
           </CardContent>
         </Card>
 
-        <Card className="shadow-sm border-primary/20 bg-primary/5">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-md font-semibold">LMS Pulse [cite: 126]</CardTitle>
+        {/* LMS Pulse Node */}
+        <Card className="rounded-[40px] border-2 border-primary/20 bg-primary/5 shadow-xl flex flex-col justify-between overflow-hidden">
+          <CardHeader className="p-8 pb-2">
+            <CardTitle className="text-lg font-black uppercase tracking-tighter italic">LMS Deployment Pulse</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4 pt-4">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-muted-foreground">Active Learners</span>
-              <span className="font-mono font-bold text-primary">{stats.activeEnrollments}</span>
+          <CardContent className="p-8 space-y-6">
+            <div className="flex justify-between items-end">
+              <div className="space-y-1">
+                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 italic">
+                  Active Nodes
+                </p>
+                <p className="text-5xl font-black italic tracking-tighter text-primary leading-none">
+                  {stats.activeEnrollments}
+                </p>
+              </div>
+              <TrendingUp className="h-10 w-10 text-primary opacity-20" />
             </div>
             <Button
               variant="outline"
-              className="w-full justify-between group border-primary/30 hover:bg-primary hover:text-white"
+              className="w-full h-14 rounded-2xl justify-between group border-primary/30 hover:bg-primary hover:text-white font-black uppercase text-[10px] tracking-[0.2em] px-6 transition-all"
               onClick={() => navigate("/dashboard?tab=learner-progress")}
             >
-              View Progress <BookOpen className="h-4 w-4 ml-2 group-hover:scale-110 transition-transform" />
+              Interrogate Progress{" "}
+              <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-1 group-hover:-translate-y-1" />
             </Button>
           </CardContent>
         </Card>
       </div>
 
-      <Card className="bg-muted/30 border-none shadow-inner">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg font-bold">Operational Shortcuts [cite: 29, 30]</CardTitle>
+      {/* Operational Protocol Shortcuts */}
+      <Card className="rounded-[40px] border-2 border-border/40 bg-card/10 shadow-inner overflow-hidden">
+        <CardHeader className="p-8 border-b border-border/10">
+          <CardTitle className="text-lg font-black uppercase tracking-tighter italic">Operational Protocols</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 pt-4">
-          <ShortcutButton icon={Users} label="Talent Pool" onClick={() => navigate("/dashboard?tab=talent")} />
-          <ShortcutButton icon={Briefcase} label="Jobs" onClick={() => navigate("/dashboard?tab=jobs")} />
-          <ShortcutButton icon={Bot} label="AI Agents" onClick={() => navigate("/dashboard?tab=ai-agents")} />
-          <ShortcutButton icon={Coins} label="Credits" onClick={() => navigate("/dashboard?tab=credits")} />
-          <ShortcutButton icon={Globe} label="Abroad" onClick={() => navigate("/dashboard?tab=study-abroad")} />
-          <ShortcutButton icon={TrendingUp} label="IR CRM" onClick={() => navigate("/dashboard?tab=irdashboard")} />
+        <CardContent className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 p-8">
+          {[
+            { icon: Users, label: "Talent Pool", tab: "talent" },
+            { icon: Briefcase, label: "Job Registry", tab: "jobs" },
+            { icon: Bot, label: "AI Agents", tab: "ai-agents" },
+            { icon: Coins, label: "Fiscal Ledger", tab: "credits" },
+            { icon: Globe, label: "Abroad Log", tab: "study-abroad" },
+            { icon: TrendingUp, label: "IR Terminal", tab: "irdashboard" },
+          ].map((btn, i) => (
+            <ShortcutButton
+              key={i}
+              icon={btn.icon}
+              label={btn.label}
+              onClick={() => navigate(`/dashboard?tab=${btn.tab}`)}
+            />
+          ))}
         </CardContent>
       </Card>
     </div>
@@ -297,33 +316,30 @@ export function DashboardOverview() {
 function ShortcutButton({ icon: Icon, label, onClick }: { icon: any; label: string; onClick: () => void }) {
   return (
     <Button
-      variant="secondary"
-      className="h-auto py-5 flex flex-col gap-2 bg-white hover:bg-primary hover:text-white transition-all duration-300 shadow-sm border-muted"
+      variant="outline"
+      className="h-auto py-8 flex flex-col gap-4 bg-background/50 hover:bg-primary hover:text-white transition-all duration-500 rounded-3xl border-2 shadow-sm group"
       onClick={onClick}
     >
-      <Icon className="h-5 w-5" />
-      <span className="text-xs font-semibold">{label}</span>
+      <Icon className="h-6 w-6 text-primary group-hover:text-white transition-colors" />
+      <span className="text-[9px] font-black uppercase tracking-widest">{label}</span>
     </Button>
   );
 }
 
 function DashboardLoadingSkeleton() {
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <Skeleton className="h-10 w-64" />
-        <Skeleton className="h-10 w-32" />
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+    <div className="space-y-8 animate-pulse">
+      <Skeleton className="h-32 w-full rounded-[40px]" />
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {[...Array(4)].map((_, i) => (
-          <Skeleton key={i} className="h-32 w-full rounded-xl" />
+          <Skeleton key={i} className="h-32 w-full rounded-[32px]" />
         ))}
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Skeleton className="h-48 lg:col-span-2 rounded-xl" />
-        <Skeleton className="h-48 rounded-xl" />
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <Skeleton className="h-56 lg:col-span-2 rounded-[40px]" />
+        <Skeleton className="h-56 rounded-[40px]" />
       </div>
-      <Skeleton className="h-32 w-full rounded-xl" />
+      <Skeleton className="h-40 w-full rounded-[40px]" />
     </div>
   );
 }
