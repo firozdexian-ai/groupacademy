@@ -7,11 +7,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Trash2, Plus, Image as ImageIcon } from "lucide-react";
+import { Trash2, Plus, Image as ImageIcon, Loader2, ShieldCheck, Layers, Zap, Layout, RefreshCw } from "lucide-react";
 import { ImageUpload } from "@/components/ImageUpload";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { DashboardCardSkeleton, DashboardErrorState } from "./DashboardSkeleton";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+
+/**
+ * Platform Logic: Visual Logic Controller (Banner Manager)
+ * High-fidelity orchestrator for promotional artifacts and UI entry points.
+ * 2026 Standard: Executive Logic geometry with reinforced placement telemetry.
+ */
 
 interface Banner {
   id: string;
@@ -19,6 +27,7 @@ interface Banner {
   link_content_id: string | null;
   display_order: number;
   is_active: boolean;
+  placement: "carousel" | "hero" | "learning";
   content?: {
     id: string;
     title: string;
@@ -43,17 +52,24 @@ export const BannerManager = () => {
   });
 
   useEffect(() => {
-    loadData();
+    loadRegistryData();
   }, []);
 
-  const loadData = async () => {
+  const loadRegistryData = async () => {
     setIsLoading(true);
     setLoadError(null);
     try {
       const bannersResult = await withTimeout(
-        Promise.resolve(supabase.from("banners").select(`id, image_url, link_content_id, display_order, is_active, content:link_content_id (id, title)`).order("display_order")),
+        Promise.resolve(
+          supabase
+            .from("banners")
+            .select(
+              `id, image_url, link_content_id, display_order, is_active, placement, content:link_content_id (id, title)`,
+            )
+            .order("display_order"),
+        ),
         TIMEOUTS.DEFAULT,
-        "Loading banners timed out"
+        "Registry Link Timeout",
       );
       if (bannersResult.error) throw bannersResult.error;
       setBanners(bannersResult.data || []);
@@ -61,273 +77,300 @@ export const BannerManager = () => {
       const contentResult = await withTimeout(
         Promise.resolve(supabase.from("content").select("id, title").eq("is_published", true).order("title")),
         TIMEOUTS.DEFAULT,
-        "Loading content timed out"
+        "Logic Source Timeout",
       );
       if (contentResult.error) throw contentResult.error;
       setAvailableContent(contentResult.data || []);
     } catch (error: any) {
-      console.error("Error loading data:", error);
-      setLoadError(error.message || "Failed to load banners");
-      toast.error("Failed to load banners");
+      setLoadError(error.message || "Failed to synchronize banners");
+      toast.error("Transmission Error: Sync failed");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleCreateBanner = async (e: React.FormEvent) => {
+  const handleCreateArtifact = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!newBanner.image_url) {
-      toast.error("Please upload a banner image");
-      return;
-    }
+    if (!newBanner.image_url) return toast.error("Logic Fault: Image payload missing");
 
     try {
-      const { data: { user } } = await withTimeout(
-        supabase.auth.getUser(),
-        TIMEOUTS.AUTH,
-        "Authentication timed out"
-      );
-      if (!user) throw new Error("Not authenticated");
+      const {
+        data: { user },
+      } = await withTimeout(supabase.auth.getUser(), TIMEOUTS.AUTH, "Auth Handshake Timeout");
+      if (!user) throw new Error("Registry Access Denied");
 
       const { error } = await withTimeout(
-        Promise.resolve(supabase.from("banners").insert([
-          {
-            image_url: newBanner.image_url,
-            link_content_id: newBanner.link_content_id === "none" ? null : newBanner.link_content_id,
-            display_order: newBanner.display_order,
-            placement: newBanner.placement,
-            created_by: user.id,
-          },
-        ])),
+        Promise.resolve(
+          supabase.from("banners").insert([
+            {
+              image_url: newBanner.image_url,
+              link_content_id: newBanner.link_content_id === "none" ? null : newBanner.link_content_id,
+              display_order: newBanner.display_order,
+              placement: newBanner.placement,
+              created_by: user.id,
+            },
+          ]),
+        ),
         TIMEOUTS.DEFAULT,
-        "Creating banner timed out"
+        "Artifact Insertion Timeout",
       );
 
       if (error) throw error;
-
-      toast.success("Banner created successfully");
+      toast.success("Artifact Deployed: Banner successfully registered.");
       setNewBanner({ image_url: "", link_content_id: "none", display_order: 0, placement: "carousel" });
-      loadData();
+      loadRegistryData();
     } catch (error: any) {
-      console.error("Error creating banner:", error);
-      toast.error(error.message || "Failed to create banner");
+      toast.error(error.message || "Protocol Error: Deployment failed");
     }
   };
 
-  const handleToggleActive = async (bannerId: string, isActive: boolean) => {
+  const handleToggleState = async (bannerId: string, isActive: boolean) => {
     try {
       const { error } = await withTimeout(
-        Promise.resolve(supabase
-          .from("banners")
-          .update({ is_active: !isActive })
-          .eq("id", bannerId)),
+        Promise.resolve(supabase.from("banners").update({ is_active: !isActive }).eq("id", bannerId)),
         TIMEOUTS.DEFAULT,
-        "Updating banner timed out"
+        "Logic State Update Timeout",
       );
-
       if (error) throw error;
-
-      toast.success(`Banner ${!isActive ? "activated" : "deactivated"}`);
-      loadData();
+      toast.success(`Node ${!isActive ? "Activated" : "Terminated"}`);
+      loadRegistryData();
     } catch (error: any) {
-      console.error("Error updating banner:", error);
-      toast.error(error.message || "Failed to update banner");
+      toast.error("Handshake Failed: State immutable");
     }
   };
 
-  const handleDelete = async (bannerId: string) => {
-    if (!confirm("Are you sure you want to delete this banner?")) return;
-
+  const handlePurgeArtifact = async (bannerId: string) => {
+    if (!confirm("Authorize permanent artifact purge?")) return;
     try {
       const { error } = await withTimeout(
         Promise.resolve(supabase.from("banners").delete().eq("id", bannerId)),
         TIMEOUTS.DEFAULT,
-        "Deleting banner timed out"
+        "Purge Protocol Timeout",
       );
-
       if (error) throw error;
-
-      toast.success("Banner deleted successfully");
-      loadData();
+      toast.success("Artifact Purged from Registry");
+      loadRegistryData();
     } catch (error: any) {
-      console.error("Error deleting banner:", error);
-      toast.error(error.message || "Failed to delete banner");
+      toast.error("Purge Failed: Artifact locked by protocol");
     }
   };
 
-  if (isLoading) {
+  if (isLoading)
     return (
-      <div className="space-y-6">
+      <div className="space-y-8 animate-pulse">
         <DashboardCardSkeleton />
         <DashboardCardSkeleton />
       </div>
     );
-  }
 
-  if (loadError) {
-    return (
-      <DashboardErrorState
-        title="Failed to load banners"
-        message={loadError}
-        onRetry={loadData}
-      />
-    );
-  }
+  if (loadError)
+    return <DashboardErrorState title="Registry Sync Failure" message={loadError} onRetry={loadRegistryData} />;
 
   return (
-    <div className="space-y-6">
-      {/* Create New Banner */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Create New Banner</CardTitle>
-          <CardDescription>
-            Upload a 1536×512px image (3:1 aspect ratio) for banners
-          </CardDescription>
+    <div className="space-y-10 animate-in fade-in duration-1000">
+      {/* Creation Node */}
+      <Card className="rounded-[32px] border-2 border-border/40 bg-card/30 backdrop-blur-xl shadow-2xl overflow-hidden">
+        <div className="h-1.5 w-full bg-gradient-to-r from-primary/20 via-primary to-primary/20" />
+        <CardHeader className="p-8 pb-4">
+          <div className="flex items-center gap-4 mb-2">
+            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
+              <Plus className="h-5 w-5 text-primary" />
+            </div>
+            <div className="space-y-0.5">
+              <CardTitle className="text-2xl font-black uppercase tracking-tighter italic">
+                Initialize Artifact
+              </CardTitle>
+              <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 italic">
+                1536×512PX Registry Injection (3:1 Ratio)
+              </CardDescription>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleCreateBanner} className="space-y-4">
-            <div className="space-y-2">
-              <Label>Banner Image (1536×512px recommended) *</Label>
-              <ImageUpload
-                value={newBanner.image_url}
-                onUpload={(url) => setNewBanner({ ...newBanner, image_url: url })}
-                onRemove={() => setNewBanner({ ...newBanner, image_url: "" })}
-                bucket="course-covers"
-              />
-              <p className="text-xs text-muted-foreground">Recommended: 1536×512px (3:1 ratio). Used for both Hero and Carousel banners.</p>
+        <CardContent className="p-8 pt-0">
+          <form onSubmit={handleCreateArtifact} className="grid grid-cols-1 md:grid-cols-2 gap-10">
+            <div className="space-y-6">
+              <div className="space-y-3">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                  Visual Payload (Image)
+                </Label>
+                <div className="p-4 rounded-[24px] border-2 border-dashed border-border/40 bg-muted/5 group transition-all hover:border-primary/40">
+                  <ImageUpload
+                    value={newBanner.image_url}
+                    onUpload={(url) => setNewBanner({ ...newBanner, image_url: url })}
+                    onRemove={() => setNewBanner({ ...newBanner, image_url: "" })}
+                    bucket="course-covers"
+                  />
+                </div>
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="link_content">Link to Course (Optional)</Label>
-              <Select
-                value={newBanner.link_content_id}
-                onValueChange={(value) =>
-                  setNewBanner({ ...newBanner, link_content_id: value })
-                }
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 gap-6">
+                <div className="space-y-3">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                    Logic Link (Optional)
+                  </Label>
+                  <Select
+                    value={newBanner.link_content_id}
+                    onValueChange={(v) => setNewBanner({ ...newBanner, link_content_id: v })}
+                  >
+                    <SelectTrigger className="h-14 rounded-2xl border-2 font-bold bg-background/50">
+                      <SelectValue placeholder="Uplink to Academic Node..." />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-2xl border-2">
+                      <SelectItem value="none" className="font-bold uppercase text-[10px]">
+                        No Link Protocol
+                      </SelectItem>
+                      {availableContent.map((c) => (
+                        <SelectItem key={c.id} value={c.id} className="font-bold">
+                          {c.title}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-3">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                      Spatial Placement
+                    </Label>
+                    <Select
+                      value={newBanner.placement}
+                      onValueChange={(v: any) => setNewBanner({ ...newBanner, placement: v })}
+                    >
+                      <SelectTrigger className="h-14 rounded-2xl border-2 font-bold bg-background/50">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-2xl border-2">
+                        <SelectItem value="carousel" className="font-bold">
+                          CAROUSEL
+                        </SelectItem>
+                        <SelectItem value="hero" className="font-bold">
+                          HERO HUB
+                        </SelectItem>
+                        <SelectItem value="learning" className="font-bold">
+                          ACADEMY
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-3">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                      Logic Order
+                    </Label>
+                    <Input
+                      type="number"
+                      value={newBanner.display_order}
+                      onChange={(e) => setNewBanner({ ...newBanner, display_order: parseInt(e.target.value) || 0 })}
+                      className="h-14 rounded-2xl border-2 font-bold bg-background/50"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full h-16 rounded-[20px] font-black uppercase tracking-[0.3em] text-[11px] shadow-2xl shadow-primary/30 group relative overflow-hidden"
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a course to link..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">No link</SelectItem>
-                  {availableContent.map((content) => (
-                    <SelectItem key={content.id} value={content.id}>
-                      {content.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <span className="relative z-10 flex items-center gap-3">
+                  <ShieldCheck className="h-5 w-5" /> Register Artifact
+                </span>
+                <div className="absolute inset-0 bg-gradient-to-r from-primary via-blue-600 to-primary opacity-50 group-hover:opacity-100 transition-opacity" />
+              </Button>
             </div>
-
-            <div className="space-y-2">
-              <Label>Placement</Label>
-              <Select
-                value={newBanner.placement}
-                onValueChange={(value: "carousel" | "hero" | "learning") =>
-                  setNewBanner({ ...newBanner, placement: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="carousel">Carousel (Feed)</SelectItem>
-                  <SelectItem value="hero">Hero (Feed Header)</SelectItem>
-                  <SelectItem value="learning">Learning Hub</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                Hero banners appear as the feed header background. Learning banners appear in the Learning Hub carousel.
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="display_order">Display Order</Label>
-              <Input
-                id="display_order"
-                type="number"
-                value={newBanner.display_order}
-                onChange={(e) =>
-                  setNewBanner({ ...newBanner, display_order: parseInt(e.target.value) || 0 })
-                }
-                placeholder="0"
-              />
-              <p className="text-xs text-muted-foreground">
-                Lower numbers appear first in the carousel
-              </p>
-            </div>
-
-            <Button type="submit" className="w-full">
-              <Plus className="w-4 h-4 mr-2" />
-              Create Banner
-            </Button>
           </form>
         </CardContent>
       </Card>
 
-      {/* Existing Banners */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Existing Banners ({banners.length})</CardTitle>
-          <CardDescription>Manage your promotional banners</CardDescription>
+      {/* Registry Ledger */}
+      <Card className="rounded-[40px] border-2 border-border/40 bg-card/10 backdrop-blur-sm overflow-hidden shadow-sm">
+        <CardHeader className="p-8 bg-muted/20 border-b border-border/10 flex flex-row items-center justify-between">
+          <div className="space-y-1">
+            <CardTitle className="text-xl font-black uppercase tracking-tighter italic flex items-center gap-3">
+              <Layers className="h-5 w-5 text-primary" /> Active Registry ({banners.length})
+            </CardTitle>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={loadRegistryData}
+            className="rounded-full h-10 w-10 hover:bg-primary/10"
+          >
+            <RefreshCw className="h-4 w-4 text-primary" />
+          </Button>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {banners.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <ImageIcon className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>No banners yet. Create your first banner above.</p>
+            <div className="py-24 text-center space-y-4 opacity-20 italic">
+              <ImageIcon className="h-12 w-12 mx-auto" />
+              <p className="text-[10px] font-black uppercase tracking-widest">Registry Node Null</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="divide-y divide-border/10">
               {banners.map((banner) => (
                 <div
                   key={banner.id}
-                  className="flex items-center gap-4 p-4 border rounded-lg"
+                  className="group p-8 flex items-center gap-8 transition-all hover:bg-primary/[0.02]"
                 >
-                  {/* Banner Preview */}
-                  <div className="w-32 h-24 bg-muted rounded overflow-hidden flex-shrink-0">
+                  <div className="relative w-48 h-28 rounded-2xl border-2 border-border/40 overflow-hidden shadow-inner shrink-0 group-hover:border-primary/40 transition-all duration-500">
                     <img
                       src={banner.image_url}
-                      alt="Banner"
-                      className="w-full h-full object-cover"
+                      alt="Artifact"
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                     />
+                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" />
                   </div>
 
-                  {/* Banner Info */}
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium">
-                        {banner.content?.title || "No linked course"}
-                      </p>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${(banner as any).placement === 'hero' ? 'bg-primary/10 text-primary' : (banner as any).placement === 'learning' ? 'bg-accent text-accent-foreground' : 'bg-muted text-muted-foreground'}`}>
-                        {(banner as any).placement === 'hero' ? 'Hero' : (banner as any).placement === 'learning' ? 'Learning' : 'Carousel'}
-                      </span>
+                  <div className="flex-1 space-y-4">
+                    <div className="space-y-1">
+                      <h4 className="font-black uppercase tracking-tight text-lg italic leading-none truncate max-w-md">
+                        {banner.content?.title || "UNLINKED_NODE"}
+                      </h4>
+                      <div className="flex items-center gap-3">
+                        <Badge
+                          className={cn(
+                            "rounded-lg font-black uppercase text-[8px] tracking-widest px-3 py-1 border-none shadow-sm",
+                            banner.placement === "hero"
+                              ? "bg-primary text-white"
+                              : banner.placement === "learning"
+                                ? "bg-amber-500 text-white"
+                                : "bg-muted text-muted-foreground",
+                          )}
+                        >
+                          {banner.placement} NODE
+                        </Badge>
+                        <span className="text-[9px] font-bold text-muted-foreground/40 uppercase tracking-widest italic">
+                          Sequence Index: {banner.display_order}
+                        </span>
+                      </div>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      Order: {banner.display_order}
-                    </p>
                   </div>
 
-                  {/* Actions */}
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-8 pr-4">
+                    <div className="flex items-center gap-4 bg-background/50 p-3 rounded-2xl border border-border/10">
                       <Switch
                         checked={banner.is_active}
-                        onCheckedChange={() =>
-                          handleToggleActive(banner.id, banner.is_active)
-                        }
+                        onCheckedChange={() => handleToggleState(banner.id, banner.is_active)}
+                        className="data-[state=checked]:bg-emerald-500"
                       />
-                      <Label className="text-sm">
-                        {banner.is_active ? "Active" : "Inactive"}
-                      </Label>
+                      <span
+                        className={cn(
+                          "text-[9px] font-black uppercase tracking-widest",
+                          banner.is_active ? "text-emerald-500" : "text-muted-foreground/40",
+                        )}
+                      >
+                        {banner.is_active ? "LIVE" : "IDLE"}
+                      </span>
                     </div>
+
                     <Button
-                      variant="destructive"
+                      variant="ghost"
                       size="icon"
-                      onClick={() => handleDelete(banner.id)}
+                      onClick={() => handlePurgeArtifact(banner.id)}
+                      className="h-12 w-12 rounded-2xl text-muted-foreground/20 hover:text-destructive hover:bg-destructive/10 transition-all"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="h-5 w-5" />
                     </Button>
                   </div>
                 </div>
