@@ -19,6 +19,7 @@ import {
   Activity,
   Terminal,
   Settings2,
+  Loader2,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
@@ -108,6 +109,12 @@ export function AIAgentsManager() {
     } catch (error: any) {
       toast.error("Handshake Failed: Logic state immutable.");
     }
+  };
+
+  const handleEdit = (agent: AIAgent) => {
+    setEditingAgent(agent);
+    setEditedPrompt(agent.system_prompt || "");
+    setEditedDescription(agent.description || "");
   };
 
   const handleSave = async () => {
