@@ -14,12 +14,10 @@ import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { useTalent } from "@/hooks/useTalent";
 import { useCredits } from "@/hooks/useCredits";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
 
 /**
  * Platform Logic: Career Readiness Handshake
  * Orchestrates high-fidelity career diagnostics with AI-powered telemetry.
- * 2026 Standard: Executive Logic geometry with reinforced state-locks.
  */
 
 const ASSESSMENT_PROCESSING_STAGES = [
@@ -57,7 +55,6 @@ export default function AppCareerAssessment() {
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Lock to prevent multi-invocation of the neural analysis function
   const hasProcessedRef = useRef(false);
 
   useEffect(() => {
@@ -104,7 +101,6 @@ export default function AppCareerAssessment() {
     hasProcessedRef.current = true;
 
     try {
-      // 1. Credit Protocol Check
       if (!canAfford("CAREER_ASSESSMENT")) {
         toast({
           title: "Protocol Blocked: Credits",
@@ -116,36 +112,21 @@ export default function AppCareerAssessment() {
         return;
       }
 
-      // 2. Handshake Deduction
       const paid = await deductCredits("CAREER_ASSESSMENT", undefined, "Career Assessment Diagnostic");
       if (!paid) throw new Error("Credit handshake failed.");
 
-      // 3. Neural Analysis Invocations
       const { data, error } = await supabase.functions.invoke("analyze-career-assessment", {
-        body: {
-          answers,
-          professionCategoryId: selectedCategory.id,
-          email,
-          talentId: talent?.id,
-        },
+        body: { answers, professionCategoryId: selectedCategory.id, email, talentId: talent?.id },
       });
 
       if (error) throw error;
 
-      // 4. Registry Update
       if (talent?.id) await addServiceUsed("CAREER_ASSESSMENT");
 
-      toast({
-        title: "Analysis Finalized",
-        description: "Your executive report is now active in the registry.",
-      });
+      toast({ title: "Analysis Finalized", description: "Your executive report is now active." });
 
-      // 5. Sequence Finalization: Navigation
-      if (data?.assessmentId) {
-        navigate(`/assessment-results/${data.assessmentId}`);
-      } else {
-        navigate("/app/services");
-      }
+      if (data?.assessmentId) navigate(`/assessment-results/${data.assessmentId}`);
+      else navigate("/app/services");
     } catch (error: any) {
       toast({
         title: "Handshake Failed",
@@ -159,22 +140,14 @@ export default function AppCareerAssessment() {
     }
   };
 
-  const handleBackSequence = () => {
-    if (step === "intro") navigate("/app/services");
-    else if (step === "profession") setStep("intro");
-    else if (step === "questions") setStep("profession");
-    else if (step === "lead-capture") setStep("questions");
-  };
-
   return (
     <div className="max-w-4xl mx-auto px-6 py-10 min-h-svh space-y-10">
-      {/* Structural Telemetry: Progress Logic */}
       <header className="space-y-4">
         <div className="flex justify-between items-end px-1">
-          <div className="space-y-1">
+          <div>
             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Assessment Sequence</p>
             <h2 className="text-sm font-bold uppercase tracking-tight text-muted-foreground/60">
-              Current Node: {step.replace("-", " ")}
+              {step.replace("-", " ")}
             </h2>
           </div>
           <span className="text-[10px] font-mono text-muted-foreground/40">{STEP_PROGRESS[step]}% Completion</span>
@@ -182,19 +155,22 @@ export default function AppCareerAssessment() {
         <Progress value={STEP_PROGRESS[step]} className="h-1.5 rounded-full bg-primary/10" />
       </header>
 
-      {/* Control Trigger: Back Navigation */}
       {step !== "processing" && (
         <Button
           variant="ghost"
           className="rounded-xl h-10 text-[10px] font-black uppercase tracking-widest hover:bg-primary/5 group"
-          onClick={handleBackSequence}
+          onClick={() => {
+            if (step === "intro") navigate("/app/services");
+            else if (step === "profession") setStep("intro");
+            else if (step === "questions") setStep("profession");
+            else if (step === "lead-capture") setStep("questions");
+          }}
         >
           <ArrowLeft className="mr-2 h-4 w-4 transition-transform group-hover:-translate-x-1" />
           Terminate / Revert
         </Button>
       )}
 
-      {/* Main Orchestration Viewport */}
       <main className="relative">
         {step === "intro" && (
           <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -279,8 +255,8 @@ export default function AppCareerAssessment() {
               categoryName={selectedCategory.name}
               answers={answers}
               email={email}
-              onComplete={(e) => {
-                if (e) setEmail(e);
+              onComplete={(capturedEmail: string) => {
+                if (capturedEmail) setEmail(capturedEmail);
                 setStep("processing");
               }}
               onBack={() => setStep("questions")}
