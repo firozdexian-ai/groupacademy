@@ -162,11 +162,12 @@ export function JobsManager() {
 
   const fetchEngagementTelemetry = useCallback(async (jobIds: string[]) => {
     if (jobIds.length === 0) return;
+    const sb: any = supabase;
     const [clicksRes, savesRes, recsRes, sharesRes] = await Promise.all([
-      supabase.from("job_analytics").select("job_id").in("job_id", jobIds),
-      supabase.from("saved_items").select("item_id").eq("kind", "job").in("item_id", jobIds),
-      supabase.from("ai_job_recommendations").select("job_id").in("job_id", jobIds),
-      supabase.from("gig_share_logs").select("job_id").in("job_id", jobIds),
+      sb.from("job_analytics").select("job_id").in("job_id", jobIds),
+      sb.from("saved_items").select("item_id").eq("kind", "job").in("item_id", jobIds),
+      sb.from("ai_job_recommendations").select("job_id").in("job_id", jobIds),
+      sb.from("gig_share_logs").select("job_id").in("job_id", jobIds),
     ]);
 
     const stats: Record<string, EngagementData> = {};
