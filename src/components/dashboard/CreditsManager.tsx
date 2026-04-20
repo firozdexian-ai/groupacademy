@@ -163,7 +163,7 @@ export function CreditsManager() {
         setTotalCirculation(total);
       }
 
-      let query =
+      let query: any =
         selectedTab === "balances"
           ? supabase
               .from("talent_credits")
