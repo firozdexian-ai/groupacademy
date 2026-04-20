@@ -15,7 +15,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogDescription, // CTO FIX: Restored missing UI node
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -55,7 +55,7 @@ import { cn } from "@/lib/utils";
  * 2026 Standard: Executive Logic geometry with reinforced recursion guards.
  */
 
-// CTO FIX: Added "remote" to match Database Enum to resolve TS2345
+// CTO FIX: Included "remote" to synchronize with DB Enums
 const JOB_TYPES = ["full_time", "part_time", "contract", "internship", "freelance", "remote"] as const;
 const EXPERIENCE_LEVELS = ["entry", "junior", "mid", "senior", "lead", "executive"] as const;
 const APPLICATION_TYPES = ["internal", "email", "link"] as const;
@@ -180,11 +180,13 @@ export function JobsManager() {
       const { data, count, error } = await query.range(from, from + 9);
       if (error) throw error;
 
-      // CTO FIX: Explicit type coercion to any[] prevents TS2589 deep instantiation crash
+      // CTO FIX: Explicit flattening to avoid TS2589 infinite recursion
       const rawData = (data as any[]) || [];
-      setJobs(rawData as Job[]);
+      const sanitizedJobs = rawData as Job[];
+
+      setJobs(sanitizedJobs);
       setTotalCount(count || 0);
-      if (rawData.length) fetchEngagementTelemetry(rawData.map((j) => j.id));
+      if (sanitizedJobs.length) fetchEngagementTelemetry(sanitizedJobs.map((j) => j.id));
     } finally {
       setLoading(false);
     }
@@ -197,9 +199,8 @@ export function JobsManager() {
   const openEdit = async (job: Job) => {
     setEditingJobId(job.id);
     const { data, error } = await supabase.from("jobs").select("*").eq("id", job.id).single();
-    if (error || !data) return toast.error("Handshake Failed: Resource unreachable");
+    if (error || !data) return toast.error("Sync Fault: Artifact unreachable");
 
-    // CTO FIX: Asserting data to JobFormState ensures 'remote' and other fields sync correctly
     setForm({
       ...EMPTY_FORM,
       ...(data as any),
@@ -221,7 +222,7 @@ export function JobsManager() {
         data: { publicUrl },
       } = supabase.storage.from("job-assets").getPublicUrl(fileName);
       updateField("company_logo_url", publicUrl);
-      toast.success("Logo Artifact Synced");
+      toast.success("Logo Logic Synced");
     } catch (err: any) {
       toast.error("Upload Fault: " + err.message);
     } finally {
@@ -230,7 +231,7 @@ export function JobsManager() {
   };
 
   const handleSaveProtocol = async () => {
-    if (!form.title.trim() || !form.company_name.trim()) return toast.error("Identity Fault: Identification required");
+    if (!form.title.trim() || !form.company_name.trim()) return toast.error("Protocol Error: Identity required");
     setIsSaving(true);
     try {
       const payload: any = {
@@ -246,7 +247,7 @@ export function JobsManager() {
         : await supabase.from("jobs").insert(payload);
 
       if (error) throw error;
-      toast.success(editingJobId ? "Artifact Recalibrated" : "Marketplace Node Initialized");
+      toast.success(editingJobId ? "Artifact Recalibrated" : "Node Initialized");
       setIsDialogOpen(false);
       loadRegistry();
     } catch (err: any) {
@@ -272,11 +273,10 @@ export function JobsManager() {
     }
   };
 
-  const totalPages = Math.ceil(totalCount / 10);
+  const totalPages = Math.max(1, Math.ceil(totalCount / 10));
 
   return (
     <div className="space-y-10 animate-in fade-in duration-1000">
-      {/* Executive Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-muted/20 p-8 rounded-[40px] border-2 border-border/40 backdrop-blur-md">
         <div className="space-y-1 text-left">
           <div className="flex items-center gap-3 text-primary">
@@ -284,7 +284,7 @@ export function JobsManager() {
             <h2 className="text-4xl font-black uppercase tracking-tighter italic leading-none">Inventory</h2>
           </div>
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 italic">
-            Marketplace Liquidity & Talent Engagement Registry
+            Job Marketplace Liquidity Registry
           </p>
         </div>
         <div className="flex gap-3">
@@ -294,7 +294,7 @@ export function JobsManager() {
             onClick={() => setIsLinkedInImportOpen(true)}
             className="rounded-xl h-12 px-6 border-2 font-black uppercase text-[10px] tracking-widest gap-2"
           >
-            <Linkedin className="w-4 h-4" /> Batch Sync
+            <Linkedin className="w-4 h-4 text-primary" /> Batch Sync
           </Button>
           <Button
             onClick={() => {
@@ -336,11 +336,15 @@ export function JobsManager() {
             <Table>
               <TableHeader className="bg-muted/30">
                 <TableRow className="hover:bg-transparent border-b-2">
-                  <TableHead className="text-[10px] font-black uppercase tracking-widest py-8 px-8">
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest py-8 px-8 text-left">
                     Logic Node (Role)
                   </TableHead>
-                  <TableHead className="text-[10px] font-black uppercase tracking-widest">Protocol Status</TableHead>
-                  <TableHead className="text-[10px] font-black uppercase tracking-widest">Location Index</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest text-left">
+                    Protocol Status
+                  </TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest text-left">
+                    Location Index
+                  </TableHead>
                   <TableHead className="text-right text-[10px] font-black uppercase tracking-widest pr-8">
                     Interrogate
                   </TableHead>
@@ -352,8 +356,8 @@ export function JobsManager() {
                     key={job.id}
                     className="group transition-all hover:bg-primary/[0.02] border-b border-border/5"
                   >
-                    <TableCell className="px-8 py-6">
-                      <div className="space-y-1 text-left">
+                    <TableCell className="px-8 py-6 text-left">
+                      <div className="space-y-1">
                         <p className="font-black text-sm uppercase tracking-tight italic group-hover:text-primary transition-colors leading-none">
                           {job.title}
                         </p>
@@ -362,7 +366,7 @@ export function JobsManager() {
                         </p>
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-left">
                       <Badge
                         className={cn(
                           "rounded-lg font-black text-[8px] uppercase tracking-[0.2em] px-3 py-1 border-none",
@@ -372,7 +376,7 @@ export function JobsManager() {
                         {job.is_active ? "ACTIVE_LOG" : "IDLE_DRAFT"}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest italic">
+                    <TableCell className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest italic text-left">
                       {job.location || "REMOTE_ACCESS"}
                     </TableCell>
                     <TableCell className="text-right pr-8">
@@ -408,7 +412,7 @@ export function JobsManager() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between p-8 border-t border-border/10 bg-muted/5">
               <div className="space-y-1 text-left">
-                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground/40 italic leading-none">
+                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground/40 italic">
                   Registry Frame
                 </p>
                 <p className="text-xl font-black italic tracking-tighter leading-none">
@@ -455,7 +459,7 @@ export function JobsManager() {
                 <ShieldCheck className="h-10 w-10 text-primary" />
                 <div className="space-y-1">
                   <DialogTitle className="text-3xl font-black uppercase tracking-tighter italic">
-                    {editingJobId ? "Recalibrate Node" : "Initialize Artifact"}
+                    Recalibration Node
                   </DialogTitle>
                   <DialogDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 italic">
                     Job Marketplace Configuration Protocol
@@ -506,7 +510,7 @@ export function JobsManager() {
                   ) : (
                     <label className="h-20 w-20 rounded-xl border-4 border-dashed border-border/40 hover:border-primary/40 flex flex-col items-center justify-center cursor-pointer transition-all">
                       {isUploadingLogo ? (
-                        <Loader2 className="animate-spin" />
+                        <Loader2 className="animate-spin h-5 w-5" />
                       ) : (
                         <Upload className="h-6 w-6 text-muted-foreground/40" />
                       )}
