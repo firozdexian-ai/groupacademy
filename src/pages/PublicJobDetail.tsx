@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Label } from "@/components/ui/label";
 import {
   Building2,
   MapPin,
@@ -17,7 +18,7 @@ import {
   RefreshCw,
   AlertCircle,
   UserPlus,
-  LogIn,
+  LogIn as LogInIcon, // Aliased to resolve TS2440
   Sparkles,
   ShieldCheck,
   ArrowRight,
@@ -25,8 +26,8 @@ import {
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { RelatedJobs } from "@/components/jobs/RelatedJobs";
-import { Footer } from "@/components/Footer"; // FIX: Added missing import
-import logoIcon from "@/assets/logo-icon.png"; // FIX: Added missing import
+import { Footer } from "@/components/Footer";
+import logoIcon from "@/assets/logo-icon.png";
 import { cn } from "@/lib/utils";
 
 interface Job {
@@ -79,17 +80,16 @@ export default function PublicJobDetail() {
     }
   }, [id]);
 
-  // FIX: Wrapped tracking logic in async to handle .rpc() correctly without .catch chaining errors
   const executeTracking = async () => {
     const source = searchParams.get("source");
     const ref = searchParams.get("ref");
 
     if (id) {
       try {
-        if (source) await supabase.rpc("track_job_click", { p_job_id: id, p_source: source });
-        if (ref) await supabase.rpc("track_shared_job_click", { p_job_id: id, p_ref_code: ref });
+        if (source) await (supabase as any).rpc("track_job_click", { p_job_id: id, p_source: source });
+        if (ref) await (supabase as any).rpc("track_shared_job_click", { p_job_id: id, p_ref_code: ref });
       } catch (err) {
-        console.error("Telemetry failure:", err);
+        console.error("Telemetry link failed:", err);
       }
 
       if (source || ref) {
@@ -104,12 +104,15 @@ export default function PublicJobDetail() {
 
   const loadJob = async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const { data, error } = await supabase.from("jobs").select("*").eq("id", id).eq("is_active", true).single();
+
       if (error) throw error;
       setJob(data);
-    } catch (err) {
-      setLoadError("Opportunity node unreachable.");
+    } catch (error: any) {
+      console.error("Error loading job:", error);
+      setLoadError("Opportunity node currently unreachable.");
     } finally {
       setLoading(false);
     }
@@ -122,16 +125,14 @@ export default function PublicJobDetail() {
   };
 
   const handleShare = async () => {
-    const shareData = {
-      title: job?.title,
-      text: `Explore: ${job?.title} at ${job?.company_name}`,
-      url: window.location.href,
-    };
+    const shareUrl = window.location.href;
+    const shareData = { title: job?.title, text: `${job?.title} at ${job?.company_name}`, url: shareUrl };
+
     try {
       if (navigator.share) await navigator.share(shareData);
       else {
-        await navigator.clipboard.writeText(window.location.href);
-        toast.success("Broadcast link copied to clipboard.");
+        await navigator.clipboard.writeText(shareUrl);
+        toast.success("Broadcast link clipped to clipboard.");
       }
     } catch (e) {
       toast.error("Sharing sequence interrupted.");
@@ -141,7 +142,11 @@ export default function PublicJobDetail() {
   const handleApplyRedirect = async () => {
     if (id) {
       try {
-        await supabase.rpc("track_job_apply_click", { p_job_id: id, p_talent_id: null, p_source: "public_details" });
+        await (supabase as any).rpc("track_job_apply_click", {
+          p_job_id: id,
+          p_talent_id: null,
+          p_source: "public_details",
+        });
       } catch (e) {
         console.error("Apply track failed");
       }
@@ -155,6 +160,11 @@ export default function PublicJobDetail() {
         <div className="w-full max-w-4xl space-y-8 animate-pulse">
           <Skeleton className="h-12 w-2/3 rounded-xl" />
           <Skeleton className="h-64 w-full rounded-[32px]" />
+          <div className="grid grid-cols-3 gap-4">
+            <Skeleton className="h-10 rounded-lg" />
+            <Skeleton className="h-10 rounded-lg" />
+            <Skeleton className="h-10 rounded-lg" />
+          </div>
         </div>
       </div>
     );
@@ -162,19 +172,30 @@ export default function PublicJobDetail() {
   if (loadError || !job)
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-6">
-        <Card className="max-w-md w-full rounded-[32px] border-border/40 shadow-2xl">
+        <Card className="max-w-md w-full rounded-[32px] border-border/40 shadow-2xl overflow-hidden">
           <CardContent className="pt-12 text-center space-y-6">
             <AlertCircle className="h-16 w-16 text-rose-500 mx-auto" />
-            <h2 className="text-2xl font-black uppercase">Handshake Failed</h2>
-            <Button className="w-full h-12 rounded-2xl font-black uppercase" onClick={loadJob}>
-              Retry Connection
-            </Button>
+            <div className="space-y-2">
+              <h2 className="text-2xl font-black uppercase tracking-tighter">Handshake Failed</h2>
+              <p className="text-muted-foreground text-sm px-6">
+                This career node is no longer active or the identity has been rotated.
+              </p>
+            </div>
+            <div className="flex flex-col gap-2 p-6">
+              <Button className="h-12 rounded-2xl font-black uppercase text-[10px] tracking-widest" onClick={loadJob}>
+                Retry Connection
+              </Button>
+              <Button variant="ghost" asChild className="text-[10px] font-black uppercase tracking-widest">
+                <Link to="/">Home</Link>
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
     );
 
   const displayDescription = job.ai_enhanced_description || job.description;
+  const isDeadlinePassed = job.deadline && new Date(job.deadline) < new Date();
 
   return (
     <div className="min-h-screen bg-background selection:bg-primary/10">
@@ -182,25 +203,31 @@ export default function PublicJobDetail() {
         <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 group">
             <img src={logoIcon} className="h-8 w-8 transition-transform group-hover:rotate-12" alt="GroUp" />
-            <span className="font-black tracking-tighter text-lg uppercase">GroUp Academy</span>
+            <span className="font-black tracking-tighter text-lg uppercase hidden sm:block">GroUp Academy</span>
           </Link>
           <Button
             variant="outline"
             size="sm"
             asChild
-            className="rounded-xl font-black uppercase text-[9px] tracking-[0.2em]"
+            className="rounded-xl font-black uppercase text-[9px] tracking-[0.2em] border-primary/20"
           >
             <Link to="/auth?returnTo=/app/jobs">
-              <LogIn className="w-3.5 h-3.5 mr-2" /> Security Login
+              <LogInIcon className="w-3.5 h-3.5 mr-2" /> Security Login
             </Link>
           </Button>
         </div>
       </header>
 
       <main className="max-w-5xl mx-auto px-6 py-12 space-y-12 animate-in fade-in duration-700">
+        {/* Header Hero */}
         <section className="flex flex-col md:flex-row gap-8 items-start md:items-center justify-between border-b border-border/40 pb-12">
           <div className="flex gap-6 items-start">
-            <div className="w-20 h-20 rounded-[28px] shrink-0 flex items-center justify-center shadow-2xl border border-border/40 overflow-hidden bg-primary/5">
+            <div
+              className={cn(
+                "w-20 h-20 rounded-[28px] shrink-0 flex items-center justify-center shadow-2xl border border-border/40 overflow-hidden",
+                !job.company_logo_url && "bg-primary/5",
+              )}
+            >
               {job.company_logo_url ? (
                 <img src={job.company_logo_url} className="w-full h-full object-cover" alt={job.company_name} />
               ) : (
@@ -210,29 +237,38 @@ export default function PublicJobDetail() {
             <div className="space-y-2">
               <div className="flex items-center gap-2 flex-wrap">
                 {job.is_featured && (
-                  <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 font-black uppercase text-[8px]">
-                    Featured
+                  <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 font-black uppercase text-[8px] tracking-widest">
+                    <Star className="w-2.5 h-2.5 mr-1 fill-amber-600" /> Featured
                   </Badge>
                 )}
-                <Badge variant="outline" className="border-primary/20 text-primary font-black uppercase text-[8px]">
-                  {JOB_TYPES[job.job_type]}
+                <Badge
+                  variant="outline"
+                  className="border-primary/20 text-primary font-black uppercase text-[8px] tracking-widest"
+                >
+                  {JOB_TYPES[job.job_type] || "Full Time"}
                 </Badge>
               </div>
               <h1 className="text-3xl md:text-5xl font-black tracking-tighter leading-none">{job.title}</h1>
-              <p className="text-xl font-bold text-muted-foreground uppercase">{job.company_name}</p>
+              <p className="text-xl font-bold text-muted-foreground uppercase tracking-tight">{job.company_name}</p>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={handleShare} className="rounded-full h-12 w-12 bg-muted/30">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleShare}
+            className="rounded-full h-12 w-12 bg-muted/30 hover:bg-primary/10 hover:text-primary transition-all"
+          >
             <Share2 className="w-5 h-5" />
           </Button>
         </section>
 
+        {/* Content Layout */}
         <div className="grid md:grid-cols-3 gap-8">
           <div className="md:col-span-2 space-y-8">
             <div className="flex flex-wrap gap-3">
               {[
                 { icon: MapPin, label: job.location || "Remote" },
-                { icon: Briefcase, label: EXPERIENCE_LEVELS[job.experience_level] },
+                { icon: Briefcase, label: EXPERIENCE_LEVELS[job.experience_level] || "Professional" },
                 { icon: DollarSign, label: formatSalary(job.salary_range_min, job.salary_range_max) || "Competitive" },
               ].map((item, i) => (
                 <Badge key={i} variant="secondary" className="bg-muted/50 px-4 py-2 rounded-xl text-xs font-bold gap-2">
@@ -241,13 +277,15 @@ export default function PublicJobDetail() {
               ))}
             </div>
 
-            <Card className="rounded-[32px] border-border/40 shadow-xl bg-card/50">
-              <CardContent className="p-8 md:p-12 space-y-6">
+            <Card className="rounded-[32px] border-border/40 shadow-xl bg-card/50 overflow-hidden">
+              <CardContent className="p-8 md:p-12 space-y-8">
                 <div className="flex items-center gap-3 pb-4 border-b border-border/40">
-                  <Sparkles className="h-5 w-5 text-primary" />
-                  <h3 className="font-black uppercase tracking-widest text-sm">Brief</h3>
+                  <div className="h-10 w-10 rounded-2xl bg-primary/10 flex items-center justify-center">
+                    <Sparkles className="h-5 w-5 text-primary" />
+                  </div>
+                  <h3 className="font-black uppercase tracking-widest text-sm">Professional Brief</h3>
                 </div>
-                <div className="prose prose-neutral dark:prose-invert max-w-none">
+                <div className="prose prose-neutral dark:prose-invert max-w-none prose-p:leading-relaxed prose-p:text-foreground/80">
                   {/<[a-z]/i.test(displayDescription || "") ? (
                     <div dangerouslySetInnerHTML={{ __html: displayDescription || "" }} />
                   ) : (
@@ -256,25 +294,71 @@ export default function PublicJobDetail() {
                 </div>
               </CardContent>
             </Card>
+
+            {Array.isArray(job.requirements) && job.requirements.length > 0 && (
+              <div className="space-y-6">
+                <h3 className="text-xl font-black uppercase tracking-tighter ml-2">Verification Requirements</h3>
+                <div className="grid gap-4">
+                  {job.requirements.map((req: string, i: number) => (
+                    <div
+                      key={i}
+                      className="flex gap-4 p-4 rounded-2xl bg-muted/30 border border-border/40 items-center"
+                    >
+                      <div className="h-2 w-2 rounded-full bg-primary" />
+                      <span className="text-sm font-medium leading-tight">{req}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
+          {/* Sidebar CTA */}
           <aside className="space-y-6">
-            <Card className="rounded-[32px] border-primary/20 bg-primary/5 shadow-2xl sticky top-24">
-              <CardContent className="p-8 space-y-6">
+            <Card className="rounded-[32px] border-primary/20 bg-primary/5 shadow-2xl overflow-hidden sticky top-24">
+              <CardContent className="p-8 space-y-8">
                 <div className="space-y-2">
                   <h4 className="font-black uppercase tracking-widest text-xs text-primary flex items-center gap-2">
                     <ShieldCheck className="h-4 w-4" /> Trusted Gateway
                   </h4>
-                  <p className="text-xs font-medium">Create an account to apply and receive priority vetting.</p>
+                  <p className="text-xs font-medium leading-relaxed">
+                    Authorized accounts receive priority vetting and 24/7 career coaching artifacts.
+                  </p>
                 </div>
-                <Button
-                  className="w-full h-14 rounded-2xl font-black uppercase text-[10px]"
-                  onClick={handleApplyRedirect}
-                >
-                  Apply Now <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
+                <div className="space-y-3">
+                  <Button
+                    className="w-full h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary/20"
+                    onClick={handleApplyRedirect}
+                    disabled={isDeadlinePassed}
+                  >
+                    Initialize Application <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] border-border/40"
+                    onClick={handleShare}
+                  >
+                    Share Artifact
+                  </Button>
+                </div>
+                {job.deadline && (
+                  <div className="pt-4 border-t border-border/20 flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                    <span>Deadline</span>
+                    <span className={cn(isDeadlinePassed ? "text-rose-500" : "text-foreground")}>
+                      {format(new Date(job.deadline), "dd MMM yyyy")}
+                    </span>
+                  </div>
+                )}
               </CardContent>
             </Card>
+
+            {job.source_image_url && (
+              <Card className="rounded-[24px] overflow-hidden border-border/40 grayscale opacity-60 hover:opacity-100 transition-all">
+                <CardContent className="p-0">
+                  <img src={job.source_image_url} className="w-full h-auto" alt="Verified Source" />
+                </CardContent>
+              </Card>
+            )}
           </aside>
         </div>
 
@@ -293,6 +377,7 @@ export default function PublicJobDetail() {
   );
 }
 
+// Internal custom SVG component to avoid conflict
 function LogIn(props: any) {
   return (
     <svg
