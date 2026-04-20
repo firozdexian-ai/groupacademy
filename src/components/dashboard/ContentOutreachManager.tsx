@@ -26,6 +26,7 @@ import {
   Globe,
   Terminal,
   ExternalLink,
+  Calendar,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -210,6 +211,14 @@ export function ContentOutreachManager() {
     } catch {}
   };
 
+  // CTO RESTORATION: logic handshake for template copying
+  const copyTemplate = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success("Payload Caption Synced");
+    } catch {}
+  };
+
   const contentTypeLabel = (type: string) =>
     ({ recorded_course: "COURSE", batch_class: "BATCH", live_webinar: "WEBINAR" })[type] || type;
 
@@ -257,7 +266,7 @@ export function ContentOutreachManager() {
         <div className="h-1.5 w-full bg-gradient-to-r from-primary via-blue-600 to-primary" />
         <CardHeader className="p-10 border-b border-border/10 bg-muted/10">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="space-y-2">
+            <div className="space-y-2 text-left">
               <CardTitle className="text-3xl font-black uppercase tracking-tighter italic flex items-center gap-4">
                 <Zap className="h-8 w-8 text-primary" /> Distribution Hub
               </CardTitle>
@@ -320,7 +329,7 @@ export function ContentOutreachManager() {
 
           {selectedContent && (
             <div className="flex items-center justify-between p-8 rounded-[32px] border-2 bg-primary/5 border-primary/20 shadow-inner animate-in slide-in-from-bottom-2">
-              <div className="space-y-1">
+              <div className="space-y-1 text-left">
                 <h3 className="text-xl font-black uppercase tracking-tighter italic text-primary">
                   {selectedContent.title}
                 </h3>
@@ -396,7 +405,7 @@ export function ContentOutreachManager() {
                 {activeTab !== "custom" ? (
                   <div className="space-y-6">
                     <div className="space-y-3">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1 text-left block">
                         Synthesis Payload ({activeTab})
                       </Label>
                       <div className="relative">
@@ -425,7 +434,7 @@ export function ContentOutreachManager() {
                   </div>
                 ) : (
                   <div className="space-y-8 animate-in slide-in-from-top-4">
-                    <div className="space-y-2">
+                    <div className="space-y-2 text-left">
                       <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
                         Channel Logic Name
                       </Label>
@@ -436,7 +445,7 @@ export function ContentOutreachManager() {
                         className="h-12 rounded-xl border-2 font-bold"
                       />
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-2 text-left">
                       <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
                         Tracking Artifact Link
                       </Label>
@@ -446,7 +455,10 @@ export function ContentOutreachManager() {
                           value={getShareLink(customChannel || "custom")}
                           className="h-12 rounded-xl border-2 bg-muted/5 font-mono text-xs"
                         />
-                        <Button onClick={() => copyLink(customChannel || "custom")} className="h-12 w-12 rounded-xl">
+                        <Button
+                          onClick={() => copyLink(customChannel || "custom")}
+                          className="h-12 w-12 rounded-xl border-2 border-border/10"
+                        >
                           <Copy className="w-4 h-4" />
                         </Button>
                       </div>
@@ -471,7 +483,7 @@ export function ContentOutreachManager() {
         <Card className="rounded-[40px] border-2 border-border/40 bg-card/30 backdrop-blur-xl shadow-2xl overflow-hidden">
           <CardHeader className="p-10 bg-muted/10 border-b border-border/10">
             <div className="flex items-center justify-between">
-              <div className="space-y-1">
+              <div className="space-y-1 text-left">
                 <CardTitle className="text-2xl font-black uppercase tracking-tighter italic flex items-center gap-4">
                   <Terminal className="h-6 w-6 text-primary" /> Target Registry
                 </CardTitle>
@@ -483,7 +495,7 @@ export function ContentOutreachManager() {
                 variant="ghost"
                 size="icon"
                 onClick={loadTalents}
-                className="h-12 w-12 rounded-full hover:bg-primary/10"
+                className="h-12 w-12 rounded-full hover:bg-primary/10 transition-colors"
               >
                 <RefreshCw className="h-5 w-5 text-primary" />
               </Button>
@@ -506,7 +518,7 @@ export function ContentOutreachManager() {
                       <div className="h-14 w-14 rounded-2xl bg-muted/50 flex items-center justify-center border-2 border-border/40 shadow-inner group-hover:rotate-3 transition-transform">
                         <Users className="h-6 w-6 text-muted-foreground/40" />
                       </div>
-                      <div className="space-y-1">
+                      <div className="space-y-1 text-left">
                         <p className="text-lg font-black uppercase tracking-tight italic leading-none group-hover:text-primary transition-colors">
                           {talent.full_name}
                         </p>
@@ -548,6 +560,23 @@ export function ContentOutreachManager() {
           </CardContent>
         </Card>
       )}
+
+      {/* Operational Trace Footer */}
+      <footer className="mt-20 pt-10 border-t border-border/40 flex items-center justify-between opacity-30">
+        <div className="space-y-1 text-left">
+          <p className="text-[9px] font-black uppercase tracking-[0.4em] italic">
+            Market Penetration Terminal: Authorized Access Active
+          </p>
+          <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">
+            Protocol: Verified Executive Logic 2026.4
+          </p>
+        </div>
+        <div className="flex gap-2">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="h-1 w-8 rounded-full bg-primary/20" />
+          ))}
+        </div>
+      </footer>
     </div>
   );
 }
