@@ -258,7 +258,7 @@ export function LearnerProgressManager() {
                   {kpi.label}
                 </p>
                 <p className="text-3xl font-black tracking-tighter italic">{kpi.val}</p>
-                {kpi.progress && <Progress value={parseInt(kpi.val)} className="h-1 mt-3" />}
+                {kpi.progress && <Progress value={parseInt(String(kpi.val))} className="h-1 mt-3" />}
               </div>
             </CardContent>
           </Card>
