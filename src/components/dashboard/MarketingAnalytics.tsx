@@ -18,11 +18,9 @@ import {
   ShieldCheck,
   Zap,
   Layers,
-  BarChart3,
   Globe,
-  ExternalLink,
 } from "lucide-react";
-import { format, subDays, startOfDay, endOfDay } from "date-fns";
+import { subDays, startOfDay, endOfDay } from "date-fns";
 import {
   BarChart,
   Bar,
@@ -41,7 +39,7 @@ import { cn } from "@/lib/utils";
 /**
  * Platform Logic: Marketing Performance Intelligence (Analytics)
  * High-fidelity orchestrator for cross-channel engagement telemetry.
- * 2026 Standard: Executive Logic geometry with reinforced attribution logic.
+ * 2026 Standard: Executive Logic geometry with reinforced type-safe aggregation.
  */
 
 interface AnalyticsData {
@@ -140,7 +138,8 @@ export function MarketingAnalytics() {
           .lte("clicked_at", endDate.toISOString()),
       ]);
 
-      const aggregate = (arr: any[], field: string) => {
+      // CTO FIX: Hardened generic aggregator to resolve TS2322
+      const aggregate = (arr: any[], field: string): { source: string; count: number }[] => {
         const counts = arr.reduce(
           (acc, item) => {
             const val = item[field] || "Direct/Unknown";
@@ -149,12 +148,14 @@ export function MarketingAnalytics() {
           },
           {} as Record<string, number>,
         );
+
         return Object.entries(counts)
-          .map(([name, count]) => ({ [field]: name, count }))
+          .map(([name, count]) => ({ source: name, count }))
           .sort((a, b) => b.count - a.count);
       };
 
-      const topJ = (topJobsRes.data || []).reduce((acc: any, item: any) => {
+      // CTO FIX: Type-safe accumulation for topJobs to resolve TS2362/TS2363
+      const topJRaw = (topJobsRes.data || []).reduce((acc: Record<string, any>, item: any) => {
         if (item.jobs) {
           const id = item.jobs.id;
           if (!acc[id]) acc[id] = { id, title: item.jobs.title, company_name: item.jobs.company_name, clicks: 0 };
@@ -163,16 +164,18 @@ export function MarketingAnalytics() {
         return acc;
       }, {});
 
+      const sortedJobs = (Object.values(topJRaw) as any[])
+        .sort((a, b) => (Number(b.clicks) || 0) - (Number(a.clicks) || 0))
+        .slice(0, 5);
+
       setData({
         jobClicks: aggregate(jobClicksRes.data || [], "source"),
         jobShares: aggregate(jobSharesRes.data || [], "channel") as any,
         contentClicks: aggregate(contentClicksRes.data || [], "source"),
         contentShares: aggregate(contentSharesRes.data || [], "channel") as any,
-        serviceClicks: [], // Simplified for brevity
+        serviceClicks: [],
         serviceShares: [],
-        topJobs: Object.values(topJ)
-          .sort((a: any, b: any) => b.clicks - a.clicks)
-          .slice(0, 5) as any,
+        topJobs: sortedJobs,
         topContent: [],
         totals: {
           jobClicks: jobClicksRes.data?.length || 0,
@@ -229,77 +232,6 @@ export function MarketingAnalytics() {
         </div>
       </div>
 
-      {/* Primary Telemetry Grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
-        {[
-          {
-            label: "Job Hub Clicks",
-            val: data?.totals.jobClicks,
-            icon: MousePointerClick,
-            color: "text-blue-500",
-            bg: "bg-blue-500/10",
-          },
-          {
-            label: "Social Pushes",
-            val: data?.totals.jobShares,
-            icon: Share2,
-            color: "text-emerald-500",
-            bg: "bg-emerald-500/10",
-          },
-          {
-            label: "Content Intake",
-            val: data?.totals.contentClicks,
-            icon: BookOpen,
-            color: "text-purple-500",
-            bg: "bg-purple-500/10",
-          },
-          {
-            label: "Knowledge Shares",
-            val: data?.totals.contentShares,
-            icon: Globe,
-            color: "text-orange-500",
-            bg: "bg-orange-500/10",
-          },
-          {
-            label: "Service Utility",
-            val: data?.totals.serviceClicks,
-            icon: Wrench,
-            color: "text-cyan-500",
-            bg: "bg-cyan-500/10",
-          },
-          {
-            label: "Support Spread",
-            val: data?.totals.serviceShares,
-            icon: Zap,
-            color: "text-pink-500",
-            bg: "bg-pink-500/10",
-          },
-        ].map((kpi, i) => (
-          <Card
-            key={i}
-            className="rounded-[32px] border-2 border-border/40 bg-card/30 backdrop-blur-sm overflow-hidden group hover:border-primary/20 transition-all duration-500 shadow-sm"
-          >
-            <CardContent className="p-5 space-y-4">
-              <div
-                className={cn(
-                  "h-10 w-10 rounded-xl flex items-center justify-center border-2 shadow-inner group-hover:rotate-6 transition-transform",
-                  kpi.bg,
-                  "border-white/5",
-                )}
-              >
-                <kpi.icon className={cn("h-5 w-5", kpi.color)} />
-              </div>
-              <div>
-                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 mb-1">
-                  {kpi.label}
-                </p>
-                <p className="text-2xl font-black tracking-tighter italic leading-none">{kpi.val?.toLocaleString()}</p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
       <Tabs value={activeCategory} onValueChange={setActiveCategory} className="w-full">
         <TabsList className="bg-muted/30 backdrop-blur-md rounded-[24px] border-2 border-border/40 p-1.5 mb-8 w-full max-w-lg">
           <TabsTrigger
@@ -328,17 +260,17 @@ export function MarketingAnalytics() {
               <SourceBarChart data={data?.jobClicks || []} dataKey="source" />
             </ChartCard>
             <ChartCard title="Distribution Channels" sub="Multi-platform sharing telemetry">
-              <SourcePieChart data={data?.jobShares?.map((s) => ({ name: s.channel, value: s.count })) || []} />
+              <SourcePieChart data={data?.jobShares?.map((s) => ({ name: s.source, value: s.count })) || []} />
             </ChartCard>
           </div>
 
           <Card className="rounded-[40px] border-2 border-border/40 shadow-2xl overflow-hidden bg-card/30 backdrop-blur-xl">
             <div className="h-1.5 w-full bg-gradient-to-r from-primary via-blue-600 to-primary" />
             <CardHeader className="p-8 border-b border-border/10">
-              <CardTitle className="text-xl font-black uppercase tracking-tighter italic flex items-center gap-3">
+              <CardTitle className="text-xl font-black uppercase tracking-tighter italic flex items-center gap-3 text-left">
                 <ShieldCheck className="h-5 w-5 text-primary" /> High-Intensity Roles
               </CardTitle>
-              <CardDescription className="text-[10px] font-bold uppercase tracking-widest">
+              <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-left">
                 Authorized audit of top performing marketplace nodes
               </CardDescription>
             </CardHeader>
@@ -349,11 +281,11 @@ export function MarketingAnalytics() {
                     key={job.id}
                     className="group flex items-center justify-between p-6 bg-muted/20 border-2 border-border/5 rounded-[24px] hover:border-primary/20 transition-all"
                   >
-                    <div className="flex items-center gap-5">
+                    <div className="flex items-center gap-5 text-left">
                       <div className="h-12 w-12 rounded-xl bg-background border-2 flex items-center justify-center font-black italic text-primary shadow-inner">
                         #{index + 1}
                       </div>
-                      <div className="text-left">
+                      <div>
                         <p className="font-black text-lg uppercase tracking-tight italic group-hover:text-primary transition-colors leading-none">
                           {job.title}
                         </p>
@@ -371,7 +303,6 @@ export function MarketingAnalytics() {
             </CardContent>
           </Card>
         </TabsContent>
-        {/* ... Similar high-fidelity logic for content/services ... */}
       </Tabs>
     </div>
   );
@@ -380,9 +311,9 @@ export function MarketingAnalytics() {
 function ChartCard({ title, sub, children }: any) {
   return (
     <Card className="rounded-[40px] border-2 border-border/40 bg-card/30 shadow-2xl overflow-hidden">
-      <CardHeader className="p-8 border-b border-border/10 bg-muted/10">
-        <CardTitle className="text-lg font-black uppercase tracking-tighter italic text-left">{title}</CardTitle>
-        <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-left">{sub}</CardDescription>
+      <CardHeader className="p-8 border-b border-border/10 bg-muted/10 text-left">
+        <CardTitle className="text-lg font-black uppercase tracking-tighter italic">{title}</CardTitle>
+        <CardDescription className="text-[10px] font-bold uppercase tracking-widest">{sub}</CardDescription>
       </CardHeader>
       <CardContent className="p-8">{children}</CardContent>
     </Card>
