@@ -39,13 +39,18 @@ import { cn } from "@/lib/utils";
 /**
  * Platform Logic: Marketing Performance Intelligence (Analytics)
  * High-fidelity orchestrator for cross-channel engagement telemetry.
- * 2026 Standard: Executive Logic geometry with reinforced type-safe aggregation.
+ * 2026 Standard: Executive Logic geometry with strict numeric cast protocols.
  */
 
+interface AnalyticsRecord {
+  source: string;
+  count: number;
+}
+
 interface AnalyticsData {
-  jobClicks: { source: string; count: number }[];
+  jobClicks: AnalyticsRecord[];
   jobShares: { channel: string; count: number }[];
-  contentClicks: { source: string; count: number }[];
+  contentClicks: AnalyticsRecord[];
   contentShares: { channel: string; count: number }[];
   serviceClicks: { service_slug: string; source: string; count: number }[];
   serviceShares: { service_slug: string; channel: string; count: number }[];
@@ -138,11 +143,11 @@ export function MarketingAnalytics() {
           .lte("clicked_at", endDate.toISOString()),
       ]);
 
-      // CTO FIX: Hardened generic aggregator to resolve TS2322
-      const aggregate = (arr: any[], field: string): { source: string; count: number }[] => {
+      // CTO FIX: Enforce numeric count and proper property mapping to resolve TS2322
+      const aggregateSource = (arr: any[]): AnalyticsRecord[] => {
         const counts = arr.reduce(
           (acc, item) => {
-            const val = item[field] || "Direct/Unknown";
+            const val = item.source || "Direct/Unknown";
             acc[val] = (acc[val] || 0) + 1;
             return acc;
           },
@@ -150,11 +155,26 @@ export function MarketingAnalytics() {
         );
 
         return Object.entries(counts)
-          .map(([name, count]) => ({ source: name, count }))
+          .map(([name, count]) => ({ source: name, count: Number(count) }))
           .sort((a, b) => b.count - a.count);
       };
 
-      // CTO FIX: Type-safe accumulation for topJobs to resolve TS2362/TS2363
+      const aggregateChannel = (arr: any[]): { channel: string; count: number }[] => {
+        const counts = arr.reduce(
+          (acc, item) => {
+            const val = item.channel || "Unknown";
+            acc[val] = (acc[val] || 0) + 1;
+            return acc;
+          },
+          {} as Record<string, number>,
+        );
+
+        return Object.entries(counts)
+          .map(([name, count]) => ({ channel: name, count: Number(count) }))
+          .sort((a, b) => b.count - a.count);
+      };
+
+      // CTO FIX: Explicit arithmetic types to resolve TS2362/TS2363
       const topJRaw = (topJobsRes.data || []).reduce((acc: Record<string, any>, item: any) => {
         if (item.jobs) {
           const id = item.jobs.id;
@@ -164,18 +184,18 @@ export function MarketingAnalytics() {
         return acc;
       }, {});
 
-      const sortedJobs = (Object.values(topJRaw) as any[])
+      const sortedJobs = (Object.values(topJRaw) as { clicks: number }[])
         .sort((a, b) => (Number(b.clicks) || 0) - (Number(a.clicks) || 0))
         .slice(0, 5);
 
       setData({
-        jobClicks: aggregate(jobClicksRes.data || [], "source"),
-        jobShares: aggregate(jobSharesRes.data || [], "channel") as any,
-        contentClicks: aggregate(contentClicksRes.data || [], "source"),
-        contentShares: aggregate(contentSharesRes.data || [], "channel") as any,
+        jobClicks: aggregateSource(jobClicksRes.data || []),
+        jobShares: aggregateChannel(jobSharesRes.data || []),
+        contentClicks: aggregateSource(contentClicksRes.data || []),
+        contentShares: aggregateChannel(contentSharesRes.data || []),
         serviceClicks: [],
         serviceShares: [],
-        topJobs: sortedJobs,
+        topJobs: sortedJobs as any,
         topContent: [],
         totals: {
           jobClicks: jobClicksRes.data?.length || 0,
@@ -260,7 +280,8 @@ export function MarketingAnalytics() {
               <SourceBarChart data={data?.jobClicks || []} dataKey="source" />
             </ChartCard>
             <ChartCard title="Distribution Channels" sub="Multi-platform sharing telemetry">
-              <SourcePieChart data={data?.jobShares?.map((s) => ({ name: s.source, value: s.count })) || []} />
+              {/* CTO FIX: Map property name 'channel' to 'name' for PieChart compatibility to resolve TS2339 */}
+              <SourcePieChart data={data?.jobShares?.map((s) => ({ name: s.channel, value: s.count })) || []} />
             </ChartCard>
           </div>
 
