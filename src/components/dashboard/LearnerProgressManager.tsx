@@ -7,8 +7,27 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Users, BookOpen, Trophy, TrendingDown, BarChart3, Clock } from "lucide-react";
+import {
+  Users,
+  BookOpen,
+  Trophy,
+  TrendingDown,
+  BarChart3,
+  Clock,
+  Activity,
+  ShieldCheck,
+  Zap,
+  Layers,
+  ChevronRight,
+} from "lucide-react";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+
+/**
+ * Platform Logic: Academic Progression Terminal (Learner Progress)
+ * High-fidelity orchestrator for tracking learner velocity and course completion telemetry.
+ * 2026 Standard: Executive Logic geometry with reinforced aggregation guards.
+ */
 
 interface CourseStats {
   contentId: string;
@@ -54,9 +73,7 @@ export function LearnerProgressManager() {
   const { data: enrollmentStats, isLoading: statsLoading } = useQuery({
     queryKey: ["admin-enrollment-stats", selectedCourse],
     queryFn: async () => {
-      let query = supabase
-        .from("enrollments")
-        .select(`
+      let query = supabase.from("enrollments").select(`
           id, status, content_id, enrolled_at, completed_at,
           content:content_id (id, title, modules_count)
         `);
@@ -70,9 +87,13 @@ export function LearnerProgressManager() {
         const content = enrollment.content;
         if (!statsMap.has(contentId)) {
           statsMap.set(contentId, {
-            contentId, title: content?.title || "Unknown Course",
-            totalEnrollments: 0, activeEnrollments: 0, completedEnrollments: 0,
-            averageProgress: 0, dropOffStage: null,
+            contentId,
+            title: content?.title || "UNCLASSED_NODE",
+            totalEnrollments: 0,
+            activeEnrollments: 0,
+            completedEnrollments: 0,
+            averageProgress: 0,
+            dropOffStage: null,
           });
         }
         const stats = statsMap.get(contentId)!;
@@ -95,38 +116,42 @@ export function LearnerProgressManager() {
     queryFn: async () => {
       let query = supabase
         .from("enrollments")
-        .select(`
+        .select(
+          `
           id, status, enrolled_at, completed_at, content_id, talent_id,
           talents:talent_id (id, full_name, email),
           content:content_id (id, title, modules_count)
-        `)
+        `,
+        )
         .order("enrolled_at", { ascending: false })
         .limit(50);
       if (selectedCourse !== "all") query = query.eq("content_id", selectedCourse);
       const { data, error } = await query;
       if (error) throw error;
 
-      return (data || []).map((enrollment: any): LearnerDetail => ({
-        enrollmentId: enrollment.id,
-        talentId: enrollment.talent_id,
-        talentName: enrollment.talents?.full_name || "Unknown",
-        talentEmail: enrollment.talents?.email || "",
-        status: enrollment.status,
-        enrolledAt: enrollment.enrolled_at,
-        completedAt: enrollment.completed_at,
-        modulesCompleted: enrollment.status === "completed" ? (enrollment.content?.modules_count || 0) : 0,
-        totalModules: enrollment.content?.modules_count || 0,
-        currentModule: null,
-        currentStage: 1,
-      }));
+      return (data || []).map(
+        (enrollment: any): LearnerDetail => ({
+          enrollmentId: enrollment.id,
+          talentId: enrollment.talent_id,
+          talentName: enrollment.talents?.full_name || "NULL_ENTITY",
+          talentEmail: enrollment.talents?.email || "N/A",
+          status: enrollment.status,
+          enrolledAt: enrollment.enrolled_at,
+          completedAt: enrollment.completed_at,
+          modulesCompleted: enrollment.status === "completed" ? enrollment.content?.modules_count || 0 : 0,
+          totalModules: enrollment.content?.modules_count || 0,
+          currentModule: null,
+          currentStage: 1,
+        }),
+      );
     },
   });
 
   const summaryStats = {
-    totalLearners: enrollmentStats?.reduce((sum, s) => sum + s.totalEnrollments, 0) || 0,
-    activeLearners: enrollmentStats?.reduce((sum, s) => sum + s.activeEnrollments, 0) || 0,
-    completedLearners: enrollmentStats?.reduce((sum, s) => sum + s.completedEnrollments, 0) || 0,
-    averageCompletion: enrollmentStats?.length
+    total: enrollmentStats?.reduce((sum, s) => sum + s.totalEnrollments, 0) || 0,
+    active: enrollmentStats?.reduce((sum, s) => sum + s.activeEnrollments, 0) || 0,
+    completed: enrollmentStats?.reduce((sum, s) => sum + s.completedEnrollments, 0) || 0,
+    avg: enrollmentStats?.length
       ? Math.round(enrollmentStats.reduce((sum, s) => sum + s.averageProgress, 0) / enrollmentStats.length)
       : 0,
   };
@@ -134,285 +159,284 @@ export function LearnerProgressManager() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "completed":
-        return <Badge variant="default">Completed</Badge>;
+        return (
+          <Badge className="bg-emerald-500 text-white border-none font-black text-[9px] uppercase tracking-widest px-3 py-1">
+            PASSED_COMPLETE
+          </Badge>
+        );
       case "active":
-        return <Badge variant="secondary">Active</Badge>;
-      case "pending":
-        return <Badge variant="outline">Pending</Badge>;
+        return (
+          <Badge className="bg-primary/10 text-primary border-none font-black text-[9px] uppercase tracking-widest px-3 py-1">
+            ACTIVE_DEPLOY
+          </Badge>
+        );
       default:
-        return <Badge variant="secondary">{status}</Badge>;
+        return (
+          <Badge variant="outline" className="font-black text-[9px] uppercase tracking-widest px-3 py-1">
+            {status}
+          </Badge>
+        );
     }
   };
 
-  if (coursesLoading) {
-    return (
-      <div className="space-y-6">
-        <Skeleton className="h-8 w-48" />
-        <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
-          {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-16" />
-          ))}
-        </div>
-        <Skeleton className="h-96" />
-      </div>
-    );
-  }
+  if (coursesLoading) return <DashboardLoadingSkeleton />;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-bold tracking-tight">Learner Progress</h2>
-          <p className="text-xs text-muted-foreground">
-            Track learner engagement and course completion rates
+    <div className="space-y-10 animate-in fade-in duration-1000">
+      {/* Executive Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-muted/20 p-8 rounded-[40px] border-2 border-border/40 backdrop-blur-md">
+        <div className="space-y-1 text-left">
+          <div className="flex items-center gap-3 text-primary">
+            <Activity className="h-8 w-8" />
+            <h2 className="text-4xl font-black uppercase tracking-tighter italic leading-none">Progression HUD</h2>
+          </div>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 italic">
+            Real-time Learner Velocity & Curriculum Yield Registry
           </p>
         </div>
         <Select value={selectedCourse} onValueChange={setSelectedCourse}>
-          <SelectTrigger className="w-full sm:w-[280px]">
-            <SelectValue placeholder="Select a course" />
+          <SelectTrigger className="w-full md:w-[320px] h-14 rounded-2xl border-2 font-black uppercase text-[10px] tracking-widest bg-card/50 shadow-inner">
+            <Layers className="w-4 h-4 mr-2 text-primary" />
+            <SelectValue placeholder="Logic Context" />
           </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Courses</SelectItem>
-            {courses?.map((course) => (
-              <SelectItem key={course.id} value={course.id}>
-                {course.title}
+          <SelectContent className="rounded-2xl border-2 shadow-2xl">
+            <SelectItem value="all" className="font-bold">
+              GLOBAL_REGISTRY
+            </SelectItem>
+            {courses?.map((c) => (
+              <SelectItem key={c.id} value={c.id} className="font-bold truncate">
+                {c.title}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
 
-      {/* Compact KPI Cards */}
-      <div className="grid gap-3 grid-cols-2 md:grid-cols-4">
-        <Card className="p-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-muted-foreground">Total Learners</p>
-              <p className="text-lg font-bold">{summaryStats.totalLearners}</p>
-            </div>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </div>
-        </Card>
-        <Card className="p-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-muted-foreground">Active</p>
-              <p className="text-lg font-bold">{summaryStats.activeLearners}</p>
-            </div>
-            <BookOpen className="h-4 w-4 text-muted-foreground" />
-          </div>
-        </Card>
-        <Card className="p-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-muted-foreground">Completed</p>
-              <p className="text-lg font-bold">{summaryStats.completedLearners}</p>
-            </div>
-            <Trophy className="h-4 w-4 text-muted-foreground" />
-          </div>
-        </Card>
-        <Card className="p-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs text-muted-foreground">Avg. Completion</p>
-              <p className="text-lg font-bold">{summaryStats.averageCompletion}%</p>
-            </div>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
-          </div>
-        </Card>
+      {/* Summary Telemetry Artifacts */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        {[
+          { label: "Total Nodes", val: summaryStats.total, icon: Users, color: "text-blue-500", bg: "bg-blue-500/10" },
+          {
+            label: "Active Cycle",
+            val: summaryStats.active,
+            icon: BookOpen,
+            color: "text-primary",
+            bg: "bg-primary/10",
+          },
+          {
+            label: "Finalized Log",
+            val: summaryStats.completed,
+            icon: Trophy,
+            color: "text-emerald-500",
+            bg: "bg-emerald-500/10",
+          },
+          {
+            label: "Global Yield",
+            val: `${summaryStats.avg}%`,
+            icon: BarChart3,
+            color: "text-purple-500",
+            bg: "bg-purple-500/10",
+            progress: true,
+          },
+        ].map((kpi, i) => (
+          <Card
+            key={i}
+            className="rounded-[32px] border-2 border-border/40 bg-card/30 backdrop-blur-sm overflow-hidden group hover:border-primary/20 transition-all duration-500 shadow-sm"
+          >
+            <CardContent className="p-6 space-y-4">
+              <div
+                className={cn(
+                  "h-12 w-12 rounded-2xl flex items-center justify-center border-2 transition-transform duration-500 group-hover:rotate-6 shadow-inner",
+                  kpi.bg,
+                  "border-white/5",
+                )}
+              >
+                <kpi.icon className={cn("h-6 w-6", kpi.color)} />
+              </div>
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 mb-1">
+                  {kpi.label}
+                </p>
+                <p className="text-3xl font-black tracking-tighter italic">{kpi.val}</p>
+                {kpi.progress && <Progress value={parseInt(kpi.val)} className="h-1 mt-3" />}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      {/* Course Performance */}
-      {selectedCourse === "all" && enrollmentStats && enrollmentStats.length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Course Performance</CardTitle>
-            <CardDescription>Enrollment and completion rates by course</CardDescription>
+      {/* Course Performance Cluster */}
+      {selectedCourse === "all" && (
+        <Card className="rounded-[40px] border-2 border-border/40 shadow-2xl overflow-hidden bg-card/30 backdrop-blur-xl">
+          <div className="h-1.5 w-full bg-gradient-to-r from-primary via-blue-600 to-primary" />
+          <CardHeader className="p-8 border-b border-border/10 bg-muted/10">
+            <CardTitle className="text-xl font-black uppercase tracking-tighter italic flex items-center gap-3">
+              <ShieldCheck className="h-5 w-5 text-primary" /> Multi-Course Yield Analysis
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            {/* Desktop Table */}
-            <div className="hidden sm:block">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Course</TableHead>
-                    <TableHead className="text-center">Total</TableHead>
-                    <TableHead className="text-center">Active</TableHead>
-                    <TableHead className="text-center">Completed</TableHead>
-                    <TableHead className="text-center">Completion Rate</TableHead>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader className="bg-muted/30">
+                <TableRow className="hover:bg-transparent border-b-2 border-border/10">
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest py-8 px-8 text-left">
+                    Academic Node
+                  </TableHead>
+                  <TableHead className="text-center text-[10px] font-black uppercase tracking-widest">Total</TableHead>
+                  <TableHead className="text-center text-[10px] font-black uppercase tracking-widest">Active</TableHead>
+                  <TableHead className="text-center text-[10px] font-black uppercase tracking-widest">
+                    Yield %
+                  </TableHead>
+                  <TableHead className="text-right text-[10px] font-black uppercase tracking-widest pr-8">
+                    Intensity
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {enrollmentStats?.map((stats) => (
+                  <TableRow
+                    key={stats.contentId}
+                    className="group transition-all hover:bg-primary/[0.02] border-b border-border/5 last:border-0"
+                  >
+                    <TableCell className="px-8 py-6 text-left">
+                      <p className="font-black text-sm uppercase tracking-tight italic group-hover:text-primary transition-colors leading-none">
+                        {stats.title}
+                      </p>
+                    </TableCell>
+                    <TableCell className="text-center font-black text-xs opacity-60">
+                      {stats.totalEnrollments}
+                    </TableCell>
+                    <TableCell className="text-center font-black text-xs text-primary">
+                      {stats.activeEnrollments}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Badge className="bg-emerald-500/10 text-emerald-600 border-none font-black text-[10px] italic">
+                        {stats.averageProgress}%
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right pr-8">
+                      <Progress value={stats.averageProgress} className="w-24 h-1 ml-auto" />
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {enrollmentStats.map((stats) => (
-                    <TableRow key={stats.contentId}>
-                      <TableCell className="font-medium">{stats.title}</TableCell>
-                      <TableCell className="text-center">{stats.totalEnrollments}</TableCell>
-                      <TableCell className="text-center">{stats.activeEnrollments}</TableCell>
-                      <TableCell className="text-center">{stats.completedEnrollments}</TableCell>
-                      <TableCell className="text-center">
-                        <div className="flex items-center gap-2 justify-center">
-                          <Progress value={stats.averageProgress} className="w-16 h-2" />
-                          <span className="text-sm text-muted-foreground">{stats.averageProgress}%</span>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-
-            {/* Mobile Cards */}
-            <div className="sm:hidden space-y-3">
-              {enrollmentStats.map((stats) => (
-                <Card key={stats.contentId} className="p-3">
-                  <p className="font-medium text-sm truncate mb-2">{stats.title}</p>
-                  <div className="grid grid-cols-3 gap-2 text-center mb-2">
-                    <div>
-                      <p className="text-lg font-bold">{stats.totalEnrollments}</p>
-                      <p className="text-[10px] text-muted-foreground">Total</p>
-                    </div>
-                    <div>
-                      <p className="text-lg font-bold">{stats.activeEnrollments}</p>
-                      <p className="text-[10px] text-muted-foreground">Active</p>
-                    </div>
-                    <div>
-                      <p className="text-lg font-bold">{stats.completedEnrollments}</p>
-                      <p className="text-[10px] text-muted-foreground">Completed</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Progress value={stats.averageProgress} className="flex-1 h-2" />
-                    <span className="text-xs text-muted-foreground">{stats.averageProgress}%</span>
-                  </div>
-                </Card>
-              ))}
-            </div>
+                ))}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       )}
 
-      {/* Individual Learner Progress */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg">Individual Learners</CardTitle>
-          <CardDescription>
-            Detailed progress for each enrolled learner
+      {/* Individual Learner Progression Registry */}
+      <Card className="rounded-[40px] border-2 border-border/40 shadow-2xl overflow-hidden bg-card/30">
+        <CardHeader className="p-8 border-b border-border/10">
+          <CardTitle className="text-xl font-black uppercase tracking-tighter italic">Learner Artifact Log</CardTitle>
+          <CardDescription className="text-[10px] font-bold uppercase tracking-widest">
+            Authorized audit trail for individual node progression
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {learnersLoading ? (
-            <div className="space-y-2">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))}
+            <div className="p-12 space-y-4">
+              <Skeleton className="h-14 w-full rounded-2xl" />
+              <Skeleton className="h-14 w-full rounded-2xl" />
             </div>
-          ) : learnerDetails && learnerDetails.length > 0 ? (
-            <>
-              {/* Desktop Table */}
-              <div className="hidden sm:block">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Learner</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Enrolled</TableHead>
-                      <TableHead className="text-center">Progress</TableHead>
-                      <TableHead>Completed</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {learnerDetails.map((learner) => (
-                      <TableRow key={learner.enrollmentId}>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium">{learner.talentName}</div>
-                            <div className="text-sm text-muted-foreground">{learner.talentEmail}</div>
-                          </div>
-                        </TableCell>
-                        <TableCell>{getStatusBadge(learner.status)}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                            <Clock className="h-3 w-3" />
-                            {format(new Date(learner.enrolledAt), "MMM d, yyyy")}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {learner.totalModules > 0 ? (
-                            <div className="flex items-center gap-2 justify-center">
-                              <Progress
-                                value={(learner.modulesCompleted / learner.totalModules) * 100}
-                                className="w-16 h-2"
-                              />
-                              <span className="text-sm text-muted-foreground">
-                                {learner.modulesCompleted}/{learner.totalModules}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-sm text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {learner.completedAt ? (
-                            <span className="text-sm text-primary">
-                              {format(new Date(learner.completedAt), "MMM d, yyyy")}
-                            </span>
-                          ) : (
-                            <span className="text-sm text-muted-foreground">In progress</span>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-
-              {/* Mobile Cards */}
-              <div className="sm:hidden space-y-3">
-                {learnerDetails.map((learner) => (
-                  <Card key={learner.enrollmentId} className="p-3">
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <div className="min-w-0">
-                        <p className="font-medium text-sm truncate">{learner.talentName}</p>
-                        <p className="text-xs text-muted-foreground truncate">{learner.talentEmail}</p>
-                      </div>
-                      {getStatusBadge(learner.status)}
-                    </div>
-                    <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {format(new Date(learner.enrolledAt), "MMM d, yyyy")}
-                      </span>
-                      {learner.completedAt && (
-                        <span className="text-primary">
-                          Done {format(new Date(learner.completedAt), "MMM d")}
-                        </span>
-                      )}
-                    </div>
-                    {learner.totalModules > 0 && (
-                      <div className="flex items-center gap-2">
-                        <Progress
-                          value={(learner.modulesCompleted / learner.totalModules) * 100}
-                          className="flex-1 h-2"
-                        />
-                        <span className="text-xs text-muted-foreground">
-                          {learner.modulesCompleted}/{learner.totalModules}
-                        </span>
-                      </div>
-                    )}
-                  </Card>
-                ))}
-              </div>
-            </>
           ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              <TrendingDown className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No learner data available</p>
-              <p className="text-sm">Enrollments will appear here once learners sign up</p>
-            </div>
+            <Table>
+              <TableHeader className="bg-muted/30">
+                <TableRow className="hover:bg-transparent border-b-2 border-border/10">
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest py-8 px-8 text-left">
+                    Learner Artifact
+                  </TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest text-left">
+                    Status Protocol
+                  </TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest text-left">
+                    Temporal Log
+                  </TableHead>
+                  <TableHead className="text-center text-[10px] font-black uppercase tracking-widest">
+                    Progress Yield
+                  </TableHead>
+                  <TableHead className="text-right text-[10px] font-black uppercase tracking-widest pr-8">
+                    Resolution
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {learnerDetails?.map((learner) => (
+                  <TableRow
+                    key={learner.enrollmentId}
+                    className="group transition-all hover:bg-primary/[0.02] border-b border-border/5 last:border-0"
+                  >
+                    <TableCell className="px-8 py-6 text-left">
+                      <div className="space-y-1">
+                        <p className="font-black text-sm uppercase tracking-tight italic group-hover:text-primary transition-colors leading-none">
+                          {learner.talentName}
+                        </p>
+                        <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest italic">
+                          {learner.talentEmail}
+                        </p>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-left">{getStatusBadge(learner.status)}</TableCell>
+                    <TableCell className="text-left">
+                      <div className="flex items-center gap-2 text-[10px] font-bold text-muted-foreground/40 uppercase italic">
+                        <Clock className="h-3 w-3" /> {format(new Date(learner.enrolledAt), "MMM d, yyyy")}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {learner.totalModules > 0 ? (
+                        <div className="flex flex-col items-center gap-1.5">
+                          <Progress
+                            value={(learner.modulesCompleted / learner.totalModules) * 100}
+                            className="w-16 h-1"
+                          />
+                          <span className="text-[10px] font-black italic">
+                            {learner.modulesCompleted}/{learner.totalModules}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-[10px] font-bold opacity-20 italic">NULL_MODULES</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right pr-8 font-black text-[11px] italic text-primary">
+                      {learner.completedAt ? format(new Date(learner.completedAt), "MMM d, yyyy") : "IN_TRANSIT"}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
         </CardContent>
       </Card>
+
+      {/* Operational Trace Footer */}
+      <footer className="mt-20 pt-10 border-t border-border/40 flex items-center justify-between opacity-30">
+        <div className="space-y-1 text-left">
+          <p className="text-[9px] font-black uppercase tracking-[0.4em] italic leading-none">
+            Academic Progression Hub: Secured Access
+          </p>
+          <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">
+            Logic Cycle: Curriculum Telemetry v2.6.8
+          </p>
+        </div>
+        <div className="flex gap-2">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="h-1 w-8 rounded-full bg-primary/20" />
+          ))}
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+function DashboardLoadingSkeleton() {
+  return (
+    <div className="space-y-10 animate-pulse">
+      <Skeleton className="h-32 w-full rounded-[40px]" />
+      <div className="grid grid-cols-4 gap-6">
+        {[...Array(4)].map((_, i) => (
+          <Skeleton key={i} className="h-32 w-full rounded-[32px]" />
+        ))}
+      </div>
+      <Skeleton className="h-96 w-full rounded-[40px]" />
     </div>
   );
 }
