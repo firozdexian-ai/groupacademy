@@ -139,6 +139,11 @@ export function QuizResultsViewer() {
       : 0,
   };
 
+  const viewAttemptDetails = (attempt: QuizAttempt) => {
+    setSelectedAttempt(attempt);
+    setDetailDialogOpen(true);
+  };
+
   if (coursesLoading) return <DashboardLoadingSkeleton />;
 
   return (
@@ -225,7 +230,8 @@ export function QuizResultsViewer() {
                   {kpi.label}
                 </p>
                 <p className="text-3xl font-black tracking-tighter italic leading-none">{kpi.val}</p>
-                {kpi.progress && <Progress value={parseInt(kpi.val)} className="h-1 mt-3" />}
+                {/* CTO FIX: Wrapped val in String() to resolve TS2345 mismatch */}
+                {kpi.progress && <Progress value={parseInt(String(kpi.val))} className="h-1 mt-3" />}
               </div>
             </CardContent>
           </Card>
@@ -239,7 +245,7 @@ export function QuizResultsViewer() {
           <CardTitle className="text-xl font-black uppercase tracking-tighter italic flex items-center gap-3">
             <ShieldCheck className="h-5 w-5 text-primary" /> Performance Log
           </CardTitle>
-          <CardDescription className="text-[10px] font-bold uppercase tracking-widest">
+          <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-left">
             Authorized audit trail for quiz logic cycles
           </CardDescription>
         </CardHeader>
@@ -253,11 +259,11 @@ export function QuizResultsViewer() {
             <Table>
               <TableHeader className="bg-muted/30">
                 <TableRow className="hover:bg-transparent border-b-2 border-border/10">
-                  <TableHead className="text-[10px] font-black uppercase tracking-widest py-8 px-8">
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest py-8 px-8 text-left">
                     Learner Artifact
                   </TableHead>
-                  <TableHead className="text-[10px] font-black uppercase tracking-widest">
-                    Logic Node (Course)
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest text-left">
+                    Logic Node
                   </TableHead>
                   <TableHead className="text-center text-[10px] font-black uppercase tracking-widest">
                     Yield (Score)
@@ -265,7 +271,9 @@ export function QuizResultsViewer() {
                   <TableHead className="text-center text-[10px] font-black uppercase tracking-widest">
                     Registry Status
                   </TableHead>
-                  <TableHead className="text-[10px] font-black uppercase tracking-widest">Temporal Log</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest text-left">
+                    Temporal Log
+                  </TableHead>
                   <TableHead className="text-right text-[10px] font-black uppercase tracking-widest pr-8">
                     Audit
                   </TableHead>
@@ -277,8 +285,8 @@ export function QuizResultsViewer() {
                     key={attempt.id}
                     className="group transition-all hover:bg-primary/[0.02] border-b border-border/5 last:border-0"
                   >
-                    <TableCell className="px-8 py-6">
-                      <div className="space-y-1 text-left">
+                    <TableCell className="px-8 py-6 text-left">
+                      <div className="space-y-1">
                         <p className="font-black text-sm uppercase tracking-tight italic group-hover:text-primary transition-colors leading-none">
                           {attempt.studentName}
                         </p>
@@ -308,7 +316,7 @@ export function QuizResultsViewer() {
                         {attempt.passed ? "SUCCESS_SYNC" : "LOGIC_FAULT"}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest italic">
+                    <TableCell className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest italic text-left">
                       {format(new Date(attempt.attemptedAt), "MMM d, yyyy")}
                     </TableCell>
                     <TableCell className="text-right pr-8">
@@ -316,10 +324,7 @@ export function QuizResultsViewer() {
                         variant="ghost"
                         size="icon"
                         className="h-10 w-10 rounded-xl hover:bg-primary/10 transition-all shadow-inner"
-                        onClick={() => {
-                          setSelectedAttempt(attempt);
-                          setDetailDialogOpen(true);
-                        }}
+                        onClick={() => viewAttemptDetails(attempt)}
                       >
                         <Eye className="h-5 w-5" />
                       </Button>
@@ -371,7 +376,10 @@ export function QuizResultsViewer() {
                         selectedAttempt.passed ? "text-emerald-500" : "text-destructive",
                       )}
                     >
-                      {Math.round((selectedAttempt.score / selectedAttempt.totalQuestions) * 100)}%
+                      {selectedAttempt.totalQuestions > 0
+                        ? Math.round((selectedAttempt.score / selectedAttempt.totalQuestions) * 100)
+                        : 0}
+                      %
                     </p>
                   </div>
                   <div className="text-right">
@@ -413,7 +421,7 @@ export function QuizResultsViewer() {
                           >
                             {answer.isCorrect ? <CheckCircle2 className="h-5 w-5" /> : <XCircle className="h-5 w-5" />}
                           </div>
-                          <div className="space-y-3">
+                          <div className="space-y-3 flex-1">
                             <p className="text-xs font-black uppercase tracking-tight italic opacity-60 leading-none">
                               Artifact Logic {index + 1}
                             </p>
