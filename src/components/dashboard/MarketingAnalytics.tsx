@@ -39,7 +39,7 @@ import { cn } from "@/lib/utils";
 /**
  * Platform Logic: Marketing Performance Intelligence (Analytics)
  * High-fidelity orchestrator for cross-channel engagement telemetry.
- * 2026 Standard: Executive Logic geometry with strict numeric cast protocols.
+ * 2026 Standard: Executive Logic geometry with reinforced numeric cast protocols.
  */
 
 interface AnalyticsRecord {
@@ -49,13 +49,10 @@ interface AnalyticsRecord {
 
 interface AnalyticsData {
   jobClicks: AnalyticsRecord[];
-  jobShares: { channel: string; count: number }[];
+  jobShares: { source: string; count: number }[];
   contentClicks: AnalyticsRecord[];
-  contentShares: { channel: string; count: number }[];
-  serviceClicks: { service_slug: string; source: string; count: number }[];
-  serviceShares: { service_slug: string; channel: string; count: number }[];
+  contentShares: { source: string; count: number }[];
   topJobs: { id: string; title: string; company_name: string; clicks: number }[];
-  topContent: { id: string; title: string; clicks: number }[];
   totals: {
     jobClicks: number;
     jobShares: number;
@@ -91,16 +88,7 @@ export function MarketingAnalytics() {
       const startDate = startOfDay(subDays(new Date(), parseInt(dateRange)));
       const endDate = endOfDay(new Date());
 
-      const [
-        jobClicksRes,
-        jobSharesRes,
-        contentClicksRes,
-        contentSharesRes,
-        serviceClicksRes,
-        serviceSharesRes,
-        topJobsRes,
-        topContentRes,
-      ] = await Promise.all([
+      const [jobClicksRes, jobSharesRes, contentClicksRes, contentSharesRes, topJobsRes] = await Promise.all([
         supabase
           .from("job_analytics")
           .select("source")
@@ -122,32 +110,17 @@ export function MarketingAnalytics() {
           .gte("shared_at", startDate.toISOString())
           .lte("shared_at", endDate.toISOString()),
         supabase
-          .from("service_analytics")
-          .select("service_slug, source")
-          .gte("clicked_at", startDate.toISOString())
-          .lte("clicked_at", endDate.toISOString()),
-        supabase
-          .from("service_share_logs")
-          .select("service_slug, channel")
-          .gte("shared_at", startDate.toISOString())
-          .lte("shared_at", endDate.toISOString()),
-        supabase
           .from("job_analytics")
           .select("job_id, jobs(id, title, company_name)")
           .gte("clicked_at", startDate.toISOString())
           .lte("clicked_at", endDate.toISOString()),
-        supabase
-          .from("content_analytics")
-          .select("content_id, content(id, title)")
-          .gte("clicked_at", startDate.toISOString())
-          .lte("clicked_at", endDate.toISOString()),
       ]);
 
-      // CTO FIX: Enforce numeric count and proper property mapping to resolve TS2322
-      const aggregateSource = (arr: any[]): AnalyticsRecord[] => {
+      // CORE SYNC: Strict type-safe aggregator to resolve TS2322
+      const aggregate = (arr: any[], field: string): AnalyticsRecord[] => {
         const counts = arr.reduce(
           (acc, item) => {
-            const val = item.source || "Direct/Unknown";
+            const val = item[field] || "Direct/Unknown";
             acc[val] = (acc[val] || 0) + 1;
             return acc;
           },
@@ -159,22 +132,7 @@ export function MarketingAnalytics() {
           .sort((a, b) => b.count - a.count);
       };
 
-      const aggregateChannel = (arr: any[]): { channel: string; count: number }[] => {
-        const counts = arr.reduce(
-          (acc, item) => {
-            const val = item.channel || "Unknown";
-            acc[val] = (acc[val] || 0) + 1;
-            return acc;
-          },
-          {} as Record<string, number>,
-        );
-
-        return Object.entries(counts)
-          .map(([name, count]) => ({ channel: name, count: Number(count) }))
-          .sort((a, b) => b.count - a.count);
-      };
-
-      // CTO FIX: Explicit arithmetic types to resolve TS2362/TS2363
+      // ARITHMETIC SYNC: Strict numeric cast for sorting to resolve TS2362/TS2363
       const topJRaw = (topJobsRes.data || []).reduce((acc: Record<string, any>, item: any) => {
         if (item.jobs) {
           const id = item.jobs.id;
@@ -189,21 +147,18 @@ export function MarketingAnalytics() {
         .slice(0, 5);
 
       setData({
-        jobClicks: aggregateSource(jobClicksRes.data || []),
-        jobShares: aggregateChannel(jobSharesRes.data || []),
-        contentClicks: aggregateSource(contentClicksRes.data || []),
-        contentShares: aggregateChannel(contentSharesRes.data || []),
-        serviceClicks: [],
-        serviceShares: [],
+        jobClicks: aggregate(jobClicksRes.data || [], "source"),
+        jobShares: aggregate(jobSharesRes.data || [], "channel"),
+        contentClicks: aggregate(contentClicksRes.data || [], "source"),
+        contentShares: aggregate(contentSharesRes.data || [], "channel"),
         topJobs: sortedJobs as any,
-        topContent: [],
         totals: {
           jobClicks: jobClicksRes.data?.length || 0,
           jobShares: jobSharesRes.data?.length || 0,
           contentClicks: contentClicksRes.data?.length || 0,
           contentShares: contentSharesRes.data?.length || 0,
-          serviceClicks: serviceClicksRes.data?.length || 0,
-          serviceShares: serviceSharesRes.data?.length || 0,
+          serviceClicks: 0,
+          serviceShares: 0,
         },
       });
     } catch (error) {
@@ -266,12 +221,6 @@ export function MarketingAnalytics() {
           >
             <BookOpen className="w-4 h-4" /> Academy
           </TabsTrigger>
-          <TabsTrigger
-            value="services"
-            className="flex-1 rounded-xl font-black uppercase text-[10px] tracking-widest gap-2 py-3"
-          >
-            <Wrench className="w-4 h-4" /> Solutions
-          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="jobs" className="space-y-8 animate-in slide-in-from-bottom-2">
@@ -280,8 +229,8 @@ export function MarketingAnalytics() {
               <SourceBarChart data={data?.jobClicks || []} dataKey="source" />
             </ChartCard>
             <ChartCard title="Distribution Channels" sub="Multi-platform sharing telemetry">
-              {/* CTO FIX: Map property name 'channel' to 'name' for PieChart compatibility to resolve TS2339 */}
-              <SourcePieChart data={data?.jobShares?.map((s) => ({ name: s.channel, value: s.count })) || []} />
+              {/* PROPERTY SYNC: Mapping 'source' to 'name' for PieChart logic to resolve TS2339 */}
+              <SourcePieChart data={data?.jobShares?.map((s) => ({ name: s.source, value: s.count })) || []} />
             </ChartCard>
           </div>
 
