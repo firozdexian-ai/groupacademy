@@ -19,7 +19,7 @@ import { KeyRound, Copy, Check, Zap, Mail, ShieldCheck } from "lucide-react";
 
 /**
  * GroUp Academy: Access Code Deployment Protocol
- * CTO Reference: Fixed PostgrestFilterBuilder type mismatch and response destructuring.
+ * CTO Reference: Resolved TS2739 by explicitly casting PostgrestFilterBuilder to Promise.
  */
 
 interface MockInterviewCodeGeneratorProps {
@@ -45,7 +45,7 @@ export function MockInterviewCodeGenerator({ leadEmail, leadName }: MockIntervie
   const handleGenerate = async () => {
     setGenerating(true);
     try {
-      // Execute auth check with timeout
+      // 1. Verify Session Identity
       const authResponse = await withTimeout(supabase.auth.getUser(), TIMEOUTS.AUTH, "Authentication check timed out");
 
       const user = authResponse?.data?.user;
@@ -56,15 +56,21 @@ export function MockInterviewCodeGenerator({ leadEmail, leadName }: MockIntervie
 
       const code = generateCode();
 
-      // FIXED: Await the Supabase call to resolve the FilterBuilder before wrapping in timeout
-      const insertPromise = supabase.from("mock_interview_access_codes").insert({
-        code,
-        email: leadEmail.toLowerCase().trim(),
-        created_by: user.id,
-        expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-      });
-
-      const { error } = (await withTimeout(insertPromise, TIMEOUTS.DEFAULT, "Code insertion timed out")) as any; // Cast to any to handle the generic return from withTimeout
+      // 2. Execute Deployment with Forced Promise Casting
+      // We call .then() to ensure the return type is a Promise, satisfying the timeout wrapper.
+      const { error } = (await withTimeout(
+        supabase
+          .from("mock_interview_access_codes")
+          .insert({
+            code,
+            email: leadEmail.toLowerCase().trim(),
+            created_by: user.id,
+            expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          })
+          .then((res) => res),
+        TIMEOUTS.DEFAULT,
+        "Code insertion timed out",
+      )) as { error: any };
 
       if (error) throw error;
 
@@ -117,8 +123,8 @@ export function MockInterviewCodeGenerator({ leadEmail, leadName }: MockIntervie
             <DialogTitle className="text-2xl font-black uppercase italic tracking-tighter flex items-center gap-3">
               <ShieldCheck className="h-6 w-6 text-primary" /> Access Deployment
             </DialogTitle>
-            <DialogDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
-              Generate a premium authorization key for {leadName}
+            <DialogDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 italic">
+              Authorized key generation for {leadName} [cite: 19, 43]
             </DialogDescription>
           </DialogHeader>
 
@@ -143,7 +149,7 @@ export function MockInterviewCodeGenerator({ leadEmail, leadName }: MockIntervie
                   <Input
                     value={generatedCode}
                     readOnly
-                    className="h-16 font-mono text-2xl font-black tracking-[0.4em] text-center rounded-2xl border-2 border-primary/20 bg-primary/5"
+                    className="h-16 font-mono text-2xl font-black tracking-[0.4em] text-center rounded-2xl border-2 border-primary/20 bg-primary/5 shadow-inner"
                   />
                   <Button
                     variant="outline"
@@ -155,14 +161,14 @@ export function MockInterviewCodeGenerator({ leadEmail, leadName }: MockIntervie
                   </Button>
                 </div>
                 <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest text-center italic">
-                  Key valid for 30 days. Copy for outreach template.
+                  Key valid for 30 days. Copy for outreach template. [cite: 43]
                 </p>
               </div>
             ) : (
               <div className="py-4 text-center">
                 <p className="text-[11px] font-medium text-muted-foreground mb-6 leading-relaxed">
-                  This protocol generates an 8-character single-use key that bypasses the **75-credit cost** [cite: 223]
-                  for retakes.
+                  This protocol generates an 8-character single-use key that bypasses the **75-credit cost** for mock
+                  interview retakes[cite: 223].
                 </p>
                 <Button
                   onClick={handleGenerate}
