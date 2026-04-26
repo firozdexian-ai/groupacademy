@@ -19,7 +19,7 @@ import { KeyRound, Copy, Check, Zap, Mail, ShieldCheck } from "lucide-react";
 
 /**
  * GroUp Academy: Access Code Deployment Protocol
- * CTO Reference: Manages single-use authorization keys for premium AI services.
+ * CTO Reference: Fixed PostgrestFilterBuilder type mismatch and response destructuring.
  */
 
 interface MockInterviewCodeGeneratorProps {
@@ -45,9 +45,10 @@ export function MockInterviewCodeGenerator({ leadEmail, leadName }: MockIntervie
   const handleGenerate = async () => {
     setGenerating(true);
     try {
-      const {
-        data: { user },
-      } = await withTimeout(supabase.auth.getUser(), TIMEOUTS.AUTH, "Authentication check timed out");
+      // Execute auth check with timeout
+      const authResponse = await withTimeout(supabase.auth.getUser(), TIMEOUTS.AUTH, "Authentication check timed out");
+
+      const user = authResponse?.data?.user;
       if (!user) {
         toast.error("Security Fault: Unauthorized access attempt.");
         return;
@@ -55,16 +56,15 @@ export function MockInterviewCodeGenerator({ leadEmail, leadName }: MockIntervie
 
       const code = generateCode();
 
-      const { error } = await withTimeout(
-        supabase.from("mock_interview_access_codes").insert({
-          code,
-          email: leadEmail.toLowerCase().trim(),
-          created_by: user.id,
-          expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        }),
-        TIMEOUTS.DEFAULT,
-        "Code insertion timed out",
-      );
+      // FIXED: Await the Supabase call to resolve the FilterBuilder before wrapping in timeout
+      const insertPromise = supabase.from("mock_interview_access_codes").insert({
+        code,
+        email: leadEmail.toLowerCase().trim(),
+        created_by: user.id,
+        expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      });
+
+      const { error } = (await withTimeout(insertPromise, TIMEOUTS.DEFAULT, "Code insertion timed out")) as any; // Cast to any to handle the generic return from withTimeout
 
       if (error) throw error;
 
@@ -104,30 +104,34 @@ export function MockInterviewCodeGenerator({ leadEmail, leadName }: MockIntervie
         <Button
           variant="outline"
           size="sm"
-          className="font-black uppercase text-[10px] tracking-widest gap-2 rounded-xl border-2"
+          className="font-black uppercase text-[10px] tracking-widest gap-2 rounded-xl border-2 hover:bg-primary/5"
         >
           <KeyRound className="h-3 w-3" />
           Generate Code
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-md rounded-[32px] border-4 overflow-hidden p-0">
+      <DialogContent className="max-w-md rounded-[32px] border-4 overflow-hidden p-0 bg-background shadow-2xl">
         <div className="h-2 w-full bg-primary" />
         <div className="p-8 space-y-6">
           <DialogHeader className="text-left">
             <DialogTitle className="text-2xl font-black uppercase italic tracking-tighter flex items-center gap-3">
               <ShieldCheck className="h-6 w-6 text-primary" /> Access Deployment
             </DialogTitle>
-            <DialogDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+            <DialogDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
               Generate a premium authorization key for {leadName}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase italic tracking-widest flex items-center gap-2">
+              <Label className="text-[10px] font-black uppercase italic tracking-widest flex items-center gap-2 text-primary/80">
                 <Mail className="h-3 w-3" /> Target Email
               </Label>
-              <Input value={leadEmail} disabled className="h-12 rounded-xl border-2 font-bold bg-muted/30" />
+              <Input
+                value={leadEmail}
+                disabled
+                className="h-12 rounded-xl border-2 font-bold bg-muted/30 border-border/40"
+              />
             </div>
 
             {generatedCode ? (
@@ -145,7 +149,7 @@ export function MockInterviewCodeGenerator({ leadEmail, leadName }: MockIntervie
                     variant="outline"
                     size="icon"
                     onClick={handleCopy}
-                    className="h-16 w-16 rounded-2xl border-2 hover:bg-primary hover:text-white transition-all"
+                    className="h-16 w-16 rounded-2xl border-2 hover:bg-primary hover:text-white transition-all shadow-md"
                   >
                     {copied ? <Check className="h-6 w-6 text-green-500" /> : <Copy className="h-6 w-6" />}
                   </Button>
@@ -157,12 +161,13 @@ export function MockInterviewCodeGenerator({ leadEmail, leadName }: MockIntervie
             ) : (
               <div className="py-4 text-center">
                 <p className="text-[11px] font-medium text-muted-foreground mb-6 leading-relaxed">
-                  This protocol generates an 8-character single-use key that bypasses the 75-credit cost for retakes.
+                  This protocol generates an 8-character single-use key that bypasses the **75-credit cost** [cite: 223]
+                  for retakes.
                 </p>
                 <Button
                   onClick={handleGenerate}
                   disabled={generating}
-                  className="w-full h-14 rounded-2xl font-black uppercase italic tracking-tighter text-lg shadow-xl"
+                  className="w-full h-14 rounded-2xl font-black uppercase italic tracking-tighter text-lg shadow-xl hover:scale-[1.02] active:scale-95 transition-transform"
                 >
                   {generating ? "Synchronizing..." : "Initialize Generation"}
                 </Button>
@@ -174,7 +179,7 @@ export function MockInterviewCodeGenerator({ leadEmail, leadName }: MockIntervie
             <Button
               variant="ghost"
               onClick={() => setOpen(false)}
-              className="font-black uppercase text-[10px] tracking-widest italic opacity-50"
+              className="font-black uppercase text-[10px] tracking-widest italic opacity-50 hover:opacity-100 transition-opacity"
             >
               Close Console
             </Button>
