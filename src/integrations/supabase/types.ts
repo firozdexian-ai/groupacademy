@@ -2712,6 +2712,10 @@ export type Database = {
       }
       job_applications: {
         Row: {
+          added_by: string | null
+          ai_match_rationale: string | null
+          ai_match_score: number | null
+          ai_scored_at: string | null
           applicant_notified_at: string | null
           application_status:
             | Database["public"]["Enums"]["application_status"]
@@ -2721,13 +2725,19 @@ export type Database = {
           cv_url: string | null
           delivery_error: string | null
           delivery_status: Database["public"]["Enums"]["delivery_status"] | null
+          external_notes: string | null
           id: string
           is_paid: boolean | null
           job_id: string
           professional_id: string | null
+          source: string
           talent_id: string | null
         }
         Insert: {
+          added_by?: string | null
+          ai_match_rationale?: string | null
+          ai_match_score?: number | null
+          ai_scored_at?: string | null
           applicant_notified_at?: string | null
           application_status?:
             | Database["public"]["Enums"]["application_status"]
@@ -2739,13 +2749,19 @@ export type Database = {
           delivery_status?:
             | Database["public"]["Enums"]["delivery_status"]
             | null
+          external_notes?: string | null
           id?: string
           is_paid?: boolean | null
           job_id: string
           professional_id?: string | null
+          source?: string
           talent_id?: string | null
         }
         Update: {
+          added_by?: string | null
+          ai_match_rationale?: string | null
+          ai_match_score?: number | null
+          ai_scored_at?: string | null
           applicant_notified_at?: string | null
           application_status?:
             | Database["public"]["Enums"]["application_status"]
@@ -2757,10 +2773,12 @@ export type Database = {
           delivery_status?:
             | Database["public"]["Enums"]["delivery_status"]
             | null
+          external_notes?: string | null
           id?: string
           is_paid?: boolean | null
           job_id?: string
           professional_id?: string | null
+          source?: string
           talent_id?: string | null
         }
         Relationships: [
@@ -2895,6 +2913,41 @@ export type Database = {
             columns: ["talent_id"]
             isOneToOne: false
             referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_channel_posts: {
+        Row: {
+          caption: string | null
+          channel: string
+          id: string
+          job_id: string
+          posted_at: string
+          posted_by: string | null
+        }
+        Insert: {
+          caption?: string | null
+          channel: string
+          id?: string
+          job_id: string
+          posted_at?: string
+          posted_by?: string | null
+        }
+        Update: {
+          caption?: string | null
+          channel?: string
+          id?: string
+          job_id?: string
+          posted_at?: string
+          posted_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_channel_posts_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
             referencedColumns: ["id"]
           },
         ]
