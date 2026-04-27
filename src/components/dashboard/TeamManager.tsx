@@ -46,6 +46,7 @@ import { cn } from "@/lib/utils";
 /**
  * GroUp Academy: Internal Workforce Command Center
  * CTO Reference: Authoritative orchestrator for workforce roles and security protocols.
+ * Fixed TS2304 by restoring the handleOpenResetDialog function.
  */
 
 type AppRole = Database["public"]["Enums"]["app_role"];
@@ -206,6 +207,16 @@ export function TeamManager() {
     }
   };
 
+  // RESTORED: Missing function to open reset dialog
+  const handleOpenResetDialog = (member: TeamMember) => {
+    setResetMember(member);
+    setResetMethod("email");
+    setTempPassword(null);
+    setResetLink(null);
+    setCopied(false);
+    setIsResetDialogOpen(true);
+  };
+
   const handleResetPassword = async () => {
     if (!resetMember?.talent) return;
     setIsResetting(true);
@@ -262,8 +273,8 @@ export function TeamManager() {
   return (
     <div className="space-y-10 animate-in fade-in duration-700">
       {/* EXECUTIVE HEADER */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-muted/20 p-8 rounded-[40px] border-2 border-border/40 backdrop-blur-md">
-        <div className="space-y-1 text-left">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-muted/20 p-8 rounded-[40px] border-2 border-border/40 backdrop-blur-md text-left">
+        <div className="space-y-1">
           <div className="flex items-center gap-3 text-primary">
             <ShieldCheck className="h-8 w-8" />
             <h2 className="text-4xl font-black uppercase tracking-tighter italic leading-none">Workforce Hub</h2>
