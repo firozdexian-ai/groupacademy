@@ -1,196 +1,89 @@
-# Jobs Hub Consolidation v2 — Recruiter Operating System
+# Closed-Loop WhatsApp Sales & Invoice System
 
-## Vision
+## Goal
+Keep every credit sale traceable end-to-end inside the admin panel — even when the actual payment happens off-platform on WhatsApp. Today, when a user clicks "Purchase on WhatsApp" we just open `wa.me` with a prefilled message and nothing is recorded. We will fix that by writing an **invoice request row** the moment the user confirms a bundle, and giving admins a full management UI to approve, disburse credits, attach proof, and close it out.
 
-Convert the admin Jobs section into a single **Jobs Hub** that owns the entire recruitment loop — from posting a job, through ingesting applications from any channel, to AI-scoring and reaching out to candidates. The hub becomes a tool not just for internal admins but for **employer partners**, who get one place to manage applications from GroUp Academy *and* from external sources (LinkedIn, Facebook, email, walk-ins).
+## Current state (what's already built)
+- `CreditPurchaseSheet` shows bundles and either opens WhatsApp (`getCreditPurchaseMessage`) or starts Stripe checkout. WhatsApp path leaves **no DB trace**.
+- `talent_credits`, `credit_transactions`, `add_credits()` RPC, `platform_settings` for WhatsApp toggle/Stripe — all exist.
+- Admin sidebar has a "Payments" group (currently Stripe gateway config only). No invoice management UI exists.
 
-## Sidebar Reshape
+## What we'll build
 
+### 1. Database — new `credit_invoices` table
 ```text
-Recruitment
-├── Jobs KPIs           (unchanged)
-├── Jobs Hub            (NEW – consolidated)
-│    ├── Tab 1: Manage         (jobs inventory + edit/create + engagement)
-│    ├── Tab 2: Applications   (platform + external + AI relevance)
-│    ├── Tab 3: Outreach       (multi-channel job promotion + candidate outreach)
-│    └── Tab 4: Upload & Verify (single, batch, JSON, gig submissions)
-└── (Standalone "Applications" sidebar entry removed — folded into Jobs Hub Tab 2)
+credit_invoices
+├── id (uuid, pk)
+├── invoice_number (text, unique, auto: INV-YYYYMM-NNNN)
+├── talent_id (fk → talents)
+├── bundle_credits (int)        -- e.g. 500
+├── bundle_price_usd (numeric)  -- e.g. 9.00
+├── bundle_price_local (numeric)-- BDT equivalent for context
+├── currency (text, default 'USD')
+├── status (text)               -- 'pending' | 'awaiting_payment' | 'paid' | 'cancelled' | 'refunded'
+├── channel (text)              -- 'whatsapp' (extensible)
+├── whatsapp_message_sent (bool)
+├── payment_method (text, null) -- 'bkash' | 'nagad' | 'bank' | 'card' | 'other'
+├── payment_reference (text)    -- TXN id / last-4
+├── payment_proof_url (text)    -- file in storage
+├── admin_notes (text)
+├── credits_disbursed (bool, default false)
+├── credit_transaction_id (fk → credit_transactions, null)
+├── created_at, updated_at, paid_at, approved_by (uuid → auth.users)
 ```
+- New private storage bucket: **`payment-proofs`** (admins write, talent reads own).
+- RLS: talent can `SELECT` own rows + `INSERT` (status forced to `pending`); only admins can `UPDATE`.
+- Trigger to auto-generate `invoice_number` and bump `updated_at`.
+- New RPC `approve_invoice_and_disburse(invoice_id, payment_method, payment_reference, proof_url, notes)` → admin-only, writes a `credit_transactions` row via existing pattern, flips invoice to `paid`, links the txn id. Atomic.
+- New RPC `cancel_invoice(invoice_id, reason)` for admin.
 
-CV Outreach is also linked from Tab 3 (kept for non-job CV outreach in Marketing & Outreach unchanged, since it serves wider products).
+### 2. User flow (CreditPurchaseSheet)
+1. User picks bundle → instead of opening WhatsApp directly, we:
+   - Call new RPC `create_credit_invoice(bundle_credits, bundle_price_usd)` that inserts a `pending` row and returns `{invoice_id, invoice_number}`.
+   - Show a quick confirmation step ("Invoice #INV-202604-0042 created — opening WhatsApp…").
+   - Open `wa.me` with a richer prefilled message that **includes the invoice number** so admins can match conversations to invoices instantly.
+   - Mark `whatsapp_message_sent = true`.
+2. New page **`/app/transactions` → "My Invoices" tab** (or section on existing Transactions page) so users can see status: Pending → Awaiting payment → Paid (with proof). They can also re-open the WhatsApp link from any pending invoice.
 
----
+### 3. Admin panel — new "Invoices" tab inside Payments group
+Component: `src/components/dashboard/payments/InvoiceManager.tsx`, registered in `Dashboard.tsx`, lazy-loaded.
 
-## Tab 1 — Manage
+Features:
+- **List view** with filters: status, date range, talent search, channel.
+- KPI strip: Pending count, Awaiting payment value, Paid this month (USD + credits).
+- **Row actions / detail drawer**:
+  - View talent profile + WhatsApp deep link (preserves invoice number in message).
+  - **Edit** bundle/price (in case user negotiated a custom amount).
+  - **Mark "Awaiting payment"** (sent quote on WA).
+  - **Approve & Disburse** → modal asks for payment method, reference, optional proof upload (image/pdf to `payment-proofs` bucket), notes. Calls `approve_invoice_and_disburse`. Credits land in talent wallet, transaction row created with `transaction_type='whatsapp_purchase'` and `reference_id = invoice_id`.
+  - **Cancel** with reason.
+- Audit trail: `approved_by`, `paid_at`, link to `credit_transactions` row.
+- CSV export (matches existing Transactions export pattern).
 
-Extracted from current 653-line `JobsManager`. Inventory, status filters, engagement sub-card, plus the AI-powered Job Form Dialog (Title, Company, Salary, AI-Enhance Description button, source platform tagging — **all existing AI features preserved**).
+### 4. WhatsApp channel reinforcement (always-push)
+- Centralize the message builder in `src/lib/constants/support.ts` so every entry point uses the same template (now including invoice number, talent name, balance).
+- Add a "Pay on WhatsApp" button on every pending invoice in the user's invoice list — and a notification (existing `notifications` table) when admin marks it `awaiting_payment` or `paid`.
+- Admin invoice drawer always shows a one-click WhatsApp button with status-appropriate prefilled text (e.g. "Hi {name}, we received your payment for INV-… — credits added 🎉").
+- Optional: nightly reminder via existing `enqueue_email` for invoices stuck in `pending` > 24h, with a WhatsApp CTA in the email body (uses already-configured native email infra).
 
-Improvements:
-- Bulk activate / deactivate / delete
-- Inline `is_active` and `is_featured` toggles in the row
-- "Stale jobs" quick filter (deadline passed or >60 days old)
-- Source platform icon in the row
+### 5. Backwards compatibility
+- Existing Stripe path is untouched. When Stripe webhook lands a payment we can also auto-create a `paid` invoice row for unified reporting (small addition to `stripe-webhook` function).
 
----
+## Technical notes
+- All DB changes via migration; use validation triggers (not CHECK constraints) for status transitions per platform memory rules.
+- Edge-function-free where possible: invoice creation and approval go through RPCs (security-definer, `search_path=public`) — no new edge functions needed.
+- File uploads use signed URLs (consistent with `talent-cvs` security pattern).
+- Admin checks via existing `has_any_admin_role(auth.uid())`.
+- No payment integration required for v1; Stripe stays optional and the system works fully on WhatsApp + manual disbursement.
 
-## Tab 2 — Applications (Unified Pipeline)
+## Out of scope (can follow up later)
+- Auto-reconciling bKash/Nagad payouts via API.
+- Multi-currency invoicing beyond USD/BDT display.
+- Customer-facing PDF invoice download (easy add once schema lands).
 
-This is the new heart of the hub. Replaces the standalone `JobApplicationsManager` and absorbs **external applications** as a first-class concept.
-
-### Two application sources, one table
-
-| Source | How it enters | Stored in |
-|---|---|---|
-| Platform | User clicks Apply on the job → existing flow | `job_applications` (existing) |
-| External | Admin or employer uploads CV+contact, picks a job | `job_applications` with `source = 'external'` |
-
-The unified table shows both, with a Source badge column. Filters: status, delivery, **source** (platform / external / all), **AI fit score range**.
-
-### "Add External Application" action
-
-A button on each job (and at the top of Tab 2) opens a dialog:
-
-1. **Upload CV** (PDF/DOCX) or paste CV text — runs the existing `parse-cv` edge function (keeps the AI parser already used elsewhere).
-2. **Extracted candidate panel** — name, email, phone, profession, skills (editable, same UX pattern as `JobPostingGigForm`).
-3. **Talent matching** — query `talents` by email/phone:
-   - If a talent exists → link `talent_id` automatically.
-   - If not → create a lightweight talent record (`get_or_create_talent` RPC already exists) so the candidate joins the talent database, can be contacted, and can later claim their account via the existing email-link flow.
-4. **Save** → inserts a `job_applications` row (`source = 'external'`, `application_status = 'submitted'`, `is_paid = true` since admin-entered).
-
-### AI Relevance Scoring
-
-Every application (platform OR external) gets a "Score Match" button that calls the existing **`score-job-match`** edge function (already deployed). Result is persisted as a numeric score + short rationale.
-
-- Score badge in the table (Strong / Good / Fair / Weak with color)
-- Sortable column → admins/employers triage fastest
-- **Bulk score** action — score all unscored applications for a job in one click (sequential calls with progress toast)
-- Score is cached so re-opening doesn't re-spend AI tokens
-
-### Employer-facing benefit
-
-Because external applications get the same scoring and the same contact tooling, the Jobs Hub becomes a real **applicant tracking system** for partner companies — they manage all their inbound (regardless of channel) inside our infrastructure, which deepens platform stickiness.
-
----
-
-## Tab 3 — Outreach (Multi-Channel, Restored)
-
-Restores the previous channel-aware structure.
-
-### Job Promotion Outreach (NEW for jobs)
-
-For any active job, generate a channel-specific post:
-
-| Channel | Output |
-|---|---|
-| WhatsApp | Short conversational post with job + apply link |
-| LinkedIn | Professional formatted post with hashtags |
-| Facebook | Engaging post with emoji + CTA |
-| Email | Subject line + HTML body |
-
-Uses the existing **`generate-job-share-caption`** edge function (already AI-powered) with a `channel` parameter. Shows a channel counter ("Posted to 3 / 4 channels") with one-click copy per channel and a "Mark as posted" log so we track distribution per job.
-
-### Candidate Outreach
-
-For any application row (platform or external), an outreach button that:
-- Pre-fills WhatsApp / Email / LinkedIn templates from `outreachTemplates.ts` with candidate name + job context
-- One-click open in WhatsApp / mailto / LinkedIn
-- Logs the outreach attempt against the application (re-using `delivery_status` + a new `notes` field if needed)
-
-CVOutreachGenerator (existing 147-line component, full AI parser kept) is embedded as a sub-section for ad-hoc CV-driven outreach.
-
----
-
-## Tab 4 — Upload & Verify
-
-Consolidated job ingestion:
-
-- **Single Upload** — opens the Job Form Dialog (with AI Enhance Description preserved).
-- **AI Parser for Single Posting** — paste a raw job description / URL / screenshot → calls existing `parse-job-post` edge function → pre-fills the Job Form Dialog. (This is the AI parser the user wants restored at the single-posting entry point.)
-- **Batch Upload** — `BatchLinkedInJobUpload` rendered inline.
-- **LinkedIn JSON Upload** — `LinkedInJsonUpload` rendered inline.
-- **Pending Gig Submissions** — filtered view of `gig_submissions` where `gigs.category = 'job_posting'`. Each row has "Review & Publish" → opens the Job Form Dialog pre-filled from `submission_data.curated_data` so the admin can correct AI extraction before going live. Approve flow calls existing `award_gig_credits` RPC.
-
----
-
-## Database Changes
-
-Single migration:
-
-```sql
--- 1. Track application source
-ALTER TABLE public.job_applications
-  ADD COLUMN source text NOT NULL DEFAULT 'platform'
-    CHECK (source IN ('platform','external')),
-  ADD COLUMN ai_match_score integer
-    CHECK (ai_match_score BETWEEN 0 AND 100),
-  ADD COLUMN ai_match_rationale text,
-  ADD COLUMN ai_scored_at timestamptz,
-  ADD COLUMN external_notes text,            -- admin-only notes for external apps
-  ADD COLUMN added_by uuid REFERENCES auth.users(id);  -- who added an external app
-
-CREATE INDEX idx_job_applications_source ON public.job_applications(source);
-CREATE INDEX idx_job_applications_score  ON public.job_applications(ai_match_score DESC NULLS LAST);
-
--- 2. Track per-channel job promotion
-CREATE TABLE public.job_channel_posts (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  job_id uuid NOT NULL REFERENCES public.jobs(id) ON DELETE CASCADE,
-  channel text NOT NULL CHECK (channel IN ('whatsapp','linkedin','facebook','email','other')),
-  posted_by uuid REFERENCES auth.users(id),
-  caption text,
-  posted_at timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (job_id, channel, posted_at)
-);
-ALTER TABLE public.job_channel_posts ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Admins manage channel posts"
-  ON public.job_channel_posts FOR ALL
-  USING (public.has_any_admin_role(auth.uid()))
-  WITH CHECK (public.has_any_admin_role(auth.uid()));
-```
-
-RLS on `job_applications` for the new columns: existing admin policies cover them; no policy change needed for admins. For external applications, only admins can set `source='external'` (enforced via existing policies + form-side guard).
-
-## Edge Functions
-
-All existing — **no new functions needed**:
-- `parse-cv` → external application CV parsing
-- `parse-job-post` → single-posting AI parser
-- `enhance-job-description` → AI Enhance in Job Form
-- `score-job-match` → AI relevance scoring (call with `application_id`)
-- `generate-job-share-caption` → multi-channel post generation (extend body to accept `channel`)
-- `get_or_create_talent` RPC → external candidate → talent linking
-
-Only `generate-job-share-caption` may need a tiny tweak to vary tone per channel; verifying that's already supported before changing.
-
-## File Plan
-
-**New**
-- `src/components/dashboard/jobs-hub/JobsHub.tsx` (4-tab shell, ~150 lines)
-- `src/components/dashboard/jobs-hub/JobsManageTab.tsx`
-- `src/components/dashboard/jobs-hub/JobsApplicationsTab.tsx` (unified pipeline + AI score column)
-- `src/components/dashboard/jobs-hub/JobsOutreachTab.tsx` (multi-channel posts + candidate outreach)
-- `src/components/dashboard/jobs-hub/JobsUploadTab.tsx`
-- `src/components/dashboard/jobs-hub/JobFormDialog.tsx` (shared, AI-enhance preserved)
-- `src/components/dashboard/jobs-hub/AddExternalApplicationDialog.tsx` (CV parse + talent linking)
-- `src/components/dashboard/jobs-hub/AIRelevanceScore.tsx` (badge + score button)
-- `src/components/dashboard/jobs-hub/ChannelPromotionCard.tsx` (4-channel generator)
-- `src/components/dashboard/jobs-hub/PendingJobSubmissions.tsx`
-
-**Modified**
-- `src/pages/Dashboard.tsx` — register `jobs-hub`, drop standalone `applications` and `jobs` (alias `jobs` → hub for back-compat)
-- `src/components/dashboard/AdminSidebar.tsx` — Recruitment group: KPIs, Jobs Hub. Remove "Applications".
-- (Optional) Keep `JobsManager.tsx` and `JobApplicationsManager.tsx` as thin re-exports for one release, then remove.
-
-## Why This Is Worth Doing
-
-1. **One screen, one workflow** — recruiter never leaves the hub for a single end-to-end action (post → promote → ingest → score → contact).
-2. **External applications + talent auto-linking** turns inbound from any channel into platform talent records — every external applicant becomes a potential platform user.
-3. **AI relevance score** is a clear value-add for employers; it's the single feature that differentiates this from a spreadsheet.
-4. **Channel-aware outreach** restores the structure the team already trusted; generation stays AI-driven.
-5. **All existing AI tools are preserved** (CV parse, job parse, description enhance, match scoring, share caption); we're re-organising surfaces, not removing capabilities.
-
-## Out of Scope
-
-- Per-employer login/permissions for the hub (current admin/talent_exec roles are sufficient for now; multi-tenant employer access is a separate, larger plan).
-- Email-thread tracking inside the platform (we still link out to mailto/WhatsApp).
-- Pricing changes for AI scoring (admin/internal use is free; if this is later exposed to employers, a credit cost can be added easily on the score button).
+## Deliverables
+1. Migration: `credit_invoices` table, `payment-proofs` bucket + RLS, `create_credit_invoice` / `approve_invoice_and_disburse` / `cancel_invoice` RPCs, invoice-number trigger.
+2. Updated `CreditPurchaseSheet.tsx` — invoice-first WhatsApp flow.
+3. New user-facing "My Invoices" section in `Transactions.tsx`.
+4. New admin `InvoiceManager.tsx` + drawer + approval modal, wired into Dashboard's Payments group.
+5. Notification + WhatsApp message helpers updated to carry invoice numbers.

@@ -1552,6 +1552,93 @@ export type Database = {
           },
         ]
       }
+      credit_invoices: {
+        Row: {
+          admin_notes: string | null
+          approved_by: string | null
+          bundle_credits: number
+          bundle_price_local: number | null
+          bundle_price_usd: number
+          cancellation_reason: string | null
+          channel: string
+          created_at: string
+          credit_transaction_id: string | null
+          credits_disbursed: boolean
+          currency: string
+          id: string
+          invoice_number: string | null
+          paid_at: string | null
+          payment_method: string | null
+          payment_proof_url: string | null
+          payment_reference: string | null
+          status: string
+          talent_id: string
+          updated_at: string
+          whatsapp_message_sent: boolean
+        }
+        Insert: {
+          admin_notes?: string | null
+          approved_by?: string | null
+          bundle_credits: number
+          bundle_price_local?: number | null
+          bundle_price_usd: number
+          cancellation_reason?: string | null
+          channel?: string
+          created_at?: string
+          credit_transaction_id?: string | null
+          credits_disbursed?: boolean
+          currency?: string
+          id?: string
+          invoice_number?: string | null
+          paid_at?: string | null
+          payment_method?: string | null
+          payment_proof_url?: string | null
+          payment_reference?: string | null
+          status?: string
+          talent_id: string
+          updated_at?: string
+          whatsapp_message_sent?: boolean
+        }
+        Update: {
+          admin_notes?: string | null
+          approved_by?: string | null
+          bundle_credits?: number
+          bundle_price_local?: number | null
+          bundle_price_usd?: number
+          cancellation_reason?: string | null
+          channel?: string
+          created_at?: string
+          credit_transaction_id?: string | null
+          credits_disbursed?: boolean
+          currency?: string
+          id?: string
+          invoice_number?: string | null
+          paid_at?: string | null
+          payment_method?: string | null
+          payment_proof_url?: string | null
+          payment_reference?: string | null
+          status?: string
+          talent_id?: string
+          updated_at?: string
+          whatsapp_message_sent?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_invoices_credit_transaction_id_fkey"
+            columns: ["credit_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "credit_transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_invoices_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       credit_transactions: {
         Row: {
           amount: number
@@ -5338,9 +5425,23 @@ export type Database = {
         Args: { p_service: string; p_talent_id: string }
         Returns: undefined
       }
+      approve_invoice_and_disburse: {
+        Args: {
+          p_admin_notes?: string
+          p_invoice_id: string
+          p_payment_method: string
+          p_payment_proof_url?: string
+          p_payment_reference?: string
+        }
+        Returns: Json
+      }
       auto_deactivate_expired_jobs: { Args: never; Returns: number }
       award_gig_credits: {
         Args: { p_admin_notes?: string; p_submission_id: string }
+        Returns: Json
+      }
+      cancel_invoice: {
+        Args: { p_invoice_id: string; p_reason?: string }
         Returns: Json
       }
       check_auth_email: { Args: { lookup_email: string }; Returns: Json }
@@ -5354,6 +5455,15 @@ export type Database = {
         Returns: boolean
       }
       cleanup_rate_limits: { Args: never; Returns: undefined }
+      create_credit_invoice: {
+        Args: {
+          p_bundle_credits: number
+          p_bundle_price_local?: number
+          p_bundle_price_usd: number
+          p_currency?: string
+        }
+        Returns: Json
+      }
       deduct_credits:
         | {
             Args: {
