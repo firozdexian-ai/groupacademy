@@ -4,6 +4,11 @@ import { useTalent } from "@/hooks/useTalent";
 import { toast } from "sonner";
 import { handleAIError, getAIUnavailableToast } from "@/lib/aiErrorHandler";
 
+/**
+ * GroUp Academy: General Intelligence Hook
+ * CTO Reference: Governs broad-spectrum AI chat sessions and streaming node management.
+ */
+
 export interface AgentMessage {
   role: "user" | "assistant";
   content: string;
@@ -25,7 +30,7 @@ export function useAIGeneralChat(initialQuery?: string): UseAIGeneralChatReturn 
   const [isLoading, setIsLoading] = useState(false);
   const initialSent = useRef(false);
 
-  // Auto-create a free session on mount
+  // PROTOCOL: Auto-provision free interaction node
   useEffect(() => {
     if (!talent?.id || sessionId) return;
 
@@ -33,9 +38,9 @@ export function useAIGeneralChat(initialQuery?: string): UseAIGeneralChatReturn 
       setIsLoading(true);
       try {
         const now = new Date();
-        const expiresAt = new Date(now.getTime() + 1440 * 60 * 1000); // 24h
+        const expiresAt = new Date(now.getTime() + 1440 * 60 * 1000); // 24h Lifecycle
 
-        // Increment conversation counter
+        // Telemetry: Increment platform usage counters
         await supabase.rpc("increment_agent_conversations", { p_agent_key: "ai-general" });
 
         const { data, error } = await supabase
@@ -55,7 +60,7 @@ export function useAIGeneralChat(initialQuery?: string): UseAIGeneralChatReturn 
         if (error) throw error;
         setSessionId(data.id);
       } catch (err) {
-        console.error("Failed to create AI General session:", err);
+        console.error("Session Provisioning Fault:", err);
       } finally {
         setIsLoading(false);
       }
@@ -64,7 +69,7 @@ export function useAIGeneralChat(initialQuery?: string): UseAIGeneralChatReturn 
     createSession();
   }, [talent?.id, sessionId]);
 
-  // Send initial query once session is ready
+  // PROTOCOL: Auto-dispatch initial inquiry if provided
   useEffect(() => {
     if (sessionId && initialQuery && !initialSent.current && messages.length === 0) {
       initialSent.current = true;
@@ -81,7 +86,7 @@ export function useAIGeneralChat(initialQuery?: string): UseAIGeneralChatReturn 
           .update({ messages: msgs as unknown as any })
           .eq("id", sessionId);
       } catch (err) {
-        console.error("Failed to save messages:", err);
+        console.error("Registry Persistence Fault:", err);
       }
     },
     [sessionId],
@@ -99,8 +104,10 @@ export function useAIGeneralChat(initialQuery?: string): UseAIGeneralChatReturn 
       let assistantContent = "";
 
       try {
-        const { data: { session: authSession } } = await supabase.auth.getSession();
-        if (!authSession?.access_token) throw new Error("User not authenticated");
+        const {
+          data: { session: authSession },
+        } = await supabase.auth.getSession();
+        if (!authSession?.access_token) throw new Error("Unauthenticated Node");
 
         const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-agent-chat`, {
           method: "POST",
@@ -118,22 +125,23 @@ export function useAIGeneralChat(initialQuery?: string): UseAIGeneralChatReturn 
           const errorData = await response.json().catch(() => ({}));
           const { message, suggestion, isAIUnavailable } = handleAIError(errorData, response.status);
           if (isAIUnavailable) {
-            const { description } = getAIUnavailableToast();
-            toast.error(description);
+            toast.error(getAIUnavailableToast().description);
           } else {
             toast.error(message, { description: suggestion });
           }
           return;
         }
 
-        if (!response.body) throw new Error("No response body");
+        if (!response.body) throw new Error("Stream Body Missing");
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let textBuffer = "";
 
+        // Push empty assistant artifact to the UI
         setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
 
+        // REINFORCED: Neural Extraction Loop
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
@@ -159,24 +167,27 @@ export function useAIGeneralChat(initialQuery?: string): UseAIGeneralChatReturn 
                 assistantContent += tokenContent;
                 setMessages((prev) => {
                   const updated = [...prev];
-                  if (updated.length > 0 && updated[updated.length - 1].role === "assistant") {
-                    updated[updated.length - 1] = { role: "assistant", content: assistantContent };
+                  const lastIdx = updated.length - 1;
+                  if (updated[lastIdx]?.role === "assistant") {
+                    updated[lastIdx] = { role: "assistant", content: assistantContent };
                   }
                   return updated;
                 });
               }
             } catch {
+              // Fragmented JSON node: return to buffer for next cycle
               textBuffer = line + "\n" + textBuffer;
               break;
             }
           }
         }
 
+        // PROTOCOL: Final session commit
         const finalMessages = [...newMessages, { role: "assistant" as const, content: assistantContent }];
         await saveMessages(finalMessages);
       } catch (error) {
-        console.error("Send message error:", error);
-        toast.error("Failed to send message. Please try again.");
+        console.error("Transmission Fault:", error);
+        toast.error("Neural Sync Interrupted.");
         setMessages((prev) => prev.filter((_, i) => i !== prev.length - 1));
       } finally {
         setIsStreaming(false);
@@ -185,7 +196,6 @@ export function useAIGeneralChat(initialQuery?: string): UseAIGeneralChatReturn 
     [sessionId, messages, isStreaming, saveMessages],
   );
 
-  // Expose a stable sendMessage that uses the latest closure
   const sendMessage = useCallback(
     async (content: string) => {
       await sendMessageInternal(content);
