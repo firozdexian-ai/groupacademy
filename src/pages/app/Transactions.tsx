@@ -32,6 +32,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { CreditBalance } from "@/components/credits/CreditBalance";
+import { MyInvoicesList } from "@/components/credits/MyInvoicesList";
 import { cn } from "@/lib/utils";
 
 /**
