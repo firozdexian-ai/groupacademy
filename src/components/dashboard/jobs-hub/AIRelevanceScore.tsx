@@ -42,7 +42,10 @@ export function AIRelevanceScore({ applicationId, jobId, talentId, score, ration
       const { data, error } = await supabase.functions.invoke("score-job-match", {
         body: { jobId, talentId },
       });
-      if (error) throw error;
+      if (error) {
+        const msg = (data as any)?.error || error.message || "Score failed";
+        throw new Error(msg);
+      }
       const overall = Math.round(Number(data?.overall_match ?? data?.score ?? 0));
       const reco = data?.recommendation || data?.rationale || "";
       const { error: upErr } = await supabase
