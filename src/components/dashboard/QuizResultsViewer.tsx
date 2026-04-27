@@ -14,32 +14,15 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
-import {
-  CheckCircle2,
-  XCircle,
-  Eye,
-  FileText,
-  Trophy,
-  Target,
-  Clock,
-  User,
-  ShieldCheck,
-  Activity,
-  Zap,
-  Layers,
-  ChevronRight,
-  Search,
-} from "lucide-react";
+import { CheckCircle2, XCircle, Eye, FileText, Trophy, Target, ShieldCheck, Activity, Layers } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
 /**
- * Platform Logic: Pedagogical Assessment Terminal (Quiz Results)
- * High-fidelity orchestrator for learner performance telemetry and result forensics.
- * 2026 Standard: Executive Logic geometry with reinforced question-level auditing.
+ * GroUp Academy: Pedagogical Assessment Terminal
+ * CTO Reference: Executive-level auditing of learner quiz attempts and performance.
  */
 
 interface QuizAnswer {
@@ -70,7 +53,6 @@ export function QuizResultsViewer() {
   const [selectedAttempt, setSelectedAttempt] = useState<QuizAttempt | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
 
-  // Registry Ingestion: Courses
   const { data: courses, isLoading: coursesLoading } = useQuery({
     queryKey: ["admin-quiz-courses"],
     queryFn: async () => {
@@ -85,7 +67,6 @@ export function QuizResultsViewer() {
     },
   });
 
-  // Telemetry Ingestion: Attempts
   const { data: quizAttempts, isLoading: attemptsLoading } = useQuery({
     queryKey: ["admin-quiz-attempts", selectedCourse],
     queryFn: async (): Promise<QuizAttempt[]> => {
@@ -177,8 +158,8 @@ export function QuizResultsViewer() {
         </Select>
       </div>
 
-      {/* Summary Telemetry Artifacts */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+      {/* Summary Telemetry */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-left">
         {[
           {
             label: "Registry Nodes",
@@ -213,7 +194,7 @@ export function QuizResultsViewer() {
         ].map((kpi, i) => (
           <Card
             key={i}
-            className="rounded-[32px] border-2 border-border/40 bg-card/30 backdrop-blur-sm overflow-hidden group hover:border-primary/20 transition-all duration-500"
+            className="rounded-[32px] border-2 border-border/40 bg-card/30 backdrop-blur-sm group hover:border-primary/20 transition-all"
           >
             <CardContent className="p-6 space-y-4">
               <div
@@ -230,7 +211,6 @@ export function QuizResultsViewer() {
                   {kpi.label}
                 </p>
                 <p className="text-3xl font-black tracking-tighter italic leading-none">{kpi.val}</p>
-                {/* CTO FIX: Wrapped val in String() to resolve TS2345 mismatch */}
                 {kpi.progress && <Progress value={parseInt(String(kpi.val))} className="h-1 mt-3" />}
               </div>
             </CardContent>
@@ -238,7 +218,7 @@ export function QuizResultsViewer() {
         ))}
       </div>
 
-      {/* Main Attempts Registry */}
+      {/* Main Registry */}
       <Card className="rounded-[40px] border-2 border-border/40 shadow-2xl overflow-hidden bg-card/30 backdrop-blur-xl">
         <div className="h-1.5 w-full bg-gradient-to-r from-primary via-blue-600 to-primary" />
         <CardHeader className="p-8 border-b border-border/10">
@@ -259,22 +239,22 @@ export function QuizResultsViewer() {
             <Table>
               <TableHeader className="bg-muted/30">
                 <TableRow className="hover:bg-transparent border-b-2 border-border/10">
-                  <TableHead className="text-[10px] font-black uppercase tracking-widest py-8 px-8 text-left">
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest py-8 px-8 text-left text-muted-foreground">
                     Learner Artifact
                   </TableHead>
-                  <TableHead className="text-[10px] font-black uppercase tracking-widest text-left">
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest text-left text-muted-foreground">
                     Logic Node
                   </TableHead>
-                  <TableHead className="text-center text-[10px] font-black uppercase tracking-widest">
+                  <TableHead className="text-center text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                     Yield (Score)
                   </TableHead>
-                  <TableHead className="text-center text-[10px] font-black uppercase tracking-widest">
-                    Registry Status
+                  <TableHead className="text-center text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                    Status
                   </TableHead>
-                  <TableHead className="text-[10px] font-black uppercase tracking-widest text-left">
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest text-left text-muted-foreground">
                     Temporal Log
                   </TableHead>
-                  <TableHead className="text-right text-[10px] font-black uppercase tracking-widest pr-8">
+                  <TableHead className="text-right text-[10px] font-black uppercase tracking-widest pr-8 text-muted-foreground">
                     Audit
                   </TableHead>
                 </TableRow>
@@ -283,7 +263,7 @@ export function QuizResultsViewer() {
                 {quizAttempts.map((attempt) => (
                   <TableRow
                     key={attempt.id}
-                    className="group transition-all hover:bg-primary/[0.02] border-b border-border/5 last:border-0"
+                    className="group transition-all hover:bg-primary/[0.02] border-b border-border/5"
                   >
                     <TableCell className="px-8 py-6 text-left">
                       <div className="space-y-1">
@@ -299,17 +279,14 @@ export function QuizResultsViewer() {
                       {attempt.contentTitle}
                     </TableCell>
                     <TableCell className="text-center">
-                      <div className="inline-flex flex-col items-center">
-                        <span className="font-black text-lg italic tracking-tighter text-primary leading-none">
-                          {attempt.score}/{attempt.totalQuestions}
-                        </span>
-                        <span className="text-[9px] font-bold opacity-30 mt-1 uppercase">Matched</span>
-                      </div>
+                      <span className="font-black text-lg italic tracking-tighter text-primary">
+                        {attempt.score}/{attempt.totalQuestions}
+                      </span>
                     </TableCell>
                     <TableCell className="text-center">
                       <Badge
                         className={cn(
-                          "rounded-lg font-black text-[8px] uppercase tracking-[0.2em] px-3 py-1 border-none",
+                          "rounded-lg font-black text-[8px] uppercase px-3 py-1 border-none",
                           attempt.passed ? "bg-emerald-500 text-white" : "bg-destructive text-white",
                         )}
                       >
@@ -323,7 +300,7 @@ export function QuizResultsViewer() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-10 w-10 rounded-xl hover:bg-primary/10 transition-all shadow-inner"
+                        className="h-10 w-10 rounded-xl hover:bg-primary/10"
                         onClick={() => viewAttemptDetails(attempt)}
                       >
                         <Eye className="h-5 w-5" />
@@ -336,7 +313,7 @@ export function QuizResultsViewer() {
           ) : (
             <div className="py-32 text-center opacity-20">
               <Layers className="h-16 w-16 mx-auto mb-4" />
-              <p className="font-black uppercase tracking-widest text-xs">Registry Empty: Awaiting Data Ingestion</p>
+              <p className="font-black uppercase tracking-widest text-xs">Registry Empty</p>
             </div>
           )}
         </CardContent>
@@ -351,11 +328,11 @@ export function QuizResultsViewer() {
               <div className="flex items-center gap-5">
                 <Target className="h-10 w-10 text-primary" />
                 <div className="space-y-1">
-                  <DialogTitle className="text-3xl font-black uppercase tracking-tighter italic">
+                  <DialogTitle className="text-3xl font-black uppercase tracking-tighter italic leading-none">
                     Attempt Forensics
                   </DialogTitle>
-                  <DialogDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 italic flex items-center gap-3">
-                    {selectedAttempt?.studentName} <span className="h-1 w-1 bg-border rounded-full" />{" "}
+                  <DialogDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 italic">
+                    {selectedAttempt?.studentName} •{" "}
                     {selectedAttempt && format(new Date(selectedAttempt.attemptedAt), "MMM d, yyyy HH:mm")}
                   </DialogDescription>
                 </div>
@@ -363,11 +340,10 @@ export function QuizResultsViewer() {
             </DialogHeader>
 
             {selectedAttempt && (
-              <div className="space-y-8">
-                {/* Result Artifact */}
+              <div className="space-y-8 text-left">
                 <div className="flex items-center justify-between p-8 bg-muted/20 rounded-[32px] border-2 border-border/10 shadow-inner">
                   <div className="space-y-1">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 leading-none">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">
                       Logic Match Yield
                     </p>
                     <p
@@ -382,19 +358,14 @@ export function QuizResultsViewer() {
                       %
                     </p>
                   </div>
-                  <div className="text-right">
-                    <Badge
-                      className={cn(
-                        "rounded-lg font-black text-[10px] px-5 py-1.5 border-none",
-                        selectedAttempt.passed ? "bg-emerald-500 text-white" : "bg-destructive text-white",
-                      )}
-                    >
-                      {selectedAttempt.passed ? "AUTHORIZED" : "REJECTED"}
-                    </Badge>
-                    <p className="text-[10px] font-bold text-muted-foreground/30 mt-3 uppercase tracking-widest italic">
-                      {selectedAttempt.score} Correct Artifacts
-                    </p>
-                  </div>
+                  <Badge
+                    className={cn(
+                      "rounded-lg font-black text-[10px] px-5 py-1.5 border-none",
+                      selectedAttempt.passed ? "bg-emerald-500 text-white" : "bg-destructive text-white",
+                    )}
+                  >
+                    {selectedAttempt.passed ? "AUTHORIZED" : "REJECTED"}
+                  </Badge>
                 </div>
 
                 <div className="space-y-4">
@@ -406,7 +377,7 @@ export function QuizResultsViewer() {
                       <Card
                         key={index}
                         className={cn(
-                          "rounded-[24px] border-2 bg-muted/5 overflow-hidden transition-all",
+                          "rounded-[24px] border-2 bg-muted/5 overflow-hidden",
                           answer.isCorrect ? "border-emerald-500/20" : "border-destructive/20",
                         )}
                       >
@@ -415,19 +386,19 @@ export function QuizResultsViewer() {
                             className={cn(
                               "h-10 w-10 rounded-xl flex items-center justify-center border shadow-inner shrink-0",
                               answer.isCorrect
-                                ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
-                                : "bg-destructive/10 text-destructive border-destructive/20",
+                                ? "bg-emerald-500/10 text-emerald-500"
+                                : "bg-destructive/10 text-destructive",
                             )}
                           >
                             {answer.isCorrect ? <CheckCircle2 className="h-5 w-5" /> : <XCircle className="h-5 w-5" />}
                           </div>
                           <div className="space-y-3 flex-1">
-                            <p className="text-xs font-black uppercase tracking-tight italic opacity-60 leading-none">
+                            <p className="text-xs font-black uppercase tracking-tight italic opacity-60">
                               Artifact Logic {index + 1}
                             </p>
                             <p className="font-bold text-sm leading-relaxed">{answer.questionText}</p>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                              <div className="p-3 rounded-xl bg-background border-2 border-border/5 space-y-1">
+                              <div className="p-3 rounded-xl bg-background border-2 border-border/5">
                                 <p className="text-[8px] font-black uppercase opacity-30">Input_Node</p>
                                 <p
                                   className={cn(
@@ -439,15 +410,15 @@ export function QuizResultsViewer() {
                                 </p>
                               </div>
                               {!answer.isCorrect && (
-                                <div className="p-3 rounded-xl bg-emerald-500/5 border-2 border-emerald-500/10 space-y-1">
+                                <div className="p-3 rounded-xl bg-emerald-500/5 border-2 border-emerald-500/10">
                                   <p className="text-[8px] font-black uppercase text-emerald-600/40">Verified_Target</p>
                                   <p className="text-xs font-bold text-emerald-700">{answer.correctAnswer}</p>
                                 </div>
                               )}
                             </div>
                             {answer.explanation && (
-                              <div className="p-4 bg-muted/50 rounded-2xl border border-border/10 italic text-[11px] text-muted-foreground leading-relaxed">
-                                <span className="font-black uppercase not-italic text-[9px] mr-2">Recalibration:</span>{" "}
+                              <div className="p-4 bg-muted/50 rounded-2xl border border-border/10 italic text-[11px] text-muted-foreground">
+                                <span className="font-black uppercase not-italic text-[9px] mr-2">Recalibration:</span>
                                 {answer.explanation}
                               </div>
                             )}
@@ -457,7 +428,6 @@ export function QuizResultsViewer() {
                     ))}
                   </div>
                 </div>
-
                 <DialogFooter className="pt-8 border-t border-border/10">
                   <Button
                     onClick={() => setDetailDialogOpen(false)}
