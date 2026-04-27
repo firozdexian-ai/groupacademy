@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label"; // FIXED: Added missing import
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -26,6 +27,7 @@ import { cn } from "@/lib/utils";
 /**
  * GroUp Academy: AI Support Intelligence Terminal
  * CTO Reference: OCR-driven conversation analyzer and reply generator.
+ * Resolved TS2304 by restoring the Label primitive import.
  */
 
 interface AIResponse {
@@ -110,8 +112,8 @@ export function SupportAssistant() {
   return (
     <div className="space-y-10 animate-in fade-in duration-700">
       {/* EXECUTIVE HEADER */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-muted/20 p-8 rounded-[40px] border-2 border-border/40 backdrop-blur-md">
-        <div className="space-y-1 text-left">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-muted/20 p-8 rounded-[40px] border-2 border-border/40 backdrop-blur-md text-left">
+        <div className="space-y-1">
           <div className="flex items-center gap-3 text-primary">
             <Zap className="h-8 w-8 fill-current" />
             <h2 className="text-4xl font-black uppercase tracking-tighter italic leading-none">Support Intel</h2>
@@ -165,7 +167,7 @@ export function SupportAssistant() {
               <div className="h-20 w-20 rounded-3xl bg-muted/50 flex items-center justify-center mb-6 shadow-lg border-2 border-border/10">
                 <ImageIcon className="h-10 w-10 text-primary" />
               </div>
-              <p className="text-lg font-black uppercase italic italic tracking-tight">Drop Screenshot Here</p>
+              <p className="text-lg font-black uppercase italic tracking-tight">Drop Screenshot Here</p>
               <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-2">
                 PNG, JPG or WebP (Node limit 10MB)
               </p>
@@ -257,7 +259,7 @@ export function SupportAssistant() {
                       <Lightbulb className="h-4 w-4" /> Feature Mapping
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="p-6 pt-0">
+                  <CardContent className="p-6 pt-0 text-left">
                     <div className="space-y-2">
                       {response.suggestions?.map((s, i) => (
                         <div
@@ -280,7 +282,7 @@ export function SupportAssistant() {
                       <ListChecks className="h-4 w-4" /> Strategic Follow-up
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="p-6 pt-0">
+                  <CardContent className="p-6 pt-0 text-left">
                     <div className="space-y-2">
                       {response.actions?.map((a, i) => (
                         <div
