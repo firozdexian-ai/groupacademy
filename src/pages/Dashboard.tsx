@@ -152,6 +152,7 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   invoices: React.lazy(() =>
     import("@/components/dashboard/payments/InvoiceManager").then((m) => ({ default: m.InvoiceManager })),
   ),
+};
 
 const TAB_TITLES: Record<string, string> = {
   overview: "Control Center",
