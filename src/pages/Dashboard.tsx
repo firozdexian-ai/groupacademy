@@ -33,6 +33,9 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
     import("@/components/dashboard/JobsKPIDashboard").then((m) => ({ default: m.JobsKPIDashboard })),
   ),
   jobs: React.lazy(() => import("@/components/dashboard/JobsManager").then((m) => ({ default: m.JobsManager }))),
+  "jobs-hub": React.lazy(() =>
+    import("@/components/dashboard/jobs-hub/JobsHub").then((m) => ({ default: m.JobsHub })),
+  ),
   applications: React.lazy(() =>
     import("@/components/dashboard/JobApplicationsManager").then((m) => ({ default: m.JobApplicationsManager })),
   ),
@@ -156,6 +159,7 @@ const TAB_TITLES: Record<string, string> = {
   professions: "Taxonomies",
   "jobs-kpis": "Growth Analytics",
   jobs: "Job Pipeline",
+  "jobs-hub": "Jobs Hub",
   applications: "Candidate Flow",
   companies: "Employer CRM",
   contacts: "B2B Contacts",

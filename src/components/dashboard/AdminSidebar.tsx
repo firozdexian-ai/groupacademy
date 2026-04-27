@@ -96,8 +96,7 @@ const navGroups: NavGroup[] = [
     roles: ["admin", "talent_exec"],
     items: [
       { title: "Jobs KPIs", icon: TrendingUp, value: "jobs-kpis" },
-      { title: "Manage Jobs", icon: Building2, value: "jobs" },
-      { title: "Applications", icon: FileCheck, value: "applications" },
+      { title: "Jobs Hub", icon: Briefcase, value: "jobs-hub" },
     ],
   },
   {
