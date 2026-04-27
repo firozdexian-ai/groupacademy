@@ -31,8 +31,27 @@ export function CreditPurchaseSheet({
   const { showWhatsApp, showStripe, isStripeConfigured } = usePaymentConfig();
   const [checkoutLoading, setCheckoutLoading] = useState<number | null>(null);
 
-  const handleWhatsAppPurchase = (credits: number, price: number) => {
-    const message = getCreditPurchaseMessage(credits, price, currentBalance);
+  const handleWhatsAppPurchase = async (credits: number, price: number) => {
+    let invoiceNumber: string | undefined;
+    try {
+      const { data, error } = await supabase.rpc('create_credit_invoice', {
+        p_bundle_credits: credits,
+        p_bundle_price_usd: price,
+      });
+      if (error) throw error;
+      const result = data as { success: boolean; invoice_number?: string; error?: string };
+      if (result?.success) {
+        invoiceNumber = result.invoice_number;
+        toast.success(`Invoice ${result.invoice_number} created — opening WhatsApp`);
+      } else if (result?.error) {
+        // Fall back to plain WhatsApp message even if invoice fails
+        toast.error(result.error);
+      }
+    } catch (err) {
+      console.error('create_credit_invoice failed:', err);
+      // Continue without invoice — user can still chat
+    }
+    const message = getCreditPurchaseMessage(credits, price, currentBalance, invoiceNumber);
     window.open(`${SUPPORT_CONFIG.WHATSAPP_LINK}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
