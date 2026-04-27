@@ -3,16 +3,43 @@ import { supabase } from "@/integrations/supabase/client";
 import { sanitizeIlike } from "@/lib/supabaseQuery";
 import type { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Search, Users, Plus, RefreshCw, Loader2, Coins, TrendingUp, UserCog, Link2 } from "lucide-react";
+import {
+  Search,
+  Users,
+  Plus,
+  RefreshCw,
+  Loader2,
+  Coins,
+  TrendingUp,
+  UserCog,
+  Link2,
+  Activity,
+  Zap,
+  ShieldCheck,
+} from "lucide-react";
+import { withTimeout } from "@/hooks/useQueryWithTimeout";
+import { TIMEOUTS } from "@/lib/timeoutConfig";
+import { cn } from "@/lib/utils";
+
+/**
+ * GroUp Academy: Workforce Pulse & Commission Terminal
+ * CTO Reference: Authoritative management of workforce nodes and talent distribution logic.
+ */
 
 type WorkforceRoleType = Database["public"]["Enums"]["workforce_role_type"];
 
@@ -27,8 +54,8 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  active: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400",
-  probation: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400",
+  active: "bg-green-500/10 text-green-600 border-green-500/20",
+  probation: "bg-amber-500/10 text-amber-600 border-amber-500/20",
   inactive: "bg-muted text-muted-foreground",
 };
 
@@ -73,66 +100,60 @@ export function WorkforceManager() {
   const [specValue, setSpecValue] = useState("");
   const [kpis, setKpis] = useState({ total: 0, active: 0, totalCommission: 0, totalAssigned: 0 });
 
-  // Assignment dialog
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [assignMemberId, setAssignMemberId] = useState<string | null>(null);
   const [assignTalentSearch, setAssignTalentSearch] = useState("");
   const [assignTalentOptions, setAssignTalentOptions] = useState<TalentOption[]>([]);
 
-  useEffect(() => {
-    fetchMembers();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const fetchMembers = useCallback(async () => {
     setLoading(true);
     try {
-      // Fetch workforce members
-      const { data: wfData, error } = await supabase
-        .from("workforce_members")
-        .select("*")
-        .order("created_at", { ascending: false });
+      const fetchProtocol = async () => {
+        const { data: wfData, error } = await supabase
+          .from("workforce_members")
+          .select("*")
+          .order("created_at", { ascending: false });
 
-      if (error) throw error;
+        if (error) throw error;
 
-      // Enrich with talent info, assignment counts, and commission
-      const enriched = await Promise.all(
-        (wfData || []).map(async (m: any) => {
-          // Get talent name/email
-          const { data: talent } = await supabase
-            .from("talents")
-            .select("full_name, email")
-            .eq("id", m.talent_id)
-            .single();
+        const enriched = await Promise.all(
+          (wfData || []).map(async (m: any) => {
+            const { data: talent } = await supabase
+              .from("talents")
+              .select("full_name, email")
+              .eq("id", m.talent_id)
+              .single();
 
-          // Count assigned talents
-          const { count } = await supabase
-            .from("talent_assignments")
-            .select("id", { count: "exact", head: true })
-            .eq("assigned_to", m.id);
+            const { count } = await supabase
+              .from("talent_assignments")
+              .select("id", { count: "exact", head: true })
+              .eq("assigned_to", m.id);
 
-          // Sum commission earned (transaction_type = 'commission')
-          const { data: commData } = await supabase
-            .from("credit_transactions")
-            .select("amount")
-            .eq("talent_id", m.talent_id)
-            .eq("transaction_type", "commission");
+            const { data: commData } = await supabase
+              .from("credit_transactions")
+              .select("amount")
+              .eq("talent_id", m.talent_id)
+              .eq("transaction_type", "commission");
 
-          const commission = (commData || []).reduce((sum: number, t: any) => sum + (t.amount || 0), 0);
+            const commission = (commData || []).reduce((sum: number, t: any) => sum + (t.amount || 0), 0);
 
-          return {
-            ...m,
-            talent_name: talent?.full_name || "Unknown",
-            talent_email: talent?.email || "",
-            assigned_count: count || 0,
-            commission_earned: commission,
-          };
-        })
-      );
+            return {
+              ...m,
+              talent_name: talent?.full_name || "Unknown",
+              talent_email: talent?.email || "",
+              assigned_count: count || 0,
+              commission_earned: commission,
+            };
+          }),
+        );
+        return enriched;
+      };
 
-      setMembers(enriched);
-      
-      // KPIs
+      const result = await withTimeout(fetchProtocol(), TIMEOUTS.DEFAULT, "Workforce synchronization timed out");
+
+      setMembers(result as WorkforceMember[]);
+
+      const enriched = result as WorkforceMember[];
       setKpis({
         total: enriched.length,
         active: enriched.filter((m) => m.status === "active").length,
@@ -140,15 +161,22 @@ export function WorkforceManager() {
         totalAssigned: enriched.reduce((s, m) => s + (m.assigned_count || 0), 0),
       });
     } catch (err: any) {
-      toast.error("Failed to load workforce: " + err.message);
+      toast.error("Telemetry Fault: Failed to load workforce registry");
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // Search talents for add dialog
   useEffect(() => {
-    if (talentSearch.length < 2) { setTalentOptions([]); return; }
+    fetchMembers();
+  }, [fetchMembers]);
+
+  // Talent search logic with debounce
+  useEffect(() => {
+    if (talentSearch.length < 2) {
+      setTalentOptions([]);
+      return;
+    }
     const timer = setTimeout(async () => {
       const { data } = await supabase
         .from("talents")
@@ -160,22 +188,11 @@ export function WorkforceManager() {
     return () => clearTimeout(timer);
   }, [talentSearch]);
 
-  // Search talents for assign dialog
-  useEffect(() => {
-    if (assignTalentSearch.length < 2) { setAssignTalentOptions([]); return; }
-    const timer = setTimeout(async () => {
-      const { data } = await supabase
-        .from("talents")
-        .select("id, full_name, email")
-        .or(`full_name.ilike.%${sanitizeIlike(assignTalentSearch)}%,email.ilike.%${sanitizeIlike(assignTalentSearch)}%`)
-        .limit(10);
-      setAssignTalentOptions(data || []);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [assignTalentSearch]);
-
   const handleAdd = async () => {
-    if (!selectedTalent) { toast.error("Select a talent first"); return; }
+    if (!selectedTalent) {
+      toast.error("Protocol Fault: Select a talent node.");
+      return;
+    }
     setSaving(true);
     try {
       const spec = specType && specValue ? { type: specType, value: specValue } : {};
@@ -187,7 +204,7 @@ export function WorkforceManager() {
         specialization: spec,
       } as any);
       if (error) throw error;
-      toast.success("Workforce member added");
+      toast.success("Identity Deployed to Workforce");
       setShowAddDialog(false);
       resetForm();
       fetchMembers();
@@ -206,19 +223,13 @@ export function WorkforceManager() {
         assigned_to: assignMemberId,
       });
       if (error) throw error;
-      toast.success("Talent assigned successfully");
+      toast.success("Talent Assignment Optimized");
       setShowAssignDialog(false);
       setAssignTalentSearch("");
       fetchMembers();
     } catch (err: any) {
       toast.error(err.message);
     }
-  };
-
-  const handleStatusChange = async (memberId: string, newStatus: string) => {
-    const { error } = await supabase.from("workforce_members").update({ status: newStatus }).eq("id", memberId);
-    if (error) toast.error(error.message);
-    else { toast.success("Status updated"); fetchMembers(); }
   };
 
   const resetForm = () => {
@@ -232,123 +243,143 @@ export function WorkforceManager() {
   };
 
   const filtered = members.filter((m) => {
-    const matchesSearch = !search || m.talent_name?.toLowerCase().includes(search.toLowerCase()) || m.talent_email?.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch =
+      !search ||
+      m.talent_name?.toLowerCase().includes(search.toLowerCase()) ||
+      m.talent_email?.toLowerCase().includes(search.toLowerCase());
     const matchesRole = roleFilter === "all" || m.role_type === roleFilter;
     return matchesSearch && matchesRole;
   });
 
   return (
-    <div className="space-y-6">
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10"><Users className="w-5 h-5 text-primary" /></div>
-            <div><p className="text-2xl font-bold">{kpis.total}</p><p className="text-xs text-muted-foreground">Total Members</p></div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/30"><UserCog className="w-5 h-5 text-emerald-600" /></div>
-            <div><p className="text-2xl font-bold">{kpis.active}</p><p className="text-xs text-muted-foreground">Active</p></div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/30"><Coins className="w-5 h-5 text-amber-600" /></div>
-            <div><p className="text-2xl font-bold">{kpis.totalCommission}</p><p className="text-xs text-muted-foreground">Total Commission (Credits)</p></div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30"><TrendingUp className="w-5 h-5 text-blue-600" /></div>
-            <div><p className="text-2xl font-bold">{kpis.totalAssigned}</p><p className="text-xs text-muted-foreground">Talents Assigned</p></div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-        <div className="flex gap-2 flex-1 w-full sm:w-auto">
-          <div className="relative flex-1 sm:max-w-xs">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input placeholder="Search members..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+    <div className="space-y-10 animate-in fade-in duration-700">
+      {/* EXECUTIVE KPI HEADER */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-muted/20 p-8 rounded-[40px] border-2 border-border/40 backdrop-blur-md">
+        <div className="space-y-1 text-left">
+          <div className="flex items-center gap-3 text-primary">
+            <UserCog className="h-8 w-8" />
+            <h2 className="text-4xl font-black uppercase tracking-tighter italic leading-none">Workforce Pulse</h2>
           </div>
-          <Select value={roleFilter} onValueChange={setRoleFilter}>
-            <SelectTrigger className="w-[180px]"><SelectValue placeholder="All Roles" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Roles</SelectItem>
-              {Object.entries(ROLE_LABELS).map(([k, v]) => (
-                <SelectItem key={k} value={k}>{v}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 italic">
+            Executive Hierarchy & Commission Registry
+          </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={fetchMembers}><RefreshCw className="w-4 h-4 mr-1" /> Refresh</Button>
-          <Button size="sm" onClick={() => setShowAddDialog(true)}><Plus className="w-4 h-4 mr-1" /> Add Member</Button>
+        <div className="flex gap-3">
+          <Button
+            variant="outline"
+            onClick={fetchMembers}
+            className="h-14 w-14 rounded-2xl border-2 hover:bg-primary/5 transition-all"
+          >
+            <RefreshCw className={cn("h-5 w-5", loading && "animate-spin")} />
+          </Button>
+          <Button
+            onClick={() => setShowAddDialog(true)}
+            className="h-14 px-8 rounded-2xl border-2 font-black uppercase text-[10px] tracking-widest gap-3 shadow-lg"
+          >
+            <Plus className="h-4 w-4" /> Deploy Member
+          </Button>
         </div>
       </div>
 
-      {/* Table */}
-      <Card>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+        <KPIStat icon={Users} label="Total Members" value={kpis.total} color="primary" />
+        <KPIStat icon={ShieldCheck} label="Active Assets" value={kpis.active} color="emerald" />
+        <KPIStat icon={Coins} label="Total Commission" value={kpis.totalCommission} color="amber" />
+        <KPIStat icon={TrendingUp} label="Talents Assigned" value={kpis.totalAssigned} color="blue" />
+      </div>
+
+      <Card className="rounded-[40px] border-2 border-border/40 bg-card/30 shadow-2xl overflow-hidden">
+        <CardHeader className="p-8 border-b border-border/10 bg-muted/10">
+          <div className="flex flex-col lg:flex-row gap-6">
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
+              <Input
+                placeholder="SEARCH WORKFORCE REGISTRY..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="h-14 rounded-2xl border-2 pl-12 font-bold uppercase text-[11px] tracking-widest bg-card/50"
+              />
+            </div>
+            <Select value={roleFilter} onValueChange={setRoleFilter}>
+              <SelectTrigger className="w-full lg:w-[240px] h-14 rounded-2xl border-2 font-black uppercase text-[10px] tracking-widest">
+                <SelectValue placeholder="FILTER ROLE" />
+              </SelectTrigger>
+              <SelectContent className="rounded-xl border-2">
+                <SelectItem value="all" className="font-bold text-[10px]">
+                  ALL AUTHORITIES
+                </SelectItem>
+                {Object.entries(ROLE_LABELS).map(([k, v]) => (
+                  <SelectItem key={k} value={k} className="font-bold text-[10px]">
+                    {v.toUpperCase()}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardHeader>
+
         <CardContent className="p-0">
           {loading ? (
-            <div className="flex items-center justify-center py-12"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>
-          ) : filtered.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">No workforce members found.</div>
+            <div className="p-8">
+              <DashboardTableSkeleton rows={8} columns={6} />
+            </div>
           ) : (
             <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Specialization</TableHead>
-                  <TableHead className="text-center">Assigned</TableHead>
-                  <TableHead className="text-center">Commission</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
+              <TableHeader className="bg-muted/10">
+                <TableRow className="hover:bg-transparent border-b-2">
+                  <TableHead className="font-black uppercase text-[10px] tracking-widest py-6 pl-8">
+                    Executive node
+                  </TableHead>
+                  <TableHead className="font-black uppercase text-[10px] tracking-widest">Authority Class</TableHead>
+                  <TableHead className="font-black uppercase text-[10px] tracking-widest text-center">
+                    Managed
+                  </TableHead>
+                  <TableHead className="font-black uppercase text-[10px] tracking-widest text-center">Yield</TableHead>
+                  <TableHead className="font-black uppercase text-[10px] tracking-widest">Status</TableHead>
+                  <TableHead className="text-right py-6 pr-8"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.map((m) => (
-                  <TableRow key={m.id}>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium text-sm">{m.talent_name}</p>
-                        <p className="text-xs text-muted-foreground">{m.talent_email}</p>
-                      </div>
+                  <TableRow key={m.id} className="group border-b border-border/5 hover:bg-muted/10 transition-colors">
+                    <TableCell className="py-6 pl-8">
+                      <p className="font-black text-sm uppercase italic tracking-tight">{m.talent_name}</p>
+                      <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5 italic">
+                        {m.talent_email}
+                      </p>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="text-xs">{ROLE_LABELS[m.role_type] || m.role_type}</Badge>
+                      <Badge variant="outline" className="font-black text-[9px] uppercase italic border-2 bg-primary/5">
+                        {ROLE_LABELS[m.role_type] || m.role_type}
+                      </Badge>
                     </TableCell>
-                    <TableCell>
-                      {m.specialization?.type ? (
-                        <span className="text-xs">{m.specialization.type}: {m.specialization.value}</span>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-center font-medium">{m.assigned_count}</TableCell>
+                    <TableCell className="text-center font-black italic">{m.assigned_count}</TableCell>
                     <TableCell className="text-center">
-                      <span className="font-medium text-emerald-600">{m.commission_earned}</span>
+                      <span className="font-black text-emerald-600 italic">₵{m.commission_earned}</span>
                     </TableCell>
                     <TableCell>
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[m.status]}`}>{m.status}</span>
+                      <Badge
+                        className={cn(
+                          "font-black text-[9px] uppercase italic rounded-full px-4",
+                          STATUS_COLORS[m.status],
+                        )}
+                      >
+                        {m.status}
+                      </Badge>
                     </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="sm" onClick={() => { setAssignMemberId(m.id); setShowAssignDialog(true); }}>
-                          <Link2 className="w-4 h-4 mr-1" /> Assign
+                    <TableCell className="text-right pr-8">
+                      <div className="flex justify-end gap-1 opacity-20 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setAssignMemberId(m.id);
+                            setShowAssignDialog(true);
+                          }}
+                          className="hover:bg-primary/10"
+                        >
+                          <Link2 className="h-5 w-5 text-primary" />
                         </Button>
-                        <Select value={m.status} onValueChange={(v) => handleStatusChange(m.id, v)}>
-                          <SelectTrigger className="h-8 w-[100px] text-xs"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="active">Active</SelectItem>
-                            <SelectItem value="probation">Probation</SelectItem>
-                            <SelectItem value="inactive">Inactive</SelectItem>
-                          </SelectContent>
-                        </Select>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -359,101 +390,144 @@ export function WorkforceManager() {
         </CardContent>
       </Card>
 
-      {/* Add Member Dialog */}
+      {/* DEPLOY MEMBER DIALOG */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Add Workforce Member</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>Search Talent</Label>
-              <Input placeholder="Type name or email..." value={talentSearch} onChange={(e) => setTalentSearch(e.target.value)} />
-              {talentOptions.length > 0 && !selectedTalent && (
-                <div className="border rounded-md mt-1 max-h-40 overflow-auto">
-                  {talentOptions.map((t) => (
-                    <button key={t.id} className="w-full text-left px-3 py-2 hover:bg-accent text-sm" onClick={() => { setSelectedTalent(t); setTalentSearch(t.full_name); }}>
-                      <span className="font-medium">{t.full_name}</span> <span className="text-muted-foreground">({t.email})</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-              {selectedTalent && (
-                <Badge className="mt-1" variant="secondary">
-                  {selectedTalent.full_name}
-                  <button className="ml-1 text-xs" onClick={() => { setSelectedTalent(null); setTalentSearch(""); }}>✕</button>
-                </Badge>
-              )}
-            </div>
-            <div>
-              <Label>Role</Label>
-              <Select value={newRole} onValueChange={setNewRole}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {Object.entries(ROLE_LABELS).map(([k, v]) => (
-                    <SelectItem key={k} value={k}>{v}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Specialization Type</Label>
-                <Input placeholder="e.g. university, industry" value={specType} onChange={(e) => setSpecType(e.target.value)} />
-              </div>
-              <div>
-                <Label>Specialization Value</Label>
-                <Input placeholder="e.g. BRAC University" value={specValue} onChange={(e) => setSpecValue(e.target.value)} />
-              </div>
-            </div>
-            <div>
-              <Label>City</Label>
-              <Input placeholder="City" value={newCity} onChange={(e) => setNewCity(e.target.value)} />
-            </div>
-            <div>
-              <Label>Status</Label>
-              <Select value={newStatus} onValueChange={setNewStatus}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="probation">Probation</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddDialog(false)}>Cancel</Button>
-            <Button onClick={handleAdd} disabled={saving}>
-              {saving && <Loader2 className="w-4 h-4 mr-1 animate-spin" />} Add Member
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        <DialogContent className="max-w-xl rounded-[40px] border-4 p-0 overflow-hidden bg-background">
+          <div className="h-2 w-full bg-primary" />
+          <div className="p-10 space-y-8">
+            <DialogHeader className="text-left">
+              <DialogTitle className="text-3xl font-black uppercase italic tracking-tighter">
+                Authority Assignment
+              </DialogTitle>
+              <DialogDescription className="text-[10px] font-bold uppercase tracking-widest">
+                Deploy a verified identity to the workforce pipeline
+              </DialogDescription>
+            </DialogHeader>
 
-      {/* Assign Talent Dialog */}
-      <Dialog open={showAssignDialog} onOpenChange={setShowAssignDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader><DialogTitle>Assign Talent to Executive</DialogTitle></DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <Label>Search Talent to Assign</Label>
-              <Input placeholder="Type name or email..." value={assignTalentSearch} onChange={(e) => setAssignTalentSearch(e.target.value)} />
-            </div>
-            {assignTalentOptions.length > 0 && (
-              <div className="border rounded-md max-h-60 overflow-auto">
-                {assignTalentOptions.map((t) => (
-                  <button key={t.id} className="w-full text-left px-3 py-2 hover:bg-accent text-sm flex justify-between items-center" onClick={() => handleAssignTalent(t.id)}>
-                    <div>
-                      <span className="font-medium">{t.full_name}</span>
-                      <span className="text-muted-foreground ml-1 text-xs">({t.email})</span>
-                    </div>
-                    <Badge variant="outline" className="text-xs">Assign</Badge>
-                  </button>
-                ))}
+            <div className="space-y-6 text-left">
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-primary italic">Identify Talent Node</Label>
+                <Input
+                  placeholder="SEARCH BY NAME OR EMAIL..."
+                  value={talentSearch}
+                  onChange={(e) => setTalentSearch(e.target.value)}
+                  className="h-14 rounded-2xl border-2 font-bold uppercase text-xs"
+                />
+                {talentOptions.length > 0 && !selectedTalent && (
+                  <div className="border-2 rounded-2xl mt-2 overflow-hidden shadow-xl animate-in slide-in-from-top-2">
+                    {talentOptions.map((t) => (
+                      <button
+                        key={t.id}
+                        className="w-full text-left px-5 py-4 hover:bg-primary/5 border-b last:border-0 transition-colors"
+                        onClick={() => {
+                          setSelectedTalent(t);
+                          setTalentSearch(t.full_name);
+                        }}
+                      >
+                        <p className="font-black uppercase text-xs italic">{t.full_name}</p>
+                        <p className="text-[9px] font-bold text-muted-foreground">{t.email}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {selectedTalent && (
+                  <Badge className="h-10 px-4 mt-2 bg-primary/10 text-primary border-2 border-primary/20 font-black italic rounded-xl">
+                    {selectedTalent.full_name.toUpperCase()}
+                    <button
+                      className="ml-3 hover:text-red-500"
+                      onClick={() => {
+                        setSelectedTalent(null);
+                        setTalentSearch("");
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </Badge>
+                )}
               </div>
-            )}
+
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-primary italic">Authority Class</Label>
+                  <Select value={newRole} onValueChange={setNewRole}>
+                    <SelectTrigger className="h-14 rounded-2xl border-2 font-bold uppercase text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-2">
+                      {Object.entries(ROLE_LABELS).map(([k, v]) => (
+                        <SelectItem key={k} value={k} className="font-bold text-xs uppercase">
+                          {v}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-primary italic">Initial Status</Label>
+                  <Select value={newStatus} onValueChange={setNewStatus}>
+                    <SelectTrigger className="h-14 rounded-2xl border-2 font-bold uppercase text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-2">
+                      <SelectItem value="active" className="font-bold text-xs uppercase">
+                        ACTIVE_NODE
+                      </SelectItem>
+                      <SelectItem value="probation" className="font-bold text-xs uppercase">
+                        PROBATION_MODE
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter className="pt-4 gap-4 flex-col sm:flex-row">
+              <Button
+                variant="ghost"
+                onClick={() => setShowAddDialog(false)}
+                className="font-black uppercase text-[10px] tracking-widest italic opacity-50"
+              >
+                Abort Protocol
+              </Button>
+              <Button
+                onClick={handleAdd}
+                disabled={saving}
+                className="flex-1 h-16 rounded-[24px] font-black uppercase italic tracking-tighter text-xl gap-3 shadow-xl"
+              >
+                {saving ? <RefreshCw className="animate-spin" /> : <ShieldCheck className="fill-current" />}
+                Authorize Deployment
+              </Button>
+            </DialogFooter>
           </div>
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function KPIStat({ icon: Icon, label, value, color }: any) {
+  const colors: Record<string, string> = {
+    primary: "bg-primary/10 border-primary/20 text-primary",
+    emerald: "bg-emerald-500/10 border-emerald-500/20 text-emerald-600",
+    amber: "bg-amber-500/10 border-amber-500/20 text-amber-600",
+    blue: "bg-blue-500/10 border-blue-500/20 text-blue-600",
+  };
+  return (
+    <Card className="rounded-[32px] border-2 border-border/40 bg-card/30 shadow-xl overflow-hidden group">
+      <CardContent className="p-6 flex items-center gap-5">
+        <div
+          className={cn(
+            "p-4 rounded-2xl border-2 group-hover:rotate-6 transition-transform shadow-inner",
+            colors[color],
+          )}
+        >
+          <Icon className="h-6 w-6" />
+        </div>
+        <div className="text-left">
+          <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground italic">{label}</p>
+          <p className="text-3xl font-black italic tracking-tighter leading-none">{value}</p>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
