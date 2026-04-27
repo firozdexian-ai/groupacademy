@@ -19,7 +19,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { toast } from "sonner"; // Standardized toast
+import { toast } from "sonner";
 import { format } from "date-fns";
 import {
   Search,
@@ -33,6 +33,8 @@ import {
   ExternalLink,
   ChevronLeft,
   ChevronRight,
+  Globe,
+  Award,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { TalentDetailDialog } from "./TalentDetailDialog";
@@ -95,54 +97,41 @@ const statusLabels: Record<string, string> = {
 };
 
 export default function PortfolioRequestsManager() {
-  // Data State
   const [requests, setRequests] = useState<PortfolioRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Pagination & Search
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearch = useDebounce(searchQuery, 500);
-  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "contacted" | "in_progress" | "completed" | "cancelled">("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
 
-  // UI State
   const [selectedRequest, setSelectedRequest] = useState<PortfolioRequest | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [selectedTalentEmail, setSelectedTalentEmail] = useState<string | null>(null);
   const [selectedTalentName, setSelectedTalentName] = useState<string>("");
 
-  // Edit form state
   const [editStatus, setEditStatus] = useState("");
   const [editAdminNotes, setEditAdminNotes] = useState("");
   const [editPortfolioUrl, setEditPortfolioUrl] = useState("");
   const [editCmsEmail, setEditCmsEmail] = useState("");
   const [editCmsPassword, setEditCmsPassword] = useState("");
 
-  // Fetch Data (Paginated)
   const loadRequests = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       let query = supabase
         .from("portfolio_requests")
-        .select(
-          `
-          *,
-          profession_category:profession_categories(name)
-        `,
-          { count: "exact" },
-        )
+        .select(`*, profession_category:profession_categories(name)`, { count: "exact" })
         .order("created_at", { ascending: false });
 
       if (debouncedSearch) {
         const safe = sanitizeIlike(debouncedSearch);
         if (safe) {
-          query = query.or(
-            `full_name.ilike.%${safe}%,email.ilike.%${safe}%,phone.ilike.%${safe}%`,
-          );
+          query = query.or(`full_name.ilike.%${safe}%,email.ilike.%${safe}%,phone.ilike.%${safe}%`);
         }
       }
 
@@ -161,7 +150,7 @@ export default function PortfolioRequestsManager() {
       );
 
       if (result.error) throw result.error;
-      setRequests((result.data as unknown as PortfolioRequest[]) || []);
+      setRequests((result.data as any) || []);
       setTotalCount(result.count || 0);
     } catch (err: any) {
       console.error("Error loading portfolio requests:", err);
@@ -176,7 +165,6 @@ export default function PortfolioRequestsManager() {
     loadRequests();
   }, [loadRequests]);
 
-  // Reset page on search/filter
   useEffect(() => {
     setPage(1);
   }, [debouncedSearch, statusFilter]);
@@ -193,29 +181,26 @@ export default function PortfolioRequestsManager() {
 
   const handleUpdate = async () => {
     if (!selectedRequest) return;
-
     setIsUpdating(true);
     try {
       const updates: any = {
         status: editStatus,
         admin_notes: editAdminNotes || null,
+        portfolio_url: editPortfolioUrl || null,
+        portfolio_credentials:
+          editCmsEmail || editCmsPassword
+            ? { email: editCmsEmail, password: editCmsPassword }
+            : selectedRequest.portfolio_credentials,
       };
 
-      if (editStatus === "completed") {
-        updates.portfolio_url = editPortfolioUrl || null;
-        updates.portfolio_credentials =
-          editCmsEmail || editCmsPassword ? { email: editCmsEmail, password: editCmsPassword } : null;
-      }
-
       const { error } = await supabase.from("portfolio_requests").update(updates).eq("id", selectedRequest.id);
-
       if (error) throw error;
 
       toast.success("Request updated successfully");
       setIsDetailOpen(false);
       loadRequests();
-    } catch (error: any) {
-      toast.error("Failed to update request", { description: error.message });
+    } catch (err: any) {
+      toast.error("Failed to update request", { description: err.message });
     } finally {
       setIsUpdating(false);
     }
@@ -230,7 +215,6 @@ export default function PortfolioRequestsManager() {
 
   return (
     <div className="space-y-4">
-      {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -241,7 +225,7 @@ export default function PortfolioRequestsManager() {
             className="pl-9"
           />
         </div>
-        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as "all" | "pending" | "contacted" | "in_progress" | "completed" | "cancelled")}>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
@@ -256,26 +240,18 @@ export default function PortfolioRequestsManager() {
         </Select>
       </div>
 
-      {/* Stats Summary */}
       <Card className="bg-muted/30">
         <CardContent className="py-4">
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-4">
-            {/* Free Counter */}
-            <div className="col-span-2 sm:col-span-1 lg:col-span-2 flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
-              <Gift className="h-8 w-8 text-primary" />
-              <div>
-                <div className="text-xl font-bold text-primary">{Math.max(0, FREE_PORTFOLIO_LIMIT - totalCount)}</div>
-                <div className="text-xs text-muted-foreground">Free slots left</div>
-              </div>
+          <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/5 border border-primary/20 w-fit">
+            <Gift className="h-8 w-8 text-primary" />
+            <div>
+              <div className="text-xl font-bold text-primary">{Math.max(0, FREE_PORTFOLIO_LIMIT - totalCount)}</div>
+              <div className="text-xs text-muted-foreground">Free slots left</div>
             </div>
-
-            {/* Status Breakdown (Note: Counts are only for current page in this simple implementation unless we fetch counts separately. 
-                For MVP, we skip detailed breakdown counts or accept they reflect page only if filtered) */}
           </div>
         </CardContent>
       </Card>
 
-      {/* Table */}
       {loading ? (
         <DashboardTableSkeleton rows={5} columns={6} />
       ) : error ? (
@@ -334,9 +310,6 @@ export default function PortfolioRequestsManager() {
                               📋 Profile
                             </Badge>
                           )}
-                          {!request.cv_url && !hasProfileData && (
-                            <span className="text-muted-foreground text-xs">None</span>
-                          )}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -388,9 +361,8 @@ export default function PortfolioRequestsManager() {
             </TableBody>
           </Table>
 
-          {/* Pagination Controls */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-end space-x-2 py-4">
+            <div className="flex items-center justify-end space-x-2 py-4 px-4">
               <Button
                 variant="outline"
                 size="sm"
@@ -415,7 +387,6 @@ export default function PortfolioRequestsManager() {
         </div>
       )}
 
-      {/* Detail Dialog */}
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -425,7 +396,6 @@ export default function PortfolioRequestsManager() {
 
           {selectedRequest && (
             <div className="space-y-6">
-              {/* Personal Info */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label className="text-muted-foreground">Name</Label>
@@ -443,20 +413,53 @@ export default function PortfolioRequestsManager() {
                   <Label className="text-muted-foreground">Profession</Label>
                   <p className="font-medium">
                     {selectedRequest.custom_profession || selectedRequest.profession_category?.name || "Not specified"}
-                    {selectedRequest.custom_profession && (
-                      <Badge variant="outline" className="ml-2 text-[10px]">
-                        Custom
-                      </Badge>
-                    )}
                   </p>
                 </div>
               </div>
 
-              {/* ... (Existing details sections retained, omitted for brevity but should be kept in final file) ... */}
+              {selectedRequest.social_links && (
+                <div className="space-y-2">
+                  <Label className="text-muted-foreground flex items-center gap-2">
+                    <Globe className="h-3 w-3" /> Social Links
+                  </Label>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(selectedRequest.social_links).map(
+                      ([platform, url]) =>
+                        url && (
+                          <Badge
+                            key={platform}
+                            variant="outline"
+                            className="cursor-pointer"
+                            onClick={() => window.open(url, "_blank")}
+                          >
+                            {platform}
+                          </Badge>
+                        ),
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {selectedRequest.achievements && (
+                <div className="space-y-1">
+                  <Label className="text-muted-foreground flex items-center gap-2">
+                    <Award className="h-3 w-3" /> Achievements
+                  </Label>
+                  <p className="text-sm bg-muted p-2 rounded">{selectedRequest.achievements}</p>
+                </div>
+              )}
+
+              {selectedRequest.additional_notes && (
+                <div className="space-y-1">
+                  <Label className="text-muted-foreground flex items-center gap-2">
+                    <FileText className="h-3 w-3" /> User Notes
+                  </Label>
+                  <p className="text-sm italic">{selectedRequest.additional_notes}</p>
+                </div>
+              )}
 
               <hr />
 
-              {/* Admin Controls */}
               <div className="space-y-4">
                 <div>
                   <Label>Status</Label>
@@ -465,11 +468,11 @@ export default function PortfolioRequestsManager() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="contacted">Contacted</SelectItem>
-                      <SelectItem value="in_progress">In Progress</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
-                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                      {Object.entries(statusLabels).map(([val, label]) => (
+                        <SelectItem key={val} value={val}>
+                          {label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -485,8 +488,10 @@ export default function PortfolioRequestsManager() {
                 </div>
 
                 {editStatus === "completed" && (
-                  <div className="space-y-4 p-4 bg-primary/5 rounded-lg">
-                    <h4 className="font-semibold">Delivery Details</h4>
+                  <div className="space-y-4 p-4 bg-primary/5 rounded-lg border border-primary/20">
+                    <h4 className="font-semibold flex items-center gap-2">
+                      <Globe className="h-4 w-4" /> Delivery Details
+                    </h4>
                     <div>
                       <Label>Portfolio URL</Label>
                       <Input
@@ -524,8 +529,7 @@ export default function PortfolioRequestsManager() {
               Cancel
             </Button>
             <Button onClick={handleUpdate} disabled={isUpdating}>
-              {isUpdating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Save Changes
+              {isUpdating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Save Changes
             </Button>
           </DialogFooter>
         </DialogContent>
