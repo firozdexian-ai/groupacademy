@@ -4,15 +4,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, LogIn, RefreshCw, AlertCircle } from "lucide-react";
+import { Loader2, LogIn, RefreshCw, AlertCircle, Zap, ShieldCheck } from "lucide-react";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { usePWADetect } from "@/hooks/usePWADetect";
+import { cn } from "@/lib/utils";
+
+/**
+ * GroUp Academy: Security Perimeter Node (AuthGate)
+ * CTO Reference: Authoritative sentry for protected trajectory routes.
+ */
 
 interface AuthGateProps {
   children: React.ReactNode;
   redirectTo?: string;
   message?: string;
-  // Added to support the AI vs Classic preference
   authType?: "ai" | "classic";
 }
 
@@ -23,27 +28,25 @@ export function AuthGate({ children, redirectTo, message, authType = "ai" }: Aut
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [seconds, setSeconds] = useState(0);
+  const [syncSeconds, setSyncSeconds] = useState(0);
 
-  const authTimeout = isPWA ? TIMEOUTS.PWA_AUTH : TIMEOUTS.AUTH;
-
-  const handleRedirect = useCallback(() => {
+  const executeRedirectHandshake = useCallback(() => {
     const returnUrl = redirectTo || location.pathname + location.search;
-    const loginPath = authType === "classic" ? "/auth/classic" : "/auth";
-    navigate(`${loginPath}?returnTo=${encodeURIComponent(returnUrl)}`);
+    const ingressNode = authType === "classic" ? "/auth/classic" : "/auth";
+    navigate(`${ingressNode}?returnTo=${encodeURIComponent(returnUrl)}`);
   }, [navigate, redirectTo, location, authType]);
 
-  const checkAuth = useCallback(async () => {
+  const executeAuthAudit = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
       const {
         data: { session },
-        error: sessionError,
+        error: auditError,
       } = await supabase.auth.getSession();
 
-      if (sessionError) throw sessionError;
+      if (auditError) throw auditError;
 
       if (!session) {
         setUser(null);
@@ -51,20 +54,20 @@ export function AuthGate({ children, redirectTo, message, authType = "ai" }: Aut
         setUser(session.user);
       }
     } catch (err: any) {
-      console.error("[AuthGate] Auth check error:", err);
+      console.error("[AuthGate] Audit fault detected:", err);
 
-      // Standardize session clearing for expired/invalid tokens
+      // PROTOCOL: Purge stale registry nodes
       if (err.message?.includes("refresh_token_not_found") || err.status === 400) {
         await supabase.auth.signOut();
-        handleRedirect();
+        executeRedirectHandshake();
         return;
       }
 
-      setError("Unable to verify your session. Please check your connection.");
+      setError("Uplink fault: Unable to verify neural identity artifacts.");
     } finally {
       setLoading(false);
     }
-  }, [handleRedirect]);
+  }, [executeRedirectHandshake]);
 
   useEffect(() => {
     const {
@@ -79,25 +82,33 @@ export function AuthGate({ children, redirectTo, message, authType = "ai" }: Aut
       }
     });
 
-    checkAuth();
+    executeAuthAudit();
     return () => subscription.unsubscribe();
-  }, [checkAuth]);
+  }, [executeAuthAudit]);
 
-  // Progressive loading timer logic
+  // Telemetry: Progressive Loading Index
   useEffect(() => {
     if (!loading) return;
-    const interval = setInterval(() => setSeconds((s) => s + 1), 1000);
-    return () => clearInterval(interval);
+    const pulse = setInterval(() => setSyncSeconds((s) => s + 1), 1000);
+    return () => clearInterval(pulse);
   }, [loading]);
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4 text-center px-4">
-          <Loader2 className="h-10 w-10 animate-spin text-primary" />
-          <p className="text-muted-foreground">
-            {seconds > 10 ? "This is taking a bit longer..." : "Verifying your access..."}
-          </p>
+      <div className="min-h-screen flex items-center justify-center bg-background/95 backdrop-blur-md">
+        <div className="flex flex-col items-center gap-6 text-center animate-in fade-in duration-700">
+          <div className="relative">
+            <Loader2 className="h-14 w-14 animate-spin text-primary opacity-20" />
+            <Zap className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-6 w-6 text-primary animate-pulse" />
+          </div>
+          <div className="space-y-2">
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary/60 italic">
+              Neural_Identity_Check
+            </p>
+            <p className="text-sm font-medium text-muted-foreground italic">
+              {syncSeconds > 8 ? "Optimizing high-latency uplink..." : "Verifying access artifacts..."}
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -105,19 +116,27 @@ export function AuthGate({ children, redirectTo, message, authType = "ai" }: Aut
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Card className="max-w-md w-full border-destructive/20 shadow-lg">
-          <CardHeader className="text-center">
-            <AlertCircle className="h-10 w-10 text-destructive mx-auto mb-2" />
-            <CardTitle>Session Error</CardTitle>
-            <CardDescription>{error}</CardDescription>
+      <div className="min-h-screen flex items-center justify-center bg-background p-6">
+        <Card className="max-w-md w-full rounded-[32px] border-2 border-rose-500/20 bg-rose-500/5 shadow-2xl overflow-hidden">
+          <CardHeader className="text-center p-8 pb-4">
+            <AlertCircle className="h-12 w-12 text-rose-500 mx-auto mb-4" />
+            <CardTitle className="text-2xl font-black uppercase italic tracking-tighter">Registry_Fault</CardTitle>
+            <CardDescription className="font-medium italic">{error}</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            <Button onClick={checkAuth} className="w-full">
-              Try Again
+          <CardContent className="p-8 pt-4 flex flex-col gap-3">
+            <Button
+              onClick={executeAuthAudit}
+              size="xl"
+              className="w-full rounded-2xl font-black uppercase italic gap-2 shadow-lg shadow-primary/20"
+            >
+              <RefreshCw className="h-4 w-4" /> ATTEMPT_RE_SYNC
             </Button>
-            <Button variant="outline" onClick={handleRedirect} className="w-full">
-              Return to Login
+            <Button
+              variant="outline"
+              onClick={executeRedirectHandshake}
+              className="w-full h-14 rounded-2xl border-2 font-black uppercase italic text-[10px] tracking-widest"
+            >
+              RETURN_TO_INGRESS
             </Button>
           </CardContent>
         </Card>
@@ -127,21 +146,33 @@ export function AuthGate({ children, redirectTo, message, authType = "ai" }: Aut
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Card className="max-w-md w-full shadow-xl">
-          <CardHeader className="text-center">
-            <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <LogIn className="h-6 w-6 text-primary" />
+      <div className="min-h-screen flex items-center justify-center bg-background p-6">
+        <Card className="max-w-md w-full rounded-[40px] border-2 border-border/40 bg-card/40 backdrop-blur-xl shadow-2xl overflow-hidden">
+          <CardHeader className="text-center p-10 pb-6">
+            <div className="w-20 h-20 rounded-[28px] bg-primary/10 border-2 border-primary/20 flex items-center justify-center mx-auto mb-6 shadow-xl">
+              <ShieldCheck className="h-10 w-10 text-primary animate-pulse" />
             </div>
-            <CardTitle>Unlock GroUp Academy</CardTitle>
-            <CardDescription>{message || "Please sign in to continue your career journey."}</CardDescription>
+            <CardTitle className="text-3xl font-black uppercase italic tracking-tighter leading-none">
+              Access_Locked
+            </CardTitle>
+            <CardDescription className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60 italic mt-4">
+              {message || "Initialize identity sync to continue your career trajectory."}
+            </CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <Button onClick={handleRedirect} className="w-full py-6 text-lg font-semibold">
-              Sign In Now
+          <CardContent className="p-10 pt-4 flex flex-col gap-4">
+            <Button
+              onClick={executeRedirectHandshake}
+              size="xl"
+              className="w-full h-16 rounded-[24px] font-black uppercase italic tracking-[0.2em] shadow-[0_20px_50px_rgba(var(--primary),0.3)] hover:shadow-primary/40 active:scale-95 transition-all"
+            >
+              INITIALIZE_SYNC
             </Button>
-            <Button variant="ghost" onClick={() => navigate("/")} className="w-full">
-              Back to Home
+            <Button
+              variant="ghost"
+              onClick={() => navigate("/")}
+              className="w-full h-12 text-[10px] font-black uppercase tracking-widest opacity-40 hover:opacity-100"
+            >
+              ← ABORT_TO_BASE
             </Button>
           </CardContent>
         </Card>
