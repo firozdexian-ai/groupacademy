@@ -5,8 +5,8 @@ import { toast } from "sonner";
 import { handleAIError, getAIUnavailableToast } from "@/lib/aiErrorHandler";
 
 /**
- * GroUp Academy: General Intelligence Hook
- * CTO Reference: Governs broad-spectrum AI chat sessions and streaming node management.
+ * GroUp Academy: General Intelligence Hook (V2.1.26)
+ * CTO Reference: Authoritative controller for free-tier AI streaming sessions.
  */
 
 export interface AgentMessage {
@@ -30,17 +30,17 @@ export function useAIGeneralChat(initialQuery?: string): UseAIGeneralChatReturn 
   const [isLoading, setIsLoading] = useState(false);
   const initialSent = useRef(false);
 
-  // PROTOCOL: Auto-provision free interaction node
+  // --- PROTOCOL: AUTOMATIC_SESSION_PROVISIONING ---
   useEffect(() => {
     if (!talent?.id || sessionId) return;
 
-    const createSession = async () => {
+    const initializeNode = async () => {
       setIsLoading(true);
       try {
         const now = new Date();
-        const expiresAt = new Date(now.getTime() + 1440 * 60 * 1000); // 24h Lifecycle
+        const expiresAt = new Date(now.getTime() + 1440 * 60 * 1000); // 24h Registry Lifecycle
 
-        // Telemetry: Increment platform usage counters
+        // Telemetry: Synchronize platform-level usage counters
         await supabase.rpc("increment_agent_conversations", { p_agent_key: "ai-general" });
 
         const { data, error } = await supabase
@@ -60,24 +60,24 @@ export function useAIGeneralChat(initialQuery?: string): UseAIGeneralChatReturn 
         if (error) throw error;
         setSessionId(data.id);
       } catch (err) {
-        console.error("Session Provisioning Fault:", err);
+        console.error("SESSION_PROVISIONING_FAULT:", err);
       } finally {
         setIsLoading(false);
       }
     };
 
-    createSession();
+    initializeNode();
   }, [talent?.id, sessionId]);
 
-  // PROTOCOL: Auto-dispatch initial inquiry if provided
+  // --- PROTOCOL: DEEP_LINK_INQUIRY_SYNC ---
   useEffect(() => {
     if (sessionId && initialQuery && !initialSent.current && messages.length === 0) {
       initialSent.current = true;
-      sendMessageInternal(initialQuery);
+      executeNeuralSync(initialQuery);
     }
   }, [sessionId, initialQuery]);
 
-  const saveMessages = useCallback(
+  const commitTrajectory = useCallback(
     async (msgs: AgentMessage[]) => {
       if (!sessionId) return;
       try {
@@ -86,28 +86,28 @@ export function useAIGeneralChat(initialQuery?: string): UseAIGeneralChatReturn 
           .update({ messages: msgs as unknown as any })
           .eq("id", sessionId);
       } catch (err) {
-        console.error("Registry Persistence Fault:", err);
+        console.error("REGISTRY_PERSISTENCE_FAULT:", err);
       }
     },
     [sessionId],
   );
 
-  const sendMessageInternal = useCallback(
+  const executeNeuralSync = useCallback(
     async (content: string) => {
       if (!sessionId || !content.trim() || isStreaming) return;
 
-      const userMessage: AgentMessage = { role: "user", content: content.trim() };
-      const newMessages = [...messages, userMessage];
-      setMessages(newMessages);
+      const userArtifact: AgentMessage = { role: "user", content: content.trim() };
+      const activeTrajectory = [...messages, userArtifact];
+      setMessages(activeTrajectory);
       setIsStreaming(true);
 
-      let assistantContent = "";
+      let assistantBuffer = "";
 
       try {
         const {
           data: { session: authSession },
         } = await supabase.auth.getSession();
-        if (!authSession?.access_token) throw new Error("Unauthenticated Node");
+        if (!authSession?.access_token) throw new Error("AUTH_SYNC_REQUIRED");
 
         const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-agent-chat`, {
           method: "POST",
@@ -117,7 +117,7 @@ export function useAIGeneralChat(initialQuery?: string): UseAIGeneralChatReturn 
           },
           body: JSON.stringify({
             agentKey: "ai-general",
-            messages: newMessages.map((m) => ({ role: m.role, content: m.content })),
+            messages: activeTrajectory.map((m) => ({ role: m.role, content: m.content })),
           }),
         });
 
@@ -132,75 +132,74 @@ export function useAIGeneralChat(initialQuery?: string): UseAIGeneralChatReturn 
           return;
         }
 
-        if (!response.body) throw new Error("Stream Body Missing");
+        if (!response.body) throw new Error("STREAM_BODY_MISSING");
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
-        let textBuffer = "";
+        let transmissionBuffer = "";
 
-        // Push empty assistant artifact to the UI
+        // Push empty assistant node to UI HUD
         setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
 
-        // REINFORCED: Neural Extraction Loop
+        // HUD: NEURAL_EXTRACTION_LOOP
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
 
-          textBuffer += decoder.decode(value, { stream: true });
+          transmissionBuffer += decoder.decode(value, { stream: true });
 
-          let newlineIndex: number;
-          while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
-            let line = textBuffer.slice(0, newlineIndex);
-            textBuffer = textBuffer.slice(newlineIndex + 1);
+          let delimiterIndex: number;
+          while ((delimiterIndex = transmissionBuffer.indexOf("\n")) !== -1) {
+            let line = transmissionBuffer.slice(0, delimiterIndex);
+            transmissionBuffer = transmissionBuffer.slice(delimiterIndex + 1);
 
             if (line.endsWith("\r")) line = line.slice(0, -1);
             if (line.startsWith(":") || line.trim() === "") continue;
             if (!line.startsWith("data: ")) continue;
 
-            const jsonStr = line.slice(6).trim();
-            if (jsonStr === "[DONE]") break;
+            const payload = line.slice(6).trim();
+            if (payload === "[DONE]") break;
 
             try {
-              const parsed = JSON.parse(jsonStr);
-              const tokenContent = parsed.choices?.[0]?.delta?.content;
-              if (tokenContent) {
-                assistantContent += tokenContent;
+              const parsed = JSON.parse(payload);
+              const token = parsed.choices?.[0]?.delta?.content;
+              if (token) {
+                assistantBuffer += token;
                 setMessages((prev) => {
                   const updated = [...prev];
                   const lastIdx = updated.length - 1;
                   if (updated[lastIdx]?.role === "assistant") {
-                    updated[lastIdx] = { role: "assistant", content: assistantContent };
+                    updated[lastIdx] = { role: "assistant", content: assistantBuffer };
                   }
                   return updated;
                 });
               }
             } catch {
-              // Fragmented JSON node: return to buffer for next cycle
-              textBuffer = line + "\n" + textBuffer;
+              // FRAGMENTED_NODE: Recirculate to buffer for next cycle
+              transmissionBuffer = line + "\n" + transmissionBuffer;
               break;
             }
           }
         }
 
-        // PROTOCOL: Final session commit
-        const finalMessages = [...newMessages, { role: "assistant" as const, content: assistantContent }];
-        await saveMessages(finalMessages);
-      } catch (error) {
-        console.error("Transmission Fault:", error);
-        toast.error("Neural Sync Interrupted.");
-        setMessages((prev) => prev.filter((_, i) => i !== prev.length - 1));
+        const finalTrajectory = [...activeTrajectory, { role: "assistant" as const, content: assistantBuffer }];
+        await commitTrajectory(finalTrajectory);
+      } catch (err) {
+        console.error("TRANSMISSION_FAULT:", err);
+        toast.error("NEURAL_SYNC_INTERRUPTED");
+        setMessages((prev) => prev.slice(0, -1)); // Purge incomplete assistant node
       } finally {
         setIsStreaming(false);
       }
     },
-    [sessionId, messages, isStreaming, saveMessages],
+    [sessionId, messages, isStreaming, commitTrajectory],
   );
 
   const sendMessage = useCallback(
     async (content: string) => {
-      await sendMessageInternal(content);
+      await executeNeuralSync(content);
     },
-    [sendMessageInternal],
+    [executeNeuralSync],
   );
 
   return { sessionId, messages, isStreaming, isLoading, sendMessage };
