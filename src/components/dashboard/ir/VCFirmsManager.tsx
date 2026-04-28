@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,25 +14,29 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, ExternalLink, Building2 } from "lucide-react";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  ExternalLink,
+  Building2,
+  Zap,
+  ShieldCheck,
+  RefreshCw,
+  Search,
+  Globe,
+} from "lucide-react";
 import { IR_CONFIG } from "@/lib/irConfig";
+import { cn } from "@/lib/utils";
+
+/**
+ * GroUp Academy: Institutional Capital Registry (VCFirmsManager)
+ * CTO Reference: High-fidelity orchestrator for VC firm categorization and IR telemetry.
+ */
 
 interface VCFirm {
   id: string;
@@ -52,7 +56,7 @@ export function VCFirmsManager() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingFirm, setEditingFirm] = useState<VCFirm | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
-  
+
   const [formData, setFormData] = useState({
     name: "",
     logo_url: "",
@@ -63,22 +67,20 @@ export function VCFirmsManager() {
     status: "prospecting",
     notes: "",
   });
-  
-  // Fetch VC firms
-  const { data: firms, isLoading } = useQuery({
+
+  const {
+    data: firms,
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: ["ir-vc-firms"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("ir_vc_firms")
-        .select("*")
-        .order("created_at", { ascending: false });
-      
+      const { data, error } = await supabase.from("ir_vc_firms").select("*").order("created_at", { ascending: false });
       if (error) throw error;
       return data as VCFirm[];
     },
   });
-  
-  // Save mutation
+
   const saveMutation = useMutation({
     mutationFn: async () => {
       const payload = {
@@ -91,50 +93,37 @@ export function VCFirmsManager() {
         status: formData.status,
         notes: formData.notes || null,
       };
-      
+
       if (editingFirm) {
-        const { error } = await supabase
-          .from("ir_vc_firms")
-          .update(payload)
-          .eq("id", editingFirm.id);
+        const { error } = await supabase.from("ir_vc_firms").update(payload).eq("id", editingFirm.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase
-          .from("ir_vc_firms")
-          .insert(payload);
+        const { error } = await supabase.from("ir_vc_firms").insert(payload);
         if (error) throw error;
       }
     },
     onSuccess: () => {
-      toast.success(editingFirm ? "VC firm updated" : "VC firm added");
+      toast.success(editingFirm ? "Institutional Node Optimized" : "VC Identity Deployed");
       setDialogOpen(false);
       resetForm();
       queryClient.invalidateQueries({ queryKey: ["ir-vc-firms"] });
     },
-    onError: (error) => {
-      toast.error("Failed to save: " + error.message);
-    },
+    onError: (error: any) => toast.error("Transmission Fault: " + error.message),
   });
-  
-  // Delete mutation
+
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("ir_vc_firms")
-        .delete()
-        .eq("id", id);
+      const { error } = await supabase.from("ir_vc_firms").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("VC firm deleted");
+      toast.success("Institutional Node Terminated");
       setDeleteConfirmId(null);
       queryClient.invalidateQueries({ queryKey: ["ir-vc-firms"] });
     },
-    onError: (error) => {
-      toast.error("Failed to delete: " + error.message);
-    },
+    onError: (error: any) => toast.error("Termination Fault: " + error.message),
   });
-  
+
   const resetForm = () => {
     setFormData({
       name: "",
@@ -148,7 +137,7 @@ export function VCFirmsManager() {
     });
     setEditingFirm(null);
   };
-  
+
   const openEditDialog = (firm: VCFirm) => {
     setEditingFirm(firm);
     setFormData({
@@ -163,139 +152,161 @@ export function VCFirmsManager() {
     });
     setDialogOpen(true);
   };
-  
-  const getStatusBadge = (status: string) => {
-    const option = IR_CONFIG.VC_STATUS_OPTIONS.find((o) => o.value === status);
-    return (
-      <Badge variant="secondary" className={option?.color}>
-        {option?.label || status}
-      </Badge>
-    );
-  };
-  
+
   const toggleArrayValue = (field: "stage_focus" | "sector_focus", value: string) => {
     setFormData((prev) => ({
       ...prev,
-      [field]: prev[field].includes(value)
-        ? prev[field].filter((v) => v !== value)
-        : [...prev[field], value],
+      [field]: prev[field].includes(value) ? prev[field].filter((v) => v !== value) : [...prev[field], value],
     }));
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">VC Firms</h2>
-          <p className="text-muted-foreground">
-            Manage venture capital firms you're tracking
+    <div className="space-y-10 animate-in fade-in duration-700">
+      {/* EXECUTIVE COMMAND HEADER */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-muted/20 p-8 rounded-[40px] border-2 border-border/40 backdrop-blur-md">
+        <div className="space-y-1 text-left">
+          <div className="flex items-center gap-3 text-primary">
+            <Building2 className="h-8 w-8" />
+            <h2 className="text-4xl font-black uppercase tracking-tighter italic leading-none">Firm Registry</h2>
+          </div>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 italic">
+            Institutional Capital Mapping & VC Pipeline
           </p>
         </div>
-        <Button onClick={() => { resetForm(); setDialogOpen(true); }}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add VC Firm
-        </Button>
+        <div className="flex gap-3">
+          <Button variant="ghost" size="icon" onClick={() => refetch()} className="h-14 w-14 rounded-2xl border-2">
+            <RefreshCw className={cn("h-5 w-5", isLoading && "animate-spin")} />
+          </Button>
+          <Button
+            onClick={() => {
+              resetForm();
+              setDialogOpen(true);
+            }}
+            className="h-14 px-8 rounded-2xl border-2 font-black uppercase text-[10px] tracking-widest gap-3 shadow-lg"
+          >
+            <Plus className="h-4 w-4" /> Deploy Firm
+          </Button>
+        </div>
       </div>
-      
-      <Card>
+
+      <Card className="rounded-[40px] border-2 border-border/40 bg-card/30 shadow-2xl overflow-hidden">
         <CardContent className="p-0">
           <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Firm</TableHead>
-                <TableHead>Stage Focus</TableHead>
-                <TableHead>Sectors</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Links</TableHead>
-                <TableHead className="w-[100px]">Actions</TableHead>
+            <TableHeader className="bg-muted/10">
+              <TableRow className="hover:bg-transparent border-b-2">
+                <TableHead className="font-black uppercase text-[10px] tracking-widest py-6 pl-8">
+                  Institution
+                </TableHead>
+                <TableHead className="font-black uppercase text-[10px] tracking-widest">Stage Focus</TableHead>
+                <TableHead className="font-black uppercase text-[10px] tracking-widest">Neural Sectors</TableHead>
+                <TableHead className="font-black uppercase text-[10px] tracking-widest">Status</TableHead>
+                <TableHead className="text-right py-6 pr-8"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
-                    Loading...
+                  <TableCell colSpan={5} className="text-center py-20 italic font-bold opacity-50">
+                    Synchronizing institutional nodes...
                   </TableCell>
                 </TableRow>
               ) : firms?.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
-                    <Building2 className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
-                    <p className="text-muted-foreground">No VC firms added yet</p>
+                  <TableCell colSpan={5} className="text-center py-20 italic font-bold opacity-50">
+                    Zero active VC firms detected.
                   </TableCell>
                 </TableRow>
               ) : (
                 firms?.map((firm) => (
-                  <TableRow key={firm.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        {firm.logo_url ? (
-                          <img 
-                            src={firm.logo_url} 
-                            alt={firm.name}
-                            className="h-8 w-8 rounded object-cover"
-                          />
-                        ) : (
-                          <div className="h-8 w-8 rounded bg-muted flex items-center justify-center">
-                            <Building2 className="h-4 w-4 text-muted-foreground" />
+                  <TableRow
+                    key={firm.id}
+                    className="group border-b border-border/5 hover:bg-muted/10 transition-colors"
+                  >
+                    <TableCell className="py-6 pl-8">
+                      <div className="flex items-center gap-4">
+                        <div className="h-12 w-12 rounded-xl border-2 border-border/10 bg-muted/20 flex items-center justify-center overflow-hidden shadow-inner">
+                          {firm.logo_url ? (
+                            <img src={firm.logo_url} alt={firm.name} className="h-full w-full object-cover" />
+                          ) : (
+                            <Building2 className="h-6 w-6 text-primary/40" />
+                          )}
+                        </div>
+                        <div className="text-left">
+                          <p className="font-black text-sm uppercase italic tracking-tight">{firm.name}</p>
+                          <div className="flex gap-2 mt-1">
+                            {firm.website && (
+                              <a href={firm.website} target="_blank" className="text-primary hover:text-blue-600">
+                                <Globe className="h-3 w-3" />
+                              </a>
+                            )}
+                            {firm.linkedin_url && (
+                              <a href={firm.linkedin_url} target="_blank" className="text-primary hover:text-blue-600">
+                                <ExternalLink className="h-3 w-3" />
+                              </a>
+                            )}
                           </div>
-                        )}
-                        <span className="font-medium">{firm.name}</span>
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
                         {firm.stage_focus?.map((stage) => (
-                          <Badge key={stage} variant="outline" className="text-xs">
+                          <Badge
+                            key={stage}
+                            variant="outline"
+                            className="font-black text-[8px] px-2 py-0 h-5 border-primary/20 bg-primary/5 uppercase"
+                          >
                             {stage}
                           </Badge>
                         ))}
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {firm.sector_focus?.slice(0, 2).map((sector) => (
-                          <Badge key={sector} variant="outline" className="text-xs">
+                      <div className="flex flex-wrap gap-1 max-w-[200px]">
+                        {firm.sector_focus?.slice(0, 3).map((sector) => (
+                          <Badge
+                            key={sector}
+                            className="font-black text-[8px] px-2 py-0.5 rounded bg-muted text-muted-foreground uppercase tracking-tighter"
+                          >
                             {sector}
                           </Badge>
                         ))}
-                        {(firm.sector_focus?.length || 0) > 2 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{(firm.sector_focus?.length || 0) - 2}
-                          </Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>{getStatusBadge(firm.status)}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-2">
-                        {firm.website && (
-                          <a href={firm.website} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                          </a>
-                        )}
-                        {firm.linkedin_url && (
-                          <a href={firm.linkedin_url} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                          </a>
+                        {(firm.sector_focus?.length || 0) > 3 && (
+                          <span className="text-[9px] font-black text-primary italic">
+                            +{firm.sector_focus!.length - 3}
+                          </span>
                         )}
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="flex gap-2">
-                        <Button 
-                          variant="ghost" 
+                      <Badge
+                        className={cn(
+                          "font-black text-[9px] uppercase italic rounded-full px-4 border-2",
+                          firm.status === "portfolio"
+                            ? "bg-green-500/10 text-green-600 border-green-500/20"
+                            : "bg-muted text-muted-foreground",
+                        )}
+                      >
+                        {firm.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right pr-8">
+                      <div className="flex justify-end gap-1 opacity-20 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          variant="ghost"
                           size="icon"
                           onClick={() => openEditDialog(firm)}
+                          className="h-10 w-10 hover:bg-primary/10 transition-all"
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button 
-                          variant="ghost" 
+                        <Button
+                          variant="ghost"
                           size="icon"
                           onClick={() => setDeleteConfirmId(firm.id)}
+                          className="h-10 w-10 hover:bg-destructive/10 text-destructive"
                         >
-                          <Trash2 className="h-4 w-4 text-destructive" />
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </TableCell>
@@ -306,158 +317,109 @@ export function VCFirmsManager() {
           </Table>
         </CardContent>
       </Card>
-      
-      {/* Add/Edit Dialog */}
+
+      {/* DEPLOYMENT DIALOG */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{editingFirm ? "Edit VC Firm" : "Add VC Firm"}</DialogTitle>
-            <DialogDescription>
-              {editingFirm ? "Update firm details" : "Add a new venture capital firm to track"}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Firm Name *</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="e.g., Sequoia Capital"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="logo">Logo URL</Label>
-              <Input
-                id="logo"
-                value={formData.logo_url}
-                onChange={(e) => setFormData({ ...formData, logo_url: e.target.value })}
-                placeholder="https://..."
-              />
-            </div>
-            
-            <div className="grid gap-4 md:grid-cols-2">
+        <DialogContent className="max-w-xl rounded-[40px] border-4 p-0 overflow-hidden bg-background">
+          <div className="h-2 w-full bg-primary" />
+          <div className="p-10 space-y-8 max-h-[85vh] overflow-y-auto no-scrollbar text-left">
+            <DialogHeader>
+              <DialogTitle className="text-3xl font-black uppercase italic tracking-tighter flex items-center gap-3">
+                <Zap className="h-8 w-8 text-primary fill-current" /> Identity Deployment
+              </DialogTitle>
+              <DialogDescription className="text-[10px] font-bold uppercase tracking-widest italic">
+                Synchronize institutional parameters and authority levels
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="website">Website</Label>
+                <Label className="text-[10px] font-black uppercase text-primary italic ml-2">Institution Name *</Label>
                 <Input
-                  id="website"
-                  value={formData.website}
-                  onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-                  placeholder="https://..."
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="h-14 rounded-2xl border-2 font-bold"
+                  placeholder="E.G. SEQUOIA CAPITAL..."
                 />
               </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="linkedin">LinkedIn</Label>
-                <Input
-                  id="linkedin"
-                  value={formData.linkedin_url}
-                  onChange={(e) => setFormData({ ...formData, linkedin_url: e.target.value })}
-                  placeholder="https://linkedin.com/..."
-                />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-primary italic ml-2">Logo Artifact URL</Label>
+                  <Input
+                    value={formData.logo_url}
+                    onChange={(e) => setFormData({ ...formData, logo_url: e.target.value })}
+                    className="h-14 rounded-2xl border-2 font-bold"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase text-primary italic ml-2">Deployment Status</Label>
+                  <Select value={formData.status} onValueChange={(v) => setFormData({ ...formData, status: v })}>
+                    <SelectTrigger className="h-14 rounded-2xl border-2 font-bold uppercase text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-2">
+                      {IR_CONFIG.VC_STATUS_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value} className="font-bold text-xs uppercase">
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label>Stage Focus</Label>
-              <div className="flex flex-wrap gap-2">
-                {IR_CONFIG.STAGE_FOCUS_OPTIONS.map((stage) => (
-                  <Badge
-                    key={stage}
-                    variant={formData.stage_focus.includes(stage) ? "default" : "outline"}
-                    className="cursor-pointer"
-                    onClick={() => toggleArrayValue("stage_focus", stage)}
-                  >
-                    {stage}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label>Sector Focus</Label>
-              <div className="flex flex-wrap gap-2">
-                {IR_CONFIG.SECTOR_FOCUS_OPTIONS.map((sector) => (
-                  <Badge
-                    key={sector}
-                    variant={formData.sector_focus.includes(sector) ? "default" : "outline"}
-                    className="cursor-pointer"
-                    onClick={() => toggleArrayValue("sector_focus", sector)}
-                  >
-                    {sector}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <Select
-                value={formData.status}
-                onValueChange={(v) => setFormData({ ...formData, status: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {IR_CONFIG.VC_STATUS_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
+
+              <div className="space-y-4">
+                <Label className="text-[10px] font-black uppercase text-primary italic ml-2">Neural Sector Focus</Label>
+                <div className="flex flex-wrap gap-2 p-4 rounded-2xl border-2 bg-muted/10">
+                  {IR_CONFIG.SECTOR_FOCUS_OPTIONS.map((sector) => (
+                    <Badge
+                      key={sector}
+                      variant={formData.sector_focus.includes(sector) ? "default" : "outline"}
+                      className={cn(
+                        "cursor-pointer font-black text-[9px] uppercase px-3 py-1",
+                        formData.sector_focus.includes(sector) ? "" : "opacity-40",
+                      )}
+                      onClick={() => toggleArrayValue("sector_focus", sector)}
+                    >
+                      {sector}
+                    </Badge>
                   ))}
-                </SelectContent>
-              </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase text-primary italic ml-2">Internal Notes</Label>
+                <Textarea
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  className="min-h-[100px] rounded-3xl border-2 font-medium italic text-sm"
+                />
+              </div>
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="notes">Notes</Label>
-              <Textarea
-                id="notes"
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="Internal notes..."
-                rows={3}
-              />
-            </div>
+
+            <DialogFooter className="pt-4 gap-4 flex-col sm:flex-row border-t border-border/10 pt-8">
+              <Button
+                variant="ghost"
+                onClick={() => setDialogOpen(false)}
+                className="font-black uppercase text-[10px] tracking-widest italic opacity-50"
+              >
+                Abort Protocol
+              </Button>
+              <Button
+                onClick={() => saveMutation.mutate()}
+                disabled={!formData.name || saveMutation.isPending}
+                className="flex-1 h-16 rounded-[24px] font-black uppercase italic tracking-tighter text-xl gap-3 shadow-xl"
+              >
+                {saveMutation.isPending ? (
+                  <RefreshCw className="animate-spin" />
+                ) : (
+                  <ShieldCheck className="fill-current" />
+                )}
+                Authorize Deployment
+              </Button>
+            </DialogFooter>
           </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={() => saveMutation.mutate()}
-              disabled={!formData.name || saveMutation.isPending}
-            >
-              {saveMutation.isPending ? "Saving..." : "Save"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Delete Confirmation */}
-      <Dialog open={!!deleteConfirmId} onOpenChange={() => setDeleteConfirmId(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete VC Firm?</DialogTitle>
-            <DialogDescription>
-              This will also remove all associated investors and communications. This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteConfirmId(null)}>
-              Cancel
-            </Button>
-            <Button 
-              variant="destructive"
-              onClick={() => deleteConfirmId && deleteMutation.mutate(deleteConfirmId)}
-              disabled={deleteMutation.isPending}
-            >
-              {deleteMutation.isPending ? "Deleting..." : "Delete"}
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
