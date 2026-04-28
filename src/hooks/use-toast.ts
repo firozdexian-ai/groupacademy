@@ -4,10 +4,11 @@ import type { ToastActionElement, ToastProps } from "@/components/ui/toast";
 /**
  * GroUp Academy: Feedback Orchestration Logic
  * CTO Reference: Governs real-time system notifications and protocol feedback.
+ * Performance: Enforces executive focus via single-toast limits.
  */
 
-const TOAST_LIMIT = 1; // Enforce single-focus feedback for executive clarity
-const TOAST_REMOVE_DELAY = 5000; // Recalibrated to 5s for clean registry state
+const TOAST_LIMIT = 1;
+const TOAST_REMOVE_DELAY = 5000; // 5s for sustained legibility
 
 type ToasterToast = ToastProps & {
   id: string;
@@ -23,10 +24,10 @@ const actionTypes = {
   REMOVE_TOAST: "REMOVE_TOAST",
 } as const;
 
-let count = 0;
-function genId() {
-  count = (count + 1) % Number.MAX_SAFE_INTEGER;
-  return count.toString();
+let registryCounter = 0;
+function generateNodeId() {
+  registryCounter = (registryCounter + 1) % Number.MAX_SAFE_INTEGER;
+  return `SYNC_NODE_${registryCounter.toString()}`;
 }
 
 type ActionType = typeof actionTypes;
@@ -41,20 +42,20 @@ interface State {
   toasts: ToasterToast[];
 }
 
-const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
+const removalQueue = new Map<string, ReturnType<typeof setTimeout>>();
 
-const addToRemoveQueue = (toastId: string) => {
-  if (toastTimeouts.has(toastId)) return;
+const queueForRegistryPurge = (toastId: string) => {
+  if (removalQueue.has(toastId)) return;
 
-  const timeout = setTimeout(() => {
-    toastTimeouts.delete(toastId);
+  const timer = setTimeout(() => {
+    removalQueue.delete(toastId);
     dispatch({
       type: "REMOVE_TOAST",
       toastId: toastId,
     });
   }, TOAST_REMOVE_DELAY);
 
-  toastTimeouts.set(toastId, timeout);
+  removalQueue.set(toastId, timer);
 };
 
 export const reducer = (state: State, action: Action): State => {
@@ -75,9 +76,9 @@ export const reducer = (state: State, action: Action): State => {
       const { toastId } = action;
 
       if (toastId) {
-        addToRemoveQueue(toastId);
+        queueForRegistryPurge(toastId);
       } else {
-        state.toasts.forEach((toast) => addToRemoveQueue(toast.id));
+        state.toasts.forEach((toast) => queueForRegistryPurge(toast.id));
       }
 
       return {
@@ -97,17 +98,17 @@ export const reducer = (state: State, action: Action): State => {
 };
 
 const listeners: Array<(state: State) => void> = [];
-let memoryState: State = { toasts: [] };
+let memoryRegistry: State = { toasts: [] };
 
 function dispatch(action: Action) {
-  memoryState = reducer(memoryState, action);
-  listeners.forEach((listener) => listener(memoryState));
+  memoryRegistry = reducer(memoryRegistry, action);
+  listeners.forEach((listener) => listener(memoryRegistry));
 }
 
 type Toast = Omit<ToasterToast, "id">;
 
 function toast({ ...props }: Toast) {
-  const id = genId();
+  const id = generateNodeId();
   const update = (props: ToasterToast) => dispatch({ type: "UPDATE_TOAST", toast: { ...props, id } });
   const dismiss = () => dispatch({ type: "DISMISS_TOAST", toastId: id });
 
@@ -127,7 +128,7 @@ function toast({ ...props }: Toast) {
 }
 
 function useToast() {
-  const [state, setState] = React.useState<State>(memoryState);
+  const [state, setState] = React.useState<State>(memoryRegistry);
 
   React.useEffect(() => {
     listeners.push(setState);
