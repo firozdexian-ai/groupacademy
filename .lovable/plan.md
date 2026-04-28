@@ -221,10 +221,10 @@ P10–P11 = ecosystem & growth.
 
 ---
 
-## Final confirmations before I execute P1
+## Final locked decisions (v3)
 
-1. **Company portal layout** — full WhatsApp Business clone (inbox left, thread right, no traditional dashboard tabs at all)? Or keep a minimal top-bar with Wallet + Settings? I recommend WhatsApp-pure with a single profile menu.
-2. **Headless events** — should `feed_posts.created` and `gig_submissions.created` also become events at launch (would let us add moderator agents later) or hold off?
-3. **Marketplace launch** — open it to talent-built agents only first, or talent + company simultaneously? I recommend talent only for the first 4 weeks to keep moderation load manageable.
+- **Company portal layout**: pure WhatsApp-Business clone. Inbox left, thread right, profile menu top-right. No dashboard tabs.
+- **Headless events at launch**: include `feed_posts.created` and `gig_submissions.created` (enables moderator agents later with zero rework).
+- **Marketplace launch**: talent-built agents only for the first 4 weeks; open to companies after the moderation rhythm is proven.
 
-Approve and I start P1: schema migration + tool registry seed + ai_agents extensions + RLS. If any of those three should flip, tell me before I begin.
+Starting **Phase 1**: schema migration + tool registry seed + `ai_agents` extensions + RLS.
