@@ -1,7 +1,13 @@
-import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useTalent } from '@/hooks/useTalent';
-import { mapNotificationRow, type Notification } from '@/lib/notificationHelpers';
+import { useState, useEffect, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useTalent } from "@/hooks/useTalent";
+import { mapNotificationRow, type Notification } from "@/lib/notificationHelpers";
+
+/**
+ * GroUp Academy: Neural Event Broadcaster
+ * CTO Reference: Authoritative engine for real-time engagement and notification sync.
+ * Performance: Implements full-lifecycle Postgres change listeners.
+ */
 
 export function useNotifications() {
   const { talent } = useTalent();
@@ -10,6 +16,7 @@ export function useNotifications() {
 
   const talentId = talent?.id;
 
+  // PHASE: Registry_Ingress
   const fetchNotifications = useCallback(async () => {
     if (!talentId) {
       setNotifications([]);
@@ -19,78 +26,53 @@ export function useNotifications() {
 
     try {
       const { data, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('talent_id', talentId)
-        .order('created_at', { ascending: false })
+        .from("notifications")
+        .select("*")
+        .eq("talent_id", talentId)
+        .order("created_at", { ascending: false })
         .limit(50);
 
-      if (error) {
-        console.error('Error fetching notifications:', error);
-        return;
-      }
-
+      if (error) throw error;
       setNotifications((data || []).map(mapNotificationRow));
     } catch (err) {
-      console.error('Failed to fetch notifications:', err);
+      console.error("NOTIF_SYNC_FAULT:", err);
     } finally {
       setIsLoading(false);
     }
   }, [talentId]);
 
-  // Initial fetch
   useEffect(() => {
     fetchNotifications();
   }, [fetchNotifications]);
 
-  // Real-time subscription
+  // PHASE: Neural_Realtime_Handshake
   useEffect(() => {
     if (!talentId) return;
 
     const channel = supabase
-      .channel('notifications-realtime')
+      .channel(`notif_sync_${talentId}`)
       .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `talent_id=eq.${talentId}`,
-        },
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "notifications", filter: `talent_id=eq.${talentId}` },
         (payload) => {
-          console.log('New notification received:', payload.new);
-          const newNotification = mapNotificationRow(payload.new);
-          setNotifications((prev) => [newNotification, ...prev]);
-        }
+          const newNotif = mapNotificationRow(payload.new);
+          setNotifications((prev) => [newNotif, ...prev]);
+        },
       )
       .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'notifications',
-          filter: `talent_id=eq.${talentId}`,
-        },
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "notifications", filter: `talent_id=eq.${talentId}` },
         (payload) => {
           const updated = mapNotificationRow(payload.new);
-          setNotifications((prev) =>
-            prev.map((n) => (n.id === updated.id ? updated : n))
-          );
-        }
+          setNotifications((prev) => prev.map((n) => (n.id === updated.id ? updated : n)));
+        },
       )
       .on(
-        'postgres_changes',
-        {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'notifications',
-          filter: `talent_id=eq.${talentId}`,
-        },
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "notifications", filter: `talent_id=eq.${talentId}` },
         (payload) => {
-          setNotifications((prev) =>
-            prev.filter((n) => n.id !== (payload.old as any).id)
-          );
-        }
+          setNotifications((prev) => prev.filter((n) => n.id !== (payload.old as any).id));
+        },
       )
       .subscribe();
 
@@ -99,57 +81,36 @@ export function useNotifications() {
     };
   }, [talentId]);
 
+  // PHASE: Telemetry_Calculation
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
+  // PHASE: Registry_Cleanup_Actions
   const markAsRead = useCallback(async (id: string) => {
-    const { error } = await supabase
-      .from('notifications')
-      .update({ is_read: true, read_at: new Date().toISOString() })
-      .eq('id', id);
+    const timestamp = new Date().toISOString();
+    const { error } = await supabase.from("notifications").update({ is_read: true, read_at: timestamp }).eq("id", id);
 
-    if (error) {
-      console.error('Error marking notification as read:', error);
-      return;
+    if (!error) {
+      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: true, readAt: timestamp } : n)));
     }
-
-    setNotifications((prev) =>
-      prev.map((n) =>
-        n.id === id ? { ...n, isRead: true, readAt: new Date().toISOString() } : n
-      )
-    );
   }, []);
 
   const markAllAsRead = useCallback(async () => {
     if (!talentId) return;
-
+    const timestamp = new Date().toISOString();
     const { error } = await supabase
-      .from('notifications')
-      .update({ is_read: true, read_at: new Date().toISOString() })
-      .eq('talent_id', talentId)
-      .eq('is_read', false);
+      .from("notifications")
+      .update({ is_read: true, read_at: timestamp })
+      .eq("talent_id", talentId)
+      .eq("is_read", false);
 
-    if (error) {
-      console.error('Error marking all notifications as read:', error);
-      return;
+    if (!error) {
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true, readAt: timestamp })));
     }
-
-    setNotifications((prev) =>
-      prev.map((n) => ({ ...n, isRead: true, readAt: new Date().toISOString() }))
-    );
   }, [talentId]);
 
   const deleteNotification = useCallback(async (id: string) => {
-    const { error } = await supabase
-      .from('notifications')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error deleting notification:', error);
-      return;
-    }
-
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
+    const { error } = await supabase.from("notifications").delete().eq("id", id);
+    if (!error) setNotifications((prev) => prev.filter((n) => n.id !== id));
   }, []);
 
   return {
