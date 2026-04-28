@@ -6,7 +6,7 @@ import { handleAIError } from "@/lib/aiErrorHandler";
 
 /**
  * GroUp Academy: Neural Chat Orchestrator (V2.0.26)
- * CTO Reference: Fixed TS scope errors and missing exports.
+ * CTO Reference: Authoritative controller for agent-based career intelligence.
  */
 
 export interface AgentMessage {
@@ -43,7 +43,7 @@ export interface UseAgentChatReturn {
 export function useAgentChat(): UseAgentChatReturn {
   const { talent } = useTalent();
 
-  // --- CORE STATE INITIALIZATION ---
+  // --- HUD: CORE_STATE_REGISTRY ---
   const [session, setSession] = useState<AgentSession | null>(null);
   const [messages, setMessages] = useState<AgentMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -52,14 +52,19 @@ export function useAgentChat(): UseAgentChatReturn {
   const [isLoadingSessions, setIsLoadingSessions] = useState(true);
   const [perResponseCost, setPerResponseCost] = useState<number>(1);
 
-  // --- HELPER: REGISTRY SYNC ---
-  const saveMessages = useCallback(
+  // --- PROTOCOL: REGISTRY_PERSISTENCE ---
+  const saveTrajectory = useCallback(
     async (newMessages: AgentMessage[], additionalCredits: number = 0) => {
       if (!session) return;
-      const updatePayload: any = { messages: newMessages as unknown as any };
+      const updatePayload: any = {
+        messages: newMessages as unknown as any,
+        updated_at: new Date().toISOString(),
+      };
+
       if (additionalCredits > 0) {
         updatePayload.credits_charged = (session.credits_charged || 0) + additionalCredits;
       }
+
       await supabase.from("agent_chat_sessions").update(updatePayload).eq("id", session.id);
     },
     [session],
@@ -86,8 +91,8 @@ export function useAgentChat(): UseAgentChatReturn {
           messages: (s.messages as unknown as AgentMessage[]) || [],
         })),
       );
-    } catch (error) {
-      console.error("Session Registry Fault:", error);
+    } catch (err) {
+      console.error("SESSION_REGISTRY_FAULT:", err);
     } finally {
       setIsLoadingSessions(false);
     }
@@ -114,8 +119,8 @@ export function useAgentChat(): UseAgentChatReturn {
         .maybeSingle();
 
       if (agentConfig) setPerResponseCost(agentConfig.credit_cost);
-    } catch (error) {
-      console.error("Session Ingestion Fault:", error);
+    } catch (err) {
+      console.error("SESSION_INGRESS_FAULT:", err);
     } finally {
       setIsLoading(false);
     }
@@ -135,17 +140,18 @@ export function useAgentChat(): UseAgentChatReturn {
         const cost = agentConfig?.credit_cost ?? 1;
         setPerResponseCost(cost);
 
-        const { data: existingSessions } = await supabase
+        // SYNC: Re-attach to active neural thread if existing
+        const { data: existing } = await supabase
           .from("agent_chat_sessions")
           .select("*")
           .eq("talent_id", talent.id)
           .eq("agent_key", agentKey)
           .eq("is_active", true)
           .order("created_at", { ascending: false })
-          .limit(1);
+          .limit(1)
+          .maybeSingle();
 
-        if (existingSessions && existingSessions.length > 0) {
-          const existing = existingSessions[0];
+        if (existing) {
           const sessionData: AgentSession = {
             ...existing,
             messages: (existing.messages as unknown as AgentMessage[]) || [],
@@ -155,6 +161,7 @@ export function useAgentChat(): UseAgentChatReturn {
           return sessionData;
         }
 
+        // INITIALIZE: Create new registry node
         const now = new Date();
         const { data, error } = await supabase
           .from("agent_chat_sessions")
@@ -171,12 +178,12 @@ export function useAgentChat(): UseAgentChatReturn {
           .single();
 
         if (error) throw error;
-        const sessionData: AgentSession = { ...data, messages: [] };
-        setSession(sessionData);
+        const newSession: AgentSession = { ...data, messages: [] };
+        setSession(newSession);
         setMessages([]);
-        return sessionData;
-      } catch (error) {
-        console.error("Initialization Fault:", error);
+        return newSession;
+      } catch (err) {
+        console.error("AGENT_INITIALIZATION_FAULT:", err);
         return null;
       } finally {
         setIsLoading(false);
@@ -190,16 +197,16 @@ export function useAgentChat(): UseAgentChatReturn {
       if (!session || !content.trim() || isStreaming) return;
 
       const userMessage: AgentMessage = { role: "user", content: content.trim() };
-      const newMessages = [...messages, userMessage];
-      setMessages(newMessages);
+      const currentTrajectory = [...messages, userMessage];
+      setMessages(currentTrajectory);
       setIsStreaming(true);
 
-      let assistantContent = "";
+      let assistantBuffer = "";
       try {
         const {
           data: { session: authSession },
         } = await supabase.auth.getSession();
-        if (!authSession?.access_token) throw new Error("Unauthorized Node");
+        if (!authSession?.access_token) throw new Error("AUTH_SYNC_REQUIRED");
 
         const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-agent-chat`, {
           method: "POST",
@@ -209,7 +216,7 @@ export function useAgentChat(): UseAgentChatReturn {
           },
           body: JSON.stringify({
             agentKey: session.agent_key,
-            messages: newMessages.map((m) => ({ role: m.role, content: m.content })),
+            messages: currentTrajectory.map((m) => ({ role: m.role, content: m.content })),
           }),
         });
 
@@ -217,64 +224,70 @@ export function useAgentChat(): UseAgentChatReturn {
           const errorData = await response.json().catch(() => ({}));
           const { message } = handleAIError(errorData, response.status);
           toast.error(message);
-          setMessages(messages);
+          setMessages(messages); // Rollback to previous state
           return;
         }
 
         const reader = response.body?.getReader();
         const decoder = new TextDecoder();
-        if (!reader) throw new Error("Stream Transmission Fault");
+        if (!reader) throw new Error("STREAM_TRANSMISSION_FAULT");
 
+        // PHASE: Initialize Assistant Node
         setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
 
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
+
           const chunk = decoder.decode(value, { stream: true });
           const lines = chunk.split("\n");
+
           for (const line of lines) {
             if (line.startsWith("data: ")) {
-              const jsonStr = line.slice(6).trim();
-              if (jsonStr === "[DONE]") break;
+              const payload = line.slice(6).trim();
+              if (payload === "[DONE]") break;
               try {
-                const parsed = JSON.parse(jsonStr);
+                const parsed = JSON.parse(payload);
                 const token = parsed.choices?.[0]?.delta?.content;
                 if (token) {
-                  assistantContent += token;
+                  assistantBuffer += token;
                   setMessages((prev) => {
                     const updated = [...prev];
-                    updated[updated.length - 1] = { role: "assistant", content: assistantContent };
+                    updated[updated.length - 1] = { role: "assistant", content: assistantBuffer };
                     return updated;
                   });
                 }
-              } catch (e) {}
+              } catch (e) {
+                /* Fragmented JSON handling */
+              }
             }
           }
         }
 
-        if (perResponseCost > 0 && assistantContent) {
-          const { data: deductResult } = await supabase.rpc("deduct_credits", {
+        // POST-SYNC: Atomic Credit Deduction
+        if (perResponseCost > 0 && assistantBuffer) {
+          const { data: creditHandshake } = await supabase.rpc("deduct_credits", {
             p_amount: perResponseCost,
             p_service_type: "AI_AGENT_CHAT",
             p_reference_id: session.id,
-            p_description: `Neural Node: ${session.agent_key}`,
+            p_description: `Neural_Node: ${session.agent_key}`,
           });
 
-          if (deductResult && !(deductResult as any).success) {
-            toast.error("Credit exhaustion detected.");
+          if (creditHandshake && !(creditHandshake as any).success) {
+            toast.error("FISCAL_DEFICIT: Credits exhausted.");
             return;
           }
         }
 
-        await saveMessages([...newMessages, { role: "assistant", content: assistantContent }], perResponseCost);
-      } catch (error) {
-        console.error("Neural Sync Fault:", error);
-        setMessages((prev) => prev.slice(0, -1));
+        await saveTrajectory([...currentTrajectory, { role: "assistant", content: assistantBuffer }], perResponseCost);
+      } catch (err) {
+        console.error("NEURAL_SYNC_FAULT:", err);
+        setMessages((prev) => prev.slice(0, -1)); // Cleanup incomplete assistant node
       } finally {
         setIsStreaming(false);
       }
     },
-    [session, messages, isStreaming, saveMessages, perResponseCost],
+    [session, messages, isStreaming, saveTrajectory, perResponseCost],
   );
 
   const endSession = useCallback(async () => {
