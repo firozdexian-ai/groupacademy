@@ -3,52 +3,43 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Brain, Sparkles, Coins, ChevronDown, ChevronUp, CheckCircle, XCircle, TrendingUp, Users } from "lucide-react";
+import {
+  Brain,
+  Sparkles,
+  Coins,
+  ChevronDown,
+  ChevronUp,
+  CheckCircle,
+  XCircle,
+  TrendingUp,
+  Users,
+  Zap,
+  ShieldCheck,
+} from "lucide-react";
 import { ProcessingCard, type ProcessingStage } from "@/components/ui/processing-card";
-
-const MATCH_STAGES: ProcessingStage[] = [
-  { progress: 0, message: "Analyzing your profile..." },
-  { progress: 25, message: "Comparing skills and experience..." },
-  { progress: 55, message: "Evaluating education fit..." },
-  { progress: 80, message: "Generating recommendations..." },
-];
-
-const MARKET_STAGES: ProcessingStage[] = [
-  { progress: 0, message: "Gathering market data..." },
-  { progress: 25, message: "Estimating competition level..." },
-  { progress: 55, message: "Analyzing salary benchmarks..." },
-  { progress: 80, message: "Compiling insights..." },
-];
 import { supabase } from "@/integrations/supabase/client";
 import { useCredits } from "@/hooks/useCredits";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-interface MatchResult {
-  overall_match: number;
-  skills_match: {
-    matched: string[];
-    missing: string[];
-    percentage: number;
-  };
-  experience_fit: number;
-  education_fit: number;
-  recommendation: string;
-  tips_to_improve: string[];
-}
+/**
+ * GroUp Academy: Career Intelligence Hub
+ * CTO Reference: Authoritative node for neural mapping and market telemetry.
+ */
 
-interface MarketInsight {
-  applicant_count_estimate: string;
-  competition_level: string;
-  salary_insight: {
-    market_range: string;
-    posted_salary_assessment: string;
-  };
-  company_reputation: string;
-  similar_jobs_count: number;
-  hiring_timeline_estimate: string;
-  success_tips: string[];
-}
+const MATCH_STAGES: ProcessingStage[] = [
+  { progress: 0, message: "INITIALIZING_IDENTITY_SYNC" },
+  { progress: 25, message: "COMPARING_KNOWLEDGE_NODES" },
+  { progress: 55, message: "EVALUATING_TRAJECTORY_FIT" },
+  { progress: 80, message: "SYNTHESIZING_STRATEGY" },
+];
+
+const MARKET_STAGES: ProcessingStage[] = [
+  { progress: 0, message: "POLLING_MARKET_REGISTRY" },
+  { progress: 25, message: "CALCULATING_COMPETITIVE_DENSITY" },
+  { progress: 55, message: "AUDITING_FISCAL_BENCHMARKS" },
+  { progress: 80, message: "FINALIZING_TELEMETRY" },
+];
 
 interface AIJobInsightsProps {
   jobId: string;
@@ -57,27 +48,20 @@ interface AIJobInsightsProps {
 
 export function AIJobInsights({ jobId, talentId }: AIJobInsightsProps) {
   const { canAfford, deductCredits } = useCredits();
-  const [matchResult, setMatchResult] = useState<MatchResult | null>(null);
-  const [marketInsight, setMarketInsight] = useState<MarketInsight | null>(null);
+  const [matchResult, setMatchResult] = useState<any | null>(null);
+  const [marketInsight, setMarketInsight] = useState<any | null>(null);
   const [loadingMatch, setLoadingMatch] = useState(false);
   const [loadingMarket, setLoadingMarket] = useState(false);
   const [matchOpen, setMatchOpen] = useState(false);
   const [marketOpen, setMarketOpen] = useState(false);
 
-  const handleGetMatch = async () => {
-    if (!canAfford("JOB_MATCH_SCORE")) {
-      toast.error("Insufficient credits. You need 10 credits for this feature.");
-      return;
-    }
+  const executeMatchSync = async () => {
+    if (!canAfford("JOB_MATCH_SCORE")) return toast.error("FISCAL_DEFICIT: 10_CR REQUIRED");
 
     setLoadingMatch(true);
     try {
-      // Deduct credits first
-      const success = await deductCredits("JOB_MATCH_SCORE", jobId, "Job Match Analysis");
-      if (!success) {
-        toast.error("Failed to deduct credits");
-        return;
-      }
+      const success = await deductCredits("JOB_MATCH_SCORE", jobId, "Identity Sync Analysis");
+      if (!success) throw new Error("TRANSACTION_FAULT");
 
       const { data, error } = await supabase.functions.invoke("score-job-match", {
         body: { jobId, talentId },
@@ -86,28 +70,21 @@ export function AIJobInsights({ jobId, talentId }: AIJobInsightsProps) {
       if (error) throw error;
       setMatchResult(data);
       setMatchOpen(true);
+      toast.success("IDENTITY_MAPPING_COMPLETE");
     } catch (error) {
-      console.error("Error getting match score:", error);
-      toast.error("Failed to analyze match. Please try again.");
+      toast.error("NEURAL_SYNC_FAULT");
     } finally {
       setLoadingMatch(false);
     }
   };
 
-  const handleGetMarketInsight = async () => {
-    if (!canAfford("JOB_MARKET_INSIGHT")) {
-      toast.error("Insufficient credits. You need 15 credits for this feature.");
-      return;
-    }
+  const executeMarketTelemetry = async () => {
+    if (!canAfford("JOB_MARKET_INSIGHT")) return toast.error("FISCAL_DEFICIT: 15_CR REQUIRED");
 
     setLoadingMarket(true);
     try {
-      // Deduct credits first
-      const success = await deductCredits("JOB_MARKET_INSIGHT", jobId, "Job Market Insight");
-      if (!success) {
-        toast.error("Failed to deduct credits");
-        return;
-      }
+      const success = await deductCredits("JOB_MARKET_INSIGHT", jobId, "Market Telemetry");
+      if (!success) throw new Error("TRANSACTION_FAULT");
 
       const { data, error } = await supabase.functions.invoke("analyze-job-market", {
         body: { jobId },
@@ -116,222 +93,228 @@ export function AIJobInsights({ jobId, talentId }: AIJobInsightsProps) {
       if (error) throw error;
       setMarketInsight(data);
       setMarketOpen(true);
+      toast.success("TELEMETRY_SYNC_COMPLETE");
     } catch (error) {
-      console.error("Error getting market insight:", error);
-      toast.error("Failed to analyze market. Please try again.");
+      toast.error("MACRO_SYNC_FAULT");
     } finally {
       setLoadingMarket(false);
     }
   };
 
-  const getMatchColor = (score: number) => {
-    if (score >= 80) return "text-green-600";
-    if (score >= 60) return "text-amber-600";
-    return "text-red-500";
+  const getIntensityColor = (score: number) => {
+    if (score >= 80) return "text-emerald-500";
+    if (score >= 60) return "text-amber-500";
+    return "text-rose-500";
   };
 
   return (
-    <Card className="border-purple-200 dark:border-purple-800 bg-gradient-to-br from-purple-50/50 to-transparent dark:from-purple-950/20">
-      <CardContent className="p-4">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center">
-            <Brain className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+    <Card className="rounded-[32px] border-2 border-purple-500/20 bg-card/30 backdrop-blur-xl shadow-2xl overflow-hidden">
+      <CardContent className="p-6">
+        {/* HUD: HEADER */}
+        <div className="flex items-center gap-4 mb-8">
+          <div className="h-12 w-12 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shadow-lg">
+            <Brain className="h-6 w-6 text-purple-500 animate-pulse" />
           </div>
-          <div>
-            <h3 className="font-semibold text-sm">AI Insights</h3>
-            <p className="text-xs text-muted-foreground">Premium career intelligence</p>
+          <div className="text-left">
+            <h3 className="text-lg font-black uppercase italic tracking-tighter">Neural_Insights</h3>
+            <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-muted-foreground/60 italic">
+              Advanced_Trajectory_Intelligence
+            </p>
           </div>
         </div>
 
-        <div className="space-y-3">
-          {/* Match Score Feature */}
+        <div className="space-y-4">
+          {/* COMPONENT: IDENTITY_MATCH_NODE */}
           <Collapsible open={matchOpen} onOpenChange={setMatchOpen}>
             {!matchResult ? (
               loadingMatch ? (
-                // Loading skeleton that matches the expanded state
-                <ProcessingCard title="Analyzing Match" stages={MATCH_STAGES} duration={18000} />
+                <ProcessingCard title="IDENTITY_SYNC" stages={MATCH_STAGES} duration={12000} />
               ) : (
                 <Button
                   variant="outline"
-                  className="w-full justify-between h-auto py-3 px-4"
-                  onClick={handleGetMatch}
+                  className="w-full h-16 rounded-[24px] justify-between px-6 border-2 transition-all active:scale-95 group"
+                  onClick={executeMatchSync}
                 >
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-purple-500" />
-                    <span className="font-medium">Show Match Details</span>
+                  <div className="flex items-center gap-3">
+                    <Sparkles className="h-5 w-5 text-purple-500 group-hover:scale-125 transition-transform" />
+                    <span className="font-black uppercase italic text-xs tracking-widest">Map_Identity_Match</span>
                   </div>
-                  <Badge variant="secondary" className="gap-1">
-                    <Coins className="h-3 w-3 text-amber-500" />
-                    10 credits
+                  <Badge
+                    variant="secondary"
+                    className="gap-2 bg-amber-500/10 text-amber-600 border-2 border-amber-500/20 px-3 h-8"
+                  >
+                    <Coins className="h-3.5 w-3.5 fill-current" /> 10_CR
                   </Badge>
                 </Button>
               )
             ) : (
               <>
                 <CollapsibleTrigger asChild>
-                  <Button variant="outline" className="w-full justify-between h-auto py-3 px-4">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="h-4 w-4 text-purple-500" />
-                      <span className="font-medium">Match Score</span>
-                      <span className={cn("font-bold", getMatchColor(matchResult.overall_match))}>
-                        {matchResult.overall_match}%
-                      </span>
+                  <Button
+                    variant="outline"
+                    className="w-full h-16 rounded-[24px] justify-between px-6 border-2 border-purple-500/30 bg-purple-500/5"
+                  >
+                    <div className="flex items-center gap-4">
+                      <ShieldCheck className="h-5 w-5 text-purple-500" />
+                      <div className="text-left">
+                        <span className="block text-[8px] font-black uppercase tracking-widest opacity-40">
+                          Sync_Parity
+                        </span>
+                        <span
+                          className={cn(
+                            "text-xl font-black italic tracking-tighter",
+                            getIntensityColor(matchResult.overall_match),
+                          )}
+                        >
+                          {matchResult.overall_match}%_OVERALL
+                        </span>
+                      </div>
                     </div>
-                    {matchOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    {matchOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
                   </Button>
                 </CollapsibleTrigger>
-                <CollapsibleContent className="mt-3 space-y-4 px-1">
-                  {/* Skills Match */}
-                  <div>
-                    <p className="text-sm font-medium mb-2">Skills Match ({matchResult.skills_match.percentage}%)</p>
-                    <div className="space-y-2">
-                      {matchResult.skills_match.matched.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          {matchResult.skills_match.matched.map((skill, i) => (
-                            <Badge key={i} variant="secondary" className="gap-1 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                              <CheckCircle className="h-3 w-3" />
-                              {skill}
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
-                      {matchResult.skills_match.missing.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          {matchResult.skills_match.missing.map((skill, i) => (
-                            <Badge key={i} variant="secondary" className="gap-1 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
-                              <XCircle className="h-3 w-3" />
-                              {skill}
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
+                <CollapsibleContent className="mt-4 space-y-6 px-1 animate-in slide-in-from-top-2 duration-500 text-left">
+                  {/* SKILL_PARITY_HUD */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[10px] font-black uppercase tracking-widest italic">Skill_Registry_Parity</p>
+                      <span className="text-[10px] font-black text-purple-500">
+                        {matchResult.skills_match.percentage}%
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {matchResult.skills_match.matched.map((skill: string, i: number) => (
+                        <Badge
+                          key={i}
+                          variant="outline"
+                          className="gap-2 bg-emerald-500/5 border-emerald-500/20 text-emerald-600 text-[10px] font-bold py-1 px-3"
+                        >
+                          <CheckCircle className="h-3 w-3" /> {skill.toUpperCase()}
+                        </Badge>
+                      ))}
+                      {matchResult.skills_match.missing.map((skill: string, i: number) => (
+                        <Badge
+                          key={i}
+                          variant="outline"
+                          className="gap-2 bg-rose-500/5 border-rose-500/20 text-rose-500 text-[10px] font-bold py-1 px-3"
+                        >
+                          <XCircle className="h-3 w-3" /> {skill.toUpperCase()}
+                        </Badge>
+                      ))}
                     </div>
                   </div>
 
-                  {/* Fit Scores */}
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div className="p-3 bg-muted/50 rounded-lg">
-                      <p className="text-muted-foreground text-xs">Experience Fit</p>
-                      <p className={cn("font-bold text-lg", getMatchColor(matchResult.experience_fit))}>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-4 rounded-2xl bg-muted/20 border-2 border-border/10">
+                      <p className="text-[8px] font-black uppercase tracking-widest opacity-40 mb-1">Exp_Vector_Fit</p>
+                      <p className={cn("text-2xl font-black italic", getIntensityColor(matchResult.experience_fit))}>
                         {matchResult.experience_fit}%
                       </p>
                     </div>
-                    <div className="p-3 bg-muted/50 rounded-lg">
-                      <p className="text-muted-foreground text-xs">Education Fit</p>
-                      <p className={cn("font-bold text-lg", getMatchColor(matchResult.education_fit))}>
+                    <div className="p-4 rounded-2xl bg-muted/20 border-2 border-border/10">
+                      <p className="text-[8px] font-black uppercase tracking-widest opacity-40 mb-1">Edu_Node_Parity</p>
+                      <p className={cn("text-2xl font-black italic", getIntensityColor(matchResult.education_fit))}>
                         {matchResult.education_fit}%
                       </p>
                     </div>
                   </div>
 
-                  {/* Recommendation */}
-                  <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
-                    <p className="text-sm font-medium">{matchResult.recommendation}</p>
+                  <div className="p-5 rounded-3xl bg-primary/5 border-2 border-primary/20 relative overflow-hidden">
+                    <Zap className="absolute top-2 right-2 h-4 w-4 text-primary opacity-20" />
+                    <p className="text-xs font-medium leading-relaxed italic text-foreground/80">
+                      "{matchResult.recommendation}"
+                    </p>
                   </div>
-
-                  {/* Tips */}
-                  {matchResult.tips_to_improve.length > 0 && (
-                    <div>
-                      <p className="text-sm font-medium mb-2">Tips to Improve</p>
-                      <ul className="space-y-1.5">
-                        {matchResult.tips_to_improve.map((tip, i) => (
-                          <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                            <TrendingUp className="h-4 w-4 shrink-0 mt-0.5 text-primary" />
-                            {tip}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
                 </CollapsibleContent>
               </>
             )}
           </Collapsible>
 
-          {/* Market Insight Feature */}
+          {/* COMPONENT: MARKET_TELEMETRY_NODE */}
           <Collapsible open={marketOpen} onOpenChange={setMarketOpen}>
             {!marketInsight ? (
               loadingMarket ? (
-                // Loading skeleton that matches the expanded market insight state
-                <ProcessingCard title="Analyzing Market" stages={MARKET_STAGES} duration={18000} />
+                <ProcessingCard title="MARKET_POLL" stages={MARKET_STAGES} duration={12000} />
               ) : (
                 <Button
                   variant="outline"
-                  className="w-full justify-between h-auto py-3 px-4"
-                  onClick={handleGetMarketInsight}
+                  className="w-full h-16 rounded-[24px] justify-between px-6 border-2 transition-all active:scale-95 group"
+                  onClick={executeMarketTelemetry}
                 >
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-blue-500" />
-                    <span className="font-medium">Job & Applicant Insight</span>
+                  <div className="flex items-center gap-3">
+                    <Users className="h-5 w-5 text-blue-500 group-hover:scale-125 transition-transform" />
+                    <span className="font-black uppercase italic text-xs tracking-widest">Gather_Market_Telemetry</span>
                   </div>
-                  <Badge variant="secondary" className="gap-1">
-                    <Coins className="h-3 w-3 text-amber-500" />
-                    15 credits
+                  <Badge
+                    variant="secondary"
+                    className="gap-2 bg-amber-500/10 text-amber-600 border-2 border-amber-500/20 px-3 h-8"
+                  >
+                    <Coins className="h-3.5 w-3.5 fill-current" /> 15_CR
                   </Badge>
                 </Button>
               )
             ) : (
               <>
                 <CollapsibleTrigger asChild>
-                  <Button variant="outline" className="w-full justify-between h-auto py-3 px-4">
-                    <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4 text-blue-500" />
-                      <span className="font-medium">Market Insight</span>
-                      <Badge variant="secondary" className="text-xs">
-                        {marketInsight.competition_level}
-                      </Badge>
+                  <Button
+                    variant="outline"
+                    className="w-full h-16 rounded-[24px] justify-between px-6 border-2 border-blue-500/30 bg-blue-500/5"
+                  >
+                    <div className="flex items-center gap-4">
+                      <TrendingUp className="h-5 w-5 text-blue-500" />
+                      <div className="text-left">
+                        <span className="block text-[8px] font-black uppercase tracking-widest opacity-40">
+                          Competitive_Data
+                        </span>
+                        <span className="text-xl font-black italic tracking-tighter uppercase">
+                          {marketInsight.competition_level}
+                        </span>
+                      </div>
                     </div>
-                    {marketOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    {marketOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
                   </Button>
                 </CollapsibleTrigger>
-                <CollapsibleContent className="mt-3 space-y-4 px-1">
-                  {/* Key Metrics */}
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div className="p-3 bg-muted/50 rounded-lg">
-                      <p className="text-muted-foreground text-xs">Est. Applicants</p>
-                      <p className="font-bold">{marketInsight.applicant_count_estimate}</p>
-                    </div>
-                    <div className="p-3 bg-muted/50 rounded-lg">
-                      <p className="text-muted-foreground text-xs">Similar Jobs</p>
-                      <p className="font-bold">{marketInsight.similar_jobs_count}</p>
-                    </div>
-                    <div className="p-3 bg-muted/50 rounded-lg">
-                      <p className="text-muted-foreground text-xs">Hiring Timeline</p>
-                      <p className="font-bold">{marketInsight.hiring_timeline_estimate}</p>
-                    </div>
-                    <div className="p-3 bg-muted/50 rounded-lg">
-                      <p className="text-muted-foreground text-xs">Competition</p>
-                      <p className="font-bold">{marketInsight.competition_level}</p>
-                    </div>
+                <CollapsibleContent className="mt-4 space-y-6 px-1 animate-in slide-in-from-top-2 duration-500 text-left">
+                  <div className="grid grid-cols-2 gap-4">
+                    {[
+                      { label: "Est_Applicants", val: marketInsight.applicant_count_estimate },
+                      { label: "Hiring_Velocity", val: marketInsight.hiring_timeline_estimate },
+                      { label: "Similar_Nodes", val: marketInsight.similar_jobs_count },
+                      { label: "Market_Index", val: marketInsight.competition_level },
+                    ].map((m, i) => (
+                      <div key={i} className="p-4 rounded-2xl bg-muted/20 border border-border/10 shadow-inner">
+                        <p className="text-[8px] font-black uppercase tracking-widest opacity-40 mb-1">{m.label}</p>
+                        <p className="font-black uppercase italic text-sm">{m.val}</p>
+                      </div>
+                    ))}
                   </div>
 
-                  {/* Salary Insight */}
-                  <div className="p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
-                    <p className="text-xs text-green-700 dark:text-green-400 font-medium mb-1">Salary Insight</p>
-                    <p className="text-sm font-medium">{marketInsight.salary_insight.market_range}</p>
-                    <p className="text-xs text-muted-foreground">{marketInsight.salary_insight.posted_salary_assessment}</p>
+                  <div className="p-5 rounded-3xl bg-emerald-500/5 border-2 border-emerald-500/20">
+                    <p className="text-[10px] font-black uppercase text-emerald-600 mb-2 italic">
+                      Fiscal_Benchmark_Insight
+                    </p>
+                    <p className="text-sm font-bold italic mb-1">{marketInsight.salary_insight.market_range}</p>
+                    <p className="text-[10px] font-medium text-muted-foreground/80 italic">
+                      {marketInsight.salary_insight.posted_salary_assessment}
+                    </p>
                   </div>
 
-                  {/* Company Reputation */}
-                  <div className="p-3 bg-muted/50 rounded-lg">
-                    <p className="text-xs text-muted-foreground mb-1">Company Reputation</p>
-                    <p className="text-sm font-medium">{marketInsight.company_reputation}</p>
+                  <div className="space-y-3">
+                    <p className="text-[10px] font-black uppercase tracking-widest italic ml-1">
+                      Tactical_Success_Protocols
+                    </p>
+                    <ul className="space-y-3">
+                      {marketInsight.success_tips.map((tip: string, i: number) => (
+                        <li
+                          key={i}
+                          className="flex items-start gap-4 p-4 rounded-2xl bg-muted/10 border border-border/5"
+                        >
+                          <Zap className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                          <span className="text-xs font-medium italic text-muted-foreground">{tip}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-
-                  {/* Success Tips */}
-                  {marketInsight.success_tips.length > 0 && (
-                    <div>
-                      <p className="text-sm font-medium mb-2">Tips for Success</p>
-                      <ul className="space-y-1.5">
-                        {marketInsight.success_tips.map((tip, i) => (
-                          <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                            <CheckCircle className="h-4 w-4 shrink-0 mt-0.5 text-green-500" />
-                            {tip}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
                 </CollapsibleContent>
               </>
             )}
