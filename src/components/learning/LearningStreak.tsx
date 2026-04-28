@@ -54,6 +54,7 @@ interface LearningStatsRowProps {
 }
 
 export function LearningStatsRow({ streak, hoursLearned, coursesCompleted, className }: LearningStatsRowProps) {
+  const isActive = streak > 0;
   return (
     <div className={cn("flex items-center gap-3 overflow-x-auto no-scrollbar py-2", className)}>
       {/* INGRESS: Streak Telemetry */}
