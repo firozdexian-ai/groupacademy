@@ -17,22 +17,20 @@ import {
   Facebook,
   Copy,
   CheckCircle,
-  Briefcase,
-  MapPin,
   RefreshCw,
   Send,
   ExternalLink,
   Sparkles,
   Globe,
   Zap,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface JobSharingGigFormProps {
-  gig: { id: string; title: string };
-  talentId: string;
-  onSubmitted: () => void;
-}
+/**
+ * GroUp Academy: Job Distribution & Attribution Node
+ * CTO Reference: Authoritative interface for viral recruitment and referral tracking.
+ */
 
 const COUNTRY_ALIASES: Record<string, string[]> = {
   Bangladesh: ["bangladesh", "dhaka", "banani", "gulshan", "uttara", "chattogram"],
@@ -44,20 +42,11 @@ const COUNTRY_ALIASES: Record<string, string[]> = {
   "Saudi Arabia": ["saudi", "riyadh", "jeddah", "ksa"],
 };
 
-function detectCountry(location: string | null): string {
-  if (!location) return "Remote";
-  const loc = location.toLowerCase();
-  for (const [country, aliases] of Object.entries(COUNTRY_ALIASES)) {
-    if (aliases.some((alias) => loc.includes(alias))) return country;
-  }
-  return "International";
-}
-
 const CHANNELS = [
-  { key: "linkedin", label: "LinkedIn", icon: Linkedin, color: "text-blue-600" },
-  { key: "facebook", label: "Facebook", icon: Facebook, color: "text-blue-500" },
-  { key: "whatsapp", label: "WhatsApp", icon: MessageSquare, color: "text-green-600" },
-  { key: "telegram", label: "Telegram", icon: Send, color: "text-sky-500" },
+  { key: "linkedin", label: "LINKEDIN", icon: Linkedin, color: "text-blue-600" },
+  { key: "facebook", label: "FACEBOOK", icon: Facebook, color: "text-blue-500" },
+  { key: "whatsapp", label: "WHATSAPP", icon: MessageSquare, color: "text-green-600" },
+  { key: "telegram", label: "TELEGRAM", icon: Send, color: "text-sky-500" },
 ] as const;
 
 export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigFormProps) {
@@ -83,9 +72,8 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
     queryFn: async () => {
       const { data, error } = await supabase
         .from("jobs")
-        .select("id, title, company_name, location, job_type, created_at, requirements")
+        .select("id, title, company_name, location")
         .eq("is_active", true)
-        .gte("deadline", new Date().toISOString())
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
@@ -98,28 +86,32 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
       const matchesSearch =
         j.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
         j.company_name.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCountry = countryFilter === "all" || detectCountry(j.location) === countryFilter;
+      const country = detectCountry(j.location);
+      const matchesCountry = countryFilter === "all" || country === countryFilter;
       return matchesSearch && matchesCountry;
     });
   }, [jobs, searchTerm, countryFilter]);
 
-  const selectedJob = jobs?.find((j) => j.id === selectedJobId);
-  const shareUrl = selectedJob
-    ? `https://groupacademy.app/jobs/${selectedJob.id}${talentRefCode ? `?ref=${talentRefCode}` : ""}`
-    : "";
+  function detectCountry(location: string | null): string {
+    if (!location) return "Remote";
+    const loc = location.toLowerCase();
+    for (const [country, aliases] of Object.entries(COUNTRY_ALIASES)) {
+      if (aliases.some((alias) => loc.includes(alias))) return country;
+    }
+    return "International";
+  }
 
-  // RESTORED: Missing function definition
   const handleSelectJob = (jobId: string) => {
     setSelectedJobId(jobId);
-    setCaptions({}); // Clear old AI captions
-    setSharedChannels([]); // Reset sharing progress
-    // Trigger initial caption generation for the default channel
-    generateCaption(jobId, "linkedin");
+    setCaptions({});
+    setSharedChannels([]);
+    executeCaptionSynthesis(jobId, "linkedin");
   };
 
-  const generateCaption = async (jobId: string, channel: string) => {
+  const executeCaptionSynthesis = async (jobId: string, channel: string) => {
     const job = jobs?.find((j) => j.id === jobId);
     if (!job) return;
+    const shareUrl = `https://groupacademy.app/jobs/${job.id}${talentRefCode ? `?ref=${talentRefCode}` : ""}`;
 
     setLoadingCaption(true);
     try {
@@ -129,35 +121,39 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
       if (error) throw error;
       setCaptions((prev) => ({ ...prev, [channel]: data.caption }));
     } catch (err) {
-      toast.error("AI was unable to generate a caption.");
+      toast.error("NEURAL_SYNC_FAULT: Artifact generation failed.");
     } finally {
       setLoadingCaption(false);
     }
   };
 
-  const handleChannelChange = async (channel: (typeof CHANNELS)[number]["key"]) => {
+  const handleChannelHandshake = async (channel: (typeof CHANNELS)[number]["key"]) => {
     setActiveChannel(channel);
     if (!captions[channel] && selectedJobId) {
-      await generateCaption(selectedJobId, channel);
+      await executeCaptionSynthesis(selectedJobId, channel);
     }
   };
 
-  const handleShareTrigger = (channel: string) => {
+  const handleExternalLaunch = (channel: string) => {
+    const job = jobs?.find((j) => j.id === selectedJobId);
+    const shareUrl = `https://groupacademy.app/jobs/${job?.id}${talentRefCode ? `?ref=${talentRefCode}` : ""}`;
     const caption = captions[channel] || "";
-    const urls: Record<string, string> = {
+
+    const protocols: Record<string, string> = {
       whatsapp: `https://wa.me/?text=${encodeURIComponent(caption)}`,
       telegram: `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(caption)}`,
       linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`,
       facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`,
     };
 
-    window.open(urls[channel], "_blank");
-    if (!sharedChannels.includes(channel)) {
-      setSharedChannels((prev) => [...prev, channel]);
-    }
+    window.open(protocols[channel], "_blank");
+    if (!sharedChannels.includes(channel)) setSharedChannels((prev) => [...prev, channel]);
   };
 
-  const handleSubmit = async () => {
+  const finalizeGigSubmission = async () => {
+    const job = jobs?.find((j) => j.id === selectedJobId);
+    const shareUrl = `https://groupacademy.app/jobs/${job?.id}${talentRefCode ? `?ref=${talentRefCode}` : ""}`;
+
     setIsSubmitting(true);
     try {
       const { error } = await supabase.from("gig_submissions").insert({
@@ -169,80 +165,87 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
           channels: sharedChannels,
           share_url: shareUrl,
           ref_code: talentRefCode,
+          protocol_v: "2.0_VIRAL",
         },
       });
       if (error) throw error;
-      toast.success("Gig submitted! We are now tracking your referral link.");
+      toast.success("DISTRIBUTION_VERIFIED: Tracking node active.");
       onSubmitted();
     } catch (err) {
-      toast.error("Submission failed. Check your connection.");
+      toast.error("SUBMISSION_FAULT: Check registry status.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-700">
+    <div className="space-y-8 animate-in fade-in duration-700 text-left">
+      {/* HUD: OPPORTUNITY_SELECTOR */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
-            1. Select Opportunity
+        <div className="flex items-center justify-between px-1">
+          <Label className="text-[10px] font-black uppercase italic tracking-[0.2em] text-muted-foreground">
+            1. Select_Target_Node
           </Label>
-          <Badge variant="outline" className="text-[9px] font-black uppercase text-primary border-primary/20">
-            {filteredJobs.length} Jobs Available
+          <Badge
+            variant="outline"
+            className="bg-primary/5 text-primary border-primary/20 text-[9px] font-black uppercase italic tracking-widest px-3"
+          >
+            {filteredJobs.length} NODES_ONLINE
           </Badge>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40" />
             <Input
-              placeholder="Search Role or Company..."
-              className="pl-9 rounded-xl border-border/40 h-10 text-xs font-bold"
+              placeholder="Search Role/Parent_Org..."
+              className="pl-12 rounded-2xl border-2 bg-background/50 h-12 font-bold italic text-xs"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
           <Select value={countryFilter} onValueChange={setCountryFilter}>
-            <SelectTrigger className="w-[130px] rounded-xl h-10 text-[10px] font-black uppercase tracking-tighter">
-              <Globe className="h-3.5 w-3.5 mr-2" />
-              <SelectValue placeholder="Location" />
+            <SelectTrigger className="w-[150px] rounded-2xl border-2 h-12 text-[10px] font-black uppercase italic">
+              <Globe className="h-4 w-4 mr-2 text-primary" />
+              <SelectValue placeholder="Region" />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Regions</SelectItem>
+            <SelectContent className="rounded-xl border-2">
+              <SelectItem value="all">ALL_REGIONS</SelectItem>
               {Object.keys(COUNTRY_ALIASES).map((c) => (
                 <SelectItem key={c} value={c}>
-                  {c}
+                  {c.toUpperCase()}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
 
-        <div className="grid gap-2 max-h-[180px] overflow-y-auto no-scrollbar rounded-2xl border border-border/20 p-1">
+        <div className="grid gap-2 max-h-48 overflow-y-auto no-scrollbar rounded-[28px] border-2 border-border/40 p-2 bg-muted/20">
           {isLoading ? (
-            <Skeleton className="h-32 w-full rounded-2xl" />
+            <Skeleton className="h-32 w-full rounded-2xl opacity-20" />
           ) : (
             filteredJobs.map((job) => (
               <button
                 key={job.id}
                 onClick={() => handleSelectJob(job.id)}
                 className={cn(
-                  "w-full text-left p-3 rounded-xl border-2 transition-all flex items-center justify-between",
+                  "w-full text-left p-4 rounded-xl border-2 transition-all duration-500 flex items-center justify-between group",
                   selectedJobId === job.id
-                    ? "border-primary bg-primary/5 shadow-inner"
-                    : "border-transparent hover:bg-muted/50",
+                    ? "border-primary bg-primary/5 shadow-inner scale-[1.01]"
+                    : "border-transparent hover:bg-background",
                 )}
               >
                 <div className="min-w-0">
-                  <p className="font-bold text-[11px] truncate">{job.company_name}</p>
-                  <p className="text-[10px] text-muted-foreground truncate">{job.title}</p>
+                  <p className="font-black text-[11px] uppercase italic tracking-tighter truncate leading-none group-hover:text-primary">
+                    {job.company_name}
+                  </p>
+                  <p className="text-[10px] font-bold text-muted-foreground truncate mt-1 italic">{job.title}</p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="text-[8px] font-black uppercase tracking-tighter h-5">
+                <div className="flex items-center gap-3">
+                  <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest border-border/60">
                     {detectCountry(job.location)}
                   </Badge>
-                  {selectedJobId === job.id && <CheckCircle className="h-4 w-4 text-primary" />}
+                  {selectedJobId === job.id && <Zap className="h-4 w-4 text-primary fill-current" />}
                 </div>
               </button>
             ))
@@ -250,23 +253,26 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
         </div>
       </div>
 
-      {selectedJob && (
-        <div className="space-y-6 pt-4 border-t border-border/40 animate-in slide-in-from-top-4">
-          <div className="space-y-3">
-            <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2">
-              <Sparkles className="h-3 w-3" /> 2. Generate AI Caption
+      {selectedJobId && (
+        <div className="space-y-8 pt-4 border-t-2 border-border/10 animate-in slide-in-from-bottom-4 duration-1000">
+          {/* HUD: ARTIFACT_SYNTHESIS */}
+          <div className="space-y-4">
+            <Label className="text-[10px] font-black uppercase italic tracking-[0.2em] text-primary flex items-center gap-2 ml-1">
+              <Sparkles className="h-4 w-4 fill-current" /> 2. Artifact_Synthesis
             </Label>
-            <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1">
+            <div className="flex gap-2 overflow-x-auto no-scrollbar p-1">
               {CHANNELS.map((ch) => (
                 <button
                   key={ch.key}
-                  onClick={() => handleChannelChange(ch.key)}
+                  onClick={() => handleChannelHandshake(ch.key)}
                   className={cn(
-                    "flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0",
-                    activeChannel === ch.key ? "bg-primary text-white" : "bg-muted text-muted-foreground",
+                    "flex items-center gap-2 px-5 py-3 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all shrink-0 border-2",
+                    activeChannel === ch.key
+                      ? "bg-primary border-primary text-white shadow-xl scale-105"
+                      : "bg-muted/40 border-border/40 text-muted-foreground hover:border-primary/20",
                   )}
                 >
-                  <ch.icon className={cn("h-3.5 w-3.5", activeChannel === ch.key ? "text-white" : ch.color)} />
+                  <ch.icon className={cn("h-4 w-4", activeChannel === ch.key ? "text-white" : ch.color)} />
                   {ch.label}
                 </button>
               ))}
@@ -275,58 +281,68 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
 
           <div className="relative group">
             {loadingCaption && (
-              <div className="absolute inset-0 bg-card/60 backdrop-blur-[2px] z-10 flex items-center justify-center rounded-2xl">
-                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <div className="absolute inset-0 bg-card/60 backdrop-blur-md z-10 flex flex-col items-center justify-center rounded-[32px] gap-3">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-[9px] font-black uppercase tracking-widest italic">
+                  Neural_Synthesis_In_Progress...
+                </p>
               </div>
             )}
-            <Textarea
-              value={captions[activeChannel] || ""}
-              readOnly
-              placeholder="Preparing professional social copy..."
-              className="text-[11px] font-medium min-h-[120px] rounded-2xl border-border/40 bg-muted/20 resize-none italic"
-            />
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute top-2 right-2 rounded-full h-8 w-8 hover:bg-primary/10"
-              onClick={() => {
-                navigator.clipboard.writeText(captions[activeChannel]);
-                toast.success("Caption copied to clipboard");
-              }}
-            >
-              <Copy className="h-3.5 w-3.5 text-primary" />
-            </Button>
+            <div className="bg-card/40 backdrop-blur-xl rounded-[32px] border-2 border-border/40 p-6 shadow-2xl overflow-hidden relative">
+              <div className="absolute -top-10 -right-10 w-32 h-32 bg-primary/5 blur-3xl opacity-50" />
+              <Textarea
+                value={captions[activeChannel] || ""}
+                readOnly
+                placeholder="Awaiting artifact ingress..."
+                className="text-xs font-medium min-h-[140px] border-0 bg-transparent resize-none italic leading-relaxed text-foreground/80 p-0 focus-visible:ring-0"
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute top-4 right-4 rounded-xl h-10 w-10 border border-border/10 bg-background/50 hover:bg-primary/10 transition-all"
+                onClick={() => {
+                  navigator.clipboard.writeText(captions[activeChannel]);
+                  toast.success("ARTIFACT_SYNCED_TO_CLIPBOARD");
+                }}
+              >
+                <Copy className="h-4 w-4 text-primary" />
+              </Button>
+            </div>
           </div>
 
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-4">
             <Button
               variant="outline"
-              className="w-full h-12 rounded-2xl border-primary/20 text-primary font-black uppercase tracking-widest text-[10px]"
-              onClick={() => handleShareTrigger(activeChannel)}
+              className="w-full h-16 rounded-[24px] border-primary/20 text-primary font-black uppercase italic tracking-[0.2em] text-xs hover:bg-primary/5 transition-all shadow-lg active:scale-95 gap-3"
+              onClick={() => handleExternalLaunch(activeChannel)}
             >
-              Launch on {activeChannel} <ExternalLink className="h-3.5 w-3.5 ml-2" />
+              LAUNCH_EXTERNAL_NODE <ExternalLink className="h-5 w-5" />
             </Button>
 
-            <Button
-              onClick={handleSubmit}
-              disabled={isSubmitting || sharedChannels.length === 0}
-              className={cn(
-                "w-full h-12 rounded-2xl font-black uppercase tracking-widest shadow-xl transition-all",
-                sharedChannels.length > 0 ? "shadow-primary/20" : "opacity-50 grayscale",
+            <div className="pt-6 border-t-2 border-border/10">
+              <Button
+                onClick={finalizeGigSubmission}
+                disabled={isSubmitting || sharedChannels.length === 0}
+                className={cn(
+                  "w-full h-16 rounded-[24px] font-black uppercase italic tracking-[0.2em] shadow-2xl transition-all duration-700 active:scale-[0.98] gap-4",
+                  sharedChannels.length > 0
+                    ? "bg-primary text-white shadow-primary/30"
+                    : "bg-muted text-muted-foreground/30 border-2 border-dashed border-border/60 grayscale cursor-not-allowed",
+                )}
+              >
+                {isSubmitting ? <Loader2 className="h-6 w-6 animate-spin" /> : <ShieldCheck className="h-6 w-6" />}
+                {sharedChannels.length > 0 ? "VERIFY_DISTRIBUTION" : "AWAITING_LAUNCH_VERIFICATION"}
+              </Button>
+
+              {sharedChannels.length > 0 && (
+                <div className="flex items-center justify-center gap-3 mt-5 text-emerald-500 animate-in zoom-in-95 duration-1000">
+                  <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.3em] italic">
+                    TRACKING_SYNCHRONIZED ({sharedChannels.length}_PLATS)
+                  </span>
+                </div>
               )}
-            >
-              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Zap className="h-4 w-4 mr-2" />}
-              Confirm Verified Share
-            </Button>
-
-            {sharedChannels.length > 0 && (
-              <div className="flex items-center justify-center gap-2 text-emerald-600 animate-in zoom-in-95">
-                <CheckCircle className="h-4 w-4" />
-                <span className="text-[10px] font-black uppercase tracking-widest">
-                  Tracking Active ({sharedChannels.length} Platform)
-                </span>
-              </div>
-            )}
+            </div>
           </div>
         </div>
       )}
