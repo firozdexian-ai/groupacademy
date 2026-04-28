@@ -1,8 +1,14 @@
 import { useRef } from "react";
-import { Sparkles, ChevronLeft, ChevronRight, Zap } from "lucide-react";
+import { Sparkles, ChevronLeft, ChevronRight, Zap, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { InsightCard } from "./InsightCard";
 import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+
+/**
+ * GroUp Academy: Neural Strategy Carousel
+ * CTO Reference: High-performance horizontal ingestion node for AI-driven insights.
+ */
 
 interface CareerInsightsCarouselProps {
   insights: string[];
@@ -16,9 +22,10 @@ export function CareerInsightsCarousel({ insights, className }: CareerInsightsCa
 
   const scroll = (direction: "left" | "right") => {
     if (!scrollRef.current) return;
-    // CTO Note: Dynamically calculate width to handle different screen sizes
+
+    // PROTOCOL: Precision scroll calculation for variable viewports
     const container = scrollRef.current;
-    const scrollAmount = container.clientWidth * 0.8;
+    const scrollAmount = container.clientWidth * 0.85;
 
     container.scrollBy({
       left: direction === "left" ? -scrollAmount : scrollAmount,
@@ -27,54 +34,48 @@ export function CareerInsightsCarousel({ insights, className }: CareerInsightsCa
   };
 
   return (
-    <div className={cn("group/carousel space-y-4 py-2", className)}>
-      {/* Dynamic Header */}
-      <div className="flex items-center justify-between px-1">
-        <div className="flex items-center gap-2.5">
+    <div className={cn("group/carousel space-y-6 py-4 animate-in fade-in duration-700", className)}>
+      {/* EXECUTIVE HUB HEADER */}
+      <div className="flex items-center justify-between px-2">
+        <div className="flex items-center gap-4 text-left">
           <div className="relative">
-            <div className="p-2 rounded-xl bg-primary/10 text-primary">
-              <Zap className="h-4 w-4 fill-current" />
+            <div className="p-3 rounded-2xl bg-primary/10 text-primary shadow-inner transition-transform group-hover/carousel:rotate-6">
+              <Zap className="h-5 w-5 fill-current" />
             </div>
-            <Sparkles className="h-3 w-3 text-amber-500 absolute -top-1 -right-1 animate-pulse" />
+            <Sparkles className="h-4 w-4 text-amber-500 absolute -top-1.5 -right-1.5 animate-pulse" />
           </div>
-          <div>
-            <h3 className="font-bold text-sm tracking-tight">AI Growth Strategy</h3>
-            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">
-              {insights.length} Personalized Insights
-            </p>
+          <div className="space-y-0.5">
+            <h3 className="font-black text-lg uppercase italic tracking-tighter leading-none">Growth Architecture</h3>
+            <div className="flex items-center gap-2">
+              <Badge
+                variant="outline"
+                className="h-5 px-2 rounded-md font-black text-[9px] uppercase italic border-primary/20 bg-primary/5 text-primary"
+              >
+                {insights.length} NODES_SYNCED
+              </Badge>
+              <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest opacity-60">
+                Neural Optimization Active
+              </p>
+            </div>
           </div>
         </div>
 
-        {/* CTO Fix: Enhanced Navigation Visibility */}
+        {/* NAVIGATION OVERRIDE */}
         {insights.length > 1 && (
-          <div className="flex items-center gap-1.5 opacity-0 group-hover/carousel:opacity-100 transition-opacity duration-300">
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8 rounded-full border-muted-foreground/20 hover:bg-primary hover:text-white transition-all shadow-sm"
-              onClick={() => scroll("left")}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8 rounded-full border-muted-foreground/20 hover:bg-primary hover:text-white transition-all shadow-sm"
-              onClick={() => scroll("right")}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+          <div className="flex items-center gap-2">
+            <NavButton onClick={() => scroll("left")} icon={ChevronLeft} />
+            <NavButton onClick={() => scroll("right")} icon={ChevronRight} />
           </div>
         )}
       </div>
 
-      {/* Horizontal Scroll Container */}
+      {/* INDUSTRIAL SCROLL CHANNEL */}
       <div
         ref={scrollRef}
         className={cn(
-          "flex gap-4 overflow-x-auto pb-4 -mx-4 px-4",
+          "flex gap-5 overflow-x-auto pb-6 -mx-4 px-4",
           "scrollbar-hide snap-x snap-mandatory",
-          "will-change-scroll transform-gpu", // GPU acceleration
+          "will-change-scroll transform-gpu", // CTO Note: Force GPU for 60FPS fluid motion
         )}
         style={{
           WebkitOverflowScrolling: "touch",
@@ -84,17 +85,44 @@ export function CareerInsightsCarousel({ insights, className }: CareerInsightsCa
         {insights.map((insight, index) => (
           <div
             key={index}
-            className="snap-start shrink-0 first:pl-0 last:pr-4"
-            style={{ width: "calc(100% - 48px)", maxWidth: "320px" }}
+            className="snap-start shrink-0 first:pl-2 last:pr-6"
+            style={{ width: "calc(100% - 60px)", maxWidth: "340px" }}
           >
             <InsightCard
               insight={insight}
               index={index}
-              className="h-full border-primary/10 bg-gradient-to-br from-background to-primary/[0.02]"
+              className={cn(
+                "h-full border-2 border-primary/10 bg-gradient-to-br from-background via-background to-primary/[0.03]",
+                "shadow-lg hover:shadow-primary/5 transition-all duration-300 rounded-[28px]",
+              )}
             />
           </div>
         ))}
+
+        {/* END PROTOCOL NODE */}
+        <div className="snap-start shrink-0 flex items-center justify-center pr-4">
+          <div className="w-24 h-full flex flex-col items-center justify-center opacity-20 hover:opacity-50 transition-opacity cursor-pointer gap-2">
+            <Target className="h-8 w-8" />
+            <span className="text-[8px] font-black uppercase italic tracking-widest text-center">Audit_End</span>
+          </div>
+        </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Reusable Nav Unit for administrative focus.
+ */
+function NavButton({ onClick, icon: Icon }: { onClick: () => void; icon: any }) {
+  return (
+    <Button
+      variant="outline"
+      size="icon"
+      className="h-9 w-9 rounded-xl border-2 border-border/40 bg-background/50 backdrop-blur-sm hover:border-primary hover:text-primary transition-all shadow-sm active:scale-95"
+      onClick={onClick}
+    >
+      <Icon className="h-5 w-5" />
+    </Button>
   );
 }
