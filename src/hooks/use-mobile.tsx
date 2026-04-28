@@ -2,42 +2,46 @@ import * as React from "react";
 
 /**
  * GroUp Academy: Viewport Intelligence Hook
- * CTO Reference: Corrected TS2339 by fixing the matchMedia typo.
+ * CTO Reference: Authoritative sensor for responsive layout orchestration.
+ * Logic: Synchronizes UI state with hardware viewport dimensions.
  */
 
 const MOBILE_BREAKPOINT = 768;
 
 export function useIsMobile() {
-  // Initialize as undefined to prevent SSR hydration mismatches
+  // PROTOCOL: Initialize as undefined to prevent SSR identity drift
   const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined);
 
   React.useEffect(() => {
-    // FIXED: matchMedia is the correct native method
+    // SYNC: Establish Media Query List node
     const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
 
-    const onChange = () => {
+    const executeViewportSync = () => {
+      // Direct parity check against breakpoint threshold
       setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
     };
 
-    // Initial check
+    // Initialize baseline state on mount
     setIsMobile(mql.matches);
 
-    // Modern event listener logic with legacy fallbacks
+    // HUD: REGISTER_VIEWPORT_LISTENERS
+    // Hardened for cross-browser event handling
     try {
-      mql.addEventListener("change", onChange);
-    } catch (e) {
-      mql.addListener(onChange);
+      mql.addEventListener("change", executeViewportSync);
+    } catch (err) {
+      // Fallback for legacy mobile browsers
+      mql.addListener(executeViewportSync);
     }
 
     return () => {
       try {
-        mql.removeEventListener("change", onChange);
-      } catch (e) {
-        mql.removeListener(onChange);
+        mql.removeEventListener("change", executeViewportSync);
+      } catch (err) {
+        mql.removeListener(executeViewportSync);
       }
     };
   }, []);
 
-  // Ensure boolean return; defaults to false during hydration
+  // Registry Default: false during hydration, verified boolean post-mount
   return !!isMobile;
 }
