@@ -2,6 +2,12 @@ import { NavLink as RouterNavLink, NavLinkProps } from "react-router-dom";
 import { forwardRef } from "react";
 import { cn } from "@/lib/utils";
 
+/**
+ * GroUp Academy: Navigation Compatibility Layer
+ * CTO Reference: Authoritative wrapper for state-aware link artifacts.
+ * Restores legacy 'activeClassName' support for high-intensity UI styling.
+ */
+
 interface NavLinkCompatProps extends Omit<NavLinkProps, "className"> {
   className?: string;
   activeClassName?: string;
@@ -15,7 +21,12 @@ const NavLink = forwardRef<HTMLAnchorElement, NavLinkCompatProps>(
         ref={ref}
         to={to}
         className={({ isActive, isPending }) =>
-          cn(className, isActive && activeClassName, isPending && pendingClassName)
+          cn(
+            "transition-all duration-300", // Neural baseline transition
+            className,
+            isActive && activeClassName,
+            isPending && pendingClassName,
+          )
         }
         {...props}
       />
@@ -23,6 +34,6 @@ const NavLink = forwardRef<HTMLAnchorElement, NavLinkCompatProps>(
   },
 );
 
-NavLink.displayName = "NavLink";
+NavLink.displayName = "NavLink_Identity_Node";
 
 export { NavLink };
