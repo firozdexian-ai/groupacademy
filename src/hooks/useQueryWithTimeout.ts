@@ -1,46 +1,54 @@
 import { useQuery, UseQueryOptions, UseQueryResult } from "@tanstack/react-query";
 
-const DEFAULT_TIMEOUT = 30000; // 30 seconds
+/**
+ * GroUp Academy: Neural Transaction Guard
+ * CTO Reference: Authoritative utility for aborted, timed-out, and resilient data fetching.
+ * Performance: Implements dual-controller AbortSignal synchronization.
+ */
+
+const DEFAULT_TIMEOUT = 30000; // 30s Institutional Threshold
 
 interface QueryWithTimeoutOptions<TData, TError> extends Omit<UseQueryOptions<TData, TError>, "queryFn"> {
-  /** Query function that receives an AbortSignal for proper cancellation */
+  /** Query function that receives an AbortSignal for hardware-level cancellation */
   queryFn: (signal: AbortSignal) => Promise<TData>;
   timeout?: number;
 }
 
 /**
- * Custom hook that wraps useQuery with real abort support
- * Uses AbortSignal to actually cancel network requests on timeout
+ * PHASE: Query_Transaction_Sentinel
+ * Wraps useQuery with native AbortController propagation and timeout protection.
  */
 export function useQueryWithTimeout<TData = unknown, TError = Error>({
   queryFn,
   timeout = DEFAULT_TIMEOUT,
   ...options
 }: QueryWithTimeoutOptions<TData, TError>): UseQueryResult<TData, TError> {
-  
-  // Wrap queryFn to use the signal from React Query AND add timeout
-  const wrappedQueryFn = async ({ signal }: { signal: AbortSignal }): Promise<TData> => {
+  // HUD: NEURAL_WRAPPED_EXECUTOR
+  const wrappedQueryFn = async ({ signal: rqSignal }: { signal: AbortSignal }): Promise<TData> => {
     const controller = new AbortController();
-    
-    // Abort our controller when React Query's signal aborts
+
+    // SYNC: Chaining React Query signal to our local controller
     const handleAbort = () => controller.abort();
-    signal.addEventListener("abort", handleAbort);
-    
-    // Set up timeout
-    const timeoutId = setTimeout(() => controller.abort(), timeout);
+    rqSignal.addEventListener("abort", handleAbort);
+
+    // HUD: LATENCY_THRESHOLD_TIMER
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+      console.warn(`[Sentinel] THRESHOLD_REACHED: Terminating request after ${timeout}ms`);
+    }, timeout);
 
     try {
       const result = await queryFn(controller.signal);
       return result;
     } catch (err: any) {
-      // Convert abort to timeout error if our timeout triggered it
-      if (err?.name === "AbortError" && !signal.aborted) {
-        throw new Error(`Request timed out after ${timeout / 1000} seconds`);
+      // Logic: Differentiate between manual user aborts and institutional timeouts
+      if (err?.name === "AbortError" && !rqSignal.aborted) {
+        throw new Error(`THRESHOLD_ERROR: Request timed out after ${timeout / 1000} seconds`);
       }
       throw err;
     } finally {
       clearTimeout(timeoutId);
-      signal.removeEventListener("abort", handleAbort);
+      rqSignal.removeEventListener("abort", handleAbort);
     }
   };
 
@@ -48,11 +56,8 @@ export function useQueryWithTimeout<TData = unknown, TError = Error>({
     ...options,
     queryFn: wrappedQueryFn,
     retry: (failureCount, error) => {
-      // Don't retry on timeout/abort errors
-      if (error instanceof Error && (
-        error.message.includes("timed out") ||
-        error.name === "AbortError"
-      )) {
+      // PROTOCOL: No retries for timeout/abort events to preserve bandwidth
+      if (error instanceof Error && (error.message.includes("timed out") || error.name === "AbortError")) {
         return false;
       }
       return failureCount < 2;
@@ -62,13 +67,13 @@ export function useQueryWithTimeout<TData = unknown, TError = Error>({
 }
 
 /**
- * Utility function to wrap any async function with a timeout
- * Useful for edge function calls and other async operations
+ * PHASE: Async_Race_Sentinel
+ * Wraps any promise artifact with a hard-stop timeout.
  */
 export async function withTimeout<T>(
   promise: Promise<T>,
   timeoutMs: number = DEFAULT_TIMEOUT,
-  errorMessage?: string
+  errorMessage?: string,
 ): Promise<T> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -78,9 +83,9 @@ export async function withTimeout<T>(
       promise,
       new Promise<never>((_, reject) => {
         controller.signal.addEventListener("abort", () => {
-          reject(new Error(errorMessage || `Request timed out after ${timeoutMs / 1000} seconds`));
+          reject(new Error(errorMessage || `RACE_TIMEOUT: Threshold reached (${timeoutMs / 1000}s)`));
         });
-      })
+      }),
     ]);
   } finally {
     clearTimeout(timeoutId);
@@ -88,7 +93,7 @@ export async function withTimeout<T>(
 }
 
 /**
- * Check if an error is a timeout error
+ * Diagnostic: Verify if artifact is a latency event.
  */
 export function isTimeoutError(error: unknown): boolean {
   return error instanceof Error && error.message.includes("timed out");
