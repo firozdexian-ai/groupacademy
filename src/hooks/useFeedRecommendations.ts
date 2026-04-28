@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 /**
  * GroUp Academy: Curated Content Delivery Node
  * CTO Reference: Authoritative aggregator for cross-registry talent engagement.
- * Logic: Implements parallel ingress and cursor-based temporal sorting.
+ * Fix Log: v2.4.31 - Resolved TS2322 (Json to PollOptions array casting).
  */
 
 export interface FeedItem {
@@ -28,7 +28,6 @@ export interface FeedItem {
   youtubeUrl?: string;
   category?: string;
   externalUrl?: string;
-  // Post-specific artifacts
   authorName?: string;
   authorAvatar?: string;
   authorTitle?: string;
@@ -99,7 +98,6 @@ export function useFeedRecommendations() {
     return match ? `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg` : null;
   }, []);
 
-  // PHASE: Parallel_Registry_Ingress
   const fetchFeed = useCallback(
     async (olderThan?: string) => {
       try {
@@ -126,7 +124,6 @@ export function useFeedRecommendations() {
 
         const items: FeedItem[] = [];
 
-        // MAPPING: Course_Artifacts
         coursesRes.data?.forEach((c) => {
           const ytThumb = c.youtube_url ? getYoutubeThumbnail(c.youtube_url) : null;
           items.push({
@@ -142,7 +139,6 @@ export function useFeedRecommendations() {
           });
         });
 
-        // MAPPING: Blog_Artifacts
         blogsRes.data?.forEach((b) => {
           items.push({
             id: b.id,
@@ -157,7 +153,6 @@ export function useFeedRecommendations() {
           });
         });
 
-        // MAPPING: Post_Artifacts
         postsRes.data?.forEach((p) => {
           items.push({
             id: p.id,
@@ -172,11 +167,11 @@ export function useFeedRecommendations() {
             authorTitle: p.author_title,
             contentType: p.content_type,
             isPinned: p.is_pinned,
-            pollOptions: p.poll_options,
+            // FIXED: Resolved Json assignment conflict
+            pollOptions: p.poll_options as unknown as { id: string; text: string }[],
           });
         });
 
-        // HUD: Bimodal_Temporal_Sort
         items.sort((a, b) => {
           if (a.isPinned && !b.isPinned) return -1;
           if (!a.isPinned && b.isPinned) return 1;
@@ -233,7 +228,7 @@ export function useFeedRecommendations() {
     },
     markNotInterested: (itemId: string) => {
       setDismissedIds((prev) => new Set([...prev, itemId]));
-      toast({ title: "PREFERENCE_NOTED", description: "Filtering similar artifacts." });
+      toast({ title: "PREFERENCE_NOTED" });
     },
     hasGeneratedOnce: true,
   };
