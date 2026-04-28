@@ -2,6 +2,12 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+/**
+ * GroUp Academy: Credential Issuance Orchestrator
+ * CTO Reference: Authoritative controller for pedagogical artifact generation.
+ * Logic: Implements idempotent issuance and verification key retrieval.
+ */
+
 interface IssueCertificateParams {
   enrollment_id: string;
   talent_id: string;
@@ -16,10 +22,15 @@ interface IssueCertificateParams {
 export function useCertificate() {
   const [issuing, setIssuing] = useState(false);
 
+  /**
+   * PHASE: Issue_Artifact
+   * Synchronizes assessment results with the global certificate registry.
+   */
   const issueCertificate = async (params: IssueCertificateParams) => {
     setIssuing(true);
     try {
-      // Check if certificate already exists for this enrollment
+      // HUD: REGISTRY_AUDIT
+      // Prevent redundant artifact creation for existing trajectories
       const { data: existing } = await supabase
         .from("certificates")
         .select("id, verify_code")
@@ -27,9 +38,11 @@ export function useCertificate() {
         .maybeSingle();
 
       if (existing) {
+        console.log("[useCertificate] Existing_Artifact_Found: Returning legacy code.");
         return existing;
       }
 
+      // HUD: ATOMIC_INGRESS
       const { data, error } = await supabase
         .from("certificates")
         .insert({
@@ -41,29 +54,36 @@ export function useCertificate() {
           score: params.score,
           total_questions: params.total_questions,
           percentage: params.percentage,
+          issued_at: new Date().toISOString(),
         })
         .select("id, verify_code")
         .single();
 
       if (error) throw error;
 
-      toast.success("Certificate issued! 🎓");
+      toast.success("CREDENTIAL_SYNC_COMPLETE: Certificate issued! 🎓");
       return data;
-    } catch (error: any) {
-      console.error("Error issuing certificate:", error);
-      toast.error("Failed to issue certificate");
+    } catch (err: any) {
+      console.error("CREDENTIAL_ISSUANCE_FAULT:", err);
+      toast.error("ARTIFACT_FAULT: Failed to issue institutional credential.");
       return null;
     } finally {
       setIssuing(false);
     }
   };
 
+  /**
+   * PHASE: Retrieve_Artifact
+   * Retrieves full credential metadata for the achievement viewport.
+   */
   const getCertificateForEnrollment = async (enrollmentId: string) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("certificates")
       .select("*")
       .eq("enrollment_id", enrollmentId)
       .maybeSingle();
+
+    if (error) console.error("REGISTRY_FETCH_FAULT:", error);
     return data;
   };
 
