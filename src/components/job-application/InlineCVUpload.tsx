@@ -3,21 +3,24 @@ import { supabase } from "@/integrations/supabase/client";
 import { useTalent } from "@/hooks/useTalent";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { 
-  Upload, 
-  FileText, 
-  CheckCircle2, 
-  Loader2, 
+import {
+  Upload,
+  FileText,
+  CheckCircle2,
+  Loader2,
   AlertCircle,
   RefreshCw,
-  Sparkles
+  Sparkles,
+  Zap,
+  ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-interface InlineCVUploadProps {
-  onUploadComplete?: () => void;
-}
+/**
+ * GroUp Academy: Intelligent CV Ingress Node
+ * CTO Reference: Authoritative interface for CV artifact parsing and profile synchronization.
+ */
 
 interface ParsedCVData {
   full_name?: string;
@@ -29,53 +32,27 @@ interface ParsedCVData {
 }
 
 const PARSING_STAGES = [
-  { progress: 15, message: "Uploading CV..." },
-  { progress: 35, message: "Reading document..." },
-  { progress: 55, message: "Extracting profile..." },
-  { progress: 75, message: "Analyzing skills..." },
-  { progress: 90, message: "Updating profile..." },
+  { progress: 15, message: "SYNCING_ARTIFACT_TO_STORAGE" },
+  { progress: 35, message: "DECRYPTING_DOCUMENT_STRUCTURE" },
+  { progress: 55, message: "MAPPING_IDENTITY_NODES" },
+  { progress: 75, message: "ANALYZING_SKILL_VECTORS" },
+  { progress: 90, message: "FINALIZING_REGISTRY_UPDATE" },
 ];
 
-export function InlineCVUpload({ onUploadComplete }: InlineCVUploadProps) {
+export function InlineCVUpload({ onUploadComplete }: { onUploadComplete?: () => void }) {
   const { talent, updateTalent, refreshTalent } = useTalent();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const [isDragging, setIsDragging] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [isParsing, setIsParsing] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [message, setMessage] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState(false);
 
-  const hasCV = !!talent?.cvUrl;
+  const hasRegistryCV = !!talent?.cvUrl;
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    if (!isUploading && !isParsing) setIsDragging(true);
-  }, [isUploading, isParsing]);
-
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  }, []);
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    if (isUploading || isParsing) return;
-    const file = e.dataTransfer.files[0];
-    if (file) processFile(file);
-  }, [isUploading, isParsing]);
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) processFile(file);
-    // Reset input so same file can be selected again
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
-
-  const simulateProgress = () => {
+  const executeTelemetrySimulation = () => {
     let stageIndex = 0;
     const interval = setInterval(() => {
       if (stageIndex < PARSING_STAGES.length) {
@@ -85,45 +62,33 @@ export function InlineCVUpload({ onUploadComplete }: InlineCVUploadProps) {
       } else {
         clearInterval(interval);
       }
-    }, 1500);
+    }, 1200);
     return interval;
   };
 
-  const processFile = async (file: File) => {
-    if (!talent?.id) {
-      toast.error("Please sign in to upload your CV");
-      return;
-    }
+  const processDataIngress = async (file: File) => {
+    if (!talent?.id) return toast.error("AUTH_SYNC_REQUIRED");
 
-    // Validate file type
-    const validTypes = [
+    // Academy Standard: PDF/DOCX only
+    const validMime = [
       "application/pdf",
       "application/msword",
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     ];
-    if (!validTypes.includes(file.type)) {
-      toast.error("Please upload a PDF or Word document");
-      return;
-    }
+    if (!validMime.includes(file.type)) return toast.error("INVALID_FORMAT: PDF or Word required");
+    if (file.size > 5 * 1024 * 1024) return toast.error("DATA_OVERFLOW: Max 5MB limit");
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("File size must be less than 5MB");
-      return;
-    }
-
-    setIsUploading(true);
-    setIsParsing(false);
+    setIsProcessing(true);
     setError(null);
     setUploadSuccess(false);
     setProgress(0);
-    setMessage("Uploading CV...");
+    setMessage("INITIALIZING_INGRESS...");
 
-    const progressInterval = simulateProgress();
+    const telemetryInterval = executeTelemetrySimulation();
 
     try {
-      // Upload to storage
       const fileExt = file.name.split(".").pop();
-      const filePath = `${talent.id}/cv.${fileExt}`;
+      const filePath = `${talent.id}/NODE_CV_${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from("portfolio-uploads")
@@ -131,249 +96,198 @@ export function InlineCVUpload({ onUploadComplete }: InlineCVUploadProps) {
 
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from("portfolio-uploads")
-        .getPublicUrl(filePath);
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("portfolio-uploads").getPublicUrl(filePath);
 
-      setIsUploading(false);
-      setIsParsing(true);
-
-      // Parse CV
+      // Invoke Neural Parsing Logic
       const { data: parseResult, error: parseError } = await supabase.functions.invoke("parse-cv", {
         body: { cvUrl: publicUrl },
       });
 
-      clearInterval(progressInterval);
+      clearInterval(telemetryInterval);
 
-      if (parseError) {
-        // Fallback: save URL only
+      if (parseError || !parseResult?.success) {
+        // Fallback: Registry Sync only (skip parsing)
         await updateTalent({ cvUrl: publicUrl });
-        await refreshTalent();
-        setProgress(100);
-        setMessage("CV uploaded!");
-        setUploadSuccess(true);
-        toast.success("CV uploaded successfully!");
-        onUploadComplete?.();
-        return;
-      }
-
-      if (parseResult?.success && parseResult.parsed) {
+        toast.success("ARTIFACT_SYNCED_WITHOUT_PARSING");
+      } else {
         const parsed = parseResult.parsed as ParsedCVData;
-        
-        const updateData: Record<string, any> = {
+        const updatePayload: Record<string, any> = {
           cvUrl: publicUrl,
           cvParsedAt: new Date().toISOString(),
         };
 
-        // Intelligent merge - only update empty fields
-        if (parsed.full_name && (!talent.fullName || talent.fullName === talent.email?.split("@")[0])) {
-          updateData.fullName = parsed.full_name;
-        }
-        if (parsed.phone && !talent.phone) updateData.phone = parsed.phone;
-        if (parsed.skills?.length && !talent.skills?.length) updateData.skills = parsed.skills;
+        // Intelligent Merge Protocol: Prioritize existing high-fidelity talent data
+        if (parsed.full_name && (!talent.fullName || talent.fullName.includes("@")))
+          updatePayload.fullName = parsed.full_name;
+        if (parsed.phone && !talent.phone) updatePayload.phone = parsed.phone;
+        if (parsed.skills?.length && !talent.skills?.length) updatePayload.skills = parsed.skills;
 
         if (parsed.experience?.length && (!talent.experience || (talent.experience as any[]).length === 0)) {
-          updateData.experience = parsed.experience.map((exp) => ({
-            company: exp.company || "",
-            position: exp.title || "",
+          updatePayload.experience = parsed.experience.map((exp) => ({
+            company: exp.company || "UNNAMED_ENTITY",
+            position: exp.title || "POSITION_NODE",
             description: exp.description || "",
           }));
         }
 
-        if (parsed.education?.length && (!talent.education || (talent.education as any[]).length === 0)) {
-          updateData.education = parsed.education.map((edu) => ({
-            institution: edu.institution || "",
-            degree: edu.degree || "",
-            fieldOfStudy: edu.field || "",
-          }));
-        }
-
-        await updateTalent(updateData);
-        await refreshTalent();
-
-        setProgress(100);
-        setMessage("Profile updated!");
-        setUploadSuccess(true);
-        toast.success("CV parsed and profile updated!");
-        onUploadComplete?.();
-      } else {
-        await updateTalent({ cvUrl: publicUrl });
-        await refreshTalent();
-        setProgress(100);
-        setMessage("CV uploaded!");
-        setUploadSuccess(true);
-        toast.success("CV uploaded successfully!");
-        onUploadComplete?.();
+        await updateTalent(updatePayload);
+        toast.success("NEURAL_PROFILE_SYNC_COMPLETE");
       }
+
+      await refreshTalent();
+      setProgress(100);
+      setMessage("SYNC_VERIFIED");
+      setUploadSuccess(true);
+      onUploadComplete?.();
     } catch (err: any) {
-      clearInterval(progressInterval);
-      console.error("[InlineCVUpload] Error:", err);
-      setError(err.message || "Upload failed. Please try again.");
-      toast.error("Failed to upload CV");
+      clearInterval(telemetryInterval);
+      setError(err.message || "SYNC_FAULT");
+      toast.error("INGRESS_FAULT_DETECTED");
     } finally {
-      setIsUploading(false);
-      setIsParsing(false);
+      setIsProcessing(false);
     }
   };
 
-  const isProcessing = isUploading || isParsing;
-
-  // Already has CV - show success state
-  if (hasCV && !isProcessing && !error) {
+  // VIEW: SYNC_VERIFIED_STATE
+  if ((hasRegistryCV || uploadSuccess) && !isProcessing && !error) {
     return (
-      <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded bg-background flex items-center justify-center border">
-            <FileText className="w-4 h-4 text-muted-foreground" />
+      <div className="flex items-center justify-between p-4 bg-emerald-500/5 border-2 border-emerald-500/20 rounded-2xl animate-in zoom-in-95 duration-500">
+        <div className="flex items-center gap-4">
+          <div className="h-10 w-10 rounded-xl bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 shadow-lg">
+            <ShieldCheck className="h-6 w-6 text-emerald-600" />
           </div>
-          <div>
-            <p className="text-sm font-medium">Current Resume</p>
-            <p className="text-xs text-muted-foreground">Ready to send</p>
+          <div className="text-left">
+            <p className="text-[11px] font-black uppercase italic text-emerald-700 leading-none">
+              Registry_Artifact_Verified
+            </p>
+            <p className="text-[9px] font-bold text-muted-foreground/60 uppercase tracking-widest mt-1 italic">
+              Ready for trajectory deployment
+            </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <CheckCircle2 className="h-5 w-5 text-green-500" />
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="h-7 text-xs"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            Change
-          </Button>
-        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 rounded-lg font-black uppercase text-[10px] tracking-widest text-emerald-700 hover:bg-emerald-500/10"
+          onClick={() => fileInputRef.current?.click()}
+        >
+          REPLACE_NODE
+        </Button>
         <input
           ref={fileInputRef}
           type="file"
           accept=".pdf,.doc,.docx"
           className="hidden"
-          onChange={handleFileSelect}
-          disabled={isProcessing}
+          onChange={(e) => e.target.files?.[0] && processDataIngress(e.target.files[0])}
         />
       </div>
     );
   }
 
-  // Error state
-  if (error) {
-    return (
-      <div className="space-y-3">
-        <div className="flex items-center gap-3 p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
-          <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-destructive">Upload failed</p>
-            <p className="text-xs text-muted-foreground truncate">{error}</p>
-          </div>
-          <Button 
-            size="sm" 
-            variant="outline"
-            onClick={() => {
-              setError(null);
-              fileInputRef.current?.click();
-            }}
-          >
-            <RefreshCw className="h-4 w-4 mr-1" />
-            Retry
-          </Button>
-        </div>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".pdf,.doc,.docx"
-          className="hidden"
-          onChange={handleFileSelect}
-        />
-      </div>
-    );
-  }
-
-  // Processing state
+  // VIEW: PROCESSING_STATE
   if (isProcessing) {
     return (
-      <div className="p-4 bg-primary/5 border rounded-lg">
-        <div className="flex items-center gap-3 mb-3">
-          {isParsing ? (
+      <div className="p-6 bg-primary/5 border-2 border-primary/20 rounded-[28px] space-y-4 animate-in fade-in duration-500">
+        <div className="flex items-center gap-4">
+          <div className="h-10 w-10 rounded-xl bg-background border-2 border-primary/10 flex items-center justify-center">
             <Sparkles className="h-5 w-5 text-primary animate-pulse" />
-          ) : (
-            <Loader2 className="h-5 w-5 text-primary animate-spin" />
-          )}
-          <span className="text-sm font-medium">{message}</span>
+          </div>
+          <div className="flex-1 space-y-1">
+            <div className="flex justify-between items-end">
+              <span className="text-[10px] font-black uppercase italic text-primary tracking-widest leading-none">
+                {message}
+              </span>
+              <span className="text-[10px] font-mono text-primary/40 leading-none">{progress}%</span>
+            </div>
+            <Progress value={progress} className="h-1.5 bg-primary/10" />
+          </div>
         </div>
-        <Progress value={progress} className="h-2" />
-        <p className="text-xs text-muted-foreground mt-2 text-center">
-          This may take up to 30 seconds...
+        <p className="text-[9px] font-medium text-muted-foreground/40 text-center italic uppercase tracking-widest">
+          Neural layer parsing artifact... Time index: ~25s
         </p>
       </div>
     );
   }
 
-  // Just completed upload
-  if (uploadSuccess) {
+  // VIEW: FAULT_STATE
+  if (error) {
     return (
-      <div className="flex items-center justify-between p-3 bg-success/10 border border-success/20 rounded-lg">
-        <div className="flex items-center gap-3">
-          <CheckCircle2 className="h-5 w-5 text-success" />
-          <div>
-            <p className="text-sm font-medium text-success">CV Uploaded!</p>
-            <p className="text-xs text-muted-foreground">Your profile has been updated</p>
+      <div className="p-4 bg-rose-500/5 border-2 border-rose-500/20 rounded-2xl flex items-center justify-between animate-in shake-2">
+        <div className="flex items-center gap-4">
+          <AlertCircle className="h-6 w-6 text-rose-500" />
+          <div className="text-left">
+            <p className="text-[11px] font-black uppercase italic text-rose-500 leading-none">Ingress_Sync_Fault</p>
+            <p className="text-[9px] font-bold text-muted-foreground/40 uppercase tracking-widest mt-1 truncate max-w-[150px]">
+              {error}
+            </p>
           </div>
         </div>
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          className="h-7 text-xs"
-          onClick={() => {
-            setUploadSuccess(false);
-            fileInputRef.current?.click();
-          }}
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-9 rounded-xl border-2 font-black uppercase italic text-[10px] gap-2"
+          onClick={() => fileInputRef.current?.click()}
         >
-          Change
+          <RefreshCw className="h-3.5 w-3.5" /> RETRY_SYNC
         </Button>
         <input
           ref={fileInputRef}
           type="file"
           accept=".pdf,.doc,.docx"
           className="hidden"
-          onChange={handleFileSelect}
+          onChange={(e) => e.target.files?.[0] && processDataIngress(e.target.files[0])}
         />
       </div>
     );
   }
 
-  // Empty state - upload prompt (this is what shows when user has no CV)
+  // VIEW: INITIAL_INGRESS_PROMPT
   return (
     <div
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
+      onDragOver={(e) => {
+        e.preventDefault();
+        setIsDragging(true);
+      }}
+      onDragLeave={() => setIsDragging(false)}
+      onDrop={(e) => {
+        e.preventDefault();
+        setIsDragging(false);
+        e.dataTransfer.files[0] && processDataIngress(e.dataTransfer.files[0]);
+      }}
       onClick={() => fileInputRef.current?.click()}
       className={cn(
-        "relative border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-all",
-        isDragging && "border-primary bg-primary/5 scale-[1.01]",
-        !isDragging && "border-border hover:border-primary/50 hover:bg-muted/30"
+        "group relative border-2 border-dashed rounded-[28px] p-10 text-center cursor-pointer transition-all duration-500",
+        isDragging
+          ? "border-primary bg-primary/5 scale-[1.02] shadow-2xl"
+          : "border-border/40 hover:border-primary/40 hover:bg-muted/5 shadow-inner",
       )}
     >
-      <div className="flex flex-col items-center gap-2">
-        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-          <Upload className="h-6 w-6 text-primary" />
+      <div className="flex flex-col items-center gap-4">
+        <div className="h-16 w-16 rounded-[22px] bg-background border-2 border-border/10 flex items-center justify-center shadow-xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-500">
+          <Upload className="h-8 w-8 text-primary/40 group-hover:text-primary transition-colors" />
         </div>
-        <div>
-          <p className="text-sm font-medium">Upload your CV to apply</p>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            PDF or Word • Max 5MB • Auto-fills profile
+        <div className="space-y-1">
+          <p className="text-base font-black uppercase italic tracking-tighter">Initialize_Artifact_Ingress</p>
+          <p className="text-[9px] font-bold text-muted-foreground/60 uppercase tracking-[0.3em] italic">
+            PDF | WORD • MAX 5MB • NEURAL_PARSING_ACTIVE
           </p>
         </div>
-        <Button variant="secondary" size="sm" className="mt-2">
-          Select File
+        <Button
+          variant="secondary"
+          size="sm"
+          className="h-9 rounded-xl px-6 font-black uppercase italic text-[10px] tracking-widest mt-2 border-2 border-transparent hover:border-primary/20 transition-all"
+        >
+          SELECT_DATA_NODE
         </Button>
       </div>
-      
       <input
         ref={fileInputRef}
         type="file"
         accept=".pdf,.doc,.docx"
         className="hidden"
-        onChange={handleFileSelect}
+        onChange={(e) => e.target.files?.[0] && processDataIngress(e.target.files[0])}
       />
     </div>
   );
