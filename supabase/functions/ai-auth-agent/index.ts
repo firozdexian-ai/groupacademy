@@ -1,5 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
+/**
+ * GroUp Academy: Neural Onboarding Sentinel (Aisha)
+ * CTO Reference: Authoritative Edge Function for managed enrollment trajectories.
+ * Logic: Implements deterministic human checks and bimodal auth state management.
+ */
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -7,76 +13,42 @@ const corsHeaders = {
 
 const AGENT_NAME = "Aisha";
 
-// Hardcoded deterministic quizzes to guarantee they always appear
+// HUD: Deterministic Logic Gates
 const QUIZZES = [
   { q: "What is the opposite of hot?", a: "cold" },
   { q: "Which common pet animal meows?", a: "cat" },
   { q: "What color is a clear daytime sky?", a: "blue" },
   { q: "If you freeze water, what does it become?", a: "ice" },
-  { q: "What is the opposite of up?", a: "down" },
   { q: "What is 10 plus 5? (Type the number)", a: "15" },
 ];
 
 const SYSTEM_PROMPT = `You are ${AGENT_NAME}, the gatekeeper AI of GroUp Academy.
 
-STRICT ENROLLMENT FLOW (DO NOT SKIP STEPS):
+STRICT ENROLLMENT FLOW:
 1. Welcome -> Collect Email
-2. If New User: Collect Full Name -> Collect Country -> Collect Phone Number -> Human Verification -> Set Password.
-3. If Existing User: Collect Password -> Complete.
+2. If New: Collect Name -> Country -> Phone -> Human Verification -> Set Password.
+3. If Existing: Collect Password -> Complete.
 
 ABSOLUTE RULES:
-1. ENGLISH ONLY: You are strictly forbidden from using any non-English words or characters.
-2. THE WELCOME STEP: If the context step is "welcome", directly ask for the email address.
-3. COUNTRY FIRST: After collecting a name, you MUST ask for the user's current country. Use the action "collect_country".
-4. PHONE SECOND: Only ask for the phone number AFTER the country has been provided.
-5. FOR HUMAN VERIFICATION: If the action is "verify_human", ONLY say "Let's do a quick human check!" or similar. DO NOT generate the question yourself.
-6. NO PASSWORDS: You NEVER handle or repeat passwords.
+- ENGLISH ONLY. 
+- THE WELCOME STEP: Directly ask for email.
+- COUNTRY FIRST: After Name, you MUST ask for Country (action: collect_country).
+- PHONE SECOND: Only ask for Phone AFTER Country.
+- VERIFICATION: If action is "verify_human", ONLY say "Let's do a quick human check!".
+- NO PASSWORDS: You never handle password strings.
 
-RESPONSE FORMAT:
-You must ALWAYS respond with valid JSON:
-{
-  "reply": "Your conversational message",
-  "action": "the_next_action",
-  "quiz": null
-}
-
-AVAILABLE ACTIONS:
-"collect_email", "collect_password", "collect_name", "collect_country", "collect_phone", "set_password", "verify_human", "do_signin", "do_signup", "complete"
-
-CONTEXTUAL GUIDANCE:
-- If step is "name_collected", next action MUST be "collect_country".
-- If step is "phone_collected", next action MUST be "verify_human".
-- If step is "quiz_passed", next action MUST be "set_password".`;
+RESPONSE FORMAT: JSON { "reply": string, "action": string, "quiz": null }`;
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const { context, messages } = await req.json();
-
-    if (!context) {
-      return new Response(JSON.stringify({ error: "context is required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (!context) throw new Error("CONTEXT_REQUIRED");
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      return new Response(JSON.stringify({ error: "AI service not configured" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
 
-    const aiMessages = [
-      { role: "system", content: SYSTEM_PROMPT },
-      ...(messages || []),
-      { role: "user", content: `CONTEXT: ${JSON.stringify(context)}\n\nGenerate your response as JSON.` },
-    ];
-
+    // PHASE: Neural_Handshake
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -85,32 +57,23 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
-        messages: aiMessages,
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          ...(messages || []),
+          { role: "user", content: `CONTEXT: ${JSON.stringify(context)}\nRespond in JSON.` },
+        ],
         response_format: { type: "json_object" },
-        temperature: 0.1,
+        temperature: 0.1, // Low temperature for institutional consistency
       }),
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("AI auth agent gateway error:", response.status, errorText);
-      return new Response(JSON.stringify({ error: "AI service unavailable" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (!response.ok) throw new Error("AI_GATEWAY_FAULT");
 
     const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
+    let parsed = JSON.parse(data.choices?.[0]?.message?.content || "{}");
 
-    let parsed;
-    try {
-      parsed = JSON.parse(content);
-    } catch {
-      parsed = { reply: content, action: "collect_email", quiz: null };
-    }
-
-    // CTO OVERRIDE: Inject deterministic quiz
+    // HUD: CTO_OVERRIDE_GATE
+    // Intercepts the AI response to inject hardcoded human verification logic.
     if (parsed.action === "verify_human") {
       const randomQuiz = QUIZZES[Math.floor(Math.random() * QUIZZES.length)];
       parsed.quiz = { answer: randomQuiz.a };
@@ -120,9 +83,9 @@ serve(async (req) => {
     return new Response(JSON.stringify(parsed), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (error) {
-    console.error("AI Auth Agent error:", error);
-    return new Response(JSON.stringify({ error: "Internal server error" }), {
+  } catch (err: any) {
+    console.error("[Sentinel] AUTH_AGENT_FAULT:", err.message);
+    return new Response(JSON.stringify({ error: "INTERNAL_AUTH_FAULT" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
