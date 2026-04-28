@@ -1,6 +1,12 @@
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
+/**
+ * GroUp Academy: Credential Issuance Engine
+ * CTO Reference: Authoritative utility for dynamic PDF artifact generation.
+ * Logic: Implements high-density rasterization with off-screen rendering.
+ */
+
 interface Assessment {
   id: string;
   full_name: string;
@@ -9,49 +15,60 @@ interface Assessment {
   };
 }
 
+/**
+ * PHASE: Artifact_Rasterization
+ * Converts DOM nodes into high-fidelity PDF binaries.
+ */
 export async function generateScorecardPDF(assessment: Assessment) {
   const element = document.getElementById("scorecard-pdf-content");
   if (!element) {
-    throw new Error("Scorecard template not found");
+    throw new Error("REGISTRY_FAULT: Scorecard template node not found.");
   }
 
-  // Temporarily make element visible for capture
+  // HUD: Off-Screen Rendering Protocol
+  // Temporarily reposition element to ensure full-capture without viewport interference.
   const originalPosition = element.style.position;
   const originalLeft = element.style.left;
+  const originalVisibility = element.style.visibility;
+
   element.style.position = "fixed";
-  element.style.left = "0";
-  element.style.top = "0";
-  element.style.zIndex = "-1";
+  element.style.left = "-9999px"; // Move far off-screen
+  element.style.visibility = "visible";
 
   try {
-    // Convert HTML to canvas
+    // HUD: High-Intensity Canvas Generation
     const canvas = await html2canvas(element, {
-      scale: 2,
+      scale: 2, // 2x Density for print quality
       logging: false,
       backgroundColor: "#ffffff",
-      useCORS: true,
+      useCORS: true, // Allow institutional asset ingress
+      allowTaint: false,
     });
 
-    // Calculate PDF dimensions (A4)
-    const imgWidth = 210; // A4 width in mm
+    // PHASE: PDF_Geometry_Calculation
+    const imgWidth = 210; // Standard A4 Width (mm)
     const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-    // Create PDF
     const pdf = new jsPDF("p", "mm", "a4");
-    const imgData = canvas.toDataURL("image/png");
+    const imgData = canvas.toDataURL("image/png", 1.0);
 
-    pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
+    pdf.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight, undefined, "FAST");
 
-    // Generate filename
-    const sanitizedName = assessment.full_name.replace(/[^a-z0-9]/gi, "_");
+    // HUD: Institutional Filename Sanitization
+    const sanitizedName = assessment.full_name.replace(/[^a-z0-9]/gi, "_").toLowerCase();
     const date = new Date().toISOString().split("T")[0];
-    const filename = `CareerScorecard_${sanitizedName}_${date}.pdf`;
+    const filename = `GroUp_Scorecard_${sanitizedName}_${date}.pdf`;
 
-    // Download
+    // ACTION: Commit binary to talent device
     pdf.save(filename);
+    return true;
+  } catch (err) {
+    console.error("CREDENTIAL_GENERATION_FAULT:", err);
+    throw err;
   } finally {
-    // Restore original position
+    // RESTORE: Revert DOM artifacts to original state
     element.style.position = originalPosition;
     element.style.left = originalLeft;
+    element.style.visibility = originalVisibility;
   }
 }
