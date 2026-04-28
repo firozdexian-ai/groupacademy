@@ -1,5 +1,16 @@
 import { useState } from "react";
-import { Play, BookOpen, Newspaper, FileText, ArrowRight, Bookmark, Share2, ExternalLink, Zap } from "lucide-react";
+import {
+  Play,
+  BookOpen,
+  Newspaper,
+  FileText,
+  ArrowRight,
+  Bookmark,
+  Share2,
+  ExternalLink,
+  Zap,
+  Target,
+} from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,6 +20,11 @@ import { ShareSheet } from "./ShareSheet";
 import { cn } from "@/lib/utils";
 import { useSavedItems, SavedItemType } from "@/hooks/useSavedItems";
 import type { FeedItem } from "@/hooks/useFeedRecommendations";
+
+/**
+ * GroUp Academy: Executive Feed Node (V3 Redesign)
+ * CTO Reference: High-fidelity media ingestion node with neural matching telemetry.
+ */
 
 interface FeedCardRedesignedProps {
   item: FeedItem;
@@ -40,31 +56,31 @@ export function FeedCardRedesigned({ item, onInterested, onNotInterested }: Feed
     await toggleSave(item.id, itemType);
   };
 
-  // CTO Mapping: Optimized icon and style lookup
+  // REGISTRY: Semantic Mapping for Pattern-Recognition Ingestion
   const typeConfigs: Record<string, { icon: any; style: string; gradient: string; label: string }> = {
     video: {
       icon: <Play className="h-3 w-3 fill-current" />,
-      style: "bg-rose-500/10 text-rose-600 border-rose-200 dark:border-rose-900/30",
-      gradient: "from-rose-500/10 via-transparent to-transparent",
-      label: "Watch Video",
+      style: "text-rose-600 bg-rose-500/10 border-rose-500/20",
+      gradient: "from-rose-500/20 via-transparent to-transparent",
+      label: "INITIALIZE_VIDEO",
     },
     course: {
       icon: <BookOpen className="h-3 w-3" />,
-      style: "bg-indigo-500/10 text-indigo-600 border-indigo-200 dark:border-indigo-900/30",
-      gradient: "from-indigo-500/10 via-transparent to-transparent",
-      label: "Start Course",
+      style: "text-indigo-600 bg-indigo-500/10 border-indigo-500/20",
+      gradient: "from-indigo-500/20 via-transparent to-transparent",
+      label: "AUTHORIZE_COURSE",
     },
     blog: {
       icon: <Newspaper className="h-3 w-3" />,
-      style: "bg-amber-500/10 text-amber-600 border-amber-200 dark:border-amber-900/30",
-      gradient: "from-amber-500/10 via-transparent to-transparent",
-      label: "Read Article",
+      style: "text-amber-600 bg-amber-500/10 border-amber-500/20",
+      gradient: "from-amber-500/20 via-transparent to-transparent",
+      label: "READ_ANALYSIS",
     },
     post: {
       icon: <FileText className="h-3 w-3" />,
-      style: "bg-emerald-500/10 text-emerald-600 border-emerald-200 dark:border-emerald-900/30",
-      gradient: "from-emerald-500/10 via-transparent to-transparent",
-      label: "View Post",
+      style: "text-emerald-600 bg-emerald-500/10 border-emerald-500/20",
+      gradient: "from-emerald-500/20 via-transparent to-transparent",
+      label: "VIEW_ARTIFACT",
     },
   };
 
@@ -73,81 +89,85 @@ export function FeedCardRedesigned({ item, onInterested, onNotInterested }: Feed
   const shareUrl = `${window.location.origin}/app/${item.type === "course" ? "courses" : "blog"}/${item.id}`;
 
   return (
-    <Card className="group overflow-hidden hover:shadow-xl transition-all duration-500 border-border/40 hover:border-primary/30 relative rounded-2xl bg-card/50 backdrop-blur-sm flex flex-col h-full">
-      {/* Media Section: YouTube or Image */}
-      <div className="relative overflow-hidden bg-muted shrink-0">
+    <Card className="group relative flex flex-col h-full overflow-hidden transition-all duration-500 border-2 border-border/40 hover:border-primary/40 bg-card/30 backdrop-blur-md rounded-[32px] hover:shadow-2xl">
+      {/* MEDIA INGRESS: YouTube Protocol or Image Node */}
+      <div className="relative overflow-hidden bg-muted shrink-0 border-b-2 border-border/10">
         {youtubeId ? (
           <div className="aspect-video w-full">
             {showYoutube ? (
               <iframe
-                src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1`}
+                src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&modestbranding=1&rel=0`}
                 title={item.title}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
-                className="w-full h-full animate-in fade-in duration-500"
+                className="w-full h-full animate-in fade-in zoom-in-95 duration-500"
               />
             ) : (
               <div className="relative w-full h-full cursor-pointer group/yt" onClick={() => setShowYoutube(true)}>
                 <img
                   src={`https://img.youtube.com/vi/${youtubeId}/maxresdefault.jpg`}
                   alt={item.title}
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover/yt:scale-105"
+                  className="w-full h-full object-cover transition-transform duration-1000 group-hover/yt:scale-110"
                 />
-                <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover/yt:bg-black/40 transition-colors">
-                  <div className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center shadow-2xl transform transition-transform group-hover/yt:scale-110">
-                    <Play className="h-6 w-6 text-rose-600 fill-current ml-1" />
+                <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover/yt:bg-black/50 transition-all duration-500">
+                  <div className="w-16 h-16 rounded-full bg-white/95 flex items-center justify-center shadow-[0_0_30px_rgba(255,255,255,0.3)] transform transition-transform group-hover/yt:scale-110">
+                    <Play className="h-7 w-7 text-rose-600 fill-current ml-1" />
                   </div>
                 </div>
               </div>
             )}
           </div>
         ) : item.mediaUrl ? (
-          <div className="aspect-[2/1] w-full">
+          <div className="aspect-[2/1] w-full overflow-hidden">
             <img
               src={item.mediaUrl}
               alt={item.title}
-              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+              className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
             />
           </div>
         ) : (
-          <div className={cn("h-12 w-full bg-gradient-to-r border-b border-border/20", config.gradient)} />
+          <div className={cn("h-16 w-full bg-gradient-to-r", config.gradient)} />
         )}
 
-        {/* Overlay Controls (Floating) */}
-        <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
+        {/* FLOATING TELEMETRY CONTROLS */}
+        <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
           <Button
             variant="ghost"
             size="icon"
             className={cn(
-              "h-8 w-8 rounded-full backdrop-blur-md shadow-lg transition-all active:scale-90",
-              isBookmarked ? "bg-primary text-white" : "bg-white/80 hover:bg-white text-foreground",
+              "h-10 w-10 rounded-2xl backdrop-blur-xl shadow-2xl transition-all active:scale-90 border-2",
+              isBookmarked
+                ? "bg-primary text-white border-primary"
+                : "bg-background/60 hover:bg-background border-white/20 text-foreground",
             )}
             onClick={handleToggleSave}
           >
-            <Bookmark className={cn("h-4 w-4", isBookmarked && "fill-current")} />
+            <Bookmark className={cn("h-5 w-5", isBookmarked && "fill-current")} />
           </Button>
           {item.matchScore !== undefined && (
-            <div className="bg-white/80 backdrop-blur-md rounded-full p-0.5 shadow-lg">
+            <div className="bg-background/60 backdrop-blur-xl rounded-2xl p-1 shadow-2xl border-2 border-white/20">
               <CircularMatchBadge score={item.matchScore} size="sm" />
             </div>
           )}
         </div>
 
-        <div className="absolute top-3 left-3 z-10">
+        <div className="absolute top-4 left-4 z-20">
           <Badge
-            variant="outline"
-            className={cn("gap-1.5 backdrop-blur-md bg-white/80 border-none shadow-sm px-2 py-1", config.style)}
+            className={cn(
+              "gap-2 backdrop-blur-xl border-2 shadow-xl px-3 py-1.5 rounded-xl font-black italic text-[9px] uppercase tracking-widest",
+              config.style,
+            )}
           >
-            {config.icon}
-            <span className="capitalize font-bold text-[10px] tracking-widest">{item.type}</span>
+            <Zap className="h-3 w-3 fill-current" />
+            {item.type}
           </Badge>
         </div>
       </div>
 
-      {/* Content Section */}
-      <CardContent className="p-5 flex flex-col flex-1">
-        <div className="flex-1 space-y-3">
-          <h3 className="font-bold text-[16px] leading-tight text-foreground group-hover:text-primary transition-colors line-clamp-2">
+      {/* PAYLOAD CONTENT SECTION */}
+      <CardContent className="p-6 flex flex-col flex-1 text-left">
+        <div className="flex-1 space-y-4">
+          <h3 className="font-black text-lg leading-tight text-foreground group-hover:text-primary transition-colors line-clamp-2 uppercase italic tracking-tighter">
             {item.title}
           </h3>
 
@@ -156,27 +176,27 @@ export function FeedCardRedesigned({ item, onInterested, onNotInterested }: Feed
           )}
 
           {item.matchReason && (
-            <div className="flex items-start gap-2 bg-primary/[0.03] p-2.5 rounded-xl border border-primary/5">
-              <Zap className="h-3 w-3 text-amber-500 shrink-0 mt-0.5" />
-              <p className="text-[11px] text-muted-foreground italic leading-relaxed line-clamp-2">
-                {item.matchReason}
+            <div className="flex items-start gap-3 bg-primary/5 p-4 rounded-[20px] border-2 border-primary/10">
+              <Target className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <p className="text-[11px] text-muted-foreground font-bold italic leading-relaxed line-clamp-3">
+                {item.matchReason.toUpperCase()}
               </p>
             </div>
           )}
         </div>
 
-        {/* Dynamic Footer Actions */}
-        <div className="flex items-center gap-2 mt-6 pt-4 border-t border-border/20">
+        {/* EXECUTIVE ACTION STRIP */}
+        <div className="flex items-center gap-3 mt-8 pt-5 border-t-2 border-border/10">
           <Button
             onClick={(e) => {
               e.stopPropagation();
               onInterested();
             }}
-            className="flex-1 h-10 text-[11px] font-bold uppercase tracking-wider gap-2 rounded-xl group/btn transition-all hover:scale-[1.02] active:scale-95"
+            className="flex-1 h-12 text-[10px] font-black uppercase italic tracking-[0.2em] gap-3 rounded-2xl group/btn shadow-xl active:scale-95 transition-all"
           >
-            {item.type === "video" ? <ExternalLink className="h-3.5 w-3.5" /> : null}
+            {item.type === "video" ? <ExternalLink className="h-4 w-4" /> : null}
             {config.label}
-            <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover/btn:translate-x-1" />
+            <ArrowRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-2" />
           </Button>
 
           <ShareSheet title={item.title} url={shareUrl} description={item.matchReason} />
