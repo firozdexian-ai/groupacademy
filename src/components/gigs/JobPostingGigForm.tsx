@@ -21,6 +21,7 @@ import {
   ArrowRight,
   Zap,
   Building2,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
