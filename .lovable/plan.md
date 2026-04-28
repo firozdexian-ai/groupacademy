@@ -1,167 +1,230 @@
-# Agent OS — Consolidated, Tool-Using, Multi-Stakeholder Architecture
+# Agent OS — Final Consolidated Plan (v3)
 
-## Vision
-Move from "26 chatbot wrappers" to a single **Agent Runtime** where every AI is a first-class stakeholder: it owns a skillset, calls tools, produces deliverables on a canvas, talks across talent / company / admin contexts, sends push outreach, and earns/spends credits against a target. Talents, companies, admins, and agents all interact through the same protocol.
+The end-state: every meaningful interaction on the platform — for talents, companies, and admins — happens through conversation with an agent. The company portal looks and feels like **WhatsApp Business, but every contact is an AI employee**. The talent app already moves that direction; admin becomes an "ops control room" of agent threads. No more form-heavy CRUD screens for the things humans naturally describe in words.
 
-## Locked Decisions (from user)
-1. **Connection fee** — default **1.25 credits** (= 125 BDT). `ai-general` and `aisha` are free.
-2. **Talent-built agent build fee** — 3 levels mirroring profession grading:
-   - L1 = 10 credits (basic prompt, no tools)
-   - L2 = 25 credits (1–2 tools)
-   - L3 = 50 credits (full tools allowlist + outreach)
-   The connection fee a talent-built agent can charge is also capped by its level.
-3. **Canvas behavior** — **chat-first**; canvas auto-expands the first time an artifact is produced in a thread, then is collapsible. On mobile it becomes a bottom sheet.
-4. **B2B billing** — companies live in the same credit wallet system. New `company_credits` table mirroring `talent_credits` (same `numeric(12,1)`, withdrawable/free split, same transaction types).
+---
 
-## Current State (audit)
-- `ai_agents` has 26 rows, all flat at 1 credit; routed through one edge function `ai-agent-chat` (Gemini stream, no tools).
-- Parallel one-off endpoints (`ai-instructor-chat`, `ai-support-assistant`, `ai-auth-agent`, `analyze-*`, `generate-*`, `score-*`, `parse-*`) duplicate plumbing.
-- Sessions in `agent_chat_sessions` (single talent participant, blob `messages jsonb`, no artifacts).
-- `company_agents` / `company_agent_leads` exist but unused as a real B2B surface.
-- Talent UI: `AIAgents.tsx`, `AgentChatDialog`. Admin: `AIAgentsManager`, `CompanyAgentsManager`. No shared canvas, no cross-stakeholder threads, no agent-initiated push.
+## Locked decisions (carried from v1/v2)
 
-## Target Architecture
+- Connection fee default **1.25 credits** (free for `ai-general`, `aisha`).
+- Talent/company-built agents: **L1=10, L2=25, L3=50** build credits; level caps tools + connection fee.
+- Canvas: **chat-first**, auto-expands on first artifact, collapsible.
+- Companies live on the **same credit wallet model** (`company_credits`).
+- Embeddings: `google/text-embedding-004` (free in gateway).
+- Plain-language agent builder uses `gemini-2.5-pro`; runtime uses `gemini-3-flash-preview`.
+- A/B prompts start at fixed 50/50, custom % later.
+- Headless agents bill the **platform pool** (admin-toppable, capped monthly).
 
-### 1. Unified Agent Runtime (one edge function)
-`agent-runtime` becomes the only AI execution endpoint. Every existing analyze/generate/score/chat function is reframed as either a **skill** the runtime invokes, or a thin wrapper that calls the runtime with a fixed agent + tool.
+---
 
-Loop:
-1. Load agent config (prompt, allowed tools, pricing tier, audience).
-2. Verify caller (talent | company_user | admin | agent-to-agent).
-3. Check `agent_connections` (one-time fee paid?) + wallet balance.
-4. Stream Gemini with `tools: [...]` from the agent's `tool_keys`.
-5. On tool call → execute skill → push artifact to canvas → continue stream.
-6. On final delivery → charge `delivery_credit_cost` + log impact.
+## 1. The three surfaces, all agentic
 
-### 2. Schema
+### A. Talent app (already partially there)
+- Primary surface stays the **Agent Hub** (`/app/agents`) + concierge search bar.
+- Career assessment, salary analysis, mock interview, portfolio request, job application — all wrapped as agent skills, not standalone forms. Forms remain as a **fallback** behind the agent ("prefer to fill a form?" link).
+- Quick Actions grid stays — it's just a launcher into agent threads.
 
-**Extend `ai_agents`:**
-- `audience text[]` — `talent`, `company`, `admin`
-- `connection_fee numeric(12,1) default 1.25`
-- `tool_keys text[]`
-- `monthly_credit_target integer`
-- `agent_owner_id uuid` (talent-built)
-- `agent_level int` — 1/2/3 (sets caps on tools + connection fee)
-- `visibility text` — `public`, `private`, `marketplace`
-- `tier text` — `standard`, `premium`, `enterprise`
-- `message_credit_cost numeric(12,1) default 1.0`
+### B. Company portal (new — the WhatsApp Business clone)
+- After a company signs up, they land on `/company/inbox`. Layout = WhatsApp web:
+  - **Left**: thread list of "AI Employees" (Recruiter, Talent Sourcer, Outreach Writer, Brand Designer, QA Coach, Analyst, Compliance, Wallet, Builder).
+  - **Right**: open thread, chat-first, canvas auto-expands when an artifact appears (job draft, shortlist, banner, contract).
+- **Every B2B action is a conversation**:
+  - Post a job → talk to **Recruiter** ("hire a senior backend engineer in Singapore, remote OK, $4-6k"). It drafts the JD on canvas → company approves → published.
+  - Find candidates → talk to **Talent Sourcer**. Returns ranked talents on canvas with one-click shortlist.
+  - Send outreach → **Outreach Writer** generates `mailto:` drafts (existing memory rule).
+  - Visual content → **Brand Designer** uses `generate_image`.
+  - Wallet & invoices → **Wallet** agent ("top up 5000 credits"). Triggers existing WhatsApp invoice flow.
+  - Build their own agent → **Builder** asks 4 questions, then runs the no-code Agent Builder in the background.
+- Push notifications + in-app badges drive companies back into threads (agents proactively pinging when there's new applicants, low credit, or a candidate replied).
+- **No traditional CRUD screens**. Settings, billing, team — all reachable via thread + a thin settings drawer for edge cases.
 
-**New tables:**
-- `agent_tools` — `tool_key`, `name`, `input_schema jsonb`, `handler_endpoint`, `credit_cost numeric(12,1)`, `output_kind` (`text|image|file|plan|search_result`), `min_agent_level int`.
-- `agent_connections` — `(subject_kind, subject_id, agent_id, connected_at, fee_paid numeric(12,1))`. `subject_kind` ∈ `talent|company|admin`. Unique.
-- `agent_threads` (replaces `agent_chat_sessions`) — `participants jsonb`, `context_kind` (`talent_chat|company_chat|admin_briefing|agent_to_agent`), `linked_entity_kind`, `linked_entity_id`, `is_active`, `credits_charged numeric(12,1)`.
-- `agent_messages` — `thread_id`, `role`, `content`, `tool_calls jsonb`, `artifact_id`, `credits_charged numeric(12,1)`. Replaces blob storage.
-- `agent_artifacts` — `thread_id`, `kind` (`image|document|plan|search_results|graphic|thumbnail`), `payload jsonb`, `storage_path`, `approval_state` (`draft|pending|approved|rejected`), `requires_approval bool`, `delivery_charged bool`.
-- `agent_outreach` — `agent_id`, `recipient_kind`, `recipient_id`, `channel` (`push|in_app|email`), `template`, `sent_at`, `opened_at`, `converted_at`, `credits_attributed numeric(12,1)`.
-- `agent_credit_events` — granular ledger: `agent_id`, `actor_kind`, `actor_id`, `event_kind` (`connection_fee|message|tool_invocation|delivery|outreach_conversion|build_fee|marketplace_revenue`), `amount numeric(12,1)`, `impact_score`.
-- `company_credits` — mirrors `talent_credits` (`company_id`, `balance numeric(12,1)`, `earned_balance numeric(12,1)`).
-- `company_credit_transactions` — mirrors `credit_transactions`.
+### C. Admin panel (becomes Agent Ops Control Room)
+- Top-level new section **Agents OS** with:
+  - **Builder** (per-agent 6-tab editor — see §3).
+  - **Inbox** — admin's own WhatsApp-style inbox where headless agents file briefings (Aisha → new signups, Assessment Reporter → new results, Course Celebrant → completions, Revenue Coach → margin alerts).
+  - **Insights** — per-agent dashboards (tokens, margin, earnings, A/B results).
+  - **Marketplace Review** — approve talent/company-built agents.
+  - **Wallet pools** — top up the platform headless pool, set monthly cap, view burn.
+- The existing form-heavy admin sections (jobs, companies, talents) **stay** for now but each gets a **"Talk to ops agent about this"** button on every detail page that opens a thread with the relevant admin agent pre-loaded with the entity's context.
 
-RLS: same pattern as existing tables — owner via `auth.uid()`, admin via `has_any_admin_role`. Companies via `company_members(user_id, company_id, role)` already in place.
+---
 
-### 3. Pricing Model (replaces flat 1 credit)
+## 2. Unified Agent Runtime (single edge function)
 
-Per agent, in `ai_agents`:
-```text
-connection_fee         one-time, on first thread (default 1.25; free for ai-general, aisha)
-message_credit_cost    per assistant reply (default 1.0; premium 2-5)
-tool_credit_costs      per skill call from agent_tools.credit_cost (image-gen 5, deep-research 15)
-delivery_credit_cost   on final artifact approval (image 10, plan 25, thumbnail 8)
-```
+`agent-runtime` replaces all one-off AI endpoints over time. Loop:
 
-Talent-built agent caps by level:
-| Level | Build fee | Max connection fee | Max tools | Outreach allowed |
-|---|---|---|---|---|
-| L1 | 10 | 1.25 | 0 | no |
-| L2 | 25 | 5 | 2 | no |
-| L3 | 50 | 15 | unlimited | yes |
+1. Auth caller → resolve `subject_kind` (talent | company_user | admin | system).
+2. Load agent (prompt + tools + KB + pricing + level + kill-switch + active prompt variant).
+3. Check `agent_connections` (one-time fee) + wallet balance + headless pool if applicable.
+4. Retrieve KB chunks via vector search → inject as system context.
+5. Stream Gemini with `tools: [...]` from agent's allowed tool keys.
+6. On each tool call → invoke handler endpoint (which is just an existing edge function: `score-job-match`, `parse-cv`, `generate-image`, `prepare-external-application`, `analyze-salary`, `suggest-jobs-for-talent`, `enhance-cover-letter`, `generate-outreach-message`, etc.) → push artifact to canvas.
+7. On final delivery → charge per `pricing` table; log tokens in/out and llm_cost_usd into `agent_credit_events`.
 
-Final charge per turn = `message + Σ(tools used) + (delivery if artifact finalized)`.
-Live "running cost" indicator above the composer; B2B canvas requires explicit approve button before delivery charge fires.
+Existing `ai-agent-chat` becomes a thin shim → runtime. New skill = one row in `agent_tools`. **Zero rewrites of the existing analyze/generate/score functions.**
 
-### 4. Stakeholder Dimensions
+---
 
-| Surface | Audience | Examples |
+## 3. No-code Agent Builder (admin + company + talent, same UI)
+
+Single component `<AgentBuilder/>` mounted at `/admin/agents/:id`, `/company/agents/:id`, `/app/builder/:id`. RLS scopes editing rights via `owner_kind` / `owner_id`.
+
+| Tab | Configures | Key element |
 |---|---|---|
-| Talent app | talent | Job Hunter (uses `search_jobs`), CV Coach (`parse_cv` + `rewrite`), AI General concierge |
-| Company portal | company | QA Assistant, Talent Sourcer, Outreach Writer, Graphics Designer |
-| Admin panel | admin | Aisha-Admin (registration briefings), Ops Sentinel (anomaly alerts), Revenue Coach |
-| Agent-to-agent | mixed | Aisha (talent auth → admin briefing), Job Hunter (talent ↔ employer leads) |
+| **Identity** | Name, key, avatar (image generated on the fly), audience (`talent` / `company` / `admin` / `headless`), visibility, tier, kill-switch | Inline image gen |
+| **Brain** | Plain-language brief → AI proposes prompt + tools + KB outline + pricing tier (`agent-blueprint-from-brief` edge fn). Or write the prompt directly. A/B variants live here. | Diff preview before Apply |
+| **Knowledge** | Drag-drop PDFs/DOCX/MD/URLs/raw text → `ingest-agent-knowledge` chunks + embeds | Re-ingest on update; per-source toggle |
+| **Skills** | Multi-select from `agent_tools`; per-tool credit override | Filtered by `agent_level` cap |
+| **Pricing** | Connection fee, message cost, delivery cost, monthly target | Live "typical turn cost" preview |
+| **Triggers & Outreach** | Subscribe to `platform_events` (signup, course_completed, assessment_done, job_applied, low_balance, new_application_received, etc.); recipient routing; template; cron schedule | Test-fire with sample payload |
 
-Aisha example: on new signup, Aisha writes an `agent_outreach` row to admins (in-app + push) with the registration summary. Same agent identity, two audiences via `audience text[]`.
+This is what fulfils "no more code changes for new agents". Adding a "LinkedIn Pulse Writer" agent for companies = open Builder, write brief, pick Skills, save. Done.
 
-### 5. Canvas (deliverables UI)
+---
 
-`AgentCanvas` panel renders `agent_artifacts` for the active thread.
-- **Default state**: collapsed, chat takes full width.
-- **Auto-expand**: first artifact in a thread expands canvas (desktop: right side panel ~40%; mobile: bottom sheet).
-- **Collapse / re-expand** via toggle in chat header. State persisted per thread.
-- Renderers per `kind`:
-  - `image / thumbnail` — preview, regenerate, approve
-  - `plan / proposal` — stepper, B2B approval button (charges `delivery_credit_cost` only on approve)
-  - `search_results` — Job Hunter ranked list with save / apply / discard
-  - `document` — markdown editor + export
+## 4. Everything-is-an-agent (headless layer)
 
-Approval state drives delivery charge — solves the "image cost vs final result cost" question.
+`platform_events` table + DB triggers on `enrollments`, `job_applications`, `assessment_leads`, `talents`, `credit_transactions`, `gigs`, `feed_posts`, `company_jobs`. Every event becomes an addressable hook.
 
-### 6. Tool Library (initial set, mostly wraps existing functions)
+Cron `agent-event-dispatcher` (every 1 min) reads new events, finds matching `agent_triggers`, runs agent against payload, writes:
+- `agent_outreach` row,
+- `notifications` row (in-app),
+- web-push,
+- a thread in the recipient's agentic inbox so the agent's reasoning is visible (not a black-box notification).
 
-| tool_key | wraps | output_kind | credit_cost | min_level |
-|---|---|---|---|---|
-| `search_jobs` | new SQL + `suggest-jobs-for-talent` | search_result | 2 | L2 |
-| `score_job_match` | `score-job-match` | text | 1 | L1 |
-| `parse_cv` | `parse-cv` | document | 1 | L1 |
-| `enhance_cover_letter` | `enhance-cover-letter` | document | 2 | L2 |
-| `generate_image` | Lovable AI gemini-image | image | 5 | L2 |
-| `deep_research` | Firecrawl + summarizer | document | 15 | L3 |
-| `prepare_application` | `prepare-external-application` | plan | 5 | L2 |
-| `send_outreach` | `generate-outreach-message` + mailto | document | 3 | L2 |
-| `analyze_salary` | `analyze-salary` | plan | 5 | L2 |
-| `notify_user` | new — writes `notifications` + push | side-effect | 0.5 | L3 |
+Mapped headless agents ready at launch:
+- `aisha-briefer` — new signup → admin.
+- `assessment-reporter` — assessment done → admin + congratulatory DM to talent.
+- `cohort-celebrant` — course completed → certificate notification + next-course suggestion.
+- `job-followup` — application sent → 7-day follow-up nudge to talent.
+- `wallet-coach` — credits below threshold → top-up CTA.
+- `recruiter-pinger` — new application received on a company job → ping company recruiter thread.
+- `re-engager` — idle high-value talent → personalised come-back outreach.
 
-Adding a new tool (legal, YouTube thumbnails, etc.) = one row in `agent_tools`.
+Same runtime, same canvas, same billing — they just have no chat surface; they push.
 
-### 7. Agent-Initiated Outreach & Targets
-- Each agent has `monthly_credit_target` (column already exists).
-- Cron `agent-outreach-scheduler` (hourly) picks agents below target, finds eligible recipients (Job Hunter → talents with new matching jobs; AI Instructor → enrolled students with upcoming class; Aisha → admins with pending registrations).
-- Sends via Web Push + in-app notification + optional email (uses native `enqueue_email`).
-- Recipient opening the thread credits `outreach_conversion` to that agent's `agent_credit_events` for performance dashboards.
+---
 
-### 8. Talent-Built Agents (marketplace)
-- Talent picks level (L1/L2/L3) → pays build fee from wallet → row inserted with `agent_owner_id = talent_id`, `visibility='private'`, `agent_level` set, `tool_keys` filtered by level cap.
-- Owner submits for review → admin promotes to `marketplace`.
-- Other talents pay the agent's `connection_fee` to chat; revenue split tracked in `agent_credit_events` (`marketplace_revenue`). Default split: 70% owner / 30% platform (configurable in `platform_settings`).
-- Same runtime, same canvas — no new code path.
-
-### 9. B2B Wallet
-- `company_credits` + `company_credit_transactions` mirror talent tables.
-- Admins can grant credits from admin panel; companies top up via existing WhatsApp invoice flow (extend `credit_invoices` with `subject_kind`).
-- Every B2B agent action (chat, tool, delivery) deducts from `company_credits`.
-- Company portal shows wallet, target progress per agent, ROI per agent.
-
-### 10. Migration Path (incremental)
+## 5. Schema (all additions in one place)
 
 ```text
-Phase 1  Schema (all new tables + ai_agents extensions); seed agent_tools registry
-Phase 2  agent-runtime edge function; ai-agent-chat becomes a thin shim → runtime
-Phase 3  3 reference tools wired (search_jobs, generate_image, parse_cv) + AgentCanvas (chat-first, auto-expand)
-Phase 4  Connection fee + tiered pricing + running-cost UI in AgentChatDialog
-Phase 5  company_credits + company portal agent surface (QA Assistant first)
-Phase 6  Admin Aisha-briefing + agent_to_agent threads
-Phase 7  Outreach scheduler + per-agent target dashboard
-Phase 8  Talent-built agent marketplace (L1/L2/L3 builder + revenue split)
+ai_agents +=
+  audience text[]                  -- 'talent','company','admin','headless'
+  owner_kind text, owner_id uuid   -- platform | talent | company
+  visibility text                  -- 'public','private','marketplace'
+  tier text                        -- 'standard','premium','enterprise'
+  agent_level int                  -- 1/2/3 for talent/company-built
+  connection_fee numeric(12,1) default 1.25
+  message_credit_cost numeric(12,1) default 1.0
+  delivery_credit_cost numeric(12,1) default 0
+  monthly_credit_target int
+  behavior_brief text              -- plain-language source
+  kill_switch bool default false
+  avatar_url text                  -- already partly used
+  active_prompt_version_id uuid
+
+agent_prompt_versions    (id, agent_id, prompt, label, traffic_pct, created_by, created_at)
+agent_tools              (tool_key PK, name, description, input_schema jsonb, handler_endpoint, credit_cost numeric(12,1), output_kind, min_agent_level int)
+agent_tool_overrides     (agent_id, tool_key, enabled bool, credit_cost numeric(12,1))
+agent_connections        (subject_kind, subject_id, agent_id, fee_paid numeric(12,1), connected_at)  -- unique
+agent_threads            (id, agent_id, participants jsonb, context_kind, linked_entity_kind, linked_entity_id, is_active, credits_charged numeric(12,1), created_at)
+agent_messages           (id, thread_id, role, content, tool_calls jsonb, artifact_id, credits_charged numeric(12,1), created_at)
+agent_artifacts          (id, thread_id, kind, payload jsonb, storage_path, approval_state, requires_approval bool, delivery_charged bool)
+agent_outreach           (id, agent_id, recipient_kind, recipient_id, channel, template, sent_at, opened_at, converted_at, credits_attributed numeric(12,1))
+agent_credit_events      (id, agent_id, actor_kind, actor_id, event_kind, amount numeric(12,1), tokens_in int, tokens_out int, model text, llm_cost_usd numeric(12,4), impact_score, created_at)
+agent_knowledge_sources  (id, agent_id, kind, storage_path, source_url, status, char_count)
+agent_knowledge_chunks   (id, source_id, agent_id, chunk_idx, content text, embedding vector(768))
+agent_triggers           (id, agent_id, event_kind, filter jsonb, recipient_route, template, is_active, last_fired_at)
+platform_events          (id, event_kind, subject_kind, subject_id, payload jsonb, occurred_at, processed_at)
+
+company_credits             (company_id, balance numeric(12,1), earned_balance numeric(12,1))
+company_credit_transactions (mirror of credit_transactions)
+
+platform_settings +=
+  agent_marketplace_split numeric default 0.7    -- owner share
+  headless_pool_monthly_cap numeric              -- platform pool cap
 ```
 
-Phases 1–4 deliver visible talent value; 5–6 unlock B2B revenue; 7–8 are the flywheel.
+RLS: owner via `auth.uid()` against `owner_kind/owner_id`; admin via `has_any_admin_role`; companies via `company_members`. Vector index on `agent_knowledge_chunks.embedding`.
 
-## Out of Scope (v1)
-- Voice agents (Whisper blocked by platform constraint).
-- Realtime multi-user co-editing on canvas.
-- Auto-tuning of `monthly_credit_target` via ML.
+---
 
-## Deliverables for Phase 1 (next message scope)
-1. Migration: extend `ai_agents`, create `agent_tools`, `agent_connections`, `agent_threads`, `agent_messages`, `agent_artifacts`, `agent_outreach`, `agent_credit_events`, `company_credits`, `company_credit_transactions`. RLS for all.
-2. Seed `agent_tools` with the 10 tools above.
-3. Backfill existing `agent_chat_sessions` rows into `agent_threads` + `agent_messages` (no data loss).
-4. Update `ai_agents` defaults: `connection_fee=1.25` for all except `ai-general` and `aisha-*` (=0); set `audience` per agent.
-5. New RPCs: `connect_to_agent(agent_id)`, `start_agent_thread(agent_id, context_kind, linked_entity)`, `charge_agent_turn(thread_id, message_cost, tool_costs jsonb)`, `approve_artifact(artifact_id)` (handles delivery charge), `purchase_built_agent(level, config jsonb)`.
+## 6. New edge functions
+
+| Function | Purpose | verify_jwt |
+|---|---|---|
+| `agent-runtime` | Single execution loop (chat + tools + KB + billing + telemetry) | true |
+| `agent-blueprint-from-brief` | Plain-language → suggested config | true |
+| `ingest-agent-knowledge` | Chunk + embed KB sources | true |
+| `agent-event-dispatcher` | Cron — process `platform_events` → fire triggers | false (cron) |
+| `agent-outreach-scheduler` | Cron — push target-driven outreach | false (cron) |
+
+All existing AI endpoints are kept and registered as **tool handlers**.
+
+---
+
+## 7. Pricing & wallets
+
+- Per turn: `message_cost + Σ(tool_costs) + (delivery_cost if artifact approved)`.
+- Connection fee charged once per `(subject, agent)` pair. Free for `ai-general`, `aisha`, all headless agents (they bill the platform pool, not the user).
+- Talent-built marketplace: 70% owner / 30% platform on `connection_fee` + every paid turn.
+- Companies top up via existing WhatsApp invoice flow (extend `credit_invoices.subject_kind`). Same approval RPC, mirrored for company wallet.
+- "Running cost" indicator above the composer for all chat surfaces.
+- Margin alarm: `agent-runtime` flags any agent where `llm_cost_usd > credits_charged * 0.5 BDT` for >24h → admin notification via `Revenue Coach` agent.
+
+---
+
+## 8. Scalable improvements piggybacked into this work
+
+While restructuring, these high-leverage upgrades land "for free":
+- **Talent app**: replace the 26 separate chatbot pages with a single `/app/agents/:agentKey` route powered by runtime; concierge search bar (already memory'd) becomes the entry to any agent.
+- **Profile** stays the same; agents read it as context (`get_talent_profile` tool).
+- **Admin form pages** all gain a "Talk to ops agent" button → dramatically reduces clicks to do common tasks (publish job, refund credits, suspend talent).
+- **Notifications** unify under `agent_outreach` so we get one analytics surface for every push the platform sends.
+- **Tool registry** doubles as a permissions catalog — easy to audit "what can each agent do?".
+- **Kill-switch + A/B prompt variants** mean we can iterate on agent quality without redeploys.
+
+---
+
+## 9. Migration phases (sequenced for visible value early)
+
+```text
+P1  Schema (all tables) + seed agent_tools + ai_agents extensions + RLS
+P2  agent-runtime edge fn + KB retrieval + ai-agent-chat shim → runtime
+P3  Admin Agent Builder (Identity, Brain, Skills, Pricing) replaces AIAgentsManager
+P4  Knowledge tab + ingest-agent-knowledge + agent-blueprint-from-brief
+P5  Triggers tab + platform_events + agent-event-dispatcher;
+    convert assessment / course-complete / signup / low-balance into headless agents;
+    admin agentic inbox
+P6  Per-agent insights dashboard (tokens, margin, earnings, A/B promote)
+P7  Canvas (chat-first auto-expand) + delivery approval billing
+P8  company_credits wallet + Company Agent Builder
+P9  Company portal "WhatsApp Business" inbox with launch agents
+    (Recruiter, Talent Sourcer, Outreach Writer, Brand Designer, Wallet, Builder)
+P10 Talent-built marketplace (L1/L2/L3 + 70/30 split + admin review queue)
+P11 Multi-channel agent surfaces (web push, email; later WhatsApp/Telegram via connectors)
+```
+
+P1–P5 = the invisible foundation + immediate admin upgrade.
+P6–P7 = control tower + canvas magic.
+P8–P9 = the company portal vision realised.
+P10–P11 = ecosystem & growth.
+
+---
+
+## 10. Out of scope for v1
+
+- Voice agents (platform constraint).
+- Realtime co-editing on canvas.
+- Auto-tuned prompts via RL (manual A/B promote only).
+- External channel agents (WhatsApp/Telegram) — schema-ready, deferred until P11.
+
+---
+
+## Final confirmations before I execute P1
+
+1. **Company portal layout** — full WhatsApp Business clone (inbox left, thread right, no traditional dashboard tabs at all)? Or keep a minimal top-bar with Wallet + Settings? I recommend WhatsApp-pure with a single profile menu.
+2. **Headless events** — should `feed_posts.created` and `gig_submissions.created` also become events at launch (would let us add moderator agents later) or hold off?
+3. **Marketplace launch** — open it to talent-built agents only first, or talent + company simultaneously? I recommend talent only for the first 4 weeks to keep moderation load manageable.
+
+Approve and I start P1: schema migration + tool registry seed + ai_agents extensions + RLS. If any of those three should flip, tell me before I begin.
