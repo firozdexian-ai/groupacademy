@@ -1,8 +1,14 @@
-import { useState, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useTalent } from '@/hooks/useTalent';
-import { useCredits } from '@/hooks/useCredits';
-import { useQueryClient } from '@tanstack/react-query';
+import { useState, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useTalent } from "@/hooks/useTalent";
+import { useCredits } from "@/hooks/useCredits";
+import { useQueryClient } from "@tanstack/react-query";
+
+/**
+ * GroUp Academy: Talent Lifecycle Orchestrator
+ * CTO Reference: Authoritative gatekeeper for talent ingress and trajectory initialization.
+ * Logic: Implements idempotent welcome bonuses and neural cache purging.
+ */
 
 export interface OnboardingState {
   currentStep: number;
@@ -19,94 +25,72 @@ export function useOnboarding() {
   const isOnboardingComplete = !!talent?.onboardingCompletedAt;
   const currentStep = talent?.onboardingStep || 0;
 
-  const updateStep = useCallback(async (step: number) => {
-    if (!talent?.id) return false;
-    
-    setIsUpdating(true);
-    try {
-      const { error } = await supabase
-        .from('talents')
-        .update({ onboarding_step: step })
-        .eq('id', talent.id);
+  // PHASE: Monotonic_Step_Update
+  const updateStep = useCallback(
+    async (step: number) => {
+      if (!talent?.id) return false;
 
-      if (error) {
-        console.error('[useOnboarding] Error updating step:', error);
+      setIsUpdating(true);
+      try {
+        const { error } = await supabase.from("talents").update({ onboarding_step: step }).eq("id", talent.id);
+
+        if (error) throw error;
+        return true;
+      } catch (err) {
+        console.error("[Sentinel] ONBOARDING_STEP_FAULT:", err);
         return false;
+      } finally {
+        setIsUpdating(false);
       }
-      
-      return true;
-    } catch (error) {
-      console.error('[useOnboarding] Error updating step:', error);
-      return false;
-    } finally {
-      setIsUpdating(false);
-    }
-  }, [talent?.id]);
+    },
+    [talent?.id],
+  );
 
+  // PHASE: Trajectory_Initialization
   const completeOnboarding = useCallback(async () => {
     if (!talent?.id) return false;
-    
+
     setIsUpdating(true);
     try {
-      // Check if user already has credits (prevent double bonus)
+      // HUD: IDEMPOTENCY_CHECK
       const { data: existingCredits } = await supabase
-        .from('talent_credits')
-        .select('id')
-        .eq('talent_id', talent.id)
+        .from("talent_credits")
+        .select("id")
+        .eq("talent_id", talent.id)
         .maybeSingle();
 
-      // Give welcome bonus only if no existing credits
+      // EXECUTE: Fiscal Welcome Handshake (250 Units)
       if (!existingCredits) {
-        const creditsGiven = await addCredits(250, 'welcome_bonus', 'Welcome bonus for new users');
-        if (!creditsGiven) {
-          console.error('[useOnboarding] Failed to add welcome bonus');
-          // Continue anyway - don't block onboarding completion
-        } else {
-          console.log('[useOnboarding] Welcome bonus of 250 credits given');
-        }
-      } else {
-        console.log('[useOnboarding] User already has credits, skipping welcome bonus');
+        await addCredits(250, "welcome_bonus", "Institutional welcome bonus - Trajectory Start");
       }
 
-      // Mark onboarding complete
-      const { error } = await supabase
-        .from('talents')
-        .update({ 
+      // HUD: REGISTRY_STATUS_SYNC
+      const { error: syncError } = await supabase
+        .from("talents")
+        .update({
           onboarding_completed_at: new Date().toISOString(),
-          onboarding_step: 2 // Final step for 3-step onboarding (0-indexed)
+          onboarding_step: 2, // Terminal Step Node
         })
-        .eq('id', talent.id);
+        .eq("id", talent.id);
 
-      if (error) {
-        console.error('[useOnboarding] Error completing onboarding:', error);
-        return false;
-      }
+      if (syncError) throw syncError;
 
-      // Invalidate cached AI recommendations to force fresh scoring
-      if (talent.id) {
-        await supabase
-          .from('ai_recommendations')
-          .delete()
-          .eq('talent_id', talent.id);
-        console.log('[useOnboarding] Cleared cached AI recommendations');
-      }
+      // HUD: NEURAL_CACHE_PURGE
+      // Remove stale recommendations to allow fresh trajectory scoring
+      await supabase.from("ai_recommendations").delete().eq("talent_id", talent.id);
 
-      // Also invalidate any React Query caches
-      queryClient.invalidateQueries({ queryKey: ['feed-recommendations'] });
+      // Invalidate global content caches
+      queryClient.invalidateQueries({ queryKey: ["feed-recommendations"] });
 
       await refreshTalent();
       return true;
-    } catch (error) {
-      console.error('[useOnboarding] Error completing onboarding:', error);
+    } catch (err) {
+      console.error("[Sentinel] ONBOARDING_COMPLETION_FAULT:", err);
       return false;
     } finally {
       setIsUpdating(false);
     }
   }, [talent?.id, refreshTalent, addCredits, queryClient]);
-
-  const skipOnboarding = useCallback(async () => {
-    return completeOnboarding();
-  }, [completeOnboarding]);
 
   return {
     currentStep,
@@ -114,6 +98,6 @@ export function useOnboarding() {
     isUpdating,
     updateStep,
     completeOnboarding,
-    skipOnboarding,
+    skipOnboarding: useCallback(() => completeOnboarding(), [completeOnboarding]),
   };
 }
