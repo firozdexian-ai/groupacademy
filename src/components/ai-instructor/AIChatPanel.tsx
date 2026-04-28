@@ -3,10 +3,17 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Send, Bot, User, Loader2, Sparkles, RefreshCw } from "lucide-react";
+import { Send, Bot, User, Loader2, Sparkles, RefreshCw, Zap, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
+
+/**
+ * GroUp Academy: Neural Instructor Interface
+ * CTO Reference: Authoritative node for real-time pedagogical streaming.
+ */
+
 interface Message {
   role: "user" | "assistant";
   content: string;
@@ -22,14 +29,14 @@ interface AIChatPanelProps {
   onMessageSent?: () => void;
 }
 
-const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-instructor-chat`;
+const CHAT_ENDPOINT = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-instructor-chat`;
 
 export function AIChatPanel({
   professionLineId,
   contextType = "general",
   contextId,
-  instructorName = "AI Instructor",
-  placeholder = "Ask me anything about your career or learning...",
+  instructorName = "Neural Instructor",
+  placeholder = "Initialize query regarding trajectory or curriculum...",
   className = "",
   onMessageSent,
 }: AIChatPanelProps) {
@@ -38,39 +45,30 @@ export function AIChatPanel({
   const [isLoading, setIsLoading] = useState(false);
   const [lastError, setLastError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  // PROTOCOL: Viewport Auto-Sync
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
 
-  // Cleanup abort controller on unmount
   useEffect(() => {
-    return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    };
+    return () => abortControllerRef.current?.abort();
   }, []);
 
-  const streamChat = async (userMessages: Message[]) => {
-    // Create abort controller for timeout
+  const executeStreamingSync = async (userMessages: Message[]) => {
     abortControllerRef.current = new AbortController();
-    const timeoutId = setTimeout(() => {
-      abortControllerRef.current?.abort();
-    }, TIMEOUTS.AI_GENERATION);
+    const timeoutId = setTimeout(() => abortControllerRef.current?.abort(), TIMEOUTS.AI_GENERATION);
 
     try {
-      // Get the user's session token
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        throw new Error("Please log in to use the AI instructor.");
-      }
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("AUTH_SYNC_REQUIRED");
 
-      const resp = await fetch(CHAT_URL, {
+      const response = await fetch(CHAT_ENDPOINT, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -88,95 +86,75 @@ export function AIChatPanel({
 
       clearTimeout(timeoutId);
 
-      if (resp.status === 429) {
-        throw new Error("Rate limit exceeded. Please try again in a moment.");
-      }
-      if (resp.status === 402) {
-        throw new Error("AI service quota exceeded. Please contact support.");
-      }
-      if (!resp.ok || !resp.body) {
-        throw new Error("Failed to get AI response");
-      }
+      if (response.status === 429) throw new Error("RATE_LIMIT_THROTTLE: Try again in 60s.");
+      if (response.status === 402) throw new Error("FISCAL_QUOTA_EXCEEDED: Contact Faculty.");
+      if (!response.ok || !response.body) throw new Error("NEURAL_LINK_FAULT");
 
-      return resp.body;
+      return response.body;
     } catch (error: any) {
       clearTimeout(timeoutId);
-      
-      if (error.name === "AbortError") {
-        throw new Error("Response took too long. Please try again.");
-      }
+      if (error.name === "AbortError") throw new Error("SYNC_TIMEOUT: Latency too high.");
       throw error;
     }
   };
 
-  const handleSubmit = async (e?: React.FormEvent) => {
+  const handleMessageIngress = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!input.trim() || isLoading) return;
 
-    const userMessage: Message = { role: "user", content: input.trim() };
-    const newMessages = [...messages, userMessage];
-    setMessages(newMessages);
+    const userPayload: Message = { role: "user", content: input.trim() };
+    const trajectory = [...messages, userPayload];
+
+    setMessages(trajectory);
     setInput("");
     setIsLoading(true);
     setLastError(null);
-    
-    // Notify parent that a message was sent
     onMessageSent?.();
 
-    let assistantContent = "";
+    let assistantBuffer = "";
 
     try {
-      const stream = await streamChat(newMessages);
+      const stream = await executeStreamingSync(trajectory);
       const reader = stream.getReader();
       const decoder = new TextDecoder();
-      let buffer = "";
+      let chunkBuffer = "";
 
-      // Add empty assistant message
       setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        buffer += decoder.decode(value, { stream: true });
+        chunkBuffer += decoder.decode(value, { stream: true });
+        const lines = chunkBuffer.split("\n");
+        chunkBuffer = lines.pop() || "";
 
-        let newlineIndex: number;
-        while ((newlineIndex = buffer.indexOf("\n")) !== -1) {
-          let line = buffer.slice(0, newlineIndex);
-          buffer = buffer.slice(newlineIndex + 1);
+        for (const line of lines) {
+          const sanitizedLine = line.trim();
+          if (!sanitizedLine || !sanitizedLine.startsWith("data: ")) continue;
 
-          if (line.endsWith("\r")) line = line.slice(0, -1);
-          if (line.startsWith(":") || line.trim() === "") continue;
-          if (!line.startsWith("data: ")) continue;
-
-          const jsonStr = line.slice(6).trim();
-          if (jsonStr === "[DONE]") break;
+          const payload = sanitizedLine.slice(6).trim();
+          if (payload === "[DONE]") break;
 
           try {
-            const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content;
-            if (content) {
-              assistantContent += content;
+            const parsed = JSON.parse(payload);
+            const delta = parsed.choices?.[0]?.delta?.content;
+            if (delta) {
+              assistantBuffer += delta;
               setMessages((prev) => {
                 const updated = [...prev];
-                updated[updated.length - 1] = {
-                  role: "assistant",
-                  content: assistantContent,
-                };
+                updated[updated.length - 1] = { role: "assistant", content: assistantBuffer };
                 return updated;
               });
             }
-          } catch {
-            // Incomplete JSON, continue buffering
+          } catch (e) {
+            /* Buffer fragment handling */
           }
         }
       }
-    } catch (error) {
-      console.error("Chat error:", error);
-      const errorMessage = error instanceof Error ? error.message : "Failed to get response";
-      setLastError(errorMessage);
-      toast.error(errorMessage);
-      // Remove the empty assistant message if error
+    } catch (error: any) {
+      setLastError(error.message);
+      toast.error(error.message);
       setMessages((prev) => prev.slice(0, -1));
     } finally {
       setIsLoading(false);
@@ -184,114 +162,110 @@ export function AIChatPanel({
     }
   };
 
-  const handleRetry = () => {
-    if (messages.length > 0) {
-      const lastUserMessage = [...messages].reverse().find(m => m.role === "user");
-      if (lastUserMessage) {
-        // Remove last user message and retry
-        const messagesWithoutLast = messages.slice(0, -1);
-        setMessages(messagesWithoutLast);
-        setInput(lastUserMessage.content);
-        setLastError(null);
-      }
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit();
-    }
-  };
-
   return (
-    <div className={`flex flex-col h-full bg-card rounded-lg border ${className}`}>
-      {/* Header */}
-      <div className="flex items-center gap-3 p-4 border-b bg-muted/30">
-        <div className="relative">
-          <Avatar className="h-10 w-10 bg-primary/10">
-            <AvatarFallback className="bg-primary/10 text-primary">
-              <Bot className="h-5 w-5" />
-            </AvatarFallback>
-          </Avatar>
-          <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-green-500 border-2 border-card" />
+    <div
+      className={cn(
+        "flex flex-col h-full bg-card rounded-[32px] border-2 border-border/40 shadow-2xl overflow-hidden",
+        className,
+      )}
+    >
+      {/* HUD: HEADER_SYNC */}
+      <div className="flex items-center justify-between p-5 border-b-2 border-border/10 bg-muted/5 backdrop-blur-xl">
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <Avatar className="h-12 w-12 border-2 border-primary/20 p-1 bg-background">
+              <AvatarFallback className="bg-primary/10 text-primary">
+                <Bot className="h-6 w-6" />
+              </AvatarFallback>
+            </Avatar>
+            <span className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full bg-emerald-500 border-2 border-card animate-pulse" />
+          </div>
+          <div className="text-left">
+            <h3 className="text-sm font-black uppercase italic tracking-tighter leading-none">{instructorName}</h3>
+            <div className="flex items-center gap-2 mt-1">
+              <Zap className="h-3 w-3 text-primary fill-current" />
+              <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground/60 italic">
+                Neural_Link_Active
+              </span>
+            </div>
+          </div>
         </div>
-        <div>
-          <h3 className="font-semibold text-foreground">{instructorName}</h3>
-          <p className="text-xs text-muted-foreground flex items-center gap-1">
-            <Sparkles className="h-3 w-3" /> AI Instructor • Online
-          </p>
-        </div>
+        <ShieldCheck className="h-5 w-5 text-primary/20" />
       </div>
 
-      {/* Messages */}
-      <ScrollArea className="flex-1 p-4" ref={scrollRef}>
+      {/* VIEWPORT: MESSAGE_TRAJECTORY */}
+      <ScrollArea className="flex-1 p-6" ref={scrollRef}>
         {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center py-8">
-            <Bot className="h-12 w-12 text-muted-foreground/50 mb-4" />
-            <h4 className="font-medium text-muted-foreground mb-2">
-              Chat with {instructorName}
-            </h4>
-            <p className="text-sm text-muted-foreground/70 max-w-[250px]">
+          <div className="flex flex-col items-center justify-center h-full text-center py-20 animate-in fade-in zoom-in-95 duration-700">
+            <div className="h-20 w-20 rounded-[28px] bg-primary/5 border-2 border-primary/10 flex items-center justify-center mb-6">
+              <Bot className="h-10 w-10 text-primary/40" />
+            </div>
+            <p className="text-xs font-black uppercase italic tracking-[0.2em] text-muted-foreground/40 mb-2">
+              Awaiting_Query
+            </p>
+            <p className="text-[10px] font-medium text-muted-foreground/30 italic max-w-[200px] leading-relaxed">
               {placeholder}
             </p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {messages.map((message, index) => (
               <div
                 key={index}
-                className={`flex gap-3 ${
-                  message.role === "user" ? "justify-end" : "justify-start"
-                }`}
+                className={cn(
+                  "flex gap-4 animate-in slide-in-from-bottom-2",
+                  message.role === "user" ? "justify-end" : "justify-start",
+                )}
               >
                 {message.role === "assistant" && (
-                  <Avatar className="h-8 w-8 shrink-0">
-                    <AvatarFallback className="bg-primary/10 text-primary">
-                      <Bot className="h-4 w-4" />
+                  <Avatar className="h-9 w-9 shrink-0 border-2 border-primary/10">
+                    <AvatarFallback className="bg-primary/5 text-primary">
+                      <Bot className="h-5 w-5" />
                     </AvatarFallback>
                   </Avatar>
                 )}
                 <div
-                  className={`rounded-2xl px-4 py-2 max-w-[80%] ${
+                  className={cn(
+                    "rounded-[22px] px-5 py-3.5 max-w-[85%] text-left shadow-sm",
                     message.role === "user"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted"
-                  }`}
+                      ? "bg-primary text-white font-medium"
+                      : "bg-muted/40 backdrop-blur-sm border-2 border-border/5",
+                  )}
                 >
-                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                  <p className="text-sm italic leading-relaxed whitespace-pre-wrap">{message.content}</p>
                 </div>
                 {message.role === "user" && (
-                  <Avatar className="h-8 w-8 shrink-0">
-                    <AvatarFallback className="bg-secondary">
-                      <User className="h-4 w-4" />
+                  <Avatar className="h-9 w-9 shrink-0 border-2 border-primary/20">
+                    <AvatarFallback className="bg-secondary text-secondary-foreground font-black italic">
+                      U
                     </AvatarFallback>
                   </Avatar>
                 )}
               </div>
             ))}
+
             {isLoading && messages[messages.length - 1]?.role === "user" && (
-              <div className="flex gap-3 justify-start">
-                <Avatar className="h-8 w-8 shrink-0">
-                  <AvatarFallback className="bg-primary/10 text-primary">
-                    <Bot className="h-4 w-4" />
-                  </AvatarFallback>
-                </Avatar>
-                <div className="bg-muted rounded-2xl px-4 py-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
+              <div className="flex gap-4 justify-start animate-pulse">
+                <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                </div>
+                <div className="bg-muted/20 rounded-[22px] px-6 py-3 border-2 border-dashed border-primary/20">
+                  <span className="text-[9px] font-black text-primary/40 uppercase tracking-widest italic">
+                    Decrypting_Response...
+                  </span>
                 </div>
               </div>
             )}
-            {lastError && !isLoading && (
-              <div className="flex justify-center">
+
+            {lastError && (
+              <div className="flex justify-center pt-4">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={handleRetry}
-                  className="gap-2"
+                  onClick={() => handleMessageIngress()}
+                  className="h-9 rounded-xl border-2 font-black uppercase italic text-[10px] tracking-widest gap-2 text-rose-500 border-rose-500/20 hover:bg-rose-500/5"
                 >
-                  <RefreshCw className="h-3 w-3" />
-                  Retry last message
+                  <RefreshCw className="h-3.5 w-3.5" /> REINITIALIZE_LAST_NODE
                 </Button>
               </div>
             )}
@@ -299,16 +273,20 @@ export function AIChatPanel({
         )}
       </ScrollArea>
 
-      {/* Input */}
-      <form onSubmit={handleSubmit} className="p-4 border-t">
-        <div className="flex gap-2">
+      {/* HUD: INPUT_COMMAND */}
+      <form onSubmit={handleMessageIngress} className="p-6 border-t-2 border-border/10 bg-muted/5">
+        <div className="relative flex items-end gap-3 bg-background/50 border-2 border-border/40 p-2 rounded-[24px] focus-within:border-primary/40 transition-all shadow-inner">
           <Textarea
-            ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Type your message..."
-            className="min-h-[44px] max-h-[120px] resize-none"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleMessageIngress();
+              }
+            }}
+            placeholder="Initialize command..."
+            className="min-h-[48px] max-h-[160px] resize-none border-0 focus-visible:ring-0 bg-transparent italic font-medium py-3 px-4"
             rows={1}
             disabled={isLoading}
           />
@@ -316,15 +294,14 @@ export function AIChatPanel({
             type="submit"
             size="icon"
             disabled={!input.trim() || isLoading}
-            className="shrink-0"
+            className="h-12 w-12 rounded-2xl shrink-0 shadow-lg shadow-primary/20 active:scale-90 transition-all"
           >
-            {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
+            {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
           </Button>
         </div>
+        <p className="text-[8px] font-black uppercase tracking-[0.4em] text-muted-foreground/30 mt-4 text-center">
+          Neural_Streaming_v4.2 // Encrypted_Uplink
+        </p>
       </form>
     </div>
   );
