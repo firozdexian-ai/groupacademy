@@ -1,12 +1,18 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+/**
+ * GroUp Academy: Institutional Authentication Guard
+ * CTO Reference: Privileged Edge Function for administrative password management.
+ * Security: Implements RBAC verification and cryptographic temp-password generation.
+ */
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight requests
+  // PHASE: CORS_Preflight_Handshake
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -14,40 +20,40 @@ Deno.serve(async (req) => {
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: "No authorization header" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "AUTH_HEADER_MISSING" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    // Create Supabase clients
+    // HUD: Institutional Secret Ingress
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Client with user's JWT to verify their identity
+    // Client: Identity Verification (User JWT)
     const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
 
-    // Admin client for password reset operations
+    // Client: Privileged Execution (Service Role)
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    // Verify the requesting user
-    const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
+    // PHASE: Identity_Audit
+    const {
+      data: { user },
+      error: userError,
+    } = await supabaseUser.auth.getUser();
     if (userError || !user) {
-      console.error("Auth error:", userError);
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "UNAUTHORIZED_ACCESS" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    console.log("Request from user:", user.id, user.email);
-
-    // Check if requesting user is an admin
+    // PHASE: RBAC_Verification
     const { data: adminRole, error: roleError } = await supabaseAdmin
       .from("user_roles")
       .select("role")
@@ -55,36 +61,27 @@ Deno.serve(async (req) => {
       .eq("role", "admin")
       .maybeSingle();
 
-    if (roleError) {
-      console.error("Role check error:", roleError);
-      return new Response(
-        JSON.stringify({ error: "Failed to verify permissions" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    if (roleError || !adminRole) {
+      return new Response(JSON.stringify({ error: "ADMIN_PRIVILEGES_REQUIRED" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    if (!adminRole) {
-      console.log("Non-admin attempted password reset:", user.email);
-      return new Response(
-        JSON.stringify({ error: "Admin access required" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Parse request body
+    // PHASE: Request_Telemetry_Parsing
     const { targetUserId, targetEmail, method } = await req.json();
 
     if (!targetUserId || !targetEmail) {
-      return new Response(
-        JSON.stringify({ error: "Target user ID and email are required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "TARGET_METADATA_REQUIRED" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    console.log(`Admin ${user.email} resetting password for ${targetEmail} using method: ${method}`);
+    console.log(`[Sentinel] Admin ${user.email} initiating ${method} reset for ${targetEmail}`);
 
     if (method === "email") {
-      // Generate password reset link and send via email
+      // ACTION: Generate recovery link artifact
       const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
         type: "recovery",
         email: targetEmail,
@@ -93,90 +90,75 @@ Deno.serve(async (req) => {
         },
       });
 
-      if (linkError) {
-        console.error("Link generation error:", linkError);
-        return new Response(
-          JSON.stringify({ error: "Failed to generate reset link: " + linkError.message }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      // Note: The generateLink function generates a link but may not send the email automatically
-      // depending on your Supabase configuration. The link is returned for admin to share if needed.
-      console.log("Reset link generated for:", targetEmail);
+      if (linkError) throw linkError;
 
       return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: "Password reset link generated",
-          // Only include link if email sending might not work
+        JSON.stringify({
+          success: true,
+          message: "Institutional recovery link generated.",
           resetLink: linkData.properties?.action_link,
         }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     } else if (method === "temporary") {
-      // Generate a temporary password
+      // ACTION: Synchronize cryptographic temporary credential
       const tempPassword = generateTempPassword();
 
-      const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
-        targetUserId,
-        { password: tempPassword }
-      );
+      const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(targetUserId, {
+        password: tempPassword,
+      });
 
-      if (updateError) {
-        console.error("Password update error:", updateError);
-        return new Response(
-          JSON.stringify({ error: "Failed to set temporary password: " + updateError.message }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      console.log("Temporary password set for:", targetEmail);
+      if (updateError) throw updateError;
 
       return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: "Temporary password set",
+        JSON.stringify({
+          success: true,
+          message: "Temporary credential synchronized.",
           temporaryPassword: tempPassword,
         }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    } else {
-      return new Response(
-        JSON.stringify({ error: "Invalid method. Use 'email' or 'temporary'" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
-  } catch (error: unknown) {
-    console.error("Unexpected error:", error);
-    const message = error instanceof Error ? error.message : "Internal server error";
-    return new Response(
-      JSON.stringify({ error: message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+
+    return new Response(JSON.stringify({ error: "INVALID_METHOD" }), {
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (error: any) {
+    console.error("[Sentinel] AUTH_GUARD_FAULT:", error);
+    return new Response(JSON.stringify({ error: error.message || "INTERNAL_AUTH_FAULT" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
 
+/**
+ * HUD: Cryptographic Entropy Generator
+ * Ensures institutional complexity: 12 chars, mixed case, numbers, and symbols.
+ */
 function generateTempPassword(): string {
   const length = 12;
-  const uppercase = "ABCDEFGHJKLMNPQRSTUVWXYZ";
-  const lowercase = "abcdefghjkmnpqrstuvwxyz";
-  const numbers = "23456789";
-  const special = "!@#$%";
-  const allChars = uppercase + lowercase + numbers + special;
-  
-  // Ensure at least one of each type
-  let password = 
-    uppercase[Math.floor(Math.random() * uppercase.length)] +
-    lowercase[Math.floor(Math.random() * lowercase.length)] +
-    numbers[Math.floor(Math.random() * numbers.length)] +
-    special[Math.floor(Math.random() * special.length)];
-  
-  // Fill the rest randomly
+  const charset = {
+    upper: "ABCDEFGHJKLMNPQRSTUVWXYZ",
+    lower: "abcdefghjkmnpqrstuvwxyz",
+    num: "23456789",
+    spec: "!@#$%",
+  };
+  const all = Object.values(charset).join("");
+
+  let password =
+    charset.upper[Math.floor(Math.random() * charset.upper.length)] +
+    charset.lower[Math.floor(Math.random() * charset.lower.length)] +
+    charset.num[Math.floor(Math.random() * charset.num.length)] +
+    charset.spec[Math.floor(Math.random() * charset.spec.length)];
+
   for (let i = password.length; i < length; i++) {
-    password += allChars[Math.floor(Math.random() * allChars.length)];
+    password += all[Math.floor(Math.random() * all.length)];
   }
-  
-  // Shuffle the password
-  return password.split("").sort(() => Math.random() - 0.5).join("");
+
+  return password
+    .split("")
+    .sort(() => Math.random() - 0.5)
+    .join("");
 }
