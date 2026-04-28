@@ -14,13 +14,25 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Sparkles, Upload, UserPlus, CheckCircle2, AlertCircle, Zap, ShieldCheck } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area"; // FIXED: Restored ScrollArea import
+import {
+  Loader2,
+  Sparkles,
+  Upload,
+  UserPlus,
+  CheckCircle2,
+  AlertCircle,
+  Zap,
+  ShieldCheck,
+  FileText, // FIXED: Restored FileText import
+} from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 /**
  * GroUp Academy: External Application Ingress Terminal
- * CTO Reference: Neural-driven node for bridging external leads into the unified talent pipeline.
+ * CTO Reference: Neural-driven node for bridging external leads.
+ * Resolved TS2552/TS2304 by restoring ScrollArea and Icon primitives.
  */
 
 interface Props {
@@ -75,7 +87,7 @@ export function AddExternalApplicationDialog({ open, onOpenChange, defaultJobId,
 
   const handleParse = async () => {
     if (!jobId) return toast.error("Protocol Fault: Select job target first.");
-    if (!cvFile && cvText.trim().length < 30) return toast.error("Payload Fault: Insufficient CV data provided.");
+    if (!cvFile && cvText.trim().length < 30) return toast.error("Payload Fault: Insufficient CV data.");
 
     setParsing(true);
     const toastId = toast.loading("Neural Ingestion in progress...");
@@ -106,11 +118,11 @@ export function AddExternalApplicationDialog({ open, onOpenChange, defaultJobId,
       const sk = parsed?.skills || parsed?.parsed_skills || [];
       setSkills(Array.isArray(sk) ? sk.join(", ") : String(sk || ""));
 
-      toast.success("Intelligence Extracted: Review artifacts", { id: toastId });
+      toast.success("Intelligence Extracted", { id: toastId });
       setStep("review");
       if (parsed?.email) checkTalentExists(parsed.email);
     } catch (err: any) {
-      toast.error("Extraction Fault: " + (err.message || "Unknown error"), { id: toastId });
+      toast.error("Extraction Fault: " + err.message, { id: toastId });
     } finally {
       setParsing(false);
     }
@@ -126,8 +138,8 @@ export function AddExternalApplicationDialog({ open, onOpenChange, defaultJobId,
   };
 
   const handleSave = async () => {
-    if (!email.trim() && !phone.trim()) return toast.error("Protocol Fault: Contact string required.");
-    if (!name.trim()) return toast.error("Protocol Fault: Identity name required.");
+    if (!email.trim() && !phone.trim()) return toast.error("Contact string required.");
+    if (!name.trim()) return toast.error("Identity name required.");
 
     setSaving(true);
     try {
@@ -156,7 +168,7 @@ export function AddExternalApplicationDialog({ open, onOpenChange, defaultJobId,
 
       if (appErr) throw appErr;
 
-      toast.success("Node Synchronized: External application active.");
+      toast.success("Node Synchronized");
       handleClose(false);
       onCreated?.();
     } catch (err: any) {
@@ -229,15 +241,6 @@ export function AddExternalApplicationDialog({ open, onOpenChange, defaultJobId,
                   </div>
                 </div>
 
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-border/40" />
-                  </div>
-                  <div className="relative flex justify-center text-[9px] font-black uppercase tracking-widest bg-background px-4 text-muted-foreground italic">
-                    OR_RAW_TEXT_INJECTION
-                  </div>
-                </div>
-
                 <div className="space-y-3">
                   <Label className="text-[10px] font-black uppercase text-primary italic ml-2">
                     Raw Payload Ingress
@@ -282,7 +285,7 @@ export function AddExternalApplicationDialog({ open, onOpenChange, defaultJobId,
                     </Badge>
                   )}
                   {talentExists === false && (
-                    <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 font-black italic text-[9px] px-3 py-1">
+                    <Badge className="bg-amber-500/10 text-amber-600 border-amber-200 font-black italic text-[9px] px-3 py-1">
                       NEW_NODE_PROVISIONING
                     </Badge>
                   )}
@@ -297,16 +300,6 @@ export function AddExternalApplicationDialog({ open, onOpenChange, defaultJobId,
                   value={skills}
                   onChange={(e) => setSkills(e.target.value)}
                   className="rounded-2xl border-2 font-black italic text-xs bg-muted/10"
-                />
-              </div>
-
-              <div className="space-y-3">
-                <Label className="text-[10px] font-black uppercase text-primary italic ml-2">Contextual Pitch</Label>
-                <Textarea
-                  rows={3}
-                  value={coverLetter}
-                  onChange={(e) => setCoverLetter(e.target.value)}
-                  className="rounded-2xl border-2 font-medium italic text-sm bg-muted/10"
                 />
               </div>
 
