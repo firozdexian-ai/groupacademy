@@ -2,19 +2,19 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { createStudentProfile } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Zap, ShieldCheck, MessageSquare } from "lucide-react";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
+import { cn } from "@/lib/utils";
+
+/**
+ * GroUp Academy: Institutional Enrollment Gateway
+ * CTO Reference: Authoritative node for validating alphanumeric curriculum keys.
+ */
 
 interface AccessCodeDialogProps {
   open: boolean;
@@ -24,169 +24,112 @@ interface AccessCodeDialogProps {
   onSuccess: () => void;
 }
 
-export const AccessCodeDialog = ({
-  open,
-  onOpenChange,
-  contentId,
-  contentTitle,
-  onSuccess,
-}: AccessCodeDialogProps) => {
+export const AccessCodeDialog = ({ open, onOpenChange, contentId, contentTitle, onSuccess }: AccessCodeDialogProps) => {
   const [code, setCode] = useState("");
   const [isValidating, setIsValidating] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const executeEnrollmentHandshake = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!code.trim()) return;
 
     setIsValidating(true);
     try {
-      // Validate access code with timeout
+      // PHASE 1: Code Registry Validation
       const { data: accessCode, error: codeError } = await withTimeout(
-        Promise.resolve(supabase
-          .from("access_codes")
-          .select("*")
-          .eq("code", code.trim().toUpperCase())
-          .eq("content_id", contentId)
-          .eq("is_active", true)
-          .maybeSingle()),
+        Promise.resolve(
+          supabase
+            .from("access_codes")
+            .select("*")
+            .eq("code", code.trim().toUpperCase())
+            .eq("content_id", contentId)
+            .eq("is_active", true)
+            .maybeSingle(),
+        ),
         TIMEOUTS.DEFAULT,
-        "Code validation timed out"
+        "CODE_SYNC_TIMEOUT",
       );
 
       if (codeError) throw codeError;
-
       if (!accessCode) {
-        toast.error("Invalid access code");
+        toast.error("INVALID_ACCESS_KEY: Verify code and try again.");
         return;
       }
 
-      // Check if code is expired
+      // PHASE 2: Temporal & Volume Audits
       if (accessCode.expires_at && new Date(accessCode.expires_at) < new Date()) {
-        toast.error("This access code has expired");
+        toast.error("KEY_EXPIRED: Temporal validity window closed.");
         return;
       }
-
-      // Check if code has reached max uses
       if (accessCode.current_uses >= accessCode.max_uses) {
-        toast.error("This access code has reached its maximum uses");
+        toast.error("QUOTA_EXCEEDED: Key use limit reached.");
         return;
       }
 
-      // Get current user with timeout
-      const { data: { user } } = await withTimeout(
-        Promise.resolve(supabase.auth.getUser()),
-        TIMEOUTS.AUTH,
-        "Auth check timed out"
-      );
+      // PHASE 3: Identity Artifact Sync
+      const {
+        data: { user },
+      } = await withTimeout(Promise.resolve(supabase.auth.getUser()), TIMEOUTS.AUTH, "IDENTITY_CHECK_TIMEOUT");
       if (!user) {
-        toast.error("Please sign in first");
+        toast.error("AUTH_REQUIRED: Initialize login session.");
         return;
       }
 
-      // Get or create student profile using shared function
       let student;
-      const { data: existingStudent } = await withTimeout(
-        Promise.resolve(supabase
-          .from("students")
-          .select("id")
-          .eq("user_id", user.id)
-          .maybeSingle()),
-        TIMEOUTS.DEFAULT,
-        "Loading profile timed out"
-      );
+      const { data: existingStudent } = await supabase
+        .from("students")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
 
       if (existingStudent) {
         student = existingStudent;
       } else {
-        // Use shared profile creation function
-        const success = await createStudentProfile(
+        const profileCreated = await createStudentProfile(
           user.id,
-          user.email?.split('@')[0] || 'Student',
-          user.email || '',
-          '',
-          'free_learner'
+          user.email?.split("@")[0] || "Talent_Node",
+          user.email || "",
+          "",
+          "free_learner",
         );
 
-        if (!success) {
-          toast.error("Failed to create profile. Please complete your profile first.");
+        if (!profileCreated) {
+          toast.error("IDENTITY_FAULT: Failed to initialize student profile.");
           return;
         }
 
-        // Fetch the created student ID with timeout
-        const { data: newStudent } = await withTimeout(
-          Promise.resolve(supabase
-            .from("students")
-            .select("id")
-            .eq("user_id", user.id)
-            .single()),
-          TIMEOUTS.DEFAULT,
-          "Loading profile timed out"
-        );
-        
-        if (!newStudent) return;
+        const { data: newStudent } = await supabase.from("students").select("id").eq("user_id", user.id).single();
+
         student = newStudent;
       }
 
-      // Create enrollment with timeout
-      const { error: enrollError } = await withTimeout(
-        Promise.resolve(supabase.from("enrollments").insert({
-          student_id: student.id,
-          content_id: contentId,
-          status: "active",
-          payment_amount: 0, // Already paid outside platform
-        })),
-        TIMEOUTS.DEFAULT,
-        "Enrollment timed out"
-      );
+      // PHASE 4: Transactional Enrollment commit
+      const { error: enrollError } = await supabase.from("enrollments").insert({
+        student_id: student.id,
+        content_id: contentId,
+        status: "active",
+        payment_amount: 0,
+      });
 
       if (enrollError) {
         if (enrollError.code === "23505") {
-          toast.error("You are already enrolled in this course");
+          toast.error("ALREADY_SYNCED: Enrollment already active.");
         } else {
           throw enrollError;
         }
         return;
       }
 
-      // Update access code usage with timeout
-      await withTimeout(
-        Promise.resolve(supabase
-          .from("access_codes")
-          .update({ current_uses: accessCode.current_uses + 1 })
-          .eq("id", accessCode.id)),
-        TIMEOUTS.DEFAULT,
-        "Update timed out"
-      );
+      // PHASE 5: Counter Incrementation
+      await supabase.rpc("increment_access_code_use", { row_id: accessCode.id });
+      await supabase.rpc("increment_content_enrollment", { row_id: contentId });
 
-      // Update content enrollment count with timeout
-      const { data: content } = await withTimeout(
-        Promise.resolve(supabase
-          .from("content")
-          .select("current_enrollment")
-          .eq("id", contentId)
-          .single()),
-        TIMEOUTS.DEFAULT,
-        "Loading content timed out"
-      );
-
-      if (content) {
-        await withTimeout(
-          Promise.resolve(supabase
-            .from("content")
-            .update({ current_enrollment: (content.current_enrollment || 0) + 1 })
-            .eq("id", contentId)),
-          TIMEOUTS.DEFAULT,
-          "Update timed out"
-        );
-      }
-
-      toast.success("Successfully enrolled! Access code validated.");
+      toast.success("CURRICULUM_SYNC_COMPLETE");
       onSuccess();
       onOpenChange(false);
       setCode("");
-    } catch (error: any) {
-      console.error("Error validating access code:", error);
-      toast.error("Failed to validate access code. Please try again.");
+    } catch (err: any) {
+      console.error("GATEWAY_FAULT:", err);
+      toast.error("ACCESS_SYNC_FAULT: Please retry or contact Faculty.");
     } finally {
       setIsValidating(false);
     }
@@ -194,41 +137,85 @@ export const AccessCodeDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Enter Access Code</DialogTitle>
-          <DialogDescription>
-            Enter your access code to enroll in "{contentTitle}"
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="rounded-[32px] border-2 border-border/40 bg-card/60 backdrop-blur-2xl shadow-2xl overflow-hidden p-0 max-w-md">
+        {/* HUD: HEADER_INGRESS */}
+        <div className="p-8 border-b-2 border-border/10 bg-primary/5">
+          <DialogHeader className="text-left">
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center shadow-lg">
+                <Zap className="h-6 w-6 text-primary animate-pulse" />
+              </div>
+              <div className="space-y-1">
+                <DialogTitle className="text-2xl font-black uppercase italic tracking-tighter">Key_Ingress</DialogTitle>
+                <DialogDescription className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground/60 italic">
+                  Initialize_Curriculum_Handshake
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="code">Access Code</Label>
-            <Input
-              id="code"
-              value={code}
-              onChange={(e) => setCode(e.target.value.toUpperCase())}
-              placeholder="Enter code"
-              maxLength={12}
-              className="font-mono uppercase"
-              autoFocus
-            />
-            <p className="text-xs text-muted-foreground">
-              Contact admin via WhatsApp to receive your access code after payment
-            </p>
+        <div className="p-8 space-y-6">
+          <div className="bg-muted/10 p-5 rounded-2xl border-2 border-border/10 space-y-2">
+            <p className="text-[11px] font-black uppercase italic text-foreground/80 leading-none">Target_Node</p>
+            <p className="text-sm font-medium text-muted-foreground truncate">{contentTitle}</p>
           </div>
 
-          <div className="flex gap-2">
-            <Button type="submit" disabled={isValidating || !code.trim()} className="flex-1">
-              {isValidating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Validate & Enroll
-            </Button>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-          </div>
-        </form>
+          <form onSubmit={executeEnrollmentHandshake} className="space-y-6 text-left">
+            <div className="space-y-3">
+              <Label
+                htmlFor="code"
+                className="text-[10px] font-black uppercase italic tracking-widest text-muted-foreground ml-1"
+              >
+                Registry_Access_Key
+              </Label>
+              <Input
+                id="code"
+                value={code}
+                onChange={(e) => setCode(e.target.value.toUpperCase())}
+                placeholder="XXXX-XXXX-XXXX"
+                maxLength={12}
+                disabled={isValidating}
+                className="h-14 rounded-2xl border-2 bg-muted/20 text-center font-mono text-xl font-black tracking-[0.3em] focus-visible:ring-primary/20 transition-all uppercase"
+                autoFocus
+              />
+              <div className="flex items-start gap-2 p-3 bg-primary/5 rounded-xl border border-primary/10">
+                <MessageSquare className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                <p className="text-[9px] font-medium text-muted-foreground italic leading-relaxed">
+                  Contact administrative faculty via encrypted WhatsApp channel to receive your unique artifact key
+                  after payment verification.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <Button
+                type="submit"
+                size="xl"
+                disabled={isValidating || !code.trim()}
+                className="flex-1 h-14 rounded-2xl font-black uppercase italic text-[10px] tracking-[0.2em] shadow-lg shadow-primary/20 transition-all active:scale-95"
+              >
+                {isValidating ? (
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin mr-2" /> VALIDATING...
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck className="h-5 w-5 mr-2" /> VALIDATE_&_SYNC
+                  </>
+                )}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                className="h-14 px-6 rounded-2xl border-2 font-black uppercase italic text-[10px] tracking-widest"
+              >
+                ABORT
+              </Button>
+            </div>
+          </form>
+        </div>
       </DialogContent>
     </Dialog>
   );
