@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge"; // FIXED: Restored missing import
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,6 +37,7 @@ import { cn } from "@/lib/utils";
 /**
  * GroUp Academy: Revenue & Target Orchestrator
  * CTO Reference: Authoritative node for MRR calibration and service mix simulation.
+ * Resolved TS2304 by restoring the Badge primitive import.
  */
 
 export function MRRTargetManager() {
@@ -73,8 +75,6 @@ export function MRRTargetManager() {
       return data;
     },
   });
-
-  // ... Queries for creditUsage and totalTalentsCount remain standard in memory ...
 
   // MUTATION: Synchronize Target Protocol
   const saveMutation = useMutation({
@@ -141,10 +141,10 @@ export function MRRTargetManager() {
                 </AlertDialogTrigger>
                 <AlertDialogContent className="rounded-[32px] border-4">
                   <AlertDialogHeader>
-                    <AlertDialogTitle className="text-2xl font-black uppercase italic tracking-tighter">
+                    <AlertDialogTitle className="text-2xl font-black uppercase italic tracking-tighter text-left">
                       Terminate Period?
                     </AlertDialogTitle>
-                    <AlertDialogDescription className="text-xs font-medium italic">
+                    <AlertDialogDescription className="text-xs font-medium italic text-left">
                       This will finalize actual revenue nodes and lock the registry for this month.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
@@ -169,9 +169,8 @@ export function MRRTargetManager() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* REVENUE CALIBRATION CARD */}
         <Card className="lg:col-span-2 rounded-[40px] border-2 border-border/40 bg-card/30 shadow-2xl overflow-hidden">
-          <CardHeader className="p-8 border-b border-border/10 bg-muted/10">
+          <CardHeader className="p-8 border-b border-border/10 bg-muted/10 text-left">
             <CardTitle className="text-xl font-black uppercase italic tracking-tighter">Revenue Calibration</CardTitle>
             <CardDescription className="text-[10px] font-bold uppercase">
               Define MRR parameters and user acquisition targets
@@ -193,6 +192,7 @@ export function MRRTargetManager() {
                       setHasChanges(true);
                     }}
                     className="h-16 rounded-2xl border-2 pl-10 text-2xl font-black italic tracking-tighter bg-muted/10"
+                    disabled={isClosed}
                   />
                 </div>
               </div>
@@ -206,11 +206,11 @@ export function MRRTargetManager() {
                     setHasChanges(true);
                   }}
                   className="h-16 rounded-2xl border-2 text-2xl font-black italic tracking-tighter bg-muted/10"
+                  disabled={isClosed}
                 />
               </div>
             </div>
 
-            {/* AUTO KPI TELEMETRY */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-8 border-t border-border/10">
               <StatNode label="ARR_TARGET" value={formatUSD(autoKPIs.arrUsd)} />
               <StatNode label="REQ_USERS" value={autoKPIs.requiredPayingUsers} />
@@ -220,7 +220,6 @@ export function MRRTargetManager() {
           </CardContent>
         </Card>
 
-        {/* CREDIT ECONOMY SUMMARY */}
         <Card className="rounded-[40px] border-2 border-primary/20 bg-primary/5 shadow-2xl overflow-hidden flex flex-col justify-center">
           <CardContent className="p-10 text-center space-y-4">
             <div className="mx-auto h-16 w-16 rounded-3xl bg-primary flex items-center justify-center shadow-xl shadow-primary/20 mb-4">
@@ -232,14 +231,13 @@ export function MRRTargetManager() {
             <h3 className="text-5xl font-black italic tracking-tighter leading-none">
               {totalCreditsTarget.toLocaleString()}
             </h3>
-            <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">
+            <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest leading-relaxed">
               Total Credits required to satisfy {formatUSD(mrrTarget)} target
             </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* SERVICE MIX TERMINAL */}
       <Card className="rounded-[40px] border-2 border-border/40 bg-card/30 shadow-2xl overflow-hidden text-left">
         <CardHeader className="p-8 border-b border-border/10 bg-muted/10 flex flex-row items-center justify-between">
           <div>
@@ -262,7 +260,7 @@ export function MRRTargetManager() {
         <CardContent className="p-8">
           <div className="grid gap-10 md:grid-cols-2">
             {(Object.keys(IR_CONFIG.SERVICE_LABELS) as ServiceKey[]).map((service) => {
-              const target = serviceTargets.find((s) => s.service === service);
+              const serviceTarget = serviceTargets.find((s) => s.service === service);
               const mixValue = serviceMix[service] || 0;
               return (
                 <div
@@ -274,9 +272,11 @@ export function MRRTargetManager() {
                       {IR_CONFIG.SERVICE_LABELS[service]}
                     </Label>
                     <div className="text-right">
-                      <p className="text-sm font-black italic text-primary">{formatUSD(target?.revenueUsd || 0)}</p>
+                      <p className="text-sm font-black italic text-primary">
+                        {formatUSD(serviceTarget?.revenueUsd || 0)}
+                      </p>
                       <p className="text-[9px] font-bold text-muted-foreground uppercase">
-                        {target?.creditTarget.toLocaleString()} CREDITS
+                        {serviceTarget?.creditTarget.toLocaleString()} CREDITS
                       </p>
                     </div>
                   </div>
@@ -284,7 +284,7 @@ export function MRRTargetManager() {
                     <Slider
                       value={[mixValue]}
                       onValueChange={([v]) => handleMixChange(service, v)}
-                      max={50}
+                      max={100}
                       step={1}
                       className="flex-1"
                       disabled={isClosed}
@@ -317,7 +317,7 @@ export function MRRTargetManager() {
 
 function StatNode({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="p-5 rounded-2xl bg-muted/20 border-2 border-border/5">
+    <div className="p-5 rounded-2xl bg-muted/20 border-2 border-border/5 text-left">
       <p className="text-[8px] font-black text-muted-foreground/60 uppercase tracking-widest mb-1">{label}</p>
       <p className="font-black italic text-lg leading-none">{value}</p>
     </div>
