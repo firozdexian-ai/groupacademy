@@ -20,11 +20,11 @@ import { EducationEditor, EducationEntry } from "./EducationEditor";
 import { ExperienceEditor, ExperienceEntry } from "./ExperienceEditor";
 import { SkillsEditor } from "./SkillsEditor";
 import { ProfilePhotoUpload } from "./ProfilePhotoUpload";
-import { cn } from "@/lib/utils";
 
 /**
- * GroUp Academy: Profile Management Node
+ * GroUp Academy: Profile Management Node (Hardened Type Version)
  * CTO Reference: Authoritative identity editor for talent professional nodes.
+ * Fixes: TS2345 (Json incompatibility via explicit cast).
  */
 
 interface ProfileEditDialogProps {
@@ -35,7 +35,7 @@ interface ProfileEditDialogProps {
 
 export function ProfileEditDialog({ open, onOpenChange, talent }: ProfileEditDialogProps) {
   // IDENTITY_LEDGER: State Management
-  const [fullName, setFullName] = useState(talent.fullName);
+  const [fullName, setFullName] = useState(talent.fullName || "");
   const [phone, setPhone] = useState(talent.phone || "");
   const [linkedinUrl, setLinkedinUrl] = useState(talent.linkedinUrl || "");
   const [portfolioUrl, setPortfolioUrl] = useState(talent.portfolioUrl || "");
@@ -52,7 +52,7 @@ export function ProfileEditDialog({ open, onOpenChange, talent }: ProfileEditDia
   // HYDRATION: Synchronize from talent prop
   useEffect(() => {
     if (talent && open) {
-      setFullName(talent.fullName);
+      setFullName(talent.fullName || "");
       setPhone(talent.phone || "");
       setLinkedinUrl(talent.linkedinUrl || "");
       setPortfolioUrl(talent.portfolioUrl || "");
@@ -98,6 +98,7 @@ export function ProfileEditDialog({ open, onOpenChange, talent }: ProfileEditDia
     const toastId = toast.loading("Synchronizing identity with global ledger...");
 
     try {
+      // CTO FIX: Use 'as any' to bypass Json incompatibility for complex arrays
       const updateData = {
         full_name: fullName.trim(),
         phone: phone.trim() || null,
@@ -105,9 +106,9 @@ export function ProfileEditDialog({ open, onOpenChange, talent }: ProfileEditDia
         portfolio_url: portfolioUrl.trim() || null,
         custom_profession: customProfession.trim() || null,
         profile_photo_url: profilePhotoUrl || null,
-        education: education.filter((e) => e.institution.trim() || e.degree.trim()),
-        experience: experience.filter((e) => e.company.trim() || e.position.trim()),
-        skills: skills.filter((s) => s.trim()),
+        education: education.filter((e) => e.institution.trim() || e.degree.trim()) as any,
+        experience: experience.filter((e) => e.company.trim() || e.position.trim()) as any,
+        skills: skills.filter((s) => s.trim()) as any,
       };
 
       const { error } = await supabase.from("talents").update(updateData).eq("id", talent.id);
@@ -116,6 +117,9 @@ export function ProfileEditDialog({ open, onOpenChange, talent }: ProfileEditDia
 
       toast.success("Identity Synced: Profile updated.", { id: toastId });
       onOpenChange(false);
+
+      // OPTIONAL: Using reload for absolute state sync,
+      // Replace with context refresh if available.
       window.location.reload();
     } catch (error: any) {
       console.error("[Registry Fault]:", error);
@@ -129,7 +133,7 @@ export function ProfileEditDialog({ open, onOpenChange, talent }: ProfileEditDia
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-xl rounded-[32px] border-2 border-border/40 bg-card/95 backdrop-blur-xl shadow-2xl p-8">
         <DialogHeader className="mb-6">
-          <DialogTitle className="text-2xl font-black uppercase italic tracking-tighter flex items-center gap-3">
+          <DialogTitle className="text-2xl font-black uppercase italic tracking-tighter flex items-center gap-3 text-foreground">
             <Zap className="h-6 w-6 text-primary fill-current" /> Profile_Editor
           </DialogTitle>
           <DialogDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground italic">
@@ -171,7 +175,7 @@ export function ProfileEditDialog({ open, onOpenChange, talent }: ProfileEditDia
             </TabsTrigger>
           </TabsList>
 
-          <ScrollArea className="h-[450px] mt-6 pr-4 scrollbar-hide">
+          <ScrollArea className="h-[450px] mt-6 pr-4">
             <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
               <TabsContent value="photo" className="mt-0 pb-6">
                 <ProfilePhotoUpload
@@ -181,7 +185,7 @@ export function ProfileEditDialog({ open, onOpenChange, talent }: ProfileEditDia
                 />
               </TabsContent>
 
-              <TabsContent value="basic" className="space-y-6 mt-0">
+              <TabsContent value="basic" className="space-y-6 mt-0 text-left">
                 <div className="grid gap-5">
                   <div className="space-y-2">
                     <Label className="text-[10px] font-black uppercase italic text-primary ml-1">Identity_Name *</Label>
@@ -221,6 +225,17 @@ export function ProfileEditDialog({ open, onOpenChange, talent }: ProfileEditDia
                       value={linkedinUrl}
                       onChange={(e) => setLinkedinUrl(e.target.value)}
                       placeholder="HTTPS://LINKEDIN.COM/IN/..."
+                      className="h-12 rounded-xl border-2 font-bold bg-background/50"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase italic text-primary ml-1">
+                      Portfolio_Artifact
+                    </Label>
+                    <Input
+                      value={portfolioUrl}
+                      onChange={(e) => setPortfolioUrl(e.target.value)}
+                      placeholder="HTTPS://..."
                       className="h-12 rounded-xl border-2 font-bold bg-background/50"
                     />
                   </div>
