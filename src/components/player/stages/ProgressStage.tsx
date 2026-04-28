@@ -1,7 +1,21 @@
 import { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Award, CheckCircle, ArrowRight, Download, Trophy, Target, Clock, Brain, Zap, ShieldCheck } from "lucide-react";
+import { Award, CheckCircle, ArrowRight, Download, Trophy, Target, Clock, Brain, Zap, ShieldCheck, AlertCircle } from "lucide-react";
+
+interface ProgressStageProps {
+  moduleName: string;
+  moduleIndex: number;
+  totalModules: number;
+  completedStages: number[];
+  quizScore?: number;
+  quizTotal?: number;
+  quizPassed?: boolean;
+  onNextModule: () => void;
+  onComplete: () => void;
+  isCompleted: boolean;
+  hasNextModule: boolean;
+}
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
