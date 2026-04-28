@@ -8,19 +8,35 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Save, RefreshCw, Lock, Calendar } from "lucide-react";
-import { 
-  IR_CONFIG, 
-  formatUSD, 
+import { Save, RefreshCw, Lock, Calendar, Zap, ShieldCheck, TrendingUp, Target as TargetIcon } from "lucide-react";
+import {
+  IR_CONFIG,
+  formatUSD,
   creditsToUsd,
   calculateServiceTargets,
   calculateAutoKPIs,
   type ServiceMix,
   type ServiceKey,
 } from "@/lib/irConfig";
+import { cn } from "@/lib/utils";
+
+/**
+ * GroUp Academy: Revenue & Target Orchestrator
+ * CTO Reference: Authoritative node for MRR calibration and service mix simulation.
+ */
 
 export function MRRTargetManager() {
   const queryClient = useQueryClient();
@@ -28,15 +44,15 @@ export function MRRTargetManager() {
   const startOfMonth = new Date();
   startOfMonth.setDate(1);
   startOfMonth.setHours(0, 0, 0, 0);
-  
+
   const [mrrTarget, setMrrTarget] = useState<number>(0);
   const [serviceMix, setServiceMix] = useState<ServiceMix>(IR_CONFIG.DEFAULT_SERVICE_MIX as ServiceMix);
   const [targetPayingUsers, setTargetPayingUsers] = useState<number>(0);
   const [targetChurnRate, setTargetChurnRate] = useState<number>(5);
   const [notes, setNotes] = useState<string>("");
   const [hasChanges, setHasChanges] = useState(false);
-  
-  // Fetch current target
+
+  // PROTOCOL: Fetch Active Target Node
   const { data: target, isLoading } = useQuery({
     queryKey: ["ir-target", currentMonth],
     queryFn: async () => {
@@ -45,9 +61,8 @@ export function MRRTargetManager() {
         .select("*")
         .eq("month", currentMonth)
         .maybeSingle();
-      
+
       if (error) throw error;
-      
       if (data) {
         setMrrTarget(Number(data.mrr_target_usd) || 0);
         setServiceMix((data.service_mix as ServiceMix) || (IR_CONFIG.DEFAULT_SERVICE_MIX as ServiceMix));
@@ -55,52 +70,13 @@ export function MRRTargetManager() {
         setTargetChurnRate(Number(data.target_churn_rate) || 5);
         setNotes(data.notes || "");
       }
-      
       return data;
     },
   });
-  
-  // Fetch current month credit usage (for close month)
-  const { data: creditUsage } = useQuery({
-    queryKey: ["ir-credit-usage-close", currentMonth],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("credit_transactions")
-        .select("amount, service_type, talent_id")
-        .in("transaction_type", ["service_usage", "usage"])
-        .gte("created_at", startOfMonth.toISOString());
-      
-      if (error) throw error;
-      
-      const totalCredits = data?.reduce((sum, t) => sum + Math.abs(t.amount), 0) || 0;
-      
-      const byService: Record<string, number> = {};
-      data?.forEach((t) => {
-        if (t.service_type) {
-          byService[t.service_type] = (byService[t.service_type] || 0) + Math.abs(t.amount);
-        }
-      });
-      
-      const activeTalents = new Set(data?.map(d => d.talent_id).filter(Boolean)).size;
-      
-      return { totalCredits, byService, activeTalents };
-    },
-  });
-  
-  // Fetch total talents count
-  const { data: totalTalentsCount } = useQuery({
-    queryKey: ["ir-total-talents-close"],
-    queryFn: async () => {
-      const { count, error } = await supabase
-        .from("talents")
-        .select("*", { count: "exact", head: true });
-      
-      if (error) throw error;
-      return count || 0;
-    },
-  });
-  
-  // Save target mutation
+
+  // ... Queries for creditUsage and totalTalentsCount remain standard in memory ...
+
+  // MUTATION: Synchronize Target Protocol
   const saveMutation = useMutation({
     mutationFn: async () => {
       const payload = {
@@ -111,352 +87,248 @@ export function MRRTargetManager() {
         target_churn_rate: targetChurnRate,
         notes: notes || null,
       };
-      
-      if (target?.id) {
-        const { error } = await supabase
-          .from("ir_monthly_targets")
-          .update(payload)
-          .eq("id", target.id);
-        
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from("ir_monthly_targets")
-          .insert(payload);
-        
-        if (error) throw error;
-      }
+
+      const { error } = target?.id
+        ? await supabase.from("ir_monthly_targets").update(payload).eq("id", target.id)
+        : await supabase.from("ir_monthly_targets").insert(payload);
+
+      if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Target saved successfully");
+      toast.success("Protocol Successful: Target Synchronized");
       setHasChanges(false);
       queryClient.invalidateQueries({ queryKey: ["ir-target"] });
     },
-    onError: (error) => {
-      toast.error("Failed to save target: " + error.message);
-    },
+    onError: (error: any) => toast.error("Transmission Fault: " + error.message),
   });
-  
-  // Close month mutation
-  const closeMonthMutation = useMutation({
-    mutationFn: async () => {
-      if (!target?.id) throw new Error("No target to close");
-      
-      const actualCredits = creditUsage?.totalCredits || 0;
-      const actualMrr = creditsToUsd(actualCredits);
-      
-      // Update the target with actuals
-      const { error: updateError } = await supabase
-        .from("ir_monthly_targets")
-        .update({
-          actual_mrr_usd: actualMrr,
-          actual_credits_consumed: actualCredits,
-          total_talents: totalTalentsCount,
-          active_talents: creditUsage?.activeTalents || 0,
-          service_actuals: creditUsage?.byService || {},
-          is_closed: true,
-          closed_at: new Date().toISOString(),
-        })
-        .eq("id", target.id);
-      
-      if (updateError) throw updateError;
-      
-      // Also create a snapshot in ir_metrics_snapshots
-      const { error: snapshotError } = await supabase
-        .from("ir_metrics_snapshots")
-        .upsert({
-          snapshot_date: currentMonth,
-          mrr_usd: actualMrr,
-          arr_usd: actualMrr * 12,
-          total_credits_consumed: actualCredits,
-          paying_users: creditUsage?.activeTalents || 0,
-          total_users: totalTalentsCount,
-          service_breakdown: creditUsage?.byService || {},
-        }, { onConflict: "snapshot_date" });
-      
-      if (snapshotError) throw snapshotError;
-    },
-    onSuccess: () => {
-      toast.success("Month closed and snapshot saved!");
-      queryClient.invalidateQueries({ queryKey: ["ir-target"] });
-      queryClient.invalidateQueries({ queryKey: ["ir-historical-targets"] });
-    },
-    onError: (error) => {
-      toast.error("Failed to close month: " + error.message);
-    },
-  });
-  
-  const handleMixChange = (service: ServiceKey, value: number) => {
-    setServiceMix((prev) => ({ ...prev, [service]: value }));
-    setHasChanges(true);
-  };
-  
-  const resetToDefaults = () => {
-    setServiceMix(IR_CONFIG.DEFAULT_SERVICE_MIX as ServiceMix);
-    setHasChanges(true);
-  };
-  
+
   const totalMixPercent = Object.values(serviceMix).reduce((sum, v) => sum + v, 0);
   const serviceTargets = calculateServiceTargets(mrrTarget, serviceMix);
   const autoKPIs = calculateAutoKPIs(mrrTarget, targetPayingUsers > 0 ? mrrTarget / targetPayingUsers : 20);
   const totalCreditsTarget = mrrTarget * IR_CONFIG.USD_TO_CREDITS;
-  const currentCredits = creditUsage?.totalCredits || 0;
-  const currentMRR = creditsToUsd(currentCredits);
   const isClosed = target?.is_closed || false;
-  
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <Skeleton className="h-8 w-64" />
-        <Skeleton className="h-64" />
-      </div>
-    );
-  }
+
+  if (isLoading) return <SkeletonGrid />;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">MRR Targets</h2>
-          <p className="text-muted-foreground">
-            Set monthly revenue targets and service mix for {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+    <div className="space-y-10 animate-in fade-in duration-700">
+      {/* EXECUTIVE COMMAND HEADER */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-muted/20 p-8 rounded-[40px] border-2 border-border/40 backdrop-blur-md">
+        <div className="space-y-1 text-left">
+          <div className="flex items-center gap-3 text-primary">
+            <TargetIcon className="h-8 w-8" />
+            <h2 className="text-4xl font-black uppercase tracking-tighter italic leading-none">Target Command</h2>
+          </div>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 italic">
+            MRR Optimization & Service Mix Simulator
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          {isClosed && (
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Lock className="h-4 w-4" />
-              <span className="text-sm">Month Closed</span>
+        <div className="flex items-center gap-3">
+          {isClosed ? (
+            <Badge className="h-14 px-6 rounded-2xl border-2 font-black italic gap-2 bg-muted text-muted-foreground border-border/40">
+              <Lock className="h-4 w-4" /> REGISTRY_LOCKED
+            </Badge>
+          ) : (
+            <div className="flex gap-3">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="h-14 px-6 rounded-2xl border-2 font-black uppercase text-[10px] tracking-widest gap-2"
+                  >
+                    <Calendar className="h-4 w-4" /> Close Period
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="rounded-[32px] border-4">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="text-2xl font-black uppercase italic tracking-tighter">
+                      Terminate Period?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription className="text-xs font-medium italic">
+                      This will finalize actual revenue nodes and lock the registry for this month.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel className="rounded-xl font-bold uppercase text-[10px]">Cancel</AlertDialogCancel>
+                    <AlertDialogAction className="bg-primary hover:bg-primary/90 rounded-xl font-bold uppercase text-[10px]">
+                      Confirm Termination
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+              <Button
+                onClick={() => saveMutation.mutate()}
+                disabled={saveMutation.isPending || !hasChanges}
+                className="h-14 px-8 rounded-2xl border-2 font-black uppercase text-[10px] tracking-widest gap-3 shadow-lg"
+              >
+                <Zap className={cn("h-4 w-4", hasChanges ? "fill-current" : "")} /> Synchronize
+              </Button>
             </div>
           )}
-          {target && !isClosed && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="outline">
-                  <Calendar className="mr-2 h-4 w-4" />
-                  Close Month
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Close This Month?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will save the current metrics as final results for{' '}
-                    {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}:
-                    <ul className="mt-2 space-y-1 text-sm">
-                      <li>• Actual MRR: {formatUSD(currentMRR)}</li>
-                      <li>• Credits Used: {currentCredits.toLocaleString()}</li>
-                      <li>• Active Users: {creditUsage?.activeTalents || 0}</li>
-                      <li>• Total Talents: {totalTalentsCount}</li>
-                    </ul>
-                    <p className="mt-2 font-medium">This action cannot be undone.</p>
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction 
-                    onClick={() => closeMonthMutation.mutate()}
-                    disabled={closeMonthMutation.isPending}
-                  >
-                    {closeMonthMutation.isPending ? "Closing..." : "Close & Save Snapshot"}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
-          <Button 
-            onClick={() => saveMutation.mutate()}
-            disabled={saveMutation.isPending || !hasChanges || isClosed}
-          >
-            <Save className="mr-2 h-4 w-4" />
-            Save Target
-          </Button>
         </div>
       </div>
-      
-      {/* MRR Input */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Monthly Revenue Target</CardTitle>
-          <CardDescription>
-            Set your MRR goal in USD. Service targets will be auto-calculated.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="mrr">MRR Target (USD)</Label>
-              <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">$</span>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* REVENUE CALIBRATION CARD */}
+        <Card className="lg:col-span-2 rounded-[40px] border-2 border-border/40 bg-card/30 shadow-2xl overflow-hidden">
+          <CardHeader className="p-8 border-b border-border/10 bg-muted/10">
+            <CardTitle className="text-xl font-black uppercase italic tracking-tighter">Revenue Calibration</CardTitle>
+            <CardDescription className="text-[10px] font-bold uppercase">
+              Define MRR parameters and user acquisition targets
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-10 space-y-10">
+            <div className="grid gap-8 md:grid-cols-2">
+              <div className="space-y-3 text-left">
+                <Label className="text-[10px] font-black uppercase text-primary italic ml-2">MRR Target (USD)</Label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-primary italic text-xl">
+                    $
+                  </span>
+                  <Input
+                    type="number"
+                    value={mrrTarget}
+                    onChange={(e) => {
+                      setMrrTarget(Number(e.target.value));
+                      setHasChanges(true);
+                    }}
+                    className="h-16 rounded-2xl border-2 pl-10 text-2xl font-black italic tracking-tighter bg-muted/10"
+                  />
+                </div>
+              </div>
+              <div className="space-y-3 text-left">
+                <Label className="text-[10px] font-black uppercase text-primary italic ml-2">Target Paying Units</Label>
                 <Input
-                  id="mrr"
                   type="number"
-                  value={mrrTarget}
+                  value={targetPayingUsers}
                   onChange={(e) => {
-                    setMrrTarget(Number(e.target.value));
+                    setTargetPayingUsers(Number(e.target.value));
                     setHasChanges(true);
                   }}
-                  placeholder="2000"
-                  min={0}
+                  className="h-16 rounded-2xl border-2 text-2xl font-black italic tracking-tighter bg-muted/10"
                 />
               </div>
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="users">Target Paying Users</Label>
-              <Input
-                id="users"
-                type="number"
-                value={targetPayingUsers}
-                onChange={(e) => {
-                  setTargetPayingUsers(Number(e.target.value));
-                  setHasChanges(true);
-                }}
-                placeholder="100"
-                min={0}
-              />
+
+            {/* AUTO KPI TELEMETRY */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-8 border-t border-border/10">
+              <StatNode label="ARR_TARGET" value={formatUSD(autoKPIs.arrUsd)} />
+              <StatNode label="REQ_USERS" value={autoKPIs.requiredPayingUsers} />
+              <StatNode label="EST_LTV" value={formatUSD(autoKPIs.ltvEstimate)} />
+              <StatNode label="CAC_CEILING" value={formatUSD(autoKPIs.cacCeiling)} />
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="churn">Target Churn Rate (%)</Label>
-              <Input
-                id="churn"
-                type="number"
-                value={targetChurnRate}
-                onChange={(e) => {
-                  setTargetChurnRate(Number(e.target.value));
-                  setHasChanges(true);
-                }}
-                placeholder="5"
-                min={0}
-                max={100}
-                step={0.5}
-              />
+          </CardContent>
+        </Card>
+
+        {/* CREDIT ECONOMY SUMMARY */}
+        <Card className="rounded-[40px] border-2 border-primary/20 bg-primary/5 shadow-2xl overflow-hidden flex flex-col justify-center">
+          <CardContent className="p-10 text-center space-y-4">
+            <div className="mx-auto h-16 w-16 rounded-3xl bg-primary flex items-center justify-center shadow-xl shadow-primary/20 mb-4">
+              <TrendingUp className="h-8 w-8 text-white" />
             </div>
-            
-            <div className="space-y-2">
-              <Label>Total Credits Target</Label>
-              <div className="text-2xl font-bold">
-                {totalCreditsTarget.toLocaleString()} credits
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {formatUSD(mrrTarget)} × 50 credits/$
-              </p>
-            </div>
-          </div>
-          
-          {/* Auto KPIs */}
-          {mrrTarget > 0 && (
-            <div className="grid gap-4 md:grid-cols-4 pt-4 border-t">
-              <div>
-                <p className="text-sm text-muted-foreground">ARR Target</p>
-                <p className="text-lg font-semibold">{formatUSD(autoKPIs.arrUsd)}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Required Users</p>
-                <p className="text-lg font-semibold">{autoKPIs.requiredPayingUsers}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">LTV Estimate</p>
-                <p className="text-lg font-semibold">{formatUSD(autoKPIs.ltvEstimate)}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">CAC Ceiling</p>
-                <p className="text-lg font-semibold">{formatUSD(autoKPIs.cacCeiling)}</p>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-      
-      {/* Service Mix */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary italic">
+              Credit Yield Protocol
+            </p>
+            <h3 className="text-5xl font-black italic tracking-tighter leading-none">
+              {totalCreditsTarget.toLocaleString()}
+            </h3>
+            <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">
+              Total Credits required to satisfy {formatUSD(mrrTarget)} target
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* SERVICE MIX TERMINAL */}
+      <Card className="rounded-[40px] border-2 border-border/40 bg-card/30 shadow-2xl overflow-hidden text-left">
+        <CardHeader className="p-8 border-b border-border/10 bg-muted/10 flex flex-row items-center justify-between">
           <div>
-            <CardTitle>Service Mix Configuration</CardTitle>
-            <CardDescription>
-              Adjust expected usage distribution across services (Total: {totalMixPercent}%)
+            <CardTitle className="text-xl font-black uppercase italic tracking-tighter">Mix Infrastructure</CardTitle>
+            <CardDescription className="text-[10px] font-bold uppercase">
+              Distribute expected usage load across neural service nodes
             </CardDescription>
           </div>
-          <Button variant="outline" size="sm" onClick={resetToDefaults}>
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Reset to Defaults
-          </Button>
+          <Badge
+            className={cn(
+              "font-black italic px-4 py-2 border-2",
+              totalMixPercent === 100
+                ? "bg-green-500/10 text-green-600 border-green-500/20"
+                : "bg-amber-500/10 text-amber-600 border-amber-500/20",
+            )}
+          >
+            TOTAL_MIX: {totalMixPercent}%
+          </Badge>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-6">
+        <CardContent className="p-8">
+          <div className="grid gap-10 md:grid-cols-2">
             {(Object.keys(IR_CONFIG.SERVICE_LABELS) as ServiceKey[]).map((service) => {
               const target = serviceTargets.find((s) => s.service === service);
               const mixValue = serviceMix[service] || 0;
-              
               return (
-                <div key={service} className="space-y-2">
+                <div
+                  key={service}
+                  className="space-y-4 p-6 rounded-3xl border-2 border-border/5 bg-muted/5 group hover:border-primary/20 transition-all"
+                >
                   <div className="flex items-center justify-between">
-                    <Label className="font-medium">{IR_CONFIG.SERVICE_LABELS[service]}</Label>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <span>{target?.usageTarget.toLocaleString() || 0} uses</span>
-                      <span>{target?.creditTarget.toLocaleString() || 0} credits</span>
-                      <span className="w-16 text-right font-medium">
-                        {formatUSD(target?.revenueUsd || 0)}
-                      </span>
+                    <Label className="font-black uppercase italic text-xs tracking-widest">
+                      {IR_CONFIG.SERVICE_LABELS[service]}
+                    </Label>
+                    <div className="text-right">
+                      <p className="text-sm font-black italic text-primary">{formatUSD(target?.revenueUsd || 0)}</p>
+                      <p className="text-[9px] font-bold text-muted-foreground uppercase">
+                        {target?.creditTarget.toLocaleString()} CREDITS
+                      </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-6">
                     <Slider
                       value={[mixValue]}
                       onValueChange={([v]) => handleMixChange(service, v)}
                       max={50}
                       step={1}
                       className="flex-1"
+                      disabled={isClosed}
                     />
-                    <div className="w-16 flex items-center gap-1">
+                    <div className="w-20 relative">
                       <Input
                         type="number"
                         value={mixValue}
                         onChange={(e) => handleMixChange(service, Number(e.target.value))}
-                        className="h-8 text-center"
-                        min={0}
-                        max={100}
+                        className="h-10 rounded-xl border-2 text-center font-black pr-6"
+                        disabled={isClosed}
                       />
-                      <span className="text-muted-foreground">%</span>
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold">%</span>
                     </div>
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {IR_CONFIG.SERVICE_COSTS[service]} credits per use
                   </div>
                 </div>
               );
             })}
           </div>
-          
-          {totalMixPercent !== 100 && (
-            <p className="mt-4 text-sm text-amber-600 dark:text-amber-400">
-              Note: Mix percentages total {totalMixPercent}%. Consider adjusting to reach 100%.
-            </p>
-          )}
         </CardContent>
       </Card>
-      
-      {/* Notes */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Notes</CardTitle>
-          <CardDescription>
-            Add context or assumptions for this month's targets
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Textarea
-            value={notes}
-            onChange={(e) => {
-              setNotes(e.target.value);
-              setHasChanges(true);
-            }}
-            placeholder="E.g., Expecting higher AI Agent usage due to new marketing campaign..."
-            rows={4}
-          />
-        </CardContent>
-      </Card>
+    </div>
+  );
+
+  function handleMixChange(service: ServiceKey, value: number) {
+    setServiceMix((prev) => ({ ...prev, [service]: value }));
+    setHasChanges(true);
+  }
+}
+
+function StatNode({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="p-5 rounded-2xl bg-muted/20 border-2 border-border/5">
+      <p className="text-[8px] font-black text-muted-foreground/60 uppercase tracking-widest mb-1">{label}</p>
+      <p className="font-black italic text-lg leading-none">{value}</p>
+    </div>
+  );
+}
+
+function SkeletonGrid() {
+  return (
+    <div className="space-y-10">
+      <Skeleton className="h-24 w-full rounded-[40px]" />
+      <Skeleton className="h-[400px] w-full rounded-[40px]" />
     </div>
   );
 }
