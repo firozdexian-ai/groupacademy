@@ -7,6 +7,7 @@ import { COUNTRIES_WITH_PHONE } from "@/lib/constants/countries";
 /**
  * GroUp Academy: Neural Authentication Orchestrator
  * CTO Reference: Authoritative controller for conversational onboarding (Aisha).
+ * Fix Log: Resolved TS2304 (prev scope) and TS2339 (RPC type casting).
  */
 
 export type AuthAction =
@@ -41,6 +42,13 @@ interface CollectedData {
   phone: string;
   countryCode: string;
   country: string;
+}
+
+// Interface for RPC response typing
+interface EmailCheckResponse {
+  exists: boolean;
+  hasUserId: boolean;
+  talentName: string | null;
 }
 
 const FALLBACK_HUMAN_CHECK: QuizData = { answer: "cold" };
@@ -155,8 +163,12 @@ export function useAuthChat() {
               addMessage("assistant", "INVALID_FORMAT: Please provide a valid email artifact.");
               return;
             }
-            setCollectedData((p) => ({ ...prev, email }));
-            const { data: emailResult } = await supabase.rpc("check_auth_email", { lookup_email: email });
+            // FIXED: Standardized 'prev' variable naming
+            setCollectedData((prev) => ({ ...prev, email }));
+
+            const { data, error } = await supabase.rpc("check_auth_email", { lookup_email: email });
+            const emailResult = data as EmailCheckResponse;
+
             if (emailResult?.exists && emailResult?.hasUserId) {
               setFlow("login");
               const res = await callAgent({ step: "email_found", email });
@@ -172,7 +184,7 @@ export function useAuthChat() {
           }
 
           case "collect_name":
-            setCollectedData((p) => ({ ...prev, name: trimmed }));
+            setCollectedData((prev) => ({ ...prev, name: trimmed }));
             addMessage("assistant", `Identity noted, ${trimmed}. In which country is your current base?`);
             setCurrentAction("collect_country");
             break;
@@ -188,7 +200,7 @@ export function useAuthChat() {
               );
               return;
             }
-            setCollectedData((p) => ({ ...prev, country: matched.name, countryCode: matched.phoneCode }));
+            setCollectedData((prev) => ({ ...prev, country: matched.name, countryCode: matched.phoneCode }));
             addMessage(
               "assistant",
               `Acknowledged. For ${matched.name}, what is your mobile artifact number? (e.g. ${matched.phoneCode}...)`,
@@ -203,7 +215,7 @@ export function useAuthChat() {
               addMessage("assistant", "INCOMPLETE_DATA: Bangladesh mobile artifacts require 11 digits.");
               return;
             }
-            setCollectedData((p) => ({ ...prev, phone: trimmed }));
+            setCollectedData((prev) => ({ ...prev, phone: trimmed }));
             const res = await callAgent({ step: "phone_collected", flow });
             addMessage("assistant", res.reply);
             setCurrentAction(res.action);
@@ -290,7 +302,7 @@ export function useAuthChat() {
       addMessage("assistant", "RECOVERY_LINK_DEPLOYED: Check your inbox.");
     },
     updatePhoneData: (phone: string, countryCode: string, country: string) =>
-      setCollectedData((p) => ({ ...prev, phone, countryCode, country })),
+      setCollectedData((prev) => ({ ...prev, phone, countryCode, country })),
     agentName: "Aisha",
   };
 }
