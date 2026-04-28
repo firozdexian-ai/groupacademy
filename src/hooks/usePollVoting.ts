@@ -1,7 +1,13 @@
-import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useTalent } from '@/hooks/useTalent';
-import { useToast } from '@/hooks/use-toast';
+import { useState, useEffect, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useTalent } from "@/hooks/useTalent";
+import { useToast } from "@/hooks/use-toast";
+
+/**
+ * GroUp Academy: Democratic Engagement Sentinel
+ * CTO Reference: Authoritative controller for community sentiment and poll synchronization.
+ * Logic: Implements optimistic voting handshakes and distribution telemetry.
+ */
 
 interface PollResult {
   optionId: string;
@@ -27,39 +33,43 @@ export function usePollVoting(postId: string, options: { id: string; text: strin
   const [voteCounts, setVoteCounts] = useState<Record<string, number>>({});
   const [isLoading, setIsLoading] = useState(false);
 
-  // Fetch votes on mount
+  // PHASE: Registry_Ingress_Audit
   useEffect(() => {
-    const fetchVotes = async () => {
-      const { data: votes } = await supabase
-        .from('poll_votes')
-        .select('option_id, talent_id')
-        .eq('post_id', postId);
+    const fetchInstitutionalVotes = async () => {
+      const { data: votes, error } = await supabase
+        .from("poll_votes")
+        .select("option_id, talent_id")
+        .eq("post_id", postId);
+
+      if (error) {
+        console.error("POLL_SYNC_FAULT:", error);
+        return;
+      }
+
+      const counts: Record<string, number> = {};
+      options.forEach((opt) => {
+        counts[opt.id] = 0;
+      });
 
       if (votes) {
-        // Count votes per option
-        const counts: Record<string, number> = {};
-        options.forEach((opt) => {
-          counts[opt.id] = 0;
-        });
-
         votes.forEach((vote) => {
           if (counts[vote.option_id] !== undefined) {
             counts[vote.option_id]++;
           }
-          // Check if current user voted
+          // HUD: Identity Handshake
           if (talent?.id && vote.talent_id === talent.id) {
             setHasVoted(true);
             setUserVote(vote.option_id);
           }
         });
-
         setVoteCounts(counts);
       }
     };
 
-    fetchVotes();
+    fetchInstitutionalVotes();
   }, [postId, talent?.id, options]);
 
+  // PHASE: Telemetry_Derivation
   const totalVotes = Object.values(voteCounts).reduce((sum, count) => sum + count, 0);
 
   const results: PollResult[] = options.map((opt) => {
@@ -68,29 +78,23 @@ export function usePollVoting(postId: string, options: { id: string; text: strin
     return { optionId: opt.id, votes, percentage };
   });
 
+  // PHASE: Artifact_Synchronization
   const castVote = useCallback(
     async (optionId: string) => {
       if (!talent?.id) {
-        toast({
-          title: 'Sign in required',
-          description: 'Please sign in to vote on polls',
-          variant: 'destructive',
-        });
+        toast({ title: "INGRESS_REQUIRED", description: "Sign in to authorize your vote.", variant: "destructive" });
         return;
       }
 
       if (hasVoted) {
-        toast({
-          title: 'Already voted',
-          description: 'You can only vote once on each poll',
-        });
+        toast({ title: "IDEMPOTENCY_RESTRICTION", description: "Your vote artifact is already recorded." });
         return;
       }
 
       setIsLoading(true);
 
       try {
-        const { error } = await supabase.from('poll_votes').insert({
+        const { error } = await supabase.from("poll_votes").insert({
           post_id: postId,
           talent_id: talent.id,
           option_id: optionId,
@@ -98,7 +102,7 @@ export function usePollVoting(postId: string, options: { id: string; text: strin
 
         if (error) throw error;
 
-        // Update local state
+        // HUD: OPTIMISTIC_UI_SYNC
         setVoteCounts((prev) => ({
           ...prev,
           [optionId]: (prev[optionId] || 0) + 1,
@@ -106,30 +110,16 @@ export function usePollVoting(postId: string, options: { id: string; text: strin
         setHasVoted(true);
         setUserVote(optionId);
 
-        toast({
-          title: 'Vote recorded!',
-          description: 'Thanks for participating',
-        });
-      } catch (error) {
-        console.error('Error casting vote:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to record your vote',
-          variant: 'destructive',
-        });
+        toast({ title: "VOTE_SYNCHRONIZED", description: "Artifact successfully committed to ledger." });
+      } catch (err) {
+        console.error("VOTING_COMMIT_FAULT:", err);
+        toast({ title: "REGISTRY_ERROR", variant: "destructive" });
       } finally {
         setIsLoading(false);
       }
     },
-    [postId, talent?.id, hasVoted, toast]
+    [postId, talent?.id, hasVoted, toast],
   );
 
-  return {
-    hasVoted,
-    userVote,
-    results,
-    totalVotes,
-    castVote,
-    isLoading,
-  };
+  return { hasVoted, userVote, results, totalVotes, castVote, isLoading };
 }
