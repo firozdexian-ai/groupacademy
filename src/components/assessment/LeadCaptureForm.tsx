@@ -7,17 +7,23 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { PhoneInput } from "@/components/ui/phone-input";
-import { ArrowLeft, Loader2, Lock, AlertCircle, RefreshCw } from "lucide-react";
+import { ArrowLeft, Loader2, Lock, AlertCircle, RefreshCw, Zap, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { useTalent } from "@/hooks/useTalent";
+import { cn } from "@/lib/utils";
 
-const leadSchema = z.object({
-  full_name: z.string().trim().min(2, "Name must be at least 2 characters").max(100),
-  email: z.string().trim().email("Invalid email address").max(255),
-  phone: z.string().trim().min(6, "Phone number is required").max(20),
+/**
+ * GroUp Academy: Assessment Data Ingress Form
+ * CTO Reference: Authoritative node for talent identity sync and assessment commitment.
+ */
+
+const leadRegistrySchema = z.object({
+  full_name: z.string().trim().min(2, "PROTOCOL_ERROR: Invalid name length").max(100),
+  email: z.string().trim().email("PROTOCOL_ERROR: Invalid email sequence").max(255),
+  phone: z.string().trim().min(6, "PROTOCOL_ERROR: Identity contact required").max(20),
 });
 
 interface LeadCaptureFormProps {
@@ -50,12 +56,12 @@ export function LeadCaptureForm({
     whatsapp_opt_in: true,
     terms_accepted: false,
   });
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-  // Auto-fill from talent profile
+  // PROTOCOL: Profile Ingress Auto-Fill
   useEffect(() => {
     if (talent) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         full_name: prev.full_name || talent.fullName || "",
         email: prev.email || talent.email || email,
@@ -66,22 +72,18 @@ export function LeadCaptureForm({
     }
   }, [talent, email]);
 
-  const calculateScore = () => {
-    // This is a simplified scoring - the actual scoring will be done by AI
+  const executeQuantitativeScoring = () => {
     let totalScore = 0;
     let maxScore = 0;
 
-    Object.entries(answers).forEach(([questionId, answer]) => {
+    Object.entries(answers).forEach(([_, answer]) => {
       if (typeof answer === "number") {
-        // Scale questions: score is the value itself (1-10)
         totalScore += answer;
         maxScore += 10;
       } else if (typeof answer === "string") {
-        // Single choice: need to look up score from options (simplified)
-        totalScore += 3; // Average score placeholder
+        totalScore += 3; // Median placement
         maxScore += 5;
       } else if (Array.isArray(answer)) {
-        // Multiple choice: count selections
         totalScore += answer.length * 2;
         maxScore += 10;
       }
@@ -94,233 +96,242 @@ export function LeadCaptureForm({
     };
   };
 
-  const determineReadinessLevel = (percentage: number): "beginner" | "developing" | "competent" | "proficient" | "expert" => {
-    if (percentage >= 90) return "expert";
-    if (percentage >= 75) return "proficient";
-    if (percentage >= 60) return "competent";
-    if (percentage >= 40) return "developing";
+  const mapReadinessTrajectory = (p: number): "beginner" | "developing" | "competent" | "proficient" | "expert" => {
+    if (p >= 90) return "expert";
+    if (p >= 75) return "proficient";
+    if (p >= 60) return "competent";
+    if (p >= 40) return "developing";
     return "beginner";
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleRegistryCommit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitError(null);
 
-    // Validate terms
-    if (!formData.terms_accepted) {
-      toast.error("Please accept the terms to continue");
-      return;
-    }
+    if (!formData.terms_accepted) return toast.error("AUTHORIZATION_REQUIRED: Accept terms to proceed.");
 
-    // Validate form data
-    const result = leadSchema.safeParse(formData);
-    if (!result.success) {
-      const fieldErrors: Record<string, string> = {};
-      result.error.errors.forEach((err) => {
-        if (err.path[0]) {
-          fieldErrors[err.path[0] as string] = err.message;
-        }
+    const validation = leadRegistrySchema.safeParse(formData);
+    if (!validation.success) {
+      const errNodes: Record<string, string> = {};
+      validation.error.errors.forEach((err) => {
+        if (err.path[0]) errNodes[err.path[0] as string] = err.message;
       });
-      setErrors(fieldErrors);
+      setFieldErrors(errNodes);
       return;
     }
 
-    setErrors({});
+    setFieldErrors({});
     setSubmitting(true);
 
-    console.log("[LeadCaptureForm] Submitting assessment...");
-
     try {
-      const scores = calculateScore();
-      const readinessLevel = determineReadinessLevel(scores.percentage);
+      const metrics = executeQuantitativeScoring();
+      const trajectory = mapReadinessTrajectory(metrics.percentage);
+      const nodeID = crypto.randomUUID();
+      const contactVector = formData.countryCode + formData.phone;
 
-      // Generate a temporary ID for navigation (will query by email later)
-      const tempAssessmentId = crypto.randomUUID();
-      
-      // Save assessment WITH talent_id if available
-      // Build full phone number with country code
-      const fullPhone = formData.countryCode + formData.phone;
-      
       const { error } = await withTimeout(
-        Promise.resolve(supabase
-          .from("career_assessments")
-          .insert({
-            id: tempAssessmentId,
+        Promise.resolve(
+          supabase.from("career_assessments").insert({
+            id: nodeID,
             user_id: user?.id || null,
             talent_id: talent?.id || null,
             profession_category_id: categoryId,
             full_name: formData.full_name.trim(),
             email: formData.email.toLowerCase().trim(),
-            phone: fullPhone.trim(),
+            phone: contactVector.trim(),
             answers: answers,
-            total_score: scores.totalScore,
-            max_score: scores.maxScore,
-            percentage: scores.percentage,
-            readiness_level: readinessLevel,
+            total_score: metrics.totalScore,
+            max_score: metrics.maxScore,
+            percentage: metrics.percentage,
+            readiness_level: trajectory,
             improvement_areas: [],
-            ai_analysis: null,
-          })),
+          }),
+        ),
         TIMEOUTS.AI_GENERATION,
-        "Submission timed out"
+        "SYNC_TIMEOUT",
       );
 
-      if (error) {
-        console.error("[LeadCaptureForm] Database error:", error);
-        throw error;
-      }
+      if (error) throw error;
 
-      // NOTE: Credit deduction is handled by the parent component (AppCareerAssessment)
-      // to avoid duplicate charges. LeadCaptureForm only handles data collection.
-      console.log("[LeadCaptureForm] Assessment saved successfully:", tempAssessmentId);
-      
-      // Call onComplete AFTER successful database insert
       onComplete();
-      
-      toast.success("Assessment submitted successfully!");
-      
-      // Navigate to results page
-      navigate(`/assessment-results/${tempAssessmentId}`);
-    } catch (error: any) {
-      console.error("[LeadCaptureForm] Error submitting assessment:", error);
-      const errorMessage = error.code === "23505" 
-        ? "An assessment with this email already exists. Please use a different email."
-        : "Failed to submit assessment. Please try again.";
-      setSubmitError(errorMessage);
-      toast.error(errorMessage);
+      toast.success("DIAGNOSTIC_SYNC_COMPLETE");
+      navigate(`/assessment-results/${nodeID}`);
+    } catch (err: any) {
+      const msg = err.code === "23505" ? "Registry collision: Email already exists." : "Sync Fault: Ingress failed.";
+      setSubmitError(msg);
+      toast.error(msg);
       setSubmitting(false);
     }
   };
 
-  const handleRetry = () => {
-    setSubmitError(null);
-    handleSubmit(new Event('submit') as any);
-  };
-
   return (
-    <div className="container max-w-md mx-auto px-4 py-12">
-      <Button variant="ghost" onClick={onBack} className="mb-6" disabled={submitting}>
-        <ArrowLeft className="h-4 w-4 mr-2" />
-        Back to Questions
+    <div className="max-w-xl mx-auto px-4 py-8 animate-in slide-in-from-bottom-4 duration-1000 text-left">
+      <Button
+        variant="ghost"
+        onClick={onBack}
+        className="mb-8 rounded-xl font-black uppercase italic text-[10px] tracking-widest gap-2"
+        disabled={submitting}
+      >
+        <ArrowLeft className="h-4 w-4" /> REVERT_TO_DIAGNOSTIC
       </Button>
 
-      <Card>
-        <CardHeader className="text-center">
-          <CardTitle>Almost Done!</CardTitle>
-          <CardDescription>
-            Enter your details to receive your personalized Career Readiness Report
+      <Card className="rounded-[40px] border-2 border-border/40 bg-card/40 backdrop-blur-xl shadow-2xl overflow-hidden">
+        <CardHeader className="p-10 pb-4 text-center">
+          <div className="flex justify-center mb-4">
+            <div className="h-16 w-16 rounded-[24px] bg-primary/10 border-2 border-primary/20 flex items-center justify-center">
+              <ShieldCheck className="h-8 w-8 text-primary animate-pulse" />
+            </div>
+          </div>
+          <CardTitle className="text-3xl font-black uppercase italic tracking-tighter">Finalize_Sync</CardTitle>
+          <CardDescription className="text-[10px] font-bold uppercase tracking-[0.2em] italic mt-2">
+            Commit identity artifacts to generate your readiness trajectory
           </CardDescription>
         </CardHeader>
-        <CardContent>
+
+        <CardContent className="p-10 pt-4 space-y-8">
           {submitError && (
-            <div className="mb-4 p-4 bg-destructive/10 border border-destructive/30 rounded-lg">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="h-5 w-5 text-destructive mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-sm text-destructive font-medium">{submitError}</p>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={handleRetry}
-                    className="mt-2"
+            <div className="p-5 bg-rose-500/5 border-2 border-rose-500/20 rounded-[22px] animate-in shake-2">
+              <div className="flex items-start gap-4">
+                <AlertCircle className="h-5 w-5 text-rose-500 mt-1" />
+                <div className="space-y-3 flex-1">
+                  <p className="text-xs font-black uppercase italic text-rose-500 tracking-widest">{submitError}</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleRegistryCommit(new Event("submit") as any)}
+                    className="h-9 rounded-lg border-2 font-black uppercase italic text-[9px] tracking-widest gap-2"
                   >
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Try Again
+                    <RefreshCw className="h-3.5 w-3.5" /> ATTEMPT_RE_SYNC
                   </Button>
                 </div>
               </div>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="full_name">Full Name *</Label>
-              <Input
-                id="full_name"
-                placeholder="Enter your full name"
-                value={formData.full_name}
-                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                disabled={submitting}
-              />
-              {errors.full_name && (
-                <p className="text-sm text-destructive">{errors.full_name}</p>
-              )}
+          <form onSubmit={handleRegistryCommit} className="space-y-6">
+            <div className="grid grid-cols-1 gap-6">
+              <div className="space-y-2.5">
+                <Label className="text-[10px] font-black uppercase italic tracking-[0.2em] text-muted-foreground ml-1">
+                  Identity: Full_Name *
+                </Label>
+                <Input
+                  placeholder="Initialize name entry..."
+                  value={formData.full_name}
+                  className="h-14 bg-muted/20 border-2 rounded-2xl font-bold italic focus:ring-primary/20"
+                  onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                  disabled={submitting}
+                />
+                {fieldErrors.full_name && (
+                  <p className="text-[9px] font-black text-rose-500 uppercase tracking-widest ml-1">
+                    {fieldErrors.full_name}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2.5">
+                <Label className="text-[10px] font-black uppercase italic tracking-[0.2em] text-muted-foreground ml-1">
+                  Identity: Contact_Email *
+                </Label>
+                <Input
+                  type="email"
+                  placeholder="Initialize email sync..."
+                  value={formData.email}
+                  className="h-14 bg-muted/20 border-2 rounded-2xl font-bold italic focus:ring-primary/20"
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  disabled={submitting}
+                />
+                {fieldErrors.email && (
+                  <p className="text-[9px] font-black text-rose-500 uppercase tracking-widest ml-1">
+                    {fieldErrors.email}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2.5">
+                <Label className="text-[10px] font-black uppercase italic tracking-[0.2em] text-muted-foreground ml-1">
+                  Identity: Contact_Phone *
+                </Label>
+                <PhoneInput
+                  value={formData.phone}
+                  countryCode={formData.countryCode}
+                  onValueChange={(p) => setFormData((v) => ({ ...v, phone: p }))}
+                  onCountryCodeChange={(c, ct) => setFormData((v) => ({ ...v, countryCode: c, country: ct }))}
+                  disabled={submitting}
+                />
+                {fieldErrors.phone && (
+                  <p className="text-[9px] font-black text-rose-500 uppercase tracking-widest ml-1">
+                    {fieldErrors.phone}
+                  </p>
+                )}
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="email">Email Address *</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="your@email.com"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                disabled={submitting}
-              />
-              {errors.email && (
-                <p className="text-sm text-destructive">{errors.email}</p>
-              )}
+            <div className="space-y-4 pt-4">
+              <div
+                className="flex items-start space-x-4 p-4 rounded-2xl border-2 border-border/10 bg-muted/5 group cursor-pointer"
+                onClick={() => !submitting && setFormData((v) => ({ ...v, whatsapp_opt_in: !v.whatsapp_opt_in }))}
+              >
+                <Checkbox
+                  id="whatsapp"
+                  checked={formData.whatsapp_opt_in}
+                  className="h-5 w-5 rounded-lg border-2 mt-0.5"
+                />
+                <div className="space-y-1">
+                  <Label
+                    htmlFor="whatsapp"
+                    className="text-[11px] font-black uppercase italic tracking-tighter cursor-pointer"
+                  >
+                    WhatsApp_Deployment_Alerts
+                  </Label>
+                  <p className="text-[9px] font-medium text-muted-foreground leading-relaxed italic">
+                    Authorize institutional career tips and placement updates via mobile sync.
+                  </p>
+                </div>
+              </div>
+
+              <div
+                className="flex items-start space-x-4 p-4 rounded-2xl border-2 border-border/10 bg-muted/5 group cursor-pointer"
+                onClick={() => !submitting && setFormData((v) => ({ ...v, terms_accepted: !v.terms_accepted }))}
+              >
+                <Checkbox id="terms" checked={formData.terms_accepted} className="h-5 w-5 rounded-lg border-2 mt-0.5" />
+                <div className="space-y-1">
+                  <Label
+                    htmlFor="terms"
+                    className="text-[11px] font-black uppercase italic tracking-tighter cursor-pointer"
+                  >
+                    Institutional_Terms_Authorization *
+                  </Label>
+                  <p className="text-[9px] font-medium text-muted-foreground leading-relaxed italic">
+                    I verify that all identity artifacts provided are accurate and authorize privacy protocols.
+                  </p>
+                </div>
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Phone Number *</Label>
-              <PhoneInput
-                value={formData.phone}
-                countryCode={formData.countryCode}
-                onValueChange={(phone) => setFormData(prev => ({ ...prev, phone }))}
-                onCountryCodeChange={(code, country) => 
-                  setFormData(prev => ({ ...prev, countryCode: code, country }))
-                }
-                placeholder="Enter phone number"
-                disabled={submitting}
-              />
-              {errors.phone && (
-                <p className="text-sm text-destructive">{errors.phone}</p>
-              )}
-            </div>
-
-            <div className="flex items-start space-x-3 pt-2">
-              <Checkbox
-                id="whatsapp"
-                checked={formData.whatsapp_opt_in}
-                onCheckedChange={(checked) =>
-                  setFormData({ ...formData, whatsapp_opt_in: checked as boolean })
-                }
-                disabled={submitting}
-              />
-              <Label htmlFor="whatsapp" className="text-sm leading-relaxed cursor-pointer">
-                I'd like to receive career tips and updates via WhatsApp
-              </Label>
-            </div>
-
-            <div className="flex items-start space-x-3">
-              <Checkbox
-                id="terms"
-                checked={formData.terms_accepted}
-                onCheckedChange={(checked) =>
-                  setFormData({ ...formData, terms_accepted: checked as boolean })
-                }
-                disabled={submitting}
-              />
-              <Label htmlFor="terms" className="text-sm leading-relaxed cursor-pointer">
-                I agree to the terms and privacy policy *
-              </Label>
-            </div>
-
-            <Button type="submit" className="w-full" disabled={submitting}>
+            <Button
+              type="submit"
+              size="xl"
+              className="w-full h-16 rounded-[24px] font-black uppercase italic tracking-[0.2em] shadow-[0_20px_50px_rgba(var(--primary),0.2)] hover:shadow-primary/40 transition-all active:scale-95 gap-3"
+              disabled={submitting}
+            >
               {submitting ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Processing...
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  INITIALIZING_SYNC...
                 </>
               ) : (
-                "Get My Results"
+                <>
+                  INITIALIZE_REPORT_GEN <Zap className="h-5 w-5" />
+                </>
               )}
             </Button>
 
-            <p className="text-xs text-center text-muted-foreground flex items-center justify-center gap-1">
+            <div className="flex items-center justify-center gap-3 py-2 opacity-30">
               <Lock className="h-3 w-3" />
-              Your information is secure and will never be shared
-            </p>
+              <span className="text-[8px] font-black uppercase tracking-[0.4em]">
+                Registry_Encryption_Active_AES256
+              </span>
+            </div>
           </form>
         </CardContent>
       </Card>
