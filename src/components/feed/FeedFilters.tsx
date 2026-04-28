@@ -1,6 +1,11 @@
-import { Play, BookOpen, LayoutGrid, Newspaper, FileText, BarChart3, LucideIcon } from "lucide-react";
+import { Play, BookOpen, LayoutGrid, Newspaper, FileText, BarChart3, LucideIcon, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { FeedFilters as FeedFiltersType, FeedFilterType } from "@/hooks/useFeedRecommendations";
+
+/**
+ * GroUp Academy: Feed Segmentation Node (FeedFilters)
+ * CTO Reference: Authoritative tactical router for content ingestion.
+ */
 
 interface FeedFiltersProps {
   filters: FeedFiltersType;
@@ -20,12 +25,12 @@ const filterOptions: {
   label: string;
   icon: LucideIcon;
 }[] = [
-  { value: "all", label: "All Feed", icon: LayoutGrid },
-  { value: "post", label: "Updates", icon: FileText },
-  { value: "poll", label: "Polls", icon: BarChart3 },
-  { value: "course", label: "Courses", icon: BookOpen },
-  { value: "video", label: "Videos", icon: Play },
-  { value: "blog", label: "Articles", icon: Newspaper },
+  { value: "all", label: "GLOBAL_FEED", icon: LayoutGrid },
+  { value: "post", label: "UPDATES", icon: FileText },
+  { value: "poll", label: "POLLS", icon: BarChart3 },
+  { value: "course", label: "COURSES", icon: BookOpen },
+  { value: "video", label: "VIDEOS", icon: Play },
+  { value: "blog", label: "ARTICLES", icon: Newspaper },
 ];
 
 export function FeedFilters({ filters, onChange, counts }: FeedFiltersProps) {
@@ -34,8 +39,8 @@ export function FeedFilters({ filters, onChange, counts }: FeedFiltersProps) {
   };
 
   return (
-    <div className="w-full overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
-      <div className="flex sm:grid sm:grid-cols-6 gap-1.5 p-1 bg-muted/30 rounded-xl border border-border/40 min-w-max sm:min-w-full">
+    <div className="w-full overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0 animate-in fade-in duration-500">
+      <div className="flex sm:grid sm:grid-cols-6 gap-2 p-1.5 bg-muted/20 backdrop-blur-md rounded-[20px] border-2 border-border/40 min-w-max sm:min-w-full shadow-inner">
         {filterOptions.map((option) => {
           const count = counts?.[option.value] ?? 0;
           const isActive = filters.type === option.value;
@@ -47,34 +52,45 @@ export function FeedFilters({ filters, onChange, counts }: FeedFiltersProps) {
               key={option.value}
               onClick={() => handleTypeChange(option.value)}
               className={cn(
-                "flex flex-col items-center justify-center py-2 px-3 sm:px-1 rounded-lg transition-all duration-200 min-w-[70px] sm:min-w-0",
+                "group relative flex flex-col items-center justify-center py-3 px-4 sm:px-1 rounded-2xl transition-all duration-300 min-w-[85px] sm:min-w-0 border-2",
                 isActive
-                  ? "bg-background shadow-sm text-primary ring-1 ring-border"
-                  : "text-muted-foreground hover:text-foreground hover:bg-background/50",
-                isEmpty && "opacity-40 grayscale",
+                  ? "bg-primary border-primary text-white shadow-lg shadow-primary/20 scale-[1.02]"
+                  : "bg-transparent border-transparent text-muted-foreground hover:text-primary hover:bg-primary/5 hover:border-primary/10",
+                isEmpty && "opacity-30 grayscale pointer-events-none",
               )}
             >
-              <Icon className={cn("h-4 w-4 mb-1 transition-transform", isActive && "scale-110")} />
+              {/* Hardware-Accelerated Icon Node */}
+              <Icon
+                className={cn(
+                  "h-5 w-5 mb-1.5 transition-all duration-500",
+                  isActive ? "scale-110 rotate-0" : "group-hover:scale-110 group-hover:rotate-3",
+                )}
+              />
 
               <span
                 className={cn(
-                  "text-[10px] font-bold uppercase tracking-tighter transition-colors",
-                  isActive ? "text-foreground" : "text-muted-foreground",
+                  "text-[9px] font-black uppercase italic tracking-[0.1em] leading-none transition-colors",
+                  isActive ? "text-white" : "text-muted-foreground group-hover:text-primary",
                 )}
               >
                 {option.label}
               </span>
 
+              {/* Real-time Telemetry Counter */}
               {counts && (
-                <span
+                <div
                   className={cn(
-                    "text-[9px] font-black mt-0.5 tabular-nums px-1.5 rounded-full bg-muted/50",
-                    isActive ? "text-primary bg-primary/10" : "text-muted-foreground",
+                    "absolute -top-1 -right-1 h-5 min-w-[20px] flex items-center justify-center px-1.5 rounded-full border-2 text-[8px] font-black tabular-nums transition-all",
+                    isActive
+                      ? "bg-white text-primary border-white"
+                      : "bg-muted text-muted-foreground border-border/40 group-hover:border-primary/20",
                   )}
                 >
                   {count}
-                </span>
+                </div>
               )}
+
+              {isActive && <div className="absolute -bottom-1 w-1 h-1 bg-white rounded-full shadow-[0_0_8px_white]" />}
             </button>
           );
         })}
