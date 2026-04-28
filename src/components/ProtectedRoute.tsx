@@ -3,11 +3,17 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, LogIn } from "lucide-react";
+import { RefreshCw, LogIn, ShieldCheck, Zap, AlertCircle } from "lucide-react";
 import { usePWADetect } from "@/hooks/usePWADetect";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import type { Database } from "@/integrations/supabase/types";
 import logoIcon from "@/assets/logo-icon.png";
+import { cn } from "@/lib/utils";
+
+/**
+ * GroUp Academy: Institutional Access Firewall
+ * CTO Reference: Authoritative gatekeeper for RBAC-protected trajectories.
+ */
 
 type AppRole = Database["public"]["Enums"]["app_role"];
 
@@ -15,7 +21,6 @@ interface ProtectedRouteProps {
   children: React.ReactNode;
   requireAdmin?: boolean;
   requireAnyAdminRole?: boolean;
-  // Added to respect the user's preferred auth flow
   authType?: "ai" | "classic";
 }
 
@@ -30,130 +35,139 @@ export const ProtectedRoute = ({
   const { isPWA } = usePWADetect();
   const [isChecking, setIsChecking] = useState(true);
   const [isAuthorized, setIsAuthorized] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [fault, setFault] = useState<string | null>(null);
 
-  const checkedRef = useRef(false);
-  const authTimeout = isPWA ? TIMEOUTS.PWA_AUTH : TIMEOUTS.AUTH;
+  const checkedRegistryRef = useRef(false);
+  const temporalThreshold = isPWA ? TIMEOUTS.PWA_AUTH : TIMEOUTS.AUTH;
 
-  const handleRedirect = useCallback(
+  const executeRedirectHandshake = useCallback(
     async (clearSession = true) => {
       if (clearSession) {
         try {
           await supabase.auth.signOut();
         } catch (e) {
-          console.warn(e);
+          console.warn("AUTH_PURGE_FAULT:", e);
         }
       }
       const returnUrl = location.pathname + location.search;
-      const loginPath = authType === "classic" ? "/auth/classic" : "/auth";
-      navigate(`${loginPath}?returnTo=${encodeURIComponent(returnUrl)}`, { replace: true });
+      const ingressNode = authType === "classic" ? "/auth/classic" : "/auth";
+      navigate(`${ingressNode}?returnTo=${encodeURIComponent(returnUrl)}`, { replace: true });
     },
     [navigate, location, authType],
   );
 
-  const checkAuth = useCallback(async () => {
-    if (checkedRef.current && isAuthorized) return;
+  const executeFirewallAudit = useCallback(async () => {
+    if (checkedRegistryRef.current && isAuthorized) return;
 
     setIsChecking(true);
-    setError(null);
+    setFault(null);
 
     try {
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("Auth check timed out")), authTimeout),
+      const syncTimeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("SYNC_TIMEOUT")), temporalThreshold),
       );
 
       const {
         data: { session },
         error: sessionError,
-      } = (await Promise.race([supabase.auth.getSession(), timeoutPromise])) as any;
+      } = (await Promise.race([supabase.auth.getSession(), syncTimeout])) as any;
 
       if (sessionError) throw sessionError;
+      if (!session) return await executeRedirectHandshake(false);
 
-      if (!session) {
-        await handleRedirect(false);
-        return;
-      }
-
-      // Role check logic
+      // PHASE: Institutional Role Audit
       if (requireAdmin || requireAnyAdminRole) {
         const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", session.user.id);
+        const activeRoles = (roles || []).map((r) => r.role);
 
-        const userRoles = (roles || []).map((r) => r.role);
-
-        if (requireAdmin && !userRoles.includes("admin")) {
-          toast.error("Admin access required");
+        if (requireAdmin && !activeRoles.includes("admin")) {
+          toast.error("ADMIN_CLEARANCE_REQUIRED");
           navigate("/app/learning");
           return;
         }
 
-        if (requireAnyAdminRole && !userRoles.some((r) => ["admin", "talent_exec"].includes(r))) {
-          toast.error("Dashboard access required");
+        if (requireAnyAdminRole && !activeRoles.some((r) => ["admin", "talent_exec"].includes(r))) {
+          toast.error("DASHBOARD_ACCESS_DENIED");
           navigate("/app/learning");
           return;
         }
       }
 
       setIsAuthorized(true);
-      checkedRef.current = true;
+      checkedRegistryRef.current = true;
     } catch (err: any) {
-      console.error("[ProtectedRoute] Error:", err);
+      console.error("[Firewall] Audit Fault:", err);
 
       if (err.message?.includes("refresh_token") || err.status === 400) {
-        await handleRedirect(true);
-        return;
+        return await executeRedirectHandshake(true);
       }
 
-      setError(err.message === "Auth check timed out" ? "Connection timed out" : "Authentication error");
+      setFault(err.message === "SYNC_TIMEOUT" ? "CONNECTION_LATENCY_THRESHOLD_EXCEEDED" : "NEURAL_IDENTITY_FAULT");
     } finally {
       setIsChecking(false);
     }
-  }, [requireAdmin, requireAnyAdminRole, authTimeout, handleRedirect, navigate, isAuthorized]);
+  }, [requireAdmin, requireAnyAdminRole, temporalThreshold, executeRedirectHandshake, navigate, isAuthorized]);
 
   useEffect(() => {
-    checkAuth();
+    executeFirewallAudit();
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_OUT" || (event === "TOKEN_REFRESHED" && !session)) {
-        handleRedirect(false);
+        executeRedirectHandshake(false);
       }
     });
     return () => subscription.unsubscribe();
-  }, [checkAuth, handleRedirect]);
+  }, [executeFirewallAudit, executeRedirectHandshake]);
 
   if (isChecking) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-        <img src={logoIcon} alt="GroUp" className="w-12 h-12 mb-6 animate-pulse opacity-50" />
-        <div className="flex gap-1.5">
-          <div className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:-0.3s]" />
-          <div className="w-2 h-2 bg-primary rounded-full animate-bounce [animation-delay:-0.15s]" />
-          <div className="w-2 h-2 bg-primary rounded-full animate-bounce" />
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 backdrop-blur-xl">
+        <div className="relative mb-8">
+          <img src={logoIcon} alt="GroUp_Identity" className="w-16 h-16 animate-pulse opacity-20 grayscale" />
+          <Zap className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-6 w-6 text-primary animate-pulse" />
         </div>
+        <div className="flex gap-2">
+          <div className="w-2.5 h-2.5 bg-primary/40 rounded-full animate-bounce [animation-delay:-0.3s]" />
+          <div className="w-2.5 h-2.5 bg-primary/60 rounded-full animate-bounce [animation-delay:-0.15s]" />
+          <div className="w-2.5 h-2.5 bg-primary rounded-full animate-bounce" />
+        </div>
+        <p className="mt-6 text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground/40 italic">
+          Verifying_Clearance...
+        </p>
       </div>
     );
   }
 
-  if (error) {
+  if (fault) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 bg-background">
-        <div className="text-center max-w-sm">
-          <p className="text-destructive font-semibold mb-2">{error}</p>
-          <p className="text-muted-foreground text-sm mb-6">
-            We couldn't verify your session. This might be due to a poor connection.
-          </p>
+        <div className="text-center max-w-sm space-y-6 animate-in fade-in zoom-in-95 duration-500">
+          <div className="h-16 w-16 rounded-[22px] bg-rose-500/10 border-2 border-rose-500/20 flex items-center justify-center mx-auto">
+            <AlertCircle className="h-8 w-8 text-rose-500" />
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-sm font-black uppercase italic tracking-tighter text-rose-500">{fault}</h3>
+            <p className="text-[11px] font-medium text-muted-foreground italic leading-relaxed">
+              Institutional synchronization failed. Ensure neural uplink stability before re-attempting ingress.
+            </p>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <Button
               variant="outline"
+              className="h-12 rounded-2xl border-2 font-black uppercase italic text-[10px] tracking-widest"
               onClick={() => {
-                checkedRef.current = false;
-                checkAuth();
+                checkedRegistryRef.current = false;
+                executeFirewallAudit();
               }}
             >
-              <RefreshCw className="h-4 w-4 mr-2" /> Retry
+              <RefreshCw className="h-3.5 w-3.5 mr-2" /> RE_SYNC
             </Button>
-            <Button onClick={() => handleRedirect(true)}>
-              <LogIn className="h-4 w-4 mr-2" /> Sign In
+            <Button
+              className="h-12 rounded-2xl font-black uppercase italic text-[10px] tracking-widest shadow-lg shadow-primary/20"
+              onClick={() => executeRedirectHandshake(true)}
+            >
+              <LogIn className="h-3.5 w-3.5 mr-2" /> SIGN_IN
             </Button>
           </div>
         </div>
@@ -164,23 +178,23 @@ export const ProtectedRoute = ({
   return isAuthorized ? <>{children}</> : null;
 };
 
-// Optimized Role Hook with caching and resilient error handling
+/**
+ * Institutional Role Hook
+ * CTO Reference: Resilient diagnostic for access-level verification.
+ */
 export const useUserRole = () => {
   const [role, setRole] = useState<AppRole | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const [fault, setFault] = useState<Error | null>(null);
 
   useEffect(() => {
-    let mounted = true;
-    const fetchRole = async () => {
+    let activeNode = true;
+    const fetchInstitutionalRole = async () => {
       try {
         const {
           data: { session },
         } = await supabase.auth.getSession();
-        if (!session || !mounted) {
-          setIsLoading(false);
-          return;
-        }
+        if (!session || !activeNode) return setIsLoading(false);
 
         const { data: roles, error: rolesError } = await supabase
           .from("user_roles")
@@ -189,28 +203,26 @@ export const useUserRole = () => {
 
         if (rolesError) throw rolesError;
 
-        if (mounted && roles) {
-          const roleNames = roles.map((r) => r.role);
-          if (roleNames.includes("admin")) setRole("admin");
-          else if (roleNames.includes("talent_exec")) setRole("talent_exec");
+        if (activeNode && roles) {
+          const names = roles.map((r) => r.role);
+          if (names.includes("admin")) setRole("admin");
+          else if (names.includes("talent_exec")) setRole("talent_exec");
         }
       } catch (err: any) {
-        console.error("[useUserRole] Failed to load role:", err);
-        if (mounted) {
-          setError(err instanceof Error ? err : new Error(String(err)));
-          // Surface a single toast so the user knows why their dashboard is empty
-          toast.error("Couldn't verify your access level. Please refresh.");
+        if (activeNode) {
+          setFault(err instanceof Error ? err : new Error(String(err)));
+          toast.error("IDENTITY_SYNC_FAULT: Unable to verify clearance.");
         }
       } finally {
-        if (mounted) setIsLoading(false);
+        if (activeNode) setIsLoading(false);
       }
     };
 
-    fetchRole();
+    fetchInstitutionalRole();
     return () => {
-      mounted = false;
+      activeNode = false;
     };
   }, []);
 
-  return { role, isLoading, error };
+  return { role, isLoading, fault };
 };
