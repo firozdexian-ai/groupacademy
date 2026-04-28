@@ -1,62 +1,49 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { CheckCircle, ClipboardCheck, XCircle, AlertCircle, Trophy, RefreshCw } from "lucide-react";
+import { CheckCircle, ClipboardCheck, XCircle, AlertCircle, Trophy, RefreshCw, Zap, Target } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryWithTimeout } from "@/hooks/useQueryWithTimeout";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { cn } from "@/lib/utils";
 
-interface AssessStageProps {
-  contentId: string;
-  moduleId: string;
-  studentId: string | undefined;
-  enrollmentId: string | undefined;
-  passThreshold: number;
-  onComplete: (passed: boolean, score: number) => void;
-  isCompleted: boolean;
-}
+/**
+ * GroUp Academy: Knowledge Validation Node (AssessStage)
+ * CTO Reference: Authoritative gatekeeper for skill-node mastery.
+ */
 
-interface QuizQuestion {
-  id: string;
-  question_text: string;
-  option_a: string;
-  option_b: string;
-  option_c: string;
-  option_d: string;
-  correct_answer: string;
-  explanation: string | null;
-}
-
-export function AssessStage({ 
+export function AssessStage({
   contentId,
   moduleId,
   studentId,
   enrollmentId,
   passThreshold,
-  onComplete, 
-  isCompleted 
+  onComplete,
+  isCompleted,
 }: AssessStageProps) {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [submitted, setSubmitted] = useState(false);
   const [score, setScore] = useState(0);
   const [showExplanations, setShowExplanations] = useState(false);
 
-  // Fetch quiz questions for this module (or fallback to content-level questions)
-  const { data: questions = [], isLoading, error: loadError, refetch } = useQueryWithTimeout({
+  // REGISTRY_SYNC: Fetch curated quiz artifacts
+  const {
+    data: questions = [],
+    isLoading,
+    error: loadError,
+    refetch,
+  } = useQueryWithTimeout({
     queryKey: ["quiz-questions", moduleId, contentId],
     queryFn: async () => {
-      // First try to get module-specific questions
       let { data, error } = await supabase
         .from("quiz_questions")
         .select("*")
         .eq("module_id", moduleId)
         .order("display_order");
-      
-      // If no module-specific questions, fall back to content-level questions
+
       if (!error && (!data || data.length === 0)) {
         const fallbackResult = await supabase
           .from("quiz_questions")
@@ -64,11 +51,11 @@ export function AssessStage({
           .eq("content_id", contentId)
           .is("module_id", null)
           .order("display_order");
-        
+
         data = fallbackResult.data;
         error = fallbackResult.error;
       }
-      
+
       if (error) throw error;
       return data as QuizQuestion[];
     },
@@ -82,27 +69,20 @@ export function AssessStage({
   const percentage = totalQuestions > 0 ? Math.round((score / totalQuestions) * 100) : 0;
   const passed = percentage >= passThreshold;
 
-  const handleSubmit = async () => {
+  const handleExecutiveSubmit = async () => {
     if (!allAnswered) return;
 
-    // Calculate score
-    let correctCount = 0;
-    questions.forEach(q => {
-      if (answers[q.id] === q.correct_answer) {
-        correctCount++;
-      }
-    });
+    const correctCount = questions.reduce((acc, q) => (answers[q.id] === q.correct_answer ? acc + 1 : acc), 0);
 
     setScore(correctCount);
     setSubmitted(true);
 
-    // Save quiz attempt with timeout
     if (studentId && enrollmentId) {
       const attemptPassed = Math.round((correctCount / totalQuestions) * 100) >= passThreshold;
-      
+
       try {
         await withTimeout(
-          Promise.resolve(supabase.from("quiz_attempts").insert({
+          supabase.from("quiz_attempts").insert({
             student_id: studentId,
             content_id: contentId,
             enrollment_id: enrollmentId,
@@ -110,145 +90,160 @@ export function AssessStage({
             score: correctCount,
             total_questions: totalQuestions,
             passed: attemptPassed,
-          })),
+          }),
           TIMEOUTS.DEFAULT,
-          "Saving quiz timed out"
+          "REGISTRY_SYNC_TIMEOUT",
         );
       } catch (error) {
-        console.error("Error saving quiz attempt:", error);
+        console.error("[AssessNode Sync Error]:", error);
       }
 
       onComplete(attemptPassed, correctCount);
     }
   };
 
-  const handleRetry = () => {
-    setAnswers({});
-    setSubmitted(false);
-    setScore(0);
-    setShowExplanations(false);
-  };
-
   if (isLoading) {
     return (
-      <Card>
-        <CardContent className="p-8 text-center">
-          <p className="text-muted-foreground">Loading quiz questions...</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (loadError) {
-    return (
-      <Card>
-        <CardContent className="p-8 text-center">
-          <AlertCircle className="h-8 w-8 text-destructive mx-auto mb-2" />
-          <p className="text-muted-foreground mb-4">Failed to load quiz questions</p>
-          <Button onClick={() => refetch()} variant="outline">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Try Again
-          </Button>
+      <Card className="rounded-[32px] border-2 border-border/40 bg-card/30 backdrop-blur-md">
+        <CardContent className="p-12 text-center space-y-4">
+          <RefreshCw className="h-8 w-8 animate-spin text-primary mx-auto" />
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground italic">
+            Initializing_Assessment_Matrix...
+          </p>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-semibold flex items-center gap-2">
-            <ClipboardCheck className="h-5 w-5 text-primary" />
-            Stage 5: Assess
+    <div className="space-y-8 animate-in fade-in duration-700">
+      {/* HUD: ASSESSMENT_HEADER */}
+      <div className="flex items-center justify-between px-1">
+        <div className="space-y-1">
+          <h2 className="text-2xl font-black uppercase italic tracking-tighter flex items-center gap-3">
+            <Target className="h-6 w-6 text-primary" /> Stage_05: Knowledge_Validation
           </h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Test your understanding with a short quiz (Pass: {passThreshold}%)
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground italic">
+            Pass Threshold: {passThreshold}% | Minimum Accuracy Required
           </p>
         </div>
         {isCompleted && (
-          <div className="flex items-center gap-1 text-green-600">
-            <CheckCircle className="h-5 w-5" />
-            <span className="text-sm font-medium">Completed</span>
+          <div className="px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-2 text-emerald-500">
+            <CheckCircle className="h-4 w-4" />
+            <span className="text-[10px] font-black uppercase tracking-widest">Node_Verified</span>
           </div>
         )}
       </div>
 
-      {questions.length === 0 ? (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <p className="text-muted-foreground">No quiz questions available for this module yet.</p>
-            <Button onClick={() => onComplete(true, 0)} className="mt-4">
-              Skip to Next Stage
-            </Button>
-          </CardContent>
-        </Card>
-      ) : submitted ? (
-        /* Results View */
+      {submitted ? (
+        /* COMPONENT: RESULTS_DASHBOARD */
         <div className="space-y-6">
-          <Card className={cn(
-            "border-2",
-            passed ? "border-green-500 bg-green-500/5" : "border-orange-500 bg-orange-500/5"
-          )}>
-            <CardContent className="p-6 text-center">
-              <div className="flex justify-center mb-4">
+          <Card
+            className={cn(
+              "rounded-[40px] border-4 overflow-hidden transition-all duration-1000",
+              passed
+                ? "border-emerald-500 bg-emerald-500/5 shadow-[0_0_50px_-12px_rgba(16,185,129,0.3)]"
+                : "border-orange-500 bg-orange-500/5",
+            )}
+          >
+            <CardContent className="p-10 text-center space-y-6">
+              <div className="relative inline-block">
                 {passed ? (
-                  <Trophy className="h-16 w-16 text-green-500" />
+                  <Trophy className="h-20 w-20 text-emerald-500 animate-bounce" />
                 ) : (
-                  <AlertCircle className="h-16 w-16 text-orange-500" />
+                  <AlertCircle className="h-20 w-20 text-orange-500 animate-pulse" />
                 )}
+                <div className="absolute inset-0 blur-2xl opacity-20 bg-current" />
               </div>
-              <h3 className="text-2xl font-bold mb-2">
-                {passed ? "Congratulations!" : "Keep Learning!"}
-              </h3>
-              <p className="text-4xl font-bold mb-2">
-                {score}/{totalQuestions}
-              </p>
-              <p className="text-lg text-muted-foreground mb-4">
-                {percentage}% correct
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {passed 
-                  ? "You passed! You can proceed to the next stage."
-                  : `You need ${passThreshold}% to pass. Review the material and try again.`
-                }
+
+              <div className="space-y-2">
+                <h3 className="text-3xl font-black uppercase italic tracking-tighter">
+                  {passed ? "PROTOCOL_PASSED" : "ACCURACY_INSUFFICIENT"}
+                </h3>
+                <p className="text-5xl font-black tabular-nums tracking-tighter">
+                  {score}
+                  <span className="text-xl text-muted-foreground/40 mx-2">/</span>
+                  {totalQuestions}
+                </p>
+                <div className="flex items-center justify-center gap-2">
+                  <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                  <p className="text-sm font-bold text-muted-foreground uppercase tracking-widest italic">
+                    {percentage}% AGGREGATE_ACCURACY
+                  </p>
+                </div>
+              </div>
+
+              <p className="text-xs font-medium text-muted-foreground max-w-sm mx-auto leading-relaxed">
+                {passed
+                  ? "Identity credentials updated. You are cleared for next-stage trajectory."
+                  : `Requirement not met (${passThreshold}%). Re-initiate learning node artifacts and try again.`}
               </p>
             </CardContent>
           </Card>
 
-          <Button 
-            variant="outline" 
-            onClick={() => setShowExplanations(!showExplanations)}
-            className="w-full"
-          >
-            {showExplanations ? "Hide" : "Show"} Answer Explanations
-          </Button>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowExplanations(!showExplanations)}
+              className="h-14 rounded-2xl border-2 font-black uppercase italic text-xs tracking-widest gap-3"
+            >
+              {showExplanations ? "Hide" : "Audit"} Knowledge_Explanations
+            </Button>
+            {!passed && (
+              <Button
+                onClick={handleRetry}
+                className="h-14 rounded-2xl font-black uppercase italic text-xs tracking-widest gap-3 shadow-xl"
+              >
+                <RefreshCw className="h-4 w-4" /> Re_Initialize_Attempt
+              </Button>
+            )}
+          </div>
 
           {showExplanations && (
-            <div className="space-y-4">
+            <div className="space-y-4 animate-in slide-in-from-top-4 duration-500">
               {questions.map((q, index) => {
                 const isCorrect = answers[q.id] === q.correct_answer;
                 return (
-                  <Card key={q.id} className={cn(
-                    "border-l-4",
-                    isCorrect ? "border-l-green-500" : "border-l-red-500"
-                  )}>
-                    <CardContent className="p-4">
-                      <div className="flex items-start gap-2 mb-2">
-                        {isCorrect ? (
-                          <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
-                        ) : (
-                          <XCircle className="h-5 w-5 text-red-500 mt-0.5" />
-                        )}
-                        <div>
-                          <p className="font-medium">Q{index + 1}: {q.question_text}</p>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            Your answer: {answers[q.id]} | Correct: {q.correct_answer}
+                  <Card
+                    key={q.id}
+                    className={cn(
+                      "rounded-2xl border-l-8 transition-all",
+                      isCorrect ? "border-l-emerald-500 bg-emerald-500/5" : "border-l-red-500 bg-red-500/5",
+                    )}
+                  >
+                    <CardContent className="p-6">
+                      <div className="flex items-start gap-4">
+                        <div
+                          className={cn(
+                            "h-8 w-8 rounded-lg flex items-center justify-center shrink-0 border-2",
+                            isCorrect
+                              ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500"
+                              : "bg-red-500/10 border-red-500/20 text-red-500",
+                          )}
+                        >
+                          {isCorrect ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+                        </div>
+                        <div className="space-y-3">
+                          <p className="font-black text-sm uppercase italic tracking-tight">
+                            NODE_{index + 1}: {q.question_text}
                           </p>
+                          <div className="flex flex-wrap gap-4 text-[10px] font-bold uppercase tracking-widest opacity-60 italic">
+                            <span>
+                              Input:{" "}
+                              <span className={cn(isCorrect ? "text-emerald-600" : "text-red-600")}>
+                                {answers[q.id] || "NONE"}
+                              </span>
+                            </span>
+                            <span>
+                              Target: <span className="text-emerald-600">{q.correct_answer}</span>
+                            </span>
+                          </div>
                           {q.explanation && (
-                            <p className="text-sm mt-2 bg-muted p-2 rounded">
-                              {q.explanation}
-                            </p>
+                            <div className="p-4 rounded-xl bg-background/50 border border-border/40">
+                              <p className="text-xs font-medium leading-relaxed italic text-muted-foreground">
+                                {q.explanation}
+                              </p>
+                            </div>
                           )}
                         </div>
                       </div>
@@ -258,66 +253,96 @@ export function AssessStage({
               })}
             </div>
           )}
-
-          {!passed && (
-            <Button onClick={handleRetry} className="w-full">
-              Try Again
-            </Button>
-          )}
         </div>
       ) : (
-        /* Quiz View */
-        <div className="space-y-6">
-          <Card className="bg-muted/50">
-            <CardContent className="p-4">
-              <p className="text-sm">
-                Answered: {answeredCount}/{totalQuestions} questions
+        /* COMPONENT: QUIZ_INTERFACE */
+        <div className="space-y-8">
+          <div className="p-6 rounded-[28px] bg-muted/20 border-2 border-border/10 flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+                Synchronized_Questions
               </p>
-              <div className="h-2 bg-secondary rounded-full overflow-hidden mt-2">
-                <div 
-                  className="h-full bg-primary transition-all"
-                  style={{ width: `${(answeredCount / totalQuestions) * 100}%` }}
-                />
-              </div>
-            </CardContent>
-          </Card>
+              <p className="text-xl font-black italic tracking-tighter">
+                {answeredCount}
+                <span className="text-muted-foreground/30 mx-2">/</span>
+                {totalQuestions}
+              </p>
+            </div>
+            <div className="w-32 h-2 rounded-full bg-primary/10 overflow-hidden">
+              <div
+                className="h-full bg-primary transition-all duration-500"
+                style={{ width: `${(answeredCount / totalQuestions) * 100}%` }}
+              />
+            </div>
+          </div>
 
-          {questions.map((q, index) => (
-            <Card key={q.id}>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">
-                  Question {index + 1} of {totalQuestions}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="mb-4">{q.question_text}</p>
-                <RadioGroup
-                  value={answers[q.id] || ""}
-                  onValueChange={(value) => setAnswers({ ...answers, [q.id]: value })}
-                >
-                  {["A", "B", "C", "D"].map((option) => {
-                    const optionKey = `option_${option.toLowerCase()}` as keyof QuizQuestion;
-                    return (
-                      <div key={option} className="flex items-center space-x-2 py-2">
-                        <RadioGroupItem value={option} id={`${q.id}-${option}`} />
-                        <Label htmlFor={`${q.id}-${option}`} className="cursor-pointer flex-1">
-                          <span className="font-medium">{option}.</span> {q[optionKey] as string}
-                        </Label>
-                      </div>
-                    );
-                  })}
-                </RadioGroup>
-              </CardContent>
-            </Card>
-          ))}
+          <div className="space-y-6">
+            {questions.map((q, index) => (
+              <Card
+                key={q.id}
+                className="rounded-[32px] border-2 border-border/40 overflow-hidden hover:border-primary/20 transition-colors"
+              >
+                <CardHeader className="bg-muted/5 border-b border-border/10 p-6">
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary text-xs font-black">
+                      {String(index + 1).padStart(2, "0")}
+                    </div>
+                    <CardTitle className="text-base font-black uppercase italic tracking-tighter">
+                      DATA_NODE_REQUEST
+                    </CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-8 space-y-6">
+                  <p className="text-lg font-bold leading-tight text-foreground/90 italic">{q.question_text}</p>
+                  <RadioGroup
+                    value={answers[q.id] || ""}
+                    onValueChange={(value) => setAnswers({ ...answers, [q.id]: value })}
+                    className="grid grid-cols-1 md:grid-cols-2 gap-3"
+                  >
+                    {["A", "B", "C", "D"].map((option) => {
+                      const optionKey = `option_${option.toLowerCase()}` as keyof QuizQuestion;
+                      const isSelected = answers[q.id] === option;
+                      return (
+                        <div
+                          key={option}
+                          className={cn(
+                            "relative flex items-center p-4 rounded-2xl border-2 transition-all cursor-pointer hover:bg-primary/5",
+                            isSelected ? "border-primary bg-primary/5 shadow-inner" : "border-border/40",
+                          )}
+                        >
+                          <RadioGroupItem value={option} id={`${q.id}-${option}`} className="sr-only" />
+                          <Label
+                            htmlFor={`${q.id}-${option}`}
+                            className="cursor-pointer flex-1 flex items-center gap-3"
+                          >
+                            <span
+                              className={cn(
+                                "h-6 w-6 rounded-lg flex items-center justify-center font-black text-[10px] border-2",
+                                isSelected
+                                  ? "bg-primary text-white border-primary"
+                                  : "bg-muted text-muted-foreground border-border/40",
+                              )}
+                            >
+                              {option}
+                            </span>
+                            <span className="text-sm font-bold uppercase tracking-tight">{q[optionKey] as string}</span>
+                          </Label>
+                        </div>
+                      );
+                    })}
+                  </RadioGroup>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
 
-          <Button 
-            onClick={handleSubmit}
+          <Button
+            onClick={handleExecutiveSubmit}
             disabled={!allAnswered}
-            className="w-full"
-            size="lg"
+            className="w-full h-16 rounded-[24px] font-black uppercase italic tracking-widest text-sm shadow-2xl active:scale-95 transition-all gap-3"
           >
-            {allAnswered ? "Submit Quiz" : `Answer all questions (${answeredCount}/${totalQuestions})`}
+            {allAnswered ? <Zap className="h-5 w-5 fill-current" /> : <Target className="h-5 w-5" />}
+            {allAnswered ? "Finalize_Identity_Sync" : `Awaiting_Inputs (${answeredCount}/${totalQuestions})`}
           </Button>
         </div>
       )}
