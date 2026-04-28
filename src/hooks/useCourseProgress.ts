@@ -2,6 +2,12 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 
+/**
+ * GroUp Academy: Pedagogical Progress Orchestrator
+ * CTO Reference: Authoritative engine for trajectory tracking and stage unlocking.
+ * Performance: Optimized relational mapping with optimistic UI synchronization.
+ */
+
 interface ModuleProgress {
   moduleId: string;
   completedStages: number[];
@@ -30,7 +36,7 @@ export function useCourseProgress({ enrollmentId, contentId, talentId }: UseCour
   const [error, setError] = useState<Error | null>(null);
   const queryClient = useQueryClient();
 
-  // Load progress from database
+  // PHASE: Registry_Ingress
   const loadProgress = useCallback(async () => {
     if (!enrollmentId || !contentId) {
       setIsLoading(false);
@@ -41,7 +47,7 @@ export function useCourseProgress({ enrollmentId, contentId, talentId }: UseCour
       setIsLoading(true);
       setError(null);
 
-      // Get all modules for this content
+      // HUD: Fetch_Module_Architecture
       const { data: modules, error: modulesError } = await supabase
         .from("course_modules")
         .select("id, display_order, title")
@@ -50,41 +56,36 @@ export function useCourseProgress({ enrollmentId, contentId, talentId }: UseCour
 
       if (modulesError) throw modulesError;
 
-      // Get existing progress from student_resource_progress
+      // HUD: Fetch_Interaction_Telemetry
       const { data: resourceProgress, error: progressError } = await supabase
         .from("student_resource_progress")
         .select("resource_id, completed_at, module_resources!inner(module_id, stage_number)")
         .eq("student_id", talentId || "");
 
-      if (progressError && progressError.code !== "PGRST116") {
-        throw progressError;
-      }
+      if (progressError && progressError.code !== "PGRST116") throw progressError;
 
-      // Build module progress map
       const moduleProgressMap = new Map<string, { completedStages: Set<number>; startedAt: string | null }>();
 
       (resourceProgress || []).forEach((rp: any) => {
         const moduleId = rp.module_resources?.module_id;
         const stageNumber = rp.module_resources?.stage_number;
-        
+
         if (moduleId && stageNumber) {
           if (!moduleProgressMap.has(moduleId)) {
             moduleProgressMap.set(moduleId, { completedStages: new Set(), startedAt: null });
           }
           const mp = moduleProgressMap.get(moduleId)!;
           mp.completedStages.add(stageNumber);
-          if (!mp.startedAt || rp.completed_at < mp.startedAt) {
-            mp.startedAt = rp.completed_at;
-          }
+          if (!mp.startedAt || rp.completed_at < mp.startedAt) mp.startedAt = rp.completed_at;
         }
       });
 
-      // Build course progress
+      // HUD: Trajectory_Calculation
       const moduleProgresses: ModuleProgress[] = (modules || []).map((m) => {
         const mp = moduleProgressMap.get(m.id);
         const completedStages = mp ? Array.from(mp.completedStages).sort((a, b) => a - b) : [];
         const maxStage = Math.max(...completedStages, 0);
-        const isModuleComplete = completedStages.length >= 6; // 6 stages total
+        const isModuleComplete = completedStages.length >= 6; // Standard 6-stage protocol
 
         return {
           moduleId: m.id,
@@ -107,8 +108,8 @@ export function useCourseProgress({ enrollmentId, contentId, talentId }: UseCour
         isCompleted: completedModules === totalModules && totalModules > 0,
       });
     } catch (err) {
-      console.error("Error loading course progress:", err);
-      setError(err instanceof Error ? err : new Error("Failed to load progress"));
+      console.error("PROGRESS_SYNC_FAULT:", err);
+      setError(err instanceof Error ? err : new Error("ARTIFACT_LOAD_FAILURE"));
     } finally {
       setIsLoading(false);
     }
@@ -118,13 +119,12 @@ export function useCourseProgress({ enrollmentId, contentId, talentId }: UseCour
     loadProgress();
   }, [loadProgress]);
 
-  // Save stage completion to database
+  // PHASE: Artifact_Synchronization
   const markStageComplete = useCallback(
     async (moduleId: string, stageNumber: number) => {
       if (!talentId || !moduleId) return false;
 
       try {
-        // Get resource IDs for this stage
         const { data: resources, error: resourceError } = await supabase
           .from("module_resources")
           .select("id")
@@ -133,7 +133,6 @@ export function useCourseProgress({ enrollmentId, contentId, talentId }: UseCour
 
         if (resourceError) throw resourceError;
 
-        // Mark each resource as completed
         const progressRecords = (resources || []).map((r) => ({
           student_id: talentId,
           resource_id: r.id,
@@ -148,10 +147,9 @@ export function useCourseProgress({ enrollmentId, contentId, talentId }: UseCour
           if (insertError) throw insertError;
         }
 
-        // Optimistically update local state
+        // HUD: OPTIMISTIC_SYNC_PROTOCOLS
         setProgress((prev) => {
           if (!prev) return prev;
-          
           const updatedModules = prev.modules.map((m) => {
             if (m.moduleId === moduleId) {
               const newCompletedStages = [...new Set([...m.completedStages, stageNumber])].sort((a, b) => a - b);
@@ -166,99 +164,47 @@ export function useCourseProgress({ enrollmentId, contentId, talentId }: UseCour
             return m;
           });
 
-          const completedModules = updatedModules.filter((mp) => mp.completedAt).length;
-          const totalModules = updatedModules.length;
-
+          const completedCount = updatedModules.filter((mp) => mp.completedAt).length;
           return {
             ...prev,
             modules: updatedModules,
-            overallProgress: totalModules > 0 ? Math.round((completedModules / totalModules) * 100) : 0,
-            isCompleted: completedModules === totalModules && totalModules > 0,
+            overallProgress: Math.round((completedCount / updatedModules.length) * 100),
+            isCompleted: completedCount === updatedModules.length,
           };
         });
 
-        // Invalidate related queries
         queryClient.invalidateQueries({ queryKey: ["enrollments"] });
-
         return true;
       } catch (err) {
-        console.error("Error marking stage complete:", err);
+        console.error("STAGE_COMPLETION_FAULT:", err);
         return false;
       }
     },
-    [talentId, queryClient]
+    [talentId, queryClient],
   );
 
-  // Get progress for a specific module
-  const getModuleProgress = useCallback(
-    (moduleId: string): ModuleProgress | null => {
-      return progress?.modules.find((m) => m.moduleId === moduleId) || null;
-    },
-    [progress]
-  );
-
-  // Check if a stage is unlocked
-  const isStageUnlocked = useCallback(
-    (moduleId: string, stageNumber: number): boolean => {
-      const moduleProgress = getModuleProgress(moduleId);
-      if (!moduleProgress) return stageNumber === 1;
-      if (stageNumber === 1) return true;
-      return moduleProgress.completedStages.includes(stageNumber - 1);
-    },
-    [getModuleProgress]
-  );
-
-  // Check if a stage is completed
-  const isStageCompleted = useCallback(
-    (moduleId: string, stageNumber: number): boolean => {
-      const moduleProgress = getModuleProgress(moduleId);
-      return moduleProgress?.completedStages.includes(stageNumber) || false;
-    },
-    [getModuleProgress]
-  );
-
-  // Get the current stage for a module
-  const getCurrentStage = useCallback(
-    (moduleId: string): number => {
-      const moduleProgress = getModuleProgress(moduleId);
-      return moduleProgress?.currentStage || 1;
-    },
-    [getModuleProgress]
-  );
-
-  // Complete the enrollment when all modules are done
-  const completeEnrollment = useCallback(async () => {
-    if (!enrollmentId || !progress?.isCompleted) return false;
-
-    try {
-      const { error } = await supabase
-        .from("enrollments")
-        .update({ 
-          status: "completed", 
-          completed_at: new Date().toISOString() 
-        })
-        .eq("id", enrollmentId);
-
-      if (error) throw error;
-
-      queryClient.invalidateQueries({ queryKey: ["enrollments"] });
-      return true;
-    } catch (err) {
-      console.error("Error completing enrollment:", err);
-      return false;
-    }
-  }, [enrollmentId, progress?.isCompleted, queryClient]);
-
+  // PHASE: Viewport_Diagnostic_API
   return {
     progress,
     isLoading,
     error,
     markStageComplete,
-    getModuleProgress,
-    isStageUnlocked,
-    isStageCompleted,
-    getCurrentStage,
-    completeEnrollment,
+    isStageUnlocked: (modId: string, stageNum: number) => {
+      const mp = progress?.modules.find((m) => m.moduleId === modId);
+      return stageNum === 1 || (mp?.completedStages.includes(stageNum - 1) ?? false);
+    },
+    isStageCompleted: (modId: string, stageNum: number) =>
+      progress?.modules.find((m) => m.moduleId === modId)?.completedStages.includes(stageNum) ?? false,
+    getCurrentStage: (modId: string) => progress?.modules.find((m) => m.moduleId === modId)?.currentStage || 1,
+    completeEnrollment: async () => {
+      if (!enrollmentId || !progress?.isCompleted) return false;
+      const { error } = await supabase
+        .from("enrollments")
+        .update({ status: "completed", completed_at: new Date().toISOString() })
+        .eq("id", enrollmentId);
+      if (!error) queryClient.invalidateQueries({ queryKey: ["enrollments"] });
+      return !error;
+    },
     reload: loadProgress,
   };
 }
