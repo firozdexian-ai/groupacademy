@@ -49,6 +49,12 @@ const CHANNELS = [
   { key: "telegram", label: "TELEGRAM", icon: Send, color: "text-sky-500" },
 ] as const;
 
+interface JobSharingGigFormProps {
+  gig: { id: string; title: string };
+  talentId: string;
+  onSubmitted: () => void;
+}
+
 export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigFormProps) {
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
