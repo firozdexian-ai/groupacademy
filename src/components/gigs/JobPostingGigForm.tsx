@@ -19,8 +19,15 @@ import {
   Type,
   Sparkles,
   ArrowRight,
+  Zap,
+  Building2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+/**
+ * GroUp Academy: Job Intelligence Acquisition Node
+ * CTO Reference: Authoritative interface for structured job data extraction and curation.
+ */
 
 interface JobPostingGigFormProps {
   gig: { id: string; title: string };
@@ -38,18 +45,17 @@ export function JobPostingGigForm({ gig, talentId, onSubmitted }: JobPostingGigF
   const [parseError, setParseError] = useState<string | null>(null);
   const [sourceImageUrl, setSourceImageUrl] = useState("");
 
-  // Editable parsed fields
   const [parsedRaw, setParsedRaw] = useState<any>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editCompany, setEditCompany] = useState("");
   const [editLocation, setEditLocation] = useState("");
   const [editJobType, setEditJobType] = useState("");
 
-  const MIN_CHARS = 20;
-  const hasParsed = !!parsedRaw;
-  const canSubmit = editTitle.trim() && editCompany.trim() && !isSubmitting;
+  const MIN_INGRESS_CHARS = 20;
+  const hasParsedSync = !!parsedRaw;
+  const canFinalize = editTitle.trim() && editCompany.trim() && !isSubmitting;
 
-  const handleScreenshotChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleVisionIngress = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setScreenshotFile(file);
@@ -58,15 +64,15 @@ export function JobPostingGigForm({ gig, talentId, onSubmitted }: JobPostingGigF
     reader.readAsDataURL(file);
   };
 
-  const processIntelligence = async () => {
+  const executeIntelligenceSync = async () => {
     setIsParsing(true);
     setParseError(null);
 
     try {
-      let body: any = {};
+      let payload: any = {};
 
       if (inputMode === "image" && screenshotFile) {
-        toast.info("Syncing vision data...");
+        toast.info("VISION_SYNC: Uploading evidence...");
         const fileName = `gig-job-screenshots/${talentId}/${Date.now()}-${screenshotFile.name}`;
         const { error: uploadError } = await supabase.storage.from("job-assets").upload(fileName, screenshotFile);
         if (uploadError) throw uploadError;
@@ -75,13 +81,14 @@ export function JobPostingGigForm({ gig, talentId, onSubmitted }: JobPostingGigF
           data: { publicUrl },
         } = supabase.storage.from("job-assets").getPublicUrl(fileName);
         setSourceImageUrl(publicUrl);
-        body = { imageUrl: publicUrl };
+        payload = { imageUrl: publicUrl };
       } else {
-        if (jobText.length < MIN_CHARS) throw new Error(`Requires at least ${MIN_CHARS} characters.`);
-        body = { rawText: jobText };
+        if (jobText.length < MIN_INGRESS_CHARS) throw new Error(`Requires_Min_${MIN_INGRESS_CHARS}_Chars`);
+        payload = { rawText: jobText };
       }
 
-      const { data, error } = await supabase.functions.invoke("parse-job-post", { body });
+      // INGRESS: Invoke Edge Function for AI Parsing
+      const { data, error } = await supabase.functions.invoke("parse-job-post", { body: payload });
       if (error) throw error;
 
       const parsed = data.parsed || data;
@@ -91,16 +98,16 @@ export function JobPostingGigForm({ gig, talentId, onSubmitted }: JobPostingGigF
       setEditLocation(parsed.location || "");
       setEditJobType(parsed.job_type || "");
 
-      toast.success("AI extraction complete");
+      toast.success("AI_EXTRACTION_VERIFIED");
     } catch (err: any) {
-      setParseError(err.message || "Parse failed");
-      toast.error("Intelligence sync failed");
+      setParseError(err.message || "SYNC_FAULT");
+      toast.error("PROTOCOL_SYNC_FAILED");
     } finally {
       setIsParsing(false);
     }
   };
 
-  const handleSubmit = async () => {
+  const finalizeArtifactSubmission = async () => {
     setIsSubmitting(true);
     try {
       const { error } = await supabase.from("gig_submissions").insert({
@@ -121,77 +128,90 @@ export function JobPostingGigForm({ gig, talentId, onSubmitted }: JobPostingGigF
       });
 
       if (error) throw error;
-      toast.success("Mission accomplished! Credits pending.");
+      toast.success("ARTIFACT_COMMITTED");
       onSubmitted();
     } catch (err: any) {
-      toast.error("Submission failed");
+      toast.error("SUBMISSION_FAULT");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      {!hasParsed ? (
-        <div className="space-y-6">
-          {/* Toggle Switch */}
-          <div className="p-1.5 bg-muted/50 rounded-2xl flex gap-1 border border-border/40">
+    <div className="space-y-8 animate-in fade-in duration-700 text-left">
+      {!hasParsedSync ? (
+        <div className="space-y-8">
+          {/* HUD: INPUT_PROTOCOL_TOGGLE */}
+          <div className="p-1.5 bg-muted/20 backdrop-blur-md rounded-[22px] flex gap-2 border-2 border-border/40">
             {(["text", "image"] as const).map((mode) => (
               <button
                 key={mode}
                 onClick={() => setInputMode(mode)}
                 className={cn(
-                  "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-                  inputMode === mode ? "bg-card text-primary shadow-sm" : "text-muted-foreground hover:text-foreground",
+                  "flex-1 flex items-center justify-center gap-3 py-3 rounded-[16px] text-[10px] font-black uppercase italic tracking-[0.2em] transition-all duration-500",
+                  inputMode === mode
+                    ? "bg-background text-primary shadow-xl scale-[1.02]"
+                    : "text-muted-foreground/60 hover:text-foreground",
                 )}
               >
-                {mode === "text" ? <Type className="h-3.5 w-3.5" /> : <Camera className="h-3.5 w-3.5" />}
-                {mode === "text" ? "Raw Text" : "Screenshot"}
+                {mode === "text" ? <Type className="h-4 w-4" /> : <Camera className="h-4 w-4" />}
+                {mode === "text" ? "DATA_TEXT" : "VISION_SYNC"}
               </button>
             ))}
           </div>
 
           {inputMode === "text" ? (
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
-                Paste Job Data
+            <div className="space-y-3 animate-in slide-in-from-top-2 duration-500">
+              <Label className="text-[10px] font-black uppercase italic tracking-[0.3em] text-muted-foreground ml-1">
+                Ingress_Payload
               </Label>
               <Textarea
-                placeholder="Paste the LinkedIn or Facebook job description here..."
-                className="rounded-2xl border-border/40 min-h-[160px] resize-none focus-visible:ring-primary/20"
+                placeholder="Initialize job data paste sequence..."
+                className="rounded-[28px] border-2 border-border/60 min-h-[200px] resize-none bg-background/50 p-6 font-medium italic focus-visible:ring-primary/20"
                 value={jobText}
                 onChange={(e) => setJobText(e.target.value)}
               />
             </div>
           ) : (
-            <div className="space-y-4">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
-                Evidence Capture
+            <div className="space-y-4 animate-in slide-in-from-top-2 duration-500">
+              <Label className="text-[10px] font-black uppercase italic tracking-[0.3em] text-muted-foreground ml-1">
+                Evidence_Capture
               </Label>
               <div className="relative group">
                 <Input
                   type="file"
                   accept="image/*"
-                  onChange={handleScreenshotChange}
+                  onChange={handleVisionIngress}
                   className="hidden"
-                  id="screenshot-capture"
+                  id="vision-capture"
                 />
                 <label
-                  htmlFor="screenshot-capture"
+                  htmlFor="vision-capture"
                   className={cn(
-                    "flex flex-col items-center justify-center py-10 border-2 border-dashed rounded-[32px] cursor-pointer transition-all",
+                    "flex flex-col items-center justify-center py-14 border-2 border-dashed rounded-[32px] cursor-pointer transition-all duration-500",
                     screenshotFile
-                      ? "border-primary/40 bg-primary/5"
-                      : "border-border/40 hover:border-primary/20 bg-card",
+                      ? "border-primary bg-primary/5 shadow-inner"
+                      : "border-border/40 hover:border-primary/20 bg-card/50",
                   )}
                 >
                   {screenshotPreview ? (
-                    <img src={screenshotPreview} className="h-32 w-full object-contain rounded-xl" alt="Preview" />
+                    <div className="relative h-40 w-full px-10">
+                      <img
+                        src={screenshotPreview}
+                        className="h-full w-full object-contain rounded-2xl shadow-2xl"
+                        alt="SYNC_PREVIEW"
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 rounded-2xl">
+                        <Badge className="bg-primary uppercase font-black italic">UPDATE_ARTIFACT</Badge>
+                      </div>
+                    </div>
                   ) : (
                     <>
-                      <ImagePlus className="h-8 w-8 text-muted-foreground mb-3 group-hover:scale-110 transition-transform" />
-                      <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                        Upload Image Evidence
+                      <div className="h-16 w-16 rounded-full bg-muted/20 flex items-center justify-center mb-4 group-hover:scale-110 group-hover:rotate-6 transition-all duration-700 shadow-lg">
+                        <ImagePlus className="h-8 w-8 text-muted-foreground" />
+                      </div>
+                      <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground italic">
+                        STAGING_EVIDENCE_NODE
                       </span>
                     </>
                   )}
@@ -201,107 +221,127 @@ export function JobPostingGigForm({ gig, talentId, onSubmitted }: JobPostingGigF
           )}
 
           {parseError && (
-            <div className="bg-destructive/5 border border-destructive/20 p-4 rounded-2xl flex gap-3 items-center animate-in shake-2">
-              <AlertCircle className="h-5 w-5 text-destructive" />
-              <p className="text-xs font-bold text-destructive leading-tight">{parseError}</p>
+            <div className="bg-rose-500/10 border-2 border-rose-500/20 p-5 rounded-[24px] flex gap-4 items-center animate-in shake-2">
+              <AlertCircle className="h-6 w-6 text-rose-500" />
+              <p className="text-[10px] font-black text-rose-500 uppercase italic tracking-widest leading-none">
+                {parseError}
+              </p>
             </div>
           )}
 
           <Button
-            onClick={processIntelligence}
-            disabled={isParsing || (inputMode === "text" ? jobText.length < MIN_CHARS : !screenshotFile)}
-            className="w-full rounded-2xl h-12 font-black uppercase tracking-widest shadow-lg shadow-primary/20"
+            onClick={executeIntelligenceSync}
+            disabled={isParsing || (inputMode === "text" ? jobText.length < MIN_INGRESS_CHARS : !screenshotFile)}
+            className="w-full rounded-2xl h-16 font-black uppercase italic tracking-[0.2em] shadow-[0_20px_50px_rgba(var(--primary),0.2)] hover:shadow-primary/40 transition-all active:scale-95 gap-3"
           >
-            {isParsing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
-            Extract Intelligence
+            {isParsing ? <Loader2 className="h-6 w-6 animate-spin" /> : <Zap className="h-6 w-6 fill-current" />}
+            {isParsing ? "SYNAPSE_PROCESSING..." : "PROCESS_INTELLIGENCE"}
           </Button>
         </div>
       ) : (
-        <div className="space-y-6 animate-in slide-in-from-top-4">
+        <div className="space-y-8 animate-in slide-in-from-bottom-6 duration-1000">
+          {/* CURATION_HUD: Extracted Artifact Verification */}
           <div className="flex items-center justify-between px-1">
-            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary flex items-center gap-2">
-              <CheckCircle className="h-3.5 w-3.5" /> Curate Extracted Info
-            </h4>
+            <div className="flex items-center gap-3">
+              <div className="h-3 w-3 rounded-full bg-emerald-500 animate-pulse" />
+              <h4 className="text-[11px] font-black uppercase tracking-[0.3em] text-foreground italic">
+                Curation_Verification
+              </h4>
+            </div>
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 rounded-lg text-[9px] font-black uppercase tracking-tighter"
+              className="h-9 rounded-xl text-[9px] font-black uppercase italic border-2 border-border/40 hover:bg-muted/10 gap-2"
               onClick={() => setParsedRaw(null)}
             >
-              <RotateCcw className="h-3 w-3 mr-1.5" /> Start Over
+              <RotateCcw className="h-3.5 w-3.5" /> RE_INITIALIZE
             </Button>
           </div>
 
-          <div className="bg-card border border-border/40 rounded-[28px] p-6 space-y-5 shadow-inner">
-            <div className="space-y-1.5">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 flex items-center gap-1.5">
-                <Briefcase className="h-3 w-3" /> Targeted Role
-              </Label>
-              <Input
-                value={editTitle}
-                onChange={(e) => setEditTitle(e.target.value)}
-                className="rounded-xl border-border/40 font-bold"
-              />
+          <div className="bg-card/40 backdrop-blur-xl border-2 border-border/40 rounded-[40px] p-8 space-y-6 shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
+              <Briefcase className="h-32 w-32 rotate-12" />
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 flex items-center gap-1.5">
-                <Clock className="h-3 w-3" /> Organization
-              </Label>
-              <Input
-                value={editCompany}
-                onChange={(e) => setEditCompany(e.target.value)}
-                className="rounded-xl border-border/40 font-bold"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 flex items-center gap-1.5">
-                  <MapPin className="h-3 w-3" /> Location
+            <div className="grid gap-6 relative z-10">
+              <div className="space-y-2">
+                <Label className="text-[9px] font-black uppercase tracking-widest text-primary italic ml-1">
+                  Target_Role_Identity
                 </Label>
-                <Input
-                  value={editLocation}
-                  onChange={(e) => setEditLocation(e.target.value)}
-                  className="rounded-xl border-border/40 text-xs font-bold"
-                />
+                <div className="relative">
+                  <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40" />
+                  <Input
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    className="rounded-2xl border-2 bg-background/30 pl-12 h-12 font-black italic uppercase tracking-tighter"
+                  />
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 flex items-center gap-1.5">
-                  <Clock className="h-3 w-3" /> Type
+
+              <div className="space-y-2">
+                <Label className="text-[9px] font-black uppercase tracking-widest text-primary italic ml-1">
+                  Parent_Organization
                 </Label>
-                <Input
-                  value={editJobType}
-                  onChange={(e) => setEditJobType(e.target.value)}
-                  className="rounded-xl border-border/40 text-xs font-bold uppercase"
-                />
+                <div className="relative">
+                  <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40" />
+                  <Input
+                    value={editCompany}
+                    onChange={(e) => setEditCompany(e.target.value)}
+                    className="rounded-2xl border-2 bg-background/30 pl-12 h-12 font-bold"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-[9px] font-black uppercase tracking-widest text-primary italic ml-1">
+                    Deployment_Location
+                  </Label>
+                  <div className="relative">
+                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40" />
+                    <Input
+                      value={editLocation}
+                      onChange={(e) => setEditLocation(e.target.value)}
+                      className="rounded-2xl border-2 bg-background/30 pl-12 h-12 text-xs font-bold"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[9px] font-black uppercase tracking-widest text-primary italic ml-1">
+                    Contract_Model
+                  </Label>
+                  <div className="relative">
+                    <Clock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40" />
+                    <Input
+                      value={editJobType}
+                      onChange={(e) => setEditJobType(e.target.value)}
+                      className="rounded-2xl border-2 bg-background/30 pl-12 h-12 text-[10px] font-black uppercase italic tracking-widest"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 
             {sourceImageUrl && (
-              <div className="pt-2">
-                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 mb-2">
-                  Source Attachment
+              <div className="pt-4 border-t-2 border-border/10">
+                <p className="text-[8px] font-black uppercase tracking-[0.4em] text-muted-foreground/30 mb-4 italic">
+                  Source_Artifact_Evidence
                 </p>
                 <img
                   src={sourceImageUrl}
-                  className="rounded-xl h-24 w-full object-cover border border-border/30 opacity-60"
+                  className="rounded-2xl h-28 w-full object-cover border-2 border-border/20 opacity-40 hover:opacity-80 transition-opacity"
                 />
               </div>
             )}
           </div>
 
           <Button
-            onClick={handleSubmit}
-            disabled={!canSubmit}
-            className="w-full rounded-2xl h-12 font-black uppercase tracking-widest shadow-xl shadow-primary/20 group"
+            onClick={finalizeArtifactSubmission}
+            disabled={!canFinalize}
+            className="w-full rounded-[24px] h-16 font-black uppercase italic tracking-[0.2em] shadow-2xl active:scale-95 transition-all gap-4"
           >
-            {isSubmitting ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            ) : (
-              <ArrowRight className="h-4 w-4 mr-2 group-hover:translate-x-1 transition-transform" />
-            )}
-            Confirm Mission Completion
+            {isSubmitting ? <Loader2 className="h-6 w-6 animate-spin" /> : <ShieldCheck className="h-6 w-6" />}
+            COMMIT_TO_REGISTRY
           </Button>
         </div>
       )}
