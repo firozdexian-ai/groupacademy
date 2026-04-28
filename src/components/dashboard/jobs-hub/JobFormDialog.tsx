@@ -20,8 +20,9 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 /**
- * GroUp Academy: Job Infrastructure Provisioner
- * CTO Reference: Authoritative form for job registry management and AI content enhancement.
+ * GroUp Academy: Job Infrastructure Provisioner (V2.1.26)
+ * CTO Reference: Authoritative form for job registry management.
+ * Optimized with async/await lifecycle logic for high-intensity data hydration.
  */
 
 const JOB_TYPES = ["full_time", "part_time", "contract", "internship", "freelance"] as const;
@@ -94,52 +95,60 @@ export function JobFormDialog({ open, onOpenChange, jobId, initialForm, onSaved 
   const updateField = <K extends keyof JobFormState>(key: K, value: JobFormState[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
 
+  // PROTOCOL: Optimized Node Loading
   useEffect(() => {
     if (!open) return;
-    if (jobId) {
+
+    const loadJobNode = async () => {
+      if (!jobId) {
+        setForm({ ...EMPTY_JOB_FORM, ...(initialForm || {}) });
+        return;
+      }
+
       setLoading(true);
-      supabase
-        .from("jobs")
-        .select("*")
-        .eq("id", jobId)
-        .single()
-        .then(({ data, error }) => {
-          if (error || !data) {
-            toast.error("Registry Ingestion Fault: Failed to load job node.");
-            return;
-          }
-          setForm({
-            title: data.title || "",
-            company_name: data.company_name || "",
-            company_logo_url: data.company_logo_url || "",
-            location: data.location || "",
-            job_type: (data.job_type as any) || "full_time",
-            experience_level: (data.experience_level as any) || "entry",
-            salary_range_min: data.salary_range_min?.toString() || "",
-            salary_range_max: data.salary_range_max?.toString() || "",
-            salary_currency: data.salary_currency || "BDT",
-            description: data.description || "",
-            application_type: (data.application_type as any) || "internal",
-            application_email: data.application_email || "",
-            application_url: data.application_url || "",
-            source_platform: (data.source_platform as any) || "other",
-            source_image_url: data.source_image_url || "",
-            is_active: data.is_active ?? true,
-            is_featured: data.is_featured ?? false,
-            ai_assessment_enabled: data.ai_assessment_enabled ?? false,
-            vacancies: data.vacancies?.toString() || "1",
-            deadline: data.deadline ? new Date(data.deadline).toISOString().slice(0, 10) : "",
-          });
-        })
-        .finally(() => setLoading(false));
-    } else {
-      setForm({ ...EMPTY_JOB_FORM, ...(initialForm || {}) });
-    }
+      try {
+        const { data, error } = await supabase.from("jobs").select("*").eq("id", jobId).single();
+
+        if (error || !data) {
+          toast.error("Registry Ingestion Fault: Node not found.");
+          return;
+        }
+
+        setForm({
+          title: data.title || "",
+          company_name: data.company_name || "",
+          company_logo_url: data.company_logo_url || "",
+          location: data.location || "",
+          job_type: (data.job_type as any) || "full_time",
+          experience_level: (data.experience_level as any) || "entry",
+          salary_range_min: data.salary_range_min?.toString() || "",
+          salary_range_max: data.salary_range_max?.toString() || "",
+          salary_currency: data.salary_currency || "BDT",
+          description: data.description || "",
+          application_type: (data.application_type as any) || "internal",
+          application_email: data.application_email || "",
+          application_url: data.application_url || "",
+          source_platform: (data.source_platform as any) || "other",
+          source_image_url: data.source_image_url || "",
+          is_active: data.is_active ?? true,
+          is_featured: data.is_featured ?? false,
+          ai_assessment_enabled: data.ai_assessment_enabled ?? false,
+          vacancies: data.vacancies?.toString() || "1",
+          deadline: data.deadline ? new Date(data.deadline).toISOString().slice(0, 10) : "",
+        });
+      } catch (err) {
+        console.error("Infrastructure Sync Fault:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadJobNode();
   }, [open, jobId, initialForm]);
 
   const handleLogoUpload = async (file: File) => {
     setIsUploadingLogo(true);
-    const toastId = toast.loading("Uploading institutional artifact...");
+    const toastId = toast.loading("Deploying institutional artifact...");
     try {
       const fileName = `job-logos/${Date.now()}-${file.name}`;
       const { error } = await supabase.storage.from("job-assets").upload(fileName, file);
@@ -158,7 +167,7 @@ export function JobFormDialog({ open, onOpenChange, jobId, initialForm, onSaved 
 
   const handleEnhanceDescription = async () => {
     if (form.description.length < 30) {
-      toast.error("Protocol Fault: Min 30 characters required for neural enhancement.");
+      toast.error("Protocol Fault: Min 30 characters required.");
       return;
     }
     setIsEnhancing(true);
@@ -182,7 +191,7 @@ export function JobFormDialog({ open, onOpenChange, jobId, initialForm, onSaved 
 
   const handleSave = async () => {
     if (!form.title.trim() || !form.company_name.trim() || !form.description.trim()) {
-      toast.error("Protocol Fault: Mandatory fields missing.");
+      toast.error("Validation Fault: Mandatory fields missing.");
       return;
     }
 
@@ -220,7 +229,7 @@ export function JobFormDialog({ open, onOpenChange, jobId, initialForm, onSaved 
       onOpenChange(false);
       onSaved?.();
     } catch (err: any) {
-      toast.error("Registry Fault: " + err.message);
+      toast.error("Registry Persistence Fault: " + err.message);
     } finally {
       setIsSaving(false);
     }
@@ -248,7 +257,7 @@ export function JobFormDialog({ open, onOpenChange, jobId, initialForm, onSaved 
           </div>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto p-8 pt-0 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-8 pt-0">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-24 gap-4">
               <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -258,7 +267,7 @@ export function JobFormDialog({ open, onOpenChange, jobId, initialForm, onSaved 
             </div>
           ) : (
             <div className="space-y-10 py-4 text-left">
-              {/* CORE IDENTITY */}
+              {/* SECTION: CORE IDENTITY */}
               <section className="space-y-6">
                 <div className="flex items-center gap-2 mb-4 border-b border-border/10 pb-2">
                   <ShieldCheck className="h-4 w-4 text-primary" />
@@ -272,8 +281,8 @@ export function JobFormDialog({ open, onOpenChange, jobId, initialForm, onSaved 
                     <Input
                       value={form.title}
                       onChange={(e) => updateField("title", e.target.value)}
-                      placeholder="E.G. LEAD NEURAL ARCHITECT"
-                      className="h-14 rounded-2xl border-2 font-black uppercase italic text-xs tracking-widest bg-muted/10"
+                      placeholder="E.G. LEAD FRONTEND ENGINEER"
+                      className="h-14 rounded-2xl border-2 font-bold"
                     />
                   </div>
                   <div className="space-y-2">
@@ -287,13 +296,13 @@ export function JobFormDialog({ open, onOpenChange, jobId, initialForm, onSaved 
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase text-primary italic ml-2 flex items-center gap-2">
-                      <Globe className="h-3 w-3" /> Geographical Node
+                    <Label className="text-[10px] font-black uppercase text-primary italic ml-2">
+                      Geographical Node
                     </Label>
                     <Input
                       value={form.location}
                       onChange={(e) => updateField("location", e.target.value)}
-                      placeholder="DHAKA, BANGLADESH / REMOTE"
+                      placeholder="DHAKA, BANGLADESH"
                       className="h-14 rounded-2xl border-2 font-bold"
                     />
                   </div>
@@ -313,17 +322,17 @@ export function JobFormDialog({ open, onOpenChange, jobId, initialForm, onSaved 
                         />
                         <button
                           onClick={() => updateField("company_logo_url", "")}
-                          className="absolute -top-2 -right-2 bg-destructive text-white rounded-full p-1 shadow-lg hover:scale-110 transition-transform"
+                          className="absolute -top-2 -right-2 bg-destructive text-white rounded-full p-1 shadow-lg"
                         >
                           <X className="h-3 w-3" />
                         </button>
                       </div>
                     ) : (
-                      <label className="h-16 w-16 border-2 border-dashed border-primary/20 rounded-2xl flex items-center justify-center cursor-pointer hover:bg-primary/5 transition-all group shrink-0">
+                      <label className="h-16 w-16 border-2 border-dashed border-primary/20 rounded-2xl flex items-center justify-center cursor-pointer hover:bg-primary/5 shrink-0 transition-all">
                         {isUploadingLogo ? (
                           <Loader2 className="h-6 w-6 animate-spin text-primary" />
                         ) : (
-                          <Upload className="h-6 w-6 text-muted-foreground group-hover:text-primary" />
+                          <Upload className="h-6 w-6 text-muted-foreground" />
                         )}
                         <input
                           type="file"
@@ -336,14 +345,14 @@ export function JobFormDialog({ open, onOpenChange, jobId, initialForm, onSaved 
                     <Input
                       value={form.company_logo_url}
                       onChange={(e) => updateField("company_logo_url", e.target.value)}
-                      placeholder="PASTE REMOTE ASSET URL..."
-                      className="flex-1 h-12 rounded-xl border-2 font-mono text-[10px] uppercase"
+                      placeholder="OR PASTE URL..."
+                      className="flex-1 h-12 rounded-xl border-2 font-mono text-[10px]"
                     />
                   </div>
                 </div>
               </section>
 
-              {/* SPECIFICATIONS */}
+              {/* SECTION: SPECIFICATIONS */}
               <section className="space-y-6">
                 <div className="flex items-center gap-2 mb-4 border-b border-border/10 pb-2">
                   <Zap className="h-4 w-4 text-primary" />
@@ -411,7 +420,7 @@ export function JobFormDialog({ open, onOpenChange, jobId, initialForm, onSaved 
                 </div>
               </section>
 
-              {/* CORE PAYLOAD */}
+              {/* SECTION: CORE PAYLOAD */}
               <section className="space-y-4">
                 <div className="flex items-center justify-between px-2">
                   <Label className="text-[10px] font-black uppercase text-primary italic">Narrative Payload *</Label>
@@ -421,7 +430,7 @@ export function JobFormDialog({ open, onOpenChange, jobId, initialForm, onSaved 
                     size="sm"
                     onClick={handleEnhanceDescription}
                     disabled={isEnhancing}
-                    className="h-8 rounded-xl border-2 border-primary/20 bg-primary/5 hover:bg-primary/10 transition-all font-black text-[9px] uppercase italic tracking-widest gap-2"
+                    className="h-8 rounded-xl border-2 border-primary/20 bg-primary/5 hover:bg-primary/10 font-black text-[9px] uppercase italic tracking-widest gap-2"
                   >
                     {isEnhancing ? (
                       <Loader2 className="h-3 w-3 animate-spin" />
@@ -435,12 +444,12 @@ export function JobFormDialog({ open, onOpenChange, jobId, initialForm, onSaved 
                   value={form.description}
                   onChange={(e) => updateField("description", e.target.value)}
                   rows={10}
-                  placeholder="INPUT ROLE RESPONSIBILITIES, ARCHITECTURAL REQUIREMENTS, AND YIELD BENEFITS..."
-                  className="rounded-[32px] border-2 font-medium italic text-sm leading-relaxed bg-muted/5 p-8 focus-visible:ring-primary shadow-inner"
+                  placeholder="INPUT ROLE RESPONSIBILITIES..."
+                  className="rounded-[32px] border-2 font-medium italic text-sm leading-relaxed bg-muted/5 p-8 shadow-inner"
                 />
               </section>
 
-              {/* TRANSMISSION LOGIC */}
+              {/* SECTION: TRANSMISSION & LIFECYCLE */}
               <section className="grid grid-cols-1 md:grid-cols-2 gap-6 p-8 rounded-[40px] border-2 border-primary/10 bg-primary/5">
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase text-primary italic ml-2">
@@ -463,7 +472,7 @@ export function JobFormDialog({ open, onOpenChange, jobId, initialForm, onSaved 
                   </Select>
                 </div>
                 {form.application_type === "email" && (
-                  <div className="space-y-2 animate-in slide-in-from-right-2">
+                  <div className="space-y-2">
                     <Label className="text-[10px] font-black uppercase text-primary italic ml-2">
                       Transmission Email *
                     </Label>
@@ -476,13 +485,12 @@ export function JobFormDialog({ open, onOpenChange, jobId, initialForm, onSaved 
                   </div>
                 )}
                 {form.application_type === "link" && (
-                  <div className="space-y-2 animate-in slide-in-from-right-2">
+                  <div className="space-y-2">
                     <Label className="text-[10px] font-black uppercase text-primary italic ml-2">
                       External Redirect URL *
                     </Label>
                     <Input
                       type="url"
-                      placeholder="HTTPS://..."
                       value={form.application_url}
                       onChange={(e) => updateField("application_url", e.target.value)}
                       className="h-14 rounded-2xl border-2 font-bold bg-background"
@@ -491,7 +499,6 @@ export function JobFormDialog({ open, onOpenChange, jobId, initialForm, onSaved 
                 )}
               </section>
 
-              {/* LIFECYCLE CONTROLS */}
               <section className="grid grid-cols-2 md:grid-cols-4 gap-6 items-center">
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase text-primary italic ml-2">Vacancies</Label>
@@ -546,7 +553,7 @@ export function JobFormDialog({ open, onOpenChange, jobId, initialForm, onSaved 
           <Button
             onClick={handleSave}
             disabled={isSaving || loading}
-            className="h-16 px-12 rounded-[24px] font-black uppercase italic tracking-tighter text-xl gap-3 shadow-xl shadow-primary/20 active:scale-95 transition-all"
+            className="h-16 px-12 rounded-[24px] font-black uppercase italic tracking-tighter text-xl gap-3 shadow-xl shadow-primary/20 transition-all active:scale-95"
           >
             {isSaving ? <Loader2 className="h-6 w-6 animate-spin" /> : <ShieldCheck className="h-6 w-6 fill-current" />}
             {jobId ? "Commit Updates" : "Initialize Deployment"}
@@ -580,7 +587,7 @@ function SelectNode({ label, value, options, onChange }: any) {
 function SwitchNode({ label, checked, onChange }: any) {
   return (
     <label className="flex items-center gap-3 cursor-pointer group">
-      <Switch checked={checked} onCheckedChange={onChange} className="data-[state=checked]:bg-primary" />
+      <Switch checked={checked} onCheckedChange={onChange} />
       <span className="text-[10px] font-black uppercase italic tracking-widest text-muted-foreground group-hover:text-primary transition-colors">
         {label}
       </span>
