@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 /**
  * GroUp Academy: Institutional Enrollment Gateway
  * CTO Reference: Authoritative node for validating alphanumeric curriculum keys.
+ * Note: Uses 'as any' on RPC calls to bypass stale local type definitions.
  */
 
 interface AccessCodeDialogProps {
@@ -120,8 +121,9 @@ export const AccessCodeDialog = ({ open, onOpenChange, contentId, contentTitle, 
       }
 
       // PHASE 5: Counter Incrementation
-      await supabase.rpc("increment_access_code_use", { row_id: accessCode.id });
-      await supabase.rpc("increment_content_enrollment", { row_id: contentId });
+      // CTO Audit: 'as any' used to bypass stale local database types
+      await supabase.rpc("increment_access_code_use" as any, { row_id: accessCode.id });
+      await supabase.rpc("increment_content_enrollment" as any, { row_id: contentId });
 
       toast.success("CURRICULUM_SYNC_COMPLETE");
       onSuccess();
@@ -147,7 +149,7 @@ export const AccessCodeDialog = ({ open, onOpenChange, contentId, contentTitle, 
               </div>
               <div className="space-y-1">
                 <DialogTitle className="text-2xl font-black uppercase italic tracking-tighter">Key_Ingress</DialogTitle>
-                <DialogDescription className="text-[10px] font-bold uppercase tracking-[0.3em] text-muted-foreground/60 italic">
+                <DialogDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 italic">
                   Initialize_Curriculum_Handshake
                 </DialogDescription>
               </div>
@@ -193,15 +195,15 @@ export const AccessCodeDialog = ({ open, onOpenChange, contentId, contentTitle, 
                 type="submit"
                 size="xl"
                 disabled={isValidating || !code.trim()}
-                className="flex-1 h-14 rounded-2xl font-black uppercase italic text-[10px] tracking-[0.2em] shadow-lg shadow-primary/20 transition-all active:scale-95"
+                className="flex-1 h-14 rounded-2xl font-black uppercase italic text-[10px] tracking-[0.2em] shadow-lg shadow-primary/20 transition-all active:scale-95 gap-3"
               >
                 {isValidating ? (
                   <>
-                    <Loader2 className="h-5 w-5 animate-spin mr-2" /> VALIDATING...
+                    <Loader2 className="h-5 w-5 animate-spin" /> VALIDATING...
                   </>
                 ) : (
                   <>
-                    <ShieldCheck className="h-5 w-5 mr-2" /> VALIDATE_&_SYNC
+                    <ShieldCheck className="h-5 w-5" /> VALIDATE_&_SYNC
                   </>
                 )}
               </Button>
