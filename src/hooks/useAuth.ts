@@ -6,8 +6,9 @@ import { toast } from "sonner";
 import { isPhoneNumber } from "@/lib/validations";
 
 /**
- * GroUp Academy: Neural Identity Orchestrator (V2.4.26)
+ * GroUp Academy: Neural Identity Orchestrator
  * CTO Reference: Authoritative controller for identity sync and session lifecycle.
+ * Sync Version: 2026.04.29 - Fixed createStudentProfile parameter mismatch (TS2554).
  */
 
 export interface AuthState {
@@ -43,7 +44,6 @@ export const useAuth = (): AuthState => {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (mounted.current) {
-        // PROTOCOL: Handle stale artifacts
         if (event === "TOKEN_REFRESHED" && !session) {
           supabase.auth.signOut();
           setSession(null);
@@ -153,7 +153,6 @@ export const useAuth = (): AuthState => {
       toast.loading("INITIALIZING_PROFILE_ARTIFACT...", { duration: 1500 });
       await new Promise((r) => setTimeout(r, 1500));
 
-      // Handshake: Verify session propagation
       let activeSession = null;
       for (let i = 0; i < 3; i++) {
         const { data } = await supabase.auth.getSession();
@@ -203,5 +202,34 @@ export const useAuth = (): AuthState => {
   return { user, session, isLoading, signIn, signUp, signOut, resetPassword, updatePassword };
 };
 
-// @deprecated: Faculty reference only
-export const createStudentProfile = async (_id: string, _name: string, _email: string): Promise<boolean> => true;
+/**
+ * Institutional Profile Handshake
+ * CTO Reference: Corrected signature to resolve TS2554. Hydrates the talent registry.
+ */
+export const createStudentProfile = async (
+  userId: string,
+  fullName: string,
+  email: string,
+  phone?: string,
+  status: "free_learner" | "lead" | "enrolled" | "graduated" = "free_learner",
+): Promise<boolean> => {
+  try {
+    const { error } = await supabase.from("talents").upsert(
+      {
+        id: userId,
+        full_name: fullName,
+        email: email,
+        phone: phone || "",
+        status: status,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "id" },
+    );
+
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.error("IDENTITY_HYDRATION_FAULT:", err);
+    return false;
+  }
+};
