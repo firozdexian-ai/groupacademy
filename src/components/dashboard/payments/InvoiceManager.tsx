@@ -13,26 +13,17 @@ import {
   Upload,
   FileText,
   ExternalLink,
+  Zap,
+  ShieldCheck,
+  TrendingUp,
+  MoreHorizontal,
 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -44,15 +35,14 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { SUPPORT_CONFIG } from "@/lib/constants/support";
+import { cn } from "@/lib/utils";
 
-type InvoiceStatus =
-  | "all"
-  | "pending"
-  | "awaiting_payment"
-  | "paid"
-  | "cancelled"
-  | "refunded";
+/**
+ * GroUp Academy: Capital Ingress Ledger (InvoiceManager)
+ * CTO Reference: Authoritative node for credit purchase verification and fund disbursement.
+ */
+
+type InvoiceStatus = "all" | "pending" | "awaiting_payment" | "paid" | "cancelled" | "refunded";
 
 interface InvoiceRow {
   id: string;
@@ -77,15 +67,19 @@ interface InvoiceRow {
 }
 
 const STATUS_BADGE: Record<string, { label: string; className: string; icon: React.ElementType }> = {
-  pending: { label: "Pending", className: "bg-warning/10 text-warning border-warning/20", icon: Clock },
+  pending: { label: "PENDING_AUDIT", className: "bg-amber-500/10 text-amber-600 border-amber-500/20", icon: Clock },
   awaiting_payment: {
-    label: "Awaiting Payment",
+    label: "AWAITING_FUNDS",
     className: "bg-primary/10 text-primary border-primary/20",
     icon: MessageCircle,
   },
-  paid: { label: "Paid", className: "bg-success/10 text-success border-success/20", icon: CheckCircle2 },
-  cancelled: { label: "Cancelled", className: "bg-muted text-muted-foreground", icon: XCircle },
-  refunded: { label: "Refunded", className: "bg-muted text-muted-foreground", icon: XCircle },
+  paid: {
+    label: "TRANSACTION_SETTLED",
+    className: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+    icon: CheckCircle2,
+  },
+  cancelled: { label: "NODE_TERMINATED", className: "bg-muted text-muted-foreground", icon: XCircle },
+  refunded: { label: "CAPITAL_REVERTED", className: "bg-muted text-muted-foreground", icon: XCircle },
 };
 
 export function InvoiceManager() {
@@ -101,9 +95,7 @@ export function InvoiceManager() {
     queryFn: async () => {
       let q = supabase
         .from("credit_invoices")
-        .select(
-          "*, talents:talent_id (full_name, email, phone)"
-        )
+        .select("*, talents:talent_id (full_name, email, phone)")
         .order("created_at", { ascending: false })
         .limit(500);
 
@@ -123,7 +115,7 @@ export function InvoiceManager() {
         i.invoice_number?.toLowerCase().includes(s) ||
         i.talents?.full_name?.toLowerCase().includes(s) ||
         i.talents?.email?.toLowerCase().includes(s) ||
-        i.talents?.phone?.toLowerCase().includes(s)
+        i.talents?.phone?.toLowerCase().includes(s),
     );
   }, [invoices, search]);
 
@@ -135,9 +127,7 @@ export function InvoiceManager() {
     const monthStart = new Date();
     monthStart.setDate(1);
     monthStart.setHours(0, 0, 0, 0);
-    const paidThisMonth = list.filter(
-      (i) => i.status === "paid" && i.paid_at && new Date(i.paid_at) >= monthStart
-    );
+    const paidThisMonth = list.filter((i) => i.status === "paid" && i.paid_at && new Date(i.paid_at) >= monthStart);
     const paidUsd = paidThisMonth.reduce((s, i) => s + Number(i.bundle_price_usd || 0), 0);
     const paidCredits = paidThisMonth.reduce((s, i) => s + (i.bundle_credits || 0), 0);
     return { pending, awaiting: awaiting.length, awaitingValue, paidUsd, paidCredits };
@@ -146,69 +136,91 @@ export function InvoiceManager() {
   const refresh = () => qc.invalidateQueries({ queryKey: ["admin-credit-invoices"] });
 
   return (
-    <div className="space-y-4">
-      {/* KPI strip */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <KpiCard label="Pending" value={kpis.pending.toString()} icon={Clock} />
-        <KpiCard
-          label="Awaiting Payment"
-          value={`${kpis.awaiting} · $${kpis.awaitingValue.toFixed(2)}`}
-          icon={MessageCircle}
+    <div className="space-y-8 animate-in fade-in duration-500">
+      {/* EXECUTIVE KPI STRIP */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <KpiNode label="Pending Audit" value={kpis.pending.toString()} icon={Clock} color="text-amber-500" />
+        <KpiNode
+          label="Awaiting Capital"
+          value={`$${kpis.awaitingValue.toFixed(0)}`}
+          subtext={`${kpis.awaiting} Nodes`}
+          icon={TrendingUp}
+          color="text-primary"
         />
-        <KpiCard label="Paid (MTD)" value={`$${kpis.paidUsd.toFixed(2)}`} icon={CheckCircle2} />
-        <KpiCard label="Credits Disbursed (MTD)" value={kpis.paidCredits.toString()} icon={Coins} />
+        <KpiNode
+          label="MTD Revenue"
+          value={`$${kpis.paidUsd.toFixed(2)}`}
+          icon={ShieldCheck}
+          color="text-emerald-500"
+        />
+        <KpiNode
+          label="Yield Disbursed"
+          value={kpis.paidCredits.toLocaleString()}
+          subtext="Credits"
+          icon={Coins}
+          color="text-blue-500"
+        />
       </div>
 
-      {/* Filters */}
-      <Card>
-        <CardContent className="p-3 flex flex-col sm:flex-row gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      {/* COMMAND BAR */}
+      <Card className="rounded-[32px] border-2 border-border/40 bg-card/30 backdrop-blur-md shadow-xl overflow-hidden">
+        <CardContent className="p-4 flex flex-col sm:flex-row gap-4 items-center">
+          <div className="relative flex-1 w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
             <Input
-              placeholder="Search invoice #, name, email, phone…"
-              className="pl-9"
+              placeholder="SEARCH IDENTITY OR INVOICE STRING..."
+              className="h-12 rounded-2xl border-2 pl-10 font-bold uppercase text-[10px] tracking-widest bg-background/50"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
           <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as InvoiceStatus)}>
-            <SelectTrigger className="sm:w-48">
+            <SelectTrigger className="w-full sm:w-[220px] h-12 rounded-2xl border-2 font-black uppercase text-[10px] tracking-widest bg-background">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All statuses</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="awaiting_payment">Awaiting payment</SelectItem>
-              <SelectItem value="paid">Paid</SelectItem>
-              <SelectItem value="cancelled">Cancelled</SelectItem>
-              <SelectItem value="refunded">Refunded</SelectItem>
+            <SelectContent className="rounded-xl border-2">
+              <SelectItem value="all" className="font-bold text-[10px]">
+                ALL_LOGS
+              </SelectItem>
+              <SelectItem value="pending" className="font-bold text-[10px] uppercase">
+                Pending Audit
+              </SelectItem>
+              <SelectItem value="awaiting_payment" className="font-bold text-[10px] uppercase">
+                Awaiting payment
+              </SelectItem>
+              <SelectItem value="paid" className="font-bold text-[10px] uppercase text-emerald-600">
+                Paid settled
+              </SelectItem>
+              <SelectItem value="cancelled" className="font-bold text-[10px] uppercase">
+                Cancelled
+              </SelectItem>
             </SelectContent>
           </Select>
         </CardContent>
       </Card>
 
-      {/* Table */}
-      <Card>
+      {/* LEDGER TABLE */}
+      <Card className="rounded-[40px] border-2 border-border/40 bg-card/30 shadow-2xl overflow-hidden">
         <CardContent className="p-0">
           {isLoading ? (
-            <div className="p-4 space-y-2">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))}
+            <div className="p-8">
+              <Skeleton className="h-96 w-full rounded-3xl" />
             </div>
-          ) : filtered.length === 0 ? (
-            <div className="p-8 text-center text-sm text-muted-foreground">No invoices found.</div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Invoice</TableHead>
-                    <TableHead>Talent</TableHead>
-                    <TableHead className="text-right">Bundle</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                <TableHeader className="bg-muted/5">
+                  <TableRow className="hover:bg-transparent border-b-2">
+                    <TableHead className="font-black uppercase text-[10px] tracking-widest py-6 pl-8">
+                      Invoice Node
+                    </TableHead>
+                    <TableHead className="font-black uppercase text-[10px] tracking-widest">Talent Identity</TableHead>
+                    <TableHead className="font-black uppercase text-[10px] tracking-widest text-right">
+                      Bundle Payload
+                    </TableHead>
+                    <TableHead className="font-black uppercase text-[10px] tracking-widest">Status Protocol</TableHead>
+                    <TableHead className="font-black uppercase text-[10px] tracking-widest">Ingress Date</TableHead>
+                    <TableHead className="text-right py-6 pr-8"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -216,38 +228,54 @@ export function InvoiceManager() {
                     const meta = STATUS_BADGE[inv.status] || STATUS_BADGE.pending;
                     const Icon = meta.icon;
                     return (
-                      <TableRow key={inv.id}>
-                        <TableCell className="font-mono text-xs">{inv.invoice_number}</TableCell>
+                      <TableRow
+                        key={inv.id}
+                        className="group border-b border-border/5 hover:bg-primary/5 transition-colors"
+                      >
+                        <TableCell className="pl-8 py-6">
+                          <Badge
+                            variant="outline"
+                            className="font-mono text-[10px] border-primary/20 text-primary bg-primary/5"
+                          >
+                            {inv.invoice_number}
+                          </Badge>
+                        </TableCell>
                         <TableCell>
-                          <div className="text-sm font-medium">
-                            {inv.talents?.full_name || "—"}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
+                          <p className="font-black text-sm uppercase italic tracking-tight">
+                            {inv.talents?.full_name || "NULL_ENTITY"}
+                          </p>
+                          <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">
                             {inv.talents?.email}
-                          </div>
+                          </p>
                         </TableCell>
                         <TableCell className="text-right">
-                          <div className="font-semibold">{inv.bundle_credits} cr</div>
-                          <div className="text-xs text-muted-foreground">
+                          <div className="font-black italic text-sm">{inv.bundle_credits.toLocaleString()} CR</div>
+                          <div className="text-[10px] font-bold text-primary">
                             ${Number(inv.bundle_price_usd).toFixed(2)}
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className={meta.className}>
-                            <Icon className="h-3 w-3 mr-1" />
+                          <Badge
+                            className={cn(
+                              "font-black text-[9px] uppercase italic border-2 px-3 py-1 rounded-full",
+                              meta.className,
+                            )}
+                          >
+                            <Icon className="h-3 w-3 mr-1.5" />
                             {meta.label}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">
+                        <TableCell className="text-[10px] font-black italic text-muted-foreground/50 uppercase">
                           {format(new Date(inv.created_at), "dd MMM, HH:mm")}
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right pr-8">
                           <Button
                             size="sm"
                             variant="outline"
+                            className="h-9 px-4 rounded-xl border-2 font-black uppercase text-[10px] tracking-widest hover:bg-primary hover:text-white transition-all shadow-sm"
                             onClick={() => setSelected(inv)}
                           >
-                            Manage
+                            Manage_Node
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -260,171 +288,170 @@ export function InvoiceManager() {
         </CardContent>
       </Card>
 
-      {/* Detail dialog */}
+      {/* DETAIL DIALOG */}
       {selected && (
         <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
-          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="font-mono">{selected.invoice_number}</DialogTitle>
-              <DialogDescription>
-                {selected.bundle_credits} credits · ${Number(selected.bundle_price_usd).toFixed(2)}
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-3 text-sm">
-              <Row label="Talent" value={selected.talents?.full_name || "—"} />
-              <Row label="Email" value={selected.talents?.email || "—"} />
-              <Row label="Phone" value={selected.talents?.phone || "—"} />
-              <Row label="Channel" value={selected.channel} />
-              <Row label="Status" value={STATUS_BADGE[selected.status]?.label || selected.status} />
-              {selected.payment_method && (
-                <Row label="Payment method" value={selected.payment_method} />
-              )}
-              {selected.payment_reference && (
-                <Row label="Reference" value={selected.payment_reference} />
-              )}
-              {selected.payment_proof_url && (
-                <a
-                  href={selected.payment_proof_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 text-primary hover:underline text-sm"
-                >
-                  <FileText className="h-3.5 w-3.5" /> View payment proof
-                  <ExternalLink className="h-3 w-3" />
-                </a>
-              )}
-              {selected.admin_notes && (
-                <div className="p-2 bg-muted rounded text-xs">
-                  <div className="font-medium mb-1">Admin notes</div>
-                  {selected.admin_notes}
+          <DialogContent className="max-w-2xl border-4 p-0 overflow-hidden bg-background rounded-[40px] shadow-2xl">
+            <div className="h-2 w-full bg-primary" />
+            <div className="p-10 space-y-8 max-h-[85vh] overflow-y-auto no-scrollbar text-left">
+              <DialogHeader>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <DialogTitle className="text-3xl font-black uppercase italic tracking-tighter flex items-center gap-3">
+                      <Zap className="h-8 w-8 text-primary fill-current" /> {selected.invoice_number}
+                    </DialogTitle>
+                    <DialogDescription className="text-[10px] font-bold uppercase tracking-[0.2em] mt-1">
+                      Transaction Audit Protocol Active
+                    </DialogDescription>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-3xl font-black italic tracking-tighter leading-none">
+                      {selected.bundle_credits.toLocaleString()} CR
+                    </p>
+                    <p className="text-[10px] font-black text-primary uppercase mt-1">
+                      Payload Value: ${Number(selected.bundle_price_usd).toFixed(2)}
+                    </p>
+                  </div>
                 </div>
-              )}
-              {selected.cancellation_reason && (
-                <div className="p-2 bg-destructive/10 rounded text-xs">
-                  <div className="font-medium mb-1">Cancelled</div>
-                  {selected.cancellation_reason}
-                </div>
-              )}
-            </div>
+              </DialogHeader>
 
-            <DialogFooter className="gap-2 flex-wrap">
-              {selected.talents?.phone && (
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    const phone = selected.talents!.phone!.replace(/[^0-9]/g, "");
-                    const msg = encodeURIComponent(
-                      `Hi ${selected.talents?.full_name || "there"}, regarding invoice ${selected.invoice_number} for ${selected.bundle_credits} credits ($${Number(selected.bundle_price_usd).toFixed(2)}).`
-                    );
-                    window.open(`https://wa.me/${phone}?text=${msg}`, "_blank");
-                  }}
-                >
-                  <MessageCircle className="h-4 w-4 mr-1" /> WhatsApp talent
-                </Button>
-              )}
-              {!selected.credits_disbursed && selected.status !== "cancelled" && (
-                <>
-                  {selected.status === "pending" && (
-                    <Button
-                      variant="secondary"
-                      onClick={async () => {
-                        const { error } = await supabase
-                          .from("credit_invoices")
-                          .update({ status: "awaiting_payment" })
-                          .eq("id", selected.id);
-                        if (error) toast.error(error.message);
-                        else {
-                          toast.success("Marked as awaiting payment");
-                          refresh();
-                          setSelected(null);
-                        }
-                      }}
-                    >
-                      Mark awaiting payment
-                    </Button>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 py-6 border-y border-border/10">
+                <div className="space-y-4">
+                  <DetailRow label="Talent identity" value={selected.talents?.full_name || "—"} />
+                  <DetailRow label="Contact Link" value={selected.talents?.email || "—"} />
+                  <DetailRow label="Channel Node" value={selected.channel.toUpperCase()} />
+                  <DetailRow label="Verified Status" value={STATUS_BADGE[selected.status]?.label || selected.status} />
+                </div>
+                <div className="space-y-4">
+                  {selected.payment_method && (
+                    <DetailRow label="Methodology" value={selected.payment_method.toUpperCase()} />
                   )}
-                  <Button variant="destructive" onClick={() => setCancelOpen(true)}>
-                    Cancel
-                  </Button>
-                  <Button onClick={() => setApproveOpen(true)}>
-                    <CheckCircle2 className="h-4 w-4 mr-1" /> Approve & disburse
-                  </Button>
-                </>
-              )}
-            </DialogFooter>
+                  {selected.payment_reference && <DetailRow label="TXN Reference" value={selected.payment_reference} />}
+                  {selected.payment_proof_url && (
+                    <div className="pt-2">
+                      <Button
+                        variant="outline"
+                        className="w-full h-12 rounded-xl border-2 font-black uppercase text-[10px] tracking-widest gap-2"
+                        asChild
+                      >
+                        <a href={selected.payment_proof_url} target="_blank" rel="noreferrer">
+                          <FileText className="h-4 w-4" /> View Payment Artifact <ExternalLink className="h-3 w-3" />
+                        </a>
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
 
-            <ApproveDialog
-              open={approveOpen}
-              onOpenChange={setApproveOpen}
-              invoice={selected}
-              onDone={() => {
-                refresh();
-                setApproveOpen(false);
-                setSelected(null);
-              }}
-            />
-            <CancelDialog
-              open={cancelOpen}
-              onOpenChange={setCancelOpen}
-              invoice={selected}
-              onDone={() => {
-                refresh();
-                setCancelOpen(false);
-                setSelected(null);
-              }}
-            />
+              {selected.admin_notes && (
+                <div className="p-6 bg-muted/20 rounded-[24px] border-2 border-border/5">
+                  <p className="text-[9px] font-black uppercase text-primary italic mb-2 tracking-widest">
+                    Executive Audit Notes
+                  </p>
+                  <p className="text-sm font-medium italic leading-relaxed opacity-70">{selected.admin_notes}</p>
+                </div>
+              )}
+
+              <DialogFooter className="pt-4 gap-4 flex-col sm:flex-row">
+                {selected.talents?.phone && (
+                  <Button
+                    variant="outline"
+                    className="h-14 px-8 rounded-2xl border-2 font-black uppercase text-[10px] tracking-widest gap-2"
+                    onClick={() => {
+                      const phone = selected.talents!.phone!.replace(/[^0-9]/g, "");
+                      const msg = encodeURIComponent(
+                        `Hi ${selected.talents?.full_name || "there"}, regarding your GroUp Academy Invoice ${selected.invoice_number}...`,
+                      );
+                      window.open(`https://wa.me/${phone}?text=${msg}`, "_blank");
+                    }}
+                  >
+                    <MessageCircle className="h-4 w-4 text-emerald-500" /> WhatsApp Direct
+                  </Button>
+                )}
+                {!selected.credits_disbursed && selected.status !== "cancelled" && (
+                  <div className="flex-1 flex gap-3">
+                    <Button
+                      variant="ghost"
+                      onClick={() => setCancelOpen(true)}
+                      className="font-black uppercase text-[10px] text-destructive italic tracking-widest"
+                    >
+                      Terminate
+                    </Button>
+                    <Button
+                      onClick={() => setApproveOpen(true)}
+                      className="flex-1 h-14 rounded-2xl font-black uppercase italic tracking-tighter text-xl gap-3 shadow-xl"
+                    >
+                      <ShieldCheck className="h-6 w-6 fill-current" /> Authorize & Disburse
+                    </Button>
+                  </div>
+                )}
+              </DialogFooter>
+            </div>
           </DialogContent>
         </Dialog>
+      )}
+
+      {/* APPROVAL & CANCELLATION SUB-MODALS */}
+      {selected && (
+        <>
+          <ApproveDialog
+            open={approveOpen}
+            onOpenChange={setApproveOpen}
+            invoice={selected}
+            onDone={() => {
+              refresh();
+              setApproveOpen(false);
+              setSelected(null);
+            }}
+          />
+          <CancelDialog
+            open={cancelOpen}
+            onOpenChange={setCancelOpen}
+            invoice={selected}
+            onDone={() => {
+              refresh();
+              setCancelOpen(false);
+              setSelected(null);
+            }}
+          />
+        </>
       )}
     </div>
   );
 }
 
-function Row({ label, value }: { label: string; value: string }) {
+function KpiNode({ label, value, subtext, icon: Icon, color }: any) {
   return (
-    <div className="flex justify-between gap-3 border-b pb-1.5 last:border-0">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="font-medium text-right">{value}</span>
-    </div>
-  );
-}
-
-function KpiCard({
-  label,
-  value,
-  icon: Icon,
-}: {
-  label: string;
-  value: string;
-  icon: React.ElementType;
-}) {
-  return (
-    <Card>
-      <CardContent className="p-3 flex items-center gap-3">
-        <div className="p-2 rounded-lg bg-primary/10 text-primary">
-          <Icon className="h-4 w-4" />
+    <Card className="rounded-[32px] border-2 border-border/40 bg-card/30 shadow-xl overflow-hidden group hover:border-primary/40 transition-all">
+      <CardContent className="p-6 flex items-center gap-4">
+        <div
+          className={cn(
+            "p-3 rounded-2xl bg-muted/50 border-2 border-border/10 group-hover:rotate-6 transition-transform",
+            color,
+          )}
+        >
+          <Icon className="h-6 w-6" />
         </div>
-        <div className="min-w-0">
-          <div className="text-xs text-muted-foreground truncate">{label}</div>
-          <div className="text-sm font-bold truncate">{value}</div>
+        <div className="min-w-0 text-left">
+          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 italic">{label}</p>
+          <p className="text-2xl font-black italic tracking-tighter leading-none mt-1">{value}</p>
+          {subtext && <p className="text-[9px] font-bold text-muted-foreground uppercase mt-1">{subtext}</p>}
         </div>
       </CardContent>
     </Card>
   );
 }
 
-function ApproveDialog({
-  open,
-  onOpenChange,
-  invoice,
-  onDone,
-}: {
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
-  invoice: InvoiceRow;
-  onDone: () => void;
-}) {
+function DetailRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between items-center gap-4">
+      <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 italic">{label}</span>
+      <span className="font-bold text-sm tracking-tight text-right">{value}</span>
+    </div>
+  );
+}
+
+function ApproveDialog({ open, onOpenChange, invoice, onDone }: any) {
   const [method, setMethod] = useState("bkash");
   const [reference, setReference] = useState("");
   const [notes, setNotes] = useState("");
@@ -432,18 +459,13 @@ function ApproveDialog({
   const [submitting, setSubmitting] = useState(false);
 
   const submit = async () => {
-    if (!method) {
-      toast.error("Select payment method");
-      return;
-    }
     setSubmitting(true);
+    const toastId = toast.loading("Processing disbursement protocol...");
     try {
       let proofUrl: string | null = null;
       if (file) {
-        const path = `${invoice.id}/${Date.now()}-${file.name}`;
-        const { error: upErr } = await supabase.storage
-          .from("payment-proofs")
-          .upload(path, file, { upsert: false });
+        const path = `proofs/${invoice.id}/${Date.now()}-${file.name}`;
+        const { error: upErr } = await supabase.storage.from("payment-proofs").upload(path, file);
         if (upErr) throw upErr;
         const { data: signed } = await supabase.storage
           .from("payment-proofs")
@@ -460,11 +482,12 @@ function ApproveDialog({
       });
       if (error) throw error;
       const result = data as { success: boolean; error?: string; credits_added?: number };
-      if (!result?.success) throw new Error(result?.error || "Failed");
-      toast.success(`Disbursed ${result.credits_added} credits`);
+      if (!result?.success) throw new Error(result?.error || "Protocol Rejected");
+
+      toast.success(`Success: ${result.credits_added} Credits Disbursed`, { id: toastId });
       onDone();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to approve invoice");
+    } catch (err: any) {
+      toast.error("Execution Fault: " + err.message, { id: toastId });
     } finally {
       setSubmitting(false);
     }
@@ -472,59 +495,75 @@ function ApproveDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Approve & disburse credits</DialogTitle>
-          <DialogDescription>
-            Adds {invoice.bundle_credits} credits to {invoice.talents?.full_name || "talent"}.
+      <DialogContent className="max-w-md rounded-[32px] border-4">
+        <DialogHeader className="text-left">
+          <DialogTitle className="text-2xl font-black uppercase italic tracking-tighter">
+            Finalize Settlement
+          </DialogTitle>
+          <DialogDescription className="text-xs font-medium italic">
+            Disburse {invoice.bundle_credits} credits to node {invoice.talents?.full_name}.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-3">
-          <div>
-            <Label>Payment method</Label>
+        <div className="space-y-4 py-4 text-left">
+          <div className="space-y-1.5">
+            <Label className="text-[10px] font-black uppercase italic text-primary ml-1">Payment Methodology</Label>
             <Select value={method} onValueChange={setMethod}>
-              <SelectTrigger>
+              <SelectTrigger className="h-12 rounded-xl border-2 font-bold">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="bkash">bKash</SelectItem>
-                <SelectItem value="nagad">Nagad</SelectItem>
-                <SelectItem value="bank">Bank transfer</SelectItem>
-                <SelectItem value="card">Card</SelectItem>
-                <SelectItem value="cash">Cash</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
+              <SelectContent className="rounded-xl border-2">
+                <SelectItem value="bkash" className="font-bold text-xs">
+                  BKASH
+                </SelectItem>
+                <SelectItem value="nagad" className="font-bold text-xs">
+                  NAGAD
+                </SelectItem>
+                <SelectItem value="bank" className="font-bold text-xs">
+                  BANK_TRANSFER
+                </SelectItem>
+                <SelectItem value="other" className="font-bold text-xs">
+                  OTHER_LOG
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <div>
-            <Label>Payment reference (TXN ID)</Label>
-            <Input value={reference} onChange={(e) => setReference(e.target.value)} placeholder="TXN-123456" />
+          <div className="space-y-1.5">
+            <Label className="text-[10px] font-black uppercase italic text-primary ml-1">
+              Capital Reference (TXN_ID)
+            </Label>
+            <Input
+              value={reference}
+              onChange={(e) => setReference(e.target.value)}
+              className="h-12 rounded-xl border-2 font-bold"
+              placeholder="E.G. TRXN992..."
+            />
           </div>
-          <div>
-            <Label>Proof (image/PDF, optional)</Label>
+          <div className="space-y-1.5">
+            <Label className="text-[10px] font-black uppercase italic text-primary ml-1">
+              Artifact Upload (PDF/IMG)
+            </Label>
             <Input
               type="file"
               accept="image/*,application/pdf"
               onChange={(e) => setFile(e.target.files?.[0] || null)}
-            />
-          </div>
-          <div>
-            <Label>Admin notes</Label>
-            <Textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={2}
-              placeholder="Any context…"
+              className="h-12 rounded-xl border-2 border-dashed bg-muted/10 cursor-pointer pt-2"
             />
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
-            Cancel
+          <Button
+            variant="ghost"
+            onClick={() => onOpenChange(false)}
+            className="font-black uppercase text-[10px] italic"
+          >
+            Abort
           </Button>
-          <Button onClick={submit} disabled={submitting}>
-            <Upload className="h-4 w-4 mr-1" />
-            {submitting ? "Disbursing…" : "Approve & disburse"}
+          <Button
+            onClick={submit}
+            disabled={submitting}
+            className="h-12 px-6 rounded-xl font-black uppercase italic text-xs gap-2"
+          >
+            {submitting ? <Loader2 className="animate-spin h-4 w-4" /> : <Upload className="h-4 w-4" />} DISBURSE_YIELD
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -532,17 +571,7 @@ function ApproveDialog({
   );
 }
 
-function CancelDialog({
-  open,
-  onOpenChange,
-  invoice,
-  onDone,
-}: {
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
-  invoice: InvoiceRow;
-  onDone: () => void;
-}) {
+function CancelDialog({ open, onOpenChange, invoice, onDone }: any) {
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -554,12 +583,10 @@ function CancelDialog({
         p_reason: reason || null,
       });
       if (error) throw error;
-      const result = data as { success: boolean; error?: string };
-      if (!result?.success) throw new Error(result?.error || "Failed");
-      toast.success("Invoice cancelled");
+      toast.success("Identity Protocol Terminated");
       onDone();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed");
+    } catch (err: any) {
+      toast.error("Fault: " + err.message);
     } finally {
       setSubmitting(false);
     }
@@ -567,22 +594,37 @@ function CancelDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Cancel invoice {invoice.invoice_number}?</DialogTitle>
+      <DialogContent className="max-w-md rounded-[32px] border-4">
+        <DialogHeader className="text-left">
+          <DialogTitle className="text-2xl font-black uppercase italic tracking-tighter text-destructive">
+            Terminate Node?
+          </DialogTitle>
+          <DialogDescription className="text-xs font-medium italic">
+            Archive invoice {invoice.invoice_number} and cancel yield disbursement.
+          </DialogDescription>
         </DialogHeader>
         <Textarea
           value={reason}
           onChange={(e) => setReason(e.target.value)}
-          placeholder="Reason (optional, visible to admins)"
+          placeholder="TERMINATION REASONING (INTERNAL_AUDIT)..."
+          className="rounded-2xl border-2 bg-muted/10 italic text-sm p-4"
           rows={3}
         />
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
+        <DialogFooter className="pt-4">
+          <Button
+            variant="ghost"
+            onClick={() => onOpenChange(false)}
+            className="font-black uppercase text-[10px] italic"
+          >
             Back
           </Button>
-          <Button variant="destructive" onClick={submit} disabled={submitting}>
-            {submitting ? "Cancelling…" : "Confirm cancel"}
+          <Button
+            variant="destructive"
+            onClick={submit}
+            disabled={submitting}
+            className="h-12 px-6 rounded-xl font-black uppercase italic text-xs"
+          >
+            CONFIRM_TERMINATION
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -590,5 +632,4 @@ function CancelDialog({
   );
 }
 
-// re-export support config so component is self-contained for callers
-export const _SUPPORT = SUPPORT_CONFIG;
+const Loader2 = ({ className }: { className?: string }) => <Clock className={cn("animate-spin", className)} />;
