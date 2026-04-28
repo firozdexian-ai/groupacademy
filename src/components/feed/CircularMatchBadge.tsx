@@ -1,5 +1,10 @@
 import { cn } from "@/lib/utils";
 
+/**
+ * GroUp Academy: Neural Match Visualization (CircularMatchBadge)
+ * CTO Reference: Authoritative node for displaying match-score telemetry.
+ */
+
 interface CircularMatchBadgeProps {
   score: number;
   size?: "sm" | "md" | "lg";
@@ -7,11 +12,11 @@ interface CircularMatchBadgeProps {
 }
 
 export function CircularMatchBadge({ score, size = "md", className }: CircularMatchBadgeProps) {
-  // CTO Note: Centralized color logic for system-wide consistency
+  // PROTOCOL: Centralized Telemetry Configuration
   const config = {
-    high: { color: "text-success", stroke: "stroke-success", threshold: 80 },
-    medium: { color: "text-warning", stroke: "stroke-warning", threshold: 60 },
-    low: { color: "text-muted-foreground", stroke: "stroke-muted-foreground", threshold: 0 },
+    high: { color: "text-emerald-500", stroke: "stroke-emerald-500", threshold: 80 },
+    medium: { color: "text-amber-500", stroke: "stroke-amber-500", threshold: 60 },
+    low: { color: "text-muted-foreground/60", stroke: "stroke-muted/40", threshold: 0 },
   };
 
   const getVariant = () => {
@@ -22,6 +27,7 @@ export function CircularMatchBadge({ score, size = "md", className }: CircularMa
 
   const variant = getVariant();
 
+  // GEOMETRY: Dimensional mapping for executive UI targets
   const dimensions = {
     sm: { size: 36, stroke: 3, radius: 14, fontSize: "text-[10px]" },
     md: { size: 44, stroke: 3.5, radius: 17, fontSize: "text-xs" },
@@ -34,32 +40,29 @@ export function CircularMatchBadge({ score, size = "md", className }: CircularMa
 
   return (
     <div
-      className={cn("relative flex items-center justify-center shrink-0", className)}
+      className={cn("relative flex items-center justify-center shrink-0 animate-in fade-in duration-500", className)}
       style={{ width: d.size, height: d.size }}
     >
-      <svg
-        className="w-full h-full -rotate-90 transform-gpu" // Hardware acceleration
-        viewBox={`0 0 ${d.size} ${d.size}`}
-      >
-        {/* Track (Background) */}
+      <svg className="w-full h-full -rotate-90 transform-gpu" viewBox={`0 0 ${d.size} ${d.size}`}>
+        {/* INFRASTRUCTURE: Track Layer */}
         <circle
           cx={d.size / 2}
           cy={d.size / 2}
           r={d.radius}
           fill="none"
-          className="stroke-muted/30"
+          className="stroke-muted/20"
           strokeWidth={d.stroke}
         />
-        {/* Progress (Foreground) */}
+        {/* TELEMETRY: Match Progression */}
         <circle
           cx={d.size / 2}
           cy={d.size / 2}
           r={d.radius}
           fill="none"
           className={cn(
-            "transition-all duration-1000 ease-out",
+            "transition-all duration-[1500ms] ease-in-out",
             variant.stroke,
-            score >= 80 && "drop-shadow-[0_0_2px_rgba(var(--success),0.5)]",
+            score >= 80 && "drop-shadow-[0_0_3px_rgba(16,185,129,0.4)]",
           )}
           strokeWidth={d.stroke}
           strokeDasharray={circumference}
@@ -68,17 +71,19 @@ export function CircularMatchBadge({ score, size = "md", className }: CircularMa
         />
       </svg>
 
-      {/* Percentage Label */}
-      <span
+      {/* IDENTITY: Yield Label */}
+      <div
         className={cn(
-          "absolute inset-0 flex items-center justify-center font-black tracking-tighter",
+          "absolute inset-0 flex items-center justify-center font-black italic tracking-tighter uppercase",
           d.fontSize,
           variant.color,
         )}
       >
-        {score}
-        <span className="text-[0.6em] opacity-70 ml-0.5">%</span>
-      </span>
+        <span className="flex items-start">
+          {score}
+          <span className="text-[0.55em] mt-0.5 ml-0.5 opacity-60">%</span>
+        </span>
+      </div>
     </div>
   );
 }
