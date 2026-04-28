@@ -17,6 +17,7 @@ import {
   Share2,
   Zap,
   ShieldCheck,
+  MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
