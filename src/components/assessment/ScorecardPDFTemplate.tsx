@@ -1,5 +1,10 @@
 import { format } from "date-fns";
 
+/**
+ * GroUp Academy: Institutional Scorecard PDF Blueprint
+ * CTO Reference: Authoritative template for high-fidelity PDF artifact generation.
+ */
+
 interface Assessment {
   id: string;
   full_name: string;
@@ -16,285 +21,341 @@ interface Assessment {
   };
 }
 
-interface ScorecardPDFTemplateProps {
-  assessment: Assessment;
-}
-
-const readinessLabels: Record<string, string> = {
-  beginner: "Beginner",
-  developing: "Developing",
-  competent: "Competent",
-  proficient: "Proficient",
-  expert: "Expert",
+const READINESS_REGISTRY: Record<string, string> = {
+  beginner: "BEGINNER_NODE",
+  developing: "DEVELOPING_SYNC",
+  competent: "COMPETENT_CORE",
+  proficient: "PROFICIENT_OPS",
+  expert: "EXECUTIVE_EXPERT",
 };
 
-// Brand colors - Tech Blue #2A7DDE, Vibrant Cyan #33E1E4, Success Green #10D576
 const BRAND = {
   primary: "#2A7DDE",
-  primaryLight: "#4A9AEF",
   secondary: "#33E1E4",
   accent: "#10D576",
-  dark: "#333333",
-  muted: "#6b7280",
-  background: "#F4F7F9",
+  warning: "#EA580C",
+  dark: "#0F172A",
+  muted: "#64748B",
+  background: "#F8FAFC",
 };
 
-export function ScorecardPDFTemplate({ assessment }: ScorecardPDFTemplateProps) {
-  const readinessLevel = assessment.readiness_level || "beginner";
+export function ScorecardPDFTemplate({ assessment }: { assessment: Assessment }) {
+  const readinessKey = assessment.readiness_level?.toLowerCase() || "beginner";
 
   return (
     <div
       id="scorecard-pdf-content"
       style={{
-        width: "794px",
-        padding: "40px",
+        width: "794px", // Standard A4 Width at 96 DPI
+        padding: "50px",
         backgroundColor: "#ffffff",
-        // Use system fonts for reliable PDF rendering
-        fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+        fontFamily: "Inter, system-ui, -apple-system, sans-serif",
         color: BRAND.dark,
         position: "absolute",
         left: "-9999px",
         top: 0,
+        boxSizing: "border-box",
       }}
     >
-      {/* Header */}
-      <div style={{ 
-        display: "flex", 
-        justifyContent: "space-between", 
-        alignItems: "center",
-        marginBottom: "30px",
-        paddingBottom: "20px",
-        borderBottom: `3px solid ${BRAND.primary}`
-      }}>
+      {/* HUD: DOCUMENT_HEADER */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-end",
+          marginBottom: "40px",
+          paddingBottom: "25px",
+          borderBottom: `4px solid ${BRAND.primary}`,
+        }}
+      >
         <div>
-          <h1 style={{ 
-            margin: 0, 
-            fontSize: "28px", 
-            fontWeight: 700, 
-            color: BRAND.primary,
-            fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
-          }}>
-            GroUp Academy
+          <h1
+            style={{
+              margin: 0,
+              fontSize: "32px",
+              fontWeight: 900,
+              color: BRAND.primary,
+              letterSpacing: "-1px",
+              textTransform: "uppercase",
+              fontStyle: "italic",
+            }}
+          >
+            GroUp_Academy
           </h1>
-          <p style={{ margin: "4px 0 0", fontSize: "14px", color: BRAND.muted }}>
-            Career Readiness Scorecard
+          <p
+            style={{
+              margin: "5px 0 0",
+              fontSize: "14px",
+              fontWeight: 700,
+              color: BRAND.muted,
+              letterSpacing: "2px",
+              textTransform: "uppercase",
+            }}
+          >
+            Career_Readiness_Scorecard
           </p>
         </div>
-        <div style={{ textAlign: "right", fontSize: "12px", color: BRAND.muted }}>
-          <p style={{ margin: 0 }}>Assessment Date</p>
+        <div style={{ textAlign: "right", fontSize: "11px", color: BRAND.muted }}>
+          <p style={{ margin: 0, fontWeight: 800, textTransform: "uppercase" }}>Uplink_Timestamp</p>
           <p style={{ margin: "2px 0 0", fontWeight: 600, color: BRAND.dark }}>
-            {format(new Date(assessment.created_at), "MMMM d, yyyy")}
+            {format(new Date(assessment.created_at), "dd_MMM_yyyy").toUpperCase()}
           </p>
         </div>
       </div>
 
-      {/* Candidate Info */}
-      <div style={{ 
-        backgroundColor: BRAND.background, 
-        padding: "16px 20px", 
-        borderRadius: "12px",
-        marginBottom: "24px"
-      }}>
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
-          <div>
-            <p style={{ margin: 0, fontSize: "12px", color: BRAND.muted }}>Candidate Name</p>
-            <p style={{ margin: "4px 0 0", fontSize: "18px", fontWeight: 600, fontFamily: "system-ui, sans-serif" }}>
-              {assessment.full_name}
+      {/* COMPONENT: CANDIDATE_METADATA */}
+      <div
+        style={{
+          backgroundColor: BRAND.background,
+          padding: "25px",
+          borderRadius: "20px",
+          marginBottom: "30px",
+          border: "1px solid #e2e8f0",
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ flex: 1 }}>
+            <p
+              style={{
+                margin: 0,
+                fontSize: "10px",
+                fontWeight: 800,
+                color: BRAND.muted,
+                textTransform: "uppercase",
+                letterSpacing: "1px",
+              }}
+            >
+              Identity_Artifact
+            </p>
+            <p style={{ margin: "4px 0 0", fontSize: "22px", fontWeight: 800, color: BRAND.dark }}>
+              {assessment.full_name.toUpperCase()}
             </p>
           </div>
           <div style={{ textAlign: "right" }}>
-            <p style={{ margin: 0, fontSize: "12px", color: BRAND.muted }}>Profession Category</p>
-            <p style={{ margin: "4px 0 0", fontSize: "14px", fontWeight: 500 }}>
-              {assessment.profession_categories?.name || "General"}
+            <p
+              style={{
+                margin: 0,
+                fontSize: "10px",
+                fontWeight: 800,
+                color: BRAND.muted,
+                textTransform: "uppercase",
+                letterSpacing: "1px",
+              }}
+            >
+              Trajectory_Key
+            </p>
+            <p style={{ margin: "4px 0 0", fontSize: "16px", fontWeight: 700, color: BRAND.primary }}>
+              {assessment.profession_categories?.name.replace(" ", "_").toUpperCase() || "CORE_GENERAL"}
             </p>
           </div>
         </div>
       </div>
 
-      {/* Score Section - Gradient from Primary to Secondary */}
-      <div style={{ 
-        textAlign: "center", 
-        padding: "30px",
-        background: `linear-gradient(135deg, ${BRAND.primary}, ${BRAND.secondary})`,
-        borderRadius: "16px",
-        marginBottom: "24px",
-        color: "#ffffff"
-      }}>
-        <p style={{ margin: 0, fontSize: "14px", opacity: 0.9 }}>Career Readiness Score</p>
-        <p style={{ 
-          margin: "8px 0", 
-          fontSize: "72px", 
-          fontWeight: 700, 
-          lineHeight: 1,
-          fontFamily: "system-ui, sans-serif"
-        }}>
+      {/* HUD: SCORE_METRIC_CENTER */}
+      <div
+        style={{
+          textAlign: "center",
+          padding: "40px",
+          background: `linear-gradient(135deg, ${BRAND.primary}, ${BRAND.secondary})`,
+          borderRadius: "30px",
+          marginBottom: "30px",
+          color: "#ffffff",
+          boxShadow: "0 20px 40px rgba(42, 125, 222, 0.15)",
+        }}
+      >
+        <p
+          style={{
+            margin: 0,
+            fontSize: "12px",
+            fontWeight: 800,
+            textTransform: "uppercase",
+            letterSpacing: "3px",
+            opacity: 0.9,
+          }}
+        >
+          Neural_Readiness_Index
+        </p>
+        <p
+          style={{
+            margin: "15px 0",
+            fontSize: "90px",
+            fontWeight: 900,
+            lineHeight: 1,
+            fontStyle: "italic",
+            letterSpacing: "-4px",
+          }}
+        >
           {assessment.percentage}%
         </p>
-        <div style={{ 
-          display: "inline-block",
-          backgroundColor: "rgba(255,255,255,0.2)",
-          padding: "8px 20px",
-          borderRadius: "24px",
-          fontSize: "14px",
-          fontWeight: 600,
-          textTransform: "uppercase",
-          letterSpacing: "0.5px"
-        }}>
-          {readinessLabels[readinessLevel]}
+        <div
+          style={{
+            display: "inline-block",
+            backgroundColor: "rgba(255,255,255,0.15)",
+            backdropFilter: "blur(10px)",
+            padding: "10px 30px",
+            borderRadius: "15px",
+            fontSize: "14px",
+            fontWeight: 800,
+            textTransform: "uppercase",
+            letterSpacing: "2px",
+            border: "1px solid rgba(255,255,255,0.3)",
+          }}
+        >
+          {READINESS_REGISTRY[readinessKey]}
         </div>
-        <div style={{ 
-          display: "flex", 
-          justifyContent: "center", 
-          gap: "40px", 
-          marginTop: "20px",
-          fontSize: "13px"
-        }}>
-          <div>
-            <span style={{ opacity: 0.8 }}>Points Earned: </span>
-            <strong>{assessment.total_score}</strong>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            gap: "60px",
+            marginTop: "30px",
+            fontSize: "12px",
+            fontWeight: 700,
+            textTransform: "uppercase",
+            letterSpacing: "1px",
+          }}
+        >
+          <div style={{ opacity: 0.8 }}>
+            SYNEPSE_YIELD: <span style={{ color: "#fff" }}>{assessment.total_score}</span>
           </div>
-          <div>
-            <span style={{ opacity: 0.8 }}>Max Points: </span>
-            <strong>{assessment.max_score}</strong>
+          <div style={{ opacity: 0.8 }}>
+            REGISTRY_MAX: <span style={{ color: "#fff" }}>{assessment.max_score}</span>
           </div>
         </div>
       </div>
 
-      {/* Two Column Layout */}
-      <div style={{ display: "flex", gap: "20px", marginBottom: "24px" }}>
-        {/* Strengths */}
-        <div style={{ flex: 1, backgroundColor: "#ecfdf5", padding: "16px", borderRadius: "12px" }}>
-          <h3 style={{ 
-            margin: "0 0 12px", 
-            fontSize: "14px", 
-            fontWeight: 600,
-            color: BRAND.accent,
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            fontFamily: "system-ui, sans-serif"
-          }}>
-            ✓ Strengths
+      {/* VIEWPORT: ANALYSIS_GRID */}
+      <div style={{ display: "flex", gap: "25px", marginBottom: "30px" }}>
+        {/* Artifact: Strengths */}
+        <div
+          style={{
+            flex: 1,
+            backgroundColor: "#F0FDF4",
+            padding: "20px",
+            borderRadius: "20px",
+            border: `1px solid rgba(16, 213, 118, 0.2)`,
+          }}
+        >
+          <h3
+            style={{
+              margin: "0 0 15px",
+              fontSize: "13px",
+              fontWeight: 800,
+              color: BRAND.accent,
+              textTransform: "uppercase",
+              letterSpacing: "1px",
+            }}
+          >
+            [+] Sync_Strengths
           </h3>
-          <ul style={{ 
-            margin: 0, 
-            paddingLeft: "16px", 
-            fontSize: "12px",
-            lineHeight: 1.7,
-            color: BRAND.dark
-          }}>
+          <ul
+            style={{
+              margin: 0,
+              paddingLeft: "15px",
+              fontSize: "12px",
+              lineHeight: 1.8,
+              color: BRAND.dark,
+              fontWeight: 500,
+            }}
+          >
             {assessment.ai_analysis?.strengths?.slice(0, 4).map((s: string, i: number) => (
-              <li key={i} style={{ marginBottom: "6px" }}>{s}</li>
-            )) || <li style={{ color: BRAND.muted }}>Analysis pending...</li>}
+              <li key={i} style={{ marginBottom: "8px" }}>
+                {s}
+              </li>
+            )) || <li style={{ color: BRAND.muted }}>Waiting for data sync...</li>}
           </ul>
         </div>
 
-        {/* Improvement Areas */}
-        <div style={{ flex: 1, backgroundColor: "#fff7ed", padding: "16px", borderRadius: "12px" }}>
-          <h3 style={{ 
-            margin: "0 0 12px", 
-            fontSize: "14px", 
-            fontWeight: 600,
-            color: "#ea580c",
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            fontFamily: "system-ui, sans-serif"
-          }}>
-            △ Areas for Improvement
+        {/* Artifact: Improvements */}
+        <div
+          style={{
+            flex: 1,
+            backgroundColor: "#FFF7ED",
+            padding: "20px",
+            borderRadius: "20px",
+            border: `1px solid rgba(234, 88, 12, 0.2)`,
+          }}
+        >
+          <h3
+            style={{
+              margin: "0 0 15px",
+              fontSize: "13px",
+              fontWeight: 800,
+              color: BRAND.warning,
+              textTransform: "uppercase",
+              letterSpacing: "1px",
+            }}
+          >
+            [△] Optimization_Nodes
           </h3>
-          <ul style={{ 
-            margin: 0, 
-            paddingLeft: "16px", 
-            fontSize: "12px",
-            lineHeight: 1.7,
-            color: BRAND.dark
-          }}>
-            {(assessment.ai_analysis?.improvement_areas || assessment.improvement_areas)?.slice(0, 4).map((a: string, i: number) => (
-              <li key={i} style={{ marginBottom: "6px" }}>{a}</li>
-            )) || <li style={{ color: BRAND.muted }}>Analysis pending...</li>}
+          <ul
+            style={{
+              margin: 0,
+              paddingLeft: "15px",
+              fontSize: "12px",
+              lineHeight: 1.8,
+              color: BRAND.dark,
+              fontWeight: 500,
+            }}
+          >
+            {(assessment.ai_analysis?.improvement_areas || assessment.improvement_areas)
+              ?.slice(0, 4)
+              .map((a: string, i: number) => (
+                <li key={i} style={{ marginBottom: "8px" }}>
+                  {a}
+                </li>
+              )) || <li style={{ color: BRAND.muted }}>Waiting for data sync...</li>}
           </ul>
         </div>
       </div>
 
-      {/* Recommendations */}
+      {/* HUD: RECOMMENDATION_ENGINE */}
       {assessment.ai_analysis?.recommendations && (
-        <div style={{ marginBottom: "24px" }}>
-          <h3 style={{ 
-            margin: "0 0 12px", 
-            fontSize: "14px", 
-            fontWeight: 600,
-            color: BRAND.primary,
-            fontFamily: "system-ui, sans-serif"
-          }}>
-            Personalized Recommendations
+        <div style={{ marginBottom: "35px", padding: "25px", border: "2px solid #f1f5f9", borderRadius: "24px" }}>
+          <h3
+            style={{
+              margin: "0 0 15px",
+              fontSize: "13px",
+              fontWeight: 800,
+              color: BRAND.primary,
+              textTransform: "uppercase",
+              letterSpacing: "1px",
+            }}
+          >
+            Strategic_Deployment_Blueprint
           </h3>
-          <ol style={{ 
-            margin: 0, 
-            paddingLeft: "20px", 
-            fontSize: "12px",
-            lineHeight: 1.7,
-            color: BRAND.dark
-          }}>
-            {assessment.ai_analysis.recommendations.slice(0, 5).map((r: string, i: number) => (
-              <li key={i} style={{ marginBottom: "8px" }}>{r}</li>
+          <div style={{ fontSize: "12px", lineHeight: 1.8, color: BRAND.dark, fontWeight: 500 }}>
+            {assessment.ai_analysis.recommendations.slice(0, 4).map((r: string, i: number) => (
+              <div key={i} style={{ marginBottom: "10px", display: "flex", gap: "10px" }}>
+                <span style={{ color: BRAND.primary, fontWeight: 900 }}>0{i + 1}.</span>
+                <span>{r}</span>
+              </div>
             ))}
-          </ol>
+          </div>
         </div>
       )}
 
-      {/* Career Tip */}
-      {assessment.ai_analysis?.career_tips && (
-        <div style={{ 
-          backgroundColor: "#fef3c7",
-          padding: "16px",
-          borderRadius: "12px",
-          borderLeft: `4px solid ${BRAND.secondary}`,
-          marginBottom: "24px"
-        }}>
-          <p style={{ 
-            margin: 0, 
-            fontSize: "12px", 
-            fontStyle: "italic",
-            color: "#92400e"
-          }}>
-            💡 {assessment.ai_analysis.career_tips}
-          </p>
-        </div>
-      )}
-
-      {/* CTA */}
-      <div style={{ 
-        textAlign: "center",
-        padding: "20px",
-        background: `linear-gradient(135deg, ${BRAND.secondary}20, ${BRAND.accent}20)`,
-        borderRadius: "12px",
-        marginBottom: "24px"
-      }}>
-        <p style={{ margin: 0, fontSize: "14px", fontWeight: 600, color: BRAND.primary, fontFamily: "'Poppins', sans-serif" }}>
-          Ready to accelerate your career?
-        </p>
-        <p style={{ margin: "8px 0 0", fontSize: "12px", color: BRAND.muted }}>
-          Visit groupacademy.com to explore Mock Interviews, Salary Analysis, and more
-        </p>
-      </div>
-
-      {/* Footer */}
-      <div style={{ 
-        borderTop: "1px solid #e5e7eb",
-        paddingTop: "16px",
-        display: "flex",
-        justifyContent: "space-between",
-        fontSize: "10px",
-        color: BRAND.muted
-      }}>
+      {/* FOOTER: SYSTEM_ARTIFACT_DATA */}
+      <div
+        style={{
+          borderTop: "1px solid #f1f5f9",
+          paddingTop: "20px",
+          display: "flex",
+          justifyContent: "space-between",
+          fontSize: "9px",
+          color: BRAND.muted,
+          fontWeight: 700,
+          textTransform: "uppercase",
+          letterSpacing: "1px",
+        }}
+      >
         <div>
-          <p style={{ margin: 0 }}>Assessment ID: {assessment.id.slice(0, 8).toUpperCase()}</p>
-          <p style={{ margin: "2px 0 0" }}>Valid for 90 days</p>
+          <p style={{ margin: 0 }}>Artifact_ID: {assessment.id.toUpperCase()}</p>
+          <p style={{ margin: "4px 0 0", color: BRAND.primary }}>Verification_Status: SYSTEM_VERIFIED</p>
         </div>
         <div style={{ textAlign: "right" }}>
-          <p style={{ margin: 0 }}>Generated by GroUp Academy</p>
-          <p style={{ margin: "2px 0 0" }}>© {new Date().getFullYear()} All Rights Reserved</p>
+          <p style={{ margin: 0 }}>Generated_By: GroUp_Academy_Neural_Engine</p>
+          <p style={{ margin: "4px 0 0" }}>© {new Date().getFullYear()} ALL_RIGHTS_RESERVED</p>
         </div>
       </div>
     </div>
