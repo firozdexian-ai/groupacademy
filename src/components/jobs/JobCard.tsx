@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Building2, MapPin, Clock, ArrowRight, Bookmark, Star, Banknote, Brain } from "lucide-react";
+import { Building2, MapPin, Clock, ArrowRight, Bookmark, Star, Banknote, Brain, Zap, ShieldCheck } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,11 @@ import {
   isDeadlineUrgent,
   isDeadlinePassed,
 } from "@/lib/constants/jobTypes";
+
+/**
+ * GroUp Academy: Professional Opportunities Node
+ * CTO Reference: Authoritative component for job lead visualization and AI matching.
+ */
 
 export interface JobCardData {
   id: string;
@@ -61,41 +66,41 @@ export function JobCard({
     onSaveToggle?.();
   };
 
-  const formatSalary = () => {
+  const formatSalarySync = () => {
     if (!job.salary_range_min && !job.salary_range_max) return null;
     const currency = job.salary_currency || "BDT";
     const symbol = currency === "USD" ? "$" : currency === "BDT" ? "৳" : currency;
     const isPrefix = currency === "USD";
 
-    const formatNum = (num: number | null | undefined) => {
+    const formatProtocol = (num: number | null | undefined) => {
       if (!num) return "";
-      if (num >= 1000) return `${Math.round(num / 1000)}k`;
+      if (num >= 1000) return `${(num / 1000).toFixed(0)}k`;
       return num.toString();
     };
 
-    const min = formatNum(job.salary_range_min);
-    const max = formatNum(job.salary_range_max);
+    const min = formatProtocol(job.salary_range_min);
+    const max = formatProtocol(job.salary_range_max);
 
     if (min && max) {
-      return isPrefix ? `${symbol}${min} - ${symbol}${max}` : `${min} - ${max} ${symbol}`;
+      return isPrefix ? `${symbol}${min}-${symbol}${max}` : `${min}-${max}${symbol}`;
     }
     const val = min || max;
-    return isPrefix ? `${symbol}${val}` : `${val} ${symbol}`;
+    return isPrefix ? `${symbol}${val}` : `${val}${symbol}`;
   };
 
   if (isCompact) {
     return (
       <Card
         className={cn(
-          "cursor-pointer overflow-hidden hover:shadow-md transition-all hover:border-primary/30 group",
-          isClosed && "opacity-60",
+          "cursor-pointer overflow-hidden transition-all duration-300 border-2 border-border/40 hover:border-primary/40 group",
+          isClosed && "opacity-40 grayscale",
           className,
         )}
         onClick={onClick}
       >
-        <CardContent className="p-3">
+        <CardContent className="p-3 bg-card/30 backdrop-blur-sm">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary/5 flex items-center justify-center shrink-0 border overflow-hidden">
+            <div className="w-10 h-10 rounded-lg bg-primary/5 flex items-center justify-center shrink-0 border border-border/10 overflow-hidden shadow-inner">
               {job.company_logo_url && !logoError ? (
                 <img
                   src={job.company_logo_url}
@@ -104,24 +109,33 @@ export function JobCard({
                   onError={() => setLogoError(true)}
                 />
               ) : (
-                <Building2 className="w-4 h-4 text-primary" />
+                <Building2 className="w-4 h-4 text-primary/40" />
               )}
             </div>
 
-            <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-sm line-clamp-1 group-hover:text-primary transition-colors">
-                {job.title}
+            <div className="flex-1 min-w-0 space-y-0.5">
+              <h3 className="font-black text-xs uppercase italic tracking-tighter line-clamp-1 group-hover:text-primary transition-colors">
+                {job.title.replace(" ", "_")}
               </h3>
-              <p className="text-[10px] text-muted-foreground line-clamp-1">{job.company_name}</p>
+              <p className="text-[9px] font-bold text-muted-foreground/60 uppercase truncate">{job.company_name}</p>
             </div>
 
             {matchInfo && (
-              <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 gap-1 text-[10px]">
-                <Brain className="w-3 h-3" /> {matchInfo.match_score}%
+              <Badge
+                variant="outline"
+                className="bg-primary/5 text-primary border-primary/20 gap-1 text-[9px] h-6 font-black italic"
+              >
+                <Brain className="w-3 h-3 fill-current" /> {matchInfo.match_score}%
               </Badge>
             )}
 
-            <Badge variant="secondary" className={cn("text-[10px] h-5", JOB_TYPE_COLORS[job.job_type])}>
+            <Badge
+              variant="secondary"
+              className={cn(
+                "text-[8px] h-5 font-black uppercase italic tracking-widest",
+                JOB_TYPE_COLORS[job.job_type],
+              )}
+            >
               {getJobTypeLabel(job.job_type)}
             </Badge>
           </div>
@@ -133,19 +147,19 @@ export function JobCard({
   return (
     <Card
       className={cn(
-        "cursor-pointer overflow-hidden transition-all group h-full flex flex-col relative",
-        "hover:shadow-lg hover:border-primary/50",
-        // CTO Audit Fix: Semantic ring for featured jobs
-        job.is_featured && "ring-2 ring-amber-500/20 border-amber-500/30 bg-amber-500/[0.02]",
-        isClosed && "opacity-60",
+        "cursor-pointer overflow-hidden transition-all duration-500 group h-full flex flex-col relative border-2 border-border/40",
+        "bg-card/40 backdrop-blur-xl hover:shadow-2xl hover:border-primary/40 hover:-translate-y-1",
+        job.is_featured && "border-amber-500/30 bg-amber-500/[0.03] shadow-[0_0_30px_-10px_rgba(245,158,11,0.2)]",
+        isClosed && "opacity-40 grayscale",
         className,
       )}
       onClick={onClick}
     >
-      <CardContent className="p-5 flex flex-col h-full space-y-4">
-        <div className="flex justify-between items-start gap-3">
+      <CardContent className="p-6 flex flex-col h-full space-y-5 text-left">
+        {/* HUD: NODE_HEADER */}
+        <div className="flex justify-between items-start gap-4">
           <div className="flex gap-4 items-start flex-1 min-w-0">
-            <div className="w-12 h-12 rounded-xl bg-primary/5 flex items-center justify-center shrink-0 border overflow-hidden">
+            <div className="w-14 h-14 rounded-2xl bg-background border-2 border-border/10 flex items-center justify-center shrink-0 overflow-hidden shadow-xl transition-transform duration-500 group-hover:scale-105 group-hover:rotate-3">
               {job.company_logo_url && !logoError ? (
                 <img
                   src={job.company_logo_url}
@@ -154,64 +168,92 @@ export function JobCard({
                   onError={() => setLogoError(true)}
                 />
               ) : (
-                <Building2 className="w-6 h-6 text-primary" />
+                <Building2 className="w-7 h-7 text-muted-foreground/30" />
               )}
             </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="font-bold text-base line-clamp-1 group-hover:text-primary transition-colors leading-tight">
-                {job.title}
+            <div className="flex-1 min-w-0 space-y-1">
+              <h3 className="font-black text-lg uppercase italic tracking-tighter line-clamp-1 group-hover:text-primary transition-colors leading-none">
+                {job.title.replace(" ", "_")}
               </h3>
-              <p className="text-sm text-muted-foreground line-clamp-1 mt-0.5">{job.company_name}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                  {job.company_name}
+                </p>
+                {job.is_featured && <Zap className="h-3 w-3 text-amber-500 fill-current animate-pulse" />}
+              </div>
             </div>
           </div>
           <Button
             variant="ghost"
             size="icon"
-            className="shrink-0 h-8 w-8 hover:bg-primary/10"
+            className="shrink-0 h-10 w-10 rounded-xl hover:bg-primary/5 active:scale-90 transition-all border border-transparent hover:border-primary/20"
             onClick={handleSaveClick}
           >
-            <Bookmark className={cn("h-4 w-4", isSaved && "fill-primary text-primary")} />
+            <Bookmark
+              className={cn(
+                "h-5 w-5 transition-all duration-500",
+                isSaved ? "fill-primary text-primary scale-110" : "text-muted-foreground/40",
+              )}
+            />
           </Button>
         </div>
 
-        {/* Audit Fix: Show Match Reason if available */}
+        {/* HUD: NEURAL_REASONING */}
         {matchInfo && (
-          <div className="bg-primary/5 border border-primary/10 rounded-lg p-2 flex items-start gap-2">
-            <Brain className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-            <p className="text-[11px] text-primary/80 line-clamp-2 italic">"{matchInfo.reason}"</p>
+          <div className="bg-primary/5 border-2 border-primary/10 rounded-[18px] p-4 flex items-start gap-3 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-2 opacity-5">
+              <Brain className="h-12 w-12 text-primary" />
+            </div>
+            <Brain className="w-5 h-5 text-primary shrink-0 mt-0.5 fill-current opacity-60" />
+            <div className="space-y-1">
+              <p className="text-[9px] font-black uppercase italic tracking-widest text-primary/60 leading-none">
+                AI_Reasoning_Node
+              </p>
+              <p className="text-[11px] font-medium text-foreground/80 line-clamp-2 italic leading-relaxed">
+                "{matchInfo.reason}"
+              </p>
+            </div>
           </div>
         )}
 
-        <div className="flex flex-wrap gap-2">
+        {/* HUD: METADATA_STACK */}
+        <div className="flex flex-wrap gap-2 pt-2">
           <Badge
-            variant="secondary"
-            className={cn("text-[10px] py-0 h-6 px-2 border-0", JOB_TYPE_COLORS[job.job_type])}
+            variant="outline"
+            className={cn(
+              "text-[9px] font-black uppercase italic tracking-widest px-3 h-7 border-2",
+              JOB_TYPE_COLORS[job.job_type],
+            )}
           >
             {getJobTypeLabel(job.job_type)}
           </Badge>
-          {formatSalary() && (
+          {formatSalarySync() && (
             <Badge
               variant="outline"
-              className="text-[10px] py-0 h-6 px-2 bg-emerald-500/5 text-emerald-700 border-emerald-500/20"
+              className="text-[9px] font-black italic tracking-tighter px-3 h-7 bg-emerald-500/5 text-emerald-600 border-2 border-emerald-500/20 tabular-nums"
             >
-              <Banknote className="w-3 h-3 mr-1" /> {formatSalary()}
+              <Banknote className="w-3.5 h-3.5 mr-1.5 opacity-60" /> {formatSalarySync()}
             </Badge>
           )}
           {job.is_featured && (
-            <Badge className="bg-amber-500/10 text-amber-700 border-amber-500/20 h-6 text-[10px]">
-              <Star className="w-3 h-3 fill-current mr-1" /> Featured
+            <Badge className="bg-amber-500 text-white border-none h-7 px-3 text-[9px] font-black uppercase italic tracking-widest shadow-lg shadow-amber-500/20">
+              <Star className="w-3 h-3 fill-current mr-1.5" /> Featured_Node
             </Badge>
           )}
         </div>
 
-        <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-2 mt-auto">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <MapPin className="h-3.5 w-3.5 shrink-0" />
-            <span className="truncate">{job.location || "Remote"}</span>
+        {/* HUD: FOOTER_TELEMETRY */}
+        <div className="flex items-center justify-between pt-4 mt-auto border-t-2 border-border/10">
+          <div className="flex items-center gap-2 text-[10px] font-black text-muted-foreground/60 uppercase tracking-widest italic">
+            <MapPin className="h-3.5 w-3.5 text-primary/40 shrink-0" />
+            <span className="truncate">{job.location || "REMOTE_OPS"}</span>
           </div>
-          <div className="flex items-center gap-1.5 shrink-0">
-            <Clock className="h-3.5 w-3.5" />
-            <span>{new Date(job.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+          <div className="flex items-center gap-2 text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest italic tabular-nums">
+            <Clock className="h-3.5 w-3.5 opacity-40" />
+            <span>
+              SYNC_
+              {new Date(job.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase()}
+            </span>
           </div>
         </div>
       </CardContent>
