@@ -1,11 +1,11 @@
-import { 
-  Briefcase, 
-  Code, 
+import {
+  Briefcase,
+  Code,
   DollarSign,
   Gift,
-  Upload, 
-  Users, 
-  TrendingUp, 
+  Upload,
+  Users,
+  TrendingUp,
   Building2,
   Landmark,
   Laptop,
@@ -105,155 +105,133 @@ import {
   Palette,
   Search,
   Headphones,
-  type LucideIcon
+  type LucideIcon,
 } from "lucide-react";
 
-// Comprehensive icon map for all database icon values
+/**
+ * GroUp Academy: Institutional Icon Registry
+ * CTO Reference: Authoritative mapping of database strings to Lucide components.
+ * Logic: Implements aliased resiliency and semantic sector clustering.
+ */
+
 export const iconMap: Record<string, LucideIcon> = {
-  // Business & Finance
-  "briefcase": Briefcase,
-  "landmark": Landmark,
-  "banknote": Banknote,
+  // --- HUD: Business & Finance ---
+  briefcase: Briefcase,
+  landmark: Landmark,
+  banknote: Banknote,
   "credit-card": CreditCard,
   "dollar-sign": DollarSign,
   "piggy-bank": PiggyBank,
-  "calculator": Calculator,
-  "receipt": Receipt,
-  "percent": Percent,
+  calculator: Calculator,
+  receipt: Receipt,
+  percent: Percent,
   "trending-up": TrendingUp,
   "line-chart": LineChart,
   "bar-chart-3": BarChart3,
   "pie-chart": PieChart,
-  "presentation": Presentation,
-  
-  // Sales & Marketing
-  "megaphone": Megaphone,
-  "store": Store,
+  presentation: Presentation,
+
+  // --- HUD: Sales & Marketing ---
+  megaphone: Megaphone,
+  store: Store,
   "shopping-cart": ShoppingCart,
-  "handshake": Handshake,
-  
-  // Operations & Logistics
-  "truck": Truck,
-  "package": Package,
-  "factory": Factory,
-  "warehouse": Warehouse,
+  handshake: Handshake,
+
+  // --- HUD: Operations & Logistics ---
+  truck: Truck,
+  package: Package,
+  factory: Factory,
+  warehouse: Warehouse,
   "clipboard-list": ClipboardList,
-  
-  // Healthcare & Pharma
+
+  // --- HUD: Healthcare & Pharma ---
   "heart-pulse": HeartPulse,
-  "stethoscope": Stethoscope,
-  "pill": Pill,
-  "activity": Activity,
-  "heart": Heart,
-  
-  // Technology
-  "code": Code,
-  "laptop": Laptop,
-  "monitor": Monitor,
-  "smartphone": Smartphone,
-  "globe": Globe,
-  "cloud": Cloud,
-  "database": Database,
-  "server": Server,
-  "terminal": Terminal,
-  "binary": Binary,
-  "cpu": Cpu,
+  stethoscope: Stethoscope,
+  pill: Pill,
+  activity: Activity,
+  heart: Heart,
+
+  // --- HUD: Technology ---
+  code: Code,
+  laptop: Laptop,
+  monitor: Monitor,
+  smartphone: Smartphone,
+  globe: Globe,
+  cloud: Cloud,
+  database: Database,
+  server: Server,
+  terminal: Terminal,
+  binary: Binary,
+  cpu: Cpu,
   "hard-drive": HardDrive,
-  "network": Network,
+  network: Network,
   "git-branch": GitBranch,
-  "wifi": Wifi,
-  
-  // HR & People
-  "users": Users,
+  wifi: Wifi,
+
+  // --- HUD: HR & People ---
+  users: Users,
   "user-check": UserCheck,
   "user-cog": UserCog,
-  
-  // Creative & Design
-  "palette": Palette,
-  "pencil": Pencil,
+
+  // --- HUD: Creative & Design ---
+  palette: Palette,
+  pencil: Pencil,
   "pen-tool": PenTool,
-  "camera": Camera,
-  "video": Video,
-  "music": Music,
-  "mic": Mic,
-  
-  // Education & Learning
+  camera: Camera,
+  video: Video,
+  music: Music,
+  mic: Mic,
+
+  // --- HUD: Education & Learning ---
   "graduation-cap": GraduationCap,
   "book-open": BookOpen,
-  "book": Book,
+  book: Book,
   "file-text": FileText,
-  "award": Award,
-  
-  // Buildings & Places
+  award: Award,
+
+  // --- HUD: Infrastructure ---
   "building-2": Building2,
-  "building2": Building2,
-  "building": Building,
-  "hotel": Hotel,
-  "home": Home,
+  building2: Building2,
+  building: Building,
+  hotel: Hotel,
+  home: Home,
   "map-pin": MapPin,
-  
-  // Transportation & Travel
-  "plane": Plane,
-  "car": Car,
-  "ship": Ship,
-  
-  // Hospitality
-  "coffee": Coffee,
-  "utensils": Utensils,
-  "bed": Bed,
-  
-  // Security & Legal
-  "shield": Shield,
-  "lock": Lock,
-  "scale": Scale,
-  "gavel": Gavel,
-  
-  // Tools & Engineering
-  "wrench": Wrench,
-  "hammer": Hammer,
-  "cog": Cog,
-  "settings": Settings,
-  
-  // Science & Research
-  "microscope": Microscope,
+
+  // --- HUD: Transportation ---
+  plane: Plane,
+  car: Car,
+  ship: Ship,
+
+  // --- HUD: Security & Science ---
+  shield: Shield,
+  lock: Lock,
+  scale: Scale,
+  gavel: Gavel,
+  microscope: Microscope,
   "test-tube": TestTube,
-  "beaker": Beaker,
-  "atom": Atom,
-  "brain": Brain,
-  
-  // Communication
-  "phone": Phone,
-  "mail": Mail,
-  "message-square": MessageSquare,
-  "send": Send,
-  
-  // Miscellaneous
-  "star": Star,
-  "target": Target,
-  "lightbulb": Lightbulb,
-  "zap": Zap,
-  "rocket": Rocket,
-  "layers": Layers,
-  "grid": Grid,
-  "layout": Layout,
-  "layout-dashboard": LayoutDashboard,
-  "link": Link,
-  "share-2": Share2,
-  "bot": Bot,
-  "eye": Eye,
-  "leaf": Leaf,
-  "sun": Sun,
-  "flame": Flame,
-  "gift": Gift,
-  "upload": Upload,
-  "search": Search,
-  "headphones": Headphones,
+  beaker: Beaker,
+  atom: Atom,
+  brain: Brain,
+
+  // --- HUD: Miscellaneous ---
+  star: Star,
+  target: Target,
+  lightbulb: Lightbulb,
+  zap: Zap,
+  rocket: Rocket,
+  bot: Bot,
+  gift: Gift,
+  upload: Upload,
+  search: Search,
+  headphones: Headphones,
 };
 
-// Default icon when no match found
 export const defaultIcon = Briefcase;
 
-// Helper function to get icon by name
+/**
+ * HUD: Safe Icon Resolver
+ * Returns the mapped icon or the institutional default.
+ */
 export function getIcon(iconName: string | null | undefined): LucideIcon {
   if (!iconName) return defaultIcon;
   return iconMap[iconName] || defaultIcon;
