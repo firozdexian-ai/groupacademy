@@ -1,17 +1,21 @@
 /**
  * Dexian Bangladesh: B2B Outreach Orchestrator
  * CTO Reference: Authoritative controller for institutional BD templates.
- * Logic: Implements honorific-aware name parsing and polymorphic link generation.
+ * Logic: Implements honorific-aware name parsing, bimodal link generation, and UI metadata.
  */
 
 export type DexianEmailTemplate = "discovery" | "talent_matching" | "ai_training";
 export type DexianWhatsAppTemplate = "intro" | "follow_up" | "training_pitch";
 
 // --- HUD: REGISTRY_SANITY_CHECK ---
-// Extracts semantic first names by filtering institutional honorifics.
+/**
+ * Extracts the semantic first name while filtering common honorifics
+ * to maintain a "Human-First" professional trajectory.
+ */
 function getFirstName(fullName: string): string {
   if (!fullName) return "there";
   const parts = fullName.trim().split(" ");
+  // Skip institutional honorifics commonly found in the Bangladesh corporate registry
   const skipWords = ["mr", "mr.", "mrs", "mrs.", "ms", "ms.", "md", "md.", "dr", "dr."];
 
   for (const part of parts) {
@@ -22,26 +26,28 @@ function getFirstName(fullName: string): string {
   return parts[0] || "there";
 }
 
+// Executive signature block for institutional consistency
 const EXECUTIVE_SIGNATURE = `Best regards,
 Towsif Ahmed Chowdhury
 Business Development, Sr. Executive
 Dexian Bangladesh Limited
 📧 info@dexian.com.bd`;
 
-// PHASE: Email_Artifact_Registry
+// ============= PHASE: Email_Artifact_Registry =============
+
 export const DEXIAN_EMAIL_TEMPLATES = {
   discovery: {
-    subject: (company: string) => `Talent Solutions & Corporate AI Training - Dexian Bangladesh`,
-    body: (company: string, contact?: string) =>
-      `Dear ${contact ? getFirstName(contact) : "HR/Hiring Team"},
+    subject: (companyName: string) => `Talent Solutions & Corporate AI Training - Dexian Bangladesh`,
+    body: (companyName: string, contactName?: string) =>
+      `Dear ${contactName ? getFirstName(contactName) : "HR/Hiring Team"},
 
-I hope this email finds you well. I'm reaching out from Dexian Bangladesh regarding solutions that may benefit ${company}:
+I hope this email finds you well. I'm reaching out from Dexian Bangladesh regarding solutions that may benefit ${companyName}:
 
 𝟏. 𝐏𝐫𝐞-𝐒𝐜𝐫𝐞𝐞𝐧𝐞𝐝 𝐓𝐚𝐥𝐞𝐧𝐭 𝐏𝐨𝐨𝐥
-Access 500+ career-ready professionals. We handle sourcing and matching - you focus on interviews.
+Access 500+ career-ready professionals across Business Development, Sales, Marketing, Tech, and Operations roles. We handle sourcing, screening, and matching - you focus on interviews.
 
 𝟐. 𝐀𝐈 𝐄𝐟𝐟𝐢𝐜𝐢𝐞𝐧𝐜𝐲 𝐀𝐜𝐜𝐞𝐥𝐞𝐫𝐚𝐭𝐨𝐫 (Corporate Training)
-6-session practical training designed to deliver 20%+ productivity gains through AI tools.
+6-session practical training designed to deliver 20%+ productivity gains through AI tools. Topics include AI-assisted communication, data analysis, research, and workflow automation.
 
 Would you be open to a 15-minute discovery call this week?
 I'm available Tuesday-Thursday between 10 AM - 4 PM.
@@ -50,48 +56,126 @@ ${EXECUTIVE_SIGNATURE}`,
   },
 
   talent_matching: {
-    subject: (company: string) => `Pre-Screened Candidates for ${company} - Dexian Bangladesh`,
-    body: (company: string, contact?: string) =>
-      `Dear ${contact ? getFirstName(contact) : "Hiring Team"},
+    subject: (companyName: string) => `Pre-Screened Candidates for ${companyName} - Dexian Bangladesh`,
+    body: (companyName: string, contactName?: string) =>
+      `Dear ${contactName ? getFirstName(contactName) : "Hiring Team"},
 
-Following up on talent acquisition - I wanted to check if ${company} has any upcoming hiring needs.
+Following up on talent acquisition - I wanted to check if ${companyName} has any upcoming hiring needs.
 
-We currently have 500+ verified professionals across Tech, Sales, Marketing, and Operations. If you share your open positions, I can send matched candidate profiles within 24 hours as a free trial.
+We currently have 500+ verified professionals in our talent pool across:
+• Business Development & Sales
+• Marketing & Digital
+• Tech & Engineering  
+• Operations & Supply Chain
+• Finance & Accounting
+
+If you share your current open positions, I can send you matched candidate profiles within 24 hours - completely free as a trial.
 
 Would a quick 15-minute call work for you this week?
 I'm available Tuesday-Thursday, 10 AM - 4 PM.
 
 ${EXECUTIVE_SIGNATURE}`,
   },
+
+  ai_training: {
+    subject: (companyName: string) => `AI Efficiency Accelerator for ${companyName} - Corporate Training`,
+    body: (companyName: string, contactName?: string) =>
+      `Dear ${contactName ? getFirstName(contactName) : "L&D Team"},
+
+Does ${companyName} invest in employee skill development? 
+
+We'd like to introduce the 𝐀𝐈 𝐄𝐟𝐟𝐢𝐜𝐢𝐞𝐧𝐜𝐲 𝐀𝐜𝐜𝐞𝐥𝐞𝐫𝐚𝐭𝐨𝐫 - a 6-session corporate training program designed for tangible productivity gains.
+
+𝐖𝐡𝐚𝐭'𝐬 𝐂𝐨𝐯𝐞𝐫𝐞𝐝:
+• Session 1-2: AI-Powered Communication (emails, reports, presentations)
+• Session 3-4: Data Analysis & Research with AI
+• Session 5-6: Workflow Automation & Personal Productivity
+
+𝐎𝐮𝐭𝐜𝐨𝐦𝐞𝐬:
+✓ 20%+ productivity improvement
+✓ Practical hands-on exercises
+✓ Customizable to your industry
+
+Shall I send over our corporate training brochure and pricing?
+
+I'm available for a quick 15-minute intro call Tuesday-Thursday, 10 AM - 4 PM.
+
+${EXECUTIVE_SIGNATURE}`,
+  },
 };
 
-// PHASE: WhatsApp_Artifact_Registry
+// ============= PHASE: WhatsApp_Artifact_Registry =============
+
 export const DEXIAN_WHATSAPP_TEMPLATES = {
-  intro: (contact: string, company: string) =>
-    `Hi ${getFirstName(contact)}! This is Towsif from Dexian Bangladesh. We help ${company} with talent matching and AI training. When would be a good time to connect?`,
+  intro: (contactName: string, companyName: string) => {
+    const firstName = getFirstName(contactName);
+    return `Hi ${firstName}! This is Towsif from Dexian Bangladesh.
 
-  training_pitch: (contact: string, company: string) =>
-    `Hi ${getFirstName(contact)}! Is ${company} investing in employee training? Our AI Efficiency Accelerator (6 sessions) helps teams become 20%+ more productive. Interested?`,
+We help companies like ${companyName} with:
+• Pre-screened talent matching for open roles
+• Corporate AI training programs (AI Efficiency Accelerator)
+
+Would love to discuss how we can support your team. When would be a good time to connect?`;
+  },
+
+  follow_up: (contactName: string, companyName: string) => {
+    const firstName = getFirstName(contactName);
+    return `Hi ${firstName}, following up on my earlier message regarding Dexian's talent and training solutions.
+
+Is ${companyName} currently looking to hire or upskill your team? Happy to share more details!`;
+  },
+
+  training_pitch: (contactName: string, companyName: string) => {
+    const firstName = getFirstName(contactName);
+    return `Hi ${firstName}! Quick question - is ${companyName} investing in employee training this year?
+
+We offer an AI Efficiency Accelerator program (6 sessions) that helps teams become 20%+ more productive using practical AI tools.
+
+Would you be interested in learning more?`;
+  },
 };
 
-// --- PHASE: Link_Generator_Nodes ---
+// ============= PHASE: Utility_Link_Generators =============
+
+/**
+ * Generate a mailto URI with pre-filled Dexian artifacts
+ */
 export function getDexianEmailLink(
   to: string,
   template: DexianEmailTemplate,
-  company: string,
-  contact?: string,
+  companyName: string,
+  contactName?: string,
 ): string {
-  const email =
-    DEXIAN_EMAIL_TEMPLATES[template as keyof typeof DEXIAN_EMAIL_TEMPLATES] || DEXIAN_EMAIL_TEMPLATES.discovery;
-  return `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(email.subject(company))}&body=${encodeURIComponent(email.body(company, contact))}`;
+  const emailTemplate = DEXIAN_EMAIL_TEMPLATES[template];
+  const subject = emailTemplate.subject(companyName);
+  const body = emailTemplate.body(companyName, contactName);
+
+  return `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
+/**
+ * Generate a WhatsApp URI for instant concierge-based outreach
+ */
 export function getDexianWhatsAppLink(
   phone: string,
   template: DexianWhatsAppTemplate,
-  contact: string,
-  company: string,
+  contactName: string,
+  companyName: string,
 ): string {
-  const msg = DEXIAN_WHATSAPP_TEMPLATES[template](contact, company);
-  return `https://wa.me/${phone.replace(/\D/g, "")}?text=${encodeURIComponent(msg)}`;
+  const cleanPhone = phone.replace(/\D/g, "");
+  const message = DEXIAN_WHATSAPP_TEMPLATES[template](contactName, companyName);
+
+  return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
 }
+
+// ============= PHASE: UI_Metadata_Exports =============
+
+/**
+ * Metadata options for institutional UI selection components.
+ * Resolved TS2305 error by providing explicit named export.
+ */
+export const EMAIL_TEMPLATE_OPTIONS: { value: DexianEmailTemplate; label: string; icon: string }[] = [
+  { value: "discovery", label: "Discovery (Talent + Training)", icon: "🔍" },
+  { value: "talent_matching", label: "Talent Matching Only", icon: "👥" },
+  { value: "ai_training", label: "AI Training Pitch", icon: "🤖" },
+];
