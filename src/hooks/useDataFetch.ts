@@ -1,7 +1,13 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
-import { toast } from 'sonner';
+import { useState, useCallback, useRef, useEffect } from "react";
+import { toast } from "sonner";
 
-const DEFAULT_TIMEOUT = 15000; // 15 seconds
+/**
+ * GroUp Academy: Network Transmission Sentinel
+ * CTO Reference: Authoritative hook for aborted, timed-out, and resilient data fetching.
+ * Performance: Prevents memory leaks and ghost updates via AbortController tracking.
+ */
+
+const DEFAULT_TIMEOUT = 15000; // 15s Threshold
 
 export interface UseDataFetchOptions {
   timeout?: number;
@@ -17,83 +23,75 @@ export interface UseDataFetchResult<T> {
   refetch: () => Promise<void>;
 }
 
-/**
- * Generic hook for fetching data with real abort support and timeout protection
- */
 export function useDataFetch<T>(
   fetchFn: (signal: AbortSignal) => Promise<T>,
-  options: UseDataFetchOptions = {}
+  options: UseDataFetchOptions = {},
 ): UseDataFetchResult<T> {
-  const { 
-    timeout = DEFAULT_TIMEOUT, 
+  const {
+    timeout = DEFAULT_TIMEOUT,
     showErrorToast = false,
-    errorMessage = 'Failed to load data'
+    errorMessage = "SYNC_FAULT: Failed to load registry data",
   } = options;
-  
+
   const [data, setData] = useState<T | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const [isTimeout, setIsTimeout] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Cleanup on unmount
+  // HUD: CLEANUP_PROTOCOL
   useEffect(() => {
     return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
+      abortControllerRef.current?.abort();
     };
   }, []);
 
   const refetch = useCallback(async () => {
-    // Cancel any in-flight request
+    // ABORT: Purge in-flight transmission
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
 
     const controller = new AbortController();
     abortControllerRef.current = controller;
-    
+
     setIsLoading(true);
     setError(null);
     setIsTimeout(false);
 
-    const timeoutId = setTimeout(() => controller.abort(), timeout);
+    const timeoutId = setTimeout(() => {
+      controller.abort();
+      console.warn("[Sentinel] TRANSMISSION_TIMEOUT: Threshold reached.");
+    }, timeout);
 
     try {
       const result = await fetchFn(controller.signal);
       clearTimeout(timeoutId);
-      
-      // Only update state if this is still the active request
+
+      // IDENTITY_CHECK: Verify artifact still belongs to active request node
       if (abortControllerRef.current === controller) {
         setData(result);
         setError(null);
       }
     } catch (err: any) {
       clearTimeout(timeoutId);
-      
-      // Ignore aborted requests (user navigated away or new request started)
-      if (err?.name === 'AbortError' || controller.signal.aborted) {
-        // Check if it was a timeout (our timeout triggered the abort)
+
+      // SYNC: Handle manual aborts vs timed-out aborts
+      if (err?.name === "AbortError" || controller.signal.aborted) {
         if (abortControllerRef.current === controller) {
           setIsTimeout(true);
-          setError(new Error('Request timed out. Please try again.'));
-          if (showErrorToast) {
-            toast.error('Request timed out. Please try again.');
-          }
+          const timeoutErr = new Error("LATENCY_FAULT: Request timed out.");
+          setError(timeoutErr);
+          if (showErrorToast) toast.error(timeoutErr.message);
         }
         return;
       }
-      
+
       if (abortControllerRef.current === controller) {
-        const errorObj = err instanceof Error ? err : new Error('Unknown error');
+        const errorObj = err instanceof Error ? err : new Error("UNKNOWN_REGISTRY_FAULT");
         setError(errorObj);
-        
-        if (showErrorToast) {
-          toast.error(errorMessage);
-        }
-        
-        console.error('Data fetch error:', errorObj);
+        if (showErrorToast) toast.error(errorMessage);
+        console.error("[Sentinel] DATA_FETCH_ERROR:", errorObj);
       }
     } finally {
       if (abortControllerRef.current === controller) {
@@ -106,26 +104,23 @@ export function useDataFetch<T>(
 }
 
 /**
- * Check if an error is a timeout/abort error
+ * Diagnostic: Verify if error artifact is a latency/abort event.
  */
 export function isTimeoutError(error: unknown): boolean {
   if (!error) return false;
   if (error instanceof Error) {
-    return error.name === 'AbortError' || 
-           error.message.includes('timed out') ||
-           error.message.includes('aborted');
+    return error.name === "AbortError" || error.message.includes("timed out") || error.message.includes("aborted");
   }
   return false;
 }
 
 /**
- * Utility function to wrap any async function with a timeout
- * Note: This creates a fake timeout - prefer using AbortSignal when possible
+ * Utility: Wrap async promises with high-intensity timeout protection.
  */
 export async function withTimeout<T>(
   promise: Promise<T>,
   timeoutMs: number = 15000,
-  errorMessage?: string
+  errorMessage?: string,
 ): Promise<T> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -134,10 +129,10 @@ export async function withTimeout<T>(
     return await Promise.race([
       promise,
       new Promise<never>((_, reject) => {
-        controller.signal.addEventListener('abort', () => {
-          reject(new Error(errorMessage || `Request timed out after ${timeoutMs / 1000} seconds`));
+        controller.signal.addEventListener("abort", () => {
+          reject(new Error(errorMessage || `THRESHOLD_ERROR: Limit reached (${timeoutMs / 1000}s)`));
         });
-      })
+      }),
     ]);
   } finally {
     clearTimeout(timeoutId);
