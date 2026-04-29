@@ -3,6 +3,10 @@ project_id = "iqdnbmnqpgmhtaiesulr"
 [functions]
   [functions.admin-reset-password]
     verify_jwt = false
+  [functions.agent-runtime]
+    verify_jwt = false
+  [functions.ingest-agent-knowledge]
+    verify_jwt = false
   [functions.ai-agent-chat]
     verify_jwt = false
   [functions.ai-auth-agent]
