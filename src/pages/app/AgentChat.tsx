@@ -144,7 +144,7 @@ export default function AgentChat() {
           "bg-card/30 backdrop-blur-xl border-x border-border/40 shadow-2xl",
         )}
       >
-        {session ? (
+        {!isInitializing ? (
           <AgentChatDialog
             agent={{
               id: agentKey,
