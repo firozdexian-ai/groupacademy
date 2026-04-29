@@ -32,7 +32,7 @@ export default function AgentChat() {
     isLoadingSessions,
     perResponseCost,
   } = useAgentRuntime();
-  const session = thread; // alias for downstream guards
+  
 
   const { balance } = useCredits();
 
