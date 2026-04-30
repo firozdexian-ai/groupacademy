@@ -1629,6 +1629,47 @@ export type Database = {
           },
         ]
       }
+      company_members: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          invited_email: string | null
+          role: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          invited_email?: string | null
+          role?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          invited_email?: string | null
+          role?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_members_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       competition_submissions: {
         Row: {
           competition_id: string
@@ -6226,6 +6267,10 @@ export type Database = {
         Args: { p_agent_key: string }
         Returns: undefined
       }
+      is_company_member: {
+        Args: { _company_id: string; _user_id: string }
+        Returns: boolean
+      }
       match_agent_knowledge: {
         Args: {
           p_agent_id: string
@@ -6284,6 +6329,7 @@ export type Database = {
         Args: { p_job_id: string; p_ref_code: string }
         Returns: Json
       }
+      user_company_ids: { Args: { _user_id: string }; Returns: string[] }
     }
     Enums: {
       academy_type:
