@@ -98,23 +98,25 @@ serve(async (req) => {
 
       if (!existingConn) {
         const fee = Number(agent.connection_fee);
-        const charge = await chargeTalent(admin, subjectId, fee, "agent_connection", agent.agent_key, `Connection: ${agent.name}`);
-        if (!charge.ok) return json({ error: "INSUFFICIENT_CREDITS_CONNECTION", required: fee, available: charge.balance }, 402);
-
+        // Companies are not billed in MVP — talent-only charges
+        if (subjectKind === "talent") {
+          const charge = await chargeTalent(admin, subjectId!, fee, "agent_connection", agent.agent_key, `Connection: ${agent.name}`);
+          if (!charge.ok) return json({ error: "INSUFFICIENT_CREDITS_CONNECTION", required: fee, available: charge.balance }, 402);
+        }
         await admin.from("agent_connections").insert({
-          agent_id: agent.id, subject_kind: subjectKind, subject_id: subjectId, fee_paid: fee,
+          agent_id: agent.id, subject_kind: subjectKind, subject_id: subjectId, fee_paid: subjectKind === "talent" ? fee : 0,
         });
         await admin.from("agent_credit_events").insert({
           agent_id: agent.id, subject_kind: subjectKind, subject_id: subjectId,
-          event_kind: "connection", credits: fee,
+          event_kind: "connection", credits: subjectKind === "talent" ? fee : 0,
         });
       }
     }
 
-    // Per-message fee
+    // Per-message fee (talent-only in MVP)
     const msgCost = isFree ? 0 : Number(agent.message_credit_cost ?? 0);
-    if (msgCost > 0) {
-      const charge = await chargeTalent(admin, subjectId, msgCost, "agent_message", agent.agent_key, `Message: ${agent.name}`);
+    if (msgCost > 0 && subjectKind === "talent") {
+      const charge = await chargeTalent(admin, subjectId!, msgCost, "agent_message", agent.agent_key, `Message: ${agent.name}`);
       if (!charge.ok) return json({ error: "INSUFFICIENT_CREDITS", required: msgCost, available: charge.balance }, 402);
     }
 
