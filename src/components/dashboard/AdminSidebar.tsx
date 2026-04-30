@@ -154,6 +154,7 @@ const navGroups: NavGroup[] = [
     roles: ["admin"],
     items: [
       { title: "AI Agents", icon: Bot, value: "ai-agents" },
+      { title: "Agent Studio", icon: Sparkles, value: "agent-studio" },
       { title: "Agent Sessions", icon: MessageSquare, value: "agent-sessions" },
       { title: "Assessment Leads", icon: ClipboardList, value: "leads" },
       { title: "Mock Interview Leads", icon: MessageSquare, value: "interviews" },
