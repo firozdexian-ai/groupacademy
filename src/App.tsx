@@ -36,6 +36,7 @@ import { PWAUpdatePrompt } from "./components/PWAUpdatePrompt";
 
 // Admin Pages
 import Dashboard from "./pages/Dashboard";
+import CompanyPortal from "./pages/company/CompanyPortal";
 import Students from "./pages/Students";
 import Enrollments from "./pages/Enrollments";
 import Instructors from "./pages/Instructors";
@@ -241,6 +242,9 @@ export default function App() {
                       </ProtectedRoute>
                     }
                   />
+                  {/* ================= COMPANY PORTAL ================ */}
+                  <Route path="/company" element={<CompanyPortal />} />
+                  <Route path="/company/*" element={<CompanyPortal />} />
                   <Route
                     path="/students"
                     element={
