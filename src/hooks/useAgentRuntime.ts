@@ -36,8 +36,15 @@ export interface UseAgentRuntimeReturn {
   connectionFee: number;
 }
 
-export function useAgentRuntime(): UseAgentRuntimeReturn {
+export interface AgentRuntimeSubject {
+  kind: "talent" | "company";
+  id: string;
+}
+
+export function useAgentRuntime(subjectOverride?: AgentRuntimeSubject): UseAgentRuntimeReturn {
   const { talent } = useTalent();
+  const subject: AgentRuntimeSubject | null =
+    subjectOverride ?? (talent?.id ? { kind: "talent", id: talent.id } : null);
 
   const [thread, setThread] = useState<AgentThread | null>(null);
   const [messages, setMessages] = useState<AgentMessage[]>([]);
@@ -52,11 +59,10 @@ export function useAgentRuntime(): UseAgentRuntimeReturn {
 
   const startOrResumeSession = useCallback(
     async (agentKey: string): Promise<AgentThread | null> => {
-      if (!talent?.id) return null;
+      if (!subject?.id) return null;
       setIsLoading(true);
       setIsLoadingSessions(true);
       try {
-        // Resolve agent pricing/id
         const { data: agent } = await supabase
           .from("ai_agents")
           .select("id, agent_key, message_credit_cost, connection_fee")
@@ -73,13 +79,12 @@ export function useAgentRuntime(): UseAgentRuntimeReturn {
         setPerResponseCost(Number(agent.message_credit_cost ?? 0));
         setConnectionFee(Number(agent.connection_fee ?? 0));
 
-        // Resume most recent thread for this (talent, agent) or start fresh on first send
         const { data: existing } = await supabase
           .from("agent_threads")
           .select("*")
           .eq("agent_id", agent.id)
-          .eq("subject_kind", "talent")
-          .eq("subject_id", talent.id)
+          .eq("subject_kind", subject.kind)
+          .eq("subject_id", subject.id)
           .order("last_message_at", { ascending: false, nullsFirst: false })
           .order("created_at", { ascending: false })
           .limit(1)
@@ -102,7 +107,7 @@ export function useAgentRuntime(): UseAgentRuntimeReturn {
 
         setThread(null);
         setMessages([]);
-        return { id: "", agent_id: agent.id, agent_key: agent.agent_key, subject_kind: "talent", subject_id: talent.id, title: null, last_message_at: null, created_at: new Date().toISOString() };
+        return { id: "", agent_id: agent.id, agent_key: agent.agent_key, subject_kind: subject.kind, subject_id: subject.id, title: null, last_message_at: null, created_at: new Date().toISOString() };
       } catch (err) {
         console.error("[useAgentRuntime] init fault", err);
         return null;
@@ -111,7 +116,7 @@ export function useAgentRuntime(): UseAgentRuntimeReturn {
         setIsLoadingSessions(false);
       }
     },
-    [talent?.id],
+    [subject?.id, subject?.kind],
   );
 
   const sendMessage = useCallback(
