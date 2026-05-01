@@ -231,23 +231,27 @@ export function TracksTab() {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-5 gap-1.5 p-1 bg-muted/50 rounded-xl border border-border/50">
-        {CATEGORY_CONFIG.map(({ key, icon: Icon, label }) => (
-          <button
-            key={key}
-            onClick={() => setSelectedCategory(key)}
-            className={cn(
-              "flex flex-col items-center gap-1 py-2 rounded-lg text-[10px] font-medium transition-all",
-              selectedCategory === key
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            <Icon className="h-4 w-4" />
-            <span className="leading-none">{label}</span>
-          </button>
-        ))}
-      </div>
+      {/* Compact pill row — wraps on narrow screens, no horizontal scroll */}
+      <nav className="flex flex-wrap gap-1.5 p-1 bg-muted/50 rounded-xl border border-border/50">
+        {CATEGORY_CONFIG.map(({ key, icon: Icon, label }) => {
+          const isActive = selectedCategory === key;
+          return (
+            <button
+              key={key}
+              onClick={() => setSelectedCategory(key)}
+              className={cn(
+                "flex-1 min-w-[60px] flex items-center justify-center gap-1.5 py-2 rounded-lg text-[11px] font-medium transition-all",
+                isActive
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <Icon className="h-3.5 w-3.5" />
+              <span>{label}</span>
+            </button>
+          );
+        })}
+      </nav>
 
       {selectedCategory === "my-program" ? renderMyProgram() : renderAcademy(selectedCategory)}
     </div>
