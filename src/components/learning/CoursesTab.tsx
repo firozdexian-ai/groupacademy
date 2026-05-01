@@ -65,6 +65,7 @@ export function CoursesTab({ onOpenCourse }: CoursesTabProps) {
         .select("id, title, slug, description, content_type, price, instructor_name, cover_image_url")
         .eq("is_published", true)
         .eq("is_private", false)
+        .eq("is_ready", true)
         .order("display_order")
         .abortSignal(signal);
 
