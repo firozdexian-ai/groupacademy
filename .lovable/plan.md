@@ -1,109 +1,125 @@
-# Phase 12B — Consolidated UI Refresh & Career Tools
+# Phase 13 — Platform-Wide UI Standardization
 
-Combines the **carry-over from Phase 12A** (Jobs Hub Tools + Locations) with **new feedback** on Learning Hub naming, Feed UI, filters, and PostCard cleanup.
+The Feed, Learning Hub and Jobs Hub are now compact and modern. But ~25 other pages still use the old "neural / arena / calibration terminal" sci-fi styling: oversized italic uppercase headings, decorative gradients, "Registry Sync Failure" empty states, and inconsistent container widths. This phase brings every talent-facing page onto a single, calm, mobile-first design system.
 
 ---
 
-## 1. Learning Hub — Final 4-Tab Structure
+## 1. Define the standard (shared tokens)
 
-`src/pages/app/LearningHub.tsx`
+Codify what we already use in Feed/Learning/Jobs into one place so future pages can't drift.
 
-Rename and restructure tabs to:
-
-| Tab | Contains |
-|---|---|
-| **My Hub** | Active & completed enrollments (unchanged) |
-| **Career Path** | Schools / professions browser (unchanged) |
-| **Academy** | Courses + Live Programs (webinars/batches) + In-person Events + Competitions |
-| **Study Abroad** | (renamed from "Arena") Country specialists, universities, IELTS prep, roadmap tools |
-
-Changes:
-- Rename tab key `events` → `academy-events` is **not** needed; instead split current tabs:
-  - Move **In-person events** and **Competitions** from current `EventsTab` **into Academy** (new sub-pills inside `CoursesTab`/Academy view).
-  - Repurpose the 4th tab as **Study Abroad** rendering only `StudyAbroadSection` (no in-person/compete pills).
-- Update `tabs` array: `my-courses`, `tracks`, `academy`, `study-abroad`. Icons: BookOpen, Target, Library, Globe.
-- `CoursesTab` becomes an **Academy shell** with internal sub-pills: **Courses · Live Programs · Events · Compete** (compact pill row, no horizontal scroll — wraps to 2 rows if needed on mobile).
-- Drop the page-level `<BannerCarousel placement="learning" />` (user noted Home has none; keep Learning consistent — remove the banner block).
-- Header text becomes `Learn` not `Academy` to avoid clashing with the Academy tab.
-
-## 2. Career Path UI Consistency
-
-`src/components/learning/TracksTab.tsx`
-
-- Replace 5-column category strip with the same compact pill style used in AI Agents filter (icon + label, wraps, no horizontal scroll).
-- Use single accent color (primary) — drop emerald-only completed cards in favor of the standard `Badge` pattern used elsewhere.
-- Match card radius (`rounded-2xl`), padding (`p-3`), and typography (`text-sm` titles, `text-[11px]` meta) used in Academy cards for visual consistency.
-
-## 3. Feed Overhaul
-
-### 3a. `src/pages/app/Feed.tsx`
-- Confirm `BannerCarousel` is **not** rendered (already removed) — keep Feed banner-free per Home parity.
-- Pinned post: render through the same compact `PostCard` redesign (no special legacy styling).
-
-### 3b. `src/components/feed/FeedFilters.tsx` — kill horizontal scroll
-- Remove `overflow-x-auto` + `min-w-max` pattern.
-- Show first **4 filters inline** (`All`, `Posts`, `Courses`, `Videos`) + a **"More" button** that opens a popover/sheet with the rest (`Polls`, `Articles`).
-- Mirror the AI Agents filter "More" pattern (`AgentFilters.tsx`) for visual consistency.
-- Compact: `py-2`, no large telemetry counter badges — use a small inline `(N)` after the label.
-
-### 3c. `src/components/feed/PostCard.tsx` — strip "previous words"
-- Remove all sci-fi/terminal labels (`NEURAL_TIP`, `MARKET_INTELLIGENCE`, `INSTITUTIONAL_LOG`, `COMMUNITY_CONSENSUS`, etc.) — replace with plain English: `Tip`, `News`, `Announcement`, `Poll`.
-- Reduce padding to `p-3`, title `text-sm font-semibold`, meta `text-[11px]`.
-- Replace `AspectRatio` 16:9 hero media with a constrained `max-h-64 rounded-xl` image.
-- Simplify reaction bar to icon-only with subtle counts.
-- Remove decorative gradients/borders; align with `FeedCardRedesigned` density.
-
-### 3d. `src/components/feed/QuickActionsGrid.tsx` — already 4-col, verify
-- Ensure exactly 4 visible tiles (3 dynamic agents + Messages), no horizontal scroll.
-
-## 4. Jobs Hub — Carry-over from Phase 12A
-
-`src/pages/app/JobsHub.tsx` (talent-side)
-
-- **Replace "Agents" tab with "Tools" tab** containing:
-  - **ATS-Friendly CV Maker** → new `src/pages/app/tools/CVMaker.tsx`
-  - **Application Answer Sheet** → new `src/pages/app/tools/ApplicationHelper.tsx`
-- **Locations tab**: pin user's residency country (from `talent.country`) at top with "Your country" badge.
-- New edge function `supabase/functions/generate-application-answers/index.ts` (Lovable AI Gateway, Gemini 2.5 Flash).
-- Add `CV_GENERATION` (15) + `APPLICATION_ANSWERS` (10) to `src/lib/creditPricing.ts` (already done in Phase 12A — verify).
-
-## 5. UI Consistency Tokens
-
-Establish a shared compact pattern used across Feed, Learning, Jobs:
+`src/lib/uiTokens.ts` (new) — exports a few reusable className constants:
 
 ```text
-Card:     rounded-2xl  border-border/40  p-3
-Title:    text-sm font-semibold
-Meta:     text-[11px] text-muted-foreground
-Pills:    h-9 rounded-xl text-xs (no horizontal scroll, wraps)
-Banners:  removed from Feed + Learning page shells
-Badges:   plain English labels, no UPPERCASE_TERMINAL style
+PAGE_SHELL     max-w-2xl mx-auto px-3 py-3 pb-28 space-y-4
+PAGE_TITLE     text-xl font-bold
+PAGE_SUBTITLE  text-xs text-muted-foreground
+SECTION_TITLE  text-sm font-semibold
+META_TEXT      text-[11px] text-muted-foreground
+CARD           rounded-2xl border border-border/40
+CARD_PAD       p-3
+PILL_ROW       flex flex-wrap gap-2   (never horizontal-scroll)
 ```
 
-Apply audit pass to: `PostCard`, `FeedCardRedesigned`, `TracksTab`, `CoursesTab`, `MyCoursesTab`, `EventsTab`, `JobCard`.
+Plus a small `<EmptyState icon title description action />` component in `src/components/common/EmptyState.tsx` — replaces every bespoke "Registry Mismatch / Arena Empty / Sync Error" block.
+
+## 2. Pages to de-terminalize (high priority)
+
+These still use `text-3xl/4xl/5xl font-black uppercase tracking-tighter italic` headers, "Neural / Calibration / Registry / Arena / Telemetry / Protocol" copy, and oversized hero blocks. Convert each to standard tokens above.
+
+| Page | Current hero | Target |
+|---|---|---|
+| `JobAssessment.tsx` | "Neural Interface" 3xl black | "Job Assessment" `PAGE_TITLE` |
+| `StudyAbroad.tsx` | "Academic Discovery" 4xl italic + 3xl balance pill | Compact header + standard balance badge |
+| `StudyAbroadDetail.tsx` | 4xl–6xl italic university name, rotated 28px emoji tile | `text-2xl font-bold`, plain logo tile `h-12 w-12 rounded-xl` |
+| `IELTSPrep.tsx` | "Expansion Protocols Active" 3xl black | "IELTS Prep" + standard `EmptyState` |
+| `Competitions.tsx` | "The Arena" 5xl italic | "Competitions" `PAGE_TITLE` |
+| `CompetitionDetail.tsx` | "Registry Node Missing" 5xl–6xl | Compact title + `EmptyState` for missing |
+| `Blog.tsx` / `BlogPost.tsx` | 4xl–6xl italic uppercase article titles | `text-2xl font-bold` article title, `text-xl` list cards |
+| `AppCourseDetail.tsx` | 5xl–6xl italic course name | `text-2xl font-bold` |
+| `AppMockInterviewSetup.tsx` | "Job Telemetry / Calibration / Neural Synthesis" 3xl | Plain "Setup", "Job details", "Generating…" inline |
+| `AppJobs.tsx` | "Registry Mismatch" 4xl | `EmptyState` |
+| `Gigs.tsx` | "Gig Hub" 2xl→4xl + 3xl dialog titles | `PAGE_TITLE` + standard `DialogTitle text-lg` |
+| `ProfileEdit.tsx` | "Calibration Terminal" 3xl | "Edit profile" `PAGE_TITLE` |
+
+For each: also remove decorative gradients, rotated tiles, drop-shadow halos, and `font-mono tracking-tighter` on numbers — use plain semibold.
+
+## 3. Container width consistency
+
+Standardize three widths only:
+- **Reading / forms** (`max-w-2xl`) — Profile, ProfileEdit, ProfileVerify, all `tools/*`, BlogPost, Withdrawals, Transactions, SavedItems, MessageThread, AppJobApplication, AppPortfolioRequest, AppSalaryAnalysisSetup, AppCareerAssessment, AppMockInterviewSetup, JobAssessment, StudyAbroadRoadmap, StudyAbroadDetail, CompetitionDetail, AppCourseDetail, AppJobDetail, AppProfessionDetail.
+- **Lists / hubs** (`max-w-3xl`) — Feed, LearningHub, JobsHub, Gigs, Marketplace, Competitions, AppJobs, AppCourses, AppEvents, MyApplications, MyAgents, MyGigs, MyResults, AgentMarketplace, StudyAbroad, IELTSPrep, Notifications, Blog, Messages, ServicesHub.
+- **Full-bleed only when justified** (`max-w-none`) — AgentChat, MessageThread chat surface.
+
+Audit pass to fix anything wider (`max-w-4xl/5xl/6xl/7xl`).
+
+## 4. Kill remaining horizontal scroll
+
+`overflow-x-auto`/`min-w-max`/`whitespace-nowrap` strips remaining in:
+- `src/pages/app/AIAgents.tsx`, `Messages.tsx`, `Gigs.tsx`, `Blog.tsx`, `Marketplace.tsx`
+- `src/components/profile/ApplicationHistoryCard.tsx`
+- `src/components/feed/PostAuthor.tsx`
+- `src/components/learning/LearningStreak.tsx`, `ActiveCourseHero.tsx`
+- `src/components/ai-agents/RecentConversations.tsx`
+- `src/components/gigs/JobSharingGigForm.tsx`
+
+Replace with `flex-wrap` + a "More" sheet where >6 items, mirroring `AgentFilters.tsx` / `FeedFilters.tsx`.
+
+## 5. Empty states
+
+Replace every bespoke empty/error block (≈18 occurrences across pages) with `<EmptyState>`. Examples:
+- "Registry Sync Failure" → "Couldn't load this university."
+- "Arena Empty" → "No competitions yet."
+- "Sync Error" → "We couldn't load this. Try again."
+- "Calibration Terminal" → not an empty state; just remove.
+
+Plain English, `text-sm`, single primary action button (`size="sm"`).
+
+## 6. Cards & badges audit
+
+Across `src/components/{jobs,gigs,learning,feed,marketplace}/*Card.tsx`:
+- Force `rounded-2xl border border-border/40 p-3` baseline.
+- Title `text-sm font-semibold`, meta `text-[11px] text-muted-foreground`.
+- Replace any `font-mono uppercase tracking-tighter` badges with standard `Badge variant="outline" className="text-[10px]"`.
+- Remove gradient borders, glow rings, rotation transforms.
+
+## 7. Page-level header pattern
+
+Every page gets the same header block (replace ad-hoc heroes):
+
+```text
+<header className="space-y-1">
+  <div className="flex items-center gap-2">
+    <Icon className="h-5 w-5 text-primary" />
+    <h1 className={PAGE_TITLE}>Title</h1>
+  </div>
+  <p className={PAGE_SUBTITLE}>Short subtitle.</p>
+</header>
+```
+
+Back button: `Button variant="ghost" size="sm"` with `ArrowLeft` — already used in `tools/CVMaker.tsx`. Apply to detail pages that use a custom back.
+
+## 8. Out of scope (this phase)
+
+- Admin dashboard pages (`src/components/dashboard/**`) — admin keeps its denser styling.
+- Public marketing pages (`src/pages/*.tsx` outside `app/`) — separate brand pass.
+- Color tokens, dark mode, fonts — already standardized.
+- Functionality changes — pure visual/copy refactor.
 
 ---
 
-## Files Changed
+## Execution order
 
-**New**
-- `src/pages/app/tools/CVMaker.tsx`
-- `src/pages/app/tools/ApplicationHelper.tsx`
-- `supabase/functions/generate-application-answers/index.ts`
+1. Create `src/lib/uiTokens.ts` and `src/components/common/EmptyState.tsx`.
+2. Sweep the 12 high-priority "terminal" pages in section 2 (largest visual debt).
+3. Container-width audit (section 3) — mostly one-line className changes.
+4. Horizontal-scroll sweep (section 4).
+5. Replace empty/error blocks with `EmptyState` (section 5).
+6. Card consistency audit (section 6).
+7. Header pattern audit (section 7).
 
-**Modified**
-- `src/pages/app/LearningHub.tsx` (4-tab rename, drop banner, Study Abroad tab)
-- `src/components/learning/TracksTab.tsx` (pill consistency)
-- `src/components/learning/CoursesTab.tsx` (Academy shell with sub-pills)
-- `src/components/learning/EventsTab.tsx` (slim to Study Abroad-only OR delete and inline `StudyAbroadSection`)
-- `src/components/feed/FeedFilters.tsx` (4 + More button, no scroll)
-- `src/components/feed/PostCard.tsx` (densify, plain labels)
-- `src/components/feed/QuickActionsGrid.tsx` (verify 4-col cap)
-- `src/pages/app/JobsHub.tsx` (Agents → Tools tab, pinned country)
-- `src/lib/creditPricing.ts` (verify CV_GENERATION/APPLICATION_ANSWERS)
+No DB migrations, no edge functions, no dependency changes. ~25 files modified, 2 created.
 
-## Out of Scope
-- Admin Jobs Hub (`src/components/dashboard/jobs-hub/JobsHub.tsx`) — terminal styling kept for admin; talent-facing only.
-- New backend tables (none needed beyond Phase 12A's `instructor_connection_requests`).
+---
 
-**Approve to proceed with Phase 12B implementation?**
+**Approve to proceed with Phase 13 standardization?**
