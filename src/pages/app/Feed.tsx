@@ -21,9 +21,8 @@ import { ComposePost } from "@/components/feed/ComposePost";
 import { cn } from "@/lib/utils";
 
 /**
- * Platform Logic: Neural Feed Synchronizer
- * High-fidelity content orchestration with pull-to-refresh telemetry.
- * 2026 Standard: Executive Logic geometry and transaction-grade density.
+ * Feed — personalized stream of posts, courses, videos and articles
+ * for the signed-in talent. Mobile-first; supports pull-to-refresh.
  */
 
 export default function Feed() {
