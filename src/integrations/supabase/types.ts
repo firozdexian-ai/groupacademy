@@ -7088,6 +7088,10 @@ export type Database = {
         Returns: boolean
       }
       cleanup_rate_limits: { Args: never; Returns: undefined }
+      connect_agent: {
+        Args: { _agent_key: string; _fee?: number; _talent_id: string }
+        Returns: undefined
+      }
       create_credit_invoice: {
         Args: {
           p_bundle_credits: number
@@ -7171,6 +7175,10 @@ export type Database = {
       increment_agent_conversations: {
         Args: { p_agent_key: string }
         Returns: undefined
+      }
+      is_agent_connected: {
+        Args: { _agent_key: string; _talent_id: string }
+        Returns: boolean
       }
       is_company_member: {
         Args: { _company_id: string; _user_id: string }
