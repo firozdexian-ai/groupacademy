@@ -86,7 +86,7 @@ const Auth = () => {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (signupData.password.length < 8) {
-      toast.error("Password entropy too low. Min 8 characters.");
+      toast.error("Password must be at least 8 characters.");
       return;
     }
     setIsLoading(true);
@@ -95,7 +95,7 @@ const Auth = () => {
     try {
       const { data: existing } = await supabase.from("talents").select("id").eq("phone", fullPhone).maybeSingle();
       if (existing) {
-        toast.error("Node already exists. Transitioning to Login.");
+        toast.error("Account already exists. Switching to sign in.");
         setActiveTab("login");
         setLoginData((prev) => ({ ...prev, identifier: fullPhone }));
         return;
@@ -109,13 +109,12 @@ const Auth = () => {
         signupData.countryCode,
       );
     } catch (error) {
-      console.error("Identity Creation Failed");
+      console.error("Sign up failed");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // FIX: Added missing handler for Access Recovery
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!resetEmail) return;
@@ -124,9 +123,9 @@ const Auth = () => {
       await resetPassword(resetEmail);
       setShowForgotPassword(false);
       setResetEmail("");
-      toast.success("Recovery link transmitted.");
+      toast.success("Reset link sent. Check your inbox.");
     } catch (error) {
-      console.error("Recovery Transmission Failed");
+      console.error("Reset request failed");
     } finally {
       setIsLoading(false);
     }
@@ -134,7 +133,7 @@ const Auth = () => {
 
   const getPasswordStrength = (password: string) => {
     if (!password) return { level: 0, label: "", color: "bg-muted" };
-    if (password.length < 8) return { level: 1, label: "Insufficient", color: "bg-destructive" };
+    if (password.length < 8) return { level: 1, label: "Too short", color: "bg-destructive" };
     let s = 1;
     if (password.length >= 12) s++;
     if (/[A-Z]/.test(password) && /[0-9]/.test(password)) s++;
@@ -142,8 +141,8 @@ const Auth = () => {
     const maps = [
       { level: 1, label: "Weak", color: "bg-destructive" },
       { level: 2, label: "Fair", color: "bg-orange-500" },
-      { level: 3, label: "Secure", color: "bg-secondary" },
-      { level: 4, label: "High Entropy", color: "bg-accent" },
+      { level: 3, label: "Good", color: "bg-secondary" },
+      { level: 4, label: "Strong", color: "bg-accent" },
     ];
     return maps[s - 1];
   };
@@ -151,10 +150,10 @@ const Auth = () => {
   const strength = getPasswordStrength(signupData.password);
 
   const valueProps = [
-    { icon: Target, label: "Career Audit", description: "Gemini-powered skill mapping" },
-    { icon: Mic, label: "Mock Interviews", description: "Practice with real-time feedback" },
-    { icon: DollarSign, label: "Salary Index", description: "Live market value analysis" },
-    { icon: Gift, label: "250 Bonus Credits", description: "Initial onboarding reward" },
+    { icon: Target, label: "Career audit", description: "AI-powered skill mapping" },
+    { icon: Mic, label: "Mock interviews", description: "Practice with real-time feedback" },
+    { icon: DollarSign, label: "Salary index", description: "Live market value analysis" },
+    { icon: Gift, label: "250 bonus credits", description: "Welcome reward for new members" },
   ];
 
   if (authLoading)
@@ -175,11 +174,11 @@ const Auth = () => {
             <img src={logoLight} alt="GroUp" className="h-9" />
           </button>
           <h2 className="text-5xl font-black text-white tracking-tighter leading-tight mb-6">
-            Evolve Your <br />
-            Professional Identity.
+            Grow your <br />
+            career with AI.
           </h2>
           <p className="text-white/70 text-lg font-medium max-w-sm">
-            Join the ecosystem where AI mentors and professional opportunities converge.
+            Join the platform where AI mentors and real career opportunities meet.
           </p>
         </div>
         <div className="grid grid-cols-2 gap-8 relative z-10">
@@ -201,36 +200,36 @@ const Auth = () => {
             <button onClick={() => navigate("/")}>
               <img src={theme === "dark" ? logoLight : logoDark} alt="GroUp" className="h-8 mx-auto" />
             </button>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
-              Access Career Terminal
+            <p className="text-xs font-medium text-muted-foreground">
+              Welcome back
             </p>
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-2 h-12 bg-muted/50 p-1 rounded-2xl border border-border/40">
-              <TabsTrigger value="login" className="rounded-xl font-black uppercase text-[10px] tracking-widest">
-                Sign In
+              <TabsTrigger value="login" className="rounded-xl font-semibold text-sm">
+                Sign in
               </TabsTrigger>
-              <TabsTrigger value="signup" className="rounded-xl font-black uppercase text-[10px] tracking-widest">
-                Register
+              <TabsTrigger value="signup" className="rounded-xl font-semibold text-sm">
+                Sign up
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="login" className="mt-6">
               <Card className="rounded-[32px] border-border/40 shadow-2xl">
                 <CardHeader>
-                  <CardTitle className="text-xl font-black tracking-tighter">Welcome Back</CardTitle>
-                  <CardDescription className="text-xs font-medium">Continue your trajectory</CardDescription>
+                  <CardTitle className="text-xl font-bold tracking-tight">Welcome back</CardTitle>
+                  <CardDescription className="text-sm">Sign in to continue</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleLogin} className="space-y-5">
                     <div className="space-y-1.5">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
-                        Identity
+                      <Label className="text-xs font-medium text-muted-foreground ml-1">
+                        Email or phone
                       </Label>
                       <Input
                         type="text"
-                        placeholder="Email or phone"
+                        placeholder="you@example.com or +1234567890"
                         value={loginData.identifier}
                         onChange={(e) => setLoginData({ ...loginData, identifier: e.target.value })}
                         className="rounded-xl border-border/40 h-11"
@@ -239,15 +238,15 @@ const Auth = () => {
                     </div>
                     <div className="space-y-1.5">
                       <div className="flex justify-between items-center ml-1">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                          Keycode
+                        <Label className="text-xs font-medium text-muted-foreground">
+                          Password
                         </Label>
                         <button
                           type="button"
                           onClick={() => setShowForgotPassword(true)}
-                          className="text-[10px] font-black uppercase text-primary hover:underline"
+                          className="text-xs font-medium text-primary hover:underline"
                         >
-                          Lost Access?
+                          Forgot password?
                         </button>
                       </div>
                       <div className="relative">
@@ -262,6 +261,7 @@ const Auth = () => {
                           type="button"
                           onClick={() => setShowPassword(!showPassword)}
                           className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                          aria-label={showPassword ? "Hide password" : "Show password"}
                         >
                           {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
@@ -269,10 +269,10 @@ const Auth = () => {
                     </div>
                     <Button
                       type="submit"
-                      className="w-full h-11 rounded-xl font-black uppercase tracking-widest text-xs"
+                      className="w-full h-11 rounded-xl font-semibold text-sm"
                       disabled={isLoading}
                     >
-                      {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Authorize Entry"}
+                      {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Sign in"}
                     </Button>
                   </form>
                 </CardContent>
@@ -282,17 +282,17 @@ const Auth = () => {
             <TabsContent value="signup" className="mt-6">
               <Card className="rounded-[32px] border-border/40 shadow-2xl">
                 <CardHeader>
-                  <CardTitle className="text-xl font-black tracking-tighter">New Node</CardTitle>
-                  <CardDescription className="text-xs font-medium">Claim 250 bonus credits</CardDescription>
+                  <CardTitle className="text-xl font-bold tracking-tight">Create your account</CardTitle>
+                  <CardDescription className="text-sm">Get 250 bonus credits to start</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleSignup} className="space-y-4">
                     <div className="space-y-1.5">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
-                        Full Name
+                      <Label className="text-xs font-medium text-muted-foreground ml-1">
+                        Full name
                       </Label>
                       <Input
-                        placeholder="John Doe"
+                        placeholder="Jane Doe"
                         value={signupData.fullName}
                         onChange={(e) => setSignupData({ ...signupData, fullName: e.target.value })}
                         className="rounded-xl border-border/40 h-10"
@@ -300,12 +300,12 @@ const Auth = () => {
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
-                        Work Email
+                      <Label className="text-xs font-medium text-muted-foreground ml-1">
+                        Email
                       </Label>
                       <Input
                         type="email"
-                        placeholder="you@domain.com"
+                        placeholder="you@example.com"
                         value={signupData.email}
                         onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
                         className="rounded-xl border-border/40 h-10"
@@ -313,8 +313,8 @@ const Auth = () => {
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
-                        Verified Phone
+                      <Label className="text-xs font-medium text-muted-foreground ml-1">
+                        Phone number
                       </Label>
                       <PhoneInput
                         value={signupData.phone}
@@ -324,8 +324,8 @@ const Auth = () => {
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
-                        Set Password
+                      <Label className="text-xs font-medium text-muted-foreground ml-1">
+                        Password
                       </Label>
                       <div className="relative">
                         <Input
@@ -339,6 +339,7 @@ const Auth = () => {
                           type="button"
                           onClick={() => setShowSignupPassword(!showSignupPassword)}
                           className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                          aria-label={showSignupPassword ? "Hide password" : "Show password"}
                         >
                           {showSignupPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
@@ -361,10 +362,10 @@ const Auth = () => {
                     </div>
                     <Button
                       type="submit"
-                      className="w-full h-11 rounded-xl font-black uppercase tracking-widest text-xs mt-2"
+                      className="w-full h-11 rounded-xl font-semibold text-sm mt-2"
                       disabled={isLoading}
                     >
-                      {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Create Identity"}
+                      {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Create account"}
                     </Button>
                   </form>
                 </CardContent>
@@ -375,9 +376,9 @@ const Auth = () => {
           <div className="text-center">
             <button
               onClick={() => navigate(`/auth?${searchParams.toString()}`)}
-              className="text-[10px] font-black uppercase tracking-[0.2em] text-primary"
+              className="text-xs font-medium text-primary hover:underline"
             >
-              Initialize Chat Handshake
+              Try the chat experience instead
             </button>
           </div>
           </div>
@@ -385,9 +386,9 @@ const Auth = () => {
           <div className="text-center pt-2 border-t border-border/40">
             <button
               onClick={() => navigate("/for-companies")}
-              className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground hover:text-primary transition-colors"
+              className="text-xs font-medium text-muted-foreground hover:text-primary transition-colors"
             >
-              Hiring? Apply for Company Access →
+              Hiring? Apply for company access →
             </button>
           </div>
         </div>
@@ -395,16 +396,19 @@ const Auth = () => {
       <Dialog open={showForgotPassword} onOpenChange={setShowForgotPassword}>
         <DialogContent className="rounded-[32px] border-border/40">
           <DialogHeader>
-            <DialogTitle className="text-xl font-black tracking-tighter">Access Recovery</DialogTitle>
+            <DialogTitle className="text-xl font-bold tracking-tight">Reset password</DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              Enter your email and we'll send you a reset link.
+            </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleForgotPassword} className="space-y-4 pt-4">
+          <form onSubmit={handleForgotPassword} className="space-y-4 pt-2">
             <div className="space-y-1.5">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
-                Registered Email
+              <Label className="text-xs font-medium text-muted-foreground ml-1">
+                Email address
               </Label>
               <Input
                 type="email"
-                placeholder="name@example.com"
+                placeholder="you@example.com"
                 value={resetEmail}
                 onChange={(e) => setResetEmail(e.target.value)}
                 className="rounded-xl border-border/40 h-11"
@@ -415,9 +419,9 @@ const Auth = () => {
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="flex-1 rounded-xl font-black uppercase text-xs h-11"
+                className="flex-1 rounded-xl font-semibold text-sm h-11"
               >
-                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Transmit Link"}
+                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Send reset link"}
               </Button>
             </div>
           </form>

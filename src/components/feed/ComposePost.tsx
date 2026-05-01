@@ -44,14 +44,14 @@ export function ComposePost({ onPostCreated }: ComposePostProps) {
     if (!trimmed || !talent?.id) return;
 
     setIsSubmitting(true);
-    const toastId = toast.loading("Synchronizing artifact with community feed...");
+    const toastId = toast.loading("Posting…");
 
     try {
       const { error } = await supabase.from("feed_posts").insert({
         text_content: trimmed,
-        author_name: talent.fullName || "Anonymous Node",
+        author_name: talent.fullName || "Community member",
         author_avatar: talent.profilePhotoUrl || null,
-        author_title: talent.customProfession || "Academy Member",
+        author_title: talent.customProfession || "Academy member",
         talent_id: talent.id,
         content_type: "text",
         tags: tags.length > 0 ? tags : null,
@@ -61,12 +61,12 @@ export function ComposePost({ onPostCreated }: ComposePostProps) {
 
       if (error) throw error;
 
-      toast.success("Artifact Published: Post synchronized.", { id: toastId });
+      toast.success("Post published.", { id: toastId });
       handleReset();
       onPostCreated();
     } catch (err: any) {
-      toast.error("Transmission Fault: Sync failed.", { id: toastId });
-      console.error("[ComposeNode] Sync Error:", err);
+      toast.error("Couldn't publish your post. Please try again.", { id: toastId });
+      console.error("[ComposePost] error:", err);
     } finally {
       setIsSubmitting(false);
     }
@@ -88,7 +88,7 @@ export function ComposePost({ onPostCreated }: ComposePostProps) {
       setTags((prev) => [...prev, cleanTag]);
       setTagInput("");
     } else if (tags.length >= MAX_TAGS) {
-      toast.info("Registry Limit: Max 5 discovery tags.");
+      toast.info("You can add up to 5 tags.");
     }
   };
 
@@ -137,8 +137,8 @@ export function ComposePost({ onPostCreated }: ComposePostProps) {
                 onClick={() => setIsExpanded(true)}
                 className="w-full text-left bg-muted/20 hover:bg-muted/40 border-2 border-transparent hover:border-primary/10 rounded-[20px] px-6 py-4 transition-all flex items-center justify-between group"
               >
-                <span className="text-sm font-bold italic text-muted-foreground uppercase tracking-widest opacity-60">
-                  Initialize Feed Artifact...
+                <span className="text-sm font-medium text-muted-foreground">
+                  Share an update with the community…
                 </span>
                 <Sparkles className="h-5 w-5 opacity-0 group-hover:opacity-100 text-primary transition-all duration-500" />
               </button>

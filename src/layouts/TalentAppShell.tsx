@@ -234,11 +234,11 @@ export function TalentAppShell() {
                       {[
                         { icon: Coins, label: "Buy Credits", action: () => credits.open() },
                         { icon: Receipt, label: "Transactions", action: () => navigate("/app/transactions") },
-                        { icon: Wallet, label: "Disbursement Account", action: () => navigate("/app/profile") },
+                        { icon: Wallet, label: "Withdraw earnings", action: () => navigate("/app/profile") },
                         { icon: Bookmark, label: "Saved Jobs", action: () => navigate("/app/saved") },
                         { icon: BookOpen, label: "My Learning", action: () => navigate("/app/learning/my-courses") },
                         { icon: Globe, label: "Career Abroad", action: () => navigate("/app/abroad") },
-                        { icon: FileText, label: "Applications", action: () => navigate("/app/applications") },
+                        { icon: FileText, label: "My Applications", action: () => navigate("/app/applications") },
                         ...(hasCompanyAccess
                           ? [{ icon: Sparkles, label: "Switch to Company Portal", action: () => window.open("/company", "_blank") }]
                           : []),
@@ -247,29 +247,29 @@ export function TalentAppShell() {
                           label: "Download CV",
                           action: () => {
                             if (talent?.cvUrl) downloadFile(talent.cvUrl, `${talent.fullName || "cv"}-resume.pdf`);
-                            else toast.info("Artifact Missing: Upload CV from profile.");
+                            else toast.info("No CV uploaded yet. Add one from your profile.");
                           },
                         },
                         {
                           icon: ShieldCheck,
-                          label: "Profile Verification",
+                          label: "Verify your profile",
                           action: () => navigate("/app/profile/edit"),
                         },
                         {
                           icon: HelpCircle,
-                          label: "Customer Service",
+                          label: "Help Center",
                           action: () => window.open(getWhatsAppLink("Hi! I need help with the app"), "_blank"),
                         },
-                        { icon: Info, label: "Learn About Academy", action: () => window.open("/", "_blank") },
+                        { icon: Info, label: "About GroUp Academy", action: () => window.open("/", "_blank") },
                         {
                           icon: Share2,
-                          label: "Refer App",
+                          label: "Refer the app",
                           action: async () => {
                             const data = { title: "GroUp Academy", url: window.location.origin };
                             if (navigator.share) await navigator.share(data);
                             else {
                               await navigator.clipboard.writeText(data.url);
-                              toast.success("Link Synchronized to Clipboard!");
+                              toast.success("Link copied to clipboard.");
                             }
                           },
                         },
@@ -279,7 +279,7 @@ export function TalentAppShell() {
                           key={label}
                           onClick={() => {
                             action?.();
-                            if (action && !["Download CV", "Customer Service", "Refer App"].includes(label))
+                            if (action && !["Download CV", "Help Center", "Refer the app"].includes(label))
                               setSidebarOpen(false);
                           }}
                           className="w-full flex items-center gap-3 px-5 py-3 text-sm font-medium hover:bg-muted/60"
@@ -401,7 +401,7 @@ export function TalentAppShell() {
                   <span className="text-[10px] font-medium mt-0.5">Me ▼</span>
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64 p-2">
+              <DropdownMenuContent align="end" className="w-72 p-2">
                 <div className="flex items-center gap-3 p-2 mb-2 bg-muted/50 rounded-md">
                   <Avatar className="h-12 w-12 border">
                     <AvatarImage src={talent?.profilePhotoUrl || ""} />
@@ -411,7 +411,7 @@ export function TalentAppShell() {
                   </Avatar>
                   <div className="flex-1 overflow-hidden">
                     <p className="font-semibold text-sm truncate">{talent?.fullName || "User"}</p>
-                    <p className="text-xs text-muted-foreground truncate">{talent?.email || "Student"}</p>
+                    <p className="text-xs text-muted-foreground truncate">{talent?.email || ""}</p>
                   </div>
                 </div>
                 <DropdownMenuItem
@@ -420,40 +420,94 @@ export function TalentAppShell() {
                 >
                   View Profile
                 </DropdownMenuItem>
+
+                <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Account</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => navigate("/app/profile/edit")} className="cursor-pointer">
+                  <Edit2 className="h-4 w-4 mr-2" /> Settings & Privacy
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/app/profile/edit")} className="cursor-pointer">
+                  <ShieldCheck className="h-4 w-4 mr-2" /> Verify your profile
+                </DropdownMenuItem>
+
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => credits.open()} className="cursor-pointer">
-                  <Coins className="h-4 w-4 mr-2 text-amber-500" /> Buy Credits
+                <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Activity</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => navigate("/app/saved")} className="cursor-pointer">
+                  <Bookmark className="h-4 w-4 mr-2" /> Saved Jobs
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/app/applications")} className="cursor-pointer">
+                  <FileText className="h-4 w-4 mr-2" /> My Applications
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/app/learning/my-courses")} className="cursor-pointer">
+                  <BookOpen className="h-4 w-4 mr-2" /> My Learning
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate("/app/transactions")} className="cursor-pointer">
                   <Receipt className="h-4 w-4 mr-2" /> Transactions
                 </DropdownMenuItem>
-                {hasCompanyAccess && (
-                  <DropdownMenuItem
-                    onClick={() => window.open("/company", "_blank")}
-                    className="cursor-pointer"
-                  >
-                    <Sparkles className="h-4 w-4 mr-2 text-primary" /> Company Portal
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => navigate("/app/profile/edit")} className="cursor-pointer">
-                  Settings & Privacy
+                <DropdownMenuItem onClick={() => navigate("/app/profile")} className="cursor-pointer">
+                  <Wallet className="h-4 w-4 mr-2" /> Withdraw earnings
                 </DropdownMenuItem>
+
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Quick actions</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => credits.open()} className="cursor-pointer">
+                  <Coins className="h-4 w-4 mr-2 text-amber-500" /> Buy Credits
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    if (talent?.cvUrl) downloadFile(talent.cvUrl, `${talent.fullName || "cv"}-resume.pdf`);
+                    else toast.info("No CV uploaded yet. Add one from your profile.");
+                  }}
+                  className="cursor-pointer"
+                >
+                  <Download className="h-4 w-4 mr-2" /> Download CV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/app/abroad")} className="cursor-pointer">
+                  <Globe className="h-4 w-4 mr-2" /> Career Abroad
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={async () => {
+                    const data = { title: "GroUp Academy", url: window.location.origin };
+                    if (navigator.share) await navigator.share(data);
+                    else {
+                      await navigator.clipboard.writeText(data.url);
+                      toast.success("Link copied to clipboard.");
+                    }
+                  }}
+                  className="cursor-pointer"
+                >
+                  <Share2 className="h-4 w-4 mr-2" /> Refer the app
+                </DropdownMenuItem>
+
+                {hasCompanyAccess && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => window.open("/company", "_blank")}
+                      className="cursor-pointer"
+                    >
+                      <Sparkles className="h-4 w-4 mr-2 text-primary" /> Switch to Company Portal
+                    </DropdownMenuItem>
+                  </>
+                )}
+
+                <DropdownMenuSeparator />
                 <DropdownMenuItem
                   onClick={() => window.open(getWhatsAppLink("Hi!"), "_blank")}
                   className="cursor-pointer"
                 >
-                  Help Center
+                  <HelpCircle className="h-4 w-4 mr-2" /> Help Center
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
                   className="cursor-pointer"
                 >
-                  Toggle Theme
+                  {theme === "dark" ? <Sun className="h-4 w-4 mr-2" /> : <Moon className="h-4 w-4 mr-2" />}
+                  {theme === "dark" ? "Light mode" : "Dark mode"}
                 </DropdownMenuItem>
+
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-muted-foreground">
-                  Sign Out
+                <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer text-destructive">
+                  <LogOut className="h-4 w-4 mr-2" /> Sign Out
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

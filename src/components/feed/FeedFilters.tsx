@@ -3,8 +3,7 @@ import { cn } from "@/lib/utils";
 import type { FeedFilters as FeedFiltersType, FeedFilterType } from "@/hooks/useFeedRecommendations";
 
 /**
- * GroUp Academy: Feed Segmentation Node (FeedFilters)
- * CTO Reference: Authoritative tactical router for content ingestion.
+ * FeedFilters — segmented control to filter feed by content type.
  */
 
 interface FeedFiltersProps {
@@ -25,12 +24,12 @@ const filterOptions: {
   label: string;
   icon: LucideIcon;
 }[] = [
-  { value: "all", label: "GLOBAL_FEED", icon: LayoutGrid },
-  { value: "post", label: "UPDATES", icon: FileText },
-  { value: "poll", label: "POLLS", icon: BarChart3 },
-  { value: "course", label: "COURSES", icon: BookOpen },
-  { value: "video", label: "VIDEOS", icon: Play },
-  { value: "blog", label: "ARTICLES", icon: Newspaper },
+  { value: "all", label: "All", icon: LayoutGrid },
+  { value: "post", label: "Posts", icon: FileText },
+  { value: "poll", label: "Polls", icon: BarChart3 },
+  { value: "course", label: "Courses", icon: BookOpen },
+  { value: "video", label: "Videos", icon: Play },
+  { value: "blog", label: "Articles", icon: Newspaper },
 ];
 
 export function FeedFilters({ filters, onChange, counts }: FeedFiltersProps) {
@@ -69,7 +68,7 @@ export function FeedFilters({ filters, onChange, counts }: FeedFiltersProps) {
 
               <span
                 className={cn(
-                  "text-[9px] font-black uppercase italic tracking-[0.1em] leading-none transition-colors",
+                  "text-[10px] font-semibold leading-none transition-colors",
                   isActive ? "text-white" : "text-muted-foreground group-hover:text-primary",
                 )}
               >

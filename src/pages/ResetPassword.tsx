@@ -4,9 +4,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { ShieldCheck, Eye, EyeOff, Loader2, AlertCircle, Sparkles, ArrowRight, Lock } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Eye, EyeOff, Loader2, AlertCircle, ArrowRight, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
@@ -16,17 +15,17 @@ import { cn } from "@/lib/utils";
 
 const resetPasswordSchema = z
   .object({
-    password: z.string().min(8, "Security requirement: Minimum 8 characters"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: "Logic error: Passwords do not match",
+    message: "Passwords do not match",
     path: ["confirmPassword"],
   });
 
 const ResetPassword = () => {
   const navigate = useNavigate();
-  const { updatePassword } = useAuth();
+  const { updatePassword, resetPassword } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isVerifying, setIsVerifying] = useState(true);
   const [sessionValid, setSessionValid] = useState(false);
@@ -37,19 +36,47 @@ const ResetPassword = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
+  // Resend dialog state
+  const [resendEmail, setResendEmail] = useState("");
+  const [isResending, setIsResending] = useState(false);
+
   useEffect(() => {
-    const verifyTokenSequence = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session) {
+    // Listen for the PASSWORD_RECOVERY event from Supabase first
+    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
         setSessionValid(true);
+        setIsVerifying(false);
+      }
+    });
+
+    // Also check the URL hash for `type=recovery` and existing session
+    const verify = async () => {
+      const hash = window.location.hash || "";
+      const isRecoveryLink = hash.includes("type=recovery");
+      const { data } = await supabase.auth.getSession();
+
+      if (isRecoveryLink && data.session) {
+        setSessionValid(true);
+      } else if (isRecoveryLink) {
+        // Wait briefly for PASSWORD_RECOVERY event before failing
+        setTimeout(async () => {
+          const { data: again } = await supabase.auth.getSession();
+          if (again.session) setSessionValid(true);
+          setIsVerifying(false);
+        }, 800);
+        return;
       } else {
-        toast.error("Security session expired. Please request a new recovery link.");
-        setTimeout(() => navigate("/auth"), 3000);
+        // No recovery indicator at all → reject (do NOT silently log in)
+        setSessionValid(false);
       }
       setIsVerifying(false);
     };
-    verifyTokenSequence();
-  }, [navigate]);
+    verify();
+
+    return () => {
+      sub.subscription.unsubscribe();
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,13 +94,28 @@ const ResetPassword = () => {
 
     setIsLoading(true);
     try {
-      await withTimeout(updatePassword(password), TIMEOUTS.AUTH, "Handshake timed out. Network logic compromised.");
-      toast.success("Security Credentials Updated. Protocol Restored.");
-      navigate("/app/jobs", { replace: true });
+      await withTimeout(updatePassword(password), TIMEOUTS.AUTH, "Request timed out. Please try again.");
+      toast.success("Password updated. You're all set.");
+      navigate("/app/feed", { replace: true });
     } catch (error: any) {
-      toast.error(error.message || "Failed to commit update. Node unreachable.");
+      toast.error(error.message || "Couldn't update password. Please try again.");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleResend = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resendEmail) return;
+    setIsResending(true);
+    try {
+      await resetPassword(resendEmail);
+      toast.success("Reset link sent. Check your inbox.");
+      setTimeout(() => navigate("/auth"), 1500);
+    } catch (err: any) {
+      toast.error(err.message || "Couldn't send reset link.");
+    } finally {
+      setIsResending(false);
     }
   };
 
@@ -81,31 +123,44 @@ const ResetPassword = () => {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background p-6">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground mt-4">
-          Verifying Identity Token
-        </p>
+        <p className="text-sm text-muted-foreground mt-4">Verifying your reset link…</p>
       </div>
     );
 
   if (!sessionValid)
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted/20 p-6">
-        <Card className="max-w-md w-full rounded-[32px] border-border/40 shadow-2xl overflow-hidden">
-          <CardContent className="pt-12 text-center space-y-6">
-            <div className="h-16 w-16 rounded-3xl bg-rose-500/10 flex items-center justify-center mx-auto">
-              <AlertCircle className="h-8 w-8 text-rose-500" />
+        <Card className="max-w-md w-full rounded-3xl border-border/40 shadow-xl">
+          <CardContent className="pt-10 text-center space-y-6">
+            <div className="h-14 w-14 rounded-2xl bg-rose-500/10 flex items-center justify-center mx-auto">
+              <AlertCircle className="h-7 w-7 text-rose-500" />
             </div>
             <div className="space-y-2">
-              <h2 className="text-2xl font-black uppercase tracking-tighter">Handshake Denied</h2>
-              <p className="text-muted-foreground text-sm font-medium px-6">
-                The recovery node has expired or the token has been rotated.
+              <h2 className="text-2xl font-bold tracking-tight">Link expired</h2>
+              <p className="text-muted-foreground text-sm">
+                This reset link is invalid or has expired. Enter your email below and we'll send a new one.
               </p>
             </div>
+            <form onSubmit={handleResend} className="space-y-3 text-left">
+              <Label className="text-xs font-medium text-muted-foreground ml-1">Email address</Label>
+              <Input
+                type="email"
+                placeholder="you@example.com"
+                value={resendEmail}
+                onChange={(e) => setResendEmail(e.target.value)}
+                className="rounded-xl h-11"
+                required
+              />
+              <Button type="submit" className="w-full h-11 rounded-xl font-semibold" disabled={isResending}>
+                {isResending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Send a new link"}
+              </Button>
+            </form>
             <Button
-              className="w-full h-12 rounded-2xl font-black uppercase text-[10px] tracking-widest"
+              variant="ghost"
+              className="w-full h-10 rounded-xl text-sm"
               onClick={() => navigate("/auth")}
             >
-              Return to Portal
+              Back to sign in
             </Button>
           </CardContent>
         </Card>
@@ -113,107 +168,91 @@ const ResetPassword = () => {
     );
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background selection:bg-primary/10 p-6">
-      <div className="w-full max-w-md space-y-10 animate-in fade-in duration-700">
+    <div className="min-h-screen flex items-center justify-center bg-background p-6">
+      <div className="w-full max-w-md space-y-8 animate-in fade-in duration-500">
         <header className="text-center space-y-4">
-          <div className="relative w-16 h-16 mx-auto">
-            <div className="absolute inset-0 rounded-2xl bg-primary/10 animate-ping" />
-            <div className="relative h-16 w-16 rounded-2xl bg-primary flex items-center justify-center shadow-2xl shadow-primary/30">
-              <Lock className="h-8 w-8 text-white" />
-            </div>
+          <div className="h-14 w-14 rounded-2xl bg-primary flex items-center justify-center mx-auto shadow-lg shadow-primary/20">
+            <Lock className="h-7 w-7 text-white" />
           </div>
           <div className="space-y-1">
-            <Badge
-              variant="outline"
-              className="border-primary/20 text-primary font-black uppercase text-[10px] tracking-[0.2em] px-4 py-1"
-            >
-              Identity Recovery
-            </Badge>
-            <h1 className="text-4xl font-black tracking-tighter uppercase">Reset Logic</h1>
+            <h1 className="text-3xl font-bold tracking-tight">Reset your password</h1>
+            <p className="text-sm text-muted-foreground">Choose a new password to continue.</p>
           </div>
         </header>
 
-        <Card className="rounded-[40px] border-border/40 shadow-2xl overflow-hidden bg-card/50 backdrop-blur-xl">
-          <CardHeader className="p-8 pb-4">
-            <CardTitle className="text-lg font-black tracking-tight uppercase flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" /> New Credentials
-            </CardTitle>
+        <Card className="rounded-3xl border-border/40 shadow-xl">
+          <CardHeader className="p-6 pb-2">
+            <CardTitle className="text-base font-semibold">New password</CardTitle>
           </CardHeader>
-          <CardContent className="p-8 pt-0 space-y-6">
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
-                  New Password Node
-                </Label>
-                <div className="relative group">
+          <CardContent className="p-6 pt-2 space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground ml-1">New password</Label>
+                <div className="relative">
                   <Input
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className={cn(
-                      "h-12 rounded-xl border-border/40 bg-muted/20 font-bold focus-visible:ring-primary/20",
+                      "h-11 rounded-xl border-border/40 pr-10",
                       validationErrors.password && "border-rose-500/50",
                     )}
-                    placeholder="••••••••"
+                    placeholder="At least 8 characters"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
                 {validationErrors.password && (
-                  <p className="text-[9px] font-bold text-rose-500 uppercase tracking-tighter ml-1">
-                    {validationErrors.password}
-                  </p>
+                  <p className="text-xs text-rose-500 ml-1">{validationErrors.password}</p>
                 )}
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
-                  Verify Password Node
-                </Label>
-                <div className="relative group">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium text-muted-foreground ml-1">Confirm password</Label>
+                <div className="relative">
                   <Input
                     type={showConfirmPassword ? "text" : "password"}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     className={cn(
-                      "h-12 rounded-xl border-border/40 bg-muted/20 font-bold focus-visible:ring-primary/20",
+                      "h-11 rounded-xl border-border/40 pr-10",
                       validationErrors.confirmPassword && "border-rose-500/50",
                     )}
-                    placeholder="••••••••"
+                    placeholder="Re-enter your password"
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors"
+                    aria-label={showConfirmPassword ? "Hide password" : "Show password"}
                   >
                     {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
                 {validationErrors.confirmPassword && (
-                  <p className="text-[9px] font-bold text-rose-500 uppercase tracking-tighter ml-1">
-                    {validationErrors.confirmPassword}
-                  </p>
+                  <p className="text-xs text-rose-500 ml-1">{validationErrors.confirmPassword}</p>
                 )}
               </div>
 
               <Button
                 type="submit"
-                className="w-full h-14 rounded-2xl font-black uppercase tracking-[0.2em] text-xs shadow-xl shadow-primary/20 hover:scale-[1.01] transition-all mt-4"
+                className="w-full h-12 rounded-xl font-semibold text-sm shadow-lg shadow-primary/20 mt-2"
                 disabled={isLoading}
               >
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Syncing...
+                    Updating…
                   </>
                 ) : (
                   <>
-                    Commit Credentials
+                    Update password
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </>
                 )}
@@ -221,12 +260,6 @@ const ResetPassword = () => {
             </form>
           </CardContent>
         </Card>
-
-        <footer className="text-center pt-8">
-          <p className="text-[9px] font-black uppercase tracking-[0.4em] text-muted-foreground/40 italic">
-            GroUp Academy Security Protocol v2.6
-          </p>
-        </footer>
       </div>
     </div>
   );

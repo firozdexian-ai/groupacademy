@@ -105,7 +105,7 @@ const AuthChat = () => {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
         <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
-        <p className="text-[10px] font-bold uppercase tracking-widest mt-4 text-slate-500">Authenticating Node</p>
+        <p className="text-xs font-medium mt-4 text-slate-500">Loading…</p>
       </div>
     );
   }
@@ -117,26 +117,26 @@ const AuthChat = () => {
     <div className="min-h-screen flex flex-col bg-slate-50 font-sans text-slate-900 selection:bg-blue-500/10">
       {/* Header */}
       <header className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white/80 backdrop-blur-xl sticky top-0 z-10">
-        <button onClick={() => navigate("/")} className="hover:opacity-80 transition-opacity">
+        <button onClick={() => navigate("/")} className="hover:opacity-80 transition-opacity" aria-label="Go home">
           <img src={theme === "dark" ? logoLight : logoDark} alt="GroUp Academy" className="h-7" />
         </button>
-        <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-50 border border-emerald-100">
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-100">
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-          <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-700">AES-256 Verified</span>
+          <span className="text-[11px] font-semibold text-emerald-700">Secure</span>
         </div>
       </header>
 
       {/* Agent Status */}
       <div className="flex items-center gap-4 px-6 py-4 bg-white border-b border-slate-100 shadow-sm z-0">
         <div className="relative">
-          <div className="w-12 h-12 rounded-[16px] bg-blue-50 flex items-center justify-center border border-blue-100">
+          <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center border border-blue-100">
             <Sparkles className="w-6 h-6 text-blue-500" />
           </div>
           <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full shadow-sm" />
         </div>
         <div>
-          <p className="text-lg font-black tracking-tighter text-slate-900 uppercase">{agentName}</p>
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Platform Gatekeeper</p>
+          <p className="text-lg font-bold tracking-tight text-slate-900">{agentName}</p>
+          <p className="text-xs text-slate-500">Your AI guide</p>
         </div>
       </div>
 
@@ -184,9 +184,9 @@ const AuthChat = () => {
             <Button
               size="lg"
               onClick={() => navigate(searchParams.get("returnTo") || "/app/feed")}
-              className="rounded-full h-14 px-10 gap-3 text-[10px] font-black uppercase tracking-widest bg-slate-800 hover:bg-slate-900 text-white shadow-xl group"
+              className="rounded-full h-12 px-8 gap-2 text-sm font-semibold bg-slate-900 hover:bg-slate-800 text-white shadow-lg group"
             >
-              Initialize Platform Access
+              Continue to your dashboard
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Button>
           </div>
@@ -202,9 +202,9 @@ const AuthChat = () => {
               <button
                 type="button"
                 onClick={handleForgotPassword}
-                className="text-[10px] font-bold uppercase tracking-widest text-blue-500 hover:text-blue-600 transition-colors ml-2"
+                className="text-xs font-medium text-blue-600 hover:text-blue-700 transition-colors ml-2"
               >
-                Recovery Request?
+                Forgot password?
               </button>
             )}
 
@@ -274,19 +274,25 @@ const AuthChat = () => {
                     );
                   })}
                 </div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 text-right mt-3">
-                  Entropy Level: <span className="text-slate-900">{getPasswordStrength(passwordValue).label}</span>
+                <p className="text-xs text-slate-500 text-right mt-2">
+                  Strength: <span className="font-semibold text-slate-900">{getPasswordStrength(passwordValue).label}</span>
                 </p>
               </div>
             )}
           </form>
 
-          <div className="mt-6 text-center">
+          <div className="mt-6 text-center space-y-2">
             <button
               onClick={() => navigate(`/auth/classic?${searchParams.toString()}`)}
-              className="text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:text-blue-500 transition-colors"
+              className="block mx-auto text-xs font-medium text-slate-500 hover:text-blue-600 transition-colors"
             >
-              Legacy Authentication Fallback
+              Use email & password instead
+            </button>
+            <button
+              onClick={() => navigate("/for-companies")}
+              className="block mx-auto text-xs font-medium text-slate-400 hover:text-blue-600 transition-colors"
+            >
+              Hiring? Apply for company access →
             </button>
           </div>
         </div>
@@ -296,7 +302,7 @@ const AuthChat = () => {
 };
 
 function getPasswordStrength(password: string) {
-  if (password.length < 8) return { level: 1, label: "Insufficient", color: "bg-rose-500" };
+  if (password.length < 8) return { level: 1, label: "Too short", color: "bg-rose-500" };
   let s = 1;
   if (password.length >= 12) s++;
   if (/[A-Z]/.test(password) && /[0-9]/.test(password)) s++;
@@ -304,9 +310,9 @@ function getPasswordStrength(password: string) {
 
   const maps = [
     { level: 1, label: "Weak", color: "bg-rose-500" },
-    { level: 2, label: "Vulnerable", color: "bg-amber-500" },
-    { level: 3, label: "Secure", color: "bg-blue-500" },
-    { level: 4, label: "High Entropy", color: "bg-emerald-500" },
+    { level: 2, label: "Fair", color: "bg-amber-500" },
+    { level: 3, label: "Good", color: "bg-blue-500" },
+    { level: 4, label: "Strong", color: "bg-emerald-500" },
   ];
   return maps[s - 1];
 }

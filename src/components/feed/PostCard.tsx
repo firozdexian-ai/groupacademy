@@ -143,10 +143,10 @@ export function PostCard({ post }: PostCardProps) {
           {isLongText && (
             <button
               onClick={() => setIsExpanded(!isExpanded)}
-              className="text-[10px] font-black uppercase italic tracking-widest text-primary mt-3 hover:opacity-70 transition-opacity flex items-center gap-2"
+              className="text-xs font-medium text-primary mt-3 hover:underline transition-opacity flex items-center gap-1.5"
             >
               <Zap className="h-3 w-3 fill-current" />
-              {isExpanded ? "Minimize_Payload" : "Initialize_Full_Ingress"}
+              {isExpanded ? "Show less" : "Read more"}
             </button>
           )}
         </div>
