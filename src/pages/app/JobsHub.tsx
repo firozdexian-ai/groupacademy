@@ -1,25 +1,25 @@
 import { useState, useMemo } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   Sparkles,
   Coins,
-  RefreshCw,
   Loader2,
   Brain,
   Building2,
   Globe,
   Flame,
-  Layers,
   ChevronDown,
   ChevronUp,
   Search,
   Bot,
   ArrowRight,
-  Target,
   Zap,
-  ShieldCheck,
-  Compass,
+  FileText,
+  MessageSquare,
+  Target,
+  Briefcase,
+  Layers,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTalent } from "@/hooks/useTalent";
@@ -34,24 +34,17 @@ import { JobPreferencesSheet } from "@/components/jobs/JobPreferencesSheet";
 import { JobCard, type JobCardData } from "@/components/jobs/JobCard";
 import { JOB_COLLECTIONS } from "@/lib/constants/jobTypes";
 import { toast } from "sonner";
-import { SectionHeader } from "@/components/ui/section-header";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ProcessingCard, type ProcessingStage } from "@/components/ui/processing-card";
 import { AgentAvatar } from "@/components/ai-agents/AgentAvatar";
 import { cn } from "@/lib/utils";
 
-/**
- * Platform Logic: Marketplace Intelligence Terminal
- * High-fidelity orchestrator for role discovery, agent-led search, and global market telemetry.
- * 2026 Standard: Executive Logic geometry with reinforced AI processing states.
- */
-
 const AI_PROCESSING_STAGES: ProcessingStage[] = [
-  { progress: 0, message: "Syncing Talent Registry..." },
-  { progress: 20, message: "Scanning 2,000+ Global Nodes..." },
-  { progress: 45, message: "Synthesizing Neural Match..." },
-  { progress: 70, message: "Ranking Best Logic Paths..." },
-  { progress: 90, message: "Finalizing Recommendations..." },
+  { progress: 0, message: "Reading your profile..." },
+  { progress: 20, message: "Scanning thousands of open roles..." },
+  { progress: 45, message: "Matching against your skills..." },
+  { progress: 70, message: "Ranking the best fits..." },
+  { progress: 90, message: "Almost done..." },
 ];
 
 interface CountryGroup {
@@ -61,13 +54,13 @@ interface CountryGroup {
   cities: { name: string; count: number }[];
 }
 
-type TabKey = "agents" | "collection" | "company" | "country";
+type TabKey = "browse" | "company" | "country" | "agents";
 
 const TABS: { key: TabKey; label: string; icon: any }[] = [
-  { key: "agents", label: "Neural Agents", icon: Bot },
-  { key: "collection", label: "Artifacts", icon: Layers },
-  { key: "company", label: "By Entity", icon: Building2 },
-  { key: "country", label: "By Registry", icon: Globe },
+  { key: "browse", label: "Browse", icon: Layers },
+  { key: "company", label: "Companies", icon: Building2 },
+  { key: "country", label: "Locations", icon: Globe },
+  { key: "agents", label: "Agents", icon: Bot },
 ];
 
 const INITIAL_SHOW = 3;
@@ -83,6 +76,17 @@ const COUNTRY_FLAGS: Record<string, string> = {
   "United States": "🇺🇸",
   "United Kingdom": "🇬🇧",
   Canada: "🇨🇦",
+};
+
+// Purpose copy for each career agent (keyed by agent_key)
+const AGENT_PURPOSE: Record<string, string> = {
+  "job-hunter": "Find roles that fit your profile",
+  "cv-coach": "Polish your CV to pass ATS screens",
+  "application-helper": "Draft tailored cover letters & answers",
+  "interview-coach": "Practice interviews with live feedback",
+  "career-consultant": "Plan your next career move",
+  "remote-expert": "Discover remote-first opportunities",
+  "career-abroad": "Explore careers overseas",
 };
 
 function parseLocation(location: string): { city: string; country: string } {
@@ -101,7 +105,7 @@ export default function JobsHub() {
   const { isSaved, toggleSave } = useSavedItems();
   const { canAfford, deductCredits } = useCredits();
 
-  const [activeTab, setActiveTab] = useState<TabKey>("agents");
+  const [activeTab, setActiveTab] = useState<TabKey>("browse");
   const [preferencesOpen, setPreferencesOpen] = useState(false);
   const [loadingAI, setLoadingAI] = useState(false);
   const [companySearch, setCompanySearch] = useState("");
@@ -114,7 +118,6 @@ export default function JobsHub() {
     hot: false,
   });
 
-  // Telemetry Fetch: Locations
   const { data: locations = [] } = useQuery({
     queryKey: ["all-job-locations"],
     queryFn: async () => {
@@ -129,7 +132,6 @@ export default function JobsHub() {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Telemetry Fetch: Companies
   const { data: allCompanies = [] } = useQuery({
     queryKey: ["all-job-companies"],
     queryFn: async () => {
@@ -153,7 +155,7 @@ export default function JobsHub() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const { data: collectionData } = useQuery({
+  const { data: collectionData, isLoading: loadingCollection } = useQuery({
     queryKey: ["jobs-collection"],
     queryFn: async () => {
       const [featured, expiring] = await Promise.all([
@@ -186,19 +188,26 @@ export default function JobsHub() {
     enabled: !!talent?.id,
   });
 
+  // Career agents only — career category, drop education/IELTS
   const { data: careerAgents = [] } = useQuery({
-    queryKey: ["career-agents"],
+    queryKey: ["career-agents-jobshub"],
     queryFn: async () => {
       const { data } = await supabase
         .from("ai_agents")
-        .select("*")
+        .select("agent_key, name, description, avatar_url, connection_fee, message_credit_cost")
         .eq("is_active", true)
-        .in("category", ["career", "education"])
+        .eq("category", "career")
         .order("display_order");
       return data || [];
     },
     staleTime: 10 * 60 * 1000,
   });
+
+  const filteredCompanies = useMemo(() => {
+    const q = companySearch.trim().toLowerCase();
+    const list = q ? allCompanies.filter((c) => c.name.toLowerCase().includes(q)) : allCompanies;
+    return list.slice(0, 24);
+  }, [allCompanies, companySearch]);
 
   const countryGroups = useMemo(() => {
     const map = new Map<string, CountryGroup>();
@@ -221,23 +230,23 @@ export default function JobsHub() {
   }, [locations]);
 
   async function handleGetAIRecommendations() {
-    if (!canAfford("SUGGESTED_JOBS")) return toast.error("Need 10 Credits.");
+    if (!canAfford("SUGGESTED_JOBS")) return toast.error("Need 10 credits to run AI matching.");
     setLoadingAI(true);
     try {
-      await deductCredits("SUGGESTED_JOBS", undefined, "AI Hub Synthesis");
+      await deductCredits("SUGGESTED_JOBS", undefined, "AI Job Suggestions");
       const { error } = await supabase.functions.invoke("suggest-jobs-for-talent");
       if (error) throw error;
       await refetchRecs();
-      toast.success("Synthesis Finalized: Results Consumed");
-    } catch (err) {
-      toast.error("Neural handshake saturation.");
+      toast.success("Done! Here are your top matches.");
+    } catch {
+      toast.error("Couldn't fetch matches right now. Try again in a moment.");
     } finally {
       setLoadingAI(false);
     }
   }
 
   const renderJobSection = (jobs: JobCardData[], key: keyof typeof showMore) => (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {(showMore[key] ? jobs : jobs.slice(0, INITIAL_SHOW)).map((job) => (
         <JobCard
           key={job.id}
@@ -251,236 +260,188 @@ export default function JobsHub() {
       {jobs.length > INITIAL_SHOW && (
         <Button
           variant="ghost"
-          className="w-full h-12 rounded-xl font-black uppercase text-[9px] tracking-widest text-muted-foreground/60 hover:bg-primary/5"
+          className="w-full h-9 rounded-lg text-xs font-medium text-muted-foreground"
           onClick={() => setShowMore((p) => ({ ...p, [key]: !p[key] }))}
         >
-          {showMore[key] ? "Terminate List" : `Expand Protocol (${jobs.length - INITIAL_SHOW})`}
+          {showMore[key] ? "Show less" : `Show ${jobs.length - INITIAL_SHOW} more`}
         </Button>
       )}
     </div>
   );
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-6 pb-40 space-y-10 animate-in fade-in duration-1000">
-      {/* Immersive Navigation HUD */}
-      <nav className="flex p-1.5 h-16 bg-muted/30 backdrop-blur-xl rounded-[28px] border border-border/40">
+    <div className="max-w-4xl mx-auto px-3 py-3 pb-28 space-y-5">
+      {/* Tabs */}
+      <nav className="flex p-1 h-12 bg-muted/50 rounded-xl border border-border/50 sticky top-14 z-30">
         {TABS.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
             className={cn(
-              "flex-1 flex items-center justify-center gap-3 rounded-[22px] text-[10px] font-black uppercase tracking-widest transition-all",
+              "flex-1 flex items-center justify-center gap-1.5 rounded-lg text-xs font-medium transition-all",
               activeTab === tab.key
-                ? "bg-background shadow-lg text-primary scale-[0.98]"
-                : "text-muted-foreground/60 hover:text-foreground",
+                ? "bg-background shadow-sm text-foreground"
+                : "text-muted-foreground hover:text-foreground",
             )}
           >
             <tab.icon className="h-4 w-4" />
-            <span className="hidden sm:inline">{tab.label}</span>
+            <span className="hidden xs:inline sm:inline">{tab.label}</span>
           </button>
         ))}
       </nav>
 
-      {/* Agents Protocol Viewport */}
-      {activeTab === "agents" && (
-        <div className="grid gap-4 animate-in slide-in-from-bottom-4 duration-700">
-          <div className="flex items-center justify-between px-2">
-            <h2 className="text-[11px] font-black uppercase tracking-[0.3em] text-primary flex items-center gap-3">
-              <Zap className="h-4 w-4" /> Active Neural Nodes
-            </h2>
-            <Badge
-              variant="outline"
-              className="text-[8px] font-black uppercase tracking-widest border-primary/20 text-primary"
-            >
-              v2.6 Synchronized
-            </Badge>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {careerAgents.map((agent) => (
-              <Card
-                key={agent.agent_key}
-                className="group cursor-pointer rounded-[32px] border-2 border-border/40 bg-card/30 backdrop-blur-sm transition-all duration-500 hover:border-primary/40 hover:shadow-2xl overflow-hidden"
-                onClick={() => navigate(`/app/agents/${agent.agent_key}`)}
-              >
-                <CardContent className="p-6 flex items-center gap-5">
-                  <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20 rotate-3 transition-transform group-hover:rotate-0">
-                    <AgentAvatar name={agent.name} avatarUrl={agent.avatar_url} size="lg" />
-                  </div>
-                  <div className="flex-1 min-w-0 space-y-1">
-                    <h3 className="font-black uppercase tracking-tight text-lg leading-none">{agent.name}</h3>
-                    <p className="text-[10px] font-bold text-muted-foreground/60 uppercase italic line-clamp-1">
-                      {agent.description}
-                    </p>
-                  </div>
-                  <div className="h-10 w-10 rounded-full bg-muted/50 flex items-center justify-center transition-all group-hover:bg-primary group-hover:text-primary-foreground">
-                    <ArrowRight className="h-5 w-5" />
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Artifacts (Collection) Viewport */}
-      {activeTab === "collection" && (
-        <div className="space-y-12 animate-in slide-in-from-bottom-4 duration-700">
-          <div className="space-y-6">
-            <div className="flex items-center justify-between border-b border-border/40 pb-4">
-              <SectionHeader icon={Brain} title="Neural Matchmaking" />
-              <div className="flex items-center gap-2 bg-primary/5 px-3 py-1.5 rounded-lg border border-primary/10">
-                <Coins className="h-3.5 w-3.5 text-amber-500" />
-                <span className="text-[9px] font-black uppercase tracking-widest">10 Credit Execution</span>
-              </div>
+      {/* Browse tab */}
+      {activeTab === "browse" && (
+        <div className="space-y-7 animate-in fade-in duration-300">
+          {/* AI matching CTA */}
+          <section className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-semibold flex items-center gap-2">
+                <Brain className="h-4 w-4 text-primary" /> AI job matches
+              </h2>
+              <Badge variant="outline" className="gap-1 text-[10px]">
+                <Coins className="h-3 w-3 text-amber-500" /> 10 credits
+              </Badge>
             </div>
 
             <Button
-              className="w-full h-16 rounded-[24px] font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-primary/20 hover:scale-[1.01] active:scale-95 transition-all group overflow-hidden"
+              className="w-full h-12 rounded-xl text-sm font-semibold"
               onClick={handleGetAIRecommendations}
               disabled={loadingAI}
             >
-              <span className="relative z-10 flex items-center gap-3">
-                {loadingAI ? (
-                  <Loader2 className="animate-spin h-5 w-5" />
-                ) : (
-                  <Sparkles className="h-5 w-5 fill-current" />
-                )}
-                {recommendations.length > 0 ? "Re-Initialize Synthesis" : "Initialize Neural Discovery"}
-              </span>
-              <div className="absolute inset-0 bg-gradient-to-r from-primary via-blue-600 to-primary opacity-50 group-hover:opacity-100 transition-opacity" />
+              {loadingAI ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
+              {recommendations.length > 0 ? "Refresh AI matches" : "Get AI job matches"}
             </Button>
 
             {loadingAI && (
-              <ProcessingCard title="Synthesizing Career Artifacts" stages={AI_PROCESSING_STAGES} duration={20000} />
+              <ProcessingCard title="Finding jobs for you" stages={AI_PROCESSING_STAGES} duration={20000} />
             )}
 
             {recommendations.length > 0 && !loadingAI && (
-              <div className="pt-6 animate-in zoom-in-95">
+              <div className="pt-2">
                 {renderJobSection(
                   recommendations.map((r) => r.job),
                   "recommended",
                 )}
               </div>
             )}
-          </div>
+          </section>
 
-          <div className="space-y-8">
-            <SectionHeader icon={Flame} title="Active Logic (Trending)" />
-            {collectionData?.featured && renderJobSection(collectionData.featured, "featured")}
-          </div>
+          {/* Featured */}
+          <section className="space-y-3">
+            <h2 className="text-base font-semibold flex items-center gap-2">
+              <Flame className="h-4 w-4 text-rose-500" /> Trending now
+            </h2>
+            {loadingCollection ? (
+              <div className="space-y-2">
+                {[1, 2, 3].map((i) => <Skeleton key={i} className="h-24 w-full rounded-lg" />)}
+              </div>
+            ) : collectionData?.featured?.length ? (
+              renderJobSection(collectionData.featured, "featured")
+            ) : (
+              <p className="text-sm text-muted-foreground">No featured jobs right now.</p>
+            )}
+          </section>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            {JOB_COLLECTIONS.map((c) => (
-              <Card
-                key={c.filter}
-                className="group rounded-[28px] border-2 border-border/40 bg-card/30 hover:border-primary/40 hover:shadow-xl transition-all cursor-pointer overflow-hidden"
-                onClick={() => navigate(`/app/jobs/all?type=${c.filter}`)}
-              >
-                <CardContent className="p-6 flex flex-col items-center text-center gap-4">
-                  <div className="h-12 w-12 rounded-2xl bg-primary/5 flex items-center justify-center transition-transform group-hover:scale-110 shadow-inner">
-                    <c.icon className="h-6 w-6 text-primary" />
-                  </div>
-                  <span className="text-[10px] font-black uppercase tracking-widest">{c.label}</span>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          {/* Categories */}
+          <section className="space-y-3">
+            <h2 className="text-base font-semibold">Browse by type</h2>
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+              {JOB_COLLECTIONS.map((c) => (
+                <Card
+                  key={c.filter}
+                  className="hover:border-primary/40 transition-all cursor-pointer"
+                  onClick={() => navigate(`/app/jobs/all?type=${c.filter}`)}
+                >
+                  <CardContent className="p-3 flex flex-col items-center text-center gap-1.5">
+                    <c.icon className="h-5 w-5 text-primary" />
+                    <span className="text-[11px] font-medium leading-tight">{c.label}</span>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </section>
         </div>
       )}
 
-      {/* Entity (Company) Viewport */}
+      {/* Companies tab */}
       {activeTab === "company" && (
-        <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-700">
-          <div className="relative group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
+        <div className="space-y-4 animate-in fade-in duration-300">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Query corporate entities..."
-              className="h-14 pl-12 rounded-2xl border-2 border-border/40 bg-card/50 backdrop-blur-sm font-bold tracking-tight shadow-inner"
+              placeholder="Search companies..."
+              className="h-10 pl-9 rounded-lg"
               value={companySearch}
               onChange={(e) => setCompanySearch(e.target.value)}
             />
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {allCompanies.slice(0, 24).map((c) => (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+            {filteredCompanies.map((c) => (
               <Card
                 key={c.name}
-                className="group rounded-[32px] border-2 border-border/40 bg-card/30 hover:border-primary/40 hover:shadow-xl transition-all cursor-pointer overflow-hidden"
+                className="hover:border-primary/40 transition-all cursor-pointer"
                 onClick={() => navigate(`/app/jobs/all?company=${encodeURIComponent(c.name)}`)}
               >
-                <CardContent className="p-6 flex flex-col items-center text-center gap-4">
-                  <div className="relative">
-                    <Avatar className="h-14 w-14 border-2 border-background shadow-lg transition-transform group-hover:scale-110">
-                      {c.logo_url && <AvatarImage src={c.logo_url} />}
-                      {!c.logo_url && (
-                        <AvatarFallback className="font-black text-xs">
-                          {c.name.slice(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                      )}
-                    </Avatar>
-                    <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-emerald-500 border-2 border-background flex items-center justify-center">
-                      <ShieldCheck className="h-3 w-3 text-white" />
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-[11px] font-black uppercase tracking-tight line-clamp-1">{c.name}</p>
-                    <Badge
-                      variant="secondary"
-                      className="bg-primary/5 text-primary border-none text-[8px] font-black uppercase italic tracking-widest"
-                    >
-                      {c.count} Active Nodes
-                    </Badge>
-                  </div>
+                <CardContent className="p-3 flex flex-col items-center text-center gap-2">
+                  <Avatar className="h-10 w-10">
+                    {c.logo_url && <AvatarImage src={c.logo_url} />}
+                    {!c.logo_url && (
+                      <AvatarFallback className="text-xs font-semibold">
+                        {c.name.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    )}
+                  </Avatar>
+                  <p className="text-[11px] font-semibold line-clamp-1 w-full">{c.name}</p>
+                  <Badge variant="secondary" className="text-[9px] px-1.5 py-0">
+                    {c.count} {c.count === 1 ? "role" : "roles"}
+                  </Badge>
                 </CardContent>
               </Card>
             ))}
+            {filteredCompanies.length === 0 && (
+              <p className="col-span-full text-sm text-muted-foreground text-center py-8">No companies found.</p>
+            )}
           </div>
         </div>
       )}
 
-      {/* Registry (Country) Viewport */}
+      {/* Locations tab */}
       {activeTab === "country" && (
-        <div className="space-y-4 animate-in slide-in-from-bottom-4 duration-700">
-          <div className="flex items-center gap-3 px-2 mb-6">
-            <Compass className="h-5 w-5 text-primary" />
-            <h2 className="text-[11px] font-black uppercase tracking-[0.3em] text-primary">Geospatial Registry</h2>
-          </div>
+        <div className="space-y-2 animate-in fade-in duration-300">
+          <h2 className="text-base font-semibold flex items-center gap-2 mb-3">
+            <Globe className="h-4 w-4 text-primary" /> Jobs by country
+          </h2>
           {countryGroups.map((g) => (
-            <Card
-              key={g.country}
-              className="rounded-[28px] border-2 border-border/40 bg-card/30 backdrop-blur-sm overflow-hidden transition-all hover:border-primary/20"
-            >
+            <Card key={g.country}>
               <button
                 onClick={() => setExpandedCountry(expandedCountry === g.country ? null : g.country)}
-                className="w-full flex items-center p-6 hover:bg-primary/[0.02] text-left transition-colors"
+                className="w-full flex items-center p-3 hover:bg-muted/40 text-left transition-colors"
               >
-                <div className="h-12 w-12 rounded-2xl bg-muted/50 flex items-center justify-center text-2xl shadow-inner mr-5">
+                <div className="h-9 w-9 rounded-lg bg-muted/50 flex items-center justify-center text-lg mr-3">
                   {g.flag}
                 </div>
-                <div className="flex-1">
-                  <p className="text-base font-black uppercase tracking-tight leading-none mb-1">{g.country}</p>
-                  <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest italic">
-                    {g.totalJobs} Integrated Listings
-                  </p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold">{g.country}</p>
+                  <p className="text-xs text-muted-foreground">{g.totalJobs} open {g.totalJobs === 1 ? "role" : "roles"}</p>
                 </div>
                 {expandedCountry === g.country ? (
-                  <ChevronUp className="text-primary h-5 w-5" />
+                  <ChevronUp className="text-primary h-4 w-4" />
                 ) : (
-                  <ChevronDown className="h-5 w-5 opacity-20" />
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
                 )}
               </button>
               {expandedCountry === g.country && (
-                <div className="bg-muted/10 p-4 grid grid-cols-1 sm:grid-cols-2 gap-2 animate-in slide-in-from-top-2 duration-300">
+                <div className="bg-muted/20 p-2 grid grid-cols-2 gap-1.5 border-t">
                   {g.cities.slice(0, 10).map((city) => (
                     <button
                       key={city.name}
                       onClick={() => navigate(`/app/jobs/all?location=${encodeURIComponent(city.name)}`)}
-                      className="flex justify-between items-center px-4 py-3 rounded-xl bg-background/50 hover:bg-primary/5 group transition-all border border-border/40"
+                      className="flex justify-between items-center px-3 py-2 rounded-md bg-background hover:bg-primary/5 transition-all border border-border/40"
                     >
-                      <span className="text-[11px] font-bold uppercase tracking-tight group-hover:text-primary transition-colors">
-                        {city.name}
-                      </span>
-                      <Badge variant="outline" className="text-[9px] font-mono border-primary/20 text-primary">
-                        {city.count.toString().padStart(2, "0")}
+                      <span className="text-xs font-medium truncate">{city.name}</span>
+                      <Badge variant="outline" className="text-[10px] px-1.5">
+                        {city.count}
                       </Badge>
                     </button>
                   ))}
@@ -491,23 +452,72 @@ export default function JobsHub() {
         </div>
       )}
 
-      {/* Control Overlays */}
-      <JobPreferencesSheet open={preferencesOpen} onOpenChange={setPreferencesOpen} />
+      {/* Agents tab */}
+      {activeTab === "agents" && (
+        <div className="space-y-5 animate-in fade-in duration-300">
+          {/* Quick actions */}
+          <section className="space-y-2">
+            <h2 className="text-base font-semibold">Quick actions</h2>
+            <div className="grid grid-cols-2 gap-2">
+              <QuickAction icon={Sparkles} label="AI matches" sub="10 credits" onClick={handleGetAIRecommendations} />
+              <QuickAction icon={Target} label="Score me vs job" sub="10 credits" onClick={() => navigate("/app/jobs/all")} />
+              <QuickAction icon={FileText} label="Polish my CV" sub="Chat with CV Coach" onClick={() => navigate("/app/agents/cv-coach")} />
+              <QuickAction icon={MessageSquare} label="Practice interview" sub="Chat with coach" onClick={() => navigate("/app/agents/interview-coach")} />
+            </div>
+          </section>
 
-      {/* Operational Metadata Footer */}
-      <footer className="mt-20 pt-10 border-t border-border/40 flex items-center justify-between opacity-30">
-        <div className="space-y-1">
-          <p className="text-[9px] font-black uppercase tracking-[0.4em] italic">Market Intelligence Node: Active</p>
-          <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">
-            Protocol Version: Executive Logic 2026.4
-          </p>
+          {/* Career agents */}
+          <section className="space-y-2">
+            <h2 className="text-base font-semibold flex items-center gap-2">
+              <Bot className="h-4 w-4 text-primary" /> Career agents
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              Free to start. Each chat costs ~0.5 credits per reply, plus a small one-time connection fee.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {careerAgents.map((agent) => (
+                <Card
+                  key={agent.agent_key}
+                  className="hover:border-primary/40 transition-all cursor-pointer"
+                  onClick={() => navigate(`/app/agents/${agent.agent_key}`)}
+                >
+                  <CardContent className="p-3 flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                      <AgentAvatar name={agent.name} avatarUrl={agent.avatar_url} size="md" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold truncate">{agent.name}</p>
+                      <p className="text-xs text-muted-foreground line-clamp-1">
+                        {AGENT_PURPOSE[agent.agent_key] || agent.description}
+                      </p>
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </section>
         </div>
-        <div className="flex gap-2">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-1 w-8 rounded-full bg-primary/20" />
-          ))}
-        </div>
-      </footer>
+      )}
+
+      <JobPreferencesSheet open={preferencesOpen} onOpenChange={setPreferencesOpen} />
     </div>
+  );
+}
+
+function QuickAction({ icon: Icon, label, sub, onClick }: { icon: any; label: string; sub: string; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-2.5 p-3 rounded-xl border border-border/50 bg-card hover:border-primary/40 hover:bg-primary/5 transition-all text-left"
+    >
+      <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+        <Icon className="h-4 w-4 text-primary" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-xs font-semibold leading-tight">{label}</p>
+        <p className="text-[10px] text-muted-foreground">{sub}</p>
+      </div>
+    </button>
   );
 }
