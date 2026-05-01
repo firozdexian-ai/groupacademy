@@ -2287,7 +2287,9 @@ export type Database = {
           notes: string | null
           phone: string | null
           source: string | null
+          source_detail: string | null
           updated_at: string | null
+          user_id: string | null
           whatsapp_number: string | null
         }
         Insert: {
@@ -2304,7 +2306,9 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           source?: string | null
+          source_detail?: string | null
           updated_at?: string | null
+          user_id?: string | null
           whatsapp_number?: string | null
         }
         Update: {
@@ -2321,7 +2325,9 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           source?: string | null
+          source_detail?: string | null
           updated_at?: string | null
+          user_id?: string | null
           whatsapp_number?: string | null
         }
         Relationships: [
