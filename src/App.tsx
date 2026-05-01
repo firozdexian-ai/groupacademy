@@ -28,6 +28,8 @@ import PortfolioStatus from "./pages/PortfolioStatus";
 import CourseDetail from "./pages/CourseDetail";
 import PublicServiceLanding from "./pages/PublicServiceLanding";
 import PublicServices from "./pages/PublicServices";
+import ForCompanies from "./pages/public/ForCompanies";
+import CompanyOnboarding from "./pages/public/CompanyOnboarding";
 import PublicCourses from "./pages/PublicCourses";
 import ServiceLanding from "./pages/ServiceLanding";
 import VerifyCertificate from "./pages/VerifyCertificate";
@@ -201,6 +203,8 @@ export default function App() {
                   <Route path="/courses" element={<PublicCourses />} />
                   <Route path="/services" element={<PublicServices />} />
                   <Route path="/career-services" element={<PublicServices />} />
+                  <Route path="/for-companies" element={<ForCompanies />} />
+                  <Route path="/for-companies/apply" element={<CompanyOnboarding />} />
                   <Route path="/service/:serviceSlug" element={<ServiceLanding />} />
                   <Route path="/blog" element={<PublicBlog />} />
                   <Route path="/blog/:slug" element={<PublicBlogPost />} />

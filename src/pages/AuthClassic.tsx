@@ -380,8 +380,17 @@ const Auth = () => {
               Initialize Chat Handshake
             </button>
           </div>
+          </div>
+
+          <div className="text-center pt-2 border-t border-border/40">
+            <button
+              onClick={() => navigate("/for-companies")}
+              className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground hover:text-primary transition-colors"
+            >
+              Hiring? Apply for Company Access →
+            </button>
+          </div>
         </div>
-      </div>
 
       <Dialog open={showForgotPassword} onOpenChange={setShowForgotPassword}>
         <DialogContent className="rounded-[32px] border-border/40">

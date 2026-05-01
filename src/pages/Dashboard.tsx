@@ -46,6 +46,9 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   "company-agents": React.lazy(() =>
     import("@/components/dashboard/CompanyAgentsManager").then((m) => ({ default: m.CompanyAgentsManager })),
   ),
+  "company-requests": React.lazy(() =>
+    import("@/components/dashboard/CompanyRequestsPanel").then((m) => ({ default: m.CompanyRequestsPanel })),
+  ),
   industries: React.lazy(() =>
     import("@/components/dashboard/IndustriesManager").then((m) => ({ default: m.IndustriesManager })),
   ),
@@ -183,6 +186,7 @@ const TAB_TITLES: Record<string, string> = {
   companies: "Employer CRM",
   contacts: "B2B Contacts",
   "company-agents": "Internal Agents",
+  "company-requests": "Company Requests",
   industries: "Verticals",
   all: "Catalog Architecture",
   videos: "Digital Library",

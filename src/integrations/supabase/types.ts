@@ -1793,6 +1793,77 @@ export type Database = {
           },
         ]
       }
+      company_onboarding_requests: {
+        Row: {
+          approved_company_id: string | null
+          company_name: string
+          company_size: string | null
+          contact_email: string
+          contact_name: string
+          contact_phone: string
+          country: string
+          created_at: string
+          heard_from: string | null
+          id: string
+          industry: string | null
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+          use_case: string | null
+          website: string | null
+        }
+        Insert: {
+          approved_company_id?: string | null
+          company_name: string
+          company_size?: string | null
+          contact_email: string
+          contact_name: string
+          contact_phone: string
+          country: string
+          created_at?: string
+          heard_from?: string | null
+          id?: string
+          industry?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          use_case?: string | null
+          website?: string | null
+        }
+        Update: {
+          approved_company_id?: string | null
+          company_name?: string
+          company_size?: string | null
+          contact_email?: string
+          contact_name?: string
+          contact_phone?: string
+          country?: string
+          created_at?: string
+          heard_from?: string | null
+          id?: string
+          industry?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          use_case?: string | null
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_onboarding_requests_approved_company_id_fkey"
+            columns: ["approved_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       competition_submissions: {
         Row: {
           competition_id: string

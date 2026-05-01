@@ -17,6 +17,8 @@ import { template as jobApplicationSent } from './job-application-sent.tsx'
 import { template as jobApplicationEmployer } from './job-application-employer.tsx'
 import { template as talentInvite } from './talent-invite.tsx'
 import { template as investorUpdate } from './investor-update.tsx'
+import { template as companyOnboardingReceived } from './company-onboarding-received.tsx'
+import { template as companyOnboardingApproved } from './company-onboarding-approved.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'welcome': welcome,
@@ -27,4 +29,6 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'job-application-employer': jobApplicationEmployer,
   'talent-invite': talentInvite,
   'investor-update': investorUpdate,
+  'company-onboarding-received': companyOnboardingReceived,
+  'company-onboarding-approved': companyOnboardingApproved,
 }

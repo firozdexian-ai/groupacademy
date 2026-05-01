@@ -107,6 +107,7 @@ const navGroups: NavGroup[] = [
     roles: ["admin", "talent_exec"],
     items: [
       { title: "Companies", icon: Building2, value: "companies" },
+      { title: "Onboarding Requests", icon: Building2, value: "company-requests" },
       { title: "Contacts", icon: Users, value: "contacts" },
       { title: "Company Agents", icon: Bot, value: "company-agents" },
       { title: "Industries", icon: Factory, value: "industries" },
