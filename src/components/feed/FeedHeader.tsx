@@ -50,7 +50,7 @@ export function FeedHeader({ talentName, talentPhoto, talentProfession, onRefres
 
         if (data?.image_url) setHeroBannerUrl(data.image_url);
       } catch (error) {
-        console.error("[FeedHeader] Registry Sync Fault:", error);
+        console.error("[FeedHeader] Banner load failed:", error);
       } finally {
         setIsBannerLoading(false);
       }
