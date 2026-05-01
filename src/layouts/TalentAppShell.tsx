@@ -132,6 +132,28 @@ export function TalentAppShell() {
     };
   }, [talent?.id]);
 
+  // PHASE: Company_Portal_Access_Check
+  useEffect(() => {
+    if (!talent?.id) {
+      setHasCompanyAccess(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { count } = await supabase
+        .from("company_members")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("status", "active");
+      if (!cancelled) setHasCompanyAccess((count ?? 0) > 0);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [talent?.id]);
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     navigate("/auth");
