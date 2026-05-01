@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useAccountType } from "@/hooks/useAccountType";
+import { resolvePostAuthRoute } from "@/lib/postAuthRoute";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +33,7 @@ const Auth = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, isLoading: authLoading, signIn, signUp, resetPassword } = useAuth();
+  const { accountType, isLoading: accountTypeLoading } = useAccountType();
   const { theme } = useTheme();
 
   const [isLoading, setIsLoading] = useState(false);
@@ -53,18 +56,16 @@ const Auth = () => {
   const [showSignupPassword, setShowSignupPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
 
-  // REDIRECT GUARD
+  // REDIRECT GUARD — wait until we know account type to route correctly
   useEffect(() => {
-    if (!authLoading && user) {
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session) {
-          const returnTo = searchParams.get("returnTo");
-          const safeReturn = returnTo && !returnTo.includes("/auth") ? returnTo : "/app/feed";
-          navigate(safeReturn, { replace: true });
-        }
-      });
-    }
-  }, [user, authLoading, navigate, searchParams]);
+    if (authLoading || !user || accountTypeLoading) return;
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        const dest = resolvePostAuthRoute(accountType, searchParams.get("returnTo"));
+        navigate(dest, { replace: true });
+      }
+    });
+  }, [user, authLoading, accountType, accountTypeLoading, navigate, searchParams]);
 
   useEffect(() => {
     const tab = searchParams.get("tab");

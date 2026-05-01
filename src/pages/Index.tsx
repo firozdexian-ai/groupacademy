@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
+import { useAccountType } from "@/hooks/useAccountType";
+import { getDefaultRouteFor } from "@/lib/postAuthRoute";
 import { usePWADetect } from "@/hooks/usePWADetect";
 import { useTheme } from "next-themes";
 import { supabase } from "@/integrations/supabase/client";
@@ -43,11 +45,12 @@ interface BlogPost {
 const Index = () => {
   const navigate = useNavigate();
   const { user, isLoading: isAuthLoading } = useAuth();
+  const { accountType, isLoading: isAccountTypeLoading } = useAccountType();
   const { isPWA, isLoading: isPWALoading } = usePWADetect();
   const { theme, setTheme } = useTheme();
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
 
-  const isGlobalLoading = isAuthLoading || isPWALoading;
+  const isGlobalLoading = isAuthLoading || isPWALoading || (!!user && isAccountTypeLoading);
 
   useEffect(() => {
     const fetchBlogPosts = async () => {
@@ -66,15 +69,17 @@ const Index = () => {
   useEffect(() => {
     if (isGlobalLoading) return;
 
+    const dest = user ? getDefaultRouteFor(accountType) : null;
+
     if (isPWA) {
-      navigate(user ? "/app/feed" : "/auth", { replace: true });
+      navigate(dest ?? "/auth", { replace: true });
       return;
     }
 
-    if (user) {
-      navigate("/app/feed", { replace: true });
+    if (dest) {
+      navigate(dest, { replace: true });
     }
-  }, [isGlobalLoading, isPWA, user, navigate]);
+  }, [isGlobalLoading, isPWA, user, accountType, navigate]);
 
   if (isGlobalLoading || user || (isPWA && !user)) {
     return (

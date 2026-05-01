@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, FormEvent } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useAccountType } from "@/hooks/useAccountType";
+import { resolvePostAuthRoute } from "@/lib/postAuthRoute";
 import { useAuthChat, AuthAction } from "@/hooks/useAuthChat";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
@@ -16,6 +18,7 @@ const AuthChat = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, isLoading: authLoading } = useAuth();
+  const { accountType, isLoading: accountTypeLoading } = useAccountType();
   const { theme } = useTheme();
   const {
     messages,
@@ -40,18 +43,16 @@ const AuthChat = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // REDIRECT GUARD: Validate fresh session to prevent loops
+  // REDIRECT GUARD: Wait for account type so company users land on /company
   useEffect(() => {
-    if (!authLoading && user) {
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session) {
-          const returnTo = searchParams.get("returnTo");
-          const safeReturn = returnTo && !returnTo.includes("/auth") ? returnTo : "/app/feed";
-          navigate(safeReturn, { replace: true });
-        }
-      });
-    }
-  }, [user, authLoading, navigate, searchParams]);
+    if (authLoading || !user || accountTypeLoading) return;
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        const dest = resolvePostAuthRoute(accountType, searchParams.get("returnTo"));
+        navigate(dest, { replace: true });
+      }
+    });
+  }, [user, authLoading, accountType, accountTypeLoading, navigate, searchParams]);
 
   useEffect(() => {
     if (!initialized && !authLoading && !user) {
