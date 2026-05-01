@@ -350,10 +350,10 @@ export default function Gigs() {
           <BuildAcademyTab />
         </TabsContent>
 
-        <TabsContent value="activity" className="mt-12 space-y-16 animate-in slide-in-from-bottom-4 duration-700">
-          <section className="space-y-6">
-            <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-primary flex items-center gap-4">
-              <ClipboardList className="h-5 w-5" /> Operational Mission Queue
+        <TabsContent value="activity" className="mt-4 sm:mt-6 space-y-6 animate-in fade-in duration-300">
+          <section className="space-y-3">
+            <h3 className="text-xs font-bold uppercase tracking-wide text-primary flex items-center gap-2">
+              <ClipboardList className="h-4 w-4" /> My Submissions
             </h3>
             <MySubmissions talentId={talent?.id} />
           </section>
