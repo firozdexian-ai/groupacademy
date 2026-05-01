@@ -28,10 +28,12 @@ const tabs: { key: TabKey; icon: any; label: string }[] = [
 
 export default function LearningHub() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialRaw = searchParams.get("tab") as TabKey | null;
-  // Back-compat: old `events` tab key now maps to academy
+  const initialRaw = searchParams.get("tab");
+  // Back-compat: old `events` / `courses` keys map to academy
   const initialTab: TabKey =
-    initialRaw === "events" ? "academy" : ((initialRaw as TabKey) || "my-courses");
+    initialRaw === "events" || initialRaw === "courses"
+      ? "academy"
+      : ((initialRaw as TabKey) || "my-courses");
 
   const [activeTab, setActiveTab] = useState<TabKey>(initialTab);
   const [detailView, setDetailView] = useState<DetailView>(null);
