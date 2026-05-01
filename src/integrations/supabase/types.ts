@@ -1904,77 +1904,6 @@ export type Database = {
           },
         ]
       }
-      company_onboarding_requests: {
-        Row: {
-          approved_company_id: string | null
-          company_name: string
-          company_size: string | null
-          contact_email: string
-          contact_name: string
-          contact_phone: string
-          country: string
-          created_at: string
-          heard_from: string | null
-          id: string
-          industry: string | null
-          rejection_reason: string | null
-          reviewed_at: string | null
-          reviewed_by: string | null
-          status: string
-          updated_at: string
-          use_case: string | null
-          website: string | null
-        }
-        Insert: {
-          approved_company_id?: string | null
-          company_name: string
-          company_size?: string | null
-          contact_email: string
-          contact_name: string
-          contact_phone: string
-          country: string
-          created_at?: string
-          heard_from?: string | null
-          id?: string
-          industry?: string | null
-          rejection_reason?: string | null
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          status?: string
-          updated_at?: string
-          use_case?: string | null
-          website?: string | null
-        }
-        Update: {
-          approved_company_id?: string | null
-          company_name?: string
-          company_size?: string | null
-          contact_email?: string
-          contact_name?: string
-          contact_phone?: string
-          country?: string
-          created_at?: string
-          heard_from?: string | null
-          id?: string
-          industry?: string | null
-          rejection_reason?: string | null
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          status?: string
-          updated_at?: string
-          use_case?: string | null
-          website?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "company_onboarding_requests_approved_company_id_fkey"
-            columns: ["approved_company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       competition_submissions: {
         Row: {
           competition_id: string
@@ -7207,6 +7136,15 @@ export type Database = {
         Returns: string
       }
       ensure_system_thread: { Args: { _talent_id: string }; Returns: string }
+      find_or_create_company: {
+        Args: {
+          p_country?: string
+          p_industry?: string
+          p_name: string
+          p_website?: string
+        }
+        Returns: string
+      }
       generate_content_gigs_for_all_unready: { Args: never; Returns: number }
       generate_content_gigs_for_course: {
         Args: { _content_id: string }
@@ -7224,6 +7162,10 @@ export type Database = {
           p_user_id?: string
         }
         Returns: string
+      }
+      grant_company_welcome_credits: {
+        Args: { p_amount?: number; p_company_id: string }
+        Returns: boolean
       }
       has_any_admin_role: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
@@ -7278,6 +7220,8 @@ export type Database = {
         }
         Returns: number
       }
+      normalize_company_name: { Args: { p_name: string }; Returns: string }
+      normalize_company_website: { Args: { p_url: string }; Returns: string }
       normalize_country_name: { Args: { p_country: string }; Returns: string }
       normalize_phone: {
         Args: { p_country_code: string; p_phone: string }
@@ -7313,6 +7257,8 @@ export type Database = {
       }
       release_stale_content_gigs: { Args: { p_days?: number }; Returns: number }
       school_id_for_content: { Args: { _content_id: string }; Returns: string }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       talent_marketplace_summary: { Args: never; Returns: Json }
       track_content_click: {
         Args: { p_content_id: string; p_source: string }
