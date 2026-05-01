@@ -52,6 +52,8 @@ import { getWhatsAppLink } from "@/lib/constants/support";
 import { downloadFile } from "@/lib/downloadFile";
 import { toast } from "sonner";
 import logoIcon from "@/assets/logo-icon.png";
+import { CreditPurchaseSheet } from "@/components/credits/CreditPurchaseSheet";
+import { useCreditPurchase } from "@/hooks/useCreditPurchase";
 
 /**
  * GroUp Academy: Institutional User Experience Perimeter
@@ -74,6 +76,8 @@ export function TalentAppShell() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [hasCompanyAccess, setHasCompanyAccess] = useState(false);
+  const credits = useCreditPurchase();
 
   // HUD: Institutional Navigation Artifacts
   const desktopNavItems: NavItem[] = [
