@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { GRO10X_BG, GRO10X_TEXT } from "../lib/tokens";
 import { ArrowRight, MessageSquare, Building2, Sparkles } from "lucide-react";
+import Gro10xInstallButton from "../components/Gro10xInstallButton";
 
 /**
  * Gro10x landing — what users see when they hit the root of the Gro10x host
@@ -34,6 +35,7 @@ export default function Gro10xLanding() {
         >
           I already have an account
         </Link>
+        <Gro10xInstallButton />
         <p className="mt-3 text-center text-xs text-slate-500">
           Free to start · 250 welcome credits per company
         </p>
