@@ -6239,21 +6239,32 @@ export type Database = {
           created_at: string | null
           id: string
           role: Database["public"]["Enums"]["app_role"]
+          scope_school_id: string | null
           user_id: string
         }
         Insert: {
           created_at?: string | null
           id?: string
           role: Database["public"]["Enums"]["app_role"]
+          scope_school_id?: string | null
           user_id: string
         }
         Update: {
           created_at?: string | null
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          scope_school_id?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_scope_school_id_fkey"
+            columns: ["scope_school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       withdrawal_requests: {
         Row: {
@@ -6594,7 +6605,7 @@ export type Database = {
         | "freelancing"
         | "entrepreneurship"
         | "influencing"
-      app_role: "admin" | "student" | "talent_exec"
+      app_role: "admin" | "student" | "talent_exec" | "content_lead"
       application_status:
         | "submitted"
         | "sent_to_employer"
@@ -6795,7 +6806,7 @@ export const Constants = {
         "entrepreneurship",
         "influencing",
       ],
-      app_role: ["admin", "student", "talent_exec"],
+      app_role: ["admin", "student", "talent_exec", "content_lead"],
       application_status: [
         "submitted",
         "sent_to_employer",
