@@ -179,15 +179,11 @@ export default function IELTSPrep() {
               <Trophy className="h-7 w-7 text-white" />
             </div>
             <div className="flex-1">
-              <p className="text-[10px] font-black uppercase text-primary tracking-[0.2em] italic mb-1">
-                Diagnostic Protocol
-              </p>
-              <p className="text-sm font-black tracking-tight leading-none">Initialize Full Mock Test</p>
+              <p className="text-[10px] font-bold uppercase text-primary tracking-wider mb-1">Mock test</p>
+              <p className="text-sm font-semibold leading-none">Take a full mock test</p>
               <div className="flex items-center gap-2 mt-2">
                 <Coins className="h-3 w-3 text-amber-500" />
-                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">
-                  100 Credit Execution
-                </span>
+                <span className="text-xs text-muted-foreground">100 credits</span>
               </div>
             </div>
             <ChevronRight className="h-5 w-5 text-primary/40" />
