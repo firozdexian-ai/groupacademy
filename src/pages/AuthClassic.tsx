@@ -133,7 +133,7 @@ const Auth = () => {
 
   const getPasswordStrength = (password: string) => {
     if (!password) return { level: 0, label: "", color: "bg-muted" };
-    if (password.length < 8) return { level: 1, label: "Insufficient", color: "bg-destructive" };
+    if (password.length < 8) return { level: 1, label: "Too short", color: "bg-destructive" };
     let s = 1;
     if (password.length >= 12) s++;
     if (/[A-Z]/.test(password) && /[0-9]/.test(password)) s++;
@@ -141,8 +141,8 @@ const Auth = () => {
     const maps = [
       { level: 1, label: "Weak", color: "bg-destructive" },
       { level: 2, label: "Fair", color: "bg-orange-500" },
-      { level: 3, label: "Secure", color: "bg-secondary" },
-      { level: 4, label: "High Entropy", color: "bg-accent" },
+      { level: 3, label: "Good", color: "bg-secondary" },
+      { level: 4, label: "Strong", color: "bg-accent" },
     ];
     return maps[s - 1];
   };
