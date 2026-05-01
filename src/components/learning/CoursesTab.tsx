@@ -140,10 +140,11 @@ export function CoursesTab({ onOpenCourse }: CoursesTabProps) {
       </div>
 
       {filteredCourses.length === 0 ? (
-        <div className="py-24 text-center border-2 border-dashed border-border/20 rounded-[40px] bg-muted/5">
+        <div className="py-24 text-center border-2 border-dashed border-border/20 rounded-[40px] bg-muted/5 px-6">
           <Zap className="h-12 w-12 text-muted-foreground/20 mx-auto animate-pulse" />
-          <p className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-[0.3em] mt-4">
-            Awaiting_Content_Registry_Updates
+          <p className="text-sm font-bold text-foreground mt-6">Our team is finishing this academy</p>
+          <p className="text-[11px] text-muted-foreground mt-2 max-w-xs mx-auto leading-relaxed">
+            New courses unlock the moment they're 100% ready. Check back soon — or browse Pathways to see what's coming.
           </p>
         </div>
       ) : (
