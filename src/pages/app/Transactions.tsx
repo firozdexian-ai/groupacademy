@@ -32,6 +32,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { CreditBalance } from "@/components/credits/CreditBalance";
+import { openCreditPurchase } from "@/hooks/useCreditPurchase";
 import { MyInvoicesList } from "@/components/credits/MyInvoicesList";
 import { cn } from "@/lib/utils";
 
@@ -187,14 +188,11 @@ export default function Transactions() {
         <CreditBalance variant="full" />
         <div className="p-4 border-t border-border/40 bg-background/50">
           <Button
-            onClick={() => useCreditPurchase.getState ? null : null}
+            onClick={openCreditPurchase}
             className="w-full h-12 rounded-2xl font-black uppercase text-xs tracking-widest gap-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg"
-            asChild
           >
-            <button onClick={openCreditPurchase}>
-              <Coins className="h-4 w-4" />
-              Buy More Credits
-            </button>
+            <Coins className="h-4 w-4" />
+            Buy More Credits
           </Button>
         </div>
       </div>
