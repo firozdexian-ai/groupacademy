@@ -1,116 +1,119 @@
-## Phase 11D — Learning Hub: Readiness Gating + Content Gig Economy
+## Status answer (your question first)
 
-### The two ideas (in plain English)
+**Have we transformed all course tasks into gigs?** — No, not yet. The infrastructure is built, but **0 content gigs have actually been generated**. Here's the exact state:
 
-1. **Only show what is actually finished.** Today the Academy lists ~1,093 courses but only **1** has all its module resources uploaded. We will hide every course that is not 100% complete, and only show a Pathway/Track once **all** its courses are complete. The catalog will look small but trustworthy instead of large and broken.
+| Layer | Status |
+|---|---|
+| `content_gigs` table + RLS + Postgres functions (`generate_content_gigs_for_course`, `approve_content_gig`) | Built |
+| Admin: Content Ops sidebar group → Readiness Board / Content Gigs / Content Leads | Wired (visible to you on `/dashboard`) |
+| Talent: `/app/studio` Content Studio page | Built, but only renders for `content_lead` role |
+| "Generate Gigs" button on each course in `ModuleResourcesManager` | Built — but **never clicked**, so `content_gigs` is empty (0 rows) |
+| Your admin account `Grow10xnow@therategmail.com` in `user_roles` | **No rows at all** — not even an `admin` row, and no `content_lead` row |
 
-2. **Turn every missing piece into paid work.** Each empty module/stage becomes a private "Content Creation" gig. These gigs are **invisible to the public**. Only people we hire as a school's "Content Lead" can see and claim the gigs for their school. When they upload the resource and admin approves it, they get paid in credits — and that resource auto-fills the module. This becomes our first revenue/cost lever for filling the academy.
+**Why you can't "see all the gigs from the talent panel":** the talent-side Content Studio (`/app/studio`) is RLS-gated to users with `content_lead` role. Admins can review them on `/dashboard → Content Ops`, but there's no talent-side preview for an admin to QA them in their natural habitat. And right now there's nothing to see anyway because no course has been "generated" yet.
 
----
-
-### What changes for the talent (front-end)
-
-**Learning Hub → Academy tab (`CoursesTab.tsx`)**
-- Query gains a `.eq("is_ready", true)` filter on a new `content_readiness` view (or a `is_ready` boolean column on `content` kept fresh by trigger).
-- Empty state copy changes from "Awaiting registry updates" to: *"Our team is finishing this academy. New courses are unlocked the moment they're 100% ready."*
-- Add a small "X of Y courses ready" counter at the top of each filter.
-
-**Learning Hub → Pathways tab (`TracksTab.tsx`)**
-- Each School card shows a readiness badge: `12 / 18 courses ready` with a thin progress bar.
-- A School is only clickable (route to `/app/learning/tracks/school/:slug`) when **100% of its courses are ready**. Locked schools show a "Coming soon" overlay and a "Notify me" button (writes to a new `school_waitlist` table).
-
-**My Hub (`MyCoursesTab.tsx`)** — unchanged. Already-enrolled users keep access regardless of readiness.
+Separately on `/app/gigs?tab=projects` (where you currently are): that tab reads `marketplace_gigs` which has **0 rows**. So the Projects tab is also empty.
 
 ---
 
-### What changes in the database
+## What this plan does
 
-New columns / view (single migration):
-- `content.is_ready boolean default false` — true only when every module has ≥1 module_resource AND every required resource has a non-empty `resource_url`.
-- `schools.is_ready boolean default false` — true only when every published course tied to it is_ready.
-- DB function `recompute_content_readiness(content_id)` + trigger on `module_resources` (insert/update/delete) and on `course_modules` to keep both flags fresh.
-- View `school_readiness_v` (school_id, total_courses, ready_courses, pct) for the UI counters.
-- Table `school_waitlist (id, talent_id, school_id, created_at)` with RLS (talent can insert/select own).
+Two goals: (1) make the gig system actually populated and admin-previewable end-to-end, (2) restructure the gig economy into something coherent instead of three disconnected silos.
 
-Note: `content` has no direct `school_id`, only `profession_line_id`. We will use a helper function `school_id_for_content(content_id)` that resolves school via profession_line → school. If no link exists, the course is treated as "unassigned" and excluded from school readiness math.
+### Current confusion (the real problem)
 
----
+We have **three parallel "gig" systems** that look the same to users but behave totally differently:
 
-### The content gig economy
-
-**New table `content_gigs`** (separate from existing `gigs` and `marketplace_gigs` because the workflow is different):
-```
-id, module_id, resource_slot (e.g. 'orientation_video', 'learn_pdf', 'practice_quiz', ...),
-school_id, title, brief, expected_format,
-credit_reward numeric(12,1),
-status: open | claimed | submitted | approved | rejected,
-claimed_by talent_id, claimed_at, submitted_url, submitted_at,
-reviewed_by, reviewed_at, review_notes
+```text
+/app/gigs?tab=tasks      → table: gigs              → micro-actions, instant credits  (5 rows, working)
+/app/gigs?tab=projects   → table: marketplace_gigs  → employer projects, bid + contract (0 rows, empty)
+/app/studio              → table: content_gigs      → internal academy build-out         (0 rows, empty, RLS hidden)
 ```
 
-**Auto-generation:** A scheduled function (or trigger on `course_modules` insert) creates one `content_gig` row per missing required resource per module per stage (Orientation/Learn/Discuss/Practice/Assess/Progress). Default reward configurable per resource type (e.g. video = 30 CR, PDF = 10 CR).
-
-**Visibility / RLS:**
-- `content_gigs` is NOT shown in the public Gigs page.
-- New role `content_lead` in `user_roles` with optional `school_id` scope (`user_roles.scope_school_id`).
-- RLS: a talent can `SELECT` a row only if they have `content_lead` for that gig's `school_id` (or are admin). No public read.
-
-**New page `src/pages/app/ContentStudio.tsx`** at route `/app/studio` — only visible to users with the `content_lead` role:
-- Lists open gigs for their school, shows brief + expected format
-- Claim → upload resource (uses existing `module_resources` upload pattern) → submit
-- Admin reviews in the Admin dashboard (`src/components/dashboard/ContentGigReview.tsx`) → approve auto-inserts the row into `module_resources`, marks gig `approved`, credits the lead, and triggers readiness recompute.
-
-**Sidebar entry:** "Content Studio" appears in `TalentAppShell.tsx` only when the user has the `content_lead` role.
+Talents see no relationship between them. Admin has no single "all gigs across the platform" view. Content gigs are invisible from the public gig hub even though they're literally the highest-paying recurring earning opportunity right now.
 
 ---
 
-### Admin side (brief)
+## Plan
 
-In the existing admin dashboard:
-- New "Content Operations" group with: **Readiness Board** (per-school progress bars), **Open Content Gigs**, **Pending Reviews**, **Content Leads** (assign role + school scope to a talent).
-- One-click "Generate gigs for this course" button on each course in `ModuleResourcesManager.tsx` — calls a function that inserts missing-slot gigs.
+### 1. Surface Content Studio inside the unified Gig Hub
+
+Add a 4th tab on `/app/gigs`: **"Build Academy"** (label TBD). This tab embeds the existing `ContentStudio` view but with role-aware behavior:
+
+- **Admin (`has_any_admin_role`)**: sees ALL content gigs across all schools, read-only preview of how they'd render to a Content Lead, with a "Filter by school" dropdown so you can verify each faculty looks right.
+- **Content Lead**: sees gigs scoped to their assigned school (current RLS).
+- **Regular talent**: sees a marketing card → "Apply to become a Content Lead" with an inline application form (writes to a new `content_lead_applications` table).
+
+This keeps `/app/studio` working as a deep link but also makes content gigs discoverable from the central hub.
+
+### 2. Seed real content gigs so the system isn't empty
+
+Add a one-shot admin action on the **Readiness Board**: "Generate gigs for all unready courses." This loops through every course where `is_ready = false` and calls `generate_content_gigs_for_course(course_id)` for each. Result: hundreds of real, claimable gigs appear instantly across the academies.
+
+Also add a per-school "Generate gigs for this school" button so you can do it gradually faculty-by-faculty.
+
+### 3. Give your admin account the right roles
+
+Insert two `user_roles` rows for `Grow10xnow@therategmail.com`:
+- `admin` (so admin RLS paths work consistently — currently you may be relying on a different admin check)
+- `content_lead` with `scope_school_id = NULL` (means "all schools") so the talent-side `/app/studio` and the new "Build Academy" tab show you everything as a Content Lead would see it.
+
+This is the cleanest way to "see what talents see" without building a separate impersonation system.
+
+### 4. Unify the Activity / Registry tab
+
+Today the "Registry" tab on `/app/gigs` only shows quick-task submissions + marketplace bids/contracts. Add a third section: **"Content Studio submissions"** showing your claimed/submitted/approved content gigs in the same visual language. One place to see everything you've ever earned from.
+
+### 5. Admin: one cross-system "All Gigs" view
+
+In `/dashboard → Content Ops`, add a new tab **"All Gigs (cross-system)"** that unions the three tables into a single sortable list with columns: Source (Quick / Project / Content), Title, School/Category, Reward, Status, Claimed by, Submitted at. This is the single place where you can audit the entire gig economy.
+
+### 6. Fix the gig economy gaps (your "deep dive" ask)
+
+Findings from auditing the three systems:
+
+**a. No ownership signaling.** `marketplace_gigs` has employer fields but `content_gigs` has no "publisher" — it just appears. Add a small "Posted by GroUp Academy / by [Employer Name] / by [School]" line on every gig card so talents understand who's paying.
+
+**b. Duplicate categorization vocabularies.** Quick gigs use `category` (cv_upload, etc.), marketplace uses `skill_category` (MARKETPLACE_SCHOOLS), content uses `school_id` + `resource_type`. Talents can't filter coherently. Plan: add a unified `gig_facet` derived field per source so the hub-level filter ("Marketing School", "All Schools", "Quick wins") works across all three.
+
+**c. No earnings forecast.** A talent has no idea "if I do everything available to me, how much can I earn this week?" Add a small header card on `/app/gigs`: "X open gigs, max earn potential Y credits". Computed from `gigs.max_completions_per_user`, claimable `marketplace_gigs.budget_amount`, and open `content_gigs.credit_reward`.
+
+**d. Content gigs have no expiry / SLA.** Once claimed, a Content Lead can sit on it forever blocking everyone else. Add a 7-day auto-release: a daily Postgres function resets `status='open'` and clears `claimed_by` if `claimed_at < now() - 7 days` and not yet submitted.
+
+**e. No quality bar.** `approve_content_gig` pays out on a binary approve. Add a `quality_score` (1-5) by the reviewer that multiplies the credit reward (0.6× / 0.8× / 1.0× / 1.1× / 1.25×). This rewards Content Leads who deliver clean work and prevents pay parity for sloppy submissions.
+
+**f. Marketplace projects are empty.** The Projects tab shows nothing because `marketplace_gigs` is at 0 rows. Either (i) seed 5-10 sample academy-internal projects so the tab demonstrates value while we ramp employer onboarding, or (ii) collapse the Projects tab into a "Coming soon — accepting employer waitlist" CTA. Recommend option (i) using academy-funded projects (e.g., "Build a 30-min YouTube explainer for our Marketing School", budget paid in earned credits) — this also doubles as content gigs by another name.
+
+### 7. Communication: rename so talents understand
+
+Current labels are inconsistent ("Missions" / "Projects" / "Registry" + "Content Studio"). Rename to:
+
+```text
+Earn  →  Quick (5–25 credits, instant)  |  Projects (variable, bidding)  |  Build Academy (claim & deliver)  |  My activity
+```
+
+Same component, clearer mental model.
 
 ---
 
-### Files to be created / edited
+## Technical breakdown
 
-**Migration**
-- `supabase/migrations/<ts>_learning_readiness_and_content_gigs.sql`
-  - alter `content` add `is_ready`; alter `schools` add `is_ready`
-  - create `school_waitlist`, `content_gigs`, view `school_readiness_v`
-  - functions + triggers for readiness; function `generate_content_gigs_for_course(content_id)`
-  - `app_role` enum gains `content_lead`; `user_roles` gains nullable `scope_school_id`
-  - RLS policies for all new tables
+**DB (single migration):**
+- INSERT two rows into `user_roles` for the admin user (`admin`, `content_lead` with NULL scope).
+- Create `content_lead_applications` table (talent_id, motivation, school_preference, status, reviewed_by, reviewed_at) with RLS: insert by self, select by self + admin.
+- Add `quality_score smallint` to `content_gigs`; modify `approve_content_gig` to accept it and scale the credit payout.
+- New function `release_stale_content_gigs()` + a `pg_cron` daily schedule (or trigger on read).
+- New function `generate_content_gigs_for_school(_school_id)` and `generate_content_gigs_for_all_unready()` wrapping the existing per-course generator.
 
-**Front-end (talent)**
-- edit `src/components/learning/CoursesTab.tsx` (filter `is_ready`)
-- edit `src/components/learning/TracksTab.tsx` (school readiness badges + lock state)
-- edit `src/components/learning/MyCoursesTab.tsx` (copy nudge only)
-- create `src/pages/app/ContentStudio.tsx` + `src/components/studio/ContentGigCard.tsx`
-- edit `src/layouts/TalentAppShell.tsx` (conditional Studio entry)
-- edit `src/App.tsx` (route `/app/studio`)
+**Frontend:**
+- `src/pages/app/Gigs.tsx`: add 4th tab "Build Academy" and rename existing tabs; add earnings forecast header card; add "Content Studio submissions" section to the Activity tab; unified `gig_facet` filter logic.
+- New `src/components/gigs/BuildAcademyTab.tsx`: role-aware wrapper around the existing `ContentStudio` rendering (admin gets all-school read-only view, content_lead gets scoped view, talent gets application CTA).
+- `src/components/dashboard/ContentReadinessBoard.tsx`: add "Generate gigs for all unready courses" button + per-school button.
+- New `src/components/dashboard/AllGigsCrossSystem.tsx`: unioned view across `gigs`, `marketplace_gigs`, `content_gigs`. Wire into Dashboard router + AdminSidebar Content Ops group.
+- `src/components/dashboard/ContentGigReview.tsx`: add quality_score selector before approve.
+- (Optional, recommended) seed 5-10 academy-funded `marketplace_gigs` rows so the Projects tab is non-empty.
 
-**Front-end (admin)**
-- create `src/components/dashboard/ContentReadinessBoard.tsx`
-- create `src/components/dashboard/ContentGigReview.tsx`
-- create `src/components/dashboard/ContentLeadsManager.tsx`
-- edit `src/components/dashboard/AdminSidebar.tsx` (new "Content Ops" group)
-- edit `src/pages/Dashboard.tsx` (lazy tabs)
-- edit `src/pages/ModuleResourcesManager.tsx` (Generate gigs button)
-
----
-
-### Out of scope for this phase
-- Payouts to content leads (uses existing credits → withdrawals path, no new infra)
-- Bulk migration of legacy resources (none exist yet for these courses)
-- Public marketing of the program (will revisit once readiness > 0)
-
----
-
-### Result the user will see immediately
-
-1. Academy tab shows ~1 course (the only complete one), Pathways shows all schools with honest readiness bars and locked overlays. No more sea of empty courses.
-2. Admin can hire a "Content Lead" for, say, *School of AI & Automation*, give them the role, and they'll see ~80 paid gigs ready to claim in their Content Studio.
-3. Every approved submission flips the right flag and the course/school silently appears in the public catalog the moment it crosses 100%.
-
-Approve to implement?
+**Files to edit (~9) and create (~3):**
+- Edit: `Gigs.tsx`, `Dashboard.tsx`, `AdminSidebar.tsx`, `ContentReadinessBoard.tsx`, `ContentGigReview.tsx`, `ContentStudio.tsx` (pass-through prop for admin mode), `MySubmissions.tsx` (extend or wrap).
+- Create: `BuildAcademyTab.tsx`, `AllGigsCrossSystem.tsx`, `ContentLeadApplyDialog.tsx`.
+- Migration: 1 new SQL file.
