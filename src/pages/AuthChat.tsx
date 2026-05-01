@@ -105,7 +105,7 @@ const AuthChat = () => {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
         <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
-        <p className="text-[10px] font-bold uppercase tracking-widest mt-4 text-slate-500">Authenticating Node</p>
+        <p className="text-xs font-medium mt-4 text-slate-500">Loading…</p>
       </div>
     );
   }
