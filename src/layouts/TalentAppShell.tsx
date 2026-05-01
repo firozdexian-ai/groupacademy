@@ -279,7 +279,7 @@ export function TalentAppShell() {
                           key={label}
                           onClick={() => {
                             action?.();
-                            if (action && !["Download CV", "Customer Service", "Refer App"].includes(label))
+                            if (action && !["Download CV", "Help Center", "Refer the app"].includes(label))
                               setSidebarOpen(false);
                           }}
                           className="w-full flex items-center gap-3 px-5 py-3 text-sm font-medium hover:bg-muted/60"
