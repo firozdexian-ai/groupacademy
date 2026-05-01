@@ -1,12 +1,13 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton"; // FIX: Added missing import
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Download,
   Share2,
@@ -14,15 +15,12 @@ import {
   CheckCircle,
   AlertCircle,
   TrendingUp,
-  Target,
-  BookOpen,
+  ShieldCheck,
+  Zap,
   Loader2,
   MessageCircle,
   Linkedin,
   Twitter,
-  History,
-  ShieldCheck,
-  Zap,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ScorecardPDFTemplate } from "@/components/assessment/ScorecardPDFTemplate";
@@ -50,6 +48,15 @@ interface Assessment {
   improvement_areas: string[];
   profession_category_id: string;
   profession_categories?: { name: string } | null;
+}
+
+interface Course {
+  id: string;
+  title: string;
+  slug: string;
+  description: string;
+  estimated_hours: number;
+  thumbnail_url: string;
 }
 
 const readinessConfig: Record<string, { color: string; label: string; desc: string }> = {
@@ -81,23 +88,21 @@ const readinessConfig: Record<string, { color: string; label: string; desc: stri
 };
 
 export default function AssessmentResults() {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [analyzing, setAnalyzing] = useState(false);
+  const queryClient = useQueryClient();
   const [downloading, setDownloading] = useState(false);
-  const [assessment, setAssessment] = useState<Assessment | null>(null);
-  const [recommendedCourses, setRecommendedCourses] = useState<any[]>([]);
-  const hasTriggeredAnalysis = useRef(false);
 
-  useEffect(() => {
-    if (id) loadAssessment();
-  }, [id]);
-
-  const loadAssessment = async () => {
-    setLoading(true);
-    try {
+  // 1. Fetch Assessment Data
+  const {
+    data: assessment,
+    isLoading: isAssessmentLoading,
+    error: loadError,
+    refetch,
+  } = useQuery({
+    queryKey: ["career_assessment", id],
+    queryFn: async () => {
+      if (!id) throw new Error("Assessment ID is required.");
       const { data, error } = await supabase
         .from("career_assessments")
         .select(`*, profession_categories (name)`)
@@ -105,51 +110,59 @@ export default function AssessmentResults() {
         .maybeSingle();
 
       if (error) throw error;
-      if (!data) {
-        setLoadError("Record not found.");
-        return;
-      }
+      if (!data) throw new Error("Record not found.");
+      return data as unknown as Assessment;
+    },
+    staleTime: 5 * 60 * 1000,
+    retry: 2,
+    enabled: !!id,
+  });
 
-      const typedData = data as unknown as Assessment;
-      setAssessment(typedData);
+  // 2. Fetch Recommended Courses
+  const { data: recommendedCourses = [] } = useQuery({
+    queryKey: ["recommended_courses", assessment?.profession_category_id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("content")
+        .select("id, title, slug, description, estimated_hours, thumbnail_url")
+        .eq("profession_line_id", assessment!.profession_category_id)
+        .eq("is_published", true)
+        .limit(3);
 
-      if (typedData.profession_category_id) loadRecommendedCourses(typedData.profession_category_id);
-
-      if (!typedData.ai_analysis && !hasTriggeredAnalysis.current) {
-        hasTriggeredAnalysis.current = true;
-        triggerAIAnalysis(typedData.id);
-      }
-    } catch (err: any) {
-      setLoadError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadRecommendedCourses = async (categoryId: string) => {
-    const { data } = await supabase
-      .from("content")
-      .select("id, title, slug, description, estimated_hours, thumbnail_url")
-      .eq("profession_line_id", categoryId)
-      .eq("is_published", true)
-      .limit(3);
-    setRecommendedCourses(data || []);
-  };
-
-  const triggerAIAnalysis = async (assessmentId: string) => {
-    setAnalyzing(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("analyze-career-assessment", { body: { assessmentId } });
       if (error) throw error;
-      if (data?.analysis) {
-        setAssessment((prev) => (prev ? { ...prev, ai_analysis: data.analysis } : null));
+      return data as Course[];
+    },
+    enabled: !!assessment?.profession_category_id,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // 3. AI Analysis Mutation
+  const analyzeMutation = useMutation({
+    mutationFn: async (assessmentId: string) => {
+      const { data, error } = await supabase.functions.invoke("analyze-career-assessment", {
+        body: { assessmentId },
+      });
+      if (error) throw error;
+      return data?.analysis as AIAnalysis;
+    },
+    onSuccess: (newAnalysis) => {
+      if (newAnalysis) {
+        queryClient.setQueryData(["career_assessment", id], (old: Assessment | undefined) =>
+          old ? { ...old, ai_analysis: newAnalysis } : old,
+        );
       }
-    } catch (err) {
+    },
+    onError: (err) => {
       console.error("AI Analysis Failed:", err);
-    } finally {
-      setAnalyzing(false);
+      toast.error("Failed to generate AI insights. We will try again later.");
+    },
+  });
+
+  useEffect(() => {
+    if (assessment && !assessment.ai_analysis && !analyzeMutation.isPending && !analyzeMutation.hasMutated) {
+      analyzeMutation.mutate(assessment.id);
     }
-  };
+  }, [assessment, analyzeMutation]);
 
   const shareText = `I scored ${assessment?.percentage}% on the Career Readiness Scorecard! 🎯 Check yours at GroUp Academy.`;
   const shareUrl = window.location.href;
@@ -171,46 +184,55 @@ export default function AssessmentResults() {
       await generateScorecardPDF(assessment);
       toast.success("Scorecard Exported.");
     } catch (err) {
-      toast.error("Export failed.");
+      toast.error("Export failed. Please try again.");
     } finally {
       setDownloading(false);
     }
   };
 
-  if (loading)
+  if (isAssessmentLoading) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-xs font-black uppercase tracking-[0.2em] mt-4 text-muted-foreground">Compiling Report</p>
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center">
+        <Loader2 className="h-10 w-10 animate-spin text-blue-500" />
+        <p className="text-[10px] font-bold uppercase tracking-widest mt-4 text-slate-500">Compiling Report</p>
       </div>
     );
+  }
 
-  if (loadError || !assessment)
+  if (loadError || !assessment) {
     return (
-      <div className="min-h-screen bg-background flex flex-col p-8 items-center justify-center">
-        <RetryErrorCard title="Sync Failed" description={loadError || "Record missing"} onRetry={loadAssessment} />
+      <div className="min-h-screen bg-slate-50 flex flex-col p-8 items-center justify-center">
+        <RetryErrorCard
+          title="Sync Failed"
+          description={loadError?.message || "Record missing"}
+          onRetry={() => refetch()}
+        />
       </div>
     );
+  }
 
   const level = readinessConfig[assessment.readiness_level?.toLowerCase()] || readinessConfig.beginner;
+  const isAnalyzing = analyzeMutation.isPending;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
       <Navbar />
-      <main className="container max-w-5xl py-12 px-4 space-y-8 animate-in fade-in duration-700">
+      <main className="container max-w-5xl py-16 px-4 space-y-12 animate-in fade-in duration-700">
         <section className="grid lg:grid-cols-[1fr,350px] gap-8">
-          <div className="space-y-6">
-            <header className="space-y-2">
-              <Badge className="bg-primary/10 text-primary border-none text-[10px] font-black uppercase tracking-widest">
+          <div className="space-y-8">
+            <header className="space-y-3">
+              <Badge className="bg-blue-50 text-blue-500 border-none px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest rounded-full">
                 Growth Audit
               </Badge>
-              <h1 className="text-4xl font-black tracking-tighter leading-tight">Career Readiness Report</h1>
-              <p className="text-muted-foreground font-medium">
+              <h1 className="text-4xl md:text-5xl font-black tracking-tighter leading-tight text-slate-900">
+                Career Readiness Report
+              </h1>
+              <p className="text-lg text-slate-500 font-medium">
                 {assessment.profession_categories?.name || "Professional"} Pipeline
               </p>
             </header>
 
-            <Card className="rounded-[32px] border-border/40 bg-card shadow-2xl relative overflow-hidden">
+            <Card className="rounded-[32px] border-none bg-white shadow-sm relative overflow-hidden">
               <CardContent className="p-8 md:p-12 flex flex-col md:flex-row items-center gap-12">
                 <div className="relative h-44 w-44 flex items-center justify-center shrink-0">
                   <svg className="h-full w-full transform -rotate-90">
@@ -221,7 +243,7 @@ export default function AssessmentResults() {
                       stroke="currentColor"
                       strokeWidth="12"
                       fill="transparent"
-                      className="text-muted/10"
+                      className="text-slate-100"
                     />
                     <circle
                       cx="88"
@@ -233,38 +255,40 @@ export default function AssessmentResults() {
                       strokeDasharray={502}
                       strokeDashoffset={502 - (502 * assessment.percentage) / 100}
                       strokeLinecap="round"
-                      className="text-primary transition-all duration-1000"
+                      className="text-blue-500 transition-all duration-1000"
                     />
                   </svg>
                   <div className="absolute flex flex-col items-center">
-                    <span className="text-4xl font-black tracking-tighter">{assessment.percentage}%</span>
-                    <span className="text-[8px] font-bold uppercase text-muted-foreground tracking-widest">
-                      Readiness Index
+                    <span className="text-5xl font-black tracking-tighter text-slate-900">
+                      {assessment.percentage}%
                     </span>
+                    <span className="text-[10px] font-bold uppercase text-slate-400 tracking-widest mt-1">Index</span>
                   </div>
                 </div>
 
                 <div className="flex-1 space-y-6">
                   <div className="space-y-2">
                     <Badge
-                      className={cn("rounded-full px-4 py-1 text-[10px] font-black uppercase border-none", level.color)}
+                      className={cn(
+                        "rounded-full px-4 py-1.5 text-[10px] font-bold uppercase border-none tracking-widest",
+                        level.color,
+                      )}
                     >
                       {level.label}
                     </Badge>
-                    <p className="text-lg font-bold leading-tight">{level.desc}</p>
+                    <p className="text-lg font-medium text-slate-600 leading-relaxed">{level.desc}</p>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 bg-muted/30 rounded-2xl border border-border/40">
-                      <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 mb-1">
-                        Score
-                      </p>
-                      <p className="text-xl font-black">
-                        {assessment.total_score} / {assessment.max_score}
+                    <div className="p-5 bg-slate-50 rounded-[24px] border border-slate-100">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Score</p>
+                      <p className="text-2xl font-black text-slate-900">
+                        {assessment.total_score}{" "}
+                        <span className="text-slate-400 text-lg">/ {assessment.max_score}</span>
                       </p>
                     </div>
-                    <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10">
-                      <p className="text-[9px] font-black uppercase tracking-widest text-primary/60 mb-1">Status</p>
-                      <p className="text-xl font-black text-primary">Verified</p>
+                    <div className="p-5 bg-emerald-50 rounded-[24px] border border-emerald-100">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-600/70 mb-1">Status</p>
+                      <p className="text-2xl font-black text-emerald-600">Verified</p>
                     </div>
                   </div>
                 </div>
@@ -273,12 +297,12 @@ export default function AssessmentResults() {
           </div>
 
           <aside className="space-y-4">
-            <Card className="rounded-[32px] border-primary/10 shadow-xl sticky top-24">
-              <CardContent className="p-6 space-y-4">
+            <Card className="rounded-[32px] border-none bg-white shadow-sm sticky top-24">
+              <CardContent className="p-8 space-y-4">
                 <Button
-                  className="w-full h-12 rounded-2xl font-black uppercase tracking-widest text-[10px]"
+                  className="w-full h-14 rounded-full bg-slate-800 hover:bg-slate-900 text-white font-bold uppercase tracking-widest text-[10px] shadow-sm"
                   onClick={handleDownloadPDF}
-                  disabled={downloading}
+                  disabled={downloading || isAnalyzing}
                 >
                   {downloading ? (
                     <Loader2 className="animate-spin mr-2 h-4 w-4" />
@@ -289,35 +313,35 @@ export default function AssessmentResults() {
                 </Button>
                 <Button
                   variant="outline"
-                  className="w-full h-12 rounded-2xl font-black uppercase tracking-widest text-[10px]"
+                  className="w-full h-14 rounded-full bg-white border-slate-200 hover:bg-slate-50 text-slate-900 font-bold uppercase tracking-widest text-[10px] shadow-sm"
                   onClick={() => navigate("/career-assessment")}
                 >
                   <RefreshCw className="mr-2 h-4 w-4" /> Restart Test
                 </Button>
-                <div className="pt-4 border-t border-border/40 flex justify-center gap-3">
+                <div className="pt-6 mt-6 border-t border-slate-100 flex justify-center gap-4">
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="rounded-full hover:bg-primary/10 text-primary"
+                    className="rounded-full h-12 w-12 hover:bg-blue-50 text-blue-600"
                     onClick={handleLinkedInShare}
                   >
-                    <Linkedin className="h-4 w-4" />
+                    <Linkedin className="h-5 w-5" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="rounded-full hover:bg-sky-100 text-sky-500"
+                    className="rounded-full h-12 w-12 hover:bg-sky-50 text-sky-500"
                     onClick={handleTwitterShare}
                   >
-                    <Twitter className="h-4 w-4" />
+                    <Twitter className="h-5 w-5" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="rounded-full hover:bg-emerald-100 text-emerald-600"
+                    className="rounded-full h-12 w-12 hover:bg-emerald-50 text-emerald-600"
                     onClick={handleWhatsAppShare}
                   >
-                    <MessageCircle className="h-4 w-4" />
+                    <MessageCircle className="h-5 w-5" />
                   </Button>
                 </div>
               </CardContent>
@@ -326,40 +350,40 @@ export default function AssessmentResults() {
         </section>
 
         <section className="grid md:grid-cols-2 gap-6">
-          <Card className="rounded-[32px] border-border/40 bg-card/50 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="text-xs font-black uppercase tracking-[0.2em] flex items-center gap-2">
+          <Card className="rounded-[32px] border-none bg-white shadow-sm">
+            <CardHeader className="px-8 pt-8">
+              <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-slate-500 flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4 text-emerald-500" /> Competitive Strengths
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {analyzing ? (
-                <Skeleton className="h-20 w-full rounded-xl" />
+            <CardContent className="px-8 pb-8 space-y-4">
+              {isAnalyzing ? (
+                <Skeleton className="h-24 w-full rounded-2xl bg-slate-100" />
               ) : (
                 assessment.ai_analysis?.strengths.map((s, i) => (
-                  <div key={i} className="flex gap-3 items-start">
-                    <CheckCircle className="h-4 w-4 text-emerald-500 shrink-0 mt-1" />
-                    <p className="text-sm font-medium leading-relaxed">{s}</p>
+                  <div key={i} className="flex gap-4 items-start p-4 rounded-2xl bg-slate-50">
+                    <CheckCircle className="h-5 w-5 text-emerald-500 shrink-0" />
+                    <p className="text-sm font-medium text-slate-700 leading-relaxed">{s}</p>
                   </div>
                 ))
               )}
             </CardContent>
           </Card>
 
-          <Card className="rounded-[32px] border-border/40 bg-card/50 backdrop-blur-sm">
-            <CardHeader>
-              <CardTitle className="text-xs font-black uppercase tracking-[0.2em] flex items-center gap-2">
+          <Card className="rounded-[32px] border-none bg-white shadow-sm">
+            <CardHeader className="px-8 pt-8">
+              <CardTitle className="text-[10px] font-bold uppercase tracking-widest text-slate-500 flex items-center gap-2">
                 <TrendingUp className="h-4 w-4 text-rose-500" /> Improvement Gaps
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {analyzing ? (
-                <Skeleton className="h-20 w-full rounded-xl" />
+            <CardContent className="px-8 pb-8 space-y-4">
+              {isAnalyzing ? (
+                <Skeleton className="h-24 w-full rounded-2xl bg-slate-100" />
               ) : (
-                (assessment.ai_analysis?.improvement_areas || assessment.improvement_areas).map((s, i) => (
-                  <div key={i} className="flex gap-3 items-start">
-                    <AlertCircle className="h-4 w-4 text-rose-500 shrink-0 mt-1" />
-                    <p className="text-sm font-medium leading-relaxed">{s}</p>
+                (assessment.ai_analysis?.improvement_areas || assessment.improvement_areas)?.map((s, i) => (
+                  <div key={i} className="flex gap-4 items-start p-4 rounded-2xl bg-slate-50">
+                    <AlertCircle className="h-5 w-5 text-rose-500 shrink-0" />
+                    <p className="text-sm font-medium text-slate-700 leading-relaxed">{s}</p>
                   </div>
                 ))
               )}
@@ -367,53 +391,69 @@ export default function AssessmentResults() {
           </Card>
         </section>
 
-        <section className="space-y-6">
+        <section className="space-y-8">
           <div className="flex items-center gap-3">
-            <Zap className="h-5 w-5 text-amber-500 fill-amber-500" />
-            <h2 className="text-xl font-black tracking-tight uppercase">Strategic Recommendations</h2>
+            <Zap className="h-6 w-6 text-blue-500 fill-blue-500" />
+            <h2 className="text-2xl font-black tracking-tighter text-slate-900">Strategic Recommendations</h2>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
-            {assessment.ai_analysis?.recommendations.map((rec, i) => (
-              <Card key={i} className="rounded-3xl border-primary/10 bg-primary/[0.02] shadow-sm">
-                <CardContent className="p-6 space-y-4">
-                  <div className="h-8 w-8 rounded-xl bg-primary text-white flex items-center justify-center text-xs font-black">
-                    {i + 1}
-                  </div>
-                  <p className="text-sm font-bold leading-tight">{rec}</p>
-                </CardContent>
-              </Card>
-            ))}
+            {isAnalyzing ? (
+              <>
+                <Skeleton className="h-40 w-full rounded-[32px] bg-slate-100" />
+                <Skeleton className="h-40 w-full rounded-[32px] bg-slate-100" />
+                <Skeleton className="h-40 w-full rounded-[32px] bg-slate-100" />
+              </>
+            ) : (
+              assessment.ai_analysis?.recommendations.map((rec, i) => (
+                <Card key={i} className="rounded-[32px] border-none bg-white shadow-sm">
+                  <CardContent className="p-8 space-y-5">
+                    <div className="h-10 w-10 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center text-sm font-black">
+                      {i + 1}
+                    </div>
+                    <p className="text-sm font-medium text-slate-700 leading-relaxed">{rec}</p>
+                  </CardContent>
+                </Card>
+              ))
+            )}
           </div>
         </section>
 
-        <section className="bg-gradient-to-br from-primary/5 to-violet-500/5 rounded-[40px] p-8 md:p-12 border border-primary/10">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 mb-12">
+        <section className="bg-white rounded-[40px] p-8 md:p-12 shadow-sm border-none relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50 rounded-full blur-3xl -mr-20 -mt-20 opacity-50 pointer-events-none"></div>
+
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 mb-12 relative z-10">
             <div>
-              <h2 className="text-2xl font-black tracking-tighter uppercase">Remediation Path</h2>
-              <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1">
+              <h2 className="text-3xl font-black tracking-tighter text-slate-900">Remediation Path</h2>
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-2">
                 Recommended training for your readiness level
               </p>
             </div>
             <Button
               onClick={() => navigate("/app/learning")}
-              className="rounded-full font-black uppercase text-[10px] h-10 px-8"
+              className="rounded-full bg-blue-500 hover:bg-blue-600 text-white font-bold uppercase tracking-widest text-[10px] h-14 px-10 shadow-sm"
             >
               Academy Hub
             </Button>
           </div>
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-3 gap-6 relative z-10">
             {recommendedCourses.map((course) => (
               <Card
                 key={course.id}
-                className="rounded-[28px] border-none shadow-2xl overflow-hidden hover:-translate-y-1 transition-all cursor-pointer bg-card"
+                className="rounded-[32px] border border-slate-100 shadow-sm overflow-hidden hover:-translate-y-1 transition-all cursor-pointer bg-white group"
                 onClick={() => navigate(`/app/learning/courses/${course.slug}`)}
               >
-                <div className="aspect-video bg-muted relative">
-                  {course.thumbnail_url && <img src={course.thumbnail_url} className="w-full h-full object-cover" />}
+                <div className="aspect-video bg-slate-100 relative overflow-hidden">
+                  {course.thumbnail_url && (
+                    <img
+                      src={course.thumbnail_url}
+                      alt={course.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  )}
                 </div>
-                <CardContent className="p-5">
-                  <h4 className="font-bold text-sm line-clamp-1">{course.title}</h4>
-                  <p className="text-[9px] font-black uppercase text-primary tracking-widest mt-2">
+                <CardContent className="p-6">
+                  <h4 className="font-bold text-base text-slate-900 line-clamp-1">{course.title}</h4>
+                  <p className="text-[10px] font-bold uppercase text-blue-500 tracking-widest mt-3">
                     Recommended Course
                   </p>
                 </CardContent>
