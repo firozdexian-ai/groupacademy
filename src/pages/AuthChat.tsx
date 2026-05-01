@@ -117,26 +117,26 @@ const AuthChat = () => {
     <div className="min-h-screen flex flex-col bg-slate-50 font-sans text-slate-900 selection:bg-blue-500/10">
       {/* Header */}
       <header className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-white/80 backdrop-blur-xl sticky top-0 z-10">
-        <button onClick={() => navigate("/")} className="hover:opacity-80 transition-opacity">
+        <button onClick={() => navigate("/")} className="hover:opacity-80 transition-opacity" aria-label="Go home">
           <img src={theme === "dark" ? logoLight : logoDark} alt="GroUp Academy" className="h-7" />
         </button>
-        <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-50 border border-emerald-100">
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-100">
           <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-          <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-700">AES-256 Verified</span>
+          <span className="text-[11px] font-semibold text-emerald-700">Secure</span>
         </div>
       </header>
 
       {/* Agent Status */}
       <div className="flex items-center gap-4 px-6 py-4 bg-white border-b border-slate-100 shadow-sm z-0">
         <div className="relative">
-          <div className="w-12 h-12 rounded-[16px] bg-blue-50 flex items-center justify-center border border-blue-100">
+          <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center border border-blue-100">
             <Sparkles className="w-6 h-6 text-blue-500" />
           </div>
           <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full shadow-sm" />
         </div>
         <div>
-          <p className="text-lg font-black tracking-tighter text-slate-900 uppercase">{agentName}</p>
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Platform Gatekeeper</p>
+          <p className="text-lg font-bold tracking-tight text-slate-900">{agentName}</p>
+          <p className="text-xs text-slate-500">Your AI guide</p>
         </div>
       </div>
 
