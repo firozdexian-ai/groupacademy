@@ -1,64 +1,76 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Calendar, MapPin, Clock, Users, Video, LayoutGrid, Trophy, Gift, Zap } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Calendar, MapPin, Clock, Users, Trophy, Gift, Globe, ArrowRight } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { format, isPast, isToday, isFuture } from "date-fns";
+import { format, isToday, isFuture } from "date-fns";
+import { StudyAbroadSection } from "./StudyAbroadSection";
 import { cn } from "@/lib/utils";
-
-/**
- * GroUp Academy: Event & Competition Ingress (EventsTab)
- * CTO Reference: Authoritative node for institutional engagement scheduling.
- */
 
 export interface EventsTabProps {
   onOpenCompetition?: (slug: string) => void;
 }
 
-type EventFilter = "all" | "live_webinar" | "offline_seminar" | "competitions";
+type EventFilter = "in_person" | "competitions" | "abroad";
 
 const filterOptions: { key: EventFilter; icon: any; label: string }[] = [
-  { key: "all", icon: LayoutGrid, label: "ALL_NODES" },
-  { key: "live_webinar", icon: Video, label: "WEBINARS" },
-  { key: "offline_seminar", icon: MapPin, label: "IN-PERSON" },
-  { key: "competitions", icon: Trophy, label: "COMPETE" },
+  { key: "in_person", icon: MapPin, label: "In-person" },
+  { key: "competitions", icon: Trophy, label: "Compete" },
+  { key: "abroad", icon: Globe, label: "Study abroad" },
 ];
 
-const STATUS_CONFIG: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
-  upcoming: { label: "UPCOMING", variant: "secondary" },
-  active: { label: "LIVE_NOW", variant: "default" },
-  judging: { label: "JUDGING", variant: "outline" },
-  completed: { label: "ARCHIVED", variant: "secondary" },
-  cancelled: { label: "TERMINATED", variant: "destructive" },
+const STATUS_LABEL: Record<string, string> = {
+  upcoming: "Upcoming",
+  active: "Live now",
+  judging: "Judging",
+  completed: "Archived",
+  cancelled: "Cancelled",
 };
 
 export function EventsTab({ onOpenCompetition }: EventsTabProps) {
   const navigate = useNavigate();
-  const [eventType, setEventType] = useState<EventFilter>("all");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [eventType, setEventType] = useState<EventFilter>(
+    (searchParams.get("kind") as EventFilter) === "abroad" ? "abroad" : "in_person",
+  );
+
+  useEffect(() => {
+    const kind = searchParams.get("kind");
+    if (kind === "abroad") setEventType("abroad");
+  }, [searchParams]);
+
+  const handleSetType = (key: EventFilter) => {
+    setEventType(key);
+    const next = new URLSearchParams(searchParams);
+    if (key === "abroad") next.set("kind", "abroad");
+    else next.delete("kind");
+    next.set("tab", "events");
+    setSearchParams(next, { replace: true });
+  };
 
   const { data: events = [], isLoading: eventsLoading } = useQuery({
-    queryKey: ["app-events"],
+    queryKey: ["app-events-inperson"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("content")
         .select(
-          "id, title, description, content_type, event_date, event_duration_minutes, venue_name, venue_address, max_capacity, current_enrollment, cover_image_url, thumbnail_url, slug, whatsapp_group_link",
+          "id, title, description, content_type, event_date, event_duration_minutes, venue_name, venue_address, max_capacity, current_enrollment, cover_image_url, slug, whatsapp_group_link",
         )
         .eq("is_published", true)
-        .in("content_type", ["live_webinar", "offline_seminar"])
+        .eq("content_type", "offline_seminar")
         .order("event_date", { ascending: true });
       if (error) throw error;
       return data || [];
     },
-    enabled: eventType !== "competitions",
+    enabled: eventType === "in_person",
   });
 
   const { data: competitions = [], isLoading: competitionsLoading } = useQuery({
-    queryKey: ["app-competitions"],
+    queryKey: ["app-competitions-v2"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("competitions")
@@ -68,92 +80,59 @@ export function EventsTab({ onOpenCompetition }: EventsTabProps) {
       if (error) throw error;
       return data || [];
     },
-    enabled: eventType === "all" || eventType === "competitions",
+    enabled: eventType === "competitions",
   });
 
-  const isLoading = eventsLoading || (eventType === "competitions" && competitionsLoading);
+  const isLoading = (eventType === "in_person" && eventsLoading) || (eventType === "competitions" && competitionsLoading);
 
-  const filteredEvents =
-    eventType === "all" || eventType === "competitions" ? events : events.filter((e) => e.content_type === eventType);
-
-  const upcomingEvents = filteredEvents.filter((e) => e.event_date && isFuture(new Date(e.event_date)));
-  const todayEvents = filteredEvents.filter((e) => e.event_date && isToday(new Date(e.event_date)));
+  const todayEvents = events.filter((e) => e.event_date && isToday(new Date(e.event_date)));
+  const upcomingEvents = events.filter((e) => e.event_date && isFuture(new Date(e.event_date)));
 
   const EventCard = ({ event }: { event: any }) => {
     const eventDate = event.event_date ? new Date(event.event_date) : null;
-    const isWebinar = event.content_type === "live_webinar";
     const spotsLeft = event.max_capacity ? event.max_capacity - (event.current_enrollment || 0) : null;
 
     return (
-      <Card className="group overflow-hidden rounded-[32px] border-2 border-border/40 bg-card/30 backdrop-blur-xl transition-all hover:shadow-[0_20px_50px_rgba(0,0,0,0.1)] hover:border-primary/40">
-        <div className="relative h-44 overflow-hidden bg-muted border-b-2 border-border/10">
+      <Card className="overflow-hidden rounded-2xl border border-border/40 hover:border-primary/40 transition-all">
+        <div className="relative h-32 overflow-hidden bg-muted">
           {event.cover_image_url ? (
-            <img
-              src={event.cover_image_url}
-              className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
-              loading="lazy"
-            />
+            <img src={event.cover_image_url} className="w-full h-full object-cover" loading="lazy" />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-primary/5">
-              <Calendar className="h-12 w-12 text-primary/10" />
+              <Calendar className="h-8 w-8 text-primary/20" />
             </div>
           )}
-          <Badge
-            variant="outline"
-            className="absolute top-4 left-4 bg-background/80 backdrop-blur-md border-2 font-black italic px-3 py-1"
-          >
-            {isWebinar ? (
-              <Video className="w-3.5 h-3.5 mr-2 text-blue-500" />
-            ) : (
-              <MapPin className="w-3.5 h-3.5 mr-2 text-rose-500" />
-            )}
-            <span className="text-[9px] uppercase tracking-widest">{isWebinar ? "WEBINAR" : "SEMINAR"}</span>
+          <Badge className="absolute top-2 left-2 bg-background/90 text-foreground border-0 text-[10px]">
+            <MapPin className="w-3 h-3 mr-1 text-rose-500" /> In-person
           </Badge>
         </div>
-        <CardHeader className="p-6 pb-2 text-left">
-          <CardTitle className="text-lg font-black leading-tight uppercase italic tracking-tighter group-hover:text-primary transition-colors">
-            {event.title}
-          </CardTitle>
-          <CardDescription className="text-[11px] font-bold italic line-clamp-2 mt-2 uppercase opacity-60">
-            {event.description}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-6 pt-2 space-y-5 text-left">
-          <div className="space-y-3 p-4 rounded-2xl bg-muted/20 border-2 border-border/10">
+        <CardContent className="p-3 space-y-2">
+          <h3 className="text-sm font-semibold leading-tight line-clamp-2">{event.title}</h3>
+          {event.description && <p className="text-[11px] text-muted-foreground line-clamp-2">{event.description}</p>}
+
+          <div className="flex flex-wrap items-center gap-3 text-[10px] text-muted-foreground border-t border-border/40 pt-2">
             {eventDate && (
-              <div className="flex items-center gap-3 text-[10px] font-black uppercase italic tracking-widest text-primary">
-                <Calendar className="w-4 h-4" />
-                <span>{format(eventDate, "PPP")}</span>
-              </div>
+              <span className="flex items-center gap-1">
+                <Calendar className="h-3 w-3" /> {format(eventDate, "MMM d")}
+              </span>
             )}
-            <div className="flex items-center gap-5 text-[9px] font-bold uppercase tracking-widest text-muted-foreground/60">
-              <div className="flex items-center gap-2">
-                <Clock className="h-3.5 w-3.5" /> {format(eventDate || new Date(), "p")}
-              </div>
-              {spotsLeft !== null && (
-                <div className={cn("flex items-center gap-2", spotsLeft <= 5 ? "text-rose-500 animate-pulse" : "")}>
-                  <Users className="h-3.5 w-3.5" /> {spotsLeft > 0 ? `${spotsLeft} NODES_LEFT` : "NODE_FULL"}
-                </div>
-              )}
-            </div>
+            {eventDate && (
+              <span className="flex items-center gap-1">
+                <Clock className="h-3 w-3" /> {format(eventDate, "p")}
+              </span>
+            )}
+            {spotsLeft !== null && (
+              <span className={cn("flex items-center gap-1", spotsLeft <= 5 && spotsLeft > 0 && "text-rose-600")}>
+                <Users className="h-3 w-3" /> {spotsLeft > 0 ? `${spotsLeft} left` : "Full"}
+              </span>
+            )}
           </div>
-          <div className="flex gap-3">
-            <Button
-              className="flex-1 rounded-2xl h-11 text-[10px] font-black uppercase italic tracking-widest shadow-lg active:scale-95"
-              size="sm"
-            >
-              REGISTER_SYNC
-            </Button>
+
+          <div className="flex gap-2 pt-1">
+            <Button size="sm" className="flex-1 h-9 text-xs">Register</Button>
             {event.whatsapp_group_link && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="rounded-2xl h-11 border-2 border-emerald-500/20 text-emerald-600 hover:bg-emerald-500/10 gap-2 font-black uppercase italic text-[10px]"
-                asChild
-              >
-                <a href={event.whatsapp_group_link} target="_blank" rel="noopener noreferrer">
-                  COMM_NODE
-                </a>
+              <Button variant="outline" size="sm" className="h-9 text-xs border-emerald-500/30 text-emerald-600" asChild>
+                <a href={event.whatsapp_group_link} target="_blank" rel="noopener noreferrer">WhatsApp</a>
               </Button>
             )}
           </div>
@@ -162,139 +141,111 @@ export function EventsTab({ onOpenCompetition }: EventsTabProps) {
     );
   };
 
-  if (isLoading) {
-    return (
-      <div className="grid gap-6 grid-cols-1 sm:grid-cols-2">
-        {[1, 2, 3, 4].map((i) => (
-          <Skeleton key={i} className="h-[400px] w-full rounded-[40px] opacity-40" />
-        ))}
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-10 animate-in fade-in duration-700">
-      {/* CATEGORY_SELECTOR: Segmented Navigation */}
-      <div className="grid grid-cols-4 gap-4 p-2 bg-muted/20 backdrop-blur-md rounded-[28px] border-2 border-border/40">
+    <div className="space-y-4">
+      <nav className="flex p-1 h-12 bg-muted/50 rounded-xl border border-border/50">
         {filterOptions.map(({ key, icon: Icon, label }) => (
           <button
             key={key}
-            onClick={() => setEventType(key)}
-            className="flex flex-col items-center gap-2 group outline-none"
+            onClick={() => handleSetType(key)}
+            className={cn(
+              "flex-1 flex items-center justify-center gap-1.5 rounded-lg text-xs font-medium transition-all",
+              eventType === key
+                ? "bg-background shadow-sm text-foreground"
+                : "text-muted-foreground hover:text-foreground",
+            )}
           >
-            <div
-              className={cn(
-                "h-14 w-14 rounded-[20px] flex items-center justify-center transition-all duration-500 border-2",
-                "group-hover:scale-110",
-                eventType === key
-                  ? "bg-primary border-primary text-white shadow-lg shadow-primary/30"
-                  : "bg-background/50 border-border/10 text-muted-foreground/60",
-              )}
-            >
-              <Icon className="h-6 w-6 stroke-[2.5px]" />
-            </div>
-            <span
-              className={cn(
-                "text-[9px] font-black uppercase tracking-[0.2em] italic",
-                eventType === key ? "text-primary" : "text-muted-foreground/40",
-              )}
-            >
-              {label}
-            </span>
+            <Icon className="h-4 w-4" />
+            <span>{label}</span>
           </button>
         ))}
-      </div>
+      </nav>
 
-      <div className="space-y-12">
-        {todayEvents.length > 0 && eventType !== "competitions" && (
-          <section className="space-y-6">
-            <div className="flex items-center gap-3 px-1">
-              <div className="h-3 w-3 rounded-full bg-rose-500 animate-ping shadow-[0_0_10px_rgba(244,63,94,0.5)]" />
-              <h2 className="text-xs font-black uppercase tracking-[0.4em] italic text-rose-500">HAPPENING_TODAY</h2>
-            </div>
-            <div className="grid gap-6 grid-cols-1 sm:grid-cols-2">
-              {todayEvents.map((event) => (
-                <EventCard key={event.id} event={event} />
-              ))}
-            </div>
-          </section>
-        )}
+      {eventType === "abroad" && <StudyAbroadSection />}
 
-        {(eventType === "all" || eventType === "competitions") && competitions.length > 0 && (
-          <section className="space-y-6">
-            <div className="flex items-center gap-4 px-1">
-              <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-600">
-                <Trophy className="h-5 w-5" />
-              </div>
-              <h2 className="text-sm font-black uppercase italic tracking-tighter">INSTITUTIONAL_COMPETITIONS</h2>
+      {eventType === "in_person" && (
+        <div className="space-y-5">
+          {isLoading ? (
+            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
+              {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-56 rounded-2xl" />)}
             </div>
-            <div className="grid gap-6 grid-cols-1 sm:grid-cols-2">
+          ) : events.length === 0 ? (
+            <div className="py-12 text-center border border-dashed rounded-2xl">
+              <Calendar className="h-10 w-10 text-muted-foreground/30 mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">No in-person events yet.</p>
+            </div>
+          ) : (
+            <>
+              {todayEvents.length > 0 && (
+                <section className="space-y-2">
+                  <div className="flex items-center gap-2 px-1">
+                    <div className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
+                    <h2 className="text-sm font-semibold text-rose-600">Happening today</h2>
+                  </div>
+                  <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
+                    {todayEvents.map((event) => <EventCard key={event.id} event={event} />)}
+                  </div>
+                </section>
+              )}
+              {upcomingEvents.length > 0 && (
+                <section className="space-y-2">
+                  <h2 className="text-sm font-semibold px-1">Upcoming</h2>
+                  <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
+                    {upcomingEvents.map((event) => <EventCard key={event.id} event={event} />)}
+                  </div>
+                </section>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {eventType === "competitions" && (
+        <div className="space-y-3">
+          {isLoading ? (
+            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
+              {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-44 rounded-2xl" />)}
+            </div>
+          ) : competitions.length === 0 ? (
+            <div className="py-12 text-center border border-dashed rounded-2xl">
+              <Trophy className="h-10 w-10 text-muted-foreground/30 mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">No competitions running.</p>
+            </div>
+          ) : (
+            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
               {competitions.map((comp) => (
                 <Card
                   key={comp.id}
-                  className="group cursor-pointer rounded-[32px] border-2 border-border/40 bg-card/30 backdrop-blur-xl overflow-hidden hover:border-primary/40 transition-all active:scale-[0.98]"
+                  className="cursor-pointer rounded-2xl border border-border/40 hover:border-primary/40 transition-all overflow-hidden"
                   onClick={() =>
-                    onOpenCompetition
-                      ? onOpenCompetition(comp.slug)
-                      : navigate(`/app/learning/competitions/${comp.slug}`)
+                    onOpenCompetition ? onOpenCompetition(comp.slug) : navigate(`/app/learning/competitions/${comp.slug}`)
                   }
                 >
-                  <div className="flex h-36 bg-muted relative border-b-2 border-border/10">
+                  <div className="relative h-28 bg-muted">
                     {comp.featured_image && (
-                      <img
-                        src={comp.featured_image}
-                        className="w-full h-full object-cover opacity-50 group-hover:scale-105 transition-transform duration-1000"
-                      />
+                      <img src={comp.featured_image} className="w-full h-full object-cover opacity-80" loading="lazy" />
                     )}
-                    <div className="absolute inset-0 bg-gradient-to-r from-background via-background/80 to-transparent p-6 flex flex-col justify-center text-left">
-                      <div className="mb-3">
-                        <Badge className="bg-amber-500/10 text-amber-600 border-2 border-amber-500/20 text-[9px] font-black uppercase italic tracking-widest">
-                          {STATUS_CONFIG[comp.status]?.label || "UPCOMING"}
-                        </Badge>
-                      </div>
-                      <h3 className="font-black text-lg tracking-tighter uppercase italic line-clamp-1">
-                        {comp.title}
-                      </h3>
-                      <p className="text-[10px] font-bold text-muted-foreground/60 mt-1 uppercase tracking-widest italic">
-                        {comp.category}
-                      </p>
+                    <div className="absolute inset-0 bg-gradient-to-r from-background/95 via-background/60 to-transparent p-3 flex flex-col justify-center">
+                      <Badge className="bg-amber-500/10 text-amber-600 border-0 text-[10px] w-fit mb-1">
+                        {STATUS_LABEL[comp.status] || "Upcoming"}
+                      </Badge>
+                      <h3 className="font-semibold text-sm leading-tight line-clamp-2">{comp.title}</h3>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">{comp.category}</p>
                     </div>
                   </div>
-                  <div className="p-5 flex items-center justify-between">
-                    <div className="flex items-center gap-3 text-[10px] font-black uppercase italic tracking-widest text-primary">
-                      <div className="p-1.5 rounded-lg bg-primary/10">
-                        <Gift className="h-4 w-4" />
-                      </div>
-                      <span>{Array.isArray(comp.prizes) ? comp.prizes.length : 0} PRIZE_LAYERS</span>
-                    </div>
-                    <div className="flex items-center text-[10px] font-black uppercase italic tracking-widest gap-2 opacity-40 group-hover:opacity-100 group-hover:text-primary transition-all">
-                      ENTER_HUB <Zap className="h-3 w-3 fill-current" />
-                    </div>
-                  </div>
+                  <CardContent className="p-3 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5 text-[11px] text-primary font-medium">
+                      <Gift className="h-3.5 w-3.5" />
+                      {Array.isArray(comp.prizes) ? `${comp.prizes.length} prizes` : "Prizes"}
+                    </span>
+                    <span className="flex items-center gap-1 text-[11px] font-medium text-primary">
+                      View <ArrowRight className="h-3 w-3" />
+                    </span>
+                  </CardContent>
                 </Card>
               ))}
             </div>
-          </section>
-        )}
-
-        {upcomingEvents.length > 0 && eventType !== "competitions" && (
-          <section className="space-y-6">
-            <h2 className="text-xs font-black uppercase tracking-[0.3em] px-1 italic opacity-40">UPCOMING_SCHEDULE</h2>
-            <div className="grid gap-6 grid-cols-1 sm:grid-cols-2">
-              {upcomingEvents.map((event) => (
-                <EventCard key={event.id} event={event} />
-              ))}
-            </div>
-          </section>
-        )}
-      </div>
-
-      {events.length === 0 && competitions.length === 0 && (
-        <div className="py-24 text-center space-y-6">
-          <Calendar className="h-16 w-16 text-muted-foreground/10 mx-auto animate-pulse" />
-          <p className="text-[10px] font-black uppercase italic tracking-[0.3em] text-muted-foreground/40">
-            NO_ENGAGEMENT_NODES_LISTED
-          </p>
+          )}
         </div>
       )}
     </div>
