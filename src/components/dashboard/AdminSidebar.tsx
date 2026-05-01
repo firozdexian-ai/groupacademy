@@ -171,6 +171,7 @@ const navGroups: NavGroup[] = [
       { title: "Marketplace Gigs", icon: Briefcase, value: "marketplace-gigs" },
       { title: "Gig Submissions", icon: FileCheck, value: "gig-submissions" },
       { title: "Credits Manager", icon: Coins, value: "credits" },
+      { title: "Withdrawals", icon: Coins, value: "withdrawals" },
       { title: "Notifications", icon: Bell, value: "notifications" },
     ],
   },

@@ -234,7 +234,7 @@ export function TalentAppShell() {
                       {[
                         { icon: Coins, label: "Buy Credits", action: () => credits.open() },
                         { icon: Receipt, label: "Transactions", action: () => navigate("/app/transactions") },
-                        { icon: Wallet, label: "Withdraw earnings", action: () => navigate("/app/profile") },
+                        { icon: Wallet, label: "Withdraw earnings", action: () => navigate("/app/withdrawals") },
                         { icon: Bookmark, label: "Saved Jobs", action: () => navigate("/app/saved") },
                         { icon: BookOpen, label: "My Learning", action: () => navigate("/app/learning/my-courses") },
                         { icon: Globe, label: "Career Abroad", action: () => navigate("/app/abroad") },
@@ -253,7 +253,7 @@ export function TalentAppShell() {
                         {
                           icon: ShieldCheck,
                           label: "Verify your profile",
-                          action: () => navigate("/app/profile/edit"),
+                          action: () => navigate("/app/profile/verify"),
                         },
                         {
                           icon: HelpCircle,
@@ -273,7 +273,7 @@ export function TalentAppShell() {
                             }
                           },
                         },
-                        { icon: Globe, label: "Language", suffix: "English" },
+                        
                       ].map(({ icon: Icon, label, action, suffix }) => (
                         <button
                           key={label}
@@ -425,7 +425,7 @@ export function TalentAppShell() {
                 <DropdownMenuItem onClick={() => navigate("/app/profile/edit")} className="cursor-pointer">
                   <Edit2 className="h-4 w-4 mr-2" /> Settings & Privacy
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/app/profile/edit")} className="cursor-pointer">
+                <DropdownMenuItem onClick={() => navigate("/app/profile/verify")} className="cursor-pointer">
                   <ShieldCheck className="h-4 w-4 mr-2" /> Verify your profile
                 </DropdownMenuItem>
 
@@ -443,7 +443,7 @@ export function TalentAppShell() {
                 <DropdownMenuItem onClick={() => navigate("/app/transactions")} className="cursor-pointer">
                   <Receipt className="h-4 w-4 mr-2" /> Transactions
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => navigate("/app/profile")} className="cursor-pointer">
+                <DropdownMenuItem onClick={() => navigate("/app/withdrawals")} className="cursor-pointer">
                   <Wallet className="h-4 w-4 mr-2" /> Withdraw earnings
                 </DropdownMenuItem>
 

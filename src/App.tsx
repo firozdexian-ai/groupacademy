@@ -74,6 +74,8 @@ import SavedItems from "./pages/app/SavedItems";
 import Gigs from "./pages/app/Gigs";
 import MarketplaceGigDetail from "./pages/app/MarketplaceGigDetail";
 import Transactions from "./pages/app/Transactions";
+import Withdrawals from "./pages/app/Withdrawals";
+import ProfileVerify from "./pages/app/ProfileVerify";
 
 // Feature Details
 import AppJobs from "./pages/app/AppJobs";
@@ -426,6 +428,8 @@ export default function App() {
                     <Route path="agents/:agentKey" element={<AgentChat />} />
                     <Route path="ai-general" element={<AIGeneral />} />
                     <Route path="transactions" element={<Transactions />} />
+                    <Route path="withdrawals" element={<Withdrawals />} />
+                    <Route path="profile/verify" element={<ProfileVerify />} />
 
                     {/* Study Abroad - Specific Routes First */}
                     <Route path="abroad/study" element={<StudyAbroad />} />

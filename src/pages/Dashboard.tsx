@@ -138,6 +138,9 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   credits: React.lazy(() =>
     import("@/components/dashboard/CreditsManager").then((m) => ({ default: m.CreditsManager })),
   ),
+  withdrawals: React.lazy(() =>
+    import("@/components/dashboard/WithdrawalsPanel").then((m) => ({ default: m.WithdrawalsPanel })),
+  ),
   notifications: React.lazy(() =>
     import("@/components/dashboard/NotificationsManager").then((m) => ({ default: m.NotificationsManager })),
   ),
@@ -220,6 +223,7 @@ const TAB_TITLES: Record<string, string> = {
   "marketplace-gigs": "Project Gigs",
   "gig-submissions": "Work Evidence",
   credits: "Financial Ledger",
+  withdrawals: "Withdrawals",
   notifications: "System Alerts",
   "ir-dashboard": "Investor Nexus",
   "ir-targets": "MRR Projections",
