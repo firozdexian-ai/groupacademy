@@ -44,14 +44,14 @@ export function ComposePost({ onPostCreated }: ComposePostProps) {
     if (!trimmed || !talent?.id) return;
 
     setIsSubmitting(true);
-    const toastId = toast.loading("Synchronizing artifact with community feed...");
+    const toastId = toast.loading("Posting…");
 
     try {
       const { error } = await supabase.from("feed_posts").insert({
         text_content: trimmed,
-        author_name: talent.fullName || "Anonymous Node",
+        author_name: talent.fullName || "Community member",
         author_avatar: talent.profilePhotoUrl || null,
-        author_title: talent.customProfession || "Academy Member",
+        author_title: talent.customProfession || "Academy member",
         talent_id: talent.id,
         content_type: "text",
         tags: tags.length > 0 ? tags : null,
@@ -61,12 +61,12 @@ export function ComposePost({ onPostCreated }: ComposePostProps) {
 
       if (error) throw error;
 
-      toast.success("Artifact Published: Post synchronized.", { id: toastId });
+      toast.success("Post published.", { id: toastId });
       handleReset();
       onPostCreated();
     } catch (err: any) {
-      toast.error("Transmission Fault: Sync failed.", { id: toastId });
-      console.error("[ComposeNode] Sync Error:", err);
+      toast.error("Couldn't publish your post. Please try again.", { id: toastId });
+      console.error("[ComposePost] error:", err);
     } finally {
       setIsSubmitting(false);
     }
