@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,7 +15,7 @@ import { GigCard } from "@/components/gigs/GigCard";
 import { MySubmissions } from "@/components/gigs/MySubmissions";
 import { BuildAcademyTab } from "@/components/gigs/BuildAcademyTab";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MARKETPLACE_SCHOOLS, MARKETPLACE_SCHOOL_MAP } from "@/lib/constants/marketplaceCategories";
+import { GIG_CATEGORIES, GIG_CATEGORY_MAP, categoryFromResourceType, type GigCategory } from "@/lib/constants/gigCategories";
 import {
   Gift,
   Upload,
@@ -50,25 +50,23 @@ import { cn } from "@/lib/utils";
  * 2026 Standard: Executive Logic geometry with reinforced transaction guards.
  */
 
-const TASK_CATEGORIES = [
-  { key: "all", label: "All Missions", icon: Gift },
-  { key: "cv_upload", label: "CV Intake", icon: Upload },
-  { key: "job_posting", label: "Job Sourcing", icon: Briefcase },
-  { key: "job_sharing", label: "Viral Share", icon: Share2 },
-  { key: "content_creation", label: "Content Synth", icon: FileText },
-  { key: "course_resell", label: "Resell Logic", icon: BookOpen },
-];
-
 export default function Gigs() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { talent } = useTalent();
   const queryClient = useQueryClient();
 
+  // Renamed: 'tasks' tab now labelled "Platform Tasks". Keep query key for back-compat.
   const activeTab = searchParams.get("tab") || "tasks";
-  const [selectedCategory, setSelectedCategory] = useState("all");
   const [projectSearch, setProjectSearch] = useState("");
-  const [selectedProjectCategory, setSelectedProjectCategory] = useState<string | null>(null);
+  const [selectedProjectCategory, setSelectedProjectCategory] = useState<GigCategory | null>(null);
+  const [verificationStatus, setVerificationStatus] = useState<string>("unverified");
+
+  useEffect(() => {
+    if (!talent?.id) return;
+    supabase.from("talents").select("verification_status").eq("id", talent.id).maybeSingle()
+      .then(({ data }) => setVerificationStatus(((data as any)?.verification_status) || "unverified"));
+  }, [talent?.id]);
 
   const handleTabChange = (tab: string) => {
     setSearchParams({ tab });
@@ -103,19 +101,46 @@ export default function Gigs() {
     },
   });
 
-  // ── Marketplace Intelligence ──
+  // ── Projects feed: marketplace gigs + open academy content gigs, unified by resource_category ──
   const { data: projects, isLoading: projectsLoading } = useQuery({
-    queryKey: ["marketplace-gigs", selectedProjectCategory],
+    queryKey: ["unified-projects", selectedProjectCategory],
     queryFn: async () => {
-      let query = supabase
+      let mq = supabase
         .from("marketplace_gigs")
         .select("*")
         .in("status", ["approved", "active"])
         .order("is_featured", { ascending: false });
-      if (selectedProjectCategory) query = query.eq("skill_category", selectedProjectCategory);
-      const { data, error } = await query;
-      if (error) throw error;
-      return data;
+      if (selectedProjectCategory) mq = mq.eq("resource_category", selectedProjectCategory);
+      const { data: market, error: mErr } = await mq;
+      if (mErr) throw mErr;
+
+      let cq = supabase
+        .from("content_gigs" as any)
+        .select("id, title, brief, resource_category, resource_type, credit_reward, school_id, stage_number, status")
+        .eq("status", "open")
+        .order("created_at", { ascending: false })
+        .limit(60);
+      if (selectedProjectCategory) cq = cq.eq("resource_category", selectedProjectCategory);
+      const { data: content } = await cq;
+
+      const mapped = ((content as any) || []).map((c: any) => ({
+        id: `content:${c.id}`,
+        kind: "academy" as const,
+        title: c.title,
+        description: c.brief || `Academy ${c.resource_type} resource`,
+        resource_category: c.resource_category || categoryFromResourceType(c.resource_type),
+        budget_amount: c.credit_reward,
+        pricing_type: "fixed",
+        total_bids: 0,
+        contentId: c.id,
+      }));
+
+      const marketRows = ((market as any) || []).map((m: any) => ({
+        ...m,
+        kind: "marketplace" as const,
+        resource_category: m.resource_category || "writing",
+      }));
+      return [...mapped, ...marketRows];
     },
   });
 
@@ -192,14 +217,31 @@ export default function Gigs() {
           </div>
         </div>
 
-        <Card className="rounded-[28px] border-2 border-primary/20 bg-primary/5 shadow-2xl overflow-hidden min-w-[280px]">
+        <Card
+          className={cn(
+            "rounded-[28px] border-2 shadow-2xl overflow-hidden min-w-[280px] cursor-pointer transition-all hover:shadow-xl",
+            verificationStatus === "verified"
+              ? "border-emerald-500/30 bg-emerald-500/5"
+              : "border-amber-400/30 bg-amber-50/50",
+          )}
+          onClick={() => navigate("/app/profile/verify")}
+        >
           <CardContent className="p-5 flex items-center gap-5">
-            <div className="h-12 w-12 rounded-[20px] bg-primary flex items-center justify-center rotate-3 shadow-primary/20 shadow-xl">
-              <Coins className="h-6 w-6 text-white" />
+            <div
+              className={cn(
+                "h-12 w-12 rounded-[20px] flex items-center justify-center rotate-3 shadow-xl",
+                verificationStatus === "verified" ? "bg-emerald-500" : "bg-amber-500",
+              )}
+            >
+              <ShieldCheck className="h-6 w-6 text-white" />
             </div>
             <div>
-              <p className="text-[10px] font-black uppercase text-primary tracking-[0.2em] italic">Active Ledger</p>
-              <p className="text-lg font-black tracking-tighter leading-none mt-0.5">Verification Pending</p>
+              <p className="text-[10px] font-black uppercase text-primary tracking-[0.2em] italic">
+                {verificationStatus === "verified" ? "Verified Talent" : "Verification " + verificationStatus}
+              </p>
+              <p className="text-lg font-black tracking-tighter leading-none mt-0.5">
+                {verificationStatus === "verified" ? "Withdrawals enabled" : "Tap to verify"}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -209,7 +251,7 @@ export default function Gigs() {
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="grid w-full grid-cols-4 p-1.5 h-16 bg-muted/30 backdrop-blur-md rounded-[32px] border border-border/40 max-w-3xl">
           {[
-            { id: "tasks", label: "Quick", icon: ClipboardList },
+            { id: "tasks", label: "Platform Tasks", icon: ClipboardList },
             { id: "projects", label: "Projects", icon: Target },
             { id: "build", label: "Build Academy", icon: Hammer },
             { id: "activity", label: "My Activity", icon: Activity },
@@ -224,29 +266,17 @@ export default function Gigs() {
           ))}
         </TabsList>
 
-        <TabsContent value="tasks" className="mt-12 space-y-10 animate-in slide-in-from-bottom-4 duration-700">
-          <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2 -mx-2 px-2">
-            {TASK_CATEGORIES.map((cat) => (
-              <button
-                key={cat.key}
-                onClick={() => setSelectedCategory(cat.key)}
-                className={cn(
-                  "flex items-center gap-3 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0 border-2",
-                  selectedCategory === cat.key
-                    ? "bg-primary text-white border-primary shadow-2xl shadow-primary/30 scale-105"
-                    : "bg-card/50 border-border/40 text-muted-foreground hover:bg-muted",
-                )}
-              >
-                <cat.icon className="h-4 w-4" /> {cat.label}
-              </button>
-            ))}
+        <TabsContent value="tasks" className="mt-12 space-y-6 animate-in slide-in-from-bottom-4 duration-700">
+          <div className="space-y-2">
+            <p className="text-[11px] font-black uppercase tracking-[0.3em] text-primary italic">Platform Tasks</p>
+            <p className="text-sm text-muted-foreground max-w-2xl">
+              Earn credits by helping the platform grow — upload videos, share jobs, refer friends, post on the feed, translate resources, and more.
+            </p>
           </div>
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2">
+          <div className="grid gap-6 md:grid-cols-2">
             {gigsLoading
               ? [...Array(4)].map((_, i) => <Skeleton key={i} className="h-40 rounded-[32px] bg-muted/40" />)
-              : gigs
-                  ?.filter((g) => selectedCategory === "all" || g.category === selectedCategory)
-                  .map((gig) => <GigCard key={gig.id} gig={gig} userSubmissions={submissionCounts?.[gig.id]} />)}
+              : gigs?.map((gig) => <GigCard key={gig.id} gig={gig} userSubmissions={submissionCounts?.[gig.id]} />)}
           </div>
         </TabsContent>
 
@@ -264,7 +294,7 @@ export default function Gigs() {
               </div>
               <div className="space-y-4">
                 <p className="text-[11px] font-black uppercase tracking-[0.3em] text-primary ml-1 italic">
-                  Academy Faculties
+                  Resource Categories
                 </p>
                 <div className="flex flex-col gap-2">
                   <Button
@@ -272,9 +302,9 @@ export default function Gigs() {
                     className="justify-between h-12 px-5 font-black uppercase text-[10px] tracking-widest rounded-xl transition-all"
                     onClick={() => setSelectedProjectCategory(null)}
                   >
-                    Global Registry <ChevronRight className="h-3.5 w-3.5 opacity-20" />
+                    All Projects <ChevronRight className="h-3.5 w-3.5 opacity-20" />
                   </Button>
-                  {MARKETPLACE_SCHOOLS.map((s) => (
+                  {GIG_CATEGORIES.map((s) => (
                     <Button
                       key={s.value}
                       variant={selectedProjectCategory === s.value ? "secondary" : "ghost"}
@@ -293,56 +323,62 @@ export default function Gigs() {
                 <Skeleton className="h-[600px] rounded-[40px] bg-muted/40" />
               ) : (
                 projects
-                  ?.filter((p) => !projectSearch || p.title.toLowerCase().includes(projectSearch.toLowerCase()))
-                  .map((gig) => (
-                    <Card
-                      key={gig.id}
-                      className="rounded-[32px] border-2 border-border/40 bg-card/30 backdrop-blur-sm hover:border-primary/40 transition-all duration-500 cursor-pointer overflow-hidden group shadow-sm hover:shadow-2xl"
-                      onClick={() => navigate(`/app/marketplace/${gig.id}`)}
-                    >
-                      <CardContent className="p-8">
-                        <div className="flex justify-between items-start gap-8">
-                          <div className="space-y-5">
-                            <div className="flex flex-wrap gap-3 items-center">
-                              <Badge className="bg-primary/10 text-primary border-primary/20 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest">
-                                {MARKETPLACE_SCHOOL_MAP[gig.skill_category]?.label}
-                              </Badge>
-                              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 italic">
-                                <Zap className="h-3 w-3" /> {gig.pricing_type} Logic
+                  ?.filter((p: any) => !projectSearch || p.title.toLowerCase().includes(projectSearch.toLowerCase()))
+                  .map((gig: any) => {
+                    const cat = GIG_CATEGORY_MAP[gig.resource_category as GigCategory];
+                    const isAcademy = gig.kind === "academy";
+                    return (
+                      <Card
+                        key={gig.id}
+                        className="rounded-[32px] border-2 border-border/40 bg-card/30 backdrop-blur-sm hover:border-primary/40 transition-all duration-500 cursor-pointer overflow-hidden group shadow-sm hover:shadow-2xl"
+                        onClick={() => navigate(isAcademy ? `/app/studio` : `/app/marketplace/${gig.id}`)}
+                      >
+                        <CardContent className="p-8">
+                          <div className="flex justify-between items-start gap-8">
+                            <div className="space-y-5">
+                              <div className="flex flex-wrap gap-3 items-center">
+                                <Badge className="bg-primary/10 text-primary border-primary/20 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest">
+                                  {cat?.label || gig.resource_category}
+                                </Badge>
+                                <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest">
+                                  {isAcademy ? "Academy" : "Marketplace"}
+                                </Badge>
+                              </div>
+                              <h3 className="text-3xl font-black tracking-tighter uppercase italic leading-none group-hover:text-primary transition-colors">
+                                {gig.title}
+                              </h3>
+                              <p className="text-sm text-muted-foreground/80 font-medium leading-relaxed italic line-clamp-2">
+                                {gig.description}
+                              </p>
+                              <div className="flex items-center gap-6 pt-2">
+                                <div className="flex items-center gap-2.5">
+                                  <div className="p-2 bg-amber-500/10 rounded-lg">
+                                    <Coins className="h-4 w-4 text-amber-500" />
+                                  </div>
+                                  <span className="text-lg font-black tracking-tighter uppercase italic">
+                                    {gig.budget_amount} Credits
+                                  </span>
+                                </div>
+                                {!isAcademy && (
+                                  <div className="flex items-center gap-2.5">
+                                    <div className="p-2 bg-blue-500/10 rounded-lg">
+                                      <Send className="h-4 w-4 text-blue-500" />
+                                    </div>
+                                    <span className="text-sm font-black text-muted-foreground/60 uppercase italic">
+                                      {gig.total_bids || 0} Bids
+                                    </span>
+                                  </div>
+                                )}
                               </div>
                             </div>
-                            <h3 className="text-3xl font-black tracking-tighter uppercase italic leading-none group-hover:text-primary transition-colors">
-                              {gig.title}
-                            </h3>
-                            <p className="text-sm text-muted-foreground/80 font-medium leading-relaxed italic line-clamp-2">
-                              {gig.description}
-                            </p>
-                            <div className="flex items-center gap-6 pt-2">
-                              <div className="flex items-center gap-2.5">
-                                <div className="p-2 bg-amber-500/10 rounded-lg">
-                                  <Coins className="h-4 w-4 text-amber-500" />
-                                </div>
-                                <span className="text-lg font-black tracking-tighter uppercase italic">
-                                  {gig.budget_amount} Credits
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-2.5">
-                                <div className="p-2 bg-blue-500/10 rounded-lg">
-                                  <Send className="h-4 w-4 text-blue-500" />
-                                </div>
-                                <span className="text-sm font-black text-muted-foreground/60 uppercase italic">
-                                  {gig.total_bids} Handshakes
-                                </span>
-                              </div>
+                            <div className="h-14 w-14 rounded-2xl bg-muted/50 border border-border/20 flex items-center justify-center transition-all group-hover:rotate-6 group-hover:bg-primary/10">
+                              <ChevronRight className="h-6 w-6 text-muted-foreground/30 group-hover:text-primary" />
                             </div>
                           </div>
-                          <div className="h-14 w-14 rounded-2xl bg-muted/50 border border-border/20 flex items-center justify-center transition-all group-hover:rotate-6 group-hover:bg-primary/10">
-                            <ChevronRight className="h-6 w-6 text-muted-foreground/30 group-hover:text-primary" />
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))
+                        </CardContent>
+                      </Card>
+                    );
+                  })
               )}
             </main>
           </div>

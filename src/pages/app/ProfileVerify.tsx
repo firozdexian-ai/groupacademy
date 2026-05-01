@@ -1,10 +1,15 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, CheckCircle2, Circle, ShieldCheck, ChevronRight } from "lucide-react";
 import { useTalent } from "@/hooks/useTalent";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { IdentityDocsUpload } from "@/components/profile/IdentityDocsUpload";
+import { PayoutAccountsManager } from "@/components/profile/PayoutAccountsManager";
 
 interface Check {
   key: string;
@@ -18,61 +23,64 @@ interface Check {
 export default function ProfileVerify() {
   const navigate = useNavigate();
   const { talent } = useTalent();
+  const [hasIdVerified, setHasIdVerified] = useState(false);
+  const [hasIdPending, setHasIdPending] = useState(false);
+  const [hasPrimaryPayout, setHasPrimaryPayout] = useState(false);
+  const [verificationStatus, setVerificationStatus] = useState<string>("unverified");
+
+  useEffect(() => {
+    if (!talent?.id) return;
+    (async () => {
+      const [{ data: idDocs }, { data: payouts }, { data: t }] = await Promise.all([
+        supabase.from("talent_id_documents" as any).select("status").eq("talent_id", talent.id),
+        supabase.from("talent_payout_accounts" as any).select("is_primary").eq("talent_id", talent.id),
+        supabase.from("talents").select("verification_status").eq("id", talent.id).maybeSingle(),
+      ]);
+      setHasIdVerified(((idDocs as any) || []).some((d: any) => d.status === "verified"));
+      setHasIdPending(((idDocs as any) || []).some((d: any) => d.status === "pending"));
+      setHasPrimaryPayout(((payouts as any) || []).some((p: any) => p.is_primary));
+      setVerificationStatus(((t as any)?.verification_status) || "unverified");
+    })();
+  }, [talent?.id]);
 
   const checks: Check[] = [
     {
-      key: "photo",
-      label: "Profile photo",
+      key: "photo", label: "Profile photo",
       description: "Add a clear headshot — verified profiles get 3× more views.",
       done: !!talent?.profilePhotoUrl,
-      cta: "Upload photo",
-      action: () => navigate("/app/profile/edit"),
+      cta: "Upload photo", action: () => navigate("/app/profile/edit"),
     },
     {
-      key: "phone",
-      label: "Phone number",
+      key: "phone", label: "Phone number",
       description: "Required for application updates and recruiter contact.",
       done: !!talent?.phone,
-      cta: "Add phone",
-      action: () => navigate("/app/profile/edit"),
+      cta: "Add phone", action: () => navigate("/app/profile/edit"),
     },
     {
-      key: "country",
-      label: "Country",
+      key: "country", label: "Country",
       description: "Helps us show roles relevant to your region.",
       done: !!talent?.countryCode,
-      cta: "Set country",
-      action: () => navigate("/app/profile/edit"),
+      cta: "Set country", action: () => navigate("/app/profile/edit"),
     },
     {
-      key: "cv",
-      label: "Upload CV",
-      description: "Powers AI matching, applications and CV coaching.",
-      done: !!(talent as any)?.cvUrl,
-      cta: "Upload CV",
-      action: () => navigate("/app/profile/edit"),
+      key: "id", label: "Government ID",
+      description: "Upload National ID (both sides) or passport.",
+      done: hasIdVerified,
+      cta: hasIdPending ? "Pending review" : "Upload ID",
+      action: () => document.getElementById("verify-id-section")?.scrollIntoView({ behavior: "smooth" }),
     },
     {
-      key: "experience",
-      label: "Work experience",
-      description: "Add at least one role so recruiters can evaluate you.",
-      done: Array.isArray((talent as any)?.experience) && (talent as any).experience.length > 0,
-      cta: "Add experience",
-      action: () => navigate("/app/profile/edit"),
-    },
-    {
-      key: "skills",
-      label: "Skills",
-      description: "Add 5+ skills to unlock better job matches.",
-      done: Array.isArray((talent as any)?.skills) && (talent as any).skills.length >= 5,
-      cta: "Add skills",
-      action: () => navigate("/app/profile/edit"),
+      key: "payout", label: "Disbursement account",
+      description: "Add at least one primary account for payouts.",
+      done: hasPrimaryPayout,
+      cta: "Add account",
+      action: () => document.getElementById("verify-payout-section")?.scrollIntoView({ behavior: "smooth" }),
     },
   ];
 
   const completed = checks.filter((c) => c.done).length;
   const pct = Math.round((completed / checks.length) * 100);
-  const verified = pct === 100;
+  const verified = verificationStatus === "verified";
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-4 pb-28 space-y-5">
@@ -82,7 +90,7 @@ export default function ProfileVerify() {
         </Button>
         <div>
           <h1 className="text-2xl font-semibold">Verify your profile</h1>
-          <p className="text-sm text-muted-foreground">Complete these steps to get the verified badge.</p>
+          <p className="text-sm text-muted-foreground">Required to withdraw earned credits.</p>
         </div>
       </header>
 
@@ -93,10 +101,13 @@ export default function ProfileVerify() {
           </div>
           <div className="flex-1 space-y-1.5">
             <div className="flex items-center justify-between">
-              <p className="font-semibold">{verified ? "Profile verified" : "Almost there"}</p>
-              <span className="text-sm text-muted-foreground">{completed}/{checks.length}</span>
+              <p className="font-semibold">
+                {verified ? "Profile verified" : verificationStatus === "pending" ? "Review in progress" : "Almost there"}
+              </p>
+              <Badge variant="outline" className="text-[10px] capitalize">{verificationStatus}</Badge>
             </div>
             <Progress value={pct} className="h-2" />
+            <p className="text-[11px] text-muted-foreground">{completed}/{checks.length} steps complete</p>
           </div>
         </CardContent>
       </Card>
@@ -122,6 +133,13 @@ export default function ProfileVerify() {
             </CardContent>
           </Card>
         ))}
+      </div>
+
+      <div id="verify-id-section">
+        <IdentityDocsUpload />
+      </div>
+      <div id="verify-payout-section">
+        <PayoutAccountsManager />
       </div>
     </div>
   );

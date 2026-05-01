@@ -2258,6 +2258,7 @@ export type Database = {
           id: string
           module_id: string
           quality_score: number | null
+          resource_category: string | null
           resource_type: string
           review_notes: string | null
           reviewed_at: string | null
@@ -2282,6 +2283,7 @@ export type Database = {
           id?: string
           module_id: string
           quality_score?: number | null
+          resource_category?: string | null
           resource_type: string
           review_notes?: string | null
           reviewed_at?: string | null
@@ -2306,6 +2308,7 @@ export type Database = {
           id?: string
           module_id?: string
           quality_score?: number | null
+          resource_category?: string | null
           resource_type?: string
           review_notes?: string | null
           reviewed_at?: string | null
@@ -4669,6 +4672,7 @@ export type Database = {
           posted_by: string | null
           pricing_type: string
           requirements: string | null
+          resource_category: string | null
           selected_bid_id: string | null
           skill_category: string
           skill_subcategory: string | null
@@ -4691,6 +4695,7 @@ export type Database = {
           posted_by?: string | null
           pricing_type?: string
           requirements?: string | null
+          resource_category?: string | null
           selected_bid_id?: string | null
           skill_category: string
           skill_subcategory?: string | null
@@ -4713,6 +4718,7 @@ export type Database = {
           posted_by?: string | null
           pricing_type?: string
           requirements?: string | null
+          resource_category?: string | null
           selected_bid_id?: string | null
           skill_category?: string
           skill_subcategory?: string | null
@@ -6330,6 +6336,112 @@ export type Database = {
           },
         ]
       }
+      talent_id_documents: {
+        Row: {
+          back_url: string | null
+          created_at: string
+          doc_type: string
+          extracted_name: string | null
+          extracted_number: string | null
+          front_url: string
+          id: string
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          talent_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          back_url?: string | null
+          created_at?: string
+          doc_type: string
+          extracted_name?: string | null
+          extracted_number?: string | null
+          front_url: string
+          id?: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          talent_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          back_url?: string | null
+          created_at?: string
+          doc_type?: string
+          extracted_name?: string | null
+          extracted_number?: string | null
+          front_url?: string
+          id?: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          talent_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_id_documents_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      talent_payout_accounts: {
+        Row: {
+          account_name: string
+          account_number: string
+          bank_name: string | null
+          created_at: string
+          id: string
+          is_primary: boolean
+          method: string
+          talent_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_name: string
+          account_number: string
+          bank_name?: string | null
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          method: string
+          talent_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_name?: string
+          account_number?: string
+          bank_name?: string | null
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          method?: string
+          talent_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_payout_accounts_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       talents: {
         Row: {
           achievements: Json | null
@@ -6367,6 +6479,7 @@ export type Database = {
           student_id: string | null
           updated_at: string | null
           user_id: string | null
+          verification_status: string
           welcome_sent_at: string | null
           whatsapp_bonus_claimed_at: string | null
         }
@@ -6406,6 +6519,7 @@ export type Database = {
           student_id?: string | null
           updated_at?: string | null
           user_id?: string | null
+          verification_status?: string
           welcome_sent_at?: string | null
           whatsapp_bonus_claimed_at?: string | null
         }
@@ -6445,6 +6559,7 @@ export type Database = {
           student_id?: string | null
           updated_at?: string | null
           user_id?: string | null
+          verification_status?: string
           welcome_sent_at?: string | null
           whatsapp_bonus_claimed_at?: string | null
         }
@@ -6851,6 +6966,10 @@ export type Database = {
       recompute_school_readiness: {
         Args: { _school_id: string }
         Returns: undefined
+      }
+      recompute_talent_verification: {
+        Args: { p_talent_id: string }
+        Returns: string
       }
       reject_content_gig: {
         Args: { p_admin_notes?: string; p_gig_id: string }
