@@ -205,7 +205,7 @@ export default function Gigs() {
   });
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-10 space-y-12 pb-40 animate-in fade-in duration-1000">
+    <div className="max-w-6xl mx-auto px-3 sm:px-6 py-4 sm:py-10 space-y-4 sm:space-y-8 pb-32 animate-in fade-in duration-500">
       {/* Compact mobile-first header */}
       <header className="space-y-3">
         <div className="flex items-center justify-between gap-3">
