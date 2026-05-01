@@ -66,6 +66,7 @@ export function useGro10xAuthChat() {
   const [isComplete, setIsComplete] = useState(false);
   const [quizAnswer, setQuizAnswer] = useState<string | null>(null);
   const [suggested, setSuggested] = useState<CVSuggestion | null>(null);
+  const [existingAccount, setExistingAccount] = useState<{ email: string; isCompany: boolean } | null>(null);
   const [data, setData] = useState<CollectedData>({
     email: "",
     name: "",
@@ -224,6 +225,35 @@ export function useGro10xAuthChat() {
               );
               break;
             }
+
+            // Check if this email already has an account so we can offer
+            // sign-in instead of running the full signup flow.
+            try {
+              const { data: lookup } = await supabase.functions.invoke(
+                "check-company-account",
+                { body: { email } },
+              );
+              if (lookup?.exists) {
+                setData((d) => ({ ...d, email }));
+                setExistingAccount({ email, isCompany: !!lookup.isCompany });
+                if (lookup.isCompany) {
+                  addMessage(
+                    "assistant",
+                    "Welcome back — you already have a Gro10x workspace with this email. Tap below to sign in.",
+                  );
+                } else {
+                  addMessage(
+                    "assistant",
+                    "I found an account with this email, but it isn't linked to a Gro10x company workspace. Sign in to continue, or use a different work email to create a new workspace.",
+                  );
+                }
+                // Halt the signup flow — UI will render a Sign-in CTA.
+                break;
+              }
+            } catch (e) {
+              console.warn("[Riya] account lookup failed, continuing as new user:", e);
+            }
+
             setData((d) => ({ ...d, email }));
             addMessage("assistant", "Perfect. What's your full name?");
             setCurrentAction("collect_name");
