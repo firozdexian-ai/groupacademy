@@ -26,6 +26,8 @@ export default function AgentProfile() {
   });
   const [isLoading, setLoading] = useState(true);
   const [hasChatted, setHasChatted] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
 
   useEffect(() => {
     if (!agentKey) return;
@@ -45,21 +47,43 @@ export default function AgentProfile() {
         });
       }
       if (talent?.id) {
-        const { data: sess } = await supabase
-          .from("agent_chat_sessions")
-          .select("id,messages")
-          .eq("talent_id", talent.id)
-          .eq("agent_key", agentKey)
-          .limit(1);
+        const [{ data: sess }, { data: connected }] = await Promise.all([
+          supabase
+            .from("agent_chat_sessions")
+            .select("id,messages")
+            .eq("talent_id", talent.id)
+            .eq("agent_key", agentKey)
+            .limit(1),
+          supabase.rpc("is_agent_connected", { _agent_key: agentKey, _talent_id: talent.id }),
+        ]);
         const total = (sess || []).reduce(
           (n, row: any) => n + (Array.isArray(row.messages) ? row.messages.length : 0),
           0,
         );
         setHasChatted(total >= 3);
+        setIsConnected(Boolean(connected));
       }
       setLoading(false);
     })();
   }, [agentKey, talent?.id]);
+
+  async function handleConnect() {
+    if (!agentKey || !talent?.id) return;
+    setIsConnecting(true);
+    const fee = Number(agent?.connection_fee ?? 0);
+    const { error } = await supabase.rpc("connect_agent", {
+      _agent_key: agentKey,
+      _talent_id: talent.id,
+      _fee: fee,
+    });
+    setIsConnecting(false);
+    if (error) {
+      console.error("[AgentProfile] connect error", error);
+      return;
+    }
+    setIsConnected(true);
+    navigate(`/app/messages/${agentKey}`);
+  }
 
   if (isLoading) {
     return (
