@@ -422,43 +422,57 @@ export default function JobsHub() {
           <h2 className="text-base font-semibold flex items-center gap-2 mb-3">
             <Globe className="h-4 w-4 text-primary" /> Jobs by country
           </h2>
-          {countryGroups.map((g) => (
-            <Card key={g.country}>
-              <button
-                onClick={() => setExpandedCountry(expandedCountry === g.country ? null : g.country)}
-                className="w-full flex items-center p-3 hover:bg-muted/40 text-left transition-colors"
+          {countryGroups.map((g) => {
+            const isUserCountry =
+              !!talent?.country && g.country.toLowerCase() === talent.country.toLowerCase();
+            return (
+              <Card
+                key={g.country}
+                className={cn(isUserCountry && "border-primary/40 bg-primary/5")}
               >
-                <div className="h-9 w-9 rounded-lg bg-muted/50 flex items-center justify-center text-lg mr-3">
-                  {g.flag}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold">{g.country}</p>
-                  <p className="text-xs text-muted-foreground">{g.totalJobs} open {g.totalJobs === 1 ? "role" : "roles"}</p>
-                </div>
-                {expandedCountry === g.country ? (
-                  <ChevronUp className="text-primary h-4 w-4" />
-                ) : (
-                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                <button
+                  onClick={() => setExpandedCountry(expandedCountry === g.country ? null : g.country)}
+                  className="w-full flex items-center p-3 hover:bg-muted/40 text-left transition-colors"
+                >
+                  <div className="h-9 w-9 rounded-lg bg-muted/50 flex items-center justify-center text-lg mr-3">
+                    {g.flag}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-semibold">{g.country}</p>
+                      {isUserCountry && (
+                        <Badge className="bg-primary/15 text-primary border-0 text-[9px] px-1.5 py-0">
+                          Your country
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">{g.totalJobs} open {g.totalJobs === 1 ? "role" : "roles"}</p>
+                  </div>
+                  {expandedCountry === g.country ? (
+                    <ChevronUp className="text-primary h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </button>
+                {expandedCountry === g.country && (
+                  <div className="bg-muted/20 p-2 grid grid-cols-2 gap-1.5 border-t">
+                    {g.cities.slice(0, 10).map((city) => (
+                      <button
+                        key={city.name}
+                        onClick={() => navigate(`/app/jobs/all?location=${encodeURIComponent(city.name)}`)}
+                        className="flex justify-between items-center px-3 py-2 rounded-md bg-background hover:bg-primary/5 transition-all border border-border/40"
+                      >
+                        <span className="text-xs font-medium truncate">{city.name}</span>
+                        <Badge variant="outline" className="text-[10px] px-1.5">
+                          {city.count}
+                        </Badge>
+                      </button>
+                    ))}
+                  </div>
                 )}
-              </button>
-              {expandedCountry === g.country && (
-                <div className="bg-muted/20 p-2 grid grid-cols-2 gap-1.5 border-t">
-                  {g.cities.slice(0, 10).map((city) => (
-                    <button
-                      key={city.name}
-                      onClick={() => navigate(`/app/jobs/all?location=${encodeURIComponent(city.name)}`)}
-                      className="flex justify-between items-center px-3 py-2 rounded-md bg-background hover:bg-primary/5 transition-all border border-border/40"
-                    >
-                      <span className="text-xs font-medium truncate">{city.name}</span>
-                      <Badge variant="outline" className="text-[10px] px-1.5">
-                        {city.count}
-                      </Badge>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </Card>
-          ))}
+              </Card>
+            );
+          })}
         </div>
       )}
 
