@@ -124,20 +124,20 @@ export function FeedHeader({ talentName, talentPhoto, talentProfession, onRefres
             {showCredits ? (
               <div className="flex items-center gap-2 animate-in slide-in-from-right-2">
                 <Coins className="h-4 w-4 text-amber-400 fill-amber-400/20" />
-                <span className="font-black tabular-nums tracking-tighter text-sm">
+                <span className="font-bold tabular-nums text-sm">
                   {balance?.toLocaleString() || 0}
                 </span>
-                <span className="text-[8px] font-bold opacity-40">CR</span>
+                <span className="text-[10px] font-medium opacity-60">credits</span>
               </div>
             ) : (
               <div className="flex items-center gap-2 animate-in slide-in-from-left-2">
-                <ShieldCheck className="h-4 w-4 text-primary opacity-70 group-hover:opacity-100 transition-opacity" />
-                <span className="font-black tracking-widest text-[10px] italic">LEDGER_SECURE</span>
+                <ShieldCheck className="h-4 w-4 text-primary opacity-80" />
+                <span className="font-semibold text-xs">Wallet</span>
               </div>
             )}
           </Badge>
 
-          {/* ASYNC SYNC INDICATOR */}
+          {/* Refreshing indicator */}
           <div
             className={cn(
               "flex items-center gap-2 px-3 transition-opacity duration-300",
@@ -145,7 +145,7 @@ export function FeedHeader({ talentName, talentPhoto, talentProfession, onRefres
             )}
           >
             <RefreshCw className="h-3 w-3 animate-spin text-primary" />
-            <span className="text-[9px] font-black uppercase tracking-widest text-primary italic">Syncing_Nodes</span>
+            <span className="text-xs font-medium text-primary">Refreshing…</span>
           </div>
         </div>
       </div>
