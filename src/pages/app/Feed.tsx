@@ -168,9 +168,8 @@ export default function Feed() {
           />
 
           <QuickActionsGrid />
-          <BannerCarousel compact />
 
-          <div className="rounded-3xl overflow-hidden border border-border/40 shadow-sm bg-card">
+          <div className="rounded-2xl overflow-hidden border border-border/40 bg-card">
             <ComposePost onPostCreated={() => refresh()} />
           </div>
 

@@ -3556,6 +3556,71 @@ export type Database = {
         }
         Relationships: []
       }
+      instructor_connection_requests: {
+        Row: {
+          created_at: string
+          id: string
+          instructor_id: string | null
+          message: string | null
+          profession_id: string | null
+          school_id: string
+          status: string
+          talent_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          instructor_id?: string | null
+          message?: string | null
+          profession_id?: string | null
+          school_id: string
+          status?: string
+          talent_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          instructor_id?: string | null
+          message?: string | null
+          profession_id?: string | null
+          school_id?: string
+          status?: string
+          talent_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instructor_connection_requests_instructor_id_fkey"
+            columns: ["instructor_id"]
+            isOneToOne: false
+            referencedRelation: "ai_instructors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instructor_connection_requests_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_readiness_v"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "instructor_connection_requests_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instructor_connection_requests_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       instructors: {
         Row: {
           bank_details: Json | null

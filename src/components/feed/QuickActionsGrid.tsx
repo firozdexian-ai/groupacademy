@@ -1,16 +1,16 @@
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Bot, Globe, LucideIcon, Zap, ShieldCheck, Activity } from "lucide-react";
+import { Bot, MessageCircle, LucideIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTalent } from "@/hooks/useTalent";
+import { useMessageThreads } from "@/hooks/useMessageThreads";
 import { Skeleton } from "@/components/ui/skeleton";
 import { iconMap } from "@/lib/iconMap";
 import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
 
 /**
- * GroUp Academy: Predictive Ingress Terminal (QuickActionsGrid)
- * CTO Reference: High-velocity launcher for frequent agents and global shortcuts.
+ * Quick Actions — compact 4-column launcher.
+ * 7 dynamic agents (most-used first) + Messages shortcut.
  */
 
 interface QuickAgent {
@@ -23,10 +23,10 @@ interface QuickAgent {
   isShortcut?: boolean;
 }
 
-const ABROAD_SHORTCUT: QuickAgent = {
-  agent_key: "__abroad",
-  name: "Abroad",
-  icon: "Globe",
+const MESSAGES_SHORTCUT: QuickAgent = {
+  agent_key: "__messages",
+  name: "Messages",
+  icon: "MessageCircle",
   color: null,
   bg_color: null,
   avatar_url: null,
@@ -36,12 +36,9 @@ const ABROAD_SHORTCUT: QuickAgent = {
 export function QuickActionsGrid() {
   const navigate = useNavigate();
   const { talent } = useTalent();
+  const { totalUnread } = useMessageThreads();
 
-  const {
-    data: actions = [],
-    isLoading,
-    error: queryError,
-  } = useQuery({
+  const { data: actions = [], isLoading } = useQuery({
     queryKey: ["quick-actions", talent?.id],
     queryFn: async () => {
       let personalAgentKeys: string[] = [];
@@ -69,14 +66,12 @@ export function QuickActionsGrid() {
         }
       }
 
-      const { data: allAgents, error } = await supabase
+      const { data: allAgents } = await supabase
         .from("ai_agents")
         .select("agent_key, name, icon, color, bg_color, avatar_url, total_conversations")
         .eq("is_active", true)
         .order("total_conversations", { ascending: false })
         .limit(15);
-
-      if (error) throw error;
 
       const agentMap = new Map(allAgents?.map((a) => [a.agent_key, a]));
       const result: QuickAgent[] = [];
@@ -94,7 +89,7 @@ export function QuickActionsGrid() {
 
       addToResult(personalAgentKeys);
       addToResult(allAgents?.map((a) => a.agent_key) || []);
-      result.push(ABROAD_SHORTCUT);
+      result.push(MESSAGES_SHORTCUT);
       return result;
     },
     staleTime: 1000 * 60 * 10,
@@ -103,12 +98,12 @@ export function QuickActionsGrid() {
 
   if (isLoading) {
     return (
-      <div className="bg-card/30 backdrop-blur-md rounded-[32px] p-6 border-2 border-border/40 shadow-xl">
-        <div className="grid grid-cols-4 gap-4">
+      <div className="bg-card rounded-2xl p-3 border border-border/40">
+        <div className="grid grid-cols-4 gap-3">
           {[...Array(8)].map((_, i) => (
-            <div key={i} className="flex flex-col items-center gap-3">
-              <Skeleton className="h-14 w-14 rounded-2xl opacity-40" />
-              <Skeleton className="h-3 w-12 opacity-20" />
+            <div key={i} className="flex flex-col items-center gap-2">
+              <Skeleton className="h-12 w-12 rounded-xl" />
+              <Skeleton className="h-2 w-10" />
             </div>
           ))}
         </div>
@@ -116,42 +111,18 @@ export function QuickActionsGrid() {
     );
   }
 
-  if (queryError) {
-    return (
-      <div className="p-8 border-2 border-dashed rounded-[32px] bg-muted/5 text-center flex flex-col items-center gap-2">
-        <Activity className="h-5 w-5 text-muted-foreground/40 animate-pulse" />
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-60 italic">
-          Ingress_Node_Offline
-        </p>
-      </div>
-    );
-  }
-
   return (
-    <div className="bg-card/30 backdrop-blur-md rounded-[32px] p-6 border-2 border-border/40 shadow-xl animate-in fade-in duration-700">
-      <div className="flex items-center justify-between mb-6 px-1">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-primary/10 text-primary">
-            <Zap className="h-4 w-4 fill-current" />
-          </div>
-          <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground italic">
-            Quick_Launch_Node
-          </h3>
-        </div>
-        <Badge
-          variant="outline"
-          className="h-5 px-2 rounded-md font-black text-[8px] uppercase italic opacity-40 border-primary/20"
-        >
-          Authorized
-        </Badge>
+    <div className="bg-card rounded-2xl p-3 border border-border/40 overflow-hidden">
+      <div className="flex items-center justify-between mb-3 px-1">
+        <h3 className="text-xs font-semibold text-foreground">Quick actions</h3>
       </div>
 
-      <div className="grid grid-cols-4 gap-x-3 gap-y-6">
+      <div className="grid grid-cols-4 gap-3 gap-y-4">
         {actions.map((item) => {
           if (!item) return null;
-          const isAbroad = item.agent_key === "__abroad";
-          const ResolvedIcon = isAbroad
-            ? Globe
+          const isMessages = item.agent_key === "__messages";
+          const ResolvedIcon = isMessages
+            ? MessageCircle
             : item.icon && iconMap[item.icon]
               ? (iconMap[item.icon] as LucideIcon)
               : Bot;
@@ -159,36 +130,42 @@ export function QuickActionsGrid() {
           return (
             <button
               key={item.agent_key}
-              onClick={() => navigate(isAbroad ? "/app/abroad" : `/app/agents/${item.agent_key}`)}
-              className="group flex flex-col items-center gap-2.5 outline-none transition-all"
+              aria-label={item.name}
+              onClick={() => navigate(isMessages ? "/app/messages" : `/app/agents/${item.agent_key}`)}
+              className="group relative flex flex-col items-center gap-1.5 outline-none transition-all"
             >
               <div
                 className={cn(
-                  "h-14 w-14 rounded-[20px] flex items-center justify-center transition-all duration-500 border-2",
-                  "group-hover:scale-110 group-active:scale-95 group-hover:rotate-3",
-                  isAbroad
-                    ? "bg-primary border-primary text-white shadow-[0_10px_20px_rgba(var(--primary),0.3)]"
-                    : "bg-muted/40 border-border/10 group-hover:border-primary/40 group-hover:bg-primary/5",
+                  "relative h-12 w-12 rounded-xl flex items-center justify-center transition-all border",
+                  "group-active:scale-95",
+                  isMessages
+                    ? "bg-primary border-primary text-primary-foreground"
+                    : "bg-muted/40 border-border/40 group-hover:border-primary/40",
                 )}
-                style={!isAbroad ? { backgroundColor: item.bg_color || undefined } : {}}
+                style={!isMessages && item.bg_color ? { backgroundColor: item.bg_color } : {}}
               >
                 {item.avatar_url ? (
                   <img
                     src={item.avatar_url}
                     alt=""
-                    className="h-full w-full rounded-[18px] object-cover p-0.5"
+                    className="h-full w-full rounded-xl object-cover"
                     onError={(e) => {
                       (e.target as HTMLImageElement).style.display = "none";
                     }}
                   />
                 ) : (
                   <ResolvedIcon
-                    className={cn("h-6 w-6", isAbroad ? "animate-pulse" : "transition-transform group-hover:scale-110")}
-                    style={{ color: !isAbroad && item.color ? item.color : "inherit" }}
+                    className="h-5 w-5"
+                    style={{ color: !isMessages && item.color ? item.color : undefined }}
                   />
                 )}
+                {isMessages && totalUnread > 0 && (
+                  <span className="absolute -top-1 -right-1 h-4 min-w-4 px-1 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center">
+                    {totalUnread > 9 ? "9+" : totalUnread}
+                  </span>
+                )}
               </div>
-              <span className="text-[10px] font-black text-center text-muted-foreground/60 group-hover:text-primary transition-colors leading-tight line-clamp-1 px-1 uppercase italic tracking-tighter">
+              <span className="text-[10px] font-medium text-center text-muted-foreground group-hover:text-primary transition-colors line-clamp-1 px-0.5">
                 {(item.name || "Agent").split(" ")[0]}
               </span>
             </button>

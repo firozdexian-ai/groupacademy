@@ -70,6 +70,16 @@ export const CREDIT_CONFIG = {
       cost: 50,
       description: "AI-powered answers for external job applications",
     },
+    CV_GENERATION: {
+      name: "ATS-Friendly CV",
+      cost: 15,
+      description: "Generate a clean ATS-friendly CV PDF",
+    },
+    APPLICATION_ANSWERS: {
+      name: "Application Answer Sheet",
+      cost: 10,
+      description: "AI-prepared answers for application questions",
+    },
   },
 
   BUNDLES: [

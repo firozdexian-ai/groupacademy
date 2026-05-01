@@ -1,58 +1,164 @@
-## Phase 11I — Agent Marketplace polish & inbox backfill
+## Phase 12A — Consolidated UI & Information Architecture Refresh
 
-Targeted fixes to `/app/agents`, agent profile, and the messenger inbox based on the latest feedback.
+Combines the previous Phase 12A draft (compact UI for Learning/Feed, Jobs Tools tab, Quick Launch fix, Career Abroad cleanup) with the new feedback on Pathways/Academy/Arena structure.
 
-### 1. Eliminate duplicate search bar
-`AIAgents.tsx` renders its own search input in the sticky header AND the `AgentFilters` component (which has another search). Remove the search field inside `AgentFilters` entirely; keep only the compact one in the header. `AgentFilters` becomes a pure category picker.
+---
 
-### 2. Compact icon-based filters with "More"
-Replace the horizontally-scrolling pill strip in `AgentFilters` with a fixed 4-slot icon row (no sideways scroll on mobile):
-- Slot 1–3: top three categories (All, Career, Education)
-- Slot 4: a `More` button that opens a bottom sheet listing remaining categories (Finance, Wellness, Company, plus future ones)
-- Each slot is a small square icon + 1-line label, active state filled with primary color
-- Strip the cyberpunk "Trajectory_Filters / Registry_All" labels — use plain English category names
+### A. Learning Hub shell — compact rewrite
 
-### 3. Bring instructor / school agents into the marketplace
-The `ai_instructors` table and the in-course `AIChatPanel` produce a separate set of agents that never surface in `/app/agents`. Plan:
-- Add a SQL migration that, for each row in `ai_instructors` (or each instructor referenced by `content_instructors`), upserts a corresponding row in `ai_agents` with `agent_type = 'instructor'`, mapping `name`, `avatar_url`, profession line, and a default `credit_cost`.
-- Backfill once + add a trigger on `ai_instructors` insert/update to keep `ai_agents` in sync.
-- Add `instructor` to `AgentCategory` and the icon row (under "Education" — it shares the same icon).
-- Marketplace card and profile already render any `ai_agents` row, so no UI change needed beyond the new category.
+`src/pages/app/LearningHub.tsx`
 
-### 4. Add a marketplace banner
-Insert a single 3:1 banner slot above the filters in `AIAgents.tsx`. Reuse the existing `BannerCarousel` component, scoped to a new `placement = 'agents_marketplace'`. Falls back to nothing if no active banners.
+- Replace giant "LEARNING ACADEMY" header with `text-xl font-bold "Academy"` + small subtitle, drop Sparkles pulse, drop "Active Professional Deployment Protocol" tagline, drop "Registry Sync: Optimized" chip and decorative footer.
+- Banner: `BannerCarousel placement="learning"` inside `rounded-2xl` (not `rounded-[40px] shadow-2xl`).
+- Tab nav: same compact pill bar as `JobsHub` — `h-12 bg-muted/50 rounded-xl border border-border/50 sticky top-14`, single-line `text-xs font-medium` labels, no two-line "detail" subtext, no Zap badge. Plain labels:
+  1. **My Hub** (was My Hub)
+  2. **Career Path** (was Pathways) — user explicitly renamed
+  3. **Academy** (was Academy / courses)
+  4. **Arena** (was Arena / events)
+- Wrapper: `max-w-4xl px-3 py-3 space-y-5 pb-28`.
 
-### 5. Fix mobile CTA layout on agent cards
-On mobile, the `Message` icon button on `AgentCard` was getting clipped/hidden next to the wide "View Profile" button. Restructure the card CTA:
-- Single primary button: `View Profile` (full width)
-- Move the connect/message action INSIDE the profile page only
-- On `AgentProfile.tsx`, replace the bottom "Connect & Message" button with a button that shows the connection cost inline:
-  - Not yet connected: `Connect · {connection_fee} credits` (or `Connect · Free` if 0)
-  - Already connected: `Message` (routes to `/app/messages/:agentKey`)
-- "Connected" status is detected by the existing `agent_chat_sessions` lookup or by a new `agent_connections` row (see step 6).
+### B. Career Path tab (TracksTab) — open schools, gate professions
 
-### 6. Backfill historical conversations into the inbox
-Users who chatted with agents before Phase 11H have no `message_threads` row, so the inbox looks empty. Migration:
-- One-time SQL backfill: for every distinct `(talent_id, agent_key)` in `agent_chat_sessions`, insert a `message_threads` row (if absent) with `last_message_at = max(updated_at)` and a preview taken from the last message in the JSON.
-- Also backfill any prior `ai_chat_sessions` (instructor chats) once those instructors exist as `ai_agents` rows (step 3).
-- Verify the existing `agent_session_to_thread` trigger covers future inserts.
+`src/components/learning/TracksTab.tsx` + `src/pages/app/SchoolDetail.tsx`
 
-### 7. Connection model (lightweight)
-To make "connected" meaningful and to gate the Message CTA:
-- Add `agent_connections (talent_id, agent_key, connected_at, connection_fee_paid)` table with RLS (talent owns their rows).
-- `Connect` button on profile creates the row, deducts `connection_fee` if > 0, then routes to `/app/messages/:agentKey`.
-- `useMessageThreads` and `AgentProfile` use this table to decide CTA label.
-- Backfill: any historical `agent_chat_sessions` row implies a free connection — insert matching `agent_connections` rows in the same migration as step 6.
+User feedback: in Executive academy, schools are visible but professions inside are not browsable. Open the schools, let students enter professions, then **only the connection-request CTA is gated** — directed at the school's lead instructor.
 
-### Files touched
-- `src/pages/app/AIAgents.tsx` — remove duplicate search, add banner slot, simplified filter wiring
-- `src/components/ai-agents/AgentFilters.tsx` — rewrite as 4-icon row + More sheet, drop internal search
-- `src/components/ai-agents/AgentCard.tsx` — single full-width "View Profile" CTA
-- `src/pages/app/AgentProfile.tsx` — Connect/Message CTA with fee inline; uses `agent_connections`
-- `src/hooks/useMessageThreads.ts` — no logic change; benefits from backfill
-- New migration: `agent_connections` table + RLS, instructor→ai_agents sync trigger + backfill, message_threads backfill from `agent_chat_sessions` and `ai_chat_sessions`
-- `src/lib/constants/agents.ts` — add `instructor` category metadata
+- Restyle category selector to compact pills (drop `rounded-[28px] grid-cols-5 gap-3 p-2` with 14×14 tiles → switch to a horizontal scroll-free `grid grid-cols-5` of slim chips `h-9 rounded-lg text-[10px] font-semibold`).
+- All school cards become **clickable regardless of `is_ready`** (currently locked behind readiness). Route to `/app/learning/tracks/school/:slug` for everyone.
+- In `SchoolDetail.tsx` (existing page): always render the profession list. For each profession card add:
+  - A "Request to connect with instructor" button (replaces enrollment for not-yet-ready professions).
+  - On click: insert a row into a new `instructor_connection_requests` table `(talent_id, school_id, profession_id, instructor_id, status, created_at)` with RLS allowing the talent to insert their own and the instructor (resolved via `user_roles`/`talents.user_id` tied to the school's lead instructor) to read.
+  - When request is created, enqueue a notification to the instructor via existing `enqueue_email` + push to `notifications` (so instructors can later trigger a broadcast push to interested students for cohort kick-off).
+- Remove "BROWSE_ACADEMY", "NO_ACTIVE_TRAJECTORY_NODES", "Sync_Status" copy → "Browse academy", "No active programs yet", "Progress".
+- Card chrome: `rounded-2xl border border-border/40 p-4`, drop `rounded-[32px] backdrop-blur shadow-2xl`.
 
-### Out of scope
-- Web (desktop) dual-pane redesign for `/app/messages` — leaving as-is for now.
-- Editing the cyberpunk copy elsewhere in the app.
+### C. Academy tab (CoursesTab) — consolidate webinars + classes
+
+`src/components/learning/CoursesTab.tsx`
+
+User feedback: "courses" = recorded; consolidate `live_webinar` and `batch_class` into a single visual section that **shows webinars as single events and classes as batches** in cards.
+
+- Filter chip set becomes 2 chips only: **Courses** (`recorded_course`) and **Live Programs** (`live_webinar` + `batch_class`).
+- In "Live Programs" view, render a unified card list:
+  - For `live_webinar` → card shows single event date/time badge.
+  - For `batch_class` → card shows batch label ("Batch starts {date} · 8 weeks") and capacity progress.
+- Remove `offline_seminar` from Academy (moves to Arena).
+- Card style: compact — `rounded-2xl`, `aspect-[16/9]` thumb, `p-3`, `text-sm font-semibold` titles (drop `text-xl uppercase italic`), drop `EVERGREEN_TRACK`/`SYNC_NOW`/`NEURAL_VIDEO` copy → "Course", "Webinar", "Batch class", "Open".
+- Filter bar: `h-12 bg-muted/50 rounded-xl` matching JobsHub.
+
+### D. Arena tab (EventsTab) — events + study abroad
+
+User feedback: Arena should be the **fourth events-oriented tab** covering in-person seminars + competitions + (new) study abroad section. Webinars/classes leave Arena (handled in Academy).
+
+`src/components/learning/EventsTab.tsx`
+
+- Filter chip set becomes 3: **In-Person** (`offline_seminar`), **Competitions**, **Study Abroad**.
+- Drop the `live_webinar` filter from Arena (lives in Academy now).
+- Add **Study Abroad** sub-view rendering:
+  - Top: "Talk to a country specialist" compact strip (links into Agent Marketplace `?category=abroad`).
+  - "Browse universities" grid (links to `/app/abroad/study?country=…`).
+  - "IELTS Prep" entry card (links to `/app/abroad/ielts`).
+  - "Build my 12-month roadmap" CTA (links to `/app/abroad/roadmap`).
+  - Implementation: extract these blocks from `CareerAbroad.tsx` into a new `src/components/learning/StudyAbroadSection.tsx` so `CareerAbroad` page can be retired (route still redirects → `/app/learning?tab=events&kind=abroad`).
+- Restyle all event/competition cards to compact: `rounded-2xl`, `p-3`, `text-sm font-semibold`, drop `REGISTER_SYNC`/`COMM_NODE`/`PRIZE_LAYERS`/`ENTER_HUB` copy → "Register", "WhatsApp", "{n} prizes", "View".
+
+### E. My Hub tab (MyCoursesTab) — compact cards
+
+`src/components/learning/MyCoursesTab.tsx`
+
+- Drop the two large "ACTIVE_TRAJECTORIES / GRADUATED_NODES" badges; replace inner `Tabs` with simple section headers "In progress" and "Completed".
+- Cards: `rounded-2xl`, `h-24` image, `p-3`, `text-sm font-semibold` titles (no italic/uppercase). Replace "SYNC_PROGRESS" → "Progress", "COHORT_SYNC" → "WhatsApp group", "VERIFY_CREDENTIAL" → "View certificate", "RE_INITIALIZE_SYNC" → "Retry", "CURRICULUM_OFFLINE" → "Nothing here yet".
+
+### F. Feed UI consolidation
+
+**`src/components/feed/FeedCardRedesigned.tsx`** — currently `rounded-[32px]`, `p-6`, `text-lg font-black uppercase italic`, "INITIALIZE_VIDEO"/"AUTHORIZE_COURSE" pill copy.
+
+- Compact rewrite: `rounded-2xl border border-border/40`, `p-3`, title `text-sm font-semibold line-clamp-2` (no italic/uppercase). Action labels: "Watch" / "Open course" / "Read" / "View". Action button `h-9 text-xs`. Floating bookmark/match cluster `h-8 w-8 rounded-lg`. Reduce match-reason block to one `text-[11px] text-muted-foreground line-clamp-2` line.
+
+**`src/pages/app/Feed.tsx`** — remove the second `BannerCarousel compact` (duplicate visual weight). Tighten to `px-3 py-3`.
+
+### G. Quick Launch grid fix
+
+`src/components/feed/QuickActionsGrid.tsx`
+
+- Container: `rounded-2xl p-3 border border-border/40`. Drop "QUICK_LAUNCH_NODE" italic header and "AUTHORIZED" chip → small `text-xs font-semibold "Quick actions"`.
+- Tiles: `h-12 w-12 rounded-xl`; label `text-[10px] font-medium normal-case`.
+- Replace the **Abroad shortcut** (the "just a chat agent button" the user flagged) with a **Messages** shortcut → opens `/app/messages`. If unread thread count > 0, show a tiny badge.
+- Keep grid `grid-cols-4 overflow-hidden` (no horizontal scroll).
+
+### H. Jobs Hub — replace Agents tab with Career Tools
+
+`src/pages/app/JobsHub.tsx`
+
+- Rename tab `agents` → `tools` (icon `Wrench`). Drop `careerAgents` query and the agent cards section entirely.
+- Tools tab content (traditional, **non-agentic**):
+  1. **AI Job Matches** — existing `suggest-jobs-for-talent` flow (10 credits).
+  2. **ATS-Friendly CV Maker** — NEW. Form-based builder, outputs PDF via existing `pdfGenerator.ts` + new `ATSCVTemplate`. Route `/app/tools/cv-maker`. Credit-gated `CV_GENERATION` (15 credits, add to `creditPricing.ts`).
+  3. **Score Me vs Job** — existing flow.
+  4. **Application Answer Sheet** — NEW. User pastes JD + question list, gets prepared answers PDF. Route `/app/tools/application-helper`. Edge function `generate-application-answers` (Lovable AI Gateway, `google/gemini-3-flash-preview`, JWT verify, CORS, Zod validation). Credit `APPLICATION_ANSWERS` (10).
+
+### I. Locations tab — pin residency country, drop `/app/jobs?location=abroad`
+
+`src/pages/app/JobsHub.tsx`
+
+- Detect `talent.residency_country` (or country derived from phone). Pin as the first card with header **"Jobs in your country"**.
+- Add divider + **"Explore other countries"** header above the rest of `countryGroups`.
+- Update `/app/jobs?location=abroad` route to redirect to Locations tab (no preselected country).
+
+### J. Career Abroad page retirement
+
+`src/pages/app/CareerAbroad.tsx`
+
+User: "study abroad section… inside the learning tab actually."
+
+- Remove the country-agent grid and the 3-section card block from CareerAbroad.
+- The page becomes a thin redirect → `/app/learning?tab=events&kind=abroad` (Arena → Study Abroad sub-view).
+- All deep-link routes (`/app/abroad/study`, `/app/abroad/ielts`, `/app/abroad/roadmap`) keep working as standalone pages.
+- Update `src/lib/routes.ts` and bottom-nav to drop the dedicated "Abroad" entry; surface remains via Quick Launch (Messages now) + Arena tab.
+
+---
+
+### Technical Details
+
+**New files**
+- `src/pages/app/tools/CVMaker.tsx`
+- `src/pages/app/tools/ApplicationHelper.tsx`
+- `src/components/tools/ATSCVTemplate.tsx`
+- `src/components/learning/StudyAbroadSection.tsx`
+- `supabase/functions/generate-application-answers/index.ts`
+
+**Edited files**
+- `src/pages/app/LearningHub.tsx`
+- `src/components/learning/MyCoursesTab.tsx`
+- `src/components/learning/TracksTab.tsx`
+- `src/components/learning/CoursesTab.tsx`
+- `src/components/learning/EventsTab.tsx`
+- `src/pages/app/SchoolDetail.tsx` (open profession list + connect-instructor CTA)
+- `src/components/feed/FeedCardRedesigned.tsx`
+- `src/components/feed/QuickActionsGrid.tsx`
+- `src/pages/app/Feed.tsx`
+- `src/pages/app/JobsHub.tsx` (Tools tab + pinned residency country)
+- `src/pages/app/CareerAbroad.tsx` (becomes redirect)
+- `src/lib/creditPricing.ts` (add `CV_GENERATION`, `APPLICATION_ANSWERS`)
+- `src/lib/routes.ts` and `src/App.tsx` (register tool routes; redirect `/app/abroad`)
+
+**DB migration**
+- `instructor_connection_requests` table: `(id uuid pk default gen_random_uuid(), talent_id uuid not null, school_id uuid not null, profession_id uuid, instructor_id uuid, message text, status text default 'pending', created_at timestamptz default now())`
+- RLS enabled; talent can `insert`/`select` own rows (`auth.uid() = (select user_id from talents where id = talent_id)`); instructor can `select`/`update` rows where `instructor_id` resolves to their `user_id`; admins via `has_role(auth.uid(),'admin')`.
+- Trigger `on_instructor_connection_request_created` → calls `enqueue_email` to instructor + inserts a row in `notifications` for them.
+- All functions `set search_path = public` and `security definer` where needed.
+
+**No schema changes** for the rest (all data already present).
+
+**Memory updates after implementation**
+- Update `mem://features/learning-hub-tabbed-interface` to record: tabs renamed (My Hub / Career Path / Academy / Arena); Academy consolidates webinars+classes; Arena now hosts in-person + competitions + study abroad.
+- New memory `mem://product/career-tools-traditional-suite` for non-agentic Jobs Tools tab.
+- Update `mem://product/agentic-career-hub-transformation` to note Jobs Hub no longer surfaces agent cards (marketplace is the single agent surface).
+
+**Risks**
+- Visual regression on Learning Hub — mitigated by mirroring the JobsHub/Messages compact patterns already shipped.
+- Instructor connection-request notification needs an instructor → user mapping; if a school has no resolvable lead instructor, fall back to admin inbox so requests are never lost.
+
+---
+
+Approve to proceed with the consolidated Phase 12A.
