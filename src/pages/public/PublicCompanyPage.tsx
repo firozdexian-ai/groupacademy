@@ -145,17 +145,19 @@ export default function PublicCompanyPage() {
     address: company.country ? { "@type": "PostalAddress", addressCountry: company.country } : undefined,
   };
 
+  // Set head tags imperatively (no react-helmet dep)
+  if (typeof document !== "undefined") {
+    document.title = `${company.name} — ${company.tagline ?? "Company"}`.slice(0, 60);
+    setMeta("description", (company.about ?? company.tagline ?? `${company.name} on Gro10x`).slice(0, 155));
+    setCanonical(`https://groupacademy.online/c/${company.slug}`);
+    setMeta("og:title", company.name, "property");
+    setMeta("og:description", (company.tagline ?? company.about ?? "").slice(0, 155), "property");
+    if (company.banner_url) setMeta("og:image", company.banner_url, "property");
+    setJsonLd("ld-org-company", jsonLd);
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <Helmet>
-        <title>{`${company.name} — ${company.tagline ?? "Company"}`.slice(0, 60)}</title>
-        <meta name="description" content={(company.about ?? company.tagline ?? `${company.name} on Gro10x`).slice(0, 155)} />
-        <link rel="canonical" href={`https://groupacademy.online/c/${company.slug}`} />
-        <meta property="og:title" content={company.name} />
-        <meta property="og:description" content={(company.tagline ?? company.about ?? "").slice(0, 155)} />
-        {company.banner_url && <meta property="og:image" content={company.banner_url} />}
-        <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>
-      </Helmet>
 
       <main className="max-w-3xl mx-auto pb-12">
         <div
