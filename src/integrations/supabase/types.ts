@@ -2112,6 +2112,7 @@ export type Database = {
           instructor_name: string | null
           is_private: boolean | null
           is_published: boolean | null
+          is_ready: boolean
           learning_objectives: Json | null
           max_capacity: number | null
           modules_count: number | null
@@ -2146,6 +2147,7 @@ export type Database = {
           instructor_name?: string | null
           is_private?: boolean | null
           is_published?: boolean | null
+          is_ready?: boolean
           learning_objectives?: Json | null
           max_capacity?: number | null
           modules_count?: number | null
@@ -2180,6 +2182,7 @@ export type Database = {
           instructor_name?: string | null
           is_private?: boolean | null
           is_published?: boolean | null
+          is_ready?: boolean
           learning_objectives?: Json | null
           max_capacity?: number | null
           modules_count?: number | null
@@ -2239,6 +2242,114 @@ export type Database = {
             columns: ["content_id"]
             isOneToOne: false
             referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_gigs: {
+        Row: {
+          brief: string | null
+          claimed_at: string | null
+          claimed_by: string | null
+          content_id: string
+          created_at: string
+          credit_reward: number
+          expected_format: string | null
+          id: string
+          module_id: string
+          resource_type: string
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          school_id: string | null
+          stage_number: number
+          status: string
+          submitted_at: string | null
+          submitted_data: Json | null
+          submitted_url: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          brief?: string | null
+          claimed_at?: string | null
+          claimed_by?: string | null
+          content_id: string
+          created_at?: string
+          credit_reward?: number
+          expected_format?: string | null
+          id?: string
+          module_id: string
+          resource_type: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          school_id?: string | null
+          stage_number?: number
+          status?: string
+          submitted_at?: string | null
+          submitted_data?: Json | null
+          submitted_url?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          brief?: string | null
+          claimed_at?: string | null
+          claimed_by?: string | null
+          content_id?: string
+          created_at?: string
+          credit_reward?: number
+          expected_format?: string | null
+          id?: string
+          module_id?: string
+          resource_type?: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          school_id?: string | null
+          stage_number?: number
+          status?: string
+          submitted_at?: string | null
+          submitted_data?: Json | null
+          submitted_url?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_gigs_claimed_by_fkey"
+            columns: ["claimed_by"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_gigs_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_gigs_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "course_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_gigs_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_readiness_v"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "content_gigs_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
             referencedColumns: ["id"]
           },
         ]
@@ -5192,6 +5303,13 @@ export type Database = {
             foreignKeyName: "profession_categories_school_id_fkey"
             columns: ["school_id"]
             isOneToOne: false
+            referencedRelation: "school_readiness_v"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "profession_categories_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
@@ -5622,6 +5740,49 @@ export type Database = {
           },
         ]
       }
+      school_waitlist: {
+        Row: {
+          created_at: string
+          id: string
+          school_id: string
+          talent_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          school_id: string
+          talent_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          school_id?: string
+          talent_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "school_waitlist_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "school_readiness_v"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "school_waitlist_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "school_waitlist_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       schools: {
         Row: {
           academy_id: string
@@ -5632,6 +5793,7 @@ export type Database = {
           icon: string | null
           id: string
           is_active: boolean | null
+          is_ready: boolean
           name: string
           slug: string
           updated_at: string | null
@@ -5645,6 +5807,7 @@ export type Database = {
           icon?: string | null
           id?: string
           is_active?: boolean | null
+          is_ready?: boolean
           name: string
           slug: string
           updated_at?: string | null
@@ -5658,6 +5821,7 @@ export type Database = {
           icon?: string | null
           id?: string
           is_active?: boolean | null
+          is_ready?: boolean
           name?: string
           slug?: string
           updated_at?: string | null
@@ -6261,6 +6425,13 @@ export type Database = {
             foreignKeyName: "user_roles_scope_school_id_fkey"
             columns: ["scope_school_id"]
             isOneToOne: false
+            referencedRelation: "school_readiness_v"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "user_roles_scope_school_id_fkey"
+            columns: ["scope_school_id"]
+            isOneToOne: false
             referencedRelation: "schools"
             referencedColumns: ["id"]
           },
@@ -6414,6 +6585,18 @@ export type Database = {
         }
         Relationships: []
       }
+      school_readiness_v: {
+        Row: {
+          is_ready: boolean | null
+          pct_ready: number | null
+          ready_courses: number | null
+          school_id: string | null
+          school_name: string | null
+          school_slug: string | null
+          total_courses: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       add_credits: {
@@ -6428,6 +6611,10 @@ export type Database = {
       add_talent_service: {
         Args: { p_service: string; p_talent_id: string }
         Returns: undefined
+      }
+      approve_content_gig: {
+        Args: { p_admin_notes?: string; p_gig_id: string }
+        Returns: Json
       }
       approve_invoice_and_disburse: {
         Args: {
@@ -6504,6 +6691,10 @@ export type Database = {
         }
         Returns: string
       }
+      generate_content_gigs_for_course: {
+        Args: { _content_id: string }
+        Returns: number
+      }
       get_or_create_talent: {
         Args: {
           p_email: string
@@ -6531,6 +6722,10 @@ export type Database = {
       }
       is_company_member: {
         Args: { _company_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_content_lead_for_school: {
+        Args: { _school_id: string; _user_id: string }
         Returns: boolean
       }
       mark_payout_paid: {
@@ -6571,10 +6766,23 @@ export type Database = {
           read_ct: number
         }[]
       }
+      recompute_content_readiness: {
+        Args: { _content_id: string }
+        Returns: undefined
+      }
+      recompute_school_readiness: {
+        Args: { _school_id: string }
+        Returns: undefined
+      }
+      reject_content_gig: {
+        Args: { p_admin_notes?: string; p_gig_id: string }
+        Returns: Json
+      }
       reject_gig_submission: {
         Args: { p_admin_notes?: string; p_submission_id: string }
         Returns: Json
       }
+      school_id_for_content: { Args: { _content_id: string }; Returns: string }
       talent_marketplace_summary: { Args: never; Returns: Json }
       track_content_click: {
         Args: { p_content_id: string; p_source: string }
