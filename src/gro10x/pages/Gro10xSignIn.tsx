@@ -40,19 +40,24 @@ export default function Gro10xSignIn() {
       });
       if (siErr) throw siErr;
       const userId = data.user?.id;
-      if (!userId) throw new Error("Sign-in failed");
+      const userEmail = data.user?.email;
+      if (!userId || !userEmail) throw new Error("Sign-in failed");
 
-      // Verify this user is actually a company member; never silently
-      // dump a talent into the Gro10x inbox.
-      const { data: member } = await supabase
-        .from("company_members")
-        .select("company_id")
-        .eq("user_id", userId)
-        .eq("status", "active")
-        .limit(1)
-        .maybeSingle();
+      // Verify membership via service-role edge function (RLS-immune),
+      // mirroring the same lookup Riya uses in the auth chat.
+      const { data: lookup, error: lookupErr } = await supabase.functions.invoke(
+        "check-company-account",
+        { body: { email: userEmail } },
+      );
 
-      if (!member?.company_id) {
+      if (lookupErr) {
+        // Don't lie about "talent account" when we genuinely couldn't verify.
+        toast.error("Couldn't verify your workspace. Please try again.");
+        setError("Workspace verification failed. Please retry.");
+        return;
+      }
+
+      if (!lookup?.isCompany) {
         setWrongApp(true);
         await supabase.auth.signOut();
         return;
