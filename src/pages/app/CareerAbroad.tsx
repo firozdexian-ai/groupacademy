@@ -7,32 +7,39 @@ import {
   Globe,
   Map,
   Sparkles,
-  CheckCircle2,
-  Zap,
-  Target,
-  ShieldCheck,
+  MessageCircle,
+  FileText,
+  Coins,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { COUNTRIES, getCountryFlag } from "@/lib/constants/countries";
 import { CREDIT_CONFIG } from "@/lib/creditPricing";
-import { cn } from "@/lib/utils";
 
 /**
- * Platform Logic: Global Mobility Registry
- * Orchestrates study, prep, and employment protocols for international deployment.
- * 2026 Standard: Executive Logic geometry with reinforced geospatial nodes.
+ * Study & Work Abroad — single landing for international study, IELTS, and overseas jobs.
+ * Plain English, two paths to a roadmap (chat with a country expert OR fill the form).
  */
 
 const POPULAR_DESTINATIONS = COUNTRIES.filter((c) =>
   ["US", "UK", "CA", "AU", "DE", "SG", "JP", "SE", "NL"].includes(c.code),
 );
 
+// Country agents available in the AI Agent OS (key matches ai_agents.agent_key)
+const COUNTRY_AGENTS: { code: string; name: string; agentKey: string }[] = [
+  { code: "US", name: "United States", agentKey: "study-abroad-usa" },
+  { code: "UK", name: "United Kingdom", agentKey: "study-abroad-uk" },
+  { code: "CA", name: "Canada", agentKey: "study-abroad-canada" },
+  { code: "AU", name: "Australia", agentKey: "study-abroad-australia" },
+  { code: "DE", name: "Germany", agentKey: "study-abroad-germany" },
+  { code: "MY", name: "Malaysia", agentKey: "study-abroad-malaysia" },
+];
+
 const ABROAD_SECTIONS = [
   {
     title: "Study Abroad",
-    description: "Academic Registry & Scholarships",
+    description: "Browse universities & scholarships",
     icon: GraduationCap,
     color: "text-primary",
     bgColor: "bg-primary/10",
@@ -40,7 +47,7 @@ const ABROAD_SECTIONS = [
   },
   {
     title: "IELTS Prep",
-    description: "Neural Language Calibration",
+    description: "Practice & mock tests",
     icon: BookOpen,
     color: "text-emerald-500",
     bgColor: "bg-emerald-500/10",
@@ -48,7 +55,7 @@ const ABROAD_SECTIONS = [
   },
   {
     title: "Jobs Abroad",
-    description: "Global Labor Handshakes",
+    description: "Open roles overseas",
     icon: Briefcase,
     color: "text-amber-500",
     bgColor: "bg-amber-500/10",
@@ -58,91 +65,95 @@ const ABROAD_SECTIONS = [
 
 export default function CareerAbroad() {
   const navigate = useNavigate();
+  const roadmapCost = CREDIT_CONFIG.SERVICES.STUDY_ABROAD_ROADMAP?.cost || 100;
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-10 pb-40 space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-      {/* Executive Header: Geospatial Handshake */}
-      <header className="relative overflow-hidden rounded-[40px] border-2 border-border/40 bg-card/30 backdrop-blur-xl shadow-2xl">
-        <div className="absolute top-0 right-0 p-8 opacity-10 rotate-12">
-          <Globe className="h-40 w-40" />
-        </div>
-        <CardContent className="p-10 relative z-10">
-          <div className="flex items-center gap-5 mb-6">
-            <div className="h-14 w-14 rounded-[24px] bg-primary/10 flex items-center justify-center border-2 border-primary/20 rotate-3 shadow-xl">
-              <Globe className="h-7 w-7 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-4xl font-black uppercase tracking-tighter italic leading-none">Global Mobility</h1>
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary mt-2">
-                Active Deployment Protocol v2.6
-              </p>
-            </div>
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-32 space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
+      {/* Header */}
+      <header className="space-y-2">
+        <div className="flex items-center gap-3">
+          <div className="h-11 w-11 rounded-2xl bg-primary/10 flex items-center justify-center">
+            <Globe className="h-6 w-6 text-primary" />
           </div>
-          <p className="text-sm text-muted-foreground max-w-xl font-medium leading-relaxed italic">
-            Strategic gateway for international career deployment. Synchronize with global university registries,
-            language calibration modules, and international labor markets.
-          </p>
-        </CardContent>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold leading-tight">Study & Work Abroad</h1>
+            <p className="text-sm text-muted-foreground">
+              Plan your international move — universities, IELTS, overseas jobs, and a 12-month roadmap.
+            </p>
+          </div>
+        </div>
       </header>
 
-      {/* Primary Operation Nodes */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Three quick paths */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {ABROAD_SECTIONS.map((section) => (
           <Card
             key={section.title}
-            className="group cursor-pointer hover:border-primary/40 transition-all duration-500 border-2 bg-card/50 backdrop-blur-sm rounded-[32px] overflow-hidden shadow-lg"
+            className="group cursor-pointer hover:border-primary/40 transition-all"
             onClick={() => navigate(section.href)}
           >
-            <CardContent className="p-8 space-y-6">
-              <div
-                className={cn(
-                  "w-14 h-14 rounded-2xl flex items-center justify-center transition-transform group-hover:rotate-6 shadow-inner",
-                  section.bgColor,
-                )}
-              >
-                <section.icon className={cn("h-7 w-7", section.color)} />
+            <CardContent className="p-4 space-y-3">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${section.bgColor}`}>
+                <section.icon className={`h-5 w-5 ${section.color}`} />
               </div>
               <div>
-                <h3 className="font-black uppercase tracking-tighter text-lg leading-none">{section.title}</h3>
-                <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest mt-2">
-                  {section.description}
-                </p>
+                <h3 className="font-semibold text-base">{section.title}</h3>
+                <p className="text-xs text-muted-foreground">{section.description}</p>
               </div>
-              <div className="pt-4 border-t border-border/40 flex items-center justify-between">
-                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-primary">Initialize Node</span>
-                <ChevronRight className="h-4 w-4 text-primary/40 group-hover:translate-x-1 transition-transform" />
+              <div className="pt-2 flex items-center justify-between text-xs text-primary font-medium">
+                <span>Open</span>
+                <ChevronRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      {/* Geospatial Registry: Target Destinations */}
-      <section className="space-y-8">
-        <div className="flex items-center justify-between border-b border-border/40 pb-4">
-          <h2 className="text-[11px] font-black uppercase tracking-[0.3em] text-primary flex items-center gap-3">
-            <Target className="h-4 w-4" /> Destination Registry
+      {/* Country specialists (NEW — agent-led entry) */}
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-semibold flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary" /> Talk to a country specialist
           </h2>
-          <Badge
-            variant="outline"
-            className="rounded-lg border-primary/20 text-primary font-black uppercase text-[9px] tracking-widest px-3 py-1"
-          >
-            {POPULAR_DESTINATIONS.length} Active Nodes
-          </Badge>
+          <Badge variant="outline" className="text-[10px]">AI</Badge>
         </div>
+        <p className="text-xs text-muted-foreground -mt-1">
+          Each specialist asks a few quick questions, then offers a personalised roadmap.
+        </p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {COUNTRY_AGENTS.map((agent) => (
+            <Card
+              key={agent.code}
+              className="cursor-pointer hover:border-primary/40 transition-all"
+              onClick={() => navigate(`/app/agents/${agent.agentKey}`)}
+            >
+              <CardContent className="p-3 flex items-center gap-3">
+                <span className="text-2xl">{getCountryFlag(agent.code)}</span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold truncate">{agent.name}</p>
+                  <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                    <MessageCircle className="h-2.5 w-2.5" /> Chat now
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </section>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-4">
+      {/* Popular destinations (browse programs) */}
+      <section className="space-y-3">
+        <h2 className="text-base font-semibold">Browse by destination</h2>
+        <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-2">
           {POPULAR_DESTINATIONS.map((country) => (
             <Card
               key={country.code}
-              className="group cursor-pointer border-2 border-border/40 bg-card/30 backdrop-blur-sm rounded-2xl transition-all duration-300 hover:border-primary/40 hover:scale-105 active:scale-95"
+              className="group cursor-pointer hover:border-primary/40 hover:scale-[1.03] active:scale-95 transition-all"
               onClick={() => navigate(`/app/abroad/study?country=${country.code}`)}
             >
-              <CardContent className="p-4 flex flex-col items-center gap-3">
-                <span className="text-3xl shadow-sm filter grayscale group-hover:grayscale-0 transition-all duration-500">
-                  {getCountryFlag(country.code)}
-                </span>
-                <span className="font-black uppercase tracking-tighter text-[10px] text-center line-clamp-1 group-hover:text-primary transition-colors">
+              <CardContent className="p-3 flex flex-col items-center gap-1.5">
+                <span className="text-2xl">{getCountryFlag(country.code)}</span>
+                <span className="text-[11px] font-medium text-center line-clamp-1 group-hover:text-primary">
                   {country.name}
                 </span>
               </CardContent>
@@ -151,76 +162,43 @@ export default function CareerAbroad() {
         </div>
       </section>
 
-      {/* Neural Roadmap CTA: Executive Insight */}
-      <Card className="rounded-[40px] border-2 border-primary/40 bg-primary/5 shadow-2xl overflow-hidden relative group">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(var(--primary-rgb),0.1),transparent)]" />
-        <CardContent className="p-10 relative z-10 flex flex-col lg:flex-row items-center gap-10">
-          <div className="h-20 w-20 rounded-[32px] bg-primary flex items-center justify-center rotate-3 shadow-2xl shadow-primary/40 flex-shrink-0">
-            <Map className="h-10 w-10 text-primary-foreground" />
-          </div>
-
-          <div className="flex-1 space-y-6">
-            <div className="space-y-2">
-              <div className="flex items-center gap-3">
-                <Badge className="bg-primary/20 text-primary border-primary/40 text-[9px] font-black uppercase tracking-widest px-2 py-1">
-                  Premium Logic
-                </Badge>
-                <h3 className="text-3xl font-black uppercase tracking-tighter italic">Relocation Roadmap</h3>
-              </div>
-              <p className="text-sm text-muted-foreground/80 font-medium italic">
-                Synthetic Intelligence synthesis of a 12-month tactical application sequence tailored to your registry
-                profile.
+      {/* Roadmap CTA — both paths */}
+      <Card className="bg-primary/5 border-primary/30">
+        <CardContent className="p-5 space-y-4">
+          <div className="flex items-start gap-3">
+            <div className="h-12 w-12 rounded-2xl bg-primary flex items-center justify-center flex-shrink-0">
+              <Map className="h-6 w-6 text-primary-foreground" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-bold leading-tight">Build my 12-month roadmap</h3>
+              <p className="text-sm text-muted-foreground">
+                A personalised plan: university shortlist, IELTS targets, budgeting, and visa timeline.
               </p>
             </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {[
-                { icon: ShieldCheck, label: "University Alignment" },
-                { icon: Zap, label: "Timeline Telemetry" },
-                { icon: CheckCircle2, label: "Budget Calibration" },
-                { icon: Sparkles, label: "Scholarship Logic" },
-              ].map((item, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-primary/60"
-                >
-                  <item.icon className="h-4 w-4" /> {item.label}
-                </div>
-              ))}
-            </div>
           </div>
-
-          <div className="flex flex-col items-center gap-4 min-w-[200px]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <Button
-              size="lg"
-              onClick={() => navigate("/app/abroad/roadmap")}
-              className="w-full h-14 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all"
+              variant="outline"
+              onClick={() => navigate("/app/agents/study-abroad-advisor")}
+              className="h-11 justify-start"
             >
-              Generate Synthesis
+              <MessageCircle className="h-4 w-4 mr-2" />
+              Chat with an advisor
             </Button>
-            <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">
-              <Zap className="h-3.5 w-3.5" /> {CREDIT_CONFIG.SERVICES.STUDY_ABROAD_ROADMAP?.cost || 100} Credits
-            </div>
+            <Button
+              onClick={() => navigate("/app/abroad/roadmap")}
+              className="h-11 justify-start"
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              Fill the roadmap form
+            </Button>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1">
+            <Coins className="h-3.5 w-3.5 text-amber-500" />
+            <span>Roadmap generation uses {roadmapCost} credits</span>
           </div>
         </CardContent>
       </Card>
-
-      {/* Terminal Footer Metadata */}
-      <footer className="mt-20 pt-10 border-t border-border/40 flex items-center justify-between opacity-30">
-        <div className="space-y-1">
-          <p className="text-[9px] font-black uppercase tracking-[0.4em] italic">
-            Geospatial Registry: Verified Handshake Active
-          </p>
-          <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">
-            Protocol: International Deploy v2.6
-          </p>
-        </div>
-        <div className="flex gap-2">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="h-1 w-8 rounded-full bg-primary/20" />
-          ))}
-        </div>
-      </footer>
     </div>
   );
 }

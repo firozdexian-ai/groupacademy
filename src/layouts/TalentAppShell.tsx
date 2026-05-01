@@ -231,13 +231,13 @@ export function TalentAppShell() {
 
                   <ScrollArea className="flex-1">
                     <div className="py-2 space-y-0.5">
-                      {[
+                      {([
                         { icon: Coins, label: "Buy Credits", action: () => credits.open() },
                         { icon: Receipt, label: "Transactions", action: () => navigate("/app/transactions") },
                         { icon: Wallet, label: "Withdraw earnings", action: () => navigate("/app/withdrawals") },
                         { icon: Bookmark, label: "Saved Jobs", action: () => navigate("/app/saved") },
                         { icon: BookOpen, label: "My Learning", action: () => navigate("/app/learning/my-courses") },
-                        { icon: Globe, label: "Career Abroad", action: () => navigate("/app/abroad") },
+                        { icon: Globe, label: "Study & Work Abroad", action: () => navigate("/app/abroad"), suffix: "New" },
                         { icon: FileText, label: "My Applications", action: () => navigate("/app/applications") },
                         ...(hasCompanyAccess
                           ? [{ icon: Sparkles, label: "Switch to Company Portal", action: () => window.open("/company", "_blank") }]
@@ -274,7 +274,7 @@ export function TalentAppShell() {
                           },
                         },
                         
-                      ].map(({ icon: Icon, label, action, suffix }) => (
+                      ] as { icon: any; label: string; action: () => void; suffix?: string }[]).map(({ icon: Icon, label, action, suffix }) => (
                         <button
                           key={label}
                           onClick={() => {
@@ -287,7 +287,9 @@ export function TalentAppShell() {
                           <Icon className="h-5 w-5 text-muted-foreground" />
                           <span className="flex-1 text-left">{label}</span>
                           {suffix ? (
-                            <span className="text-xs text-muted-foreground">{suffix}</span>
+                            <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-primary/10 text-primary">
+                              {suffix}
+                            </span>
                           ) : (
                             <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
                           )}
@@ -462,7 +464,8 @@ export function TalentAppShell() {
                   <Download className="h-4 w-4 mr-2" /> Download CV
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate("/app/abroad")} className="cursor-pointer">
-                  <Globe className="h-4 w-4 mr-2" /> Career Abroad
+                  <Globe className="h-4 w-4 mr-2" /> Study & Work Abroad
+                  <span className="ml-auto text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-primary/10 text-primary">New</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={async () => {
