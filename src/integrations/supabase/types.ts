@@ -2257,6 +2257,7 @@ export type Database = {
           expected_format: string | null
           id: string
           module_id: string
+          quality_score: number | null
           resource_type: string
           review_notes: string | null
           reviewed_at: string | null
@@ -2280,6 +2281,7 @@ export type Database = {
           expected_format?: string | null
           id?: string
           module_id: string
+          quality_score?: number | null
           resource_type: string
           review_notes?: string | null
           reviewed_at?: string | null
@@ -2303,6 +2305,7 @@ export type Database = {
           expected_format?: string | null
           id?: string
           module_id?: string
+          quality_score?: number | null
           resource_type?: string
           review_notes?: string | null
           reviewed_at?: string | null
@@ -2396,6 +2399,70 @@ export type Database = {
             columns: ["instructor_id"]
             isOneToOne: false
             referencedRelation: "instructors_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_lead_applications: {
+        Row: {
+          created_at: string
+          id: string
+          motivation: string
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          school_preference: string | null
+          status: string
+          talent_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          motivation: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          school_preference?: string | null
+          status?: string
+          talent_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          motivation?: string
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          school_preference?: string | null
+          status?: string
+          talent_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_lead_applications_school_preference_fkey"
+            columns: ["school_preference"]
+            isOneToOne: false
+            referencedRelation: "school_readiness_v"
+            referencedColumns: ["school_id"]
+          },
+          {
+            foreignKeyName: "content_lead_applications_school_preference_fkey"
+            columns: ["school_preference"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_lead_applications_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
             referencedColumns: ["id"]
           },
         ]
@@ -6612,10 +6679,16 @@ export type Database = {
         Args: { p_service: string; p_talent_id: string }
         Returns: undefined
       }
-      approve_content_gig: {
-        Args: { p_admin_notes?: string; p_gig_id: string }
-        Returns: Json
-      }
+      approve_content_gig:
+        | { Args: { p_admin_notes?: string; p_gig_id: string }; Returns: Json }
+        | {
+            Args: {
+              p_admin_notes?: string
+              p_gig_id: string
+              p_quality_score?: number
+            }
+            Returns: Json
+          }
       approve_invoice_and_disburse: {
         Args: {
           p_admin_notes?: string
@@ -6691,8 +6764,13 @@ export type Database = {
         }
         Returns: string
       }
+      generate_content_gigs_for_all_unready: { Args: never; Returns: number }
       generate_content_gigs_for_course: {
         Args: { _content_id: string }
+        Returns: number
+      }
+      generate_content_gigs_for_school: {
+        Args: { _school_id: string }
         Returns: number
       }
       get_or_create_talent: {
@@ -6782,6 +6860,7 @@ export type Database = {
         Args: { p_admin_notes?: string; p_submission_id: string }
         Returns: Json
       }
+      release_stale_content_gigs: { Args: { p_days?: number }; Returns: number }
       school_id_for_content: { Args: { _content_id: string }; Returns: string }
       talent_marketplace_summary: { Args: never; Returns: Json }
       track_content_click: {
