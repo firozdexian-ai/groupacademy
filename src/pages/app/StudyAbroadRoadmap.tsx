@@ -39,7 +39,7 @@ export default function StudyAbroadRoadmap() {
       </header>
 
       <div className="bg-card rounded-2xl border p-4 sm:p-6">
-        <RoadmapIntakeForm prefillCountry={prefillCountry} />
+        <RoadmapIntakeForm />
       </div>
     </div>
   );
