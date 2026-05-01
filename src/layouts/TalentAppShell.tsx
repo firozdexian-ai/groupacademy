@@ -77,6 +77,7 @@ export function TalentAppShell() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [hasCompanyAccess, setHasCompanyAccess] = useState(false);
+  const [isContentLead, setIsContentLead] = useState(false);
   const credits = useCreditPurchase();
 
   // HUD: Institutional Navigation Artifacts
@@ -148,6 +149,28 @@ export function TalentAppShell() {
         .eq("user_id", user.id)
         .eq("status", "active");
       if (!cancelled) setHasCompanyAccess((count ?? 0) > 0);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [talent?.id]);
+
+  // PHASE: Content_Lead_Role_Check
+  useEffect(() => {
+    if (!talent?.id) {
+      setIsContentLead(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { count } = await supabase
+        .from("user_roles")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("role", "content_lead" as any);
+      if (!cancelled) setIsContentLead((count ?? 0) > 0);
     })();
     return () => {
       cancelled = true;
