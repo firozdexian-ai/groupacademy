@@ -86,6 +86,11 @@ Deno.serve(async (req) => {
       case "update_company_profile":return j(await update_company_profile(ctx, args));
       case "invite_teammate":       return j(await invite_teammate(ctx, args));
       case "list_teammates":        return j(await list_teammates(ctx));
+      // --- Growth / feed ---
+      case "draft_company_post":    return j(await draft_company_post(ctx, args));
+      case "list_pending_drafts":   return j(await list_pending_drafts(ctx));
+      case "publish_company_post":  return j(await publish_company_post(ctx, args));
+      case "discard_company_draft": return j(await discard_company_draft(ctx, args));
       default:
         return j({ ok: false, error: `Unknown tool: ${body.tool_key}` }, 400);
     }
