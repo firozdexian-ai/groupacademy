@@ -313,7 +313,7 @@ const Index = () => {
               </p>
             </div>
             <nav className="flex flex-wrap justify-center gap-8 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
-              {["courses", "career-services", "blog", "auth"].map((path) => (
+              {["courses", "career-services", "for-companies", "blog", "auth"].map((path) => (
                 <button
                   key={path}
                   onClick={() => navigate(`/${path}`)}
