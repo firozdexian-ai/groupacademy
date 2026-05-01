@@ -110,6 +110,9 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   "agent-insights": React.lazy(() =>
     import("@/components/dashboard/AgentInsights").then((m) => ({ default: m.AgentInsights })),
   ),
+  "agent-payouts": React.lazy(() =>
+    import("@/components/dashboard/AgentPayoutsManager").then((m) => ({ default: m.AgentPayoutsManager })),
+  ),
   leads: React.lazy(() =>
     import("@/components/dashboard/AssessmentLeadsManager").then((m) => ({ default: m.AssessmentLeadsManager })),
   ),
@@ -204,6 +207,7 @@ const TAB_TITLES: Record<string, string> = {
   "agent-marketplace": "Marketplace Review",
   "agent-sessions": "Session Logs",
   "agent-insights": "Agent Insights",
+  "agent-payouts": "Agent Payouts",
   leads: "Scorecard Intel",
   interviews: "Mock Calibration",
   salary: "Market Valuation",

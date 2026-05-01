@@ -161,6 +161,7 @@ const navGroups: NavGroup[] = [
       { title: "Marketplace Review", icon: Store, value: "agent-marketplace" },
       { title: "Agent Sessions", icon: MessageSquare, value: "agent-sessions" },
       { title: "Agent Insights", icon: BarChart, value: "agent-insights" },
+      { title: "Agent Payouts", icon: Coins, value: "agent-payouts" },
       { title: "Assessment Leads", icon: ClipboardList, value: "leads" },
       { title: "Mock Interview Leads", icon: MessageSquare, value: "interviews" },
       { title: "Salary Analysis Leads", icon: TrendingUp, value: "salary" },
