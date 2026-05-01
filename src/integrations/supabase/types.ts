@@ -6255,6 +6255,50 @@ export type Database = {
         }
         Relationships: []
       }
+      withdrawal_requests: {
+        Row: {
+          admin_notes: string | null
+          amount_credits: number
+          created_at: string
+          id: string
+          method: string
+          payout_details: Json
+          processed_at: string | null
+          status: string
+          talent_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount_credits: number
+          created_at?: string
+          id?: string
+          method: string
+          payout_details?: Json
+          processed_at?: string | null
+          status?: string
+          talent_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          amount_credits?: number
+          created_at?: string
+          id?: string
+          method?: string
+          payout_details?: Json
+          processed_at?: string | null
+          status?: string
+          talent_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "withdrawal_requests_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       workforce_members: {
         Row: {
           city: string | null
