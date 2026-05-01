@@ -309,10 +309,8 @@ export default function ProfileEdit() {
             <ArrowLeft className="h-5 w-5 text-primary" />
           </Button>
           <div className="space-y-0.5">
-            <h1 className="text-3xl font-black uppercase tracking-tighter italic">Calibration Terminal</h1>
-            <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-[0.3em] italic">
-              Identity Parameter Tuning v2.6
-            </p>
+            <h1 className="text-xl font-bold">Edit profile</h1>
+            <p className="text-xs text-muted-foreground">Keep your details up to date.</p>
           </div>
         </div>
       </header>

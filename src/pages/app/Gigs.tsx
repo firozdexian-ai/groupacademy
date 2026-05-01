@@ -427,12 +427,8 @@ export default function Gigs() {
       <Dialog open={!!deliverableDialog} onOpenChange={(o) => !o && setDeliverableDialog(null)}>
         <DialogContent className="rounded-[40px] border-2 border-border/40 bg-background/80 backdrop-blur-2xl p-10 max-w-xl">
           <DialogHeader className="mb-6">
-            <DialogTitle className="text-3xl font-black uppercase tracking-tighter italic">
-              Deliver Performance
-            </DialogTitle>
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-2 italic">
-              Registry Handshake Node
-            </p>
+          <DialogTitle className="text-lg font-bold">Submit deliverable</DialogTitle>
+            <p className="text-xs text-muted-foreground mt-1">Share your work for review.</p>
           </DialogHeader>
           <div className="space-y-8">
             <div className="space-y-3">

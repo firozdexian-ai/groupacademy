@@ -278,10 +278,8 @@ export default function JobAssessment() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="space-y-1">
-            <h1 className="text-3xl font-black uppercase tracking-tighter">Neural Interface</h1>
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40 italic">
-              Registry: {assessment.jobs?.title}
-            </p>
+            <h1 className="text-xl font-bold">Job assessment</h1>
+            <p className="text-xs text-muted-foreground">{assessment.jobs?.title}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
