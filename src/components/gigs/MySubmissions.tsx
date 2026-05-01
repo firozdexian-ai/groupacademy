@@ -29,13 +29,9 @@ import { cn } from "@/lib/utils";
  */
 
 const STATUS_CONFIG = {
-  pending: { label: "AUDITING", icon: Clock, className: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
-  approved: {
-    label: "VERIFIED",
-    icon: ShieldCheck,
-    className: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
-  },
-  rejected: { label: "CORRECTION", icon: AlertCircle, className: "bg-rose-500/10 text-rose-600 border-rose-500/20" },
+  pending: { label: "Pending", icon: Clock, className: "bg-amber-500/10 text-amber-700 border-amber-500/20" },
+  approved: { label: "Approved", icon: ShieldCheck, className: "bg-emerald-500/10 text-emerald-700 border-emerald-500/20" },
+  rejected: { label: "Rejected", icon: AlertCircle, className: "bg-rose-500/10 text-rose-700 border-rose-500/20" },
 };
 
 export function MySubmissions({ talentId }: { talentId?: string }) {
@@ -89,25 +85,23 @@ export function MySubmissions({ talentId }: { talentId?: string }) {
 
   if (isLoading)
     return (
-      <div className="space-y-4">
+      <div className="space-y-2">
         {[1, 2, 3].map((i) => (
-          <Skeleton key={i} className="h-28 rounded-[32px] opacity-40" />
+          <Skeleton key={i} className="h-20 rounded-2xl opacity-40" />
         ))}
       </div>
     );
 
   if (!submissions?.length)
     return (
-      <div className="py-24 text-center border-2 border-dashed rounded-[40px] border-border/20 bg-muted/5">
-        <Sparkles className="h-12 w-12 text-muted-foreground/10 mx-auto mb-6" />
-        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground/40 italic">
-          NO_ACTIVE_MISSIONS_SYNCED
-        </p>
+      <div className="py-12 text-center border border-dashed rounded-2xl border-border/40 bg-muted/10">
+        <Sparkles className="h-8 w-8 text-muted-foreground/30 mx-auto mb-3" />
+        <p className="text-xs text-muted-foreground">No submissions yet — pick a task to start earning.</p>
       </div>
     );
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-700 text-left">
+    <div className="space-y-2 animate-in fade-in duration-500 text-left">
       {submissions.map((sub: any) => {
         const config = STATUS_CONFIG[sub.status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.pending;
         const StatusIcon = config.icon;
@@ -115,110 +109,95 @@ export function MySubmissions({ talentId }: { talentId?: string }) {
         const jobId = (sub.submission_data as any)?.job_id;
         const clicks = isJobSharing && jobId ? clickCounts?.[jobId] || 0 : null;
         const CLICK_THRESHOLD = 10;
+        const aiScore = sub.ai_score != null ? Number(sub.ai_score) : null;
 
         return (
           <div
             key={sub.id}
-            className="group relative bg-card/30 backdrop-blur-xl rounded-[32px] p-6 border-2 border-border/40 hover:border-primary/40 transition-all shadow-xl"
+            className="bg-card/60 rounded-2xl px-3 py-3 border border-border/50 hover:border-primary/30 transition-all"
           >
-            <div className="flex items-start justify-between gap-6">
-              <div className="min-w-0 flex-1 space-y-2">
-                <div className="flex items-center gap-3">
-                  <span className="text-[9px] font-black uppercase italic tracking-[0.2em] text-primary/60">
-                    {sub.gigs?.title.replace(" ", "_")}
-                  </span>
-                  <div className="h-1.5 w-1.5 rounded-full bg-border/40" />
-                  <span className="text-[9px] font-bold text-muted-foreground/40 uppercase italic">
-                    SYNC_{format(new Date(sub.created_at), "MMM_dd")}
-                  </span>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                  <span className="font-semibold text-primary/80">{sub.gigs?.title}</span>
+                  <span>·</span>
+                  <span>{format(new Date(sub.created_at), "MMM dd")}</span>
                 </div>
-                <h4 className="font-black text-base uppercase italic tracking-tighter truncate leading-none">
+                <h4 className="font-bold text-sm leading-tight truncate mt-0.5">
                   {(sub.submission_data as any)?.job_title ||
                     (sub.submission_data as any)?.parsed_job?.title ||
-                    "ARTIFACT_SUBMISSION"}
+                    (sub.submission_data as any)?.title ||
+                    "Submission"}
                 </h4>
+                {sub.ai_feedback && (
+                  <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2 italic">
+                    {sub.ai_feedback}
+                    {aiScore != null && (
+                      <span className="ml-1 font-semibold not-italic text-primary">· AI {aiScore}/10</span>
+                    )}
+                  </p>
+                )}
               </div>
 
-              <div className="flex flex-col items-end gap-3 shrink-0">
+              <div className="flex flex-col items-end gap-1.5 shrink-0">
                 <Badge
                   variant="outline"
-                  className={cn(
-                    "text-[9px] font-black uppercase italic tracking-widest px-3 h-7 border-2",
-                    config.className,
-                  )}
+                  className={cn("text-[10px] font-bold px-2 h-6 gap-1 border", config.className)}
                 >
-                  <StatusIcon className="h-3.5 w-3.5 mr-2" /> {config.label}
+                  <StatusIcon className="h-3 w-3" /> {config.label}
                 </Badge>
-                {sub.status === "approved" && (
-                  <div className="flex items-center gap-2 text-emerald-500 animate-in zoom-in">
-                    <Coins className="h-4 w-4 fill-current" />
-                    <span className="text-sm font-black italic">+{sub.credits_awarded} CR</span>
-                  </div>
+                {sub.status === "approved" && sub.credits_awarded > 0 && (
+                  <span className="flex items-center gap-1 text-emerald-600 text-xs font-bold">
+                    <Coins className="h-3 w-3" />+{sub.credits_awarded}
+                  </span>
                 )}
               </div>
             </div>
 
-            {/* VIRAL_REACH_HUD: Real-time campaign tracking */}
+            {/* Viral reach widget — kept compact */}
             {isJobSharing && sub.status === "pending" && clicks !== null && (
-              <div className="mt-6 space-y-4 bg-primary/5 rounded-[22px] p-5 border border-primary/20 shadow-inner">
+              <div className="mt-3 space-y-2 bg-primary/5 rounded-xl p-3 border border-primary/15">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary shadow-sm">
-                      <MousePointerClick className="h-4 w-4" />
-                    </div>
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary italic">
-                      Viral_Sync_Reach
-                    </span>
-                  </div>
-                  <span className="text-[10px] font-black tabular-nums italic text-foreground">
-                    {clicks}
-                    <span className="text-muted-foreground/40 mx-1">/</span>
-                    {CLICK_THRESHOLD} CLICKS
+                  <span className="flex items-center gap-1.5 text-[10px] font-bold text-primary uppercase">
+                    <MousePointerClick className="h-3 w-3" /> Reach
+                  </span>
+                  <span className="text-[10px] font-bold tabular-nums">
+                    {clicks}/{CLICK_THRESHOLD} clicks
                   </span>
                 </div>
-                <Progress
-                  value={Math.min((clicks / CLICK_THRESHOLD) * 100, 100)}
-                  className="h-2 bg-primary/10 rounded-full"
-                />
-
-                <div className="flex items-center gap-3 pt-2">
-                  <div className="flex-1 flex items-center gap-3 bg-background/50 rounded-xl px-4 py-2.5 border border-border/40 min-w-0 shadow-sm">
-                    <Link2 className="h-3.5 w-3.5 text-primary/40 shrink-0" />
-                    <code className="text-[9px] font-bold text-muted-foreground truncate uppercase">
+                <Progress value={Math.min((clicks / CLICK_THRESHOLD) * 100, 100)} className="h-1.5" />
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 flex items-center gap-2 bg-background/70 rounded-lg px-2 py-1.5 border border-border/40 min-w-0">
+                    <Link2 className="h-3 w-3 text-primary/50 shrink-0" />
+                    <code className="text-[10px] truncate text-muted-foreground">
                       {`${window.location.origin}/jobs/${jobId}?ref=${talentRefCode}`}
                     </code>
                   </div>
                   <Button
                     variant="outline"
                     size="icon"
-                    className="h-10 w-10 rounded-xl border-2 hover:bg-primary/5 hover:text-primary transition-all active:scale-90"
+                    className="h-7 w-7 rounded-lg shrink-0"
                     onClick={() => {
                       navigator.clipboard.writeText(`${window.location.origin}/jobs/${jobId}?ref=${talentRefCode}`);
                       setCopiedId(sub.id);
-                      toast.success("LINK_SYNCED");
+                      toast.success("Link copied");
                       setTimeout(() => setCopiedId(null), 2000);
                     }}
                   >
                     {copiedId === sub.id ? (
-                      <Check className="h-4 w-4 text-emerald-500" />
+                      <Check className="h-3 w-3 text-emerald-500" />
                     ) : (
-                      <Copy className="h-4 w-4" />
+                      <Copy className="h-3 w-3" />
                     )}
                   </Button>
                 </div>
               </div>
             )}
 
-            {/* AUDIT_FEEDBACK: Correction Node */}
-            {sub.admin_notes && (
-              <div className="mt-5 flex gap-4 p-4 bg-rose-500/5 border-2 border-rose-500/10 rounded-2xl animate-in slide-in-from-top-2">
-                <XCircle className="h-5 w-5 text-rose-500 shrink-0" />
-                <div className="space-y-1">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-rose-600 italic">
-                    Faculty_Audit_Note:
-                  </p>
-                  <p className="text-xs font-medium text-rose-500 leading-relaxed italic">{sub.admin_notes}</p>
-                </div>
+            {sub.admin_notes && !sub.ai_feedback && (
+              <div className="mt-2 flex gap-2 p-2 bg-rose-500/5 border border-rose-500/15 rounded-lg">
+                <XCircle className="h-3.5 w-3.5 text-rose-500 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-rose-700 leading-snug">{sub.admin_notes}</p>
               </div>
             )}
           </div>
