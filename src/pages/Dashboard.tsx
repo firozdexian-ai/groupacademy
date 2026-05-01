@@ -197,6 +197,7 @@ const TAB_TITLES: Record<string, string> = {
   "ai-agents": "Neural Workforce",
   "agent-studio": "Agent Studio",
   "agent-triggers": "Channel Triggers",
+  "agent-marketplace": "Marketplace Review",
   "agent-sessions": "Session Logs",
   leads: "Scorecard Intel",
   interviews: "Mock Calibration",
