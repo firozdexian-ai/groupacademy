@@ -280,20 +280,29 @@ export function TracksTab() {
         <div className="grid gap-6 sm:grid-cols-2">
           {academySchools.map((school) => {
             const SchoolIcon = getIcon(school.icon);
+            const r = readiness[school.id];
+            const total = r?.total_courses ?? 0;
+            const ready = r?.ready_courses ?? 0;
+            const pct = r?.pct_ready ?? 0;
+            const isReady = (r?.is_ready ?? false) && total > 0;
+            const isWaitlisted = waitlistedSchoolIds.has(school.id);
+
             return (
               <Card
                 key={school.id}
                 className={cn(
-                  "group cursor-pointer transition-all duration-500 rounded-[32px] border-2 border-border/40 bg-card/30 backdrop-blur-xl overflow-hidden hover:shadow-2xl hover:-translate-y-1.5",
-                  theme.border,
+                  "group transition-all duration-500 rounded-[32px] border-2 border-border/40 bg-card/30 backdrop-blur-xl overflow-hidden relative",
+                  isReady ? "cursor-pointer hover:shadow-2xl hover:-translate-y-1.5" : "opacity-90",
+                  isReady && theme.border,
                 )}
-                onClick={() => navigate(`/app/learning/tracks/school/${school.slug}`)}
+                onClick={() => isReady && navigate(`/app/learning/tracks/school/${school.slug}`)}
               >
-                <CardContent className="p-6">
+                <CardContent className="p-6 space-y-4">
                   <div className="flex items-center gap-5">
                     <div
                       className={cn(
-                        "h-16 w-16 rounded-2xl flex items-center justify-center shrink-0 shadow-lg border border-white/5 transition-all duration-700 group-hover:rotate-6",
+                        "h-16 w-16 rounded-2xl flex items-center justify-center shrink-0 shadow-lg border border-white/5 transition-all duration-700",
+                        isReady && "group-hover:rotate-6",
                         theme.bg,
                       )}
                     >
@@ -307,10 +316,42 @@ export function TracksTab() {
                         {school.description}
                       </p>
                     </div>
-                    <div className="h-10 w-10 rounded-full flex items-center justify-center bg-muted/20 group-hover:bg-primary/10 transition-colors">
-                      <ChevronRight className="h-5 w-5 text-muted-foreground/20 group-hover:text-primary transition-all group-hover:translate-x-1" />
-                    </div>
+                    {isReady && (
+                      <div className="h-10 w-10 rounded-full flex items-center justify-center bg-muted/20 group-hover:bg-primary/10 transition-colors">
+                        <ChevronRight className="h-5 w-5 text-muted-foreground/20 group-hover:text-primary transition-all group-hover:translate-x-1" />
+                      </div>
+                    )}
                   </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest">
+                      <span className={cn(isReady ? "text-emerald-600" : "text-muted-foreground")}>
+                        {ready} / {total} courses ready
+                      </span>
+                      <span className="text-muted-foreground tabular-nums">{pct}%</span>
+                    </div>
+                    <Progress value={pct} className="h-1.5 rounded-full" />
+                  </div>
+
+                  {!isReady && (
+                    <div className="flex items-center justify-between gap-2 pt-1">
+                      <Badge variant="outline" className="text-[9px] font-black uppercase tracking-widest border-amber-500/30 text-amber-600">
+                        Coming soon
+                      </Badge>
+                      <Button
+                        size="sm"
+                        variant={isWaitlisted ? "secondary" : "outline"}
+                        className="h-8 rounded-xl text-[10px] font-bold uppercase tracking-widest"
+                        disabled={isWaitlisted}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          joinWaitlist(school.id);
+                        }}
+                      >
+                        {isWaitlisted ? "On waitlist" : "Notify me"}
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             );
