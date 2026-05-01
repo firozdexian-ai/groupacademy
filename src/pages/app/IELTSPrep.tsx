@@ -163,16 +163,10 @@ export default function IELTSPrep() {
             <ArrowLeft className="h-6 w-6 text-primary" />
           </Button>
           <div className="space-y-1">
-            <h1 className="text-4xl font-black uppercase tracking-tighter italic">Calibration Hub</h1>
-            <div className="flex items-center gap-3">
-              <Badge className="bg-primary/5 text-primary border-primary/20 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest italic">
-                Language Protocol v2.6
-              </Badge>
-              <span className="h-1 w-1 rounded-full bg-muted-foreground/30" />
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 italic">
-                AI-Driven Examiner Handshake
-              </p>
-            </div>
+            <h1 className="text-3xl font-bold tracking-tight leading-none">IELTS Prep</h1>
+            <p className="text-sm text-muted-foreground">
+              Practice listening, reading, writing & speaking — with AI examiner feedback.
+            </p>
           </div>
         </div>
 
