@@ -1,35 +1,21 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import {
-  Coins,
-  Sparkles,
-  MessageCircle,
-  Bot,
-  ClipboardList,
-  Mic,
-  DollarSign,
-  Palette,
-  History as HistoryIcon,
-} from "lucide-react";
-import { Card } from "@/components/ui/card";
+import { Bot, Search, Sparkles, MessageCircle } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import { AgentCard } from "@/components/ai-agents/AgentCard";
-import { AgentListItem } from "@/components/ai-agents/AgentListItem";
 import { AgentFilters, AgentCategory } from "@/components/ai-agents/AgentFilters";
-import { useAgentChat } from "@/hooks/useAgentChat";
 import { supabase } from "@/integrations/supabase/client";
 import { AI_AGENTS, getAgentById } from "@/lib/constants/agents";
-import { SectionHeader } from "@/components/ui/section-header";
 import { cn } from "@/lib/utils";
 
 /**
- * Platform Logic: Expert Network Registry
- * Orchestrates the discovery and engagement of AI Specialists and Career Tools.
+ * Phase 11H — Agent Marketplace (discovery only).
+ * No inline chat. CTAs lead to /app/agents/:key/profile or /app/messages/:key.
  */
-
-interface DBAgent {
+interface DBAgentStats {
   id: string;
   agent_key: string;
   name: string;
@@ -44,255 +30,161 @@ interface DBAgent {
   avatar_url: string | null;
   agent_type: string | null;
   is_featured: boolean | null;
+  total_users?: number | null;
+  total_messages?: number | null;
+  avg_rating?: number | null;
 }
-
-const CAREER_TOOLS = [
-  {
-    icon: ClipboardList,
-    label: "Scorecard",
-    description: "Readiness Assessment",
-    path: "/app/services/assessment",
-    creditCost: 50,
-  },
-  {
-    icon: Mic,
-    label: "Interview",
-    description: "Mock Session",
-    path: "/app/services/mock-interview",
-    creditCost: 50,
-  },
-  {
-    icon: DollarSign,
-    label: "Salary",
-    description: "Market Analysis",
-    path: "/app/services/salary-analysis",
-    creditCost: 50,
-  },
-  {
-    icon: Palette,
-    label: "Portfolio",
-    description: "Asset Builder",
-    path: "/app/services/portfolio",
-    creditCost: 500,
-  },
-];
 
 export default function AIAgents() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<AgentCategory>("all");
 
-  const { recentSessions = [], isLoadingSessions } = useAgentChat();
-
-  const { data: dbAgents = [], isLoading: isLoadingAgents } = useQuery({
-    queryKey: ["ai-agents"],
+  const { data: dbAgents = [], isLoading } = useQuery({
+    queryKey: ["ai-agents-stats"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("ai_agents")
+        .from("ai_agents_with_stats")
         .select("*")
         .eq("is_active", true)
-        .order("is_featured", { ascending: false });
+        .order("is_featured", { ascending: false })
+        .order("total_users", { ascending: false });
       if (error) throw error;
-      return data as DBAgent[];
+      return (data || []) as DBAgentStats[];
     },
-    staleTime: 10 * 60 * 1000,
+    staleTime: 5 * 60 * 1000,
   });
 
   const agents = useMemo(() => {
-    const baseList = dbAgents.length > 0 ? dbAgents : AI_AGENTS;
-    return baseList.map((agent: any) => {
-      const isDb = "agent_key" in agent;
-      const key = isDb ? agent.agent_key : agent.id;
-      const staticMeta = getAgentById(key);
-
+    const base = dbAgents.length ? dbAgents : (AI_AGENTS as any[]);
+    return base.map((a: any) => {
+      const isDb = "agent_key" in a;
+      const key = isDb ? a.agent_key : a.id;
+      const meta = getAgentById(key);
       return {
-        id: isDb ? agent.id : agent.id,
+        id: isDb ? a.id : a.id,
         agent_key: key,
-        name: agent.name,
-        description: agent.description,
-        icon: staticMeta?.icon,
-        bgColor: isDb ? agent.bg_color || "bg-primary/5" : agent.bgColor || "bg-primary/5",
-        color: isDb ? agent.color || "#7c3aed" : agent.iconColor || "#7c3aed",
-        expertise: isDb ? agent.expertise_areas || [] : agent.expertise || [],
-        creditCost: isDb ? (agent.credit_cost ?? 10) : 10,
-        category: (isDb ? agent.category || "career" : "career") as AgentCategory,
-        avatarUrl: isDb ? agent.avatar_url : null,
-        isCompanyAgent: isDb ? agent.agent_type === "company" : false,
+        name: a.name,
+        description: a.description,
+        icon: meta?.icon,
+        bgColor: isDb ? a.bg_color || "#2A7DDE" : a.bgColor || "#2A7DDE",
+        color: isDb ? a.color || "#2A7DDE" : a.iconColor || "#2A7DDE",
+        expertise: isDb ? a.expertise_areas || [] : a.expertise || [],
+        creditCost: isDb ? a.credit_cost ?? 1 : 1,
+        category: (isDb ? a.category || "career" : "career") as AgentCategory,
+        avatarUrl: isDb ? a.avatar_url : null,
+        isCompanyAgent: isDb ? a.agent_type === "company" : false,
+        isFeatured: isDb ? !!a.is_featured : false,
+        users: Number(a.total_users) || 0,
+        rating: Number(a.avg_rating) || 0,
       };
     });
   }, [dbAgents]);
 
-  const filteredAgents = useMemo(() => {
-    return agents.filter((agent) => {
-      const matchesSearch =
+  const filtered = useMemo(() => {
+    return agents.filter((a) => {
+      const matchSearch =
         !searchQuery ||
-        agent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        agent.expertise.some((e) => e.toLowerCase().includes(searchQuery.toLowerCase()));
-      const matchesCategory =
+        a.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        a.expertise.some((e: string) => e.toLowerCase().includes(searchQuery.toLowerCase()));
+      const matchCat =
         selectedCategory === "all" ||
-        (selectedCategory === "company" ? agent.isCompanyAgent : agent.category === selectedCategory);
-      return matchesSearch && matchesCategory;
+        (selectedCategory === "company" ? a.isCompanyAgent : a.category === selectedCategory);
+      return matchSearch && matchCat;
     });
   }, [agents, searchQuery, selectedCategory]);
 
-  const conversationStacks = useMemo(() => {
-    const active = recentSessions
-      .filter((s) => s.is_active)
-      .map((s) => ({
-        ...s,
-        agent: agents.find((a) => a.agent_key === s.agent_key),
-        lastMsg: s.messages?.[s.messages.length - 1]?.content.slice(0, 60),
-      }));
-    const historical = recentSessions
-      .filter((s) => !s.is_active)
-      .slice(0, 8)
-      .map((s) => ({
-        ...s,
-        agent: agents.find((a) => a.agent_key === s.agent_key),
-        lastMsg: s.messages?.[s.messages.length - 1]?.content.slice(0, 60),
-      }));
-    return { active, historical };
-  }, [recentSessions, agents]);
+  const featured = useMemo(() => agents.filter((a) => a.isFeatured).slice(0, 8), [agents]);
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8 space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-700">
-      <header className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="h-12 w-12 rounded-[20px] bg-primary flex items-center justify-center shadow-2xl shadow-primary/30 rotate-3">
-            <Bot className="h-7 w-7 text-white" />
+    <div className="max-w-3xl mx-auto pb-24">
+      {/* Header */}
+      <header className="sticky top-0 z-10 bg-background/95 backdrop-blur-md border-b border-border/40 px-3 py-2.5 space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-8 rounded-xl bg-primary flex items-center justify-center">
+              <Bot className="h-4 w-4 text-primary-foreground" />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold leading-none">Agent Marketplace</h1>
+              <p className="text-[10px] text-muted-foreground">Discover AI experts to chat with</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-3xl font-black uppercase tracking-tighter leading-none">Expertise</h1>
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40 italic">
-              Neural Career Intelligence
-            </p>
-          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 text-xs gap-1.5"
+            onClick={() => navigate("/app/messages")}
+          >
+            <MessageCircle className="h-3.5 w-3.5" /> Inbox
+          </Button>
+        </div>
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search agents…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="h-9 pl-9 bg-muted/40 border-none"
+          />
         </div>
       </header>
 
-      <Tabs defaultValue="network" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 p-1.5 h-14 bg-muted/30 backdrop-blur-md rounded-2xl mb-8 border border-border/40">
-          <TabsTrigger value="network" className="rounded-xl font-black uppercase text-[10px] tracking-widest gap-2">
-            <Sparkles className="h-3.5 w-3.5" /> Explorer
-          </TabsTrigger>
-          <TabsTrigger
-            value="chats"
-            className="rounded-xl font-black uppercase text-[10px] tracking-widest gap-2 relative"
-          >
-            <MessageCircle className="h-3.5 w-3.5" /> Registry
-            {conversationStacks.active.length > 0 && (
-              <span className="absolute -top-1 -right-1 h-5 w-5 bg-primary text-[10px] font-black text-white rounded-lg flex items-center justify-center shadow-lg animate-pulse">
-                {conversationStacks.active.length}
-              </span>
-            )}
-          </TabsTrigger>
-        </TabsList>
+      <div className="px-3 py-3 space-y-4">
+        <AgentFilters
+          searchQuery=""
+          onSearchChange={() => {}}
+          selectedCategory={selectedCategory}
+          onCategoryChange={setSelectedCategory}
+          showCompanyTab={agents.some((a) => a.isCompanyAgent)}
+        />
 
-        <TabsContent value="network" className="space-y-10 outline-none">
-          <AgentFilters
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-            selectedCategory={selectedCategory}
-            onCategoryChange={setSelectedCategory}
-            showCompanyTab={agents.some((a) => a.isCompanyAgent)}
-          />
-
-          <section className="space-y-6">
-            <SectionHeader
-              icon={Bot}
-              title={searchQuery ? "Diagnostic Results" : "Neural Specialists"}
-              count={filteredAgents.length}
-              size="sm"
-            />
-            <div className="grid grid-cols-2 gap-4">
-              {isLoadingAgents
-                ? [...Array(4)].map((_, i) => <Skeleton key={i} className="h-56 w-full rounded-[32px]" />)
-                : filteredAgents.map((agent) => (
-                    <AgentCard
-                      key={agent.agent_key}
-                      {...agent}
-                      hasActiveSession={recentSessions.some((s) => s.agent_key === agent.agent_key && s.is_active)}
-                      onClick={() => navigate(`/app/agents/${agent.agent_key}`)}
-                    />
-                  ))}
+        {/* Featured strip */}
+        {!searchQuery && selectedCategory === "all" && featured.length > 0 && (
+          <section>
+            <div className="flex items-center gap-1.5 mb-2 px-1">
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
+              <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Featured</h2>
+            </div>
+            <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-3 px-3 pb-1">
+              {featured.map((a) => (
+                <div key={a.agent_key} className="w-[160px] shrink-0">
+                  <AgentCard
+                    {...a}
+                    onViewProfile={() => navigate(`/app/agents/${a.agent_key}/profile`)}
+                    onMessage={() => navigate(`/app/messages/${a.agent_key}`)}
+                  />
+                </div>
+              ))}
             </div>
           </section>
+        )}
 
-          {!searchQuery && selectedCategory === "all" && (
-            <section className="space-y-6">
-              <SectionHeader icon={ClipboardList} title="Logic Suite" size="sm" />
-              <div className="grid grid-cols-2 gap-4">
-                {CAREER_TOOLS.map((tool) => (
-                  <Card
-                    key={tool.label}
-                    className="group cursor-pointer hover:border-primary/40 transition-all rounded-[32px] p-6 bg-card/50 backdrop-blur-sm border-2 border-dashed border-border/40"
-                    onClick={() => navigate(tool.path)}
-                  >
-                    <div className="flex flex-col items-center text-center gap-4">
-                      <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all duration-500">
-                        <tool.icon className="h-7 w-7 text-primary" />
-                      </div>
-                      <div className="space-y-1">
-                        <h3 className="font-black uppercase tracking-tighter text-sm">{tool.label}</h3>
-                        <p className="text-[9px] font-bold text-muted-foreground/60 uppercase tracking-widest">
-                          {tool.description}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 bg-primary/10 px-3 py-1 rounded-full border border-primary/20">
-                        <Coins className="h-3 w-3 text-primary" />
-                        <span className="text-[10px] font-black tracking-[0.2em]">{tool.creditCost}</span>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            </section>
-          )}
-        </TabsContent>
-
-        <TabsContent value="chats" className="space-y-10 outline-none">
-          {conversationStacks.active.length > 0 && (
-            <section className="space-y-6">
-              <SectionHeader icon={MessageCircle} title="Active Uplinks" size="sm" />
-              <div className="space-y-3">
-                {conversationStacks.active.map((conv) => (
-                  <AgentListItem
-                    key={conv.id}
-                    id={conv.id}
-                    name={conv.agent?.name || "Specialist"}
-                    description={conv.lastMsg || "Establishing secure connection..."}
-                    isActive
-                    onClick={() => navigate(`/app/agents/${conv.agent_key}`)}
+        {/* Grid */}
+        <section>
+          <div className="flex items-center justify-between mb-2 px-1">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              {searchQuery ? "Results" : "All Agents"}
+            </h2>
+            <span className="text-[11px] text-muted-foreground">{filtered.length} agents</span>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+            {isLoading
+              ? [...Array(6)].map((_, i) => <Skeleton key={i} className="h-40 rounded-2xl" />)
+              : filtered.map((a) => (
+                  <AgentCard
+                    key={a.agent_key}
+                    {...a}
+                    onViewProfile={() => navigate(`/app/agents/${a.agent_key}/profile`)}
+                    onMessage={() => navigate(`/app/messages/${a.agent_key}`)}
                   />
                 ))}
-              </div>
-            </section>
+          </div>
+          {!isLoading && filtered.length === 0 && (
+            <div className="text-center py-12 text-sm text-muted-foreground">No agents match your search.</div>
           )}
-
-          <section className="space-y-6">
-            <SectionHeader icon={HistoryIcon} title="Interaction Logs" size="sm" />
-            {conversationStacks.historical.length > 0 ? (
-              <div className="space-y-3">
-                {conversationStacks.historical.map((chat) => (
-                  <AgentListItem
-                    key={chat.id}
-                    id={chat.id}
-                    name={chat.agent?.name || "Specialist"}
-                    description={chat.lastMsg || "Session archive finalized."}
-                    onClick={() => navigate(`/app/agents/${chat.agent_key}`)}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="p-16 border-2 border-dashed border-border/40 rounded-[40px] text-center bg-muted/5">
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/30">
-                  Registry Empty: No Prior Sessions
-                </p>
-              </div>
-            )}
-          </section>
-        </TabsContent>
-      </Tabs>
+        </section>
+      </div>
     </div>
   );
 }
