@@ -100,6 +100,9 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   "agent-studio": React.lazy(() =>
     import("@/components/dashboard/AgentStudio").then((m) => ({ default: m.AgentStudio })),
   ),
+  "agent-triggers": React.lazy(() =>
+    import("@/components/dashboard/AgentTriggers").then((m) => ({ default: m.AgentTriggers })),
+  ),
   "agent-sessions": React.lazy(() =>
     import("@/components/dashboard/AgentSessionsManager").then((m) => ({ default: m.AgentSessionsManager })),
   ),
@@ -190,6 +193,7 @@ const TAB_TITLES: Record<string, string> = {
   "roadmap-leads": "Global Pipeline",
   "ai-agents": "Neural Workforce",
   "agent-studio": "Agent Studio",
+  "agent-triggers": "Channel Triggers",
   "agent-sessions": "Session Logs",
   leads: "Scorecard Intel",
   interviews: "Mock Calibration",

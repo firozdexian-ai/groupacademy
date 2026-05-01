@@ -38,6 +38,7 @@ import {
   CreditCard,
   Factory,
   Network,
+  Zap,
 } from "lucide-react";
 import {
   Sidebar,
@@ -155,6 +156,7 @@ const navGroups: NavGroup[] = [
     items: [
       { title: "AI Agents", icon: Bot, value: "ai-agents" },
       { title: "Agent Studio", icon: Sparkles, value: "agent-studio" },
+      { title: "Channel Triggers", icon: Zap, value: "agent-triggers" },
       { title: "Agent Sessions", icon: MessageSquare, value: "agent-sessions" },
       { title: "Assessment Leads", icon: ClipboardList, value: "leads" },
       { title: "Mock Interview Leads", icon: MessageSquare, value: "interviews" },

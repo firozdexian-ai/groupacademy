@@ -5,6 +5,8 @@ project_id = "iqdnbmnqpgmhtaiesulr"
     verify_jwt = false
   [functions.agent-runtime]
     verify_jwt = false
+  [functions.agent-event-dispatcher]
+    verify_jwt = false
   [functions.ingest-agent-knowledge]
     verify_jwt = false
   [functions.ai-agent-chat]

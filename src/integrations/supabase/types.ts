@@ -523,6 +523,79 @@ export type Database = {
           },
         ]
       }
+      agent_outreach: {
+        Row: {
+          agent_id: string
+          body: string
+          channel: string
+          created_at: string
+          credits_charged: number
+          error_message: string | null
+          event_id: string | null
+          id: string
+          payload: Json
+          recipient_id: string | null
+          recipient_kind: string
+          status: string
+          subject: string | null
+          trigger_id: string | null
+        }
+        Insert: {
+          agent_id: string
+          body: string
+          channel?: string
+          created_at?: string
+          credits_charged?: number
+          error_message?: string | null
+          event_id?: string | null
+          id?: string
+          payload?: Json
+          recipient_id?: string | null
+          recipient_kind: string
+          status?: string
+          subject?: string | null
+          trigger_id?: string | null
+        }
+        Update: {
+          agent_id?: string
+          body?: string
+          channel?: string
+          created_at?: string
+          credits_charged?: number
+          error_message?: string | null
+          event_id?: string | null
+          id?: string
+          payload?: Json
+          recipient_id?: string | null
+          recipient_kind?: string
+          status?: string
+          subject?: string | null
+          trigger_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_outreach_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_outreach_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "platform_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_outreach_trigger_id_fkey"
+            columns: ["trigger_id"]
+            isOneToOne: false
+            referencedRelation: "agent_triggers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_threads: {
         Row: {
           agent_id: string
@@ -6246,6 +6319,15 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      enqueue_platform_event: {
+        Args: {
+          p_event_kind: string
+          p_payload?: Json
+          p_subject_id?: string
+          p_subject_kind?: string
+        }
+        Returns: string
+      }
       get_or_create_talent: {
         Args: {
           p_email: string
@@ -6262,6 +6344,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      headless_pool_charge: {
+        Args: { p_amount: number; p_reason?: string }
+        Returns: Json
       }
       increment_agent_conversations: {
         Args: { p_agent_key: string }
