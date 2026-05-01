@@ -70,12 +70,23 @@ const ACADEMY_THEMES: Record<Category, { bg: string; icon: string; border: strin
   },
 };
 
+interface SchoolReadiness {
+  school_id: string;
+  total_courses: number;
+  ready_courses: number;
+  pct_ready: number;
+  is_ready: boolean;
+}
+
 export function TracksTab() {
   const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState<Category>("my-program");
   const [academies, setAcademies] = useState<any[]>([]);
   const [schools, setSchools] = useState<any[]>([]);
   const [enrollments, setEnrollments] = useState<any[]>([]);
+  const [readiness, setReadiness] = useState<Record<string, SchoolReadiness>>({});
+  const [waitlistedSchoolIds, setWaitlistedSchoolIds] = useState<Set<string>>(new Set());
+  const [talentId, setTalentId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -88,29 +99,55 @@ export function TracksTab() {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      const [acadResult, schoolResult] = await Promise.all([
+      const [acadResult, schoolResult, readinessResult] = await Promise.all([
         supabase.from("academies").select("*").eq("is_active", true).order("display_order"),
         supabase.from("schools").select("*").eq("is_active", true).order("display_order"),
+        supabase.from("school_readiness_v" as any).select("*"),
       ]);
 
       setAcademies(acadResult.data || []);
       setSchools(schoolResult.data || []);
 
+      const readinessMap: Record<string, SchoolReadiness> = {};
+      ((readinessResult.data as any[]) || []).forEach((r: any) => {
+        readinessMap[r.school_id] = r;
+      });
+      setReadiness(readinessMap);
+
       if (user) {
         const { data: talent } = await supabase.from("talents").select("id").eq("user_id", user.id).maybeSingle();
         if (talent) {
+          setTalentId(talent.id);
           const { data: enrData } = await supabase
             .from("enrollments")
             .select("id, progress, status, content:content_id(title)")
             .eq("talent_id", talent.id)
             .order("created_at", { ascending: false });
           setEnrollments(enrData || []);
+          const { data: wl } = await supabase
+            .from("school_waitlist" as any)
+            .select("school_id")
+            .eq("talent_id", talent.id);
+          setWaitlistedSchoolIds(new Set(((wl as any[]) || []).map((w: any) => w.school_id)));
         }
       }
     } catch (err) {
       console.error("[Registry Fault]:", err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const joinWaitlist = async (schoolId: string) => {
+    if (!talentId) {
+      navigate("/auth");
+      return;
+    }
+    const { error } = await supabase
+      .from("school_waitlist" as any)
+      .insert({ talent_id: talentId, school_id: schoolId } as any);
+    if (!error) {
+      setWaitlistedSchoolIds((prev) => new Set([...prev, schoolId]));
     }
   };
 
