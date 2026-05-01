@@ -444,6 +444,7 @@ export function useGro10xAuthChat() {
     isComplete,
     data,
     suggested,
+    existingAccount,
     initialize,
     handleUserInput,
     handlePasswordSubmit,
