@@ -131,6 +131,7 @@ export function ContactsManager() {
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearch = useDebounce(searchQuery, 500);
   const [companyFilter, setCompanyFilter] = useState<string>("all");
+  const [sourceFilter, setSourceFilter] = useState<string>("all");
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
@@ -159,6 +160,7 @@ export function ContactsManager() {
       }
 
       if (companyFilter !== "all") query = query.eq("company_id", companyFilter);
+      if (sourceFilter !== "all") query = query.eq("source", sourceFilter);
 
       const from = (page - 1) * ITEMS_PER_PAGE;
       const to = from + ITEMS_PER_PAGE - 1;
@@ -175,14 +177,14 @@ export function ContactsManager() {
     } finally {
       setIsLoading(false);
     }
-  }, [page, debouncedSearch, companyFilter, companies.length]);
+  }, [page, debouncedSearch, companyFilter, sourceFilter, companies.length]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
   useEffect(() => {
     setPage(1);
-  }, [debouncedSearch, companyFilter]);
+  }, [debouncedSearch, companyFilter, sourceFilter]);
 
   const handleOpenDialog = (contact?: Contact) => {
     if (contact) {
