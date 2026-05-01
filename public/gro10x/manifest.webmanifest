@@ -1,0 +1,61 @@
+{
+  "id": "/gro10x",
+  "name": "Gro10x — Professional AI",
+  "short_name": "Gro10x",
+  "description": "Your professional inbox of AI agents. Hire, sell, train, run ops — by chatting.",
+  "start_url": "/gro10x",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "background_color": "#0B1220",
+  "theme_color": "#0B1220",
+  "orientation": "portrait-primary",
+  "lang": "en",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "/gro10x/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/gro10x/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/gro10x/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/gro10x/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Inbox",
+      "short_name": "Inbox",
+      "url": "/gro10x/inbox"
+    },
+    {
+      "name": "Company Page",
+      "short_name": "Company",
+      "url": "/gro10x/page"
+    },
+    {
+      "name": "Agent Marketplace",
+      "short_name": "Agents",
+      "url": "/gro10x/agents"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "prefer_related_applications": false,
+  "related_applications": []
+}
