@@ -282,17 +282,17 @@ const Auth = () => {
             <TabsContent value="signup" className="mt-6">
               <Card className="rounded-[32px] border-border/40 shadow-2xl">
                 <CardHeader>
-                  <CardTitle className="text-xl font-black tracking-tighter">New Node</CardTitle>
-                  <CardDescription className="text-xs font-medium">Claim 250 bonus credits</CardDescription>
+                  <CardTitle className="text-xl font-bold tracking-tight">Create your account</CardTitle>
+                  <CardDescription className="text-sm">Get 250 bonus credits to start</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleSignup} className="space-y-4">
                     <div className="space-y-1.5">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
-                        Full Name
+                      <Label className="text-xs font-medium text-muted-foreground ml-1">
+                        Full name
                       </Label>
                       <Input
-                        placeholder="John Doe"
+                        placeholder="Jane Doe"
                         value={signupData.fullName}
                         onChange={(e) => setSignupData({ ...signupData, fullName: e.target.value })}
                         className="rounded-xl border-border/40 h-10"
@@ -300,12 +300,12 @@ const Auth = () => {
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
-                        Work Email
+                      <Label className="text-xs font-medium text-muted-foreground ml-1">
+                        Email
                       </Label>
                       <Input
                         type="email"
-                        placeholder="you@domain.com"
+                        placeholder="you@example.com"
                         value={signupData.email}
                         onChange={(e) => setSignupData({ ...signupData, email: e.target.value })}
                         className="rounded-xl border-border/40 h-10"
@@ -313,8 +313,8 @@ const Auth = () => {
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
-                        Verified Phone
+                      <Label className="text-xs font-medium text-muted-foreground ml-1">
+                        Phone number
                       </Label>
                       <PhoneInput
                         value={signupData.phone}
@@ -324,8 +324,8 @@ const Auth = () => {
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
-                        Set Password
+                      <Label className="text-xs font-medium text-muted-foreground ml-1">
+                        Password
                       </Label>
                       <div className="relative">
                         <Input
@@ -339,6 +339,7 @@ const Auth = () => {
                           type="button"
                           onClick={() => setShowSignupPassword(!showSignupPassword)}
                           className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                          aria-label={showSignupPassword ? "Hide password" : "Show password"}
                         >
                           {showSignupPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
@@ -361,10 +362,10 @@ const Auth = () => {
                     </div>
                     <Button
                       type="submit"
-                      className="w-full h-11 rounded-xl font-black uppercase tracking-widest text-xs mt-2"
+                      className="w-full h-11 rounded-xl font-semibold text-sm mt-2"
                       disabled={isLoading}
                     >
-                      {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Create Identity"}
+                      {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Create account"}
                     </Button>
                   </form>
                 </CardContent>
