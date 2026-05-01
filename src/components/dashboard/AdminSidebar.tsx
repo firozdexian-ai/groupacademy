@@ -159,6 +159,7 @@ const navGroups: NavGroup[] = [
       { title: "Readiness Board", icon: BarChart, value: "content-readiness" },
       { title: "Content Gigs", icon: FileCheck, value: "content-gigs" },
       { title: "Content Leads", icon: UserCog, value: "content-leads" },
+      { title: "All Gigs (cross-system)", icon: Briefcase, value: "all-gigs" },
     ],
   },
   {

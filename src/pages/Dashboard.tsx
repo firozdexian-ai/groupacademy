@@ -180,6 +180,9 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   "content-leads": React.lazy(() =>
     import("@/components/dashboard/ContentLeadsManager").then((m) => ({ default: m.ContentLeadsManager })),
   ),
+  "all-gigs": React.lazy(() =>
+    import("@/components/dashboard/AllGigsCrossSystem").then((m) => ({ default: m.AllGigsCrossSystem })),
+  ),
   // INTEGRATION INJECTIONS
   modules: React.lazy(() => import("@/components/dashboard/ModulePickerPanel")),
   "quiz-manage": React.lazy(() => import("@/pages/QuizManagement")),
@@ -248,6 +251,7 @@ const TAB_TITLES: Record<string, string> = {
   "content-readiness": "Content Readiness",
   "content-gigs": "Content Gigs",
   "content-leads": "Content Leads",
+  "all-gigs": "All Gigs (cross-system)",
   modules: "Module Architecture",
   "quiz-manage": "Certification Logic",
 };

@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { GigCard } from "@/components/gigs/GigCard";
 import { MySubmissions } from "@/components/gigs/MySubmissions";
+import { BuildAcademyTab } from "@/components/gigs/BuildAcademyTab";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MARKETPLACE_SCHOOLS, MARKETPLACE_SCHOOL_MAP } from "@/lib/constants/marketplaceCategories";
 import {
@@ -38,6 +39,7 @@ import {
   Target,
   Zap,
   ShieldCheck,
+  Hammer,
 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -205,11 +207,12 @@ export default function Gigs() {
 
       {/* Primary Orchestration HUD */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 p-1.5 h-16 bg-muted/30 backdrop-blur-md rounded-[32px] border border-border/40 max-w-2xl">
+        <TabsList className="grid w-full grid-cols-4 p-1.5 h-16 bg-muted/30 backdrop-blur-md rounded-[32px] border border-border/40 max-w-3xl">
           {[
-            { id: "tasks", label: "Missions", icon: ClipboardList },
+            { id: "tasks", label: "Quick", icon: ClipboardList },
             { id: "projects", label: "Projects", icon: Target },
-            { id: "activity", label: "Registry", icon: Activity },
+            { id: "build", label: "Build Academy", icon: Hammer },
+            { id: "activity", label: "My Activity", icon: Activity },
           ].map((tab) => (
             <TabsTrigger
               key={tab.id}
@@ -343,6 +346,10 @@ export default function Gigs() {
               )}
             </main>
           </div>
+        </TabsContent>
+
+        <TabsContent value="build" className="mt-12 animate-in slide-in-from-bottom-4 duration-700">
+          <BuildAcademyTab />
         </TabsContent>
 
         <TabsContent value="activity" className="mt-12 space-y-16 animate-in slide-in-from-bottom-4 duration-700">
