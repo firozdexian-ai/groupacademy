@@ -10,28 +10,19 @@ import {
   ExternalLink,
   Clock,
   Award,
-  CheckCircle,
-  AlertTriangle,
   Sparkles,
   MessageCircle,
   ShieldCheck,
-  Zap,
-  Globe,
 } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { getCountryFlag } from "@/lib/constants/countries";
 import { useTalent } from "@/hooks/useTalent";
-import { cn } from "@/lib/utils";
-
-/**
- * Platform Logic: Academic Specification Viewport
- * High-fidelity orchestrator for university interrogation and admission telemetry.
- * 2026 Standard: Executive Logic geometry with reinforced lead-gen handshakes.
- */
+import { EmptyState } from "@/components/common/EmptyState";
+import { PAGE_SHELL, PAGE_TITLE, PAGE_SUBTITLE, SECTION_TITLE, META_TEXT, CARD } from "@/lib/uiTokens";
 
 export default function StudyAbroadDetail() {
   const { id } = useParams();
@@ -42,14 +33,12 @@ export default function StudyAbroadDetail() {
     data: program,
     isLoading,
     isError,
-    error,
   } = useQuery({
     queryKey: ["study-abroad-program", id],
     queryFn: async () => {
-      if (!id) throw new Error("Registry Error: Null Program ID");
+      if (!id) throw new Error("Missing program id");
       const { data, error } = await supabase.from("study_abroad_programs").select("*").eq("id", id).maybeSingle();
       if (error) throw error;
-      if (!data) return null;
       return data;
     },
     enabled: !!id,
@@ -58,13 +47,12 @@ export default function StudyAbroadDetail() {
 
   const handleExternalClick = async (url: string) => {
     if (talent?.id && program) {
-      // CTO Lead-Gen Protocol: Sync interest artifact with contact registry
       await supabase.from("contacts").insert([
         {
-          full_name: talent.fullName || "Anonymous Participant",
-          email: talent.email || "internal-sync-node",
-          subject: `Admission Intel: ${program.university_name}`,
-          message: `High-intent lead generated for ${program.program_name} logic path. Initializing recruitment handshake.`,
+          full_name: talent.fullName || "Anonymous",
+          email: talent.email || "unknown",
+          subject: `Interest: ${program.university_name}`,
+          message: `Lead generated for ${program.program_name}.`,
         },
       ]);
     }
@@ -73,260 +61,160 @@ export default function StudyAbroadDetail() {
 
   if (isLoading)
     return (
-      <div className="max-w-5xl mx-auto p-12 space-y-10 animate-pulse">
-        <Skeleton className="h-10 w-48 rounded-xl bg-muted/40" />
-        <Skeleton className="h-[500px] w-full rounded-[40px] bg-muted/40" />
+      <div className={PAGE_SHELL}>
+        <Skeleton className="h-8 w-32 rounded-xl" />
+        <Skeleton className="h-64 w-full rounded-2xl" />
       </div>
     );
 
   if (isError || !program)
     return (
-      <div className="max-w-4xl mx-auto py-32 text-center animate-in zoom-in-95">
-        <AlertTriangle className="h-16 w-16 text-destructive/20 mx-auto mb-6 rotate-12" />
-        <h2 className="text-3xl font-black uppercase tracking-tighter italic">Registry Sync Failure</h2>
-        <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 italic mt-2">
-          Artifact disappeared or access restricted by protocol.
-        </p>
-        <Button
-          onClick={() => navigate("/app/abroad/study")}
-          variant="outline"
-          className="mt-8 rounded-xl px-10 h-12 font-black uppercase text-[10px] border-2"
-        >
-          Return to Catalog
-        </Button>
+      <div className={PAGE_SHELL}>
+        <EmptyState
+          icon={GraduationCap}
+          title="Program not found"
+          description="This program may have been removed or is no longer available."
+          action={{ label: "Back to programs", onClick: () => navigate("/app/abroad/study") }}
+        />
       </div>
     );
 
   const requirements = Array.isArray(program.requirements) ? (program.requirements as string[]) : [];
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-10 pb-40 space-y-12 animate-in fade-in duration-1000">
-      {/* Executive Navigation Handshake */}
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <Button
-          variant="ghost"
-          className="group rounded-xl h-11 px-4 font-black text-[10px] uppercase tracking-[0.3em] hover:bg-primary/5 -ml-4"
-          onClick={() => navigate(-1)}
-        >
-          <ArrowLeft className="mr-3 h-4 w-4 transition-transform group-hover:-translate-x-1" /> Back to Discovery
+    <div className={PAGE_SHELL}>
+      {/* Header */}
+      <div className="flex items-center gap-2">
+        <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => navigate(-1)}>
+          <ArrowLeft className="h-4 w-4" />
         </Button>
-        <div className="flex items-center gap-4">
-          <Badge
-            variant="outline"
-            className="rounded-lg border-primary/20 text-primary font-black uppercase text-[9px] px-3 py-1.5 tracking-widest"
-          >
-            REGISTRY_ID: {program.id.split("-")[0].toUpperCase()}
-          </Badge>
-          {program.url && (
-            <Button
-              onClick={() => handleExternalClick(program.url!)}
-              className="hidden sm:flex rounded-xl h-11 px-8 font-black uppercase text-[10px] tracking-widest shadow-2xl shadow-primary/20 hover:scale-105 transition-all"
-            >
-              Initialize Application <ExternalLink className="h-4 w-4 ml-3" />
-            </Button>
-          )}
-        </div>
-      </header>
+        <span className={META_TEXT}>Back to programs</span>
+      </div>
 
-      {/* Hero Module: University Identity */}
-      <div className="flex flex-col md:flex-row gap-8 items-center md:items-end border-b border-border/10 pb-10">
-        <div className="h-28 w-28 rounded-[32px] bg-primary/5 border-2 border-primary/20 flex items-center justify-center text-5xl shadow-2xl rotate-3 shrink-0">
+      {/* Identity */}
+      <div className="flex items-start gap-3">
+        <div className="h-14 w-14 rounded-2xl bg-muted flex items-center justify-center text-3xl shrink-0 border border-border/40">
           {getCountryFlag(program.country_code)}
         </div>
-        <div className="space-y-3 text-center md:text-left flex-1">
-          <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
-            <h1 className="text-4xl md:text-6xl font-black tracking-tighter uppercase italic leading-[0.9] selection:bg-primary/20">
-              {program.university_name}
-            </h1>
-            {program.featured && (
-              <Badge className="bg-amber-500 text-white border-none px-4 py-1.5 text-[8px] font-black uppercase tracking-widest rounded-lg shadow-xl animate-pulse">
-                <Zap className="h-3 w-3 mr-2 fill-current" /> Elite Artifact
-              </Badge>
-            )}
+        <div className="min-w-0 flex-1 space-y-1">
+          <h1 className={PAGE_TITLE}>{program.university_name}</h1>
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <MapPin className="h-3 w-3" /> {program.country_name}
           </div>
-          <div className="flex items-center justify-center md:justify-start gap-4">
-            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-primary italic">
-              <MapPin className="h-4 w-4" /> {program.country_name}
-            </div>
-            <span className="h-1 w-1 rounded-full bg-muted-foreground/30" />
-            <p className="text-[9px] font-bold text-muted-foreground/40 uppercase tracking-widest italic">
-              Global Node Verified
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-        {/* Primary Spec: Program Logic */}
-        <div className="lg:col-span-8 space-y-10">
-          <Card className="rounded-[48px] border-2 border-border/40 bg-card/30 backdrop-blur-xl shadow-2xl overflow-hidden relative group">
-            <div className="absolute top-0 right-0 p-10 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity">
-              <Globe className="h-64 w-64" />
-            </div>
-            <div className="h-2.5 bg-gradient-to-r from-primary via-blue-600 to-primary" />
-            <CardHeader className="p-10 pb-6">
-              <div className="space-y-2">
-                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary italic">
-                  Pathway Specification
-                </p>
-                <CardTitle className="text-4xl font-black tracking-tight leading-none uppercase italic selection:bg-primary/20">
-                  {program.program_name}
-                </CardTitle>
-                <p className="text-lg font-medium text-muted-foreground italic pt-2">{program.field_of_study}</p>
-              </div>
-            </CardHeader>
-            <CardContent className="p-10 pt-0 space-y-12">
-              {/* Telemetry Specs */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                {[
-                  {
-                    icon: GraduationCap,
-                    label: "Degree Logic",
-                    val: program.degree_type,
-                    color: "text-primary",
-                    bg: "bg-primary/5",
-                  },
-                  {
-                    icon: Clock,
-                    label: "Temporal Span",
-                    val: program.duration || "N/A",
-                    color: "text-blue-500",
-                    bg: "bg-blue-500/5",
-                  },
-                  {
-                    icon: DollarSign,
-                    label: "Economic Value",
-                    val: program.tuition_range || "Syncing...",
-                    color: "text-emerald-500",
-                    bg: "bg-emerald-500/5",
-                  },
-                  {
-                    icon: Calendar,
-                    label: "Sync Deadline",
-                    val: program.application_deadline
-                      ? format(new Date(program.application_deadline), "MMM d, yyyy")
-                      : "OPEN",
-                    color: "text-orange-500",
-                    bg: "bg-orange-500/5",
-                  },
-                ].map((spec, i) => (
-                  <div
-                    key={i}
-                    className={cn(
-                      "p-5 rounded-3xl border border-border/10 space-y-3 shadow-inner group/spec transition-all hover:bg-card",
-                      spec.bg,
-                    )}
-                  >
-                    <spec.icon className={cn("h-6 w-6 group-hover/spec:scale-110 transition-transform", spec.color)} />
-                    <div>
-                      <p className="text-[8px] font-black uppercase tracking-widest text-muted-foreground/60 mb-1">
-                        {spec.label}
-                      </p>
-                      <p className="text-sm font-black uppercase tracking-tight">{spec.val}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Requirement Protocol */}
-              <div className="space-y-8">
-                <div className="flex items-center gap-4 border-b border-border/10 pb-4">
-                  <ShieldCheck className="h-6 w-6 text-primary" />
-                  <h3 className="text-lg font-black uppercase tracking-tighter italic">Calibration Requirements</h3>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {requirements.length > 0 ? (
-                    requirements.map((req, idx) => (
-                      <div
-                        key={idx}
-                        className="flex gap-5 p-6 rounded-[28px] border-2 border-border/40 bg-background/50 hover:border-primary/40 transition-all group/req"
-                      >
-                        <div className="h-8 w-8 rounded-xl bg-muted/50 text-muted-foreground flex items-center justify-center text-[11px] font-black shrink-0 border group-hover/req:bg-primary group-hover/req:text-white transition-colors">
-                          {(idx + 1).toString().padStart(2, "0")}
-                        </div>
-                        <span className="text-sm font-medium italic leading-relaxed text-foreground/80">{req}</span>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="col-span-full p-10 text-center border-2 border-dashed rounded-[32px] bg-muted/5">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 italic">
-                        Standard Registry Logic applies. Initialize consultation for specific artifacts.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Sidebar: AI Consultant Node */}
-        <aside className="lg:col-span-4 space-y-8 sticky top-24">
-          <Card className="rounded-[40px] border-2 border-primary/20 bg-primary/5 shadow-[0_40px_80px_-20px_rgba(var(--primary-rgb),0.2)] overflow-hidden">
-            <CardContent className="p-10 space-y-8">
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 text-primary">
-                  <Sparkles className="h-6 w-6 fill-current animate-pulse" />
-                  <span className="text-xl font-black uppercase tracking-tighter italic">Neural Advisor</span>
-                </div>
-                <p className="text-sm font-medium italic text-muted-foreground leading-relaxed">
-                  Synthesize a custom admission roadmap, visa logic paths, and automated SOP editing with our global
-                  node.
-                </p>
-              </div>
-              <Button
-                className="w-full h-16 rounded-[24px] font-black uppercase tracking-[0.3em] text-[11px] shadow-2xl shadow-primary/30 transition-all hover:scale-[1.02] active:scale-95"
-                onClick={() => navigate("/app/agents/study-abroad-advisor")}
-              >
-                <MessageCircle className="mr-3 h-5 w-5 fill-current" /> Initialize Consult
-              </Button>
-            </CardContent>
-          </Card>
-
-          {program.scholarship_available && (
-            <Card className="rounded-[32px] border-2 border-emerald-500/20 bg-emerald-500/5 shadow-sm group">
-              <CardContent className="p-8 flex items-center gap-6">
-                <div className="h-16 w-16 rounded-[24px] bg-emerald-100 flex items-center justify-center text-emerald-600 transition-transform group-hover:rotate-6">
-                  <Award className="h-8 w-8" />
-                </div>
-                <div>
-                  <p className="text-[10px] font-black text-emerald-800 uppercase tracking-widest italic">
-                    Financial Aid Active
-                  </p>
-                  <p className="text-base font-black uppercase tracking-tighter leading-tight mt-1">
-                    Scholarship Node Accessible
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+          {program.featured && (
+            <Badge variant="secondary" className="text-[10px] h-5 mt-1">
+              Featured
+            </Badge>
           )}
+        </div>
+      </div>
 
-          <div className="px-6 opacity-30">
-            <p className="text-[9px] font-black uppercase tracking-[0.4em] italic leading-relaxed text-center">
-              Academy Registry: Encrypted Protocol v2.6.4 Synchronized
-            </p>
+      {/* Program */}
+      <Card className={CARD}>
+        <CardContent className="p-3 space-y-3">
+          <div>
+            <p className={PAGE_SUBTITLE}>Program</p>
+            <h2 className="text-base font-semibold leading-tight">{program.program_name}</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">{program.field_of_study}</p>
           </div>
-        </aside>
-      </div>
 
-      {/* Mobile Tactical Control */}
-      <div className="fixed bottom-0 left-0 right-0 p-6 bg-background/80 backdrop-blur-2xl border-t-2 border-border/10 z-50 flex gap-4 sm:hidden shadow-[0_-20px_50px_rgba(0,0,0,0.1)] animate-in slide-in-from-bottom-full duration-700">
-        <Button
-          variant="outline"
-          className="flex-1 h-16 rounded-[24px] border-2 font-black uppercase text-[10px] tracking-widest"
-          onClick={() => navigate("/app/agents/study-abroad-advisor")}
-        >
-          Neural Advisor
-        </Button>
-        {program.url && (
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            {[
+              { icon: GraduationCap, label: "Degree", val: program.degree_type },
+              { icon: Clock, label: "Duration", val: program.duration || "—" },
+              { icon: DollarSign, label: "Tuition", val: program.tuition_range || "—" },
+              {
+                icon: Calendar,
+                label: "Deadline",
+                val: program.application_deadline
+                  ? format(new Date(program.application_deadline), "MMM d, yyyy")
+                  : "Open",
+              },
+            ].map((s, i) => (
+              <div key={i} className="rounded-xl border border-border/40 p-2.5 bg-muted/20">
+                <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+                  <s.icon className="h-3 w-3" />
+                  {s.label}
+                </div>
+                <p className="text-sm font-semibold mt-1 leading-tight">{s.val}</p>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Requirements */}
+      {requirements.length > 0 && (
+        <div className="space-y-2">
+          <h3 className={SECTION_TITLE}>Requirements</h3>
+          <ul className="space-y-1.5">
+            {requirements.map((req, idx) => (
+              <li key={idx} className="flex gap-2 text-xs leading-relaxed">
+                <span className="h-5 w-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-bold shrink-0">
+                  {idx + 1}
+                </span>
+                <span className="text-foreground/80">{req}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Scholarship */}
+      {program.scholarship_available && (
+        <Card className={`${CARD} border-emerald-500/30 bg-emerald-500/5`}>
+          <CardContent className="p-3 flex items-center gap-3">
+            <Award className="h-5 w-5 text-emerald-600" />
+            <div>
+              <p className="text-sm font-semibold">Scholarship available</p>
+              <p className="text-[11px] text-muted-foreground">Financial aid options for this program.</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* AI Advisor */}
+      <Card className={`${CARD} border-primary/30 bg-primary/5`}>
+        <CardContent className="p-3 space-y-2">
+          <div className="flex items-center gap-2 text-primary">
+            <Sparkles className="h-4 w-4" />
+            <span className="text-sm font-semibold">AI study abroad advisor</span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Get a tailored admission roadmap, visa guidance, and SOP help.
+          </p>
           <Button
-            className="flex-1 h-16 rounded-[24px] font-black uppercase text-[10px] tracking-widest shadow-2xl shadow-primary/30"
-            onClick={() => handleExternalClick(program.url!)}
+            className="w-full h-10 rounded-xl text-sm"
+            onClick={() => navigate("/app/agents/study-abroad-advisor")}
           >
-            Authorize Entry
+            <MessageCircle className="mr-2 h-4 w-4" /> Start consultation
           </Button>
-        )}
-      </div>
+        </CardContent>
+      </Card>
+
+      {/* Sticky bottom CTA */}
+      {program.url && (
+        <div
+          className="fixed bottom-16 left-0 right-0 p-3 bg-background/95 backdrop-blur border-t border-border/40 z-30"
+          style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
+        >
+          <div className="max-w-2xl mx-auto flex gap-2">
+            <Button
+              variant="outline"
+              className="flex-1 h-11 rounded-xl text-sm"
+              onClick={() => navigate("/app/agents/study-abroad-advisor")}
+            >
+              <ShieldCheck className="mr-2 h-4 w-4" /> Advisor
+            </Button>
+            <Button
+              className="flex-1 h-11 rounded-xl text-sm"
+              onClick={() => handleExternalClick(program.url!)}
+            >
+              Apply <ExternalLink className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
