@@ -3214,10 +3214,14 @@ export type Database = {
       gig_submissions: {
         Row: {
           admin_notes: string | null
+          ai_feedback: string | null
+          ai_score: number | null
+          auto_decision: string | null
           created_at: string | null
           credits_awarded: number | null
           gig_id: string
           id: string
+          processed_at: string | null
           reviewed_at: string | null
           status: string
           submission_data: Json | null
@@ -3225,10 +3229,14 @@ export type Database = {
         }
         Insert: {
           admin_notes?: string | null
+          ai_feedback?: string | null
+          ai_score?: number | null
+          auto_decision?: string | null
           created_at?: string | null
           credits_awarded?: number | null
           gig_id: string
           id?: string
+          processed_at?: string | null
           reviewed_at?: string | null
           status?: string
           submission_data?: Json | null
@@ -3236,10 +3244,14 @@ export type Database = {
         }
         Update: {
           admin_notes?: string | null
+          ai_feedback?: string | null
+          ai_score?: number | null
+          auto_decision?: string | null
           created_at?: string | null
           credits_awarded?: number | null
           gig_id?: string
           id?: string
+          processed_at?: string | null
           reviewed_at?: string | null
           status?: string
           submission_data?: Json | null
@@ -3264,6 +3276,8 @@ export type Database = {
       }
       gigs: {
         Row: {
+          auto_approval_config: Json
+          auto_approval_mode: string
           category: string
           created_at: string | null
           credit_reward: number
@@ -3280,6 +3294,8 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          auto_approval_config?: Json
+          auto_approval_mode?: string
           category: string
           created_at?: string | null
           credit_reward?: number
@@ -3296,6 +3312,8 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          auto_approval_config?: Json
+          auto_approval_mode?: string
           category?: string
           created_at?: string | null
           credit_reward?: number
@@ -6815,6 +6833,16 @@ export type Database = {
         Returns: Json
       }
       auto_deactivate_expired_jobs: { Args: never; Returns: number }
+      auto_finalize_gig_submission: {
+        Args: {
+          p_credit_amount?: number
+          p_decision: string
+          p_feedback?: string
+          p_score?: number
+          p_submission_id: string
+        }
+        Returns: Json
+      }
       award_gig_credits: {
         Args: { p_admin_notes?: string; p_submission_id: string }
         Returns: Json
