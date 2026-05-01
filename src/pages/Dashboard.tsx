@@ -10,8 +10,8 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 /**
- * CTO NOTE: Every module is lazy-loaded to optimize LCP (Largest Contentful Paint).
- * This ensures the admin interface remains snappy regardless of module count.
+ * CTO NOTE: Registry updated to include curriculum and certification management.
+ * These are "Hidden Tabs" that are accessible via deep-links but not in the main sidebar.
  */
 const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   overview: React.lazy(() =>
@@ -33,9 +33,7 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
     import("@/components/dashboard/JobsKPIDashboard").then((m) => ({ default: m.JobsKPIDashboard })),
   ),
   jobs: React.lazy(() => import("@/components/dashboard/JobsManager").then((m) => ({ default: m.JobsManager }))),
-  "jobs-hub": React.lazy(() =>
-    import("@/components/dashboard/jobs-hub/JobsHub").then((m) => ({ default: m.JobsHub })),
-  ),
+  "jobs-hub": React.lazy(() => import("@/components/dashboard/jobs-hub/JobsHub").then((m) => ({ default: m.JobsHub }))),
   applications: React.lazy(() =>
     import("@/components/dashboard/JobApplicationsManager").then((m) => ({ default: m.JobApplicationsManager })),
   ),
@@ -161,6 +159,11 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   invoices: React.lazy(() =>
     import("@/components/dashboard/payments/InvoiceManager").then((m) => ({ default: m.InvoiceManager })),
   ),
+  // INTEGRATION INJECTIONS
+  modules: React.lazy(() =>
+    import("@/components/dashboard/ModuleManagement").then((m) => ({ default: m.ModuleManagement })),
+  ),
+  "quiz-manage": React.lazy(() => import("@/pages/QuizManagement")),
 };
 
 const TAB_TITLES: Record<string, string> = {
@@ -219,6 +222,8 @@ const TAB_TITLES: Record<string, string> = {
   team: "Human Capital",
   payments: "Gateway Logic",
   invoices: "Invoice Manager",
+  modules: "Module Architecture",
+  "quiz-manage": "Certification Logic",
 };
 
 const Dashboard = () => {
@@ -239,7 +244,6 @@ const Dashboard = () => {
     }
   }, [searchParams, defaultTab, roleLoading]);
 
-  // CTO Security Guard: Prevents unauthorized logic execution
   useEffect(() => {
     if (!authLoading && !roleLoading) {
       if (!user) {
@@ -253,9 +257,9 @@ const Dashboard = () => {
     }
   }, [user, role, authLoading, roleLoading, navigate]);
 
-  const handleTabChange = (tab: string) => {
+  const handleTabChange = (tab: string, additionalParams: Record<string, string> = {}) => {
     setActiveTab(tab);
-    setSearchParams({ tab });
+    setSearchParams({ tab, ...additionalParams });
   };
 
   if (authLoading || roleLoading)
@@ -275,7 +279,6 @@ const Dashboard = () => {
         <AdminSidebar activeTab={activeTab} onTabChange={handleTabChange} userRole={role} />
 
         <main className="flex-1 overflow-y-auto relative bg-background/50">
-          {/* Executive Glassmorphism Header */}
           <header className="h-16 flex items-center gap-4 border-b bg-background/80 backdrop-blur-md px-6 sticky top-0 z-50">
             <SidebarTrigger className="hover:bg-primary/5 rounded-xl transition-all" />
             <div className="h-4 w-px bg-border" />
@@ -294,12 +297,16 @@ const Dashboard = () => {
               {TabComponent ? (
                 (() => {
                   const props: Record<string, any> = {};
-                  // Module Routing Injections
                   if (activeTab === "jobs-kpis") props.onNavigateToTab = handleTabChange;
                   if (activeTab === "ir-dashboard") props.onNavigate = handleTabChange;
                   if (activeTab === "ir-emails") props.onClose = () => handleTabChange("ir-dashboard");
 
-                  // Shared Content Filters
+                  // PROP INJECTION FOR CURRICULUM TOOLS
+                  if (activeTab === "modules" || activeTab === "quiz-manage") {
+                    props.contentId = searchParams.get("id");
+                    props.onBack = () => handleTabChange("courses");
+                  }
+
                   const filters: Record<string, string> = {
                     videos: "free_video",
                     courses: "recorded_course",
@@ -311,9 +318,6 @@ const Dashboard = () => {
                 })()
               ) : (
                 <div className="flex flex-col items-center justify-center h-[50vh] text-center space-y-4">
-                  <div className="h-20 w-20 rounded-3xl bg-muted flex items-center justify-center">
-                    <Skeleton className="h-10 w-10 rounded-lg" />
-                  </div>
                   <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">
                     Module Decryption Failed: "{activeTab}"
                   </p>
