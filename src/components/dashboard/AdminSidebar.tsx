@@ -39,6 +39,7 @@ import {
   Factory,
   Network,
   Zap,
+  Store,
 } from "lucide-react";
 import {
   Sidebar,
