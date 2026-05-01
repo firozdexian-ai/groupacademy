@@ -87,23 +87,23 @@ export function FeedHeader({ talentName, talentPhoto, talentProfession, onRefres
               className="h-16 w-16 sm:h-20 sm:w-20 ring-4 ring-white/10 shadow-2xl cursor-pointer transition-all duration-500 hover:ring-primary active:scale-90"
               onClick={() => navigate("/app/profile")}
             >
-              <AvatarImage src={talentPhoto} alt={talentName || "Identity Node"} className="object-cover" />
-              <AvatarFallback className="bg-primary/20 text-white font-black italic text-xl backdrop-blur-xl border-2 border-white/20">
+              <AvatarImage src={talentPhoto} alt={talentName || "Profile"} className="object-cover" />
+              <AvatarFallback className="bg-primary/20 text-white font-bold text-xl backdrop-blur-xl border-2 border-white/20">
                 {initials}
               </AvatarFallback>
             </Avatar>
-            <div className="absolute -bottom-1 -right-1 bg-emerald-500 w-5 h-5 rounded-full border-4 border-[#0a0a0a] shadow-lg animate-pulse" />
+            <div className="absolute -bottom-1 -right-1 bg-emerald-500 w-5 h-5 rounded-full border-4 border-[#0a0a0a] shadow-lg" />
           </div>
 
           <div className="flex flex-col min-w-0 text-left">
             <div className="flex items-center gap-3">
-              <h1 className="font-black text-xl sm:text-2xl tracking-tighter uppercase italic truncate drop-shadow-2xl">
-                {talentName || "Synchronizing Node..."}
+              <h1 className="font-bold text-xl sm:text-2xl tracking-tight truncate drop-shadow-2xl">
+                {talentName ? `Hi, ${talentName.split(" ")[0]}` : "Welcome back"}
               </h1>
-              <Sparkles className="h-5 w-5 text-amber-400 hidden sm:block animate-bounce duration-1000" />
+              <Sparkles className="h-5 w-5 text-amber-400 hidden sm:block" />
             </div>
             {talentProfession && (
-              <p className="text-white/60 text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] italic truncate">
+              <p className="text-white/70 text-xs sm:text-sm font-medium truncate">
                 {talentProfession}
               </p>
             )}
