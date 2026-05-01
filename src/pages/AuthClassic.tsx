@@ -174,11 +174,11 @@ const Auth = () => {
             <img src={logoLight} alt="GroUp" className="h-9" />
           </button>
           <h2 className="text-5xl font-black text-white tracking-tighter leading-tight mb-6">
-            Evolve Your <br />
-            Professional Identity.
+            Grow your <br />
+            career with AI.
           </h2>
           <p className="text-white/70 text-lg font-medium max-w-sm">
-            Join the ecosystem where AI mentors and professional opportunities converge.
+            Join the platform where AI mentors and real career opportunities meet.
           </p>
         </div>
         <div className="grid grid-cols-2 gap-8 relative z-10">
