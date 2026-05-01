@@ -3587,6 +3587,63 @@ export type Database = {
         }
         Relationships: []
       }
+      gro10x_agent_threads: {
+        Row: {
+          agent_key: string
+          agent_thread_id: string | null
+          company_id: string
+          created_at: string
+          id: string
+          last_message: string | null
+          last_message_at: string | null
+          pinned: boolean
+          unread_count: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          agent_key: string
+          agent_thread_id?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          last_message?: string | null
+          last_message_at?: string | null
+          pinned?: boolean
+          unread_count?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          agent_key?: string
+          agent_thread_id?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          last_message?: string | null
+          last_message_at?: string | null
+          pinned?: boolean
+          unread_count?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gro10x_agent_threads_agent_thread_id_fkey"
+            columns: ["agent_thread_id"]
+            isOneToOne: false
+            referencedRelation: "agent_threads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gro10x_agent_threads_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       headless_pool: {
         Row: {
           balance: number
