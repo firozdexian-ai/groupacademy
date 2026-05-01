@@ -287,7 +287,9 @@ export function TalentAppShell() {
                           <Icon className="h-5 w-5 text-muted-foreground" />
                           <span className="flex-1 text-left">{label}</span>
                           {suffix ? (
-                            <span className="text-xs text-muted-foreground">{suffix}</span>
+                            <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-primary/10 text-primary">
+                              {suffix}
+                            </span>
                           ) : (
                             <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
                           )}
