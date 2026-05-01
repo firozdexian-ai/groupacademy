@@ -11,6 +11,7 @@ import {
   Bot,
   User,
   Bell,
+  MessageCircle,
   LogOut,
   Coins,
   Sun,
@@ -362,8 +363,8 @@ export function TalentAppShell() {
               />
             </form>
 
-            <button className="relative flex-shrink-0" onClick={() => navigate("/app/notifications")}>
-              <Bell className="h-6 w-6 text-muted-foreground" />
+            <button className="relative flex-shrink-0" onClick={() => navigate("/app/messages")} aria-label="Messages">
+              <MessageCircle className="h-6 w-6 text-muted-foreground" />
               {unreadCount > 0 && (
                 <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-background">
                   {unreadCount > 9 ? "9+" : unreadCount}
@@ -408,15 +409,15 @@ export function TalentAppShell() {
           <div className="hidden md:flex items-center gap-4 flex-none">
             <button
               className="relative flex flex-col items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-              onClick={() => navigate("/app/notifications")}
+              onClick={() => navigate("/app/messages")}
             >
-              <Bell className="h-6 w-6" />
+              <MessageCircle className="h-6 w-6" />
               {unreadCount > 0 && (
                 <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-background">
                   {unreadCount > 9 ? "9+" : unreadCount}
                 </span>
               )}
-              <span className="text-[10px] font-medium mt-0.5">Notifications</span>
+              <span className="text-[10px] font-medium mt-0.5">Messages</span>
             </button>
             <div className="h-8 w-px bg-border mx-1" />
             <DropdownMenu>
