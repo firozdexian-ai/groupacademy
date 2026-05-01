@@ -338,6 +338,9 @@ function AgentDetailPanel({
             <TabsTrigger value="knowledge" className="rounded-none">
               <BookOpen className="h-3 w-3" /> Knowledge
             </TabsTrigger>
+            <TabsTrigger value="brain" className="rounded-none">
+              <Sparkles className="h-3 w-3" /> Brain
+            </TabsTrigger>
           </TabsList>
 
           {/* Config tab */}
