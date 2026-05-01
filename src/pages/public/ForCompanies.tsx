@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Helmet } from "react-helmet-async";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +31,23 @@ const STEPS = [
 ];
 
 export default function ForCompanies() {
+  useEffect(() => {
+    document.title = "For Companies — Hire Talent & Deploy AI Agents | Group Academy";
+    const meta = document.querySelector('meta[name="description"]') || (() => {
+      const m = document.createElement("meta"); m.setAttribute("name", "description"); document.head.appendChild(m); return m;
+    })();
+    meta.setAttribute("content", "Hire pre-vetted talent, deploy AI Career Agents for your team, and manage gigs — all on Group Academy.");
+    const canonical = document.querySelector('link[rel="canonical"]') || (() => {
+      const l = document.createElement("link"); l.setAttribute("rel", "canonical"); document.head.appendChild(l); return l;
+    })();
+    canonical.setAttribute("href", "https://groupacademy.online/for-companies");
+    const jsonLd = document.createElement("script");
+    jsonLd.type = "application/ld+json";
+    jsonLd.text = JSON.stringify(orgJsonLd);
+    document.head.appendChild(jsonLd);
+    return () => { jsonLd.remove(); };
+  }, []);
+
   const orgJsonLd = {
     "@context": "https://schema.org",
     "@type": "Service",
@@ -42,16 +59,6 @@ export default function ForCompanies() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Helmet>
-        <title>For Companies — Hire Talent & Deploy AI Agents | Group Academy</title>
-        <meta
-          name="description"
-          content="Hire pre-vetted talent, deploy AI Career Agents for your team, and manage gigs — all on Group Academy."
-        />
-        <link rel="canonical" href="https://groupacademy.online/for-companies" />
-        <script type="application/ld+json">{JSON.stringify(orgJsonLd)}</script>
-      </Helmet>
-
       {/* Top bar */}
       <header className="border-b border-border/40 bg-background/80 backdrop-blur sticky top-0 z-30">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">

@@ -1,6 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Helmet } from "react-helmet-async";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +34,7 @@ const SIZES = ["1-10", "11-50", "51-200", "201-500", "501-1000", "1000+"];
 export default function CompanyOnboarding() {
   const { toast } = useToast();
   const navigate = useNavigate();
+  useEffect(() => { document.title = "Apply for Company Access | Group Academy"; }, []);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [form, setForm] = useState<FormData>({
@@ -99,12 +99,6 @@ export default function CompanyOnboarding() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Helmet>
-        <title>Apply for Company Access | Group Academy</title>
-        <meta name="description" content="Request access to Group Academy for your company — hire talent and deploy AI agents." />
-        <link rel="canonical" href="https://groupacademy.online/for-companies/apply" />
-      </Helmet>
-
       <header className="border-b border-border/40">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <Link to="/for-companies" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
