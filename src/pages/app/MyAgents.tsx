@@ -11,8 +11,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Bot, Coins, Loader2, PlusCircle, Sparkles, TrendingUp, Wallet } from "lucide-react";
+import { Bot, Coins, Loader2, PlusCircle, Sparkles, TrendingUp, Wallet, Rocket } from "lucide-react";
 import { toast } from "sonner";
+import { CreatorOnboardingDialog } from "@/components/agents/CreatorOnboardingDialog";
 
 interface MyAgent {
   id: string;
@@ -111,9 +112,10 @@ export default function MyAgents() {
       </div>
 
       <div className="flex flex-wrap gap-2">
+        <BuilderCTA onCreated={load} />
         <PayoutDialog available={summary.available} onCreated={load} />
         <Button variant="outline" asChild>
-          <Link to="/app/agents">
+          <Link to="/app/agent-marketplace">
             <Sparkles className="h-4 w-4 mr-2" />Browse marketplace
           </Link>
         </Button>
@@ -251,10 +253,22 @@ function EmptyAgents() {
       <CardContent className="p-8 text-center space-y-3">
         <Bot className="h-10 w-10 mx-auto text-muted-foreground" />
         <p className="text-sm text-muted-foreground">
-          You haven't published any agents yet. Talk to admins to get builder access.
+          You haven't published any agents yet. Use the "Become a builder" button above to launch your first agent.
         </p>
       </CardContent>
     </Card>
+  );
+}
+
+function BuilderCTA({ onCreated }: { onCreated: () => void }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Button onClick={() => setOpen(true)} className="bg-primary">
+        <Rocket className="h-4 w-4 mr-2" />Become a builder
+      </Button>
+      <CreatorOnboardingDialog open={open} onOpenChange={setOpen} onCreated={onCreated} />
+    </>
   );
 }
 

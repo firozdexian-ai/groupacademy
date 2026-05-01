@@ -60,6 +60,7 @@ import JobsHub from "./pages/app/JobsHub";
 import CareerAbroad from "./pages/app/CareerAbroad";
 import AIAgents from "./pages/app/AIAgents";
 import MyAgents from "./pages/app/MyAgents";
+import AgentMarketplace from "./pages/app/AgentMarketplace";
 import AgentChat from "./pages/app/AgentChat";
 import AIGeneral from "./pages/app/AIGeneral";
 import Profile from "./pages/app/Profile";
@@ -374,6 +375,7 @@ export default function App() {
                     <Route path="abroad" element={<CareerAbroad />} />
                     <Route path="agents" element={<AIAgents />} />
                     <Route path="my-agents" element={<MyAgents />} />
+                    <Route path="agent-marketplace" element={<AgentMarketplace />} />
                     <Route path="gigs" element={<Gigs />} />
                     <Route path="marketplace" element={<Navigate to="/app/gigs?tab=projects" replace />} />
                     <Route path="marketplace/:id" element={<MarketplaceGigDetail />} />
