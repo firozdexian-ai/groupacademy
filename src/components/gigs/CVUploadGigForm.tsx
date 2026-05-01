@@ -103,24 +103,30 @@ export function CVUploadGigForm({ gig, talentId, onSubmitted }: CVUploadGigFormP
   const finalizeGigSubmission = async () => {
     setIsSubmitting(true);
     try {
-      const { error } = await supabase.from("gig_submissions").insert({
-        gig_id: gig.id,
-        talent_id: talentId,
-        status: "pending",
-        submission_data: {
-          cv_document: cvUrl,
-          lead_profile: {
-            name: parsedData?.full_name || parsedData?.name,
-            phone: parsedData?.phone || parsedData?.contact?.phone,
-            email: parsedData?.email || parsedData?.contact?.email,
-            profession: parsedData?.profession_category,
+      const { data: inserted, error } = await supabase
+        .from("gig_submissions")
+        .insert({
+          gig_id: gig.id,
+          talent_id: talentId,
+          status: "pending",
+          submission_data: {
+            cv_document: cvUrl,
+            lead_profile: {
+              name: parsedData?.full_name || parsedData?.name,
+              phone: parsedData?.phone || parsedData?.contact?.phone,
+              email: parsedData?.email || parsedData?.contact?.email,
+              profession: parsedData?.profession_category,
+            },
+            generated_outreach: outreachMessage,
+            meta: { engine: "gemini-2.0-flash-exp", timestamp: new Date().toISOString() },
           },
-          generated_outreach: outreachMessage,
-          meta: { engine: "gemini-2.0-flash-exp", timestamp: new Date().toISOString() },
-        },
-      });
+        })
+        .select("id")
+        .single();
       if (error) throw error;
-      toast.success("ARTIFACT_COMMITTED");
+      const { triggerAutoReview } = await import("@/lib/gigAutoReview");
+      triggerAutoReview(inserted.id);
+      toast.success("Submitted for review");
       onSubmitted();
     } catch (err: any) {
       toast.error("SUBMISSION_FAULT");

@@ -162,20 +162,26 @@ export function JobSharingGigForm({ gig, talentId, onSubmitted }: JobSharingGigF
 
     setIsSubmitting(true);
     try {
-      const { error } = await supabase.from("gig_submissions").insert({
-        gig_id: gig.id,
-        talent_id: talentId,
-        status: "pending",
-        submission_data: {
-          job_id: selectedJobId,
-          channels: sharedChannels,
-          share_url: shareUrl,
-          ref_code: talentRefCode,
-          protocol_v: "2.0_VIRAL",
-        },
-      });
+      const { data: inserted, error } = await supabase
+        .from("gig_submissions")
+        .insert({
+          gig_id: gig.id,
+          talent_id: talentId,
+          status: "pending",
+          submission_data: {
+            job_id: selectedJobId,
+            channels: sharedChannels,
+            share_url: shareUrl,
+            ref_code: talentRefCode,
+            protocol_v: "2.0_VIRAL",
+          },
+        })
+        .select("id")
+        .single();
       if (error) throw error;
-      toast.success("DISTRIBUTION_VERIFIED: Tracking node active.");
+      const { triggerAutoReview } = await import("@/lib/gigAutoReview");
+      triggerAutoReview(inserted.id);
+      toast.success("Tracking link active — credits unlock on first verified click");
       onSubmitted();
     } catch (err) {
       toast.error("SUBMISSION_FAULT: Check registry status.");

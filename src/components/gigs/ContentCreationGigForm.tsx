@@ -107,15 +107,16 @@ export function ContentCreationGigForm({ gig, talentId, onSubmitted }: ContentCr
         },
       };
 
-      const { error: dbError } = await supabase.from("gig_submissions").insert({
-        gig_id: gig.id,
-        talent_id: talentId,
-        status: "pending",
-        submission_data: payload,
-      });
+      const { data: inserted, error: dbError } = await supabase
+        .from("gig_submissions")
+        .insert({ gig_id: gig.id, talent_id: talentId, status: "pending", submission_data: payload })
+        .select("id")
+        .single();
 
       if (dbError) throw dbError;
-      toast.success("ARTIFACT_COMMITTED_FOR_AUDIT");
+      const { triggerAutoReview } = await import("@/lib/gigAutoReview");
+      triggerAutoReview(inserted.id);
+      toast.success("Submitted — auto-review in progress");
       onSubmitted();
     } catch (err: any) {
       toast.error("SUBMISSION_FAULT: " + err.message);

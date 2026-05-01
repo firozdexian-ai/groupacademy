@@ -77,24 +77,27 @@ export function CourseResellGigForm({ gig, talentId, onSubmitted }: CourseResell
 
     setIsSubmitting(true);
     try {
-      const { error } = await supabase.from("gig_submissions").insert({
-        gig_id: gig.id,
-        talent_id: talentId,
-        status: "pending",
-        submission_data: {
-          type: "course_referral",
-          course_id: selectedCourseId,
-          course_title: selectedCourse?.title,
-          referral_link: referralLink,
-          attribution_meta: {
-            timestamp: new Date().toISOString(),
-            protocol_v: "2.0_AFFILIATE",
+      const { data: inserted, error } = await supabase
+        .from("gig_submissions")
+        .insert({
+          gig_id: gig.id,
+          talent_id: talentId,
+          status: "pending",
+          submission_data: {
+            type: "course_referral",
+            course_id: selectedCourseId,
+            course_title: selectedCourse?.title,
+            referral_link: referralLink,
+            attribution_meta: { timestamp: new Date().toISOString(), protocol_v: "2.0_AFFILIATE" },
           },
-        },
-      });
+        })
+        .select("id")
+        .single();
 
       if (error) throw error;
-      toast.success("DISTRIBUTION_ARTIFACT_COMMITTED");
+      const { triggerAutoReview } = await import("@/lib/gigAutoReview");
+      triggerAutoReview(inserted.id);
+      toast.success("Referral logged — credits unlock on first click");
       onSubmitted();
     } catch (err: any) {
       toast.error("SYNC_FAULT: " + err.message);

@@ -111,25 +111,26 @@ export function JobPostingGigForm({ gig, talentId, onSubmitted }: JobPostingGigF
   const finalizeArtifactSubmission = async () => {
     setIsSubmitting(true);
     try {
-      const { error } = await supabase.from("gig_submissions").insert({
-        gig_id: gig.id,
-        talent_id: talentId,
-        status: "pending",
-        submission_data: {
-          input_method: inputMode,
-          source: inputMode === "text" ? jobText : sourceImageUrl,
-          curated_data: {
-            title: editTitle,
-            company: editCompany,
-            location: editLocation,
-            type: editJobType,
+      const { data: inserted, error } = await supabase
+        .from("gig_submissions")
+        .insert({
+          gig_id: gig.id,
+          talent_id: talentId,
+          status: "pending",
+          submission_data: {
+            input_method: inputMode,
+            source: inputMode === "text" ? jobText : sourceImageUrl,
+            curated_data: { title: editTitle, company: editCompany, location: editLocation, type: editJobType },
+            ai_meta: parsedRaw,
           },
-          ai_meta: parsedRaw,
-        },
-      });
+        })
+        .select("id")
+        .single();
 
       if (error) throw error;
-      toast.success("ARTIFACT_COMMITTED");
+      const { triggerAutoReview } = await import("@/lib/gigAutoReview");
+      triggerAutoReview(inserted.id);
+      toast.success("Submitted — auto-review in progress");
       onSubmitted();
     } catch (err: any) {
       toast.error("SUBMISSION_FAULT");
