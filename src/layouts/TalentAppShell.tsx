@@ -464,7 +464,8 @@ export function TalentAppShell() {
                   <Download className="h-4 w-4 mr-2" /> Download CV
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => navigate("/app/abroad")} className="cursor-pointer">
-                  <Globe className="h-4 w-4 mr-2" /> Career Abroad
+                  <Globe className="h-4 w-4 mr-2" /> Study & Work Abroad
+                  <span className="ml-auto text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-primary/10 text-primary">New</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={async () => {
