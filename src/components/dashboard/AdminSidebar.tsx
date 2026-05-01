@@ -38,6 +38,7 @@ import {
   CreditCard,
   Factory,
   Network,
+  Zap,
 } from "lucide-react";
 import {
   Sidebar,
