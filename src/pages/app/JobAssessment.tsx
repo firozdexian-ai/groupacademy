@@ -17,10 +17,8 @@ import {
   Mic,
   Loader2,
   AlertCircle,
-  Brain,
   RefreshCw,
   ShieldCheck,
-  Zap,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
