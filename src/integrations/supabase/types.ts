@@ -596,6 +596,56 @@ export type Database = {
           },
         ]
       }
+      agent_payout_requests: {
+        Row: {
+          admin_notes: string | null
+          amount_credits: number
+          created_at: string
+          id: string
+          payout_details: Json
+          payout_method: string
+          processed_at: string | null
+          processed_by: string | null
+          status: string
+          talent_id: string
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount_credits: number
+          created_at?: string
+          id?: string
+          payout_details?: Json
+          payout_method: string
+          processed_at?: string | null
+          processed_by?: string | null
+          status?: string
+          talent_id: string
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          amount_credits?: number
+          created_at?: string
+          id?: string
+          payout_details?: Json
+          payout_method?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          status?: string
+          talent_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_payout_requests_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_threads: {
         Row: {
           agent_id: string
@@ -6357,6 +6407,10 @@ export type Database = {
         Args: { _company_id: string; _user_id: string }
         Returns: boolean
       }
+      mark_payout_paid: {
+        Args: { p_notes?: string; p_request_id: string }
+        Returns: Json
+      }
       match_agent_knowledge: {
         Args: {
           p_agent_id: string
@@ -6395,6 +6449,7 @@ export type Database = {
         Args: { p_admin_notes?: string; p_submission_id: string }
         Returns: Json
       }
+      talent_marketplace_summary: { Args: never; Returns: Json }
       track_content_click: {
         Args: { p_content_id: string; p_source: string }
         Returns: undefined
