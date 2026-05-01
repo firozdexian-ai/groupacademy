@@ -193,6 +193,7 @@ const TAB_TITLES: Record<string, string> = {
   "roadmap-leads": "Global Pipeline",
   "ai-agents": "Neural Workforce",
   "agent-studio": "Agent Studio",
+  "agent-triggers": "Channel Triggers",
   "agent-sessions": "Session Logs",
   leads: "Scorecard Intel",
   interviews: "Mock Calibration",
