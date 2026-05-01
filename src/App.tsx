@@ -76,6 +76,7 @@ import MarketplaceGigDetail from "./pages/app/MarketplaceGigDetail";
 import Transactions from "./pages/app/Transactions";
 import Withdrawals from "./pages/app/Withdrawals";
 import ProfileVerify from "./pages/app/ProfileVerify";
+import ContentStudio from "./pages/app/ContentStudio";
 
 // Feature Details
 import AppJobs from "./pages/app/AppJobs";
@@ -430,6 +431,7 @@ export default function App() {
                     <Route path="transactions" element={<Transactions />} />
                     <Route path="withdrawals" element={<Withdrawals />} />
                     <Route path="profile/verify" element={<ProfileVerify />} />
+                    <Route path="studio" element={<ContentStudio />} />
 
                     {/* Study Abroad - Specific Routes First */}
                     <Route path="abroad/study" element={<StudyAbroad />} />
