@@ -23,7 +23,9 @@ export function getDefaultRouteFor(type: AccountType): string {
 export function resolvePostAuthRoute(
   type: AccountType,
   returnTo?: string | null,
-): string {
+): string | null {
   if (returnTo && !returnTo.includes("/auth")) return returnTo;
+  // Don't guess while account type is still resolving — caller should wait.
+  if (type === "unknown") return null;
   return getDefaultRouteFor(type);
 }

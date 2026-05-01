@@ -69,7 +69,11 @@ const Index = () => {
   useEffect(() => {
     if (isGlobalLoading) return;
 
-    const dest = user ? getDefaultRouteFor(accountType) : null;
+    // For signed-in users, wait until accountType is resolved (not "unknown")
+    // to avoid sending company users to the talent feed.
+    const dest = user
+      ? (accountType === "unknown" ? null : getDefaultRouteFor(accountType))
+      : null;
 
     if (isPWA) {
       navigate(dest ?? "/auth", { replace: true });

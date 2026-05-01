@@ -49,7 +49,7 @@ const AuthChat = () => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         const dest = resolvePostAuthRoute(accountType, searchParams.get("returnTo"));
-        navigate(dest, { replace: true });
+        if (dest) navigate(dest, { replace: true });
       }
     });
   }, [user, authLoading, accountType, accountTypeLoading, navigate, searchParams]);
