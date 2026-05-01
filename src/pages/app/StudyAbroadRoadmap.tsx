@@ -1,17 +1,14 @@
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Map } from "lucide-react";
 import { RoadmapIntakeForm } from "@/components/abroad/RoadmapIntakeForm";
 
 /**
  * Study Abroad Roadmap — structured intake form.
- * Accepts ?country=XX to prefill the destination from a country agent's CTA.
  */
 
 export default function StudyAbroadRoadmap() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const prefillCountry = searchParams.get("country") || undefined;
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 pb-32 space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
