@@ -40,6 +40,7 @@ import {
   FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AgentBrainPanel } from "@/components/dashboard/AgentBrainPanel";
 
 /**
  * Agent Studio: No-code builder for the unified Agent OS.
@@ -338,6 +339,9 @@ function AgentDetailPanel({
             <TabsTrigger value="knowledge" className="rounded-none">
               <BookOpen className="h-3 w-3" /> Knowledge
             </TabsTrigger>
+            <TabsTrigger value="brain" className="rounded-none">
+              <Sparkles className="h-3 w-3" /> Brain
+            </TabsTrigger>
           </TabsList>
 
           {/* Config tab */}
@@ -523,6 +527,11 @@ function AgentDetailPanel({
           {/* Knowledge tab */}
           <TabsContent value="knowledge" className="p-6">
             <KnowledgePanel agentId={agent.id} />
+          </TabsContent>
+
+          {/* Brain tab — Phase 7 */}
+          <TabsContent value="brain" className="p-6">
+            <AgentBrainPanel agent={agent as any} onSaved={() => onSave({})} />
           </TabsContent>
         </Tabs>
       </CardContent>
