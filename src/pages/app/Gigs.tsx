@@ -348,6 +348,10 @@ export default function Gigs() {
           </div>
         </TabsContent>
 
+        <TabsContent value="build" className="mt-12 animate-in slide-in-from-bottom-4 duration-700">
+          <BuildAcademyTab />
+        </TabsContent>
+
         <TabsContent value="activity" className="mt-12 space-y-16 animate-in slide-in-from-bottom-4 duration-700">
           <section className="space-y-6">
             <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-primary flex items-center gap-4">
