@@ -101,19 +101,46 @@ export default function Gigs() {
     },
   });
 
-  // ── Marketplace Intelligence ──
+  // ── Projects feed: marketplace gigs + open academy content gigs, unified by resource_category ──
   const { data: projects, isLoading: projectsLoading } = useQuery({
-    queryKey: ["marketplace-gigs", selectedProjectCategory],
+    queryKey: ["unified-projects", selectedProjectCategory],
     queryFn: async () => {
-      let query = supabase
+      let mq = supabase
         .from("marketplace_gigs")
         .select("*")
         .in("status", ["approved", "active"])
         .order("is_featured", { ascending: false });
-      if (selectedProjectCategory) query = query.eq("skill_category", selectedProjectCategory);
-      const { data, error } = await query;
-      if (error) throw error;
-      return data;
+      if (selectedProjectCategory) mq = mq.eq("resource_category", selectedProjectCategory);
+      const { data: market, error: mErr } = await mq;
+      if (mErr) throw mErr;
+
+      let cq = supabase
+        .from("content_gigs" as any)
+        .select("id, title, brief, resource_category, resource_type, credit_reward, school_id, stage_number, status")
+        .eq("status", "open")
+        .order("created_at", { ascending: false })
+        .limit(60);
+      if (selectedProjectCategory) cq = cq.eq("resource_category", selectedProjectCategory);
+      const { data: content } = await cq;
+
+      const mapped = ((content as any) || []).map((c: any) => ({
+        id: `content:${c.id}`,
+        kind: "academy" as const,
+        title: c.title,
+        description: c.brief || `Academy ${c.resource_type} resource`,
+        resource_category: c.resource_category || categoryFromResourceType(c.resource_type),
+        budget_amount: c.credit_reward,
+        pricing_type: "fixed",
+        total_bids: 0,
+        contentId: c.id,
+      }));
+
+      const marketRows = ((market as any) || []).map((m: any) => ({
+        ...m,
+        kind: "marketplace" as const,
+        resource_category: m.resource_category || "writing",
+      }));
+      return [...mapped, ...marketRows];
     },
   });
 
