@@ -1593,7 +1593,10 @@ export type Database = {
       }
       companies: {
         Row: {
+          about: string | null
           address: string | null
+          banner_url: string | null
+          country: string | null
           created_at: string | null
           facebook_url: string | null
           id: string
@@ -1603,13 +1606,17 @@ export type Database = {
           logo_url: string | null
           name: string
           notes: string | null
+          operating_hours: Json | null
           primary_email: string | null
           secondary_emails: Json | null
           updated_at: string | null
           website: string | null
         }
         Insert: {
+          about?: string | null
           address?: string | null
+          banner_url?: string | null
+          country?: string | null
           created_at?: string | null
           facebook_url?: string | null
           id?: string
@@ -1619,13 +1626,17 @@ export type Database = {
           logo_url?: string | null
           name: string
           notes?: string | null
+          operating_hours?: Json | null
           primary_email?: string | null
           secondary_emails?: Json | null
           updated_at?: string | null
           website?: string | null
         }
         Update: {
+          about?: string | null
           address?: string | null
+          banner_url?: string | null
+          country?: string | null
           created_at?: string | null
           facebook_url?: string | null
           id?: string
@@ -1635,6 +1646,7 @@ export type Database = {
           logo_url?: string | null
           name?: string
           notes?: string | null
+          operating_hours?: Json | null
           primary_email?: string | null
           secondary_emails?: Json | null
           updated_at?: string | null
@@ -1900,6 +1912,90 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_talent_reveals: {
+        Row: {
+          company_id: string
+          credits_spent: number
+          id: string
+          revealed_at: string
+          revealed_by: string
+          talent_id: string
+        }
+        Insert: {
+          company_id: string
+          credits_spent?: number
+          id?: string
+          revealed_at?: string
+          revealed_by: string
+          talent_id: string
+        }
+        Update: {
+          company_id?: string
+          credits_spent?: number
+          id?: string
+          revealed_at?: string
+          revealed_by?: string
+          talent_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_talent_reveals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_talent_reveals_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_talent_shortlists: {
+        Row: {
+          added_by: string
+          company_id: string
+          created_at: string
+          id: string
+          note: string | null
+          talent_id: string
+        }
+        Insert: {
+          added_by: string
+          company_id: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          talent_id: string
+        }
+        Update: {
+          added_by?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          talent_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_talent_shortlists_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_talent_shortlists_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
             referencedColumns: ["id"]
           },
         ]
@@ -7069,6 +7165,17 @@ export type Database = {
       }
       cancel_invoice: {
         Args: { p_invoice_id: string; p_reason?: string }
+        Returns: Json
+      }
+      charge_company_credits: {
+        Args: {
+          p_amount: number
+          p_company_id: string
+          p_description: string
+          p_reference_id?: string
+          p_service_type: string
+          p_txn_type: string
+        }
         Returns: Json
       }
       check_auth_email: { Args: { lookup_email: string }; Returns: Json }

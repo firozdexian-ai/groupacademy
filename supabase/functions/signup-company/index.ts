@@ -160,9 +160,14 @@ Deno.serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e: any) {
-    console.error("signup-company error:", e);
-    return new Response(JSON.stringify({ error: e.message || "Internal error" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    console.error("signup-company error:", e, e?.stack);
+    return new Response(
+      JSON.stringify({
+        error: e?.message || "Internal error",
+        code: e?.code || "INTERNAL",
+        details: e?.details || e?.hint || null,
+      }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   }
 });

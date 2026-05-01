@@ -1,114 +1,123 @@
-## Pivot: Self-Serve Company Signup (No Approval)
+## Why Signup Failed
 
-You're right — the approval queue is friction. New plan: anyone with a work email signs up, gets an instant company workspace + **250 free credits**, and lands in `/company` with 1–2 starter AI agents already chatting. Approval queue is removed entirely.
+`signup-company` exists in code and the database is fully wired (functions, agents, tables all present), but **the function has zero invocation logs** — it hasn't been deployed to runtime yet. First action of this plan re-deploys it and surfaces the real error in the toast (currently swallowed as "edge function failed").
 
 ---
 
-## How the new flow works (end-to-end)
+## Plan: Company Portal v1 — Pure Chat + Canvas, WhatsApp-Business Style
 
+No tabs. No tables. No forms outside chat. Every workflow is a conversation with an agent. When an agent needs to show structured output (job preview, talent card, invoice, profile editor) it opens a **canvas pane** beside the chat — same pattern already used in `useAgentRuntime` for the talent side.
+
+### Layout (single screen, no tabs)
+
+```text
+/company
+┌─────────────┬──────────────────────────┬───────────────────┐
+│ Agent List  │  Active Conversation     │  Canvas (toggle)  │
+│ (WhatsApp)  │  (markdown chat stream)  │  Job draft / CV / │
+│             │                          │  invoice / profile│
+│ Recruiter   │  > Post a senior react   │                   │
+│ Riya •      │    role in Berlin        │  [Live preview    │
+│ Growth      │  Riya: Here's a draft… → │   of what the     │
+│ Aiden       │  [Open in canvas]        │   agent built]    │
+│ Talent Scout│                          │                   │
+│ Maya        │                          │                   │
+│ Billing     │                          │                   │
+│ Bilal       │                          │                   │
+│ Ops Omar    │                          │                   │
+└─────────────┴──────────────────────────┴───────────────────┘
 ```
-/for-companies                → marketing landing
-/for-companies/signup         → 2-step self-serve signup (NEW, replaces /apply)
-   step 1: work email + password + name + phone
-   step 2: company name (live-search existing 6,076 companies → pick or create)
-            + website + industry + size + country
-            → submit
-            → server creates auth user, finds-or-creates company,
-              creates company_members(owner), grants 250 free credits,
-              auto-seeds 1–2 starter agent threads
-            → redirect to /company
-/company                      → agent inbox, credit balance in header
-```
 
-No admin step. No "pending" state. Instant access.
+Canvas slides in from the right when the agent emits a structured artifact, slides out when not needed. Mobile: canvas takes full screen with a back button (per mobile design system memory).
 
----
+### The Five Company Agents
 
-## Bugs from current code that still need fixing (carried over)
+Already seeded: **Recruiter Riya**, **Growth Aiden**. Add three more so every B2B job is owned by a conversational persona:
 
-| # | Issue |
-|---|-------|
-| B1 | `CompanyRequestsPanel.tsx` calls `supabase.from("n")` and invokes `"n"` — broken stubs. (Will be **deleted** entirely; no more approval panel needed.) |
-| B2 | `approve-company-onboarding` writes column `invite_email` but the real column is `invited_email`. (Function will be **deleted**; new self-serve fn uses correct name.) |
-| B3 | `approve` always inserts a new company — no dedup against the 6,076 seeded companies. (Fixed via `find_or_create_company` SQL helper in the new flow.) |
-| B4 | `companies.is_verified` defaults false; RLS needs it true to show in member SELECTs. (Self-serve fn will set `is_verified=true` on link/create.) |
-| B5 | No auto-link from `auth.users` → `company_members`. (Not needed any more — the signup edge fn does both in one transaction with the user's id in hand.) |
-| B6 | Country is free text. (Standardized country select in new form — global product memory rule.) |
-| B7 | No live company search/dedup in form. (Built into step 2 of new signup.) |
-| B8 | "No company access" empty state on `/company` only `mailto:`. (Will deep-link to `/for-companies/signup` + auto-create on first visit if user signed up via `/auth` directly.) |
-| B9 | Missing `company-onboarding-approved` email template. (Replaced with a `company-welcome` template — "Your workspace is ready, here are 250 free credits".) |
-| B10 | `CompanyPortal.tsx` legacy `font-black uppercase tracking-widest` styling. (Phase 13 cleanup applied.) |
+| Agent | Owns | Canvas Artifacts |
+|-------|------|------------------|
+| Recruiter Riya | Job posting, edits, pause/close, applicant review | Job draft editor, applicant shortlist |
+| Talent Scout Maya | Search talent DB, filter by skill/country, reveal PII | Talent card, saved shortlist |
+| Billing Bilal | Credit balance, ledger, top-up, invoices | Ledger view, Stripe checkout link |
+| Ops Omar | Company profile, hours, locations, team invites | Profile editor, member list |
+| Growth Aiden | Strategy, market trends, JD writing tips | Insight cards, JD templates |
 
-**Critical new finding:** there are currently **0 agents** with `audience='company'` or `'public'` in `ai_agents`. The portal would show an empty sidebar even after perfect signup. We must seed at least 2 starter company agents (see Phase D).
+### Agent Tool Inventory (what each agent can actually do)
 
----
+Server-side tools registered to each agent, called via the existing tool-calling loop:
 
-## Plan
+- `create_job(title, location, skills, salary, …)` → returns draft, opens canvas
+- `publish_job(job_id)` → deducts credits, returns confirmation
+- `list_my_jobs(status?)` → renders inline list with quick actions
+- `search_talent(filters)` → returns redacted cards
+- `reveal_talent(talent_id)` → deducts credits, unlocks PII, logs audit
+- `save_to_shortlist(talent_id, note?)`
+- `get_credit_balance()` / `get_ledger(days?)`
+- `start_topup(amount)` → returns Stripe checkout URL
+- `update_company_profile(field, value)` → handles website, industry, hours, address, logo, linkedin
+- `invite_teammate(email, role)`
+- `list_teammates()`
 
-### Phase A — Self-serve signup edge function & form
-1. **New edge fn `signup-company`** (`verify_jwt = false`, public). Body: `{email, password, full_name, phone, company_name, company_id?, website, industry, company_size, country}`.
-   - Validate with Zod, block free-email providers (gmail/yahoo/etc — keep this guard).
-   - `supabase.auth.admin.createUser({ email, password, email_confirm: true, user_metadata })`.
-   - Call `find_or_create_company(...)` → returns company_id, sets `is_verified=true`, enriches missing fields.
-   - Insert `company_members { company_id, user_id, role: 'owner', status: 'active' }`.
-   - Upsert `company_credits { company_id, balance: 250 }` (only if row didn't exist — never re-grant on subsequent signups for the same company).
-   - Optionally insert a `company_credit_transactions` row with reason `welcome_bonus`.
-   - Send `company-welcome` transactional email.
-   - Return `{ session_email, company_id }` so the client can sign the user in.
-2. **New page `/for-companies/signup`** (`src/pages/public/CompanySignup.tsx`) — 2-step wizard:
-   - Step 1: account fields (name, work email with free-provider blocking, password, phone with country code).
-   - Step 2: live-search `companies` by name (debounced, top 5 with logo/website hint). Pick existing → website/industry/country prefill from record (read-only badges shown as "from our records", user can override missing). "Not in list? Add new" → user fills all fields. Country uses standardized country select.
-   - Submit → calls `signup-company` → on success calls `supabase.auth.signInWithPassword` → navigate `/company`.
-3. **Landing CTAs** in `ForCompanies.tsx`: change "Request access" → "Get started free" pointing to `/for-companies/signup`. Add a "250 free credits + instant access — no approval needed" badge.
+Each tool runs through the agent runtime and writes to the same DB tables — no parallel UI surface.
 
-### Phase B — DB helpers & dedup
-4. SQL function `find_or_create_company(p_name, p_website, p_industry, p_country)` (SECURITY DEFINER, `search_path = public`):
-   - Normalize: lowercase, strip suffixes (Ltd/Inc/Pvt/LLC), normalize website to root domain.
-   - Match priority: exact root-domain on website → exact normalized name → trigram similarity ≥ 0.85 (enable `pg_trgm` if missing).
-   - On hit: enrich NULL columns only; set `is_verified=true`; return id.
-   - On miss: insert new with `is_verified=true`; return id.
-5. SQL function `grant_company_welcome_credits(p_company_id uuid)` — inserts/updates `company_credits` to `balance=250` only if row was newly created (idempotent — protects against duplicate grants if multiple owners sign up to same company).
+### Company Profile via Chat
 
-### Phase C — Remove approval pipeline
-6. Delete edge fns `submit-company-onboarding`, `approve-company-onboarding`, `reject-company-onboarding`.
-7. Delete `src/pages/public/CompanyOnboarding.tsx` and route `/for-companies/apply`.
-8. Delete `src/components/dashboard/CompanyRequestsPanel.tsx` and unmount it from the admin dashboard.
-9. Drop migration: `DROP TABLE company_onboarding_requests;` (no data — current count 0).
-10. Delete `company-onboarding-received.tsx` template + its registry entry.
+When Ops Omar is opened and the company has missing fields, he proactively asks: *"I noticed your operating hours and LinkedIn aren't set. Want to add them now?"* User answers in plain text → Omar calls `update_company_profile` → canvas shows the live profile card updating field-by-field. Same flow for hours, holidays, locations, "about us", banner image.
 
-### Phase D — Seed 2 starter company agents
-11. Insert 2 rows into `ai_agents` with `audience='company'`, `is_active=true`, `agent_level=1`:
-    - **`company_recruiter`** — "Recruiter Riya" — "Helps you post jobs, screen applicants, and search the talent network."
-    - **`company_growth`** — "Growth Advisor Aiden" — "Helps with employer branding, outreach campaigns, and finding the right talent pools."
-    Plus their `system_prompt`, `display_order`, and `cost_per_response` (use the existing fractional-credit standard).
-12. On first visit to `/company`, the existing `useAgentRuntime` will pick these up (no portal code change needed beyond Phase E polish).
+### Phase 1 — Unblock & Verify (do first)
 
-### Phase E — Portal polish
-13. `CompanyPortal.tsx`:
-    - Add a credit balance pill in the header reading from `company_credits` (subscribe to updates).
-    - Replace `font-black uppercase tracking-widest` and the `AGENTIC` neon badge with `uiTokens` styling (Phase 13 consistency).
-    - Empty-state CTA: link to `/for-companies/signup`, but if user is already authed and missing membership, show a one-click "Create my company workspace" inline form (reuses Step 2 of signup).
-    - Add a small "Company profile" sheet (name, logo upload to existing `companies` table, website edit) so owners can finish their record.
+1. Re-deploy `signup-company`.
+2. Make the function return `{ error, code, details }` and the client toast show the real reason.
+3. Smoke-test the full signup → land in `/company` → Riya greets you with 250 credits.
 
-### Phase F — Smoke test (you walk through this)
-1. Open `/for-companies/signup` in a logged-out tab.
-2. Step 1: use a real work email (not gmail). Step 2: type a company name that **already exists** in our seeded data → pick it from the dropdown → submit. Expect: no duplicate company, `is_verified=true`, you land on `/company` with 250 credits and 2 agent threads visible.
-3. Repeat with a brand-new company name → expect fresh `companies` row with verified=true.
-4. Try the same email twice → expect "account already exists" error, not double credits.
-5. Send a message to "Recruiter Riya" → credits decrement per response.
+### Phase 2 — Three New Agents + Tool Layer
+
+1. Seed `talent_scout`, `billing_bilal`, `ops_omar` rows in `ai_agents` (audience=`company`).
+2. Build the tool registry: each tool is a typed function the agent runtime can dispatch. Tools live in a single edge function `company-agent-tools` so all five agents share one secure surface (with per-tool RBAC: only Bilal can call `start_topup`, only Riya/Maya can spend credits on talent, etc.).
+3. Wire `useAgentRuntime` to recognise tool-call results that carry `canvas: { type, payload }` and open the right canvas component.
+
+### Phase 3 — Canvas Components
+
+Five small canvas components, all read/write through tools (no direct supabase from the canvas):
+
+- `<JobDraftCanvas/>` — live editable job preview, "Publish" button calls `publish_job`
+- `<TalentCardCanvas/>` — redacted card with "Reveal contact (5 credits)" CTA
+- `<LedgerCanvas/>` — last 90 days, grouped by service, "Top up" CTA
+- `<ProfileCanvas/>` — company profile editor with hours, address, logo upload
+- `<TeamCanvas/>` — invite list + role chips
+
+### Phase 4 — Multi-Workspace + Invites
+
+- Workspace switcher in agent-list header (only shown if user has 2+ memberships).
+- `invite_teammate` tool inserts a `company_members` row with `status='invited'` + `invited_email`.
+- DB trigger `link_user_to_company_invites` on `auth.users` AFTER INSERT auto-claims invites by matching email → flips to `status='active'`, stamps `user_id`.
+
+### Phase 5 — Progressive Enrichment
+
+When any teammate opens the workspace, if the shared `companies` row is missing fields, Ops Omar drops one proactive message asking to fill them. Updates flow back to the shared row, so all 6,076 seeded companies progressively self-enrich as their reps onboard.
 
 ---
 
-## Technical Section
+## Technical Notes
 
-- **New tables**: none. **Schema changes**: drop `company_onboarding_requests`. Possibly enable `pg_trgm` extension.
-- **New SQL functions**: `find_or_create_company`, `grant_company_welcome_credits` (both SECURITY DEFINER, `search_path = public`).
-- **New edge fns**: `signup-company` (verify_jwt=false, uses service-role key for admin user creation, Zod validated, free-provider email block, idempotent credit grant). **Deleted**: `submit/approve/reject-company-onboarding`.
-- **New email template**: `company-welcome.tsx` ("Workspace ready + 250 free credits") + registry entry. **Deleted**: `company-onboarding-received.tsx`.
-- **Seed data**: 2 rows in `ai_agents` with `audience='company'` (need to ship system prompts — I'll write them based on existing agent patterns).
-- **RLS**: existing `company_members` "Members view own membership" + `companies` "Company members view own company" policies already cover the new flow once `user_id` is set on the membership row at signup.
-- **Files added**: `src/pages/public/CompanySignup.tsx`, `supabase/functions/signup-company/index.ts`, `supabase/functions/_shared/transactional-email-templates/company-welcome.tsx`.
-- **Files edited**: `src/pages/public/ForCompanies.tsx` (CTAs), `src/pages/company/CompanyPortal.tsx` (credit pill, empty-state inline create, Phase 13 styling), `src/App.tsx` (replace `/for-companies/apply` route with `/for-companies/signup`), admin dashboard (drop the requests panel).
-- **Files deleted**: `src/pages/public/CompanyOnboarding.tsx`, `src/components/dashboard/CompanyRequestsPanel.tsx`, 3 onboarding edge functions, 1 email template.
+- **No new heavy tables.** Reuse `jobs`, `talents`, `companies`, `company_members`, `company_credit_ledger`, `ai_agents`. Add only:
+  - `company_talent_shortlists (id, company_id, talent_id, added_by, note, created_at)`
+  - `company_talent_reveals (company_id, talent_id, revealed_by, credits_spent, revealed_at)` — audit
+  - `companies` columns: `operating_hours jsonb`, `about text`, `banner_url text`, `linkedin_url` (already exists)
+- **One edge function for tools**: `company-agent-tools` validates JWT, resolves caller's `company_id` via `company_members`, dispatches to the requested tool, enforces per-tool RBAC.
+- **Canvas dispatch pattern**: tool result `{ canvas: { type: 'job_draft', payload: {...} } }` is intercepted in the runtime hook and pushed into a `canvasState` Zustand store. The right pane subscribes and renders the matching component. Closing the canvas just clears the store.
+- **Credit deduction** stays in the existing fractional model (numeric(12,1), per-response and per-action).
+- **No `verify_jwt = false`** for `company-agent-tools` — it must auth-verify the caller and cross-check `company_members`.
+- **RLS** on the two new tables follows the established pattern: `company_id IN (select company_id from company_members where user_id = auth.uid() and status='active')`.
 
-After approval I'll execute Phases A→E in one pass, then walk you through the smoke test.
+---
+
+## What's Out of Scope
+
+- Approval queue (already removed, staying self-serve).
+- Custom-built company agents (later — let companies clone & tune Riya).
+- Direct human-to-human B2C messaging (everything stays through agents).
+- Analytics dashboard.
+- Tabs, forms, separate pages — none of these are coming back.
+
+After this ships, a company rep signs up → lands in WhatsApp-style inbox → talks to Riya to post a job, Maya to find talent, Bilal to top up, Omar to set their profile and hours. The whole B2B loop, fully conversational, with a canvas for anything that needs a visual artifact.
