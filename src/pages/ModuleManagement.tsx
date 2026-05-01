@@ -1,455 +1,467 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   ArrowLeft,
-  Video,
-  FileText,
-  Brain,
-  HelpCircle,
-  FileCheck,
-  Trash2,
   Plus,
+  Trash2,
   Save,
-  RefreshCw,
+  Layers,
+  ArrowUp,
+  ArrowDown,
+  Video,
+  ChevronRight,
   Loader2,
-  Zap,
-  CheckCircle2,
+  RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
-import type { Database } from "@/integrations/supabase/types";
 import { cn } from "@/lib/utils";
 
-type ResourceType = Database["public"]["Enums"]["resource_type"];
+/**
+ * Curriculum Module Manager
+ * Lists, creates, reorders and edits modules for a given course.
+ * Each module exposes a deep-link to its 6-stage Resource Manager.
+ */
 
-interface ModuleResource {
-  id?: string;
+interface CourseModule {
+  id: string;
+  content_id: string;
   title: string;
-  description: string;
-  resource_type: ResourceType;
-  resource_url: string | null;
-  resource_data: any;
-  stage_number: number;
-  display_order: number;
-  is_required: boolean;
+  description: string | null;
+  video_url: string | null;
+  duration_minutes: number | null;
+  display_order: number | null;
+  is_preview: boolean | null;
 }
 
-interface ResourceSaveState {
-  status: "saved" | "unsaved" | "saving" | "error";
-  error?: string;
+type SaveStatus = "saved" | "unsaved" | "saving";
+
+interface ModuleManagementProps {
+  contentId?: string | null;
+  onBack?: () => void;
 }
 
-// Stage Configuration aligned with the GroUp Academy 6-Stage Immersive Model
-const stageConfig = [
-  { number: 1, name: "Orientation", icon: Video, resourceTypes: ["video", "infographic"] as ResourceType[] },
-  { number: 2, name: "Learn", icon: FileText, resourceTypes: ["slides", "mindmap", "infographic"] as ResourceType[] },
-  { number: 3, name: "Discuss", icon: MessageCircle, resourceTypes: ["audio_podcast"] as ResourceType[] },
-  { number: 4, name: "Practice", icon: Brain, resourceTypes: ["flashcards", "ai_scenario"] as ResourceType[] },
-  { number: 5, name: "Assess", icon: HelpCircle, resourceTypes: ["quiz"] as ResourceType[] },
-  { number: 6, name: "Progress", icon: FileCheck, resourceTypes: ["report"] as ResourceType[] },
-];
+export default function ModuleManagement(props: ModuleManagementProps = {}) {
+  const params = useParams();
+  const navigate = useNavigate();
+  const contentId = props.contentId ?? params.contentId ?? null;
 
-const resourceTypeLabels: Record<ResourceType, string> = {
-  video: "Strategic Video",
-  slides: "Knowledge Deck",
-  infographic: "Visual Map",
-  mindmap: "Neural Map",
-  audio_podcast: "Audio Brief",
-  flashcards: "Recall Set",
-  ai_scenario: "Neural Scenario",
-  quiz: "Assessment",
-  report: "Progress Report",
-};
+  const [loading, setLoading] = useState(true);
+  const [course, setCourse] = useState<{ title: string; content_type: string } | null>(null);
+  const [modules, setModules] = useState<CourseModule[]>([]);
+  const [saveStates, setSaveStates] = useState<Record<string, SaveStatus>>({});
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
-function JsonDataEditor({ value, onChange, label = "Object Schema" }: any) {
-  const [rawText, setRawText] = useState(() => JSON.stringify(value || {}, null, 2));
-  const [parseError, setParseError] = useState<string | null>(null);
-
-  const handleTextChange = (text: string) => {
-    setRawText(text);
-    try {
-      const parsed = JSON.parse(text);
-      setParseError(null);
-      onChange(parsed);
-    } catch (e) {
-      setParseError("Invalid Logic: Check syntax.");
-    }
+  const handleBack = () => {
+    if (props.onBack) return props.onBack();
+    if (contentId) navigate(`/content/${contentId}/edit`);
+    else navigate(-1);
   };
 
-  return (
-    <div className="space-y-2">
-      <div className="flex justify-between items-center">
-        <Label className="text-[10px] font-black uppercase tracking-widest text-primary">{label}</Label>
-        {parseError && (
-          <Badge variant="destructive" className="h-5 text-[8px] animate-pulse">
-            {parseError}
-          </Badge>
-        )}
-      </div>
-      <Textarea
-        value={rawText}
-        onChange={(e) => handleTextChange(e.target.value)}
-        className={cn(
-          "font-mono text-xs rounded-xl bg-muted/20 border-border/40 min-h-[200px] leading-relaxed",
-          parseError && "border-rose-500/50",
-        )}
-      />
-    </div>
-  );
-}
-
-export default function ModuleResourcesManager() {
-  const { contentId, moduleId } = useParams();
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [resources, setResources] = useState<ModuleResource[]>([]);
-  const [activeStage, setActiveStage] = useState("1");
-  const [module, setModule] = useState<any>(null);
-  const [saveStates, setSaveStates] = useState<Record<string, ResourceSaveState>>({});
-
-  useEffect(() => {
-    if (moduleId) loadData();
-  }, [moduleId]);
-
-  const loadData = async () => {
+  const loadModules = useCallback(async () => {
+    if (!contentId) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
-      const { data: moduleData } = await supabase.from("course_modules").select("*").eq("id", moduleId).single();
-      const { data: resData } = await supabase
-        .from("module_resources")
-        .select("*")
-        .eq("module_id", moduleId)
-        .order("display_order");
+      const [courseRes, modulesRes] = await Promise.all([
+        supabase.from("content").select("title, content_type").eq("id", contentId).maybeSingle(),
+        supabase
+          .from("course_modules")
+          .select("id, content_id, title, description, video_url, duration_minutes, display_order, is_preview")
+          .eq("content_id", contentId)
+          .order("display_order", { ascending: true, nullsFirst: false }),
+      ]);
 
-      if (moduleData) setModule(moduleData);
-      if (resData) {
-        setResources(resData);
-        const states: Record<string, ResourceSaveState> = {};
-        resData.forEach((r) => {
-          if (r.id) states[r.id] = { status: "saved" };
-        });
-        setSaveStates(states);
-      }
-    } catch (e) {
-      toast.error("Resource Handshake failed.");
+      if (courseRes.data) setCourse(courseRes.data);
+      if (modulesRes.error) throw modulesRes.error;
+
+      setModules(modulesRes.data || []);
+      setSaveStates({});
+    } catch (e: any) {
+      toast.error(`Failed to load modules: ${e.message ?? "unknown error"}`);
     } finally {
       setLoading(false);
     }
+  }, [contentId]);
+
+  useEffect(() => {
+    loadModules();
+  }, [loadModules]);
+
+  const markUnsaved = (id: string) =>
+    setSaveStates((prev) => ({ ...prev, [id]: prev[id] === "saving" ? prev[id] : "unsaved" }));
+
+  const updateField = (id: string, field: keyof CourseModule, value: any) => {
+    setModules((prev) => prev.map((m) => (m.id === id ? { ...m, [field]: value } : m)));
+    markUnsaved(id);
   };
 
-  const addResource = (stage: number, type: ResourceType) => {
-    const tempId = `temp-${Date.now()}`;
-    const newRes: ModuleResource = {
-      id: tempId,
-      title: resourceTypeLabels[type],
-      description: "",
-      resource_type: type,
-      resource_url: "",
-      resource_data: {},
-      stage_number: stage,
-      display_order: resources.filter((r) => r.stage_number === stage).length,
-      is_required: true,
-    };
-    setResources([...resources, newRes]);
-    setSaveStates((prev) => ({ ...prev, [tempId]: { status: "unsaved" } }));
-  };
-
-  const updateResourceField = (id: string, field: keyof ModuleResource, value: any) => {
-    setResources((prev) => prev.map((r) => (r.id === id ? { ...r, [field]: value } : r)));
-    setSaveStates((prev) => ({ ...prev, [id]: { status: "unsaved" } }));
-  };
-
-  const saveResource = async (resource: ModuleResource) => {
-    const originalId = resource.id;
-    if (!originalId) return;
-
-    setSaveStates((prev) => ({ ...prev, [originalId]: { status: "saving" } }));
-
+  const addModule = async () => {
+    if (!contentId) return;
+    const nextOrder = modules.reduce((max, m) => Math.max(max, m.display_order ?? 0), 0) + 1;
     try {
-      // Remove temp ID if it exists for the payload
-      const isNew = originalId.startsWith("temp-");
-      const { id, ...cleanPayload } = resource;
-
-      const payload = {
-        ...cleanPayload,
-        module_id: moduleId,
-        description: resource.description || null,
-      };
-
-      let result;
-      if (!isNew) {
-        result = await supabase.from("module_resources").update(payload).eq("id", originalId).select().single();
-      } else {
-        result = await supabase.from("module_resources").insert([payload]).select().single();
-      }
-
-      if (result.error) throw result.error;
-
-      // Update local state with the permanent database ID
-      setResources((prev) => prev.map((r) => (r.id === originalId ? result.data : r)));
-      setSaveStates((prev) => {
-        const newState = { ...prev };
-        delete newState[originalId];
-        newState[result.data.id] = { status: "saved" };
-        return newState;
-      });
-
-      toast.success("Artifact Synchronized.");
-    } catch (err: any) {
-      setSaveStates((prev) => ({ ...prev, [originalId]: { status: "error" } }));
-      toast.error(`Sync Failed: ${err.message}`);
-    }
-  };
-
-  const deleteResource = async (id: string | undefined) => {
-    if (!id) return;
-
-    if (id.startsWith("temp-")) {
-      setResources(resources.filter((r) => r.id !== id));
-      return;
-    }
-
-    try {
-      const { error } = await supabase.from("module_resources").delete().eq("id", id);
+      const { data, error } = await supabase
+        .from("course_modules")
+        .insert([
+          {
+            content_id: contentId,
+            title: `Module ${nextOrder}`,
+            description: "",
+            display_order: nextOrder,
+            is_preview: false,
+          },
+        ])
+        .select()
+        .single();
       if (error) throw error;
-      setResources(resources.filter((r) => r.id !== id));
-      toast.success("Artifact Decommissioned.");
-    } catch (err: any) {
-      toast.error("Decommissioning failed.");
+      setModules((prev) => [...prev, data as CourseModule]);
+      toast.success("Module created.");
+    } catch (e: any) {
+      toast.error(`Could not create module: ${e.message}`);
     }
   };
 
-  if (loading)
+  const saveModule = async (mod: CourseModule) => {
+    setSaveStates((prev) => ({ ...prev, [mod.id]: "saving" }));
+    try {
+      const { error } = await supabase
+        .from("course_modules")
+        .update({
+          title: mod.title,
+          description: mod.description,
+          video_url: mod.video_url,
+          duration_minutes: mod.duration_minutes,
+          display_order: mod.display_order,
+          is_preview: mod.is_preview,
+        })
+        .eq("id", mod.id);
+      if (error) throw error;
+      setSaveStates((prev) => ({ ...prev, [mod.id]: "saved" }));
+      toast.success("Module saved.");
+    } catch (e: any) {
+      setSaveStates((prev) => ({ ...prev, [mod.id]: "unsaved" }));
+      toast.error(`Save failed: ${e.message}`);
+    }
+  };
+
+  const reorder = async (id: string, direction: "up" | "down") => {
+    const idx = modules.findIndex((m) => m.id === id);
+    const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+    if (idx < 0 || swapIdx < 0 || swapIdx >= modules.length) return;
+
+    const a = modules[idx];
+    const b = modules[swapIdx];
+    const orderA = a.display_order ?? idx + 1;
+    const orderB = b.display_order ?? swapIdx + 1;
+
+    const newList = [...modules];
+    newList[idx] = { ...a, display_order: orderB };
+    newList[swapIdx] = { ...b, display_order: orderA };
+    newList.sort((x, y) => (x.display_order ?? 0) - (y.display_order ?? 0));
+    setModules(newList);
+
+    try {
+      await Promise.all([
+        supabase.from("course_modules").update({ display_order: orderB }).eq("id", a.id),
+        supabase.from("course_modules").update({ display_order: orderA }).eq("id", b.id),
+      ]);
+    } catch (e: any) {
+      toast.error("Reorder failed; reloading.");
+      loadModules();
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteId) return;
+    try {
+      const { error } = await supabase.from("course_modules").delete().eq("id", deleteId);
+      if (error) throw error;
+      setModules((prev) => prev.filter((m) => m.id !== deleteId));
+      toast.success("Module deleted.");
+    } catch (e: any) {
+      toast.error(`Delete failed: ${e.message}`);
+    } finally {
+      setDeleteId(null);
+    }
+  };
+
+  const openResources = (moduleId: string) => {
+    navigate(`/content/${contentId}/modules/${moduleId}/resources`);
+  };
+
+  if (!contentId) {
     return (
-      <div className="h-screen flex items-center justify-center animate-pulse font-black text-muted-foreground uppercase">
-        Booting Resource Terminal...
+      <div className="p-10 text-center space-y-3">
+        <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">No course selected</p>
+        <Button variant="outline" onClick={handleBack} className="rounded-xl">
+          <ArrowLeft className="mr-2 h-4 w-4" /> Back
+        </Button>
       </div>
     );
-
-  const unsavedTotal = Object.values(saveStates).filter((s) => s.status === "unsaved").length;
+  }
 
   return (
-    <div className="min-h-screen bg-muted/20 pb-20 selection:bg-primary/10">
-      <header className="border-b bg-background/80 backdrop-blur-xl sticky top-0 z-50">
-        <div className="container mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+    <div className="min-h-screen bg-muted/20 pb-20">
+      <header className="border-b bg-background/80 backdrop-blur-xl sticky top-0 z-40">
+        <div className="container mx-auto px-6 py-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4 min-w-0">
             <Button
               variant="ghost"
-              onClick={() => navigate(`/dashboard?tab=modules&id=${contentId}`)}
+              onClick={handleBack}
               className="rounded-xl font-bold uppercase text-[10px] tracking-widest pl-0"
             >
-              <ArrowLeft className="mr-2 h-4 w-4" /> Curriculum Manager
+              <ArrowLeft className="mr-2 h-4 w-4" /> Back
             </Button>
             <div className="h-4 w-px bg-border" />
-            <div>
-              <p className="text-[10px] font-black uppercase text-muted-foreground/60 tracking-widest">Resource Node</p>
-              <p className="text-sm font-black tracking-tight">{module?.title}</p>
+            <div className="min-w-0">
+              <p className="text-[10px] font-black uppercase text-muted-foreground/60 tracking-widest">
+                Module Architecture
+              </p>
+              <p className="text-sm font-black tracking-tight truncate">
+                {course?.title ?? "Course"}
+              </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            {unsavedTotal > 0 && (
-              <Badge
-                variant="secondary"
-                className="bg-amber-500/10 text-amber-600 border-none font-black text-[9px] uppercase animate-pulse"
-              >
-                {unsavedTotal} Changes Pending
-              </Badge>
-            )}
+          <div className="flex items-center gap-2">
             <Button
-              onClick={() => window.location.reload()}
               variant="outline"
-              className="h-10 rounded-xl border-border/40 font-black uppercase text-[10px] tracking-widest"
+              size="sm"
+              onClick={loadModules}
+              className="rounded-xl font-bold uppercase text-[10px] tracking-widest"
             >
-              <RefreshCw className="h-3 w-3 mr-2" /> Sync Terminal
+              <RefreshCw className="mr-2 h-3.5 w-3.5" /> Refresh
+            </Button>
+            <Button
+              size="sm"
+              onClick={addModule}
+              className="rounded-xl font-bold uppercase text-[10px] tracking-widest"
+            >
+              <Plus className="mr-2 h-3.5 w-3.5" /> Add Module
             </Button>
           </div>
         </div>
       </header>
 
-      <main className="container max-w-5xl mx-auto px-6 py-12 space-y-8">
-        <Tabs value={activeStage} onValueChange={setActiveStage}>
-          <TabsList className="grid grid-cols-3 md:grid-cols-6 h-auto p-1.5 bg-card/50 backdrop-blur-md rounded-[24px] border border-border/40 mb-10 shadow-xl shadow-primary/5">
-            {stageConfig.map((stage) => (
-              <TabsTrigger
-                key={stage.number}
-                value={String(stage.number)}
-                className="flex flex-col gap-1.5 py-4 rounded-2xl transition-all"
-              >
-                <stage.icon className="h-4 w-4" />
-                <span className="text-[9px] font-black uppercase tracking-widest">{stage.name}</span>
-                {resources.filter((r) => r.stage_number === stage.number).length > 0 && (
-                  <div className="h-1 w-4 bg-current/30 rounded-full mt-1" />
-                )}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-
-          {stageConfig.map((stage) => {
-            const stageResources = resources.filter((r) => r.stage_number === stage.number);
+      <main className="container mx-auto px-6 py-8 max-w-5xl space-y-4">
+        {loading ? (
+          <div className="flex items-center justify-center py-20 text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin mr-2" />
+            <span className="text-xs font-black uppercase tracking-widest">Loading modules…</span>
+          </div>
+        ) : modules.length === 0 ? (
+          <Card className="rounded-[24px] border-dashed border-border/60">
+            <CardContent className="py-16 flex flex-col items-center text-center gap-4">
+              <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center">
+                <Layers className="h-6 w-6 text-primary" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-black uppercase tracking-widest">No modules yet</p>
+                <p className="text-xs text-muted-foreground max-w-sm">
+                  Create the first module for this course. Each module becomes a stage-based learning unit.
+                </p>
+              </div>
+              <Button onClick={addModule} className="rounded-xl font-bold uppercase text-[10px] tracking-widest">
+                <Plus className="mr-2 h-3.5 w-3.5" /> Create First Module
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          modules.map((mod, index) => {
+            const status = saveStates[mod.id] ?? "saved";
             return (
-              <TabsContent key={stage.number} value={String(stage.number)} className="space-y-6">
-                <Card className="rounded-[32px] border-border/40 bg-card/30 overflow-hidden">
-                  <CardHeader className="bg-muted/30 border-b border-border/20 py-6 px-8 flex flex-row items-center justify-between flex-wrap gap-4">
-                    <div className="space-y-1">
-                      <CardTitle className="text-xl font-black tracking-tighter uppercase flex items-center gap-2">
-                        <stage.icon className="h-5 w-5 text-primary" /> Phase 0{stage.number}: {stage.name}
-                      </CardTitle>
-                      <CardDescription className="text-[10px] font-bold uppercase tracking-widest">
-                        Artifact Injection Layer
-                      </CardDescription>
+              <Card key={mod.id} className="rounded-[24px] border-border/40 overflow-hidden">
+                <CardContent className="p-5 space-y-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <Badge variant="outline" className="rounded-lg font-black text-[10px] tracking-widest">
+                        #{mod.display_order ?? index + 1}
+                      </Badge>
+                      {mod.video_url && (
+                        <Badge variant="secondary" className="rounded-lg gap-1 font-black text-[10px] tracking-widest">
+                          <Video className="h-3 w-3" /> Video
+                        </Badge>
+                      )}
+                      {status === "unsaved" && (
+                        <Badge className="rounded-lg bg-amber-500/15 text-amber-600 border-amber-500/30 font-black text-[10px] tracking-widest">
+                          Unsaved
+                        </Badge>
+                      )}
+                      {status === "saving" && (
+                        <Badge variant="outline" className="rounded-lg font-black text-[10px] tracking-widest">
+                          <Loader2 className="h-3 w-3 mr-1 animate-spin" /> Saving
+                        </Badge>
+                      )}
                     </div>
-                    <div className="flex gap-2">
-                      {stage.resourceTypes.map((type) => (
-                        <Button
-                          key={type}
-                          variant="outline"
-                          size="sm"
-                          onClick={() => addResource(stage.number, type)}
-                          className="h-9 rounded-xl border-primary/20 bg-primary/5 text-primary font-black uppercase text-[9px] tracking-widest"
-                        >
-                          <Plus className="h-3 w-3 mr-1.5" /> {type.replace("_", " ")}
-                        </Button>
-                      ))}
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-lg"
+                        disabled={index === 0}
+                        onClick={() => reorder(mod.id, "up")}
+                      >
+                        <ArrowUp className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-lg"
+                        disabled={index === modules.length - 1}
+                        onClick={() => reorder(mod.id, "down")}
+                      >
+                        <ArrowDown className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-lg text-destructive hover:text-destructive"
+                        onClick={() => setDeleteId(mod.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
                     </div>
-                  </CardHeader>
-                  <CardContent className="p-8">
-                    {stageResources.length === 0 ? (
-                      <div className="py-20 text-center border-2 border-dashed border-border/40 rounded-[28px] bg-muted/10">
-                        <Zap className="h-10 w-10 mx-auto mb-4 text-muted-foreground/30" />
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">
-                          Stage Incomplete: Initialize Artifacts
+                  </div>
+
+                  <div className="grid gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                        Title
+                      </Label>
+                      <Input
+                        value={mod.title}
+                        onChange={(e) => updateField(mod.id, "title", e.target.value)}
+                        className="rounded-xl"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                        Description
+                      </Label>
+                      <Textarea
+                        value={mod.description ?? ""}
+                        onChange={(e) => updateField(mod.id, "description", e.target.value)}
+                        className="rounded-xl min-h-[80px]"
+                        placeholder="What will the talent learn in this module?"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                          Video URL (optional)
+                        </Label>
+                        <Input
+                          value={mod.video_url ?? ""}
+                          onChange={(e) => updateField(mod.id, "video_url", e.target.value)}
+                          placeholder="https://…"
+                          className="rounded-xl"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                          Duration (minutes)
+                        </Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={mod.duration_minutes ?? ""}
+                          onChange={(e) =>
+                            updateField(
+                              mod.id,
+                              "duration_minutes",
+                              e.target.value === "" ? null : parseInt(e.target.value, 10),
+                            )
+                          }
+                          className="rounded-xl"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between rounded-xl border border-border/40 px-4 py-3">
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-widest">Free Preview</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          Allow non-enrolled talents to view this module.
                         </p>
                       </div>
-                    ) : (
-                      <div className="space-y-6">
-                        {stageResources.map((resource) => {
-                          const resKey = resource.id!;
-                          const state = saveStates[resKey] || { status: "unsaved" };
-                          return (
-                            <Card
-                              key={resKey}
-                              className="rounded-[28px] border-border/40 bg-background shadow-lg overflow-hidden group hover:border-primary/20 transition-all"
-                            >
-                              <CardHeader className="py-4 px-6 border-b border-border/20 flex flex-row items-center justify-between bg-muted/20">
-                                <div className="flex items-center gap-3">
-                                  <Badge
-                                    variant="outline"
-                                    className="h-6 rounded-full border-primary/20 bg-primary/5 text-primary font-black text-[8px] uppercase"
-                                  >
-                                    {resource.resource_type}
-                                  </Badge>
-                                  {state.status === "saved" && (
-                                    <div className="flex items-center gap-1 text-emerald-600">
-                                      <CheckCircle2 className="h-3 w-3" />
-                                      <span className="text-[8px] font-black uppercase">Locked</span>
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="flex gap-2">
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => saveResource(resource)}
-                                    className="h-8 w-8"
-                                  >
-                                    <Save
-                                      className={cn(
-                                        "h-4 w-4",
-                                        state.status === "unsaved" && "text-primary animate-bounce",
-                                      )}
-                                    />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => deleteResource(resource.id)}
-                                    className="h-8 w-8 text-rose-500"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </CardHeader>
-                              <CardContent className="p-6 space-y-6">
-                                <div className="grid grid-cols-1 md:grid-cols-[1fr,200px] gap-6">
-                                  <div className="space-y-2">
-                                    <Label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground ml-1">
-                                      Asset Identity
-                                    </Label>
-                                    <Input
-                                      value={resource.title}
-                                      onChange={(e) => updateResourceField(resKey, "title", e.target.value)}
-                                      className="h-10 rounded-xl font-bold text-sm"
-                                    />
-                                  </div>
-                                  <div className="flex items-center justify-between bg-muted/30 px-4 rounded-xl border mt-6">
-                                    <span className="text-[9px] font-black uppercase text-muted-foreground">
-                                      Required
-                                    </span>
-                                    <Switch
-                                      checked={resource.is_required}
-                                      onCheckedChange={(val) => updateResourceField(resKey, "is_required", val)}
-                                    />
-                                  </div>
-                                </div>
-                                {["flashcards", "ai_scenario"].includes(resource.resource_type) ? (
-                                  <JsonDataEditor
-                                    value={resource.resource_data}
-                                    onChange={(data: any) => updateResourceField(resKey, "resource_data", data)}
-                                  />
-                                ) : (
-                                  <div className="space-y-2">
-                                    <Label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground ml-1">
-                                      Resource URL
-                                    </Label>
-                                    <Input
-                                      value={resource.resource_url || ""}
-                                      onChange={(e) => updateResourceField(resKey, "resource_url", e.target.value)}
-                                      className="h-10 rounded-xl font-mono text-xs text-primary"
-                                      placeholder="https://..."
-                                    />
-                                  </div>
-                                )}
-                              </CardContent>
-                            </Card>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            );
-          })}
-        </Tabs>
-      </main>
-    </div>
-  );
-}
+                      <Switch
+                        checked={!!mod.is_preview}
+                        onCheckedChange={(v) => updateField(mod.id, "is_preview", v)}
+                      />
+                    </div>
+                  </div>
 
-// Fixed Icon Component to prevent render crash
-function MessageCircle(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-    </svg>
+                  <div className="flex items-center justify-between gap-3 pt-2 border-t border-border/40">
+                    <Button
+                      variant="outline"
+                      onClick={() => openResources(mod.id)}
+                      className={cn(
+                        "rounded-xl font-bold uppercase text-[10px] tracking-widest group",
+                      )}
+                    >
+                      <Layers className="mr-2 h-3.5 w-3.5" />
+                      Manage Resources
+                      <ChevronRight className="ml-1 h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                    </Button>
+                    <Button
+                      onClick={() => saveModule(mod)}
+                      disabled={status === "saving" || status === "saved"}
+                      className="rounded-xl font-bold uppercase text-[10px] tracking-widest"
+                    >
+                      {status === "saving" ? (
+                        <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Save className="mr-2 h-3.5 w-3.5" />
+                      )}
+                      Save Module
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })
+        )}
+      </main>
+
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this module?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes the module and all of its stage resources. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
   );
 }
