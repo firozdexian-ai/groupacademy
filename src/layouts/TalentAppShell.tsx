@@ -52,6 +52,8 @@ import { getWhatsAppLink } from "@/lib/constants/support";
 import { downloadFile } from "@/lib/downloadFile";
 import { toast } from "sonner";
 import logoIcon from "@/assets/logo-icon.png";
+import { CreditPurchaseSheet } from "@/components/credits/CreditPurchaseSheet";
+import { useCreditPurchase } from "@/hooks/useCreditPurchase";
 
 /**
  * GroUp Academy: Institutional User Experience Perimeter
@@ -74,6 +76,8 @@ export function TalentAppShell() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [hasCompanyAccess, setHasCompanyAccess] = useState(false);
+  const credits = useCreditPurchase();
 
   // HUD: Institutional Navigation Artifacts
   const desktopNavItems: NavItem[] = [
@@ -125,6 +129,28 @@ export function TalentAppShell() {
 
     return () => {
       supabase.removeChannel(channel);
+    };
+  }, [talent?.id]);
+
+  // PHASE: Company_Portal_Access_Check
+  useEffect(() => {
+    if (!talent?.id) {
+      setHasCompanyAccess(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { count } = await supabase
+        .from("company_members")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("status", "active");
+      if (!cancelled) setHasCompanyAccess((count ?? 0) > 0);
+    })();
+    return () => {
+      cancelled = true;
     };
   }, [talent?.id]);
 
@@ -206,12 +232,16 @@ export function TalentAppShell() {
                   <ScrollArea className="flex-1">
                     <div className="py-2 space-y-0.5">
                       {[
+                        { icon: Coins, label: "Buy Credits", action: () => credits.open() },
                         { icon: Receipt, label: "Transactions", action: () => navigate("/app/transactions") },
                         { icon: Wallet, label: "Disbursement Account", action: () => navigate("/app/profile") },
                         { icon: Bookmark, label: "Saved Jobs", action: () => navigate("/app/saved") },
                         { icon: BookOpen, label: "My Learning", action: () => navigate("/app/learning/my-courses") },
                         { icon: Globe, label: "Career Abroad", action: () => navigate("/app/abroad") },
                         { icon: FileText, label: "Applications", action: () => navigate("/app/applications") },
+                        ...(hasCompanyAccess
+                          ? [{ icon: Sparkles, label: "Switch to Company Portal", action: () => window.open("/company", "_blank") }]
+                          : []),
                         {
                           icon: Download,
                           label: "Download CV",
@@ -391,6 +421,21 @@ export function TalentAppShell() {
                   View Profile
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => credits.open()} className="cursor-pointer">
+                  <Coins className="h-4 w-4 mr-2 text-amber-500" /> Buy Credits
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate("/app/transactions")} className="cursor-pointer">
+                  <Receipt className="h-4 w-4 mr-2" /> Transactions
+                </DropdownMenuItem>
+                {hasCompanyAccess && (
+                  <DropdownMenuItem
+                    onClick={() => window.open("/company", "_blank")}
+                    className="cursor-pointer"
+                  >
+                    <Sparkles className="h-4 w-4 mr-2 text-primary" /> Company Portal
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => navigate("/app/profile/edit")} className="cursor-pointer">
                   Settings & Privacy
                 </DropdownMenuItem>
@@ -412,13 +457,20 @@ export function TalentAppShell() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Badge
-              variant="secondary"
-              className="gap-1 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 border-amber-200 dark:border-amber-800"
+            <button
+              onClick={() => credits.open()}
+              className="group"
+              aria-label="Buy credits"
             >
-              <Coins className="h-3 w-3 fill-amber-500" />
-              <span className="font-bold">{balance}</span>
-            </Badge>
+              <Badge
+                variant="secondary"
+                className="gap-1 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 border-amber-200 dark:border-amber-800 cursor-pointer group-hover:bg-amber-200 dark:group-hover:bg-amber-900/50 transition-colors"
+              >
+                <Coins className="h-3 w-3 fill-amber-500" />
+                <span className="font-bold">{balance}</span>
+                <span className="text-[9px] font-bold uppercase tracking-wider opacity-60 ml-1">+ Buy</span>
+              </Badge>
+            </button>
           </div>
         </div>
       </header>
@@ -427,6 +479,13 @@ export function TalentAppShell() {
       <main className="max-w-7xl mx-auto py-2 md:py-6 px-0 md:px-4 pb-24 md:pb-6">
         <Outlet />
       </main>
+
+      {/* GLOBAL: Credit Purchase Sheet (any component can open via useCreditPurchase) */}
+      <CreditPurchaseSheet
+        isOpen={credits.isOpen}
+        onClose={credits.close}
+        currentBalance={balance}
+      />
 
       {/* --- HUD: MOBILE BOTTOM TAB BAR --- */}
       <nav

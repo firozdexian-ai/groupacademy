@@ -319,6 +319,22 @@ export function AdminSidebar({ activeTab, onTabChange, userRole = "admin" }: Adm
             </SidebarGroup>
           </Collapsible>
         ))}
+
+        {/* External: Company Portal (B2B view) */}
+        {userRole === "admin" && (
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                onClick={() => window.open("/company", "_blank")}
+                tooltip="Open Company Portal"
+                className="hover:bg-accent/50 text-muted-foreground hover:text-foreground"
+              >
+                <Building2 className="w-4 h-4" />
+                <span>Company Portal</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        )}
       </SidebarContent>
 
       <SidebarFooter className="border-t p-2">

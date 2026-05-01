@@ -166,7 +166,7 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
     import("@/components/dashboard/payments/InvoiceManager").then((m) => ({ default: m.InvoiceManager })),
   ),
   // INTEGRATION INJECTIONS
-  modules: React.lazy(() => import("@/pages/ModuleManagement")),
+  modules: React.lazy(() => import("@/components/dashboard/ModulePickerPanel")),
   "quiz-manage": React.lazy(() => import("@/pages/QuizManagement")),
 };
 
@@ -308,7 +308,8 @@ const Dashboard = () => {
                   if (activeTab === "ir-emails") props.onClose = () => handleTabChange("ir-dashboard");
 
                   // PROP INJECTION FOR CURRICULUM TOOLS
-                  if (activeTab === "modules" || activeTab === "quiz-manage") {
+                  // Modules tab now uses ModulePickerPanel which reads ?id= itself.
+                  if (activeTab === "quiz-manage") {
                     props.contentId = searchParams.get("id");
                     props.onBack = () => handleTabChange("courses");
                   }

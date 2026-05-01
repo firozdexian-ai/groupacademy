@@ -1,78 +1,67 @@
-## Status snapshot — where we are
+# Fix Pack — Modules, Company Portal Access, Credit Purchase
 
-**Agent OS rollout (Phases 1–10): ~100% feature-complete.**
+## Problem Recap
 
-| Phase | Scope | Status |
-|---|---|---|
-| 1 | Tool registry + agent runtime | Done |
-| 2 | Agent Studio (admin) | Done |
-| 3 | Talent agent chat surface | Done |
-| 4 | Sessions / observability | Done |
-| 5 | Company portal + headless triggers | Done |
-| 6 | Channel triggers (cron, webhook, event dispatcher) | Done |
-| 7 | AI blueprint + marketplace review | Done |
-| 8 | Insights & A/B analytics dashboard | Done |
-| 9 | Talent ownership + payouts | Done |
-| 10 | Creator onboarding + public marketplace | Done |
+1. **Module management not reachable from Dashboard** — `ModuleManagement` works as a standalone route (`/content/:id/edit` → "Manage Modules"), but selecting "Modules" in the dashboard sidebar opens it without a `contentId`, so it shows an empty/blocked state. There is no course-picker inside the dashboard tab.
+2. **Company portal access unclear** — `/company` exists but only loads if the logged-in user is a row in `company_members`. `grow10xnow@gmail.com` has no membership, so the portal shows "No company access". There is also no link to it from the admin dashboard or talent shell.
+3. **No "Buy Credits" entry in the seeker app** — `CreditPurchaseSheet` exists but is only mounted inside `ServicesHub`. The wallet/transactions page and the navbar credit chip are not wired to open it.
 
-**What's "left" (post-MVP polish — roughly the remaining 10–15% of total product readiness):**
+## Plan
 
-1. End-to-end QA pass on every agent surface (admin → talent → company).
-2. Seed data: ship 4–6 high-quality starter agents so the marketplace isn't empty on day 1.
-3. Real billing wiring for company portal (currently consumes credits — Stripe top-ups for B2B not yet wired).
-4. Notification hooks: payout approved/paid → talent email; new marketplace submission → admin email.
-5. Mobile polish for `MyAgents`, `AgentMarketplace`, `CreatorOnboardingDialog` (built desktop-first).
-6. Documentation page for creators (how to write a good system prompt, pricing guidance).
+### 1. Modules tab inside Dashboard
 
-None of these block launch — they're hardening.
+- Replace the current "modules" tab loader so that when no `?id=` is in the URL, it shows a **course picker** (search + list of courses pulled from `content` where `content_type` in recorded_course/live_webinar). Clicking a course updates `?tab=modules&id=<contentId>` and renders the existing `ModuleManagement` component inline.
+- Add a back button inside the picker → returns to "courses" tab.
+- Add a "Manage Modules" shortcut directly on each row of `ContentList` (admin courses table) that links to `/dashboard?tab=modules&id=<id>` so admins can jump in one click.
 
-## The bug you hit — "couldn't open the training module"
+### 2. Company Portal access
 
-**Root cause.** `src/pages/ModuleManagement.tsx` is mis-coded. Despite its filename, its default export is `ModuleResourcesManager` and it reads `moduleId` from the URL. The route `/content/:contentId/modules` (the page reached by clicking **Manage Modules** from a course's Edit screen) has **no** `moduleId` in the URL, so:
+- **Grant test access** to `grow10xnow@gmail.com`:
+  - Pick one existing company (e.g. `Growth Catalyst Group of Companies`) and insert a `company_members` row for that user with `role='owner'`, `status='active'`.
+  - This requires a SQL migration (lookup of `auth.users.id` by email inside a `DO $$ ... $$` block since `auth.users` is privileged).
+- **Add navigation entry**:
+  - In `AdminSidebar`, add a "Company Portal" link under the Operations / Agents group that opens `/company` in a new tab.
+  - In the talent shell (`TalentAppShell`) profile menu, surface "Switch to Company Portal" only when the logged-in user has at least one active `company_members` row (cheap query, cached via `useQuery`).
+- **Improve the empty state** of `CompanyPortal` to include a "Request company onboarding" CTA (mailto to support) instead of a dead-end.
 
-- `useEffect` guard `if (moduleId) loadData()` never fires
-- `loading` stays `true` forever
-- User sees a permanent "Booting Resource Terminal…" splash with no way to list, create, or open a module
+### 3. Buy Credits entry point in the seeker app
 
-It's effectively a duplicate of the real `src/pages/ModuleResourcesManager.tsx`, and the actual "list & create modules for a course" screen does not exist anywhere in the codebase.
+- Promote `CreditPurchaseSheet` into a globally available drawer driven by a `useCreditPurchase()` hook (simple Zustand or context store with `open()`).
+- Wire entry points:
+  - Navbar credit chip (`CreditBalance` default variant) → `onClick` opens the sheet.
+  - **Transactions page**: add a primary "Buy Credits" button next to `<CreditBalance variant="full" />`.
+  - **Profile / Wallet card**: add the same CTA.
+  - **CreditGateModal**: ensure its "Top up" button uses the same global opener (currently inconsistent).
+- Mount the sheet once inside `TalentAppShell` so it's available app-wide.
 
-## Fix plan
+### 4. Status & remaining work (post this fix pack)
 
-### 1. Rebuild `src/pages/ModuleManagement.tsx` as a true module-list manager
+Agent OS phases 1–10 are functionally complete. Remaining hardening items, in priority order:
 
-Replace the file's contents with a proper course-modules CRUD page that:
+1. Seed 4–6 starter agents in `ai_agents` for the marketplace.
+2. Stripe top-up flow for company-side credit purchases (B2B billing).
+3. Email notifications: payout status, marketplace approval/rejection.
+4. Mobile polish for `MyAgents` and `AgentMarketplace`.
+5. Creator documentation (prompt + pricing guidelines).
+6. End-to-end QA pass across talent app, dashboard, and company portal.
 
-- Reads `contentId` from `useParams()`
-- Loads the parent course (`content` table) for header context
-- Lists rows from `course_modules` where `content_id = :contentId`, ordered by `display_order`
-- For each module: shows title, description preview, video presence indicator, readiness badge, plus actions:
-  - **Edit fields inline** (title, description, video_url, display_order, duration_minutes, is_published)
-  - **Manage Resources** → navigates to `/content/:contentId/modules/:moduleId/resources` (the existing `ModuleResourcesManager`)
-  - **Delete** with confirm dialog
-- **Add Module** button creates a new `course_modules` row with sensible defaults (title "Untitled Module", `display_order = max+1`)
-- Reorder controls (up/down arrows updating `display_order`)
-- Back button returns to `/content/:contentId/edit`
-- Same "Executive Logic" visual language as `ContentEdit` and `ModuleResourcesManager`
+Estimated overall completeness after this fix pack: **~92%**. The 8% gap is the six items above.
 
-### 2. Verify the dashboard-tab path works too
+## Technical Notes
 
-`Dashboard.tsx` already lazy-loads this file when `activeTab === "modules"` and passes `contentId` + `onBack` props. Update the new component to optionally accept those props (fall back to URL params + `navigate(-1)` when not provided), so both entry points work:
+- Files to create/edit:
+  - `src/pages/Dashboard.tsx` — handle `modules` tab without `id` by rendering a new `<ModulePickerPanel/>`.
+  - `src/components/dashboard/ModulePickerPanel.tsx` *(new)* — search + list of courses, navigates to `?tab=modules&id=...`.
+  - `src/components/dashboard/ContentList.tsx` — add per-row "Manage Modules" action.
+  - `src/components/dashboard/AdminSidebar.tsx` — add "Company Portal" external link.
+  - `src/layouts/TalentAppShell.tsx` — conditional "Company Portal" menu item; mount global `CreditPurchaseSheet`.
+  - `src/hooks/useCreditPurchase.ts` *(new)* — global open/close store.
+  - `src/components/credits/CreditBalance.tsx` — default variant `onClick` triggers global opener.
+  - `src/pages/app/Transactions.tsx`, `src/pages/app/Profile.tsx` — add "Buy Credits" CTAs.
+  - `src/pages/company/CompanyPortal.tsx` — improved empty state.
+  - **New migration**: insert `company_members` row for `grow10xnow@gmail.com` against `Growth Catalyst Group of Companies`.
 
-- Direct route: `/content/:contentId/modules`
-- Dashboard tab: `/dashboard?tab=modules&id=<contentId>`
+- No schema changes required; only one data-only migration for the test membership.
+- All new RLS reads (`company_members` membership lookup in talent shell) already permitted by existing policy.
 
-### 3. Confirm downstream link is intact
-
-The "Manage Resources" link from each module row must point to `/content/:contentId/modules/:moduleId/resources`, which already renders the existing `ModuleResourcesManager` correctly — no changes needed there.
-
-### 4. No DB migration required
-
-`course_modules` already exists with the right columns (used by `ContentList` to compute readiness stats and by `ModuleResourcesManager` to load a module).
-
-## Technical notes
-
-- Files touched: `src/pages/ModuleManagement.tsx` (full rewrite). No other file changes required.
-- No schema, RLS, or edge function changes.
-- After the fix, the user flow is: Dashboard → Courses → Edit a course → **Manage Modules** → list of modules → **Manage Resources** on any row → 6-stage resource editor (already working).
-
-Approve this and I'll switch to build mode and ship the fix.
+Approve to proceed.
