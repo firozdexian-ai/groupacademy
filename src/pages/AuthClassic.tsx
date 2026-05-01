@@ -218,18 +218,18 @@ const Auth = () => {
             <TabsContent value="login" className="mt-6">
               <Card className="rounded-[32px] border-border/40 shadow-2xl">
                 <CardHeader>
-                  <CardTitle className="text-xl font-black tracking-tighter">Welcome Back</CardTitle>
-                  <CardDescription className="text-xs font-medium">Continue your trajectory</CardDescription>
+                  <CardTitle className="text-xl font-bold tracking-tight">Welcome back</CardTitle>
+                  <CardDescription className="text-sm">Sign in to continue</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleLogin} className="space-y-5">
                     <div className="space-y-1.5">
-                      <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
-                        Identity
+                      <Label className="text-xs font-medium text-muted-foreground ml-1">
+                        Email or phone
                       </Label>
                       <Input
                         type="text"
-                        placeholder="Email or phone"
+                        placeholder="you@example.com or +1234567890"
                         value={loginData.identifier}
                         onChange={(e) => setLoginData({ ...loginData, identifier: e.target.value })}
                         className="rounded-xl border-border/40 h-11"
@@ -238,15 +238,15 @@ const Auth = () => {
                     </div>
                     <div className="space-y-1.5">
                       <div className="flex justify-between items-center ml-1">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                          Keycode
+                        <Label className="text-xs font-medium text-muted-foreground">
+                          Password
                         </Label>
                         <button
                           type="button"
                           onClick={() => setShowForgotPassword(true)}
-                          className="text-[10px] font-black uppercase text-primary hover:underline"
+                          className="text-xs font-medium text-primary hover:underline"
                         >
-                          Lost Access?
+                          Forgot password?
                         </button>
                       </div>
                       <div className="relative">
@@ -261,6 +261,7 @@ const Auth = () => {
                           type="button"
                           onClick={() => setShowPassword(!showPassword)}
                           className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                          aria-label={showPassword ? "Hide password" : "Show password"}
                         >
                           {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
@@ -268,10 +269,10 @@ const Auth = () => {
                     </div>
                     <Button
                       type="submit"
-                      className="w-full h-11 rounded-xl font-black uppercase tracking-widest text-xs"
+                      className="w-full h-11 rounded-xl font-semibold text-sm"
                       disabled={isLoading}
                     >
-                      {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Authorize Entry"}
+                      {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Sign in"}
                     </Button>
                   </form>
                 </CardContent>
