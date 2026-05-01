@@ -86,7 +86,7 @@ const Auth = () => {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (signupData.password.length < 8) {
-      toast.error("Password entropy too low. Min 8 characters.");
+      toast.error("Password must be at least 8 characters.");
       return;
     }
     setIsLoading(true);
@@ -95,7 +95,7 @@ const Auth = () => {
     try {
       const { data: existing } = await supabase.from("talents").select("id").eq("phone", fullPhone).maybeSingle();
       if (existing) {
-        toast.error("Node already exists. Transitioning to Login.");
+        toast.error("Account already exists. Switching to sign in.");
         setActiveTab("login");
         setLoginData((prev) => ({ ...prev, identifier: fullPhone }));
         return;
@@ -109,13 +109,12 @@ const Auth = () => {
         signupData.countryCode,
       );
     } catch (error) {
-      console.error("Identity Creation Failed");
+      console.error("Sign up failed");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // FIX: Added missing handler for Access Recovery
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!resetEmail) return;
@@ -124,9 +123,9 @@ const Auth = () => {
       await resetPassword(resetEmail);
       setShowForgotPassword(false);
       setResetEmail("");
-      toast.success("Recovery link transmitted.");
+      toast.success("Reset link sent. Check your inbox.");
     } catch (error) {
-      console.error("Recovery Transmission Failed");
+      console.error("Reset request failed");
     } finally {
       setIsLoading(false);
     }
