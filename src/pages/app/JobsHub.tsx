@@ -54,13 +54,13 @@ interface CountryGroup {
   cities: { name: string; count: number }[];
 }
 
-type TabKey = "browse" | "company" | "country" | "agents";
+type TabKey = "browse" | "company" | "country" | "tools";
 
 const TABS: { key: TabKey; label: string; icon: any }[] = [
   { key: "browse", label: "Browse", icon: Layers },
   { key: "company", label: "Companies", icon: Building2 },
   { key: "country", label: "Locations", icon: Globe },
-  { key: "agents", label: "Agents", icon: Bot },
+  { key: "tools", label: "Tools", icon: Zap },
 ];
 
 const INITIAL_SHOW = 3;
@@ -226,8 +226,18 @@ export default function JobsHub() {
         });
       }
     });
-    return Array.from(map.values()).sort((a, b) => b.totalJobs - a.totalJobs);
-  }, [locations]);
+    const list = Array.from(map.values()).sort((a, b) => b.totalJobs - a.totalJobs);
+    // Pin user's country to the top
+    const userCountry = talent?.country;
+    if (userCountry) {
+      const idx = list.findIndex((g) => g.country.toLowerCase() === userCountry.toLowerCase());
+      if (idx > 0) {
+        const [pinned] = list.splice(idx, 1);
+        list.unshift(pinned);
+      }
+    }
+    return list;
+  }, [locations, talent?.country]);
 
   async function handleGetAIRecommendations() {
     if (!canAfford("SUGGESTED_JOBS")) return toast.error("Need 10 credits to run AI matching.");
