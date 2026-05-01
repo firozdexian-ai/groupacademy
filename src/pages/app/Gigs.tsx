@@ -17,27 +17,15 @@ import { BuildAcademyTab } from "@/components/gigs/BuildAcademyTab";
 import { Skeleton } from "@/components/ui/skeleton";
 import { GIG_CATEGORIES, GIG_CATEGORY_MAP, categoryFromResourceType, type GigCategory } from "@/lib/constants/gigCategories";
 import {
-  Gift,
   Upload,
-  Briefcase,
-  Share2,
-  FileText,
-  BookOpen,
   Search,
-  Clock,
   Coins,
   ChevronRight,
-  Sparkles,
   Send,
-  Star,
   Loader2,
-  CheckCircle,
-  BadgeCheck,
   ClipboardList,
-  FolderKanban,
   Activity,
   Target,
-  Zap,
   ShieldCheck,
   Hammer,
 } from "lucide-react";
