@@ -242,9 +242,9 @@ export default function JobAssessment() {
 
   if (loading)
     return (
-      <div className="max-w-3xl mx-auto p-12 text-center">
-        <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-6 opacity-20" />
-        <Skeleton className="h-80 w-full rounded-[40px] bg-muted/40" />
+      <div className="max-w-2xl mx-auto px-3 py-3 space-y-3">
+        <Skeleton className="h-8 w-32 rounded-xl" />
+        <Skeleton className="h-64 w-full rounded-2xl" />
       </div>
     );
 
