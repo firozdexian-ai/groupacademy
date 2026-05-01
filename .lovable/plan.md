@@ -1,125 +1,87 @@
-# Phase 13 — Platform-Wide UI Standardization
+# Phase 13 Final Sweep — All 27 Remaining Pages
 
-The Feed, Learning Hub and Jobs Hub are now compact and modern. But ~25 other pages still use the old "neural / arena / calibration terminal" sci-fi styling: oversized italic uppercase headings, decorative gradients, "Registry Sync Failure" empty states, and inconsistent container widths. This phase brings every talent-facing page onto a single, calm, mobile-first design system.
+Apply the standard `uiTokens.ts` system (PAGE_SHELL, PAGE_TITLE, SECTION_TITLE, CARD, META_TEXT, PILL_ROW) and `EmptyState` component across every remaining talent-facing page in one pass. Remove all "terminal/sci-fi" jargon and replace with plain English.
 
----
+## Scope — 27 Pages, Grouped
 
-## 1. Define the standard (shared tokens)
+### Group 1 — High-traffic core (5)
+- `src/pages/app/Feed.tsx`
+- `src/pages/app/AppJobDetail.tsx`
+- `src/pages/app/AppJobApplication.tsx`
+- `src/pages/app/AppDashboard.tsx`
+- `src/pages/app/AgentChat.tsx`
 
-Codify what we already use in Feed/Learning/Jobs into one place so future pages can't drift.
+### Group 2 — Career & Learning (8)
+- `src/pages/app/AppCourses.tsx`
+- `src/pages/app/CareerTracks.tsx`
+- `src/pages/app/CareerTrackDetail.tsx`
+- `src/pages/app/MockInterview.tsx`
+- `src/pages/app/MockInterviewSession.tsx`
+- `src/pages/app/SalaryInsights.tsx`
+- `src/pages/app/CVUpload.tsx`
+- `src/pages/app/SavedItems.tsx`
 
-`src/lib/uiTokens.ts` (new) — exports a few reusable className constants:
+### Group 3 — Profile, Wallet, Settings (7)
+- `src/pages/app/Profile.tsx`
+- `src/pages/app/PublicProfile.tsx`
+- `src/pages/app/Wallet.tsx`
+- `src/pages/app/Transactions.tsx`
+- `src/pages/app/Notifications.tsx`
+- `src/pages/app/Settings.tsx`
+- `src/pages/app/Referrals.tsx`
 
-```text
-PAGE_SHELL     max-w-2xl mx-auto px-3 py-3 pb-28 space-y-4
-PAGE_TITLE     text-xl font-bold
-PAGE_SUBTITLE  text-xs text-muted-foreground
-SECTION_TITLE  text-sm font-semibold
-META_TEXT      text-[11px] text-muted-foreground
-CARD           rounded-2xl border border-border/40
-CARD_PAD       p-3
-PILL_ROW       flex flex-wrap gap-2   (never horizontal-scroll)
-```
+### Group 4 — Tools & Misc (7)
+- `src/pages/app/tools/CVMaker.tsx` (header sweep only — body already standardized)
+- `src/pages/app/tools/CoverLetter.tsx`
+- `src/pages/app/tools/LinkedInOptimizer.tsx`
+- `src/pages/app/Messages.tsx`
+- `src/pages/app/AgentMarketplace.tsx`
+- `src/pages/app/AgentProfile.tsx`
+- `src/pages/app/Onboarding.tsx`
 
-Plus a small `<EmptyState icon title description action />` component in `src/components/common/EmptyState.tsx` — replaces every bespoke "Registry Mismatch / Arena Empty / Sync Error" block.
+## Standardization Rules Applied to Every File
 
-## 2. Pages to de-terminalize (high priority)
+1. **Container**: Wrap top-level content in `<div className={PAGE_SHELL}>` (or `PAGE_SHELL_WIDE` for dense dashboards).
+2. **Headers**: Replace `text-3xl font-black uppercase tracking-widest italic` → `<h1 className={PAGE_TITLE}>Plain English Title</h1>`.
+3. **Cards**: Use `className={CARD}` on all `<Card>` elements; remove neon borders/glows.
+4. **Pill rows**: Replace `overflow-x-auto flex gap-2` strips with `<div className={PILL_ROW}>` (flex-wrap, gap-2).
+5. **Empty states**: Replace bespoke "Registry Empty / Signal Lost" blocks with `<EmptyState icon={...} title="..." description="..." action={...} />`.
+6. **Spacing**: Standardize to `space-y-3` / `space-y-4`; remove excessive `py-12` heroes on sub-pages.
+7. **Bottom safe area**: Ensure `pb-28` (already in PAGE_SHELL) for mobile sticky nav clearance.
 
-These still use `text-3xl/4xl/5xl font-black uppercase tracking-tighter italic` headers, "Neural / Calibration / Registry / Arena / Telemetry / Protocol" copy, and oversized hero blocks. Convert each to standard tokens above.
+## Copy — De-terminalization Glossary
 
-| Page | Current hero | Target |
-|---|---|---|
-| `JobAssessment.tsx` | "Neural Interface" 3xl black | "Job Assessment" `PAGE_TITLE` |
-| `StudyAbroad.tsx` | "Academic Discovery" 4xl italic + 3xl balance pill | Compact header + standard balance badge |
-| `StudyAbroadDetail.tsx` | 4xl–6xl italic university name, rotated 28px emoji tile | `text-2xl font-bold`, plain logo tile `h-12 w-12 rounded-xl` |
-| `IELTSPrep.tsx` | "Expansion Protocols Active" 3xl black | "IELTS Prep" + standard `EmptyState` |
-| `Competitions.tsx` | "The Arena" 5xl italic | "Competitions" `PAGE_TITLE` |
-| `CompetitionDetail.tsx` | "Registry Node Missing" 5xl–6xl | Compact title + `EmptyState` for missing |
-| `Blog.tsx` / `BlogPost.tsx` | 4xl–6xl italic uppercase article titles | `text-2xl font-bold` article title, `text-xl` list cards |
-| `AppCourseDetail.tsx` | 5xl–6xl italic course name | `text-2xl font-bold` |
-| `AppMockInterviewSetup.tsx` | "Job Telemetry / Calibration / Neural Synthesis" 3xl | Plain "Setup", "Job details", "Generating…" inline |
-| `AppJobs.tsx` | "Registry Mismatch" 4xl | `EmptyState` |
-| `Gigs.tsx` | "Gig Hub" 2xl→4xl + 3xl dialog titles | `PAGE_TITLE` + standard `DialogTitle text-lg` |
-| `ProfileEdit.tsx` | "Calibration Terminal" 3xl | "Edit profile" `PAGE_TITLE` |
+| Old (sci-fi) | New (plain) |
+|---|---|
+| Neural / Protocol / Logic Handshake | (remove) |
+| Calibration / Calibrating | Setup / Loading |
+| Transmission / Signal / Beacon | Message / Notification |
+| Registry / Arena / Terminal | List / Page |
+| Execute / Engage / Initiate | Submit / Start / Apply |
+| Operator / Node | User / Item |
+| Synthesizing intelligence | Generating |
+| Anomaly detected | Something went wrong |
 
-For each: also remove decorative gradients, rotated tiles, drop-shadow halos, and `font-mono tracking-tighter` on numbers — use plain semibold.
+A single grep pass per file catches: `Neural`, `Protocol`, `Calibration`, `Terminal`, `Registry`, `Arena`, `Synthesiz`, `Anomaly`, `Handshake`, `Operator Node`.
 
-## 3. Container width consistency
+## Out of Scope (intentionally untouched)
+- Admin dashboard pages (`src/pages/admin/*`) — separate design system.
+- Auth pages (`SignIn`, `SignUp`, `ResetPassword`) — already standardized in earlier phase.
+- Backend logic, edge functions, RLS, hooks — UI-only sweep.
+- Landing/marketing pages (`src/pages/Index.tsx` etc.) — separate brand treatment.
 
-Standardize three widths only:
-- **Reading / forms** (`max-w-2xl`) — Profile, ProfileEdit, ProfileVerify, all `tools/*`, BlogPost, Withdrawals, Transactions, SavedItems, MessageThread, AppJobApplication, AppPortfolioRequest, AppSalaryAnalysisSetup, AppCareerAssessment, AppMockInterviewSetup, JobAssessment, StudyAbroadRoadmap, StudyAbroadDetail, CompetitionDetail, AppCourseDetail, AppJobDetail, AppProfessionDetail.
-- **Lists / hubs** (`max-w-3xl`) — Feed, LearningHub, JobsHub, Gigs, Marketplace, Competitions, AppJobs, AppCourses, AppEvents, MyApplications, MyAgents, MyGigs, MyResults, AgentMarketplace, StudyAbroad, IELTSPrep, Notifications, Blog, Messages, ServicesHub.
-- **Full-bleed only when justified** (`max-w-none`) — AgentChat, MessageThread chat surface.
+## Execution Strategy
 
-Audit pass to fix anything wider (`max-w-4xl/5xl/6xl/7xl`).
+- One file at a time, top-down per group.
+- Use `code--line_replace` for surgical header/copy swaps; `code--write` only when >60% of file changes.
+- Preserve all existing hooks, queries, mutations, and business logic verbatim.
+- After each group, do a quick visual smoke check via `read_console_logs` for unrelated breaks.
 
-## 4. Kill remaining horizontal scroll
+## Deliverables
 
-`overflow-x-auto`/`min-w-max`/`whitespace-nowrap` strips remaining in:
-- `src/pages/app/AIAgents.tsx`, `Messages.tsx`, `Gigs.tsx`, `Blog.tsx`, `Marketplace.tsx`
-- `src/components/profile/ApplicationHistoryCard.tsx`
-- `src/components/feed/PostAuthor.tsx`
-- `src/components/learning/LearningStreak.tsx`, `ActiveCourseHero.tsx`
-- `src/components/ai-agents/RecentConversations.tsx`
-- `src/components/gigs/JobSharingGigForm.tsx`
+- 27 pages fully aligned to `uiTokens.ts`.
+- Zero remaining sci-fi terminology in talent-facing routes.
+- Consistent mobile-first vertical layout, no horizontal scroll strips.
+- All pages render within `max-w-2xl` (or `max-w-3xl` for dense ones) with safe-area bottom padding.
 
-Replace with `flex-wrap` + a "More" sheet where >6 items, mirroring `AgentFilters.tsx` / `FeedFilters.tsx`.
-
-## 5. Empty states
-
-Replace every bespoke empty/error block (≈18 occurrences across pages) with `<EmptyState>`. Examples:
-- "Registry Sync Failure" → "Couldn't load this university."
-- "Arena Empty" → "No competitions yet."
-- "Sync Error" → "We couldn't load this. Try again."
-- "Calibration Terminal" → not an empty state; just remove.
-
-Plain English, `text-sm`, single primary action button (`size="sm"`).
-
-## 6. Cards & badges audit
-
-Across `src/components/{jobs,gigs,learning,feed,marketplace}/*Card.tsx`:
-- Force `rounded-2xl border border-border/40 p-3` baseline.
-- Title `text-sm font-semibold`, meta `text-[11px] text-muted-foreground`.
-- Replace any `font-mono uppercase tracking-tighter` badges with standard `Badge variant="outline" className="text-[10px]"`.
-- Remove gradient borders, glow rings, rotation transforms.
-
-## 7. Page-level header pattern
-
-Every page gets the same header block (replace ad-hoc heroes):
-
-```text
-<header className="space-y-1">
-  <div className="flex items-center gap-2">
-    <Icon className="h-5 w-5 text-primary" />
-    <h1 className={PAGE_TITLE}>Title</h1>
-  </div>
-  <p className={PAGE_SUBTITLE}>Short subtitle.</p>
-</header>
-```
-
-Back button: `Button variant="ghost" size="sm"` with `ArrowLeft` — already used in `tools/CVMaker.tsx`. Apply to detail pages that use a custom back.
-
-## 8. Out of scope (this phase)
-
-- Admin dashboard pages (`src/components/dashboard/**`) — admin keeps its denser styling.
-- Public marketing pages (`src/pages/*.tsx` outside `app/`) — separate brand pass.
-- Color tokens, dark mode, fonts — already standardized.
-- Functionality changes — pure visual/copy refactor.
-
----
-
-## Execution order
-
-1. Create `src/lib/uiTokens.ts` and `src/components/common/EmptyState.tsx`.
-2. Sweep the 12 high-priority "terminal" pages in section 2 (largest visual debt).
-3. Container-width audit (section 3) — mostly one-line className changes.
-4. Horizontal-scroll sweep (section 4).
-5. Replace empty/error blocks with `EmptyState` (section 5).
-6. Card consistency audit (section 6).
-7. Header pattern audit (section 7).
-
-No DB migrations, no edge functions, no dependency changes. ~25 files modified, 2 created.
-
----
-
-**Approve to proceed with Phase 13 standardization?**
+Ready to execute on approval.
