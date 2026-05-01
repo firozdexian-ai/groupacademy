@@ -1,12 +1,12 @@
 /**
  * Account-type-aware post-auth routing.
- * Used by Index, Auth pages, and CompanySignup so each user type lands in
- * the right surface (talent feed, company workspace, or admin dashboard).
+ * Used by Index, Auth pages, and Gro10x signup so each user type lands in
+ * the right surface (talent feed, Gro10x B2B inbox, or admin dashboard).
  */
 export type AccountType = "company" | "admin" | "talent" | "unknown";
 
 export const DEFAULT_ROUTE_BY_TYPE: Record<AccountType, string> = {
-  company: "/company",
+  company: "/gro10x/inbox",
   admin: "/dashboard",
   talent: "/app/feed",
   unknown: "/app/feed",
