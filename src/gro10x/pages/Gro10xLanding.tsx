@@ -28,6 +28,12 @@ export default function Gro10xLanding() {
         >
           Get started <ArrowRight className="h-4 w-4" />
         </Link>
+        <Link
+          to="/gro10x/signin"
+          className="mt-2 inline-flex items-center justify-center gap-2 w-full rounded-full border border-white/10 bg-white/5 text-slate-200 font-medium py-3 text-sm"
+        >
+          I already have an account
+        </Link>
         <p className="mt-3 text-center text-xs text-slate-500">
           Free to start · 250 welcome credits per company
         </p>

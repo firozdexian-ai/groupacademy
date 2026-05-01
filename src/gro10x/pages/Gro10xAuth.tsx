@@ -264,7 +264,7 @@ export default function Gro10xAuth() {
           </div>
           <p className="mt-3 text-center text-[11px] text-slate-500">
             Already on Gro10x?{" "}
-            <Link to="/auth" className="text-[#33E1E4] hover:underline">
+            <Link to="/gro10x/signin" className="text-[#33E1E4] hover:underline">
               Sign in
             </Link>
           </p>

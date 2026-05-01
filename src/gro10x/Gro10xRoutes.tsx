@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { Gro10xAppShell } from "./components/Gro10xAppShell";
 import Gro10xLanding from "./pages/Gro10xLanding";
 import Gro10xAuth from "./pages/Gro10xAuth";
+import Gro10xSignIn from "./pages/Gro10xSignIn";
 import Gro10xWelcome from "./pages/Gro10xWelcome";
 import Gro10xInbox from "./pages/Gro10xInbox";
 import Gro10xChat from "./pages/Gro10xChat";
@@ -20,6 +21,7 @@ export function Gro10xRoutes() {
       {/* Landing + auth (no shell — full-bleed) */}
       <Route index element={<Gro10xLanding />} />
       <Route path="auth" element={<Gro10xAuth />} />
+      <Route path="signin" element={<Gro10xSignIn />} />
       <Route path="welcome" element={<Gro10xWelcome />} />
 
       {/* App shell with bottom nav */}
