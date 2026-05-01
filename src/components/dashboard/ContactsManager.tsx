@@ -371,7 +371,7 @@ export function ContactsManager() {
             <div className="relative flex items-center">
               <Database className="absolute left-4 h-4 w-4 text-muted-foreground/40 pointer-events-none" />
               <Select value={companyFilter} onValueChange={setCompanyFilter}>
-                <SelectTrigger className="w-full md:w-[240px] h-14 pl-11 rounded-2xl border-2 font-black uppercase text-[10px] tracking-widest bg-card/50">
+                <SelectTrigger className="w-full md:w-[220px] h-14 pl-11 rounded-2xl border-2 font-black uppercase text-[10px] tracking-widest bg-card/50">
                   <SelectValue placeholder="Company Protocol" />
                 </SelectTrigger>
                 <SelectContent className="rounded-2xl border-2">
@@ -383,6 +383,21 @@ export function ContactsManager() {
                       {c.name}
                     </SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="relative flex items-center">
+              <Zap className="absolute left-4 h-4 w-4 text-muted-foreground/40 pointer-events-none" />
+              <Select value={sourceFilter} onValueChange={setSourceFilter}>
+                <SelectTrigger className="w-full md:w-[200px] h-14 pl-11 rounded-2xl border-2 font-black uppercase text-[10px] tracking-widest bg-card/50">
+                  <SelectValue placeholder="Source" />
+                </SelectTrigger>
+                <SelectContent className="rounded-2xl border-2">
+                  <SelectItem value="all" className="font-bold">All Sources</SelectItem>
+                  <SelectItem value="gro10x_signup" className="font-bold">Gro10x Signup</SelectItem>
+                  <SelectItem value="manual" className="font-bold">Manual</SelectItem>
+                  <SelectItem value="linkedin_import" className="font-bold">LinkedIn Import</SelectItem>
+                  <SelectItem value="batch_upload" className="font-bold">Batch Upload</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -471,9 +486,14 @@ export function ContactsManager() {
                         <TableCell>
                           <Badge
                             variant="outline"
-                            className="rounded-lg border-2 font-black text-[8px] uppercase tracking-widest bg-background"
+                            className={cn(
+                              "rounded-lg border-2 font-black text-[8px] uppercase tracking-widest",
+                              contact.source === "gro10x_signup"
+                                ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600"
+                                : "bg-background",
+                            )}
                           >
-                            {contact.source || "MANUAL"}
+                            {contact.source === "gro10x_signup" ? "● Gro10x User" : (contact.source || "MANUAL")}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right pr-8">
