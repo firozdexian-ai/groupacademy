@@ -184,9 +184,9 @@ const AuthChat = () => {
             <Button
               size="lg"
               onClick={() => navigate(searchParams.get("returnTo") || "/app/feed")}
-              className="rounded-full h-14 px-10 gap-3 text-[10px] font-black uppercase tracking-widest bg-slate-800 hover:bg-slate-900 text-white shadow-xl group"
+              className="rounded-full h-12 px-8 gap-2 text-sm font-semibold bg-slate-900 hover:bg-slate-800 text-white shadow-lg group"
             >
-              Initialize Platform Access
+              Continue to your dashboard
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Button>
           </div>
