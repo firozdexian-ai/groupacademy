@@ -1,59 +1,40 @@
-## Problem
+## Goal
 
-Sign-in for `firoz@gro10x.com` (a real company member) fails with:
-> "This account is not registered to any company workspace. Maybe it is a talent account."
+Add a visible "Install App" button on the Gro10x landing page (`/gro10x`) so visitors can install Gro10x as a PWA on their device.
 
-Network trace shows the actual cause:
+Note: Gro10x already ships a manifest at `public/gro10x/manifest.webmanifest` with `display: standalone` and icons, so it is installable. Today there is no in-app trigger — users must use the browser menu. This adds a first-class button.
 
-```
-GET /rest/v1/company_members?...&user_id=eq.866df0ba...
-500 — infinite recursion detected in policy for relation "company_members"
-```
+## What we'll build
 
-Riya's pre-check (`check-company-account`, service role) correctly returns `{exists:true, isCompany:true}`, but the client-side membership verification in `Gro10xSignIn.tsx` hits broken RLS, throws, and the catch branch shows the misleading "talent account" message before signing the user out.
+A small reusable component `Gro10xInstallButton` mounted on `Gro10xLanding.tsx` (just under the existing CTAs).
 
-## Fix
+Behavior:
 
-### 1. Repair `company_members` RLS (root cause)
-
-Drop the recursive policies on `company_members` and replace them with policies backed by a `SECURITY DEFINER` helper that bypasses RLS, mirroring the `has_role` pattern already used elsewhere.
-
-New helper (in a migration):
-```sql
-create or replace function public.is_company_member(_user_id uuid, _company_id uuid)
-returns boolean
-language sql stable security definer set search_path = public as $$
-  select exists (
-    select 1 from public.company_members
-    where user_id = _user_id and company_id = _company_id and status = 'active'
-  )
-$$;
-```
-
-Then rewrite the policies on `company_members`:
-- `select`: `user_id = auth.uid()` OR `public.is_company_member(auth.uid(), company_id)` OR `public.has_role(auth.uid(), 'admin')`.
-- `insert`/`update`/`delete`: scoped to admins of that company via `is_company_member` + an admin role check on `company_members.role`, never via a self-referential subquery in the policy itself.
-
-This eliminates the recursion (the helper runs as definer, so it does not re-trigger RLS on `company_members`).
-
-### 2. Harden `Gro10xSignIn.tsx`
-
-Even with RLS fixed, the page should not lie to the user when a query fails:
-
-- Replace the direct `from("company_members").select(...)` membership check with a call to the existing `check-company-account` edge function (service-role, RLS-immune), passing the email we just signed in with.
-- Branch on the response:
-  - `isCompany: true` → route to `/gro10x/inbox`.
-  - `exists: true && !isCompany` → show the "talent account, switch app" message and sign out.
-  - Any error → show a generic "Couldn't verify your workspace, please try again" toast and keep the session (do NOT sign out + show a wrong reason).
-
-### 3. Verify
-
-- Re-run sign-in for `firoz@gro10x.com` → lands on `/gro10x/inbox`.
-- Sign in with a known talent-only account → still gets the correct "wrong app" message.
-- Confirm the talent app's existing `useAccountType` (which also queries `company_members`) stops 500-ing on every load for company users.
+1. **Already installed** (running in standalone / `display-mode: standalone` or iOS `navigator.standalone`): hide the button entirely — there's nothing to install.
+2. **Android / Chrome / Edge / desktop Chromium**: listen for the `beforeinstallprompt` event, prevent the browser's default mini-infobar, and stash the event. When the user taps the button, call `prompt()` on the stashed event and report the outcome via a `sonner` toast.
+3. **iOS Safari** (no `beforeinstallprompt` support): show the button anyway, and on tap open a small bottom sheet / dialog explaining "Tap Share → Add to Home Screen" with an icon hint.
+4. **Other unsupported browsers** (e.g. desktop Firefox): if no `beforeinstallprompt` fires within ~3s and we're not on iOS, fall back to the same instructional sheet but worded generically ("Use your browser's menu → Install app / Add to Home Screen").
 
 ## Files
 
-- New migration: drop recursive policies on `company_members`, add `is_company_member()`, recreate policies.
-- Edit `src/gro10x/pages/Gro10xSignIn.tsx`: swap direct table query for `check-company-account` invoke + better error UX.
-- No edge function changes needed (`check-company-account` already does the right thing).
+**New**
+- `src/gro10x/components/Gro10xInstallButton.tsx` — self-contained button + install logic + iOS instruction sheet. Uses existing token classes (`#33E1E4`, `#0F172A`, white/10 borders) to match the landing aesthetic.
+
+**Edited**
+- `src/gro10x/pages/Gro10xLanding.tsx` — import and render `<Gro10xInstallButton />` directly under the "I already have an account" link, with a thin divider label like "Or install the app".
+
+No changes needed to the manifest, service worker, routes, or any backend.
+
+## Technical notes
+
+- We rely on the existing manifest at `/gro10x/manifest.webmanifest` (already linked from the Gro10x host). No new manifest work.
+- iOS detection: `/iphone|ipad|ipod/i.test(navigator.userAgent) && !(window as any).MSStream`.
+- Standalone detection mirrors `usePWADetect` (`matchMedia('(display-mode: standalone)')` + `navigator.standalone`). We'll inline this check rather than importing the hook to keep the Gro10x bundle isolated from the talent app, consistent with the rest of `src/gro10x/`.
+- The `beforeinstallprompt` event is captured on mount with a `useEffect` and removed on unmount. The button's disabled/visible state is driven by React state.
+- No service worker registration is added — Lovable's PWA guidance discourages it, and the existing manifest is sufficient for "Add to Home Screen" installability.
+
+## Out of scope
+
+- No changes to the talent app PWA.
+- No new service worker / offline caching.
+- No analytics events for install (can be added later if requested).
