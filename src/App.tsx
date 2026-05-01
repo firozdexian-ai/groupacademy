@@ -80,6 +80,8 @@ import Transactions from "./pages/app/Transactions";
 import Withdrawals from "./pages/app/Withdrawals";
 import ProfileVerify from "./pages/app/ProfileVerify";
 import ContentStudio from "./pages/app/ContentStudio";
+import CVMaker from "./pages/app/tools/CVMaker";
+import ApplicationHelper from "./pages/app/tools/ApplicationHelper";
 
 // Feature Details
 import AppJobs from "./pages/app/AppJobs";
@@ -438,6 +440,8 @@ export default function App() {
                     <Route path="withdrawals" element={<Withdrawals />} />
                     <Route path="profile/verify" element={<ProfileVerify />} />
                     <Route path="studio" element={<ContentStudio />} />
+                    <Route path="tools/cv-maker" element={<CVMaker />} />
+                    <Route path="tools/application-helper" element={<ApplicationHelper />} />
 
                     {/* Study Abroad - Specific Routes First */}
                     <Route path="abroad/study" element={<StudyAbroad />} />
