@@ -140,7 +140,7 @@ export default function StudyAbroadRoadmapResults() {
     return (
       <div className="max-w-2xl mx-auto py-32 text-center animate-in fade-in zoom-in-95">
         <AlertCircle className="h-16 w-16 text-destructive/20 mx-auto mb-6 rotate-12" />
-        <h2 className="text-3xl font-black uppercase tracking-tighter">Registry Missing</h2>
+        <h2 className="text-3xl font-black uppercase tracking-tighter">List Missing</h2>
         <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-widest mt-2 italic">
           Artifact vanished or restricted by protocol.
         </p>
@@ -165,7 +165,7 @@ export default function StudyAbroadRoadmapResults() {
             </div>
             <div className="space-y-6 max-w-md mx-auto relative z-10">
               <div className="space-y-2">
-                <h2 className="text-3xl font-black uppercase tracking-tighter italic">Synthesizing Pathway...</h2>
+                <h2 className="text-3xl font-black uppercase tracking-tighter italic">Generating Pathway...</h2>
                 <p className="text-[10px] font-black uppercase tracking-[0.3em] text-primary animate-pulse italic">
                   Neural Analysis Active
                 </p>
@@ -287,7 +287,7 @@ export default function StudyAbroadRoadmapResults() {
           </div>
           <div className="space-y-8">
             <h4 className="text-[11px] font-black text-amber-600 flex items-center gap-3 uppercase tracking-[0.3em] italic">
-              <Zap className="h-5 w-5" /> Logic Calibration Req'd
+              <Zap className="h-5 w-5" /> Logic Setup Req'd
             </h4>
             <div className="grid gap-4">
               {res.profileSummary.gaps.map((g, i) => (
@@ -510,7 +510,7 @@ export default function StudyAbroadRoadmapResults() {
       <footer className="mt-20 pt-10 border-t border-border/40 flex items-center justify-between opacity-30">
         <div className="space-y-1">
           <p className="text-[9px] font-black uppercase tracking-[0.4em] italic">
-            Roadmap Artifact Registry: Synchronized
+            Roadmap Files: Synchronized
           </p>
           <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">
             Logic Node: Global Academic v2.6.4

@@ -28,7 +28,7 @@ import { CreditPurchaseSheet } from "@/components/credits/CreditPurchaseSheet";
 import { cn } from "@/lib/utils";
 
 /**
- * Platform Logic: Job Application Handshake
+ * Platform Logic: Job Application Connection
  * Orchestrates secure CV transmission and real-time AI interview synthesis.
  * 2026 Standard: Executive Logic geometry with reinforced transaction guards.
  */
@@ -43,10 +43,10 @@ interface Job {
 }
 
 const SUBMISSION_STAGES = [
-  { progress: 20, message: "Syncing Registry..." },
+  { progress: 20, message: "Syncing..." },
   { progress: 40, message: "Hardening CV Node..." },
-  { progress: 60, message: "Synthesizing AI Interview..." },
-  { progress: 85, message: "Finalizing Protocol..." },
+  { progress: 60, message: "Generating interview..." },
+  { progress: 85, message: "Finalizing..." },
 ];
 
 export default function AppJobApplication() {
@@ -141,7 +141,7 @@ export default function AppJobApplication() {
       await refreshTalent();
       toast.success("CV Node Secured.");
     } catch (error) {
-      toast.error("CV Transmission failed.");
+      toast.error("CV upload failed.");
     } finally {
       setIsUploadingCV(false);
     }
@@ -164,10 +164,10 @@ export default function AppJobApplication() {
       if (error) throw error;
       if (data?.enhancedCoverLetter) {
         setCoverLetter(data.enhancedCoverLetter);
-        toast.success("Cover Letter Synthesized.");
+        toast.success("Cover letter generated.");
       }
     } catch (error: any) {
-      toast.error("AI Neural link currently saturated.");
+      toast.error("AI service is busy. Please try again.");
     } finally {
       setIsGeneratingCoverLetter(false);
     }
@@ -182,7 +182,7 @@ export default function AppJobApplication() {
     }
 
     if (!talent.cvUrl) {
-      toast.error("Registry missing CV node.");
+      toast.error("No CV on file.");
       document.getElementById("cv-upload-section")?.scrollIntoView({ behavior: "smooth" });
       return;
     }
@@ -217,7 +217,7 @@ export default function AppJobApplication() {
 
       if (job.ai_assessment_enabled) {
         setSubmissionProgress(65);
-        setSubmissionMessage("Generating Neural Interview...");
+        setSubmissionMessage("Generating interview...");
 
         const { data: assessmentData, error: assessmentError } = await supabase.functions.invoke(
           "generate-job-assessment",
@@ -231,10 +231,10 @@ export default function AppJobApplication() {
 
       setSubmissionProgress(100);
       setSubmitted(true);
-      toast.success("Registry Entry Finalized.");
+      toast.success("Saved.");
       refreshBalance();
     } catch (error: any) {
-      toast.error("Handshake interruption. Retry sequence.");
+      toast.error("Connection interrupted. Please retry.");
     } finally {
       setSubmitting(false);
       isSubmittingRef.current = false;
@@ -258,7 +258,7 @@ export default function AppJobApplication() {
               <CheckCircle className="h-12 w-12 text-emerald-500" />
             </div>
             <div className="space-y-2">
-              <h2 className="text-3xl font-black uppercase tracking-tighter">Handshake Finalized</h2>
+              <h2 className="text-3xl font-black uppercase tracking-tighter">Connection Finalized</h2>
               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 italic">
                 Application for {job?.title} active in registry.
               </p>
@@ -280,7 +280,7 @@ export default function AppJobApplication() {
                 className="rounded-[20px] h-14 font-black uppercase tracking-widest text-[11px] border-2"
                 onClick={() => navigate("/app/applications")}
               >
-                View Applications Registry
+                View Applications List
               </Button>
             </div>
           </CardContent>
@@ -305,12 +305,12 @@ export default function AppJobApplication() {
             <div>
               <h1 className="text-3xl font-black uppercase tracking-tighter">Submit Protocol</h1>
               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40 italic">
-                Registry: Standard Application
+                List: Standard Application
               </p>
             </div>
           </div>
           <Badge className="bg-primary/5 text-primary border-primary/20 rounded-lg px-3 py-1 font-black text-[9px] uppercase tracking-widest">
-            Handshake Node
+            Connection Node
           </Badge>
         </header>
 
@@ -332,7 +332,7 @@ export default function AppJobApplication() {
           </CardContent>
         </Card>
 
-        {/* CV Registry Section */}
+        {/* CV List Section */}
         <Card
           id="cv-upload-section"
           className={cn(
@@ -342,7 +342,7 @@ export default function AppJobApplication() {
         >
           <CardHeader className="border-b bg-muted/20 px-8 py-5 flex flex-row items-center justify-between">
             <CardTitle className="text-[11px] font-black uppercase tracking-[0.2em] flex items-center gap-3">
-              <ShieldCheck className="w-4 h-4 text-primary" /> Professional Registry Node (CV)
+              <ShieldCheck className="w-4 h-4 text-primary" /> Professional List Node (CV)
             </CardTitle>
             {talent?.cvUrl && (
               <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[8px] font-black uppercase">
@@ -381,7 +381,7 @@ export default function AppJobApplication() {
                 )}
                 <h3 className="text-sm font-black uppercase tracking-widest mb-2">Upload CV Artifact</h3>
                 <p className="text-[10px] text-muted-foreground/40 uppercase tracking-[0.2em] mb-6 italic">
-                  Secure Transmission • 5MB Limit
+                  Secure Upload • 5MB Limit
                 </p>
                 <Label
                   htmlFor="cv-new"
@@ -413,7 +413,7 @@ export default function AppJobApplication() {
               ) : (
                 <Zap className="h-3.5 w-3.5 text-primary" />
               )}
-              Synthesize with AI
+              Generate with AI
             </Button>
           </CardHeader>
           <CardContent className="p-8">
@@ -469,7 +469,7 @@ export default function AppJobApplication() {
               disabled={isUploadingCV}
             >
               <span className="relative z-10 flex items-center">
-                {hasEnoughCredits ? "Finalize Handshake" : "Top-up Credits"}
+                {hasEnoughCredits ? "Confirm" : "Top-up Credits"}
                 <ArrowRight className="ml-3 h-5 w-5 transition-transform group-hover:translate-x-2" />
               </span>
               <div className="absolute inset-0 bg-gradient-to-r from-primary via-blue-600 to-primary opacity-50 group-hover:opacity-100 transition-opacity" />

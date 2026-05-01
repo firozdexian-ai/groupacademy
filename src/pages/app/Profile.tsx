@@ -31,7 +31,7 @@ import { getCountryFlag, getCountryName } from "@/lib/constants/countries";
 import { cn } from "@/lib/utils";
 
 /**
- * Platform Logic: Registry Identity Node
+ * Platform Logic: List Identity Node
  * High-fidelity orchestrator for career artifact management and neural profile synthesis.
  * 2026 Standard: Executive Logic geometry with reinforced AI handshake protocols.
  */
@@ -50,9 +50,9 @@ export default function Profile() {
       try {
         await updateTalent(data);
         await refreshTalent();
-        toast.success("Identity Registry Updated.");
+        toast.success("Profile updated.");
       } catch {
-        toast.error("Handshake Failed: Sync Interrupted.");
+        toast.error("Sync failed.");
       }
     },
     [updateTalent, refreshTalent],
@@ -63,7 +63,7 @@ export default function Profile() {
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
         <Loader2 className="w-12 h-12 animate-spin text-primary stroke-[1.5px]" />
         <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground animate-pulse">
-          Syncing Registry Node...
+          Syncing List Node...
         </p>
       </div>
     );
@@ -84,7 +84,7 @@ export default function Profile() {
 
   const handleEnhanceWithAI = async () => {
     if (!talent.experience?.length) {
-      toast.error("Protocol Error: Add experience artifacts first.");
+      toast.error("Please add experience first.");
       setShowEnhanceDialog(false);
       navigate("/app/profile/edit");
       return;
@@ -103,10 +103,10 @@ export default function Profile() {
       if (data?.enhancedExperience) {
         await updateTalent({ experience: data.enhancedExperience });
         await refreshTalent();
-        toast.success("Artifacts Synthesized: Descriptions Enhanced.");
+        toast.success("Descriptions enhanced.");
       }
     } catch (error) {
-      toast.error("Synthesis Failed: Neural handshake timeout.");
+      toast.error("Generation timed out.");
     } finally {
       setIsEnhancing(false);
       setShowEnhanceDialog(false);
@@ -174,7 +174,7 @@ export default function Profile() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="space-y-0.5">
-            <h1 className="text-xl font-black uppercase tracking-tighter italic">Identity Registry</h1>
+            <h1 className="text-xl font-black uppercase tracking-tighter italic">Identity List</h1>
             <div className="flex items-center gap-2">
               <ShieldCheck className="h-3 w-3 text-emerald-500" />
               <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">
@@ -197,7 +197,7 @@ export default function Profile() {
       <div className="relative mb-8 px-6">
         <div className="rounded-[32px] overflow-hidden shadow-2xl relative">
           {talent.coverImageUrl ? (
-            <img src={talent.coverImageUrl} alt="Registry Cover" className="h-36 w-full object-cover grayscale-[0.3]" />
+            <img src={talent.coverImageUrl} alt="Cover" className="h-36 w-full object-cover grayscale-[0.3]" />
           ) : (
             <div className="h-36 bg-gradient-to-br from-primary via-blue-600 to-primary opacity-90" />
           )}
@@ -288,11 +288,11 @@ export default function Profile() {
         {/* About Node */}
         <Card className="rounded-[32px] border-2 border-border/40 bg-card/30 backdrop-blur-sm shadow-xl">
           <CardHeader className="p-8 pb-4">
-            <SectionHeader title="Neural Summary" section="about" />
+            <SectionHeader title="AI Summary" section="about" />
           </CardHeader>
           <CardContent className="px-8 pb-8">
             <div className="p-6 rounded-2xl bg-muted/10 border-2 border-dashed border-border/40 italic font-medium text-sm text-foreground/70 leading-relaxed selection:bg-primary/20">
-              {talent.currentStatus || "Registry summary pending sync..."}
+              {talent.currentStatus || "Loading summary..."}
             </div>
           </CardContent>
         </Card>
@@ -436,7 +436,7 @@ export default function Profile() {
             >
               {isEnhancing ? (
                 <>
-                  <Loader2 className="h-5 w-5 mr-3 animate-spin" /> Synthesizing Logic...
+                  <Loader2 className="h-5 w-5 mr-3 animate-spin" /> Generating Logic...
                 </>
               ) : (
                 <>

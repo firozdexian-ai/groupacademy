@@ -32,7 +32,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
 /**
- * Platform Logic: Mission Registry & Proposal Handshake
+ * Platform Logic: Mission List & Proposal Connection
  * High-fidelity orchestrator for project interrogation and contractual bidding.
  * 2026 Standard: Executive Logic geometry with reinforced reputation guards.
  */
@@ -92,7 +92,7 @@ export default function MarketplaceGigDetail() {
 
   const submitProposal = useMutation({
     mutationFn: async () => {
-      if (!talent?.id || !id) throw new Error("Registry Access Denied: Auth Required");
+      if (!talent?.id || !id) throw new Error("Sign in required");
       const { error } = await supabase.from("marketplace_bids").insert({
         gig_id: id,
         talent_id: talent.id,
@@ -103,7 +103,7 @@ export default function MarketplaceGigDetail() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Handshake Initialized: Proposal transmitted to partner registry.");
+      toast.success("Proposal sent.");
       queryClient.invalidateQueries({ queryKey: ["my-marketplace-bid", id] });
       queryClient.invalidateQueries({ queryKey: ["marketplace-gig", id] });
     },
@@ -124,7 +124,7 @@ export default function MarketplaceGigDetail() {
     return (
       <div className="max-w-2xl mx-auto py-32 text-center animate-in fade-in zoom-in-95">
         <FileSearch className="mx-auto h-16 w-16 text-destructive/20 mb-6" />
-        <h2 className="text-3xl font-black uppercase tracking-tighter">Registry Error</h2>
+        <h2 className="text-3xl font-black uppercase tracking-tighter">List Error</h2>
         <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 italic mt-2">
           Node vanished or restricted by protocol.
         </p>
@@ -133,7 +133,7 @@ export default function MarketplaceGigDetail() {
           onClick={() => navigate("/app/gigs?tab=projects")}
           className="mt-8 rounded-xl px-10 h-12 font-black uppercase text-[10px] tracking-widest border-2"
         >
-          Return to Arena
+          Return to Hub
         </Button>
       </div>
     );
@@ -151,7 +151,7 @@ export default function MarketplaceGigDetail() {
           className="group rounded-xl h-11 px-4 font-black text-[10px] uppercase tracking-[0.3em] hover:bg-primary/5 -ml-4"
         >
           <ArrowLeft className="mr-3 h-4 w-4 transition-transform group-hover:-translate-x-1" />
-          Back to Project Arena
+          Back to Project Hub
         </Button>
         <Badge
           variant="outline"
@@ -171,7 +171,7 @@ export default function MarketplaceGigDetail() {
                   {MARKETPLACE_SCHOOL_MAP[gig.skill_category]?.label}
                 </Badge>
                 <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest">
-                  <Zap className="h-3 w-3 mr-1.5 fill-current" /> {isFixed ? "Fixed Unit" : "Competitive Protocol"}
+                  <Zap className="h-3 w-3 mr-1.5 fill-current" /> {isFixed ? "Fixed Unit" : "Competition"}
                 </Badge>
                 {avgRating && (
                   <Badge
@@ -205,7 +205,7 @@ export default function MarketplaceGigDetail() {
                 {gig.requirements && (
                   <div className="pt-10 border-t border-border/10 space-y-6">
                     <h3 className="text-[11px] font-black uppercase tracking-[0.4em] text-muted-foreground">
-                      Calibration Requirements
+                      Setup Requirements
                     </h3>
                     <Card className="rounded-[28px] bg-muted/20 border-2 border-dashed border-border/60">
                       <CardContent className="p-8 text-sm font-medium leading-relaxed whitespace-pre-wrap italic opacity-80">
@@ -242,7 +242,7 @@ export default function MarketplaceGigDetail() {
           {reviews && reviews.length > 0 && (
             <section className="space-y-8">
               <h2 className="text-[11px] font-black uppercase tracking-[0.4em] text-primary flex items-center gap-4">
-                <ShieldCheck className="h-5 w-5 text-emerald-500" /> Trust Telemetry Registry ({reviews.length})
+                <ShieldCheck className="h-5 w-5 text-emerald-500" /> Trust Tracking List ({reviews.length})
               </h2>
               <div className="grid gap-6">
                 {reviews.map((r: any) => (
@@ -276,7 +276,7 @@ export default function MarketplaceGigDetail() {
           )}
         </div>
 
-        {/* Sidebar: Transmission Handshake */}
+        {/* Sidebar: Upload Connection */}
         <aside className="sticky top-24 space-y-8 animate-in slide-in-from-right-8 duration-700 delay-150">
           {existingBid ? (
             <Card className="rounded-[40px] border-emerald-500/20 bg-emerald-500/5 shadow-2xl overflow-hidden py-12 text-center border-t-8 border-t-emerald-500">
@@ -285,7 +285,7 @@ export default function MarketplaceGigDetail() {
                   <CheckCircle2 className="h-10 w-10 text-emerald-600" />
                 </div>
                 <div className="space-y-2">
-                  <h3 className="text-2xl font-black uppercase tracking-tighter italic">Handshake Active</h3>
+                  <h3 className="text-2xl font-black uppercase tracking-tighter italic">Connection Active</h3>
                   <p className="text-[10px] font-bold text-emerald-600/60 uppercase tracking-[0.3em] italic">
                     Protocol: {existingBid.status}
                   </p>
@@ -304,10 +304,10 @@ export default function MarketplaceGigDetail() {
             <Card className="rounded-[40px] border-2 border-primary/20 shadow-[0_40px_80px_-20px_rgba(0,0,0,0.2)] overflow-hidden bg-background/80 backdrop-blur-3xl">
               <CardHeader className="p-10 pb-6 text-center">
                 <CardTitle className="text-3xl font-black uppercase tracking-tighter italic leading-none flex items-center justify-center gap-4">
-                  Initialize Handshake
+                  Initialize Connection
                 </CardTitle>
                 <CardDescription className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40 mt-3 italic">
-                  Proposal Transmission Node
+                  Proposal Upload Node
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-10 pt-0 space-y-10">
@@ -380,7 +380,7 @@ export default function MarketplaceGigDetail() {
                 <div className="p-6 rounded-2xl bg-primary/5 border border-primary/10 flex items-start gap-4">
                   <ShieldCheck className="h-5 w-5 text-primary shrink-0" />
                   <p className="text-[10px] font-bold leading-relaxed text-primary/60 uppercase tracking-widest italic">
-                    Protocol: 0 Credit Transmission Node. Escrow logic activates upon handshake acceptance.
+                    Protocol: 0 Credit Upload Node. Escrow logic activates upon handshake acceptance.
                   </p>
                 </div>
               </CardContent>

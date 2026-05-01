@@ -43,10 +43,10 @@ import { cn } from "@/lib/utils";
  */
 
 const SERVICE_META: Record<string, { icon: React.ElementType; label: string }> = {
-  JOB_APPLICATION: { icon: Briefcase, label: "Job Protocol" },
-  AI_AGENT_CHAT: { icon: Bot, label: "Neural Handshake" },
+  JOB_APPLICATION: { icon: Briefcase, label: "Job" },
+  AI_AGENT_CHAT: { icon: Bot, label: "AI Match" },
   CAREER_ASSESSMENT: { icon: ClipboardCheck, label: "Logic Scorecard" },
-  MOCK_INTERVIEW: { icon: Mic, label: "Vocal Calibration" },
+  MOCK_INTERVIEW: { icon: Mic, label: "Voice Setup" },
   SALARY_ANALYSIS: { icon: DollarSign, label: "Market Intel" },
   IELTS_MOCK: { icon: BookOpen, label: "Language Sync" },
   job_sharing: { icon: Zap, label: "Viral Bounty" },
@@ -54,7 +54,7 @@ const SERVICE_META: Record<string, { icon: React.ElementType; label: string }> =
   purchase: { icon: CreditCard, label: "Credit Injection" },
   refund: { icon: ShieldCheck, label: "Ledger Revert" },
   gig_reward: { icon: TrendingUp, label: "Performance Pay" },
-  service_usage: { icon: Coins, label: "Protocol Fee" },
+  service_usage: { icon: Coins, label: "Fee" },
 };
 
 function getServiceMeta(serviceType: string | null, transactionType: string) {
@@ -84,7 +84,7 @@ export default function Transactions() {
   const [visibleCount, setVisibleCount] = useState(20);
   const [selectedMonth, setSelectedMonth] = useState(() => startOfMonth(new Date()));
 
-  // --- Registry Fetch: Last 90 Days ---
+  // --- List Fetch: Last 90 Days ---
   const { data: historyTxns = [], isLoading: historyLoading } = useQuery({
     queryKey: ["credit-history", talent?.id],
     queryFn: async () => {
@@ -171,7 +171,7 @@ export default function Transactions() {
           <div className="space-y-1">
             <h1 className="text-3xl font-black uppercase tracking-tighter italic leading-none">Credit Ledger</h1>
             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40 italic">
-              Economic Telemetry Node
+              Economic Tracking Node
             </p>
           </div>
         </div>
@@ -243,7 +243,7 @@ export default function Transactions() {
           <div className="flex items-center gap-3 px-2 mb-4">
             <Zap className="h-4 w-4 text-primary" />
             <h2 className="text-[11px] font-black uppercase tracking-[0.3em] text-muted-foreground/60">
-              Last 90 Days Telemetry
+              Last 90 Days Tracking
             </h2>
           </div>
 
@@ -332,7 +332,7 @@ export default function Transactions() {
                           <div className="space-y-4">
                             <div className="space-y-1">
                               <p className="text-[8px] font-black uppercase text-muted-foreground/40 tracking-widest">
-                                Registry Post-Balance
+                                List Post-Balance
                               </p>
                               <p className="text-sm font-black italic">{tx.balance_after} Credits</p>
                             </div>
@@ -534,7 +534,7 @@ export default function Transactions() {
       {/* Operational Trace Footer */}
       <footer className="mt-20 pt-10 border-t border-border/40 flex items-center justify-between opacity-30">
         <div className="space-y-1">
-          <p className="text-[9px] font-black uppercase tracking-[0.4em] italic">Credit Registry: Verified Node</p>
+          <p className="text-[9px] font-black uppercase tracking-[0.4em] italic">Credit List: Verified Node</p>
           <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">
             Economic Protocol v2.6.4 Synchronized
           </p>

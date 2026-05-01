@@ -40,7 +40,7 @@ export default function AIGeneral() {
 
   return (
     <div className="max-w-4xl mx-auto h-[calc(100vh-145px)] md:h-[calc(100vh-80px)] flex flex-col bg-background overflow-hidden md:border-x border-border/40 shadow-2xl">
-      {/* Header: Identity Registry */}
+      {/* Header: Identity List */}
       <header className="flex items-center justify-between py-4 px-6 border-b bg-card/30 backdrop-blur-xl shrink-0 z-20">
         <div className="flex items-center gap-4 min-w-0">
           <Button
@@ -93,7 +93,7 @@ export default function AIGeneral() {
           <div className="flex flex-col items-center justify-center h-full space-y-4">
             <Loader2 className="h-10 w-10 animate-spin text-primary opacity-20 stroke-[1.5px]" />
             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground animate-pulse">
-              Initializing Neural Handshake...
+              Initializing AI Match...
             </p>
           </div>
         )}

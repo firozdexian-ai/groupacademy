@@ -15,7 +15,7 @@ export default function AppCourses() {
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-10 pb-40 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-      {/* Navigation Handshake & Contextual Metadata */}
+      {/* Navigation Connection & Contextual Metadata */}
       <header className="flex flex-col gap-10 mb-12">
         <div className="flex items-center justify-between">
           <Button
@@ -28,7 +28,7 @@ export default function AppCourses() {
             )}
           >
             <ArrowLeft className="w-4 h-4 mr-3 transition-transform group-hover:-translate-x-1" />
-            Back to Registry
+            Back to List
           </Button>
 
           <Badge className="bg-primary/5 text-primary border-primary/20 px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-[0.2em] shadow-sm">
@@ -66,7 +66,7 @@ export default function AppCourses() {
       {/* Visual Terminal Footer */}
       <footer className="mt-20 pt-10 border-t border-border/40 flex items-center justify-between opacity-30 group hover:opacity-100 transition-opacity duration-500">
         <p className="text-[9px] font-black uppercase tracking-[0.4em] italic">
-          Registry Data: Encrypted Handshake Active
+          List Data: Encrypted Connection Active
         </p>
         <div className="flex gap-4">
           <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />

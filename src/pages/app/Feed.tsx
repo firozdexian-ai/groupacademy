@@ -30,7 +30,7 @@ export default function Feed() {
   const { talent, refreshTalent } = useTalent();
   const [showOnboarding, setShowOnboarding] = useState(false);
 
-  // Pull-to-refresh state: Tactical Telemetry
+  // Pull-to-refresh state: Tactical Tracking
   const [startY, setStartY] = useState(0);
   const [pullDistance, setPullDistance] = useState(0);
   const [isPulling, setIsPulling] = useState(false);
@@ -79,7 +79,7 @@ export default function Feed() {
   };
 
   /**
-   * CTO Logic: Telemetry Registry
+   * CTO Logic: Tracking List
    * Synchronized counts to satisfy FeedFilters interface requirements.
    */
   const counts = useMemo(

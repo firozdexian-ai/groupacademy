@@ -59,7 +59,7 @@ export default function Gigs() {
     setSearchParams({ tab });
   };
 
-  // ── Telemetry Logic: Quick Tasks ──
+  // ── Tracking Logic: Quick Tasks ──
   const { data: gigs, isLoading: gigsLoading } = useQuery({
     queryKey: ["gigs"],
     queryFn: async () => {
@@ -131,7 +131,7 @@ export default function Gigs() {
     },
   });
 
-  // ── Activity Registry ──
+  // ── Activity List ──
   const { data: myBids } = useQuery({
     queryKey: ["my-marketplace-bids", talent?.id],
     enabled: !!talent?.id && activeTab === "activity",
@@ -160,7 +160,7 @@ export default function Gigs() {
     },
   });
 
-  // ── Deliverable Handshake ──
+  // ── Deliverable Connection ──
   const [deliverableDialog, setDeliverableDialog] = useState<string | null>(null);
   const [delivTitle, setDelivTitle] = useState("");
   const [delivDesc, setDelivDesc] = useState("");

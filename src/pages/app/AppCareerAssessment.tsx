@@ -16,17 +16,17 @@ import { useCredits } from "@/hooks/useCredits";
 import { useToast } from "@/hooks/use-toast";
 
 /**
- * Platform Logic: Career Readiness Handshake
+ * Platform Logic: Career Readiness Connection
  * Orchestrates high-fidelity career diagnostics with AI-powered telemetry.
  */
 
 const ASSESSMENT_PROCESSING_STAGES = [
-  { progress: 0, message: "Initializing Handshake..." },
+  { progress: 0, message: "Connecting..." },
   { progress: 15, message: "Parsing Logic Artifacts..." },
-  { progress: 35, message: "AI Neural Evaluation Active..." },
+  { progress: 35, message: "AI evaluation in progress..." },
   { progress: 55, message: "Mapping Competency Gaps..." },
   { progress: 75, message: "Generating Executive Report..." },
-  { progress: 90, message: "Finalizing Registry Entry..." },
+  { progress: 90, message: "Saving..." },
 ];
 
 export type AssessmentStep = "intro" | "profession" | "questions" | "lead-capture" | "processing";
@@ -103,7 +103,7 @@ export default function AppCareerAssessment() {
     try {
       if (!canAfford("CAREER_ASSESSMENT")) {
         toast({
-          title: "Protocol Blocked: Credits",
+          title: "Insufficient Credits",
           description: `This diagnostic requires ${ASSESSMENT_COST} credits.`,
           variant: "destructive",
         });
@@ -129,7 +129,7 @@ export default function AppCareerAssessment() {
       else navigate("/app/services");
     } catch (error: any) {
       toast({
-        title: "Handshake Failed",
+        title: "Failed",
         description: "Network logic error. Re-initialize sequence.",
         variant: "destructive",
       });
@@ -192,7 +192,7 @@ export default function AppCareerAssessment() {
                 <div className="grid gap-12 md:grid-cols-3 mb-12">
                   {[
                     { icon: Target, title: "Precision Mapping", desc: "Role-specific telemetry." },
-                    { icon: Sparkles, title: "Neural Logic", desc: "Deep gap analysis." },
+                    { icon: Sparkles, title: "AI Logic", desc: "Deep gap analysis." },
                     { icon: TrendingUp, title: "Strategic Plan", desc: "Executive roadmap." },
                   ].map((item, idx) => (
                     <div key={idx} className="flex flex-col items-center text-center space-y-4">
@@ -255,7 +255,7 @@ export default function AppCareerAssessment() {
               categoryName={selectedCategory.name}
               answers={answers}
               email={email}
-              // FIX: Handshake aligned with () => void signature
+              // FIX: Connection aligned with () => void signature
               onComplete={() => {
                 setStep("processing");
               }}
@@ -266,7 +266,7 @@ export default function AppCareerAssessment() {
 
         {step === "processing" && (
           <div className="py-20 animate-in fade-in duration-1000">
-            <ProcessingCard stages={ASSESSMENT_PROCESSING_STAGES} title="Neural Registry Sync" />
+            <ProcessingCard stages={ASSESSMENT_PROCESSING_STAGES} title="Profile Sync" />
           </div>
         )}
       </main>

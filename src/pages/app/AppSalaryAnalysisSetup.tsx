@@ -99,7 +99,7 @@ export default function AppSalaryAnalysisSetup() {
         if (data) setProfessionCategories(data);
       } catch (error: any) {
         clearTimeout(timeoutId);
-        console.error("Telemetry Failure: Category Load", error);
+        console.error("Tracking Failure: Category Load", error);
       }
     };
     loadCategories();
@@ -130,9 +130,9 @@ export default function AppSalaryAnalysisSetup() {
         await updateTalent({ cvUrl: publicUrl.publicUrl });
         await refreshTalent();
       }
-      toast({ title: "Registry Node Secured" });
+      toast({ title: "Saved" });
     } catch (error: any) {
-      toast({ title: "Transmission Failed", description: "Revert to text paste logic.", variant: "destructive" });
+      toast({ title: "Failed", description: "Revert to text paste logic.", variant: "destructive" });
       setCvInputMode("text");
     } finally {
       setIsUploading(false);
@@ -156,7 +156,7 @@ export default function AppSalaryAnalysisSetup() {
 
     setIsSubmitting(true);
     try {
-      const paid = await deductCredits("SALARY_ANALYSIS", undefined, "Salary Analysis Telemetry");
+      const paid = await deductCredits("SALARY_ANALYSIS", undefined, "Salary Analysis Tracking");
       if (!paid) throw new Error("Credit handshake failed.");
 
       const tempAnalysisId = crypto.randomUUID();
@@ -182,7 +182,7 @@ export default function AppSalaryAnalysisSetup() {
       toast({ title: "Diagnostic Initiated" });
       navigate(`/salary-analysis/processing/${tempAnalysisId}`);
     } catch (error) {
-      toast({ title: "Handshake Failed", description: "Logic sync interrupted.", variant: "destructive" });
+      toast({ title: "Failed", description: "Logic sync interrupted.", variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
@@ -295,9 +295,9 @@ export default function AppSalaryAnalysisSetup() {
             </div>
           </div>
 
-          {/* Registry Registry (CV) */}
+          {/* List Registry (CV) */}
           <div className="space-y-4">
-            <Label className="text-[11px] font-black uppercase tracking-widest ml-1">Candidate Registry Node</Label>
+            <Label className="text-[11px] font-black uppercase tracking-widest ml-1">Candidate List Node</Label>
             <Tabs value={cvInputMode} onValueChange={(v) => setCvInputMode(v as any)}>
               <TabsList className="grid w-full grid-cols-3 p-1 h-12 bg-muted/30 rounded-2xl border border-border/40">
                 {hasExistingCv && (
@@ -305,7 +305,7 @@ export default function AppSalaryAnalysisSetup() {
                     value="existing"
                     className="rounded-xl font-black uppercase text-[9px] tracking-widest gap-2"
                   >
-                    <FileCheck className="h-3.5 w-3.5" /> Registry
+                    <FileCheck className="h-3.5 w-3.5" /> List
                   </TabsTrigger>
                 )}
                 <TabsTrigger value="text" className="rounded-xl font-black uppercase text-[9px] tracking-widest gap-2">
@@ -358,7 +358,7 @@ export default function AppSalaryAnalysisSetup() {
                       </div>
                       <div>
                         <p className="text-sm font-black uppercase tracking-tighter italic">
-                          {cvFile ? cvFile.name : "Upload Registry Artifact"}
+                          {cvFile ? cvFile.name : "Upload File"}
                         </p>
                         <p className="text-[9px] font-bold text-muted-foreground/40 uppercase tracking-[0.2em] mt-1">
                           PDF or DOC • 10MB Limit
@@ -382,7 +382,7 @@ export default function AppSalaryAnalysisSetup() {
               </span>
             ) : (
               <span className="flex items-center gap-3">
-                <Zap className="h-5 w-5 fill-current" /> Finalize Handshake
+                <Zap className="h-5 w-5 fill-current" /> Confirm
               </span>
             )}
             <div className="absolute inset-0 bg-gradient-to-r from-primary/0 via-white/10 to-primary/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />

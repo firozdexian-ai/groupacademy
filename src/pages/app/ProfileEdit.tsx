@@ -35,7 +35,7 @@ import { PhoneInput } from "@/components/ui/phone-input";
 import { cn } from "@/lib/utils";
 
 /**
- * Platform Logic: Registry Calibration Terminal
+ * Platform Logic: List Setup Terminal
  * High-fidelity orchestrator for artifact ingestion and identity synchronization.
  * 2026 Standard: Executive Logic geometry with real-time CV parsing telemetry.
  */
@@ -247,10 +247,10 @@ export default function ProfileEdit() {
         }));
         await updateTalent({ cvUrl: publicUrl, cvParsedAt: new Date().toISOString() });
         await refreshTalent();
-        toast.success("Registry Calibrated", { description: "CV artifacts successfully integrated." });
+        toast.success("Setup complete", { description: "CV artifacts successfully integrated." });
       }
     } catch (error) {
-      toast.error("Transmission Error", { description: "Registry could not ingest artifact." });
+      toast.error("Error", { description: "Could not save the file." });
     } finally {
       setUploadingCV(false);
       setParsingCV(false);
@@ -274,10 +274,10 @@ export default function ProfileEdit() {
       });
       await refreshTalent();
       setIsDirty(false);
-      toast.success("Registry Synchronized.");
+      toast.success("Synced.");
       navigate("/app/profile");
     } catch (error) {
-      toast.error("Handshake Failed", { description: "Logic update aborted." });
+      toast.error("Failed", { description: "Logic update aborted." });
     } finally {
       setSaving(false);
     }
@@ -360,7 +360,7 @@ export default function ProfileEdit() {
               </CardTitle>
               {parsingCV && (
                 <span className="text-[9px] font-black text-primary animate-pulse tracking-widest uppercase italic">
-                  Synthesizing Logic...
+                  Generating Logic...
                 </span>
               )}
             </div>
@@ -373,7 +373,7 @@ export default function ProfileEdit() {
                     <FileText className="h-6 w-6 text-primary" />
                   </div>
                   <div>
-                    <p className="text-sm font-black uppercase tracking-tight italic">Active Registry Artifact</p>
+                    <p className="text-sm font-black uppercase tracking-tight italic">Active List Artifact</p>
                     <p className="text-[9px] font-bold text-muted-foreground/60 uppercase tracking-widest mt-1">
                       Verified Payload
                     </p>
@@ -430,7 +430,7 @@ export default function ProfileEdit() {
                       {uploadingCV ? "Syncing Artifact..." : "Authorize CV Ingestion"}
                     </p>
                     <p className="text-[9px] font-bold text-muted-foreground/40 uppercase tracking-widest mt-1">
-                      AI-Powered Extraction Handshake
+                      AI-Powered Extraction Connection
                     </p>
                   </div>
                 </div>
@@ -465,7 +465,7 @@ export default function ProfileEdit() {
                 </div>
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black uppercase tracking-widest ml-1">
-                    Uplink Telemetry (Phone)
+                    Uplink Tracking (Phone)
                   </Label>
                   <PhoneInput
                     value={formData.phone}
@@ -486,7 +486,7 @@ export default function ProfileEdit() {
                   className="h-12 rounded-xl border-2 bg-background/50 font-bold"
                   value={formData.customProfession}
                   onChange={(e) => handleChange("customProfession", e.target.value)}
-                  placeholder="e.g. Lead Neural Architect"
+                  placeholder="e.g. Senior Software Engineer"
                 />
               </div>
               <div className="space-y-2">

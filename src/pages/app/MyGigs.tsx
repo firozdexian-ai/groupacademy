@@ -32,7 +32,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
 /**
- * Platform Logic: Gig Lifecycle Registry
+ * Platform Logic: Gig Lifecycle List
  * High-fidelity orchestrator for proposal tracking, active execution, and reputation ledger.
  * 2026 Standard: Executive Logic geometry with reinforced deliverable handshakes.
  */
@@ -141,7 +141,7 @@ export default function MyGigs() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Trust Telemetry Updated.");
+      toast.success("Trust Tracking Updated.");
       setReviewDialog(null);
       queryClient.invalidateQueries({ queryKey: ["my-reviews"] });
     },
@@ -161,7 +161,7 @@ export default function MyGigs() {
         </div>
         <div className="flex items-center gap-3 bg-primary/5 px-4 py-2 rounded-2xl border border-primary/10">
           <ShieldCheck className="h-4 w-4 text-primary" />
-          <span className="text-[9px] font-black uppercase tracking-widest text-primary/60">Registry Sync: Active</span>
+          <span className="text-[9px] font-black uppercase tracking-widest text-primary/60">List Sync: Active</span>
         </div>
       </header>
 
@@ -194,7 +194,7 @@ export default function MyGigs() {
             <div className="py-24 text-center border-2 border-dashed rounded-[48px] border-border/40 bg-muted/5">
               <Send className="h-12 w-12 text-muted-foreground/10 mx-auto mb-6 rotate-12" />
               <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground/30">
-                Transmission Queue Empty
+                Upload Queue Empty
               </p>
             </div>
           ) : (
@@ -232,7 +232,7 @@ export default function MyGigs() {
                       bid.status === "accepted" ? "bg-emerald-500 text-white" : "bg-primary/10 text-primary",
                     )}
                   >
-                    {bid.status === "accepted" ? "Handshake Verified" : bid.status}
+                    {bid.status === "accepted" ? "Verified" : bid.status}
                   </Badge>
                 </CardContent>
               </Card>
@@ -278,7 +278,7 @@ export default function MyGigs() {
                   onClick={() => setDeliverableDialog(contract.id)}
                 >
                   <span className="relative z-10 flex items-center gap-3">
-                    <Upload className="h-5 w-5" /> Initialize Deliverable Transmission
+                    <Upload className="h-5 w-5" /> Initialize Deliverable Upload
                   </span>
                   <div className="absolute inset-0 bg-gradient-to-r from-primary via-blue-600 to-primary opacity-50 group-hover:opacity-100 transition-opacity" />
                 </Button>
@@ -315,7 +315,7 @@ export default function MyGigs() {
                         className="h-12 rounded-2xl px-6 border-2 font-black uppercase tracking-widest text-[9px] gap-3"
                         onClick={() => setReviewDialog(contract.id)}
                       >
-                        <Star className="h-4 w-4 fill-amber-400 text-amber-400" /> Reputation Handshake
+                        <Star className="h-4 w-4 fill-amber-400 text-amber-400" /> Reputation Connection
                       </Button>
                     ) : (
                       <div className="h-12 w-12 rounded-full bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
@@ -330,7 +330,7 @@ export default function MyGigs() {
         </TabsContent>
       </Tabs>
 
-      {/* High-Fidelity Deliverable Handshake */}
+      {/* High-Fidelity Deliverable Connection */}
       <Dialog open={!!deliverableDialog} onOpenChange={(o) => !o && setDeliverableDialog(null)}>
         <DialogContent className="rounded-[48px] border-2 border-border/40 bg-background/80 backdrop-blur-3xl p-10 max-w-xl">
           <DialogHeader className="mb-10 text-center">
@@ -347,7 +347,7 @@ export default function MyGigs() {
               <div className="space-y-4 p-6 bg-muted/20 rounded-[32px] border-2 border-dashed border-border/40">
                 <div className="flex items-center justify-between border-b border-border/10 pb-3">
                   <p className="text-[9px] font-black uppercase tracking-[0.3em] text-primary flex items-center gap-3">
-                    <History className="h-4 w-4" /> Transmission Registry
+                    <History className="h-4 w-4" /> Upload List
                   </p>
                   <Badge className="bg-primary/10 text-primary text-[8px] px-2">{myDeliverables.length} Nodes</Badge>
                 </div>
@@ -420,7 +420,7 @@ export default function MyGigs() {
               onClick={() => submitDeliverable.mutate()}
               disabled={submitDeliverable.isPending || !delivTitle}
             >
-              {submitDeliverable.isPending ? <Loader2 className="animate-spin h-6 w-6" /> : "Authorize Transmission"}
+              {submitDeliverable.isPending ? <Loader2 className="animate-spin h-6 w-6" /> : "Send"}
             </Button>
           </div>
         </DialogContent>
@@ -451,7 +451,7 @@ export default function MyGigs() {
             </div>
             <div className="space-y-3">
               <Label className="text-[10px] font-black uppercase tracking-widest text-center block">
-                Handshake Experience
+                Connection Experience
               </Label>
               <Textarea
                 value={reviewComment}

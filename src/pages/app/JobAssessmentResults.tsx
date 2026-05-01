@@ -112,8 +112,8 @@ export default function JobAssessmentResults() {
 
   useEffect(() => {
     if (progress < 30) setAnalysisStage("Decompressing Artifacts...");
-    else if (progress < 60) setAnalysisStage("Synthesizing Neural Responses...");
-    else if (progress < 85) setAnalysisStage("Calibrating Skill Matrix...");
+    else if (progress < 60) setAnalysisStage("Generating responses...");
+    else if (progress < 85) setAnalysisStage("Loading Skill Matrix...");
     else setAnalysisStage("Finalizing Briefing...");
   }, [progress]);
 
@@ -145,7 +145,7 @@ export default function JobAssessmentResults() {
           setProgress(100);
           clearInterval(intervalId);
           clearTimeout(timeoutId);
-          toast.success("Synthesis Finalized: Registry Updated");
+          toast.success("Saved successfully");
         }
       }, 4000);
 
@@ -180,7 +180,7 @@ export default function JobAssessmentResults() {
     return (
       <div className="max-w-2xl mx-auto py-32 text-center animate-in zoom-in-95">
         <AlertTriangle className="h-16 w-16 text-destructive/30 mx-auto mb-6 rotate-12" />
-        <h2 className="text-3xl font-black uppercase tracking-tighter">Registry Missing</h2>
+        <h2 className="text-3xl font-black uppercase tracking-tighter">List Missing</h2>
         <Button
           variant="outline"
           onClick={() => navigate("/app/applications")}
@@ -219,7 +219,7 @@ export default function JobAssessmentResults() {
             {timedOut && (
               <div className="bg-amber-500/5 p-6 rounded-[24px] border border-amber-500/20 max-w-sm mx-auto animate-in slide-in-from-bottom-4">
                 <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest leading-relaxed mb-4 italic">
-                  The synthesis is exceeding typical logic cycles. Registry will update in background.
+                  The synthesis is exceeding typical logic cycles. List will update in background.
                 </p>
                 <div className="flex gap-3 justify-center">
                   <Button
@@ -251,7 +251,7 @@ export default function JobAssessmentResults() {
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-10 pb-40 space-y-10 animate-in fade-in duration-1000">
-      {/* Header Handshake */}
+      {/* Header Connection */}
       <header className="flex items-center justify-between">
         <div className="flex items-center gap-5">
           <Button
@@ -265,7 +265,7 @@ export default function JobAssessmentResults() {
           <div className="space-y-1">
             <h1 className="text-3xl font-black uppercase tracking-tighter">Synthesis Report</h1>
             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40 italic">
-              Registry: {result.jobs?.title}
+              List: {result.jobs?.title}
             </p>
           </div>
         </div>
@@ -300,7 +300,7 @@ export default function JobAssessmentResults() {
                   score >= 60 ? "bg-emerald-500 text-white" : "bg-muted text-muted-foreground",
                 )}
               >
-                Handshake Status: {score >= 80 ? "Optimal" : score >= 60 ? "Verified" : "Sync Required"}
+                Connection Status: {score >= 80 ? "Optimal" : score >= 60 ? "Verified" : "Sync Required"}
               </Badge>
             </div>
 
@@ -319,12 +319,12 @@ export default function JobAssessmentResults() {
         </CardContent>
       </Card>
 
-      {/* Telemetry Breakdown Grid */}
+      {/* Tracking Breakdown Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <Card className="rounded-[32px] border-border/40 shadow-xl overflow-hidden">
           <CardHeader className="bg-muted/20 px-8 py-5 border-b">
             <CardTitle className="text-[10px] font-black uppercase tracking-[0.3em] text-primary flex items-center gap-3">
-              <Target className="h-4 w-4" /> Dimension Telemetry
+              <Target className="h-4 w-4" /> Dimension Tracking
             </CardTitle>
           </CardHeader>
           <CardContent className="p-8 space-y-8">

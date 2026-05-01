@@ -1,7 +1,7 @@
 import { Navigate } from "react-router-dom";
 
 /**
- * Career Abroad — retired in favor of the Arena tab in Learning.
+ * Career Abroad — retired in favor of the Hub tab in Learning.
  * All abroad surfaces (study, IELTS, roadmap) live as standalone routes;
  * the discovery hub now lives inside Learning > Arena > Study Abroad.
  */

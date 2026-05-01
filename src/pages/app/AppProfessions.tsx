@@ -15,7 +15,7 @@ export default function AppProfessions() {
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-10 pb-40 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-      {/* Navigation Handshake */}
+      {/* Navigation Connection */}
       <header className="flex flex-col gap-10 mb-12">
         <div className="flex items-center justify-between">
           <Button
@@ -69,7 +69,7 @@ export default function AppProfessions() {
       {/* Terminal Footer Metadata */}
       <footer className="mt-20 pt-10 border-t border-border/40 flex items-center justify-between opacity-30 group hover:opacity-100 transition-opacity duration-500">
         <p className="text-[9px] font-black uppercase tracking-[0.4em] italic">
-          Blueprint Registry: Verified Handshake Active
+          Blueprint List: Verified Connection Active
         </p>
         <div className="flex gap-2">
           {[...Array(3)].map((_, i) => (

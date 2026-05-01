@@ -91,10 +91,10 @@ const emptyProfileData: ProfileData = {
 
 const steps: { id: Step; label: string; icon: React.ReactNode }[] = [
   { id: "personal", label: "Identity", icon: <User className="h-4 w-4" /> },
-  { id: "cv", label: "Registry", icon: <FileText className="h-4 w-4" /> },
+  { id: "cv", label: "List", icon: <FileText className="h-4 w-4" /> },
   { id: "certificates", label: "Artifacts", icon: <Award className="h-4 w-4" /> },
   { id: "social", label: "Uplinks", icon: <Globe className="h-4 w-4" /> },
-  { id: "review", label: "Handshake", icon: <CheckCircle className="h-4 w-4" /> },
+  { id: "review", label: "Connection", icon: <CheckCircle className="h-4 w-4" /> },
 ];
 
 export default function AppPortfolioRequest() {
@@ -156,7 +156,7 @@ export default function AppPortfolioRequest() {
       if (!error) setPortfolioCount(count || 0);
       else setPortfolioCount(FREE_PORTFOLIO_LIMIT + 1);
     } catch (err) {
-      console.error("Telemetry failure: Portfolio Count", err);
+      console.error("Tracking failure: Portfolio Count", err);
     }
   };
 
@@ -169,7 +169,7 @@ export default function AppPortfolioRequest() {
         .order("display_order");
       if (!error && data) setProfessionCategories(data);
     } catch (err) {
-      console.error("Telemetry failure: Categories", err);
+      console.error("Tracking failure: Categories", err);
     }
   };
 
@@ -223,7 +223,7 @@ export default function AppPortfolioRequest() {
 
     if (!isFreePromotion && !canAfford("PORTFOLIO")) {
       toast({
-        title: "Registry Low",
+        title: "Low",
         description: `This logic synthesis requires ${PORTFOLIO_COST} credits.`,
         variant: "destructive",
       });
@@ -239,7 +239,7 @@ export default function AppPortfolioRequest() {
     try {
       if (!isFreePromotion) {
         const success = await deductCredits("PORTFOLIO", undefined, "Digital Portfolio Synthesis");
-        if (!success) throw new Error("Credit Handshake Failed.");
+        if (!success) throw new Error("Credit transaction failed.");
       }
 
       const tempRequestId = crypto.randomUUID();
@@ -266,7 +266,7 @@ export default function AppPortfolioRequest() {
       setIsSuccess(true);
       toast({ title: "Synthesis Initialized", description: "Our team will sync via WhatsApp shortly." });
     } catch (error: any) {
-      toast({ title: "Transmission Failed", description: error.message || "Retry protocol.", variant: "destructive" });
+      toast({ title: "Failed", description: error.message || "Retry protocol.", variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
@@ -280,7 +280,7 @@ export default function AppPortfolioRequest() {
             <div className="mx-auto w-24 h-24 bg-emerald-500/10 rounded-[32px] flex items-center justify-center mb-6 rotate-3 border border-emerald-500/20">
               <CheckCircle className="h-12 w-12 text-emerald-500" />
             </div>
-            <CardTitle className="text-3xl font-black uppercase tracking-tighter italic">Handshake Finalized</CardTitle>
+            <CardTitle className="text-3xl font-black uppercase tracking-tighter italic">Connection Finalized</CardTitle>
             <CardDescription className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60 italic">
               Synthesis request active. Contact established in 24-48h.
             </CardDescription>
@@ -288,7 +288,7 @@ export default function AppPortfolioRequest() {
           <CardContent className="space-y-8 px-10">
             <div className="bg-muted/50 p-6 rounded-2xl border-2 border-dashed border-border/40">
               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/40 mb-2">
-                Request Registry ID
+                Request List ID
               </p>
               <p className="font-mono text-xl font-bold tracking-tighter text-primary">
                 {requestId.slice(0, 8).toUpperCase()}
@@ -410,7 +410,7 @@ export default function AppPortfolioRequest() {
             <div className="grid gap-6">
               <div className="grid gap-2">
                 <Label className="text-[11px] font-black uppercase tracking-widest text-primary ml-1">
-                  Full Name Registry
+                  Full Name List
                 </Label>
                 <Input
                   className="h-12 rounded-xl border-2 bg-background/50"
@@ -431,7 +431,7 @@ export default function AppPortfolioRequest() {
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label className="text-[11px] font-black uppercase tracking-widest ml-1">WhatsApp Telemetry</Label>
+                  <Label className="text-[11px] font-black uppercase tracking-widest ml-1">WhatsApp Tracking</Label>
                   <Input
                     className="h-12 rounded-xl border-2 bg-background/50"
                     value={formData.phone}
@@ -543,7 +543,7 @@ export default function AppPortfolioRequest() {
                 bucket="portfolio-uploads"
                 value={formData.certificates}
                 onChange={(files) => setFormData((p) => ({ ...p, certificates: files }))}
-                label="Artifact Registry"
+                label="Files"
                 description="Upload verified credentials and certifications."
               />
               <div className="grid gap-2">
@@ -579,7 +579,7 @@ export default function AppPortfolioRequest() {
               </div>
               <div className="grid gap-2">
                 <Label className="text-[11px] font-black uppercase tracking-widest text-primary">
-                  Transmission Notes
+                  Upload Notes
                 </Label>
                 <Textarea
                   className="min-h-[100px] rounded-2xl bg-muted/10 border-2"
@@ -599,7 +599,7 @@ export default function AppPortfolioRequest() {
                   <span className="text-foreground">{formData.fullName}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground uppercase text-[10px] font-black">Registry</span>
+                  <span className="text-muted-foreground uppercase text-[10px] font-black">List</span>
                   <span className="text-foreground">{effectiveCvUrl ? "Artifact Provided" : "Pending Synthesis"}</span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -607,7 +607,7 @@ export default function AppPortfolioRequest() {
                   <span className="text-foreground">{selectedCategory?.name}</span>
                 </div>
                 <div className="pt-6 mt-6 border-t-2 border-dashed border-border/40 flex justify-between items-center">
-                  <span className="text-primary uppercase text-[11px] font-black tracking-widest">Handshake Cost</span>
+                  <span className="text-primary uppercase text-[11px] font-black tracking-widest">Connection Cost</span>
                   <span className="text-xl font-black tracking-tighter text-foreground">
                     {isFreePromotion ? "0.00 (PROMO)" : `${PORTFOLIO_COST} CREDITS`}
                   </span>
@@ -653,7 +653,7 @@ export default function AppPortfolioRequest() {
                 ) : (
                   <>
                     <Zap className="mr-3 h-5 w-5 fill-current transition-transform group-hover:scale-125" /> Finalize
-                    Handshake & Submit
+                    Connection & Submit
                   </>
                 )}
               </Button>

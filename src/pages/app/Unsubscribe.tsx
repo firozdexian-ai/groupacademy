@@ -7,7 +7,7 @@ import { CheckCircle, XCircle, Loader2, MailX, ShieldCheck, ArrowLeft, Settings2
 import { cn } from "@/lib/utils";
 
 /**
- * Platform Logic: Preference Calibration Node
+ * Platform Logic: Preference Setup Node
  * High-fidelity orchestrator for secure email unsubscription protocols.
  * 2026 Standard: Executive Logic geometry with reinforced token telemetry.
  */
@@ -32,7 +32,7 @@ const Unsubscribe = () => {
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
         const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-        // Edge Function Handshake
+        // Edge Function Connection
         const res = await fetch(
           `${supabaseUrl}/functions/v1/handle-email-unsubscribe?token=${encodeURIComponent(token)}`,
           { headers: { apikey: anonKey } },
@@ -47,7 +47,7 @@ const Unsubscribe = () => {
           setStatus("invalid");
         }
       } catch (err) {
-        console.error("Protocol Validation Error:", err);
+        console.error("Validation error:", err);
         setStatus("error");
       }
     };
@@ -87,7 +87,7 @@ const Unsubscribe = () => {
           <div className="mx-auto w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mb-4 border border-primary/20">
             <Settings2 className="h-6 w-6 text-primary" />
           </div>
-          <CardTitle className="text-2xl font-black uppercase tracking-tighter italic">Registry Update</CardTitle>
+          <CardTitle className="text-2xl font-black uppercase tracking-tighter italic">List Update</CardTitle>
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 italic">
             Communication Preference Node
           </p>
@@ -143,7 +143,7 @@ const Unsubscribe = () => {
               <div className="space-y-2">
                 <p className="text-xl font-black uppercase tracking-tight italic">Node De-Synchronized</p>
                 <p className="text-[11px] font-medium text-muted-foreground leading-relaxed italic">
-                  Transmission terminated. It may take several logic cycles for global registry propagation.
+                  Upload terminated. It may take several logic cycles for global registry propagation.
                 </p>
               </div>
               <Button
@@ -160,7 +160,7 @@ const Unsubscribe = () => {
             <div className="space-y-6 animate-in zoom-in-95 duration-500">
               <CheckCircle className="h-12 w-12 text-muted-foreground/40 mx-auto" />
               <div className="space-y-2">
-                <p className="text-lg font-black uppercase tracking-tight opacity-60">Handshake Redundant</p>
+                <p className="text-lg font-black uppercase tracking-tight opacity-60">Connection Redundant</p>
                 <p className="text-[11px] font-medium text-muted-foreground italic">
                   This identifier has already been purged from the active mailing registry.
                 </p>
@@ -189,7 +189,7 @@ const Unsubscribe = () => {
                 variant="outline"
                 className="rounded-xl border-2 font-black uppercase text-[10px] tracking-widest px-8"
               >
-                Retry Handshake
+                Retry Connection
               </Button>
             </div>
           )}

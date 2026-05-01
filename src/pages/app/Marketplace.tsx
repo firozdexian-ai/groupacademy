@@ -13,7 +13,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
 /**
- * Platform Logic: Professional Project Registry (Marketplace)
+ * Platform Logic: Professional Project List (Marketplace)
  * High-fidelity discovery engine for high-value gig artifacts.
  * 2026 Standard: Executive Logic geometry with kinetic filter nodes.
  */
@@ -52,14 +52,14 @@ export default function Marketplace() {
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-10 pb-40 space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-      {/* Executive Header: Project Registry */}
+      {/* Executive Header: Project List */}
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-8">
         <div className="space-y-2">
           <div className="flex items-center gap-4">
             <div className="h-12 w-12 rounded-[20px] bg-primary/10 flex items-center justify-center border border-primary/20">
               <Briefcase className="h-6 w-6 text-primary" />
             </div>
-            <h1 className="text-5xl font-black tracking-tighter uppercase italic leading-none">Project Arena</h1>
+            <h1 className="text-5xl font-black tracking-tighter uppercase italic leading-none">Project Hub</h1>
           </div>
           <p className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.3em] ml-16 italic">
             Professional Skill Monetization v2.6
@@ -74,7 +74,7 @@ export default function Marketplace() {
         </Badge>
       </header>
 
-      {/* Registry Query Console */}
+      {/* List Query Console */}
       <div className="space-y-6">
         <div className="relative group">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
@@ -99,7 +99,7 @@ export default function Marketplace() {
                 : "bg-muted/50 text-muted-foreground/60 hover:bg-muted",
             )}
           >
-            Global Registry
+            Global List
           </Button>
           {MARKETPLACE_SCHOOLS.map((school) => (
             <Button
@@ -120,7 +120,7 @@ export default function Marketplace() {
         </div>
       </div>
 
-      {/* Main Registry Viewport */}
+      {/* Main List Viewport */}
       {isLoading ? (
         <div className="space-y-6">
           {[1, 2, 3].map((i) => (
@@ -132,7 +132,7 @@ export default function Marketplace() {
           <div className="h-20 w-20 rounded-[32px] bg-muted/10 flex items-center justify-center mx-auto mb-8 border border-border/40 rotate-3">
             <Target className="h-10 w-10 text-muted-foreground/20" />
           </div>
-          <h3 className="text-2xl font-black uppercase tracking-tighter mb-2">Registry Entry Empty</h3>
+          <h3 className="text-2xl font-black uppercase tracking-tighter mb-2">List Entry Empty</h3>
           <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 italic mb-10 max-w-xs mx-auto leading-relaxed">
             No professional gig artifacts match this query sequence. Adjust parameters or await next sync.
           </p>
@@ -222,7 +222,7 @@ export default function Marketplace() {
 
       {/* Terminal Footer */}
       <footer className="mt-20 pt-10 border-t border-border/40 flex items-center justify-between opacity-30">
-        <p className="text-[9px] font-black uppercase tracking-[0.4em] italic">Market Registry: Verified Node v2.6</p>
+        <p className="text-[9px] font-black uppercase tracking-[0.4em] italic">Market List: Verified Node v2.6</p>
         <div className="flex gap-2">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="h-1 w-8 rounded-full bg-primary/20" />

@@ -12,7 +12,7 @@ import { getNotificationIcon } from "@/lib/notificationHelpers";
 import { cn } from "@/lib/utils";
 
 /**
- * Platform Logic: Signal Registry Viewport
+ * Platform Logic: Signal List Viewport
  * High-fidelity orchestrator for system alerts and career logic triggers.
  * 2026 Standard: Executive Logic geometry with reinforced unread telemetry.
  */
@@ -35,7 +35,7 @@ export default function Notifications() {
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-10 pb-40 space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-      {/* Executive Header: Signal Handshake */}
+      {/* Executive Header: Signal Connection */}
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="flex items-center gap-5">
           <Button
@@ -47,7 +47,7 @@ export default function Notifications() {
             <ArrowLeft className="h-6 w-6 text-primary" />
           </Button>
           <div className="space-y-1">
-            <h1 className="text-4xl font-black uppercase tracking-tighter italic leading-none">Signal Registry</h1>
+            <h1 className="text-4xl font-black uppercase tracking-tighter italic leading-none">Signal List</h1>
             <div className="flex items-center gap-3">
               <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary italic">
                 {unreadCount > 0 ? `${unreadCount} Pending Nodes` : "Logic Synchronized"}
@@ -90,7 +90,7 @@ export default function Notifications() {
         </TabsList>
       </Tabs>
 
-      {/* Registry Viewport */}
+      {/* List Viewport */}
       <main className="min-h-[60vh] space-y-3">
         {isLoading ? (
           <div className="space-y-4">
@@ -194,7 +194,7 @@ export default function Notifications() {
       <footer className="mt-20 pt-10 border-t border-border/40 flex items-center justify-between opacity-30">
         <div className="space-y-1">
           <p className="text-[9px] font-black uppercase tracking-[0.4em] italic">
-            Signal Registry: Verified Encryption Active
+            Signal List: Verified Encryption Active
           </p>
           <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">
             Protocol Version: Executive Logic 2026.4

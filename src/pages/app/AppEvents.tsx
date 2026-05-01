@@ -14,7 +14,7 @@ export default function AppEvents() {
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-10 pb-40 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-      {/* Navigation & Handshake Context */}
+      {/* Navigation & Connection Context */}
       <header className="flex flex-col gap-10 mb-12">
         <div className="flex items-center justify-between">
           <Button
@@ -27,7 +27,7 @@ export default function AppEvents() {
             )}
           >
             <ArrowLeft className="w-4 h-4 mr-3 transition-transform group-hover:-translate-x-1" />
-            Back to Registry
+            Back to List
           </Button>
 
           <div className="flex items-center gap-2 px-4 py-1.5 rounded-lg bg-emerald-500/5 border border-emerald-500/20">
@@ -62,7 +62,7 @@ export default function AppEvents() {
         </div>
       </header>
 
-      {/* Logic Viewport: Events Registry */}
+      {/* Logic Viewport: Events List */}
       <main className="min-h-[70vh] animate-in fade-in zoom-in-95 duration-700 delay-200">
         <EventsTab />
       </main>
@@ -70,7 +70,7 @@ export default function AppEvents() {
       {/* Operational Metadata Footer */}
       <footer className="mt-20 pt-10 border-t border-border/40 flex items-center justify-between opacity-30">
         <div className="space-y-1">
-          <p className="text-[9px] font-black uppercase tracking-[0.4em] italic">Event Registry: Verified 2026 Logic</p>
+          <p className="text-[9px] font-black uppercase tracking-[0.4em] italic">Event List: Verified 2026 Logic</p>
           <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">
             UTC Synchronization Active
           </p>

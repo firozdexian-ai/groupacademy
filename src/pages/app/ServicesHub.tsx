@@ -51,7 +51,7 @@ const CAREER_SERVICES: ServiceCardData[] = [
     href: "/app/services/assessment",
     iconColor: "text-blue-500",
     iconBg: "bg-blue-500/10",
-    tagline: "Neural Assessment",
+    tagline: "AI Assessment",
   },
   {
     id: "MOCK_INTERVIEW",
@@ -61,7 +61,7 @@ const CAREER_SERVICES: ServiceCardData[] = [
     href: "/app/services/mock-interview",
     iconColor: "text-purple-500",
     iconBg: "bg-purple-500/10",
-    tagline: "Vocal Calibration",
+    tagline: "Voice Setup",
   },
   {
     id: "SALARY_ANALYSIS",
@@ -76,7 +76,7 @@ const CAREER_SERVICES: ServiceCardData[] = [
   {
     id: "PORTFOLIO",
     title: "Artifact Showcase",
-    description: "Synthesize and deploy your professional evidence",
+    description: "Build and share your professional profile",
     icon: Palette,
     href: "/app/services/portfolio",
     iconColor: "text-amber-500",
@@ -106,7 +106,7 @@ export default function ServicesHub() {
             p_source: source,
           });
         } catch (err) {
-          console.error("Transmission Error: Tracking sync failed", err);
+          console.error("Tracking failed", err);
         }
       };
       trackClick();
@@ -133,7 +133,7 @@ export default function ServicesHub() {
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-10 pb-40 space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-      {/* Executive Header: Telemetry Handshake */}
+      {/* Executive Header: Tracking Connection */}
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-8">
         <div className="space-y-2">
           <div className="flex items-center gap-4">
@@ -143,7 +143,7 @@ export default function ServicesHub() {
             <h1 className="text-5xl font-black tracking-tighter uppercase italic leading-none">Service Node</h1>
           </div>
           <p className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-[0.3em] ml-16 italic">
-            Neural Career Calibration v2.6
+            Neural Career Setup v2.6
           </p>
         </div>
 
@@ -251,11 +251,11 @@ export default function ServicesHub() {
         </div>
       </section>
 
-      {/* Historical Telemetry Registry */}
+      {/* Historical Tracking List */}
       <section className="space-y-8">
         <div className="flex items-center gap-3 border-b border-border/40 pb-4">
           <History className="h-5 w-5 text-primary" />
-          <h2 className="text-[11px] font-black uppercase tracking-[0.3em] text-primary">Service Telemetry Registry</h2>
+          <h2 className="text-[11px] font-black uppercase tracking-[0.3em] text-primary">Service Tracking List</h2>
         </div>
         <div className="rounded-[40px] border-2 border-border/40 bg-card/30 backdrop-blur-xl overflow-hidden shadow-sm">
           <ServiceHistoryCard />
@@ -265,7 +265,7 @@ export default function ServicesHub() {
       {/* Operational Trace Footer */}
       <footer className="mt-20 pt-10 border-t border-border/40 flex items-center justify-between opacity-30">
         <div className="space-y-1">
-          <p className="text-[9px] font-black uppercase tracking-[0.4em] italic">Service Node Registry: Active Sync</p>
+          <p className="text-[9px] font-black uppercase tracking-[0.4em] italic">Service Node List: Active Sync</p>
           <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest italic">
             Protocol: Verified Executive Logic 2026.4
           </p>
@@ -277,7 +277,7 @@ export default function ServicesHub() {
         </div>
       </footer>
 
-      {/* Logic Handshake Overlays */}
+      {/* Logic Connection Overlays */}
       <CreditGateModal
         isOpen={showCreditGate}
         onClose={() => setShowCreditGate(false)}

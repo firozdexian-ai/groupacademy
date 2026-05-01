@@ -124,7 +124,7 @@ export default function MyResults() {
       allResults.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       setResults(allResults);
     } catch (error) {
-      console.error("Telemetry Registry Sync Error:", error);
+      console.error("Tracking error:", error);
     } finally {
       setLoading(false);
     }
@@ -198,7 +198,7 @@ export default function MyResults() {
                 </h3>
                 <div className="flex items-center gap-3 text-[10px] font-black text-muted-foreground/40 uppercase tracking-[0.2em] italic">
                   <Calendar className="h-3.5 w-3.5" />
-                  <span>{isValid(dateObj) ? format(dateObj, "MMM d, yyyy") : "Registry Sync Pending"}</span>
+                  <span>{isValid(dateObj) ? format(dateObj, "MMM d, yyyy") : "Sync pending"}</span>
                 </div>
               </div>
             </div>
@@ -265,7 +265,7 @@ export default function MyResults() {
         <div className="bg-primary/5 px-6 py-3 rounded-2xl border border-primary/10 flex items-center gap-4">
           <ShieldCheck className="h-5 w-5 text-primary" />
           <div className="space-y-0.5">
-            <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest">Active Registry</p>
+            <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest">Active List</p>
             <p className="text-xs font-black uppercase text-primary tracking-tighter">
               {results.length} Artifacts Sync'd
             </p>
@@ -331,7 +331,7 @@ export default function MyResults() {
       <footer className="mt-20 pt-10 border-t border-border/40 flex items-center justify-between opacity-30">
         <div className="space-y-1">
           <p className="text-[9px] font-black uppercase tracking-[0.4em] italic">
-            Archive Registry: Verified Synchronization Active
+            Archive List: Verified Synchronization Active
           </p>
           <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest italic">
             Node: Global Results v2.6

@@ -29,7 +29,7 @@ export default function AppMyLearning() {
 
             <div className="min-w-0">
               <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-black uppercase tracking-tighter italic leading-none">Growth Registry</h1>
+                <h1 className="text-2xl font-black uppercase tracking-tighter italic leading-none">Growth List</h1>
                 <GraduationCap className="h-5 w-5 text-primary animate-pulse" />
               </div>
               <div className="flex items-center gap-2 mt-1.5">
@@ -60,7 +60,7 @@ export default function AppMyLearning() {
 
       {/* Main Orchestration Viewport */}
       <main className="max-w-5xl mx-auto px-6 py-12 pb-40 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-        {/* Registry Logic Context */}
+        {/* List Logic Context */}
         <div className="flex items-center justify-between mb-10 px-1">
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-primary/10 rounded-xl">
@@ -78,7 +78,7 @@ export default function AppMyLearning() {
         {/* Visual Terminal Trace */}
         <div className="mt-20 flex flex-col items-center justify-center opacity-20 pointer-events-none">
           <div className="h-12 w-[1px] bg-gradient-to-b from-primary to-transparent mb-4" />
-          <p className="text-[8px] font-black uppercase tracking-[0.5em] italic">End of Active Registry</p>
+          <p className="text-[8px] font-black uppercase tracking-[0.5em] italic">End of Active List</p>
         </div>
       </main>
     </div>

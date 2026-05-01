@@ -126,7 +126,7 @@ export default function AppProfessionDetail() {
         <div className="h-20 w-20 rounded-[32px] bg-destructive/10 flex items-center justify-center mx-auto mb-6 border-2 border-dashed border-destructive/40">
           <AlertCircle className="h-10 w-10 text-destructive" />
         </div>
-        <h1 className="text-3xl font-black uppercase tracking-tighter mb-4">Registry Error</h1>
+        <h1 className="text-3xl font-black uppercase tracking-tighter mb-4">List Error</h1>
         <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/40 mb-8 italic">
           {loadingError || "Blueprint not found"}
         </p>
@@ -164,7 +164,7 @@ export default function AppProfessionDetail() {
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-10 pb-40 space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      {/* Navigation Handshake */}
+      {/* Navigation Connection */}
       <header className="flex items-center">
         <Button
           variant="ghost"
@@ -176,7 +176,7 @@ export default function AppProfessionDetail() {
         </Button>
       </header>
 
-      {/* Hero Registry Section */}
+      {/* Hero List Section */}
       <section className="space-y-6">
         <div className="flex items-center gap-3">
           <Badge className="bg-primary/10 text-primary border-primary/20 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest">
@@ -267,7 +267,7 @@ export default function AppProfessionDetail() {
 
       {/* AI Interface & Path Orchestration */}
       <div className="grid grid-cols-1 lg:grid-cols-[380px,1fr] gap-12 items-start">
-        {/* Instructor Registry */}
+        {/* Instructor List */}
         <aside className="space-y-8 sticky top-10">
           {aiInstructor && (
             <Card className="rounded-[40px] border-2 border-border/40 overflow-hidden shadow-2xl bg-card/50 backdrop-blur-md">
@@ -314,7 +314,7 @@ export default function AppProfessionDetail() {
           )}
         </aside>
 
-        {/* Path Orchestration Registry */}
+        {/* Path Orchestration List */}
         <div className="space-y-10">
           <div className="flex items-center justify-between border-b border-border/40 pb-4">
             <h2 className="text-[11px] font-black uppercase tracking-[0.3em] text-primary">Curriculum Architecture</h2>

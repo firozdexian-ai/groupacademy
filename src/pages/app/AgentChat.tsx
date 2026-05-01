@@ -122,7 +122,7 @@ export default function AgentChat() {
             Establishing Secure Channel
           </p>
           <p className="text-[8px] font-bold uppercase tracking-widest text-muted-foreground/60 italic">
-            Synchronizing Neural Handshake...
+            Synchronizing AI Match...
           </p>
         </div>
       </div>
@@ -171,7 +171,7 @@ export default function AgentChat() {
             </div>
             <h3 className="font-black uppercase tracking-tighter text-2xl mb-2">Session Interrupted</h3>
             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 italic mb-8 max-w-[280px]">
-              The secure uplink with the specialist has been severed. Registry handshake failed.
+              The secure uplink with the specialist has been severed. List handshake failed.
             </p>
             <Button
               size="lg"

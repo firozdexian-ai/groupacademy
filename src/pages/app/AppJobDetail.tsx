@@ -31,7 +31,7 @@ import { getJobTypeLabel, getExperienceLevelLabel, isDeadlinePassed } from "@/li
 import { cn } from "@/lib/utils";
 
 /**
- * Platform Logic: Job Artifact Registry
+ * Platform Logic: Job Files
  * High-fidelity role orchestration with neural fit analysis.
  * 2026 Standard: Executive Logic geometry with reinforced CTA hierarchy.
  */
@@ -144,13 +144,13 @@ export default function AppJobDetail() {
   if (!job)
     return (
       <div className="p-32 text-center text-[10px] font-black uppercase tracking-[0.3em] opacity-20">
-        Registry Entry Not Found.
+        List Entry Not Found.
       </div>
     );
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-10 pb-40 space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      {/* Structural Handshake: Navigation */}
+      {/* Structural Connection: Navigation */}
       <header className="flex items-center">
         <Button
           variant="ghost"
@@ -159,7 +159,7 @@ export default function AppJobDetail() {
           className="group rounded-xl px-4 h-11 font-black text-[10px] uppercase tracking-[0.3em] hover:bg-primary/5 transition-all"
         >
           <ArrowLeft className="mr-3 h-4 w-4 transition-transform group-hover:-translate-x-1" />
-          Back to Career Registry
+          Back to Career List
         </Button>
       </header>
 
@@ -191,7 +191,7 @@ export default function AppJobDetail() {
               <span className="text-foreground">{job.company_name}</span>
               <span className="h-1 w-1 rounded-full bg-primary/30" />
               <span className="flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5" /> {job.location || "Remote Registry"}
+                <MapPin className="w-3.5 h-3.5" /> {job.location || "Remote"}
               </span>
             </p>
           </div>
@@ -211,7 +211,7 @@ export default function AppJobDetail() {
             onClick={handleApply}
             disabled={deadlinePassed || !!existingApp}
           >
-            {deadlinePassed ? "Protocol Closed" : existingApp ? "Registry Ingested" : "Initialize Application"}
+            {deadlinePassed ? "Closed" : existingApp ? "File saved" : "Initialize Application"}
           </Button>
         </div>
       </div>
@@ -224,7 +224,7 @@ export default function AppJobDetail() {
           <Card className="rounded-[32px] border-border/40 shadow-xl overflow-hidden">
             <CardHeader className="bg-muted/20 px-8 py-6 border-b">
               <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-primary">
-                Registry Narrative
+                List Narrative
               </CardTitle>
             </CardHeader>
             <CardContent className="p-8 text-foreground/80 font-medium leading-relaxed italic text-sm selection:bg-primary/10">
@@ -237,7 +237,7 @@ export default function AppJobDetail() {
           <RelatedJobs
             currentJobId={job.id}
             companyName={job.company_name}
-            location={job.location || "Remote Registry"}
+            location={job.location || "Remote"}
             linkPrefix="/app/jobs"
           />
         </div>
