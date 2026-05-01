@@ -1,142 +1,58 @@
+## Phase 11I — Agent Marketplace polish & inbox backfill
 
-# Phase 11H — Agent Marketplace + Messenger Inbox
+Targeted fixes to `/app/agents`, agent profile, and the messenger inbox based on the latest feedback.
 
-Reframe the platform around two pillars:
-1. **`/app/agents`** = Agent **Marketplace / Discovery** (LinkedIn-style profiles, no inline chat).
-2. **`/app/notifications`** → **`/app/messages`** = WhatsApp-style **Inbox** where every conversation, system alert, and broadcast is a message thread from an agent (including a system "AI General" agent).
+### 1. Eliminate duplicate search bar
+`AIAgents.tsx` renders its own search input in the sticky header AND the `AgentFilters` component (which has another search). Remove the search field inside `AgentFilters` entirely; keep only the compact one in the header. `AgentFilters` becomes a pure category picker.
 
----
+### 2. Compact icon-based filters with "More"
+Replace the horizontally-scrolling pill strip in `AgentFilters` with a fixed 4-slot icon row (no sideways scroll on mobile):
+- Slot 1–3: top three categories (All, Career, Education)
+- Slot 4: a `More` button that opens a bottom sheet listing remaining categories (Finance, Wellness, Company, plus future ones)
+- Each slot is a small square icon + 1-line label, active state filled with primary color
+- Strip the cyberpunk "Trajectory_Filters / Registry_All" labels — use plain English category names
 
-## 1. Agent Marketplace Redesign (`/app/agents`)
+### 3. Bring instructor / school agents into the marketplace
+The `ai_instructors` table and the in-course `AIChatPanel` produce a separate set of agents that never surface in `/app/agents`. Plan:
+- Add a SQL migration that, for each row in `ai_instructors` (or each instructor referenced by `content_instructors`), upserts a corresponding row in `ai_agents` with `agent_type = 'instructor'`, mapping `name`, `avatar_url`, profession line, and a default `credit_cost`.
+- Backfill once + add a trigger on `ai_instructors` insert/update to keep `ai_agents` in sync.
+- Add `instructor` to `AgentCategory` and the icon row (under "Education" — it shares the same icon).
+- Marketplace card and profile already render any `ai_agents` row, so no UI change needed beyond the new category.
 
-Strip the current "Registry / Chats" tabs. Make this a **pure discovery surface**.
+### 4. Add a marketplace banner
+Insert a single 3:1 banner slot above the filters in `AIAgents.tsx`. Reuse the existing `BannerCarousel` component, scoped to a new `placement = 'agents_marketplace'`. Falls back to nothing if no active banners.
 
-**New structure (mobile-first, vertical):**
-- Compact header (no rotated badge) + search + horizontal scrollable category pills (reuse `.no-scrollbar`).
-- **Featured strip** (1 row, horizontal scroll): top 5 agents by usage.
-- **All Agents grid** (2-col mobile, 3-col desktop): each `AgentCard` becomes denser:
-  - Avatar + name + 1-line tagline
-  - Stats row: ⭐ rating · 👥 users count · 💰 connection fee
-  - **Primary CTA: "View Profile"** (was "Initialize Sync")
-  - Secondary text link: "Message" → opens thread in `/app/messages/:agentKey`
-- Remove the inline "Logic Suite" career-tools block and the "Chats / Active Uplinks / Interaction Logs" tab (these move to Messages).
+### 5. Fix mobile CTA layout on agent cards
+On mobile, the `Message` icon button on `AgentCard` was getting clipped/hidden next to the wide "View Profile" button. Restructure the card CTA:
+- Single primary button: `View Profile` (full width)
+- Move the connect/message action INSIDE the profile page only
+- On `AgentProfile.tsx`, replace the bottom "Connect & Message" button with a button that shows the connection cost inline:
+  - Not yet connected: `Connect · {connection_fee} credits` (or `Connect · Free` if 0)
+  - Already connected: `Message` (routes to `/app/messages/:agentKey`)
+- "Connected" status is detected by the existing `agent_chat_sessions` lookup or by a new `agent_connections` row (see step 6).
 
-**New route: `/app/agents/:agentKey/profile`** (LinkedIn-style human profile)
-- Hero: large avatar, name, headline, "Created by {company/Lovable}" badge.
-- About section (long bio).
-- Skills / Expertise chips.
-- "What I can do" — bullet list of capabilities.
-- Stats card: total conversations, avg rating, response style, languages.
-- Reviews section (list of feedbacks with stars + talent name + date).
-- Pricing card: connection fee + per-response cost.
-- Sticky bottom CTA: **"Connect & Message"** → deducts connection fee (one-time), then routes to `/app/messages/:agentKey`.
-- "Leave a review" button (only enabled if user has chatted ≥3 times).
+### 6. Backfill historical conversations into the inbox
+Users who chatted with agents before Phase 11H have no `message_threads` row, so the inbox looks empty. Migration:
+- One-time SQL backfill: for every distinct `(talent_id, agent_key)` in `agent_chat_sessions`, insert a `message_threads` row (if absent) with `last_message_at = max(updated_at)` and a preview taken from the last message in the JSON.
+- Also backfill any prior `ai_chat_sessions` (instructor chats) once those instructors exist as `ai_agents` rows (step 3).
+- Verify the existing `agent_session_to_thread` trigger covers future inserts.
 
----
+### 7. Connection model (lightweight)
+To make "connected" meaningful and to gate the Message CTA:
+- Add `agent_connections (talent_id, agent_key, connected_at, connection_fee_paid)` table with RLS (talent owns their rows).
+- `Connect` button on profile creates the row, deducts `connection_fee` if > 0, then routes to `/app/messages/:agentKey`.
+- `useMessageThreads` and `AgentProfile` use this table to decide CTA label.
+- Backfill: any historical `agent_chat_sessions` row implies a free connection — insert matching `agent_connections` rows in the same migration as step 6.
 
-## 2. Messenger Inbox (replaces Notifications)
+### Files touched
+- `src/pages/app/AIAgents.tsx` — remove duplicate search, add banner slot, simplified filter wiring
+- `src/components/ai-agents/AgentFilters.tsx` — rewrite as 4-icon row + More sheet, drop internal search
+- `src/components/ai-agents/AgentCard.tsx` — single full-width "View Profile" CTA
+- `src/pages/app/AgentProfile.tsx` — Connect/Message CTA with fee inline; uses `agent_connections`
+- `src/hooks/useMessageThreads.ts` — no logic change; benefits from backfill
+- New migration: `agent_connections` table + RLS, instructor→ai_agents sync trigger + backfill, message_threads backfill from `agent_chat_sessions` and `ai_chat_sessions`
+- `src/lib/constants/agents.ts` — add `instructor` category metadata
 
-Rename `/app/notifications` → `/app/messages` (keep redirect from old path). Bell icon in `TalentAppShell` becomes a **chat bubble icon** with unread badge.
-
-**Inbox view (`/app/messages`)** — WhatsApp-style:
-- Search bar at top: "Search conversations…"
-- Optional filter chips: All · Unread · Agents · System
-- Vertical list of **thread rows**:
-  - 56×56 avatar (agent or system "AI General" logo)
-  - Name (bold if unread) + last message preview (1 line, truncated)
-  - Right column: timestamp + unread count pill
-- Pinned **"AI General"** thread always at top — receives all platform/system notifications (credit added, withdrawal approved, course unlocked, gig auto-approved, etc.).
-- Empty state: "No conversations yet — visit the Agent Marketplace."
-
-**Thread view (`/app/messages/:threadKey`)** — chat surface:
-- Sticky header: back arrow, agent avatar + name, "View Profile" link.
-- Chat bubbles (user right, agent left, system center grey).
-- For **system/notification messages**: render as agent bubble with optional CTA button (e.g. "View Job", "Open Course") derived from the existing `notifications.link`.
-- Composer at bottom (only enabled for actual AI agents, hidden for AI General system thread or set to read-only).
-- Reuses existing `useAgentChat` streaming for AI agents.
-
-**Web layout:** split-pane (inbox left 360px, thread right) — like WhatsApp Web / LinkedIn messaging. On mobile, single pane with navigation.
-
----
-
-## 3. Data Model Changes
-
-**New table: `message_threads`**
-```
-id uuid pk
-talent_id uuid → talents
-thread_type text  -- 'agent' | 'system'
-agent_key text nullable  -- null for system
-last_message_at timestamptz
-last_message_preview text
-unread_count int default 0
-is_pinned boolean default false
-is_archived boolean default false
-```
-Unique index on `(talent_id, agent_key)` where `thread_type='agent'`; one `(talent_id, 'system')` row per user.
-
-**Existing `notifications` table**: add `thread_id uuid` + trigger that on insert:
-1. Finds/creates the user's "system" (`AI General`) thread.
-2. Updates `last_message_*` and increments `unread_count`.
-This way every notification automatically appears as a message in the AI General thread without breaking existing notification producers.
-
-**Existing `agent_chat_sessions`**: add `thread_id uuid` (nullable). Trigger on insert/update mirrors `last_message_at/preview/unread_count` to the matching thread row.
-
-**New table: `agent_reviews`**
-```
-id uuid pk
-agent_key text
-talent_id uuid
-rating int (1-5)
-review_text text
-created_at timestamptz
-```
-RLS: anyone authenticated can read; talent can insert/update own.
-
-**`ai_agents` augmentation**: add view `ai_agents_with_stats` (security invoker) exposing `total_users`, `avg_rating`, `total_messages` aggregated from `agent_chat_sessions` + `agent_reviews`.
-
----
-
-## 4. Routing & Navigation
-
-- `/app/messages` (inbox) and `/app/messages/:threadKey` (thread).
-- `/app/notifications` → `<Navigate to="/app/messages" replace />`.
-- `/app/agents/:agentKey/profile` (new profile page).
-- `/app/agents/:agentKey` (existing chat page) stays but is reached **only via "Connect & Message"** from profile. Internally it can redirect to `/app/messages/:agentKey` in Phase 2 once thread persistence is verified.
-- Update `TalentAppShell` bottom nav and top bar bell → MessageCircle icon pointing to `/app/messages`.
-
----
-
-## 5. Files to Create / Edit
-
-**Create**
-- `src/pages/app/Messages.tsx` (inbox)
-- `src/pages/app/MessageThread.tsx` (thread)
-- `src/pages/app/AgentProfile.tsx` (LinkedIn-style profile)
-- `src/components/messages/ThreadListItem.tsx`
-- `src/components/messages/ChatBubble.tsx`
-- `src/components/messages/SystemMessageBubble.tsx`
-- `src/components/agents/AgentReviewSection.tsx`
-- `src/hooks/useMessageThreads.ts`
-- `supabase/migrations/...messenger_inbox.sql`
-
-**Edit**
-- `src/pages/app/AIAgents.tsx` — strip tabs, redesign as marketplace, "View Profile" CTA.
-- `src/components/ai-agents/AgentCard.tsx` — denser layout with stats + dual CTA.
-- `src/layouts/TalentAppShell.tsx` — bell → chat icon → `/app/messages`.
-- `src/App.tsx` + `src/lib/routes.ts` — new routes + redirect.
-- `src/hooks/useNotifications.ts` — keep as compatibility layer; inbox uses `useMessageThreads` instead.
-
----
-
-## 6. Out of Scope (Phase 11I+)
-- Push/web-push delivery layer (Capacitor + service worker).
-- Real-time typing indicators / read receipts in threads.
-- Group threads (multi-agent conversations).
-- Voice notes.
-
-These can be added once the inbox model is stable.
-
----
-
-**Approve to implement Phase 11H?**
+### Out of scope
+- Web (desktop) dual-pane redesign for `/app/messages` — leaving as-is for now.
+- Editing the cyberpunk copy elsewhere in the app.
