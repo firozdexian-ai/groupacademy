@@ -1,87 +1,133 @@
-## Gro10x — Phase 2: Make the Shell Real
+## Goal
 
-The foundation works but every screen except auth is a stub. This phase turns Gro10x into a functional B2B super-app by wiring real data into the 5 main surfaces and closing the agent → feed loop.
+Three concrete fixes + one structural cleanup so the system tells one story:
 
-### What you'll see when this ships
-
-1. **Inbox** — a WhatsApp-style list of agent threads with last message + unread badges, pinned by the goals Riya collected at signup.
-2. **Feed** — real posts from your company + connected workspaces, with a composer that lets agents draft on your behalf.
-3. **Company Page** — editable cover/logo/tagline, team grid (auto-pulled from members), open jobs, and services. Public mirror at `/c/:slug`.
-4. **Me** — personal profile (CV, role, skills) bridged from the existing `talents` row, plus role badge (Owner/Member).
-5. **Agent Marketplace** — curated B2B agents (Recruiter, Lead Hunter, Growth, Billing, etc.) with one-tap "Add to Inbox".
+1. **Talents → Talent App.** B2B people → **Gro10x.** Admin → **internal dashboard.**
+2. Every Gro10x signup is visible in Admin → Companies & Contacts.
+3. Feed is one shared stream. Companies (via owners) become first-class authors. Their posts appear in both Talent App feed and Gro10x feed.
+4. Delete the legacy/experimental B2B surfaces we no longer need.
 
 ---
 
-### Step 1 — Inbox + Chat (real threads)
+## 1. Make Gro10x signups appear in Admin "Contacts"
 
-- Reuse `useMessageThreads` pattern but scoped to `company_id`.
-- New table `gro10x_agent_threads` (user_id, company_id, agent_key, last_message_at, unread_count, pinned).
-- Auto-seed pinned threads from `companies.goals` on first load (e.g. goal `hire` → Recruiter + Lead Hunter pinned).
-- `Gro10xChat.tsx` reuses `useAgentChat` but passes `context: { mode: 'b2b', company_id }` so the agent knows it's acting for a company.
+**Problem:** Three Dexian users signed up via Gro10x → they exist in `company_members`, but Admin → Contacts reads from a separate legacy `contacts` table (currently empty), so they look invisible.
 
-### Step 2 — Agent-Authored Feed
+**Fix:**
+- Update `signup-company` edge function to **also upsert a row into `public.contacts`** for every new owner/member: `{ company_id, full_name, email, phone, designation = role from CV (if any), source = 'gro10x_signup', is_primary = true for the first owner }`.
+- Add a backfill SQL migration that inserts a `contacts` row for every existing `company_members` user that doesn't already have one (joined via `auth.users` for email/name).
+- Add a DB trigger on `company_members` (after insert) that calls a `SECURITY DEFINER` function to upsert a matching `contacts` row — so any future path (invites, admin-created members, etc.) stays in sync.
+- In `ContactsManager.tsx`, add a **"Source"** column + filter chip (Manual / LinkedIn Import / Gro10x Signup) and a green "Active Gro10x user" badge when the contact's email matches a `company_members.user_id`.
+- In Admin → Companies, show a small **"X active Gro10x users"** badge per company row.
 
-- Wire `Gro10xFeed.tsx` to fetch from `feed_posts` filtered by `author_company_id IN (member companies)` plus the user's own posts.
-- Extend `company-agent-tools` edge function with a `draft_company_post` tool that inserts into `company_post_drafts`.
-- Add a "Drafts awaiting your approval" strip at the top of the feed for Owners — one-tap Publish moves it to `feed_posts` with `author_type='company'`.
-- Composer at the bottom: free text + "Ask Growth Agent to write this" button.
+## 2. One feed, two surfaces, company-as-author
 
-### Step 3 — Company Page (editable + public)
+**Current state:** `feed_posts` already has `author_type ∈ {user, company, admin}` and `author_company_id`. Gro10x feed and Talent feed both read from `feed_posts`. The plumbing exists; we just need to use it end-to-end.
 
-- `/gro10x/page` — Owner sees inline-edit fields (tagline, cover, logo, services). Members see read-only.
-- Sections: Header (logo/cover/tagline) → Team grid (query `companies_members` → `talents`) → Open jobs (existing `jobs` table filtered by `company_id`) → Services (`company_services`).
-- `/c/:slug` — public mirror, no auth, SEO-friendly with JSON-LD `Organization`. Routes added to main `App.tsx` (academy host) so the page works on both domains.
+**Fix:**
+- **Gro10x composer** (already drafts via `company-agent-tools.draft_company_post`) — when an **owner** publishes, the resulting `feed_posts` row is written with `author_type = 'company'`, `author_company_id = <company>`, `author_name = company.name`, `author_avatar = company.logo_url`. (Confirm this in `company-agent-tools/index.ts` `publish_company_post` handler; patch if it currently writes `author_type = 'user'`.)
+- **Talent app `Feed.tsx`** — render a small "Company" pill + clickable company logo on posts where `author_type = 'company'`, linking to `/c/:slug` (the public company page).
+- **Members vs owners** in Gro10x:
+  - `owner` / `admin` → can publish company posts directly (also approve drafts).
+  - regular member → composer creates `company_post_drafts` row for owner approval (already wired).
+- **Admin moderation:** Admin → Marketing & Outreach → "Feed Posts" already lists everything; add a "Company posts" filter and an "Unpublish" action that flips `is_active = false`.
 
-### Step 4 — Me (profile bridge)
+## 3. Consolidate / delete duplicate B2B surfaces
 
-- `Gro10xMe.tsx` reads from `talents` (existing) + `companies_members` for role badge.
-- Inline edit: headline, role, skills, CV re-upload (calls `parse-cv` to refresh).
-- "Switch to Talent App" link for users who also have a personal talent flow.
+We currently have **three** overlapping B2B entry points. Keep one canonical path.
 
-### Step 5 — Agent Marketplace (curated B2B set)
+**Keep:**
+- `/gro10x` (landing) → `/gro10x/auth` (Riya conversational signup) → `/gro10x/inbox`
+- `/c/:slug` — public company page (SEO-facing, shareable)
+- `/company` — kept as a **redirect** to `/gro10x` for any old bookmarks
+- Admin dashboard at `/dashboard` (unchanged)
 
-- New constant `GRO10X_AGENTS` in `src/gro10x/lib/agents.ts` — filtered subset of `src/lib/constants/agents.ts` tagged `b2b: true`, plus 4 new ones (Recruiter, Lead Hunter, Growth, Billing).
-- One-tap "Add to Inbox" → inserts into `gro10x_agent_threads` with `pinned=true`.
+**Delete / retire:**
+- `src/pages/public/CompanySignup.tsx` (legacy form-based signup) — redirect `/for-companies/signup` → `/gro10x/auth`.
+- `src/pages/public/ForCompanies.tsx` (legacy marketing page) — redirect `/for-companies` → `/gro10x`.
+- `src/pages/company/CompanyPortal.tsx` — replace contents with a thin redirect to `/gro10x`. (Keep the file/route alive only as a redirect for one release; remove next pass.)
+- Remove the matching nav links/CTAs from the talent marketing site so there is one B2B funnel.
 
-### Step 6 — Welcome flow polish
+## 4. Clarify who lives where
 
-- After Riya completes signup, `/gro10x/welcome` shows a 3-card walkthrough (Your inbox is ready · Invite teammates · Edit company page) then drops into `/gro10x/inbox`.
+- **Talent App (groupacademy.online + /app/\*):** individuals, learners, jobseekers. **No company contact onboarding here.** Signup stays as-is.
+- **Gro10x (gro10x.\* host + /gro10x/\*):** every B2B user — first contact becomes `owner`, can later promote others. Roles mirror LinkedIn-style pages: `owner`, `admin`, `editor`, `member` (extend the `company_members.role` check constraint accordingly; default invitees = `member`).
+- **Admin Dashboard (/dashboard):** internal GroUp Academy / Gro10x staff only. Surfaces every company + every contact (whether imported manually, scraped from LinkedIn, or self-signed-up via Gro10x).
 
 ---
 
-### Technical Details
+## Technical notes
 
-**New tables (1 migration):**
+**DB migration**
 ```sql
-gro10x_agent_threads (
-  id uuid pk, user_id uuid, company_id uuid,
-  agent_key text, last_message text, last_message_at timestamptz,
-  unread_count int default 0, pinned boolean default false,
-  created_at timestamptz default now(),
-  unique (user_id, company_id, agent_key)
-)
+-- 1. Extend role enum-ish check to include editor/member
+ALTER TABLE company_members DROP CONSTRAINT IF EXISTS company_members_role_check;
+ALTER TABLE company_members ADD CONSTRAINT company_members_role_check
+  CHECK (role IN ('owner','admin','editor','member'));
 
-companies_members (  -- if not already present
-  company_id uuid, user_id uuid, role text check (role in ('owner','admin','member')),
-  joined_at timestamptz default now(),
-  primary key (company_id, user_id)
-)
+-- 2. Add source + linked user_id to contacts (idempotent upserts)
+ALTER TABLE contacts
+  ADD COLUMN IF NOT EXISTS user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS source_detail text;
+CREATE UNIQUE INDEX IF NOT EXISTS contacts_company_user_uq
+  ON contacts(company_id, user_id) WHERE user_id IS NOT NULL;
+
+-- 3. Sync trigger: company_members → contacts
+CREATE OR REPLACE FUNCTION public.sync_member_to_contact()
+RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE u record;
+BEGIN
+  SELECT email, raw_user_meta_data INTO u FROM auth.users WHERE id = NEW.user_id;
+  IF u.email IS NULL THEN RETURN NEW; END IF;
+  INSERT INTO public.contacts (company_id, user_id, full_name, email, phone, designation, source, is_primary)
+  VALUES (
+    NEW.company_id, NEW.user_id,
+    COALESCE(u.raw_user_meta_data->>'full_name', u.email),
+    u.email,
+    u.raw_user_meta_data->>'phone',
+    NEW.role,
+    'gro10x_signup',
+    NEW.role = 'owner'
+  )
+  ON CONFLICT (company_id, user_id) DO UPDATE
+    SET designation = EXCLUDED.designation, updated_at = now();
+  RETURN NEW;
+END $$;
+DROP TRIGGER IF EXISTS trg_sync_member_to_contact ON company_members;
+CREATE TRIGGER trg_sync_member_to_contact
+  AFTER INSERT ON company_members
+  FOR EACH ROW EXECUTE FUNCTION public.sync_member_to_contact();
+
+-- 4. Backfill existing 4 rows
+INSERT INTO contacts (company_id, user_id, full_name, email, phone, designation, source, is_primary)
+SELECT cm.company_id, cm.user_id, COALESCE(u.raw_user_meta_data->>'full_name', u.email),
+       u.email, u.raw_user_meta_data->>'phone', cm.role, 'gro10x_signup', cm.role='owner'
+FROM company_members cm JOIN auth.users u ON u.id = cm.user_id
+WHERE cm.user_id IS NOT NULL
+ON CONFLICT (company_id, user_id) DO NOTHING;
 ```
-RLS: members can read their own company rows; only owners/admins can update company page fields and publish drafts.
 
-**Edge function changes:**
-- `company-agent-tools`: add `draft_company_post`, `list_team_members`, `update_company_page` tools.
-- `ai-company-auth-agent`: on completion, seed `gro10x_agent_threads` based on collected goals.
+**Edge function patches**
+- `signup-company`: after inserting `company_members`, the trigger above handles contacts — no app code change needed beyond verifying the trigger fires.
+- `company-agent-tools/index.ts` → `publish_company_post`: ensure insert sets `author_type='company'`, `author_company_id`, `author_name = company.name`, `author_avatar = company.logo_url`.
 
-**Frontend new/edited:**
-- New: `src/gro10x/lib/agents.ts`, `src/gro10x/hooks/useGro10xThreads.ts`, `src/gro10x/hooks/useCompanyPage.ts`, `src/gro10x/components/CompanyPageEditor.tsx`, `src/gro10x/components/FeedComposer.tsx`, `src/gro10x/components/DraftApprovalStrip.tsx`, `src/pages/public/PublicCompanyPage.tsx` (for `/c/:slug`).
-- Edited: all 5 `Gro10x*` page stubs, `App.tsx` (add `/c/:slug`), `Gro10xRoutes.tsx`.
+**Frontend changes**
+- `src/components/dashboard/ContactsManager.tsx` — Source filter chip + "Active Gro10x" badge (compute via join to `company_members`).
+- `src/components/dashboard/CompaniesManager.tsx` (or equivalent) — show count of active Gro10x members per row.
+- `src/pages/app/Feed.tsx` — render company author pill when `author_type='company'`, link to `/c/:slug`.
+- `src/App.tsx` — replace `/for-companies`, `/for-companies/signup`, `/company`, `/company/*` route elements with `<Navigate to="/gro10x" replace />` (signup goes to `/gro10x/auth`).
+- Delete `src/pages/public/CompanySignup.tsx`, `src/pages/public/ForCompanies.tsx`. Trim `CompanyPortal.tsx` to a redirect.
+- Remove "For Companies" links from the talent marketing nav/footer; keep a single "Are you a business? → Gro10x" button.
 
-**Out of scope for this phase** (next phases): teammate invitations by email, billing/subscription per company, cross-company DM, public company directory.
+**RBAC unchanged**
+- `useAccountType` already routes `company` → `/company`; update its default to `/gro10x` for company accounts so post-auth lands them in the right PWA.
 
 ---
 
-### Suggested order
-Step 1 (Inbox) → Step 5 (Marketplace, since it feeds Inbox) → Step 4 (Me) → Step 3 (Company Page) → Step 2 (Feed + drafts) → Step 6 (Welcome polish).
+## Out of scope (next iterations)
 
-Approve to proceed, or tell me which step to drop/reprioritize.
+- Teammate invitation UX inside Gro10x (`POST /companies/:id/invite`)
+- Stripe top-up flow inside Gro10x
+- Per-role permission UI (promote/demote member ↔ admin ↔ owner)
+
+These three are queued right after this consolidation lands.
