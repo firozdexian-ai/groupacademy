@@ -50,25 +50,23 @@ import { cn } from "@/lib/utils";
  * 2026 Standard: Executive Logic geometry with reinforced transaction guards.
  */
 
-const TASK_CATEGORIES = [
-  { key: "all", label: "All Missions", icon: Gift },
-  { key: "cv_upload", label: "CV Intake", icon: Upload },
-  { key: "job_posting", label: "Job Sourcing", icon: Briefcase },
-  { key: "job_sharing", label: "Viral Share", icon: Share2 },
-  { key: "content_creation", label: "Content Synth", icon: FileText },
-  { key: "course_resell", label: "Resell Logic", icon: BookOpen },
-];
-
 export default function Gigs() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { talent } = useTalent();
   const queryClient = useQueryClient();
 
+  // Renamed: 'tasks' tab now labelled "Platform Tasks". Keep query key for back-compat.
   const activeTab = searchParams.get("tab") || "tasks";
-  const [selectedCategory, setSelectedCategory] = useState("all");
   const [projectSearch, setProjectSearch] = useState("");
-  const [selectedProjectCategory, setSelectedProjectCategory] = useState<string | null>(null);
+  const [selectedProjectCategory, setSelectedProjectCategory] = useState<GigCategory | null>(null);
+  const [verificationStatus, setVerificationStatus] = useState<string>("unverified");
+
+  useEffect(() => {
+    if (!talent?.id) return;
+    supabase.from("talents").select("verification_status").eq("id", talent.id).maybeSingle()
+      .then(({ data }) => setVerificationStatus(((data as any)?.verification_status) || "unverified"));
+  }, [talent?.id]);
 
   const handleTabChange = (tab: string) => {
     setSearchParams({ tab });
