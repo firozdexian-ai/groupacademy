@@ -19,7 +19,25 @@ export function useAccountType() {
     queryFn: async (): Promise<AccountType> => {
       if (!user?.id) return "unknown";
 
-      // Check company membership first (cheapest, single row)
+      // Fast path: user_metadata.account_type set at signup-company time.
+      const metaType = (user.user_metadata as any)?.account_type;
+      if (metaType === "company" || metaType === "admin" || metaType === "talent") {
+        // Still verify company membership exists; otherwise fall through.
+        if (metaType === "company") {
+          const { data: company } = await supabase
+            .from("company_members")
+            .select("company_id")
+            .eq("user_id", user.id)
+            .eq("status", "active")
+            .limit(1)
+            .maybeSingle();
+          if (company?.company_id) return "company";
+        } else {
+          return metaType as AccountType;
+        }
+      }
+
+      // Check company membership (cheapest, single row)
       const { data: company } = await supabase
         .from("company_members")
         .select("company_id")
@@ -42,8 +60,10 @@ export function useAccountType() {
     },
   });
 
+  // CRITICAL: While loading, return "unknown" so callers gate properly
+  // instead of defaulting to "talent" and triggering wrong redirects.
   return {
-    accountType: (query.data ?? (user ? "talent" : "unknown")) as AccountType,
-    isLoading: authLoading || (!!user?.id && query.isLoading),
+    accountType: (query.data ?? "unknown") as AccountType,
+    isLoading: authLoading || (!!user?.id && (query.isLoading || query.isFetching)),
   };
 }
