@@ -18,6 +18,7 @@ export default function Gro10xAuth() {
     isLoading,
     isComplete,
     data,
+    existingAccount,
     initialize,
     handleUserInput,
     handlePasswordSubmit,
@@ -201,6 +202,24 @@ export default function Gro10xAuth() {
           </div>
         )}
 
+        {existingAccount && !isLoading && (
+          <div className="pt-2 space-y-2">
+            <button
+              onClick={() =>
+                navigate(
+                  `/gro10x/signin?email=${encodeURIComponent(existingAccount.email)}`,
+                )
+              }
+              className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-[#33E1E4] text-[#06121A] font-semibold py-3"
+            >
+              Sign in to your workspace <ArrowRight className="w-4 h-4" />
+            </button>
+            <p className="text-center text-[11px] text-slate-500">
+              Wrong email? Refresh the page to start over.
+            </p>
+          </div>
+        )}
+
         {isComplete && (
           <div className="pt-4">
             <button
@@ -216,7 +235,7 @@ export default function Gro10xAuth() {
       </main>
 
       {/* Input bar — hidden during chip-only steps */}
-      {!isComplete && !isCVStep && !isGoalsStep && (
+      {!isComplete && !isCVStep && !isGoalsStep && !existingAccount && (
         <form
           onSubmit={onSubmit}
           className="border-t border-white/5 bg-[#0B1220]/95 backdrop-blur px-4 py-4 pb-[calc(16px+env(safe-area-inset-bottom))]"
