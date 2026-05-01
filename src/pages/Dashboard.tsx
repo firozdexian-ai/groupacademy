@@ -171,6 +171,15 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   invoices: React.lazy(() =>
     import("@/components/dashboard/payments/InvoiceManager").then((m) => ({ default: m.InvoiceManager })),
   ),
+  "content-readiness": React.lazy(() =>
+    import("@/components/dashboard/ContentReadinessBoard").then((m) => ({ default: m.ContentReadinessBoard })),
+  ),
+  "content-gigs": React.lazy(() =>
+    import("@/components/dashboard/ContentGigReview").then((m) => ({ default: m.ContentGigReview })),
+  ),
+  "content-leads": React.lazy(() =>
+    import("@/components/dashboard/ContentLeadsManager").then((m) => ({ default: m.ContentLeadsManager })),
+  ),
   // INTEGRATION INJECTIONS
   modules: React.lazy(() => import("@/components/dashboard/ModulePickerPanel")),
   "quiz-manage": React.lazy(() => import("@/pages/QuizManagement")),
@@ -236,6 +245,9 @@ const TAB_TITLES: Record<string, string> = {
   team: "Human Capital",
   payments: "Gateway Logic",
   invoices: "Invoice Manager",
+  "content-readiness": "Content Readiness",
+  "content-gigs": "Content Gigs",
+  "content-leads": "Content Leads",
   modules: "Module Architecture",
   "quiz-manage": "Certification Logic",
 };

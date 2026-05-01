@@ -241,6 +241,19 @@ export default function ModuleResourcesManager() {
               </Badge>
             )}
             <Button
+              onClick={async () => {
+                const { data, error } = await supabase.rpc("generate_content_gigs_for_course" as any, {
+                  _content_id: contentId,
+                });
+                if (error) toast.error(error.message);
+                else toast.success(`Generated ${data ?? 0} content gigs for this course.`);
+              }}
+              variant="outline"
+              className="h-10 rounded-xl border-primary/30 bg-primary/5 text-primary font-black uppercase text-[10px] tracking-widest"
+            >
+              <Zap className="h-3 w-3 mr-2" /> Generate Gigs
+            </Button>
+            <Button
               onClick={() => window.location.reload()}
               variant="outline"
               className="h-10 rounded-xl border-border/40 font-black uppercase text-[10px] tracking-widest"
