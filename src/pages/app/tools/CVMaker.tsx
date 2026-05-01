@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, FileText, Loader2, Download, Sparkles, Coins } from "lucide-react";
+import { ArrowLeft, FileText, Loader2, Download, Sparkles, Coins, Eye, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,23 +11,34 @@ import { toast } from "sonner";
 
 /**
  * ATS-Friendly CV Maker — generates a clean text-extractable CV PDF
- * using the talent's profile data. No AI re-write; safe for ATS parsers.
+ * using the talent's profile data. Credits are only deducted on download
+ * after the user previews the generated PDF.
  */
 export default function CVMaker() {
   const navigate = useNavigate();
   const { talent } = useTalent();
   const { canAfford, deductCredits } = useCredits();
-  const [generating, setGenerating] = useState(false);
+  const [building, setBuilding] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [pdfDoc, setPdfDoc] = useState<any>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const cost = CREDIT_CONFIG.SERVICES.CV_GENERATION.cost;
 
-  async function handleGenerate() {
-    if (!talent) return toast.error("Profile not loaded.");
-    if (!canAfford("CV_GENERATION")) return toast.error(`Need ${cost} credits.`);
+  // Cleanup blob URL when changed/unmounted
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
 
-    setGenerating(true);
+  async function buildPdf() {
+    if (!talent) {
+      toast.error("Profile not loaded.");
+      return;
+    }
+    setBuilding(true);
     try {
-      // Lazy-load PDF generator to keep bundle small
       const { jsPDF } = await import("jspdf");
       const doc = new jsPDF({ unit: "pt", format: "a4" });
       const pageW = doc.internal.pageSize.getWidth();
@@ -35,6 +46,7 @@ export default function CVMaker() {
       let y = margin;
 
       const writeHeading = (text: string) => {
+        if (y > 760) { doc.addPage(); y = margin; }
         doc.setFont("helvetica", "bold");
         doc.setFontSize(12);
         doc.setTextColor(40);
@@ -63,14 +75,12 @@ export default function CVMaker() {
       if (talent.linkedinUrl) writeLine(talent.linkedinUrl, { size: 10, color: 100 });
       y += 8;
 
-      // Summary
       if (talent.customProfession) {
         writeHeading("Profile");
         writeLine(talent.customProfession);
         y += 8;
       }
 
-      // Experience
       if (talent.experience?.length) {
         writeHeading("Experience");
         talent.experience.forEach((exp: any) => {
@@ -82,7 +92,6 @@ export default function CVMaker() {
         });
       }
 
-      // Education
       if (talent.education?.length) {
         writeHeading("Education");
         talent.education.forEach((ed: any) => {
@@ -93,21 +102,42 @@ export default function CVMaker() {
         });
       }
 
-      // Skills
       if (talent.skills?.length) {
         writeHeading("Skills");
         const skillNames = talent.skills.map((s: any) => s.name || s).filter(Boolean).join(" · ");
         writeLine(skillNames);
       }
 
+      const blob = doc.output("blob");
+      const url = URL.createObjectURL(blob);
+
+      // Revoke prior preview if any
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+
+      setPdfDoc(doc);
+      setPreviewUrl(url);
+      toast.success("Preview ready. Review before downloading.");
+    } catch (e) {
+      console.error(e);
+      toast.error("Couldn't build preview. Try again.");
+    } finally {
+      setBuilding(false);
+    }
+  }
+
+  async function handleDownload() {
+    if (!pdfDoc || !talent) return;
+    if (!canAfford("CV_GENERATION")) return toast.error(`Need ${cost} credits.`);
+    setDownloading(true);
+    try {
       await deductCredits("CV_GENERATION", undefined, "ATS-friendly CV generated");
-      doc.save(`${(talent.fullName || "cv").replace(/\s+/g, "_")}_ATS_CV.pdf`);
+      pdfDoc.save(`${(talent.fullName || "cv").replace(/\s+/g, "_")}_ATS_CV.pdf`);
       toast.success("CV downloaded.");
     } catch (e) {
       console.error(e);
-      toast.error("Couldn't generate CV. Try again.");
+      toast.error("Download failed. Try again.");
     } finally {
-      setGenerating(false);
+      setDownloading(false);
     }
   }
 
@@ -127,28 +157,71 @@ export default function CVMaker() {
         </p>
       </header>
 
-      <Card className="rounded-2xl border border-border/40">
-        <CardContent className="p-4 space-y-3">
-          <p className="text-sm">
-            We'll build a single-column ATS-safe CV from your profile data — no images, no fancy fonts, no columns.
-          </p>
-          <ul className="text-xs text-muted-foreground space-y-1 list-disc pl-5">
-            <li>Uses your name, contact, summary, experience, education and skills</li>
-            <li>Standard headings recruiters' systems expect</li>
-            <li>Downloads instantly to your device</li>
-          </ul>
+      {!previewUrl && (
+        <Card className="rounded-2xl border border-border/40">
+          <CardContent className="p-4 space-y-3">
+            <p className="text-sm">
+              We'll build a single-column ATS-safe CV from your profile data — no images, no fancy fonts, no columns.
+            </p>
+            <ul className="text-xs text-muted-foreground space-y-1 list-disc pl-5">
+              <li>Uses your name, contact, summary, experience, education and skills</li>
+              <li>Standard headings recruiters' systems expect</li>
+              <li>Preview first, only spend credits when you download</li>
+            </ul>
 
-          <div className="flex items-center justify-between pt-2 border-t border-border/40">
-            <Badge variant="outline" className="gap-1 text-[10px]">
-              <Coins className="h-3 w-3 text-amber-500" /> {cost} credits
-            </Badge>
-            <Button onClick={handleGenerate} disabled={generating} size="sm" className="h-9 rounded-lg">
-              {generating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Download className="h-4 w-4 mr-2" />}
-              {generating ? "Building..." : "Generate CV"}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+            <div className="flex items-center justify-between pt-2 border-t border-border/40">
+              <Badge variant="outline" className="gap-1 text-[10px]">
+                <Coins className="h-3 w-3 text-amber-500" /> {cost} credits on download
+              </Badge>
+              <Button onClick={buildPdf} disabled={building} size="sm" className="h-9 rounded-lg">
+                {building ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
+                {building ? "Building..." : "Build preview"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {previewUrl && (
+        <Card className="rounded-2xl border border-border/40 overflow-hidden">
+          <CardContent className="p-0">
+            <div className="flex items-center justify-between px-3 py-2 border-b border-border/40 bg-muted/20">
+              <div className="flex items-center gap-2 text-xs font-medium">
+                <Eye className="h-3.5 w-3.5 text-primary" /> Preview
+              </div>
+              <Badge variant="outline" className="gap-1 text-[10px]">
+                <Coins className="h-3 w-3 text-amber-500" /> {cost} credits
+              </Badge>
+            </div>
+            <iframe
+              src={previewUrl}
+              title="CV preview"
+              className="w-full h-[70vh] bg-white"
+            />
+            <div className="flex flex-col sm:flex-row gap-2 p-3 border-t border-border/40">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={buildPdf}
+                disabled={building || downloading}
+                className="h-9 rounded-lg flex-1"
+              >
+                {building ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                Rebuild
+              </Button>
+              <Button
+                onClick={handleDownload}
+                disabled={downloading || building}
+                size="sm"
+                className="h-9 rounded-lg flex-1"
+              >
+                {downloading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Download className="h-4 w-4 mr-2" />}
+                {downloading ? "Saving..." : `Download (${cost} cr)`}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="rounded-2xl border border-dashed border-border/40 bg-muted/10">
         <CardContent className="p-4 flex items-start gap-3">
