@@ -1,22 +1,47 @@
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { GRO10X_MUTED, PRO_GOALS } from "../lib/tokens";
-
-const ALL_AGENTS = [
-  { key: "concierge",       name: "Concierge",        desc: "Routes you to the right agent",         emoji: "🧭" },
-  { key: "recruiter",       name: "Recruiter",        desc: "Job drafts, postings, screening",       emoji: "👥" },
-  { key: "sourcer",         name: "Sourcer",          desc: "Find candidates from talent network",   emoji: "🔍" },
-  { key: "outreach",        name: "Outreach Writer",  desc: "Personalized candidate / lead emails",  emoji: "✉️" },
-  { key: "growth",          name: "Growth Agent",     desc: "Post on company feed, draft campaigns", emoji: "📈" },
-  { key: "lead_hunter",     name: "Lead Hunter",      desc: "Find B2B prospects matching ICP",       emoji: "🎯" },
-  { key: "crm",             name: "CRM Agent",        desc: "Track conversations, follow-ups",       emoji: "🗂" },
-  { key: "gig_finder",      name: "Gig Finder",       desc: "Source freelancers fast",               emoji: "🛠" },
-  { key: "briefing",        name: "Briefing Agent",   desc: "Turn ideas into clear gig briefs",      emoji: "📋" },
-  { key: "billing",         name: "Billing Agent",    desc: "Credits, invoices, top-ups",            emoji: "💳" },
-  { key: "ops",             name: "Ops Agent",        desc: "Update company page, hours, logo",      emoji: "⚙️" },
-  { key: "calendar",        name: "Calendar Agent",   desc: "Schedule calls, syncs",                 emoji: "📅" },
-];
+import { GRO10X_AGENTS } from "../lib/agents";
+import { useGro10xThreads } from "../hooks/useGro10xThreads";
+import { useAuth } from "@/hooks/useAuth";
+import { useState } from "react";
+import { toast } from "sonner";
 
 export default function Gro10xAgentMarketplace() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { threads, pinAgent, companyId } = useGro10xThreads();
+  const pinnedKeys = new Set(threads.map((t) => t.agent_key));
+  const [busy, setBusy] = useState<string | null>(null);
+  const [filter, setFilter] = useState<string | null>(null);
+
+  const handlePin = async (key: string) => {
+    if (!user) {
+      navigate("/gro10x/auth");
+      return;
+    }
+    if (!companyId) {
+      toast.error("Set up your company workspace first");
+      navigate("/gro10x/auth");
+      return;
+    }
+    setBusy(key);
+    try {
+      const t = await pinAgent(key);
+      if (t) {
+        toast.success(`Pinned to your inbox`);
+        navigate(`/gro10x/c/${key}`);
+      } else {
+        toast.error("Could not pin agent");
+      }
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const visible = filter
+    ? GRO10X_AGENTS.filter((a) => a.goals.includes(filter))
+    : GRO10X_AGENTS;
+
   return (
     <div className="max-w-md mx-auto">
       <header className="sticky top-0 z-10 bg-[#0B1220]/95 backdrop-blur-md border-b border-white/5 px-4 py-3">
@@ -28,34 +53,64 @@ export default function Gro10xAgentMarketplace() {
         By goal
       </p>
       <div className="px-4 flex flex-wrap gap-2 mb-3">
+        <button
+          onClick={() => setFilter(null)}
+          className={`px-3 py-1.5 rounded-full text-xs border ${
+            filter === null
+              ? "bg-[#33E1E4] text-[#06121A] border-[#33E1E4]"
+              : "bg-white/5 border-white/10 text-slate-200"
+          }`}
+        >
+          All
+        </button>
         {PRO_GOALS.map((g) => (
-          <span
+          <button
             key={g.key}
-            className="px-3 py-1.5 rounded-full bg-white/5 text-xs border border-white/10"
+            onClick={() => setFilter(g.key)}
+            className={`px-3 py-1.5 rounded-full text-xs border ${
+              filter === g.key
+                ? "bg-[#33E1E4] text-[#06121A] border-[#33E1E4]"
+                : "bg-white/5 border-white/10 text-slate-200"
+            }`}
           >
             {g.emoji} {g.label}
-          </span>
+          </button>
         ))}
       </div>
 
       <ul className="divide-y divide-white/5">
-        {ALL_AGENTS.map((a) => (
-          <li key={a.key}>
-            <Link
-              to={`/gro10x/c/${a.key}`}
-              className="flex items-center gap-3 px-4 py-3 hover:bg-white/5"
-            >
-              <div className="h-11 w-11 rounded-full bg-[#0F172A] border border-white/10 grid place-items-center text-xl">
-                {a.emoji}
+        {visible.map((a) => {
+          const isPinned = pinnedKeys.has(a.key);
+          return (
+            <li key={a.key}>
+              <div className="flex items-center gap-3 px-4 py-3">
+                <div className="h-11 w-11 rounded-full bg-[#0F172A] border border-white/10 grid place-items-center text-xl">
+                  {a.emoji}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium">{a.name}</p>
+                  <p className="text-xs text-slate-400 truncate">{a.desc}</p>
+                </div>
+                {isPinned ? (
+                  <button
+                    onClick={() => navigate(`/gro10x/c/${a.key}`)}
+                    className="text-[#33E1E4] text-xs px-3 py-1.5 rounded-full bg-white/5 border border-white/10 hover:bg-white/10"
+                  >
+                    Open
+                  </button>
+                ) : (
+                  <button
+                    disabled={busy === a.key}
+                    onClick={() => handlePin(a.key)}
+                    className="text-[#06121A] text-xs px-3 py-1.5 rounded-full bg-[#33E1E4] font-semibold hover:opacity-90 disabled:opacity-50"
+                  >
+                    {busy === a.key ? "Pinning…" : "+ Pin"}
+                  </button>
+                )}
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium">{a.name}</p>
-                <p className="text-xs text-slate-400 truncate">{a.desc}</p>
-              </div>
-              <span className="text-[#33E1E4] text-xs">Open →</span>
-            </Link>
-          </li>
-        ))}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
