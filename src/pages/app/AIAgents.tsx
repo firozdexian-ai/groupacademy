@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { AgentCard } from "@/components/ai-agents/AgentCard";
 import { AgentFilters, AgentCategory } from "@/components/ai-agents/AgentFilters";
+import { BannerCarousel } from "@/components/BannerCarousel";
 import { supabase } from "@/integrations/supabase/client";
 import { AI_AGENTS, getAgentById } from "@/lib/constants/agents";
 import { cn } from "@/lib/utils";
@@ -131,9 +132,10 @@ export default function AIAgents() {
       </header>
 
       <div className="px-3 py-3 space-y-4">
+        {/* Marketplace banner (3:1, only renders if active banners exist) */}
+        <BannerCarousel placement="agents_marketplace" />
+
         <AgentFilters
-          searchQuery=""
-          onSearchChange={() => {}}
           selectedCategory={selectedCategory}
           onCategoryChange={setSelectedCategory}
           showCompanyTab={agents.some((a) => a.isCompanyAgent)}
