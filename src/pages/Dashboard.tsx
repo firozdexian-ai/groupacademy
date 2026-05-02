@@ -17,7 +17,32 @@ import { cn } from "@/lib/utils";
  */
 const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   overview: React.lazy(() =>
-    import("@/components/dashboard/DashboardOverview").then((m) => ({ default: m.DashboardOverview })),
+    import("@/components/dashboard/overview/LifetimeOverviewTab").then((m) => ({ default: m.LifetimeOverviewTab })),
+  ),
+  "overview-lifetime": React.lazy(() =>
+    import("@/components/dashboard/overview/LifetimeOverviewTab").then((m) => ({ default: m.LifetimeOverviewTab })),
+  ),
+  "overview-month": React.lazy(() =>
+    import("@/components/dashboard/overview/PeriodOverviewTab").then((m) => ({
+      default: () => {
+        const C = m.PeriodOverviewTab;
+        return <C mode="month" />;
+      },
+    })),
+  ),
+  "overview-quarter": React.lazy(() =>
+    import("@/components/dashboard/overview/PeriodOverviewTab").then((m) => ({
+      default: () => {
+        const C = m.PeriodOverviewTab;
+        return <C mode="quarter" />;
+      },
+    })),
+  ),
+  "overview-analyst": React.lazy(() =>
+    import("@/components/dashboard/overview/AnalystChatTab").then((m) => ({ default: m.AnalystChatTab })),
+  ),
+  "overview-reports": React.lazy(() =>
+    import("@/components/dashboard/overview/ReportsBuilderTab").then((m) => ({ default: m.ReportsBuilderTab })),
   ),
   workforce: React.lazy(() =>
     import("@/components/dashboard/WorkforceManager").then((m) => ({ default: m.WorkforceManager })),
