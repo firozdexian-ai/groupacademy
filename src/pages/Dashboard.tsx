@@ -50,6 +50,15 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   talent: React.lazy(() =>
     import("@/components/dashboard/TalentPoolManager").then((m) => ({ default: m.TalentPoolManager })),
   ),
+  "talent-overview": React.lazy(() =>
+    import("@/components/dashboard/talent/TalentOverviewTab").then((m) => ({ default: m.TalentOverviewTab })),
+  ),
+  "talent-aisha": React.lazy(() =>
+    import("@/components/dashboard/talent/AishaConsoleTab").then((m) => ({ default: m.AishaConsoleTab })),
+  ),
+  "talent-ai-general": React.lazy(() =>
+    import("@/components/dashboard/talent/AIGeneralConsoleTab").then((m) => ({ default: m.AIGeneralConsoleTab })),
+  ),
   "lead-hunter": React.lazy(() =>
     import("@/components/dashboard/LeadHunterManager").then((m) => ({ default: m.LeadHunterManager })),
   ),
