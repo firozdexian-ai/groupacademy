@@ -222,9 +222,9 @@ async function runTool(admin: any, name: string, args: any, actorId: string) {
             .replace(/\{\{\s*name\s*\}\}/gi, t.full_name ?? "there");
           const r = await admin.functions.invoke("send-transactional-email", {
             body: {
-              templateName: "generic_notification",
+              templateName: "talent-invite",
               recipientEmail: t.email,
-              templateData: { subject, message: body, name: t.full_name ?? "" },
+              templateData: { name: t.full_name ?? "", personal_note: body },
             },
           });
           if (r.error) {
@@ -233,7 +233,7 @@ async function runTool(admin: any, name: string, args: any, actorId: string) {
             skipped++;
           } else {
             logs.push({ talent_id: t.id, channel: "email", subject, message: body,
-              status: "sent", template: "generic_notification", sent_by: actorId });
+              status: "sent", template: "talent-invite", sent_by: actorId });
             sent++;
           }
         } catch (e) {
