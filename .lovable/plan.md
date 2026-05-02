@@ -1,59 +1,122 @@
-# Investors & High-Value Stakeholders Restructure
 
-Promote the existing flat "Investor Relations" group into a full stakeholder segment (mirroring Talent / Companies / Agents architecture), add a Fundraising FP&A AI agent, and a Relationship/Outreach Executive console.
+## Idea — yes, this is the right move
 
-## Sidebar (collapsible group, placed right after AI Agents)
+Right now we have 10 separate conversational agents scattered across 5 sidebar groups (Overview, Talent, Companies, Agents, Investors). Each opens in its own tab, with no history persistence — refresh the page and the conversation is gone. That's fine for "drop in, ask a question" but terrible for ongoing strategic work (FP&A narratives, outreach drafts, weekly investor updates).
 
-`Investors & Stakeholders`
-1. **IR Overview** — KPI dashboard (existing IR Dashboard wrapped + MRR/ARR target health, funnel by stage)
-2. **MRR / ARR Targets** — existing `ir-targets`
-3. **VC Firms** — existing `ir-vcs`
-4. **Investors** — existing `ir-investors` (individual + institutional)
-5. **Key Influencers** — new tab for high-value non-VC stakeholders (advisors, ecosystem leaders, press)
-6. **Email Updates** — existing `ir-emails`
-7. **Relationship Exec Console** — conversational outreach agent (drafts intros, follow-ups, schedules, logs interactions). Uses `mailto:` for outbound (per email strategy memory) + in-app log.
-8. **Fundraising FP&A Agent** — conversational analyst that reads MRR/ARR targets, service mix, runway, and gives fundraising strategy / deck talking points / investor matching suggestions.
+Splitting the admin into two surfaces is the right architecture:
+- **Dashboard** (current) — information-dense, tables, KPIs, CRUD. Stays as is.
+- **Dashboard / Chat** (new) — WhatsApp-style messenger. One thread per agent. Persistent history. Long-running context.
 
-## Database
+This also sets us up for cross-agent handoffs later (FP&A agent → Relationship Exec to draft an investor email).
 
-New tables:
-- `ir_influencers` (id, name, role, org, country, tier, tags[], contact_json, notes, owner_user_id, created_at)
-- `ir_outreach_log` (id, target_type [vc|investor|influencer], target_id, channel [mailto|in_app|note|call|meeting], subject, body, sentiment, status, created_by, created_at)
-- `ir_fpa_conversations` (id, session_id, user_id, last_question, last_answer_summary, created_at) — telemetry for the FP&A agent
+---
 
-Reuse existing `ir_interactions` where possible; `ir_outreach_log` is the unified log surfaced in the Relationship Exec console.
+## What we'll build
 
-## Edge Functions
+### 1. New route: `/dashboard/chat`
+WhatsApp-style two-pane layout (collapses to single pane on mobile):
 
-- `admin-ir-fpa-analyst` — Lovable AI (gemini-2.5-pro for reasoning depth). Tools: `mrr_targets_read`, `service_mix_read`, `credits_revenue_summary`, `investor_pipeline_summary`, `runway_calc`. Returns fundraising strategy, narrative, target investor types.
-- `admin-ir-relationship-exec` — Lovable AI (gemini-2.5-flash). Tools: `vc_list`, `investor_list`, `influencer_list`, `draft_outreach_email`, `log_interaction`, `suggest_followups`. Generates `mailto:` links and writes to `ir_outreach_log`.
+```text
+┌─────────────────┬──────────────────────────────────────┐
+│ Agents          │ ← Aisha (Talent Analyst)             │
+│ ─────────────── │ ──────────────────────────────────── │
+│ ● Business      │                                      │
+│   Analyst   2m  │   [assistant bubble]                 │
+│ ● Aisha     1h  │              [user bubble]           │
+│   Riya          │   [assistant bubble]                 │
+│   FP&A      3d  │                                      │
+│   Rel. Exec     │                                      │
+│   Agent Mgr     │ ──────────────────────────────────── │
+│   Talent Out.   │ [ Type a message…              ↑ ]   │
+│   Co. Out.      │                                      │
+│   AI General    │                                      │
+│   Co. AI Gen.   │                                      │
+└─────────────────┴──────────────────────────────────────┘
+```
 
-Both verify JWT in code, admin-only via `has_role(uid,'admin')`.
+Left rail = agent list with avatar, name, last-message preview, timestamp, unread dot.
+Right pane = active thread, scrollable, markdown rendered, suggestions shown when empty.
 
-## UI Components (new)
+### 2. The 10 agents migrated in
+| Agent | Edge function | Source group |
+|---|---|---|
+| Business Analyst | `admin-analyst` | Overview |
+| Aisha (Talent Analyst) | `ai-talent-analyst` | Talent |
+| AI General (Talent) | `ai-general-analyst` | Talent |
+| Talent Outreach Exec | `admin-talent-outreach` | Talent |
+| Riya (Company Analyst) | `admin-riya-analyst` | Companies |
+| Company AI General | `admin-company-ai-general-analyst` | Companies |
+| Company Outreach Exec | `admin-company-outreach` | Companies |
+| Agent Manager | `admin-agent-manager` | AI Agents |
+| FP&A Agent | `admin-ir-fpa-analyst` | Investors |
+| Relationship Exec | `admin-ir-relationship-exec` | Investors |
 
-`src/components/dashboard/investors/`
-- `IROverviewTab.tsx` — KPI cards (MRR vs target, ARR, pipeline by stage, outreach activity 7/30d)
-- `KeyInfluencersTab.tsx` — CRUD list + tier filter
-- `RelationshipExecConsoleTab.tsx` — `AdminAnalystShell` wrapper around `admin-ir-relationship-exec`
-- `FpaAgentConsoleTab.tsx` — `AdminAnalystShell` wrapper around `admin-ir-fpa-analyst`
+Each gets a profile card (avatar initial, name, role tagline, suggestions).
 
-Existing IR pages (Dashboard, Targets, VCs, Investors, Emails) plug into the new group unchanged.
+### 3. Persistent conversations
+New tables (one thread per admin × agent):
 
-## Sidebar Changes
+```sql
+create table admin_chat_threads (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null,             -- admin user
+  agent_key text not null,           -- 'admin-analyst', 'admin-riya-analyst', ...
+  title text,                        -- auto-derived from first user msg
+  last_message_at timestamptz default now(),
+  created_at timestamptz default now(),
+  unique (user_id, agent_key)        -- one thread per agent per admin
+);
 
-In `AdminSidebar.tsx`: rename group to **Investors & Stakeholders**, replace items array with the 8 entries above. Move group to sit immediately after AI Agents.
+create table admin_chat_messages (
+  id uuid primary key default gen_random_uuid(),
+  thread_id uuid not null references admin_chat_threads(id) on delete cascade,
+  role text not null check (role in ('user','assistant','system')),
+  content text not null,
+  created_at timestamptz default now()
+);
+```
 
-## Notes
+RLS: only the owning admin (and `has_role(admin)`) can read/write their own threads. `search_path=public` on any helper functions.
 
-- Outreach uses `mailto:` only (sender reputation memory) — no SMTP sends to investors from platform.
-- FP&A agent telemetry starts from now, no backfill.
-- Influencers are seedable later; v1 ships empty CRUD.
-- All RLS: admin-only read/write on new tables; functions use `search_path = public`.
+### 4. Edge functions — small adjustment
+Each agent function already accepts `{ messages: [...] }`. We add an optional `thread_id` param. The server:
+1. Loads the full message history from `admin_chat_messages` for that thread (authoritative source).
+2. Appends the new user message, runs the AI, persists the assistant response.
+3. Returns `{ content, thread_id }`.
 
-## Open suggestions (not in scope unless you confirm)
+Client never has to manage history — it just sends `thread_id + new user message`.
 
-- Investor portal (read-only public link with metrics) — mention only, not building.
-- Auto weekly update generator from FP&A agent → drafts into `ir-emails` queue.
+### 5. Sidebar
+- Add a new top-level entry **Chat** (MessageCircle icon) that links to `/dashboard/chat`. Placed right under "Overview".
+- Keep existing console tabs in their groups for now — but they will redirect to `/dashboard/chat?agent=<key>` so deep links from old habits still work. After one release we remove them.
 
-Approve to implement.
+---
+
+## Files
+
+**New**
+- `src/pages/DashboardChat.tsx` — route shell
+- `src/components/dashboard/chat/AgentRail.tsx` — left list
+- `src/components/dashboard/chat/ChatThread.tsx` — right pane (re-uses markdown rendering from `AdminAnalystShell`)
+- `src/components/dashboard/chat/AgentComposer.tsx` — input
+- `src/lib/adminAgents.ts` — registry: key, name, tagline, icon, function name, suggestions (single source of truth, replaces hard-coded shells)
+- `src/hooks/useAdminChatThread.ts` — load thread, send message, realtime subscribe
+- `supabase/migrations/<ts>_admin_chat_threads.sql` — tables + RLS + realtime publication
+- Edge function patch: each of the 10 functions reads `thread_id`, persists messages.
+
+**Modified**
+- `src/pages/Dashboard.tsx` — add `/dashboard/chat` route
+- `src/components/dashboard/AdminSidebar.tsx` — add Chat entry
+- The 10 existing `*ConsoleTab.tsx` files become thin redirect stubs (or are removed in a follow-up)
+
+---
+
+## Decisions before I build
+
+1. **Persistence scope** — Plan above assumes **one persistent thread per agent per admin** (WhatsApp-style: you have one chat with each contact). Alternative is multi-thread per agent (like ChatGPT history sidebar). I recommend single-thread for v1 — much simpler and matches your "WhatsApp" framing. OK?
+
+2. **Cross-agent handoff** — Out of scope for this build, but the schema supports it (we can add a `handoff_to` field later). Confirm we're not building it now.
+
+3. **Old console tabs** — Redirect (soft deprecation) or remove immediately? I recommend redirect for one cycle.
+
+If yes on all three I'll build it as specified.

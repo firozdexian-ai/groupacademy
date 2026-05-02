@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   BookOpen,
@@ -8,6 +8,7 @@ import {
   Calendar,
   ClipboardList,
   MessageSquare,
+  MessageCircle,
   Briefcase,
   TrendingUp,
   Building2,
@@ -252,6 +253,7 @@ interface AdminSidebarProps {
 
 export function AdminSidebar({ activeTab, onTabChange, userRole = "admin", adminScope = "super" }: AdminSidebarProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
 
@@ -312,6 +314,30 @@ export function AdminSidebar({ activeTab, onTabChange, userRole = "admin", admin
       </SidebarHeader>
 
       <SidebarContent className="p-2 gap-2">
+        {/* Agentic Dashboard (Chat) — top-level link */}
+        {(userRole === "admin" || userRole === "super_admin") && (() => {
+          const isChat = location.pathname.startsWith("/dashboard/chat");
+          return (
+            <SidebarGroup className="p-0">
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    tooltip="Agentic Dashboard"
+                    onClick={() => navigate("/dashboard/chat")}
+                    isActive={isChat}
+                    className={`font-medium ${
+                      isChat ? "bg-primary/10 text-primary" : "hover:bg-accent/50"
+                    }`}
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    <span>Chat</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroup>
+          );
+        })()}
+
         {/* Overview group - admin & super_admin */}
         {(userRole === "admin" || userRole === "super_admin") && (() => {
           const overviewItems = [
