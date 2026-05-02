@@ -106,7 +106,7 @@ export function CourseProjectsManager() {
       const { data: cData, error: cErr } = await supabase
         .from("content")
         .select("id,title,thumbnail_url,modules_count,content_type")
-        .eq("content_type", "course")
+        .eq("content_type", "recorded_course")
         .order("created_at", { ascending: false });
       if (cErr) throw cErr;
       setCoursesNoProject(((cData ?? []) as any).filter((c: Course) => !projectCourseIds.has(c.id)));
@@ -205,7 +205,7 @@ export function CourseProjectsManager() {
 
   const addSubtask = async () => {
     if (!editProject) return;
-    const nextOrder = (subtasks.at(-1)?.display_order ?? 0) + 1;
+    const nextOrder = (subtasks[subtasks.length - 1]?.display_order ?? 0) + 1;
     const { data, error } = await supabase
       .from("course_project_subtasks")
       .insert({
