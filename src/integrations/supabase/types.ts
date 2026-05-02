@@ -7713,6 +7713,56 @@ export type Database = {
           },
         ]
       }
+      talent_outreach_log: {
+        Row: {
+          channel: string
+          id: string
+          message: string | null
+          metadata: Json
+          response_at: string | null
+          sent_at: string
+          sent_by: string | null
+          status: string
+          subject: string | null
+          talent_id: string | null
+          template: string | null
+        }
+        Insert: {
+          channel: string
+          id?: string
+          message?: string | null
+          metadata?: Json
+          response_at?: string | null
+          sent_at?: string
+          sent_by?: string | null
+          status?: string
+          subject?: string | null
+          talent_id?: string | null
+          template?: string | null
+        }
+        Update: {
+          channel?: string
+          id?: string
+          message?: string | null
+          metadata?: Json
+          response_at?: string | null
+          sent_at?: string
+          sent_by?: string | null
+          status?: string
+          subject?: string | null
+          talent_id?: string | null
+          template?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_outreach_log_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       talent_payout_accounts: {
         Row: {
           account_name: string
