@@ -2892,8 +2892,10 @@ export type Database = {
           created_by: string | null
           deadline: string | null
           id: string
+          is_published: boolean
           paid_at: string | null
           progress_percent: number
+          published_at: string | null
           reviewer_notes: string | null
           status: Database["public"]["Enums"]["course_project_status"]
           submitted_at: string | null
@@ -2910,8 +2912,10 @@ export type Database = {
           created_by?: string | null
           deadline?: string | null
           id?: string
+          is_published?: boolean
           paid_at?: string | null
           progress_percent?: number
+          published_at?: string | null
           reviewer_notes?: string | null
           status?: Database["public"]["Enums"]["course_project_status"]
           submitted_at?: string | null
@@ -2928,8 +2932,10 @@ export type Database = {
           created_by?: string | null
           deadline?: string | null
           id?: string
+          is_published?: boolean
           paid_at?: string | null
           progress_percent?: number
+          published_at?: string | null
           reviewer_notes?: string | null
           status?: Database["public"]["Enums"]["course_project_status"]
           submitted_at?: string | null
@@ -7554,6 +7560,7 @@ export type Database = {
             }
             Returns: Json
           }
+      delete_course_project: { Args: { p_project_id: string }; Returns: Json }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -7593,6 +7600,14 @@ export type Database = {
       generate_content_gigs_for_school: {
         Args: { _school_id: string }
         Returns: number
+      }
+      generate_course_project: {
+        Args: {
+          p_completion_bonus?: number
+          p_course_id: string
+          p_credit_per_subtask?: number
+        }
+        Returns: Json
       }
       get_or_create_talent: {
         Args: {
