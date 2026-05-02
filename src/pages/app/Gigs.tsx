@@ -347,9 +347,9 @@ export default function Gigs() {
               ) : (
                 (filteredCourseProjects || []).map((proj: any) => (
                   <button
-                    key={proj.course.id}
+                    key={proj.projectId || proj.course.id}
                     type="button"
-                    onClick={() => navigate("/app/studio")}
+                    onClick={() => navigate(`/app/course-project/${proj.projectId}`)}
                     className="w-full text-left rounded-2xl border border-border/50 bg-card/60 hover:border-primary/40 hover:shadow-md transition-all p-3 active:scale-[0.99]"
                   >
                     <div className="flex items-start gap-3">
