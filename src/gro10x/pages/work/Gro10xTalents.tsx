@@ -37,7 +37,7 @@ export default function Gro10xTalents() {
         .select("id, talent_id, created_at, jobs:job_id ( title, company_id )")
         .order("created_at", { ascending: false })
         .limit(200);
-      const filteredApps = (apps ?? []).filter(
+      const filteredApps: any[] = ((apps ?? []) as any[]).filter(
         (a: any) => a?.jobs?.company_id === companyId
       );
 
