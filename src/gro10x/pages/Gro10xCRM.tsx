@@ -356,6 +356,43 @@ function LeadDetail({
             </div>
           )}
 
+          {/* Offering link */}
+          <div>
+            <p className="text-[11px] text-slate-400 mb-1">Offering</p>
+            <select
+              value={offeringId}
+              onChange={(e) => {
+                const v = e.target.value;
+                setOfferingId(v);
+                updateLead.mutate({ offering_id: (v || null) as any });
+              }}
+              className="w-full rounded-lg bg-white/5 border border-white/10 px-3 py-2 text-sm text-slate-100 focus:border-[#33E1E4] outline-none"
+            >
+              <option value="">— None —</option>
+              {(offerings.data ?? []).map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.name} ({o.kind})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Next step */}
+          <div>
+            <p className="text-[11px] text-slate-400 mb-1">Next step</p>
+            <input
+              value={nextStep}
+              onChange={(e) => setNextStep(e.target.value)}
+              onBlur={() => {
+                if ((lead.next_step ?? "") !== nextStep) {
+                  updateLead.mutate({ next_step: (nextStep.trim() || null) as any });
+                }
+              }}
+              placeholder="e.g. Follow up Tuesday with proposal"
+              className="w-full rounded-lg bg-white/5 border border-white/10 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-[#33E1E4] outline-none"
+            />
+          </div>
+
           <div>
             <p className="text-[11px] text-slate-400 mb-2">Add note</p>
             <textarea
