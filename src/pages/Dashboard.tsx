@@ -59,6 +59,12 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   "talent-ai-general": React.lazy(() =>
     import("@/components/dashboard/talent/AIGeneralConsoleTab").then((m) => ({ default: m.AIGeneralConsoleTab })),
   ),
+  "talent-upload": React.lazy(() =>
+    import("@/components/dashboard/talent/TalentUploadTab").then((m) => ({ default: m.TalentUploadTab })),
+  ),
+  "talent-outreach": React.lazy(() =>
+    import("@/components/dashboard/talent/TalentOutreachConsoleTab").then((m) => ({ default: m.TalentOutreachConsoleTab })),
+  ),
   "lead-hunter": React.lazy(() =>
     import("@/components/dashboard/LeadHunterManager").then((m) => ({ default: m.LeadHunterManager })),
   ),

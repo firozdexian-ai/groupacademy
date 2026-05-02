@@ -43,6 +43,7 @@ import {
   Layers,
   School,
   Handshake,
+  Upload,
 } from "lucide-react";
 import {
   Sidebar,
