@@ -72,6 +72,8 @@ interface NavGroup {
   icon: React.ElementType;
   items: NavItem[];
   roles: AppRole[];
+  /** When true, this group is shown to company_admin scope as well (read scoped to their company). */
+  companyScoped?: boolean;
 }
 
 const navGroups: NavGroup[] = [
