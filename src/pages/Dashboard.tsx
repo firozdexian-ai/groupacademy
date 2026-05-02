@@ -276,25 +276,30 @@ const Dashboard = () => {
     }
   }, [searchParams, defaultTab, roleLoading]);
 
+  const { scope: adminScope, isLoading: scopeLoading } = useAdminScope();
+
   useEffect(() => {
-    if (!authLoading && !roleLoading) {
+    if (!authLoading && !roleLoading && !scopeLoading) {
       if (!user) {
         navigate("/auth");
         return;
       }
-      if (role !== "admin" && role !== "talent_exec") {
+      // Allow staff roles OR company-admin scope (owner/admin of a company).
+      const allowedByRole = role === "admin" || role === "talent_exec";
+      const allowedByCompanyScope = adminScope === "company";
+      if (!allowedByRole && !allowedByCompanyScope) {
         toast.error("Shields Active: Restricted Access.");
         navigate("/app/feed");
       }
     }
-  }, [user, role, authLoading, roleLoading, navigate]);
+  }, [user, role, adminScope, authLoading, roleLoading, scopeLoading, navigate]);
 
   const handleTabChange = (tab: string, additionalParams: Record<string, string> = {}) => {
     setActiveTab(tab);
     setSearchParams({ tab, ...additionalParams });
   };
 
-  if (authLoading || roleLoading)
+  if (authLoading || roleLoading || scopeLoading)
     return (
       <div className="h-screen bg-muted/30 p-10 space-y-8 animate-pulse">
         <Skeleton className="h-10 w-48 rounded-full" />
@@ -308,7 +313,12 @@ const Dashboard = () => {
   return (
     <SidebarProvider>
       <div className="flex h-screen bg-muted/20 overflow-hidden w-full selection:bg-primary/10">
-        <AdminSidebar activeTab={activeTab} onTabChange={handleTabChange} userRole={role} />
+        <AdminSidebar
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+          userRole={role}
+          adminScope={adminScope}
+        />
 
         <main className="flex-1 overflow-y-auto relative bg-background/50">
           <header className="h-16 flex items-center gap-4 border-b bg-background/80 backdrop-blur-md px-6 sticky top-0 z-50">
