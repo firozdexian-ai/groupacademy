@@ -2,6 +2,8 @@ import React, { useState, useEffect, Suspense, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/dashboard/AdminSidebar";
+import { ImpersonationBanner } from "@/components/dashboard/ImpersonationBanner";
+import { useAdminScope } from "@/hooks/useAdminScope";
 import { DashboardTableSkeleton } from "@/components/dashboard/DashboardSkeleton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
