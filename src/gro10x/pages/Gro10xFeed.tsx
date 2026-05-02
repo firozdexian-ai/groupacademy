@@ -31,22 +31,25 @@ export default function Gro10xFeed() {
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [companyId, setCompanyId] = useState<string | null>(null);
+  const [companyName, setCompanyName] = useState<string | null>(null);
   const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [composer, setComposer] = useState("");
   const [posting, setPosting] = useState(false);
   const [working, setWorking] = useState<string | null>(null);
+  const [audience, setAudience] = useState<"network" | "internal">("network");
+  const [postAsCompany, setPostAsCompany] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
 
-    // Resolve company membership (gates drafts + composer)
     let cid: string | null = null;
     let r: string | null = null;
+    let cname: string | null = null;
     if (user?.id) {
       const { data: m } = await supabase
         .from("company_members")
-        .select("company_id, role")
+        .select("company_id, role, companies:company_id (name)")
         .eq("user_id", user.id)
         .eq("status", "active")
         .order("created_at", { ascending: true })
@@ -54,11 +57,12 @@ export default function Gro10xFeed() {
         .maybeSingle();
       cid = m?.company_id ?? null;
       r = m?.role ?? null;
+      cname = (m as any)?.companies?.name ?? null;
     }
     setCompanyId(cid);
     setRole(r);
+    setCompanyName(cname);
 
-    // Pending drafts (only company members see them via RLS)
     if (cid) {
       const { data: d } = await supabase
         .from("company_post_drafts")
@@ -72,23 +76,30 @@ export default function Gro10xFeed() {
       setDrafts([]);
     }
 
-    // Active feed posts
-    const { data: p } = await supabase
+    // Audience-aware feed
+    let query = supabase
       .from("feed_posts")
       .select("id, author_name, author_avatar, author_title, text_content, tags, created_at, author_type, author_company_id")
       .eq("is_active", true)
       .eq("status", "published")
       .order("created_at", { ascending: false })
       .limit(30);
+    if (audience === "internal" && cid) {
+      query = query.eq("audience", "internal").eq("author_company_id", cid);
+    } else {
+      query = query.eq("audience", "network");
+    }
+    const { data: p } = await query;
     setPosts((p ?? []) as FeedPost[]);
     setLoading(false);
-  }, [user?.id]);
+  }, [user?.id, audience]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  const isOwner = role === "owner" || role === "admin";
+  // Only the company POC (owner) can publish company posts and post-as-company.
+  const isOwner = role === "owner";
 
   const handlePublish = async (draftId: string) => {
     setWorking(draftId);
@@ -136,16 +147,49 @@ export default function Gro10xFeed() {
     }
     setPosting(true);
     try {
-      // Members file a draft; owners can publish from the strip.
-      const { data, error } = await supabase.functions.invoke("company-agent-tools", {
-        body: { tool_key: "draft_company_post", args: { text_content: text, agent_key: null } },
-      });
-      if (error || !data?.ok) {
-        toast.error(data?.error ?? error?.message ?? "Could not save");
-        return;
+      if (postAsCompany && isOwner) {
+        // Owner posting as the company — publish directly via the agent tool path.
+        const { data: draftRes, error: draftErr } = await supabase.functions.invoke("company-agent-tools", {
+          body: { tool_key: "draft_company_post", args: { text_content: text, agent_key: null } },
+        });
+        if (draftErr || !draftRes?.ok) {
+          toast.error(draftRes?.error ?? draftErr?.message ?? "Could not save");
+          return;
+        }
+        if (draftRes.draft_id) {
+          await supabase.functions.invoke("company-agent-tools", {
+            body: { tool_key: "publish_company_post", args: { draft_id: draftRes.draft_id, audience } },
+          });
+        }
+        setComposer("");
+        toast.success(`Posted as ${companyName ?? "company"}`);
+      } else {
+        // Personal post — write directly to feed_posts with the chosen audience.
+        const { data: t } = await supabase
+          .from("talents")
+          .select("id, full_name, profile_photo_url, custom_profession")
+          .eq("user_id", user!.id)
+          .maybeSingle();
+        const { error } = await supabase.from("feed_posts").insert({
+          text_content: text,
+          author_name: t?.full_name || "Member",
+          author_avatar: t?.profile_photo_url || null,
+          author_title: t?.custom_profession || "Gro10x member",
+          talent_id: t?.id,
+          author_type: "talent",
+          author_company_id: audience === "internal" ? companyId : null,
+          audience,
+          content_type: "text",
+          status: "published",
+          is_active: true,
+        } as any);
+        if (error) {
+          toast.error(error.message ?? "Could not post");
+          return;
+        }
+        setComposer("");
+        toast.success(audience === "internal" ? "Posted to internal feed" : "Posted to network feed");
       }
-      setComposer("");
-      toast.success(isOwner ? "Draft saved — publish from the strip above" : "Submitted for owner approval");
       await load();
     } finally {
       setPosting(false);
@@ -157,6 +201,22 @@ export default function Gro10xFeed() {
       <header className="sticky top-0 z-10 bg-[#0B1220]/95 backdrop-blur-md border-b border-white/5 px-4 py-3">
         <h1 className="text-xl font-semibold tracking-tight">Feed</h1>
         <p className={`text-xs ${GRO10X_MUTED}`}>What your network is up to</p>
+        {companyId && (
+          <div className="mt-2 inline-flex rounded-full bg-white/5 border border-white/10 p-0.5 text-[11px]">
+            <button
+              onClick={() => setAudience("network")}
+              className={`px-3 py-1 rounded-full ${audience === "network" ? "bg-[#33E1E4] text-[#06121A] font-semibold" : "text-slate-300"}`}
+            >
+              Network
+            </button>
+            <button
+              onClick={() => setAudience("internal")}
+              className={`px-3 py-1 rounded-full ${audience === "internal" ? "bg-[#33E1E4] text-[#06121A] font-semibold" : "text-slate-300"}`}
+            >
+              Internal
+            </button>
+          </div>
+        )}
       </header>
 
       {/* Composer */}
@@ -166,23 +226,42 @@ export default function Gro10xFeed() {
             <textarea
               value={composer}
               onChange={(e) => setComposer(e.target.value)}
-              placeholder={isOwner ? "Share an update with your network…" : "Write something — owners review before publishing"}
+              placeholder={
+                postAsCompany
+                  ? `Posting as ${companyName ?? "your company"}…`
+                  : audience === "internal"
+                  ? "Share with your team only…"
+                  : "Share an update with the network…"
+              }
               className="w-full bg-transparent text-sm placeholder:text-slate-500 focus:outline-none resize-none"
               rows={2}
             />
-            <div className="mt-2 flex items-center justify-between">
-              <Link
-                to="/gro10x/c/growth"
-                className="text-[11px] text-[#33E1E4] inline-flex items-center gap-1 hover:underline"
-              >
-                <Sparkles className="h-3 w-3" /> Ask Growth Agent to draft this
-              </Link>
+            <div className="mt-2 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-3">
+                <Link
+                  to="/gro10x/c/growth"
+                  className="text-[11px] text-[#33E1E4] inline-flex items-center gap-1 hover:underline"
+                >
+                  <Sparkles className="h-3 w-3" /> Ask Growth
+                </Link>
+                {isOwner && (
+                  <label className="text-[11px] text-slate-300 inline-flex items-center gap-1 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={postAsCompany}
+                      onChange={(e) => setPostAsCompany(e.target.checked)}
+                      className="accent-[#33E1E4]"
+                    />
+                    Post as {companyName ?? "company"}
+                  </label>
+                )}
+              </div>
               <button
                 onClick={() => void handleComposerSubmit()}
                 disabled={posting || composer.trim().length < 20}
                 className="rounded-full bg-[#33E1E4] text-[#06121A] px-4 py-1.5 text-xs font-semibold disabled:opacity-40"
               >
-                {posting ? "Saving…" : isOwner ? "Save draft" : "Submit"}
+                {posting ? "Saving…" : "Post"}
               </button>
             </div>
           </div>

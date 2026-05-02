@@ -2337,6 +2337,32 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_bonus_grants: {
+        Row: {
+          company_id: string
+          granted_at: string
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          granted_at?: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          granted_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_bonus_grants_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_outreach: {
         Row: {
           channel: string
@@ -3239,6 +3265,7 @@ export type Database = {
           is_earned: boolean
           reference_id: string | null
           service_type: string | null
+          source: string | null
           talent_id: string
           transaction_type: string
         }
@@ -3251,6 +3278,7 @@ export type Database = {
           is_earned?: boolean
           reference_id?: string | null
           service_type?: string | null
+          source?: string | null
           talent_id: string
           transaction_type: string
         }
@@ -3263,6 +3291,7 @@ export type Database = {
           is_earned?: boolean
           reference_id?: string | null
           service_type?: string | null
+          source?: string | null
           talent_id?: string
           transaction_type?: string
         }
@@ -3637,6 +3666,7 @@ export type Database = {
       }
       feed_posts: {
         Row: {
+          audience: string
           author_avatar: string | null
           author_company_id: string | null
           author_name: string
@@ -3660,6 +3690,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          audience?: string
           author_avatar?: string | null
           author_company_id?: string | null
           author_name: string
@@ -3683,6 +3714,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          audience?: string
           author_avatar?: string | null
           author_company_id?: string | null
           author_name?: string
@@ -7150,6 +7182,7 @@ export type Database = {
       talent_credits: {
         Row: {
           balance: number
+          contact_bonus_balance: number
           created_at: string | null
           earned_balance: number
           id: string
@@ -7158,6 +7191,7 @@ export type Database = {
         }
         Insert: {
           balance?: number
+          contact_bonus_balance?: number
           created_at?: string | null
           earned_balance?: number
           id?: string
@@ -7166,6 +7200,7 @@ export type Database = {
         }
         Update: {
           balance?: number
+          contact_bonus_balance?: number
           created_at?: string | null
           earned_balance?: number
           id?: string

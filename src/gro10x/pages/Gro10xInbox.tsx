@@ -60,7 +60,8 @@ export default function Gro10xInbox() {
           <Link
             to="/gro10x/agents"
             className="rounded-full bg-[#33E1E4] text-[#06121A] p-2 hover:opacity-90"
-            aria-label="Add agent"
+            aria-label="Browse Agent Network"
+            title="Browse Agent Network"
           >
             <Plus className="h-5 w-5" />
           </Link>
@@ -102,7 +103,7 @@ export default function Gro10xInbox() {
         <div className="px-4 py-8 text-center text-sm text-slate-400">
           No agents pinned yet.{" "}
           <Link to="/gro10x/agents" className="text-[#33E1E4] hover:underline">
-            Browse agents →
+            Browse Agent Network →
           </Link>
         </div>
       )}
@@ -160,7 +161,7 @@ export default function Gro10xInbox() {
             to="/gro10x/agents"
             className="block text-center text-sm text-[#33E1E4] hover:underline"
           >
-            Browse all agents →
+            Browse Agent Network →
           </Link>
         </div>
       )}

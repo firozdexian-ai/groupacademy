@@ -14,8 +14,8 @@ import Gro10xWork from "./pages/Gro10xWork";
 import Gro10xJobApplicants from "./pages/work/Gro10xJobApplicants";
 import Gro10xBilling from "./pages/Gro10xBilling";
 import Gro10xLearn from "./pages/Gro10xLearn";
-import Gro10xNotifications from "./pages/Gro10xNotifications";
 import Gro10xCRM from "./pages/Gro10xCRM";
+// Notifications are now folded into the Atlas concierge agent thread (no standalone tab).
 
 /**
  * Routes for the Gro10x B2B super-app. Mounted under /gro10x on the
@@ -43,7 +43,6 @@ export function Gro10xRoutes() {
         <Route path="work/jobs/:jobId/applicants" element={<Gro10xJobApplicants />} />
         <Route path="billing" element={<Gro10xBilling />} />
         <Route path="learn" element={<Gro10xLearn />} />
-        <Route path="notifications" element={<Gro10xNotifications />} />
         <Route path="crm" element={<Gro10xCRM />} />
       </Route>
 

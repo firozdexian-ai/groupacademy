@@ -45,7 +45,7 @@ export default function Gro10xAgentMarketplace() {
   return (
     <div className="max-w-md mx-auto">
       <header className="sticky top-0 z-10 bg-[#0B1220]/95 backdrop-blur-md border-b border-white/5 px-4 py-3">
-        <h1 className="text-xl font-semibold tracking-tight">Agent Marketplace</h1>
+        <h1 className="text-xl font-semibold tracking-tight">Agent Network</h1>
         <p className={`text-xs ${GRO10X_MUTED}`}>Pin agents to your inbox — chat to get things done</p>
       </header>
 
