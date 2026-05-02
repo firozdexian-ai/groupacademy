@@ -14,7 +14,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { StatsCard } from "@/components/dashboard/StatsCard";
+import StatsCard from "@/components/dashboard/StatsCard";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 
