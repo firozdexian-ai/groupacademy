@@ -2434,6 +2434,66 @@ export type Database = {
           },
         ]
       }
+      company_outreach_log: {
+        Row: {
+          channel: string
+          company_id: string | null
+          contact_id: string | null
+          id: string
+          message: string | null
+          metadata: Json | null
+          response_at: string | null
+          sent_at: string
+          sent_by: string | null
+          status: string
+          subject: string | null
+          template: string | null
+        }
+        Insert: {
+          channel?: string
+          company_id?: string | null
+          contact_id?: string | null
+          id?: string
+          message?: string | null
+          metadata?: Json | null
+          response_at?: string | null
+          sent_at?: string
+          sent_by?: string | null
+          status?: string
+          subject?: string | null
+          template?: string | null
+        }
+        Update: {
+          channel?: string
+          company_id?: string | null
+          contact_id?: string | null
+          id?: string
+          message?: string | null
+          metadata?: Json | null
+          response_at?: string | null
+          sent_at?: string
+          sent_by?: string | null
+          status?: string
+          subject?: string | null
+          template?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_outreach_log_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_outreach_log_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_post_drafts: {
         Row: {
           agent_key: string | null
@@ -6979,6 +7039,36 @@ export type Database = {
           ip_hash?: string
           request_count?: number | null
           window_start?: string | null
+        }
+        Relationships: []
+      }
+      riya_conversations: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          id: string
+          last_step: string | null
+          payload: Json | null
+          session_id: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          last_step?: string | null
+          payload?: Json | null
+          session_id: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          last_step?: string | null
+          payload?: Json | null
+          session_id?: string
+          updated_at?: string
         }
         Relationships: []
       }
