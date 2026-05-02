@@ -23,7 +23,7 @@ export function Gro10xPageGate({
   requireCompany = true,
   signInLabel = "Sign in to continue",
 }: Props) {
-  const { user, isLoading: authLoading } = useAuth() as any;
+  const { user, isLoading: authLoading } = useAuth();
   const { companyId, isLoading: companyLoading } = useActiveCompany();
   const navigate = useNavigate();
 
