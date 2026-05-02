@@ -103,6 +103,101 @@ export type Database = {
           },
         ]
       }
+      admin_analyst_messages: {
+        Row: {
+          content: string | null
+          created_at: string
+          id: string
+          role: string
+          thread_id: string
+          tool_calls: Json | null
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          role: string
+          thread_id: string
+          tool_calls?: Json | null
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          role?: string
+          thread_id?: string
+          tool_calls?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_analyst_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "admin_analyst_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      admin_analyst_threads: {
+        Row: {
+          created_at: string
+          id: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      admin_reports: {
+        Row: {
+          created_at: string
+          data_snapshot: Json
+          id: string
+          period: Json
+          share_token: string | null
+          spec_json: Json
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data_snapshot?: Json
+          id?: string
+          period?: Json
+          share_token?: string | null
+          spec_json?: Json
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data_snapshot?: Json
+          id?: string
+          period?: Json
+          share_token?: string | null
+          spec_json?: Json
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       agent_artifacts: {
         Row: {
           approved_at: string | null
@@ -7967,6 +8062,15 @@ export type Database = {
       add_talent_service: {
         Args: { p_service: string; p_talent_id: string }
         Returns: undefined
+      }
+      analyst_metric: { Args: { metric: string; period?: Json }; Returns: Json }
+      analyst_series: {
+        Args: { granularity?: string; metric: string; period?: Json }
+        Returns: Json
+      }
+      analyst_top_n: {
+        Args: { dimension: string; metric: string; n?: number; period?: Json }
+        Returns: Json
       }
       approve_content_gig:
         | { Args: { p_admin_notes?: string; p_gig_id: string }; Returns: Json }
