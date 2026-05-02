@@ -1611,10 +1611,12 @@ export type Database = {
           onboarding_completed_at: string | null
           operating_hours: Json | null
           primary_email: string | null
+          profile_completion: number
           secondary_emails: Json | null
           slug: string | null
           tagline: string | null
           updated_at: string | null
+          verification_tier: Database["public"]["Enums"]["company_verification_tier"]
           website: string | null
         }
         Insert: {
@@ -1636,10 +1638,12 @@ export type Database = {
           onboarding_completed_at?: string | null
           operating_hours?: Json | null
           primary_email?: string | null
+          profile_completion?: number
           secondary_emails?: Json | null
           slug?: string | null
           tagline?: string | null
           updated_at?: string | null
+          verification_tier?: Database["public"]["Enums"]["company_verification_tier"]
           website?: string | null
         }
         Update: {
@@ -1661,10 +1665,12 @@ export type Database = {
           onboarding_completed_at?: string | null
           operating_hours?: Json | null
           primary_email?: string | null
+          profile_completion?: number
           secondary_emails?: Json | null
           slug?: string | null
           tagline?: string | null
           updated_at?: string | null
+          verification_tier?: Database["public"]["Enums"]["company_verification_tier"]
           website?: string | null
         }
         Relationships: []
@@ -3159,6 +3165,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      currency_rates: {
+        Row: {
+          code: string
+          country_codes: string[] | null
+          name: string
+          symbol: string
+          updated_at: string
+          usd_rate: number
+        }
+        Insert: {
+          code: string
+          country_codes?: string[] | null
+          name: string
+          symbol: string
+          updated_at?: string
+          usd_rate: number
+        }
+        Update: {
+          code?: string
+          country_codes?: string[] | null
+          name?: string
+          symbol?: string
+          updated_at?: string
+          usd_rate?: number
+        }
+        Relationships: []
       }
       email_notifications_log: {
         Row: {
@@ -7528,6 +7561,10 @@ export type Database = {
       }
       claim_course_project: { Args: { p_project_id: string }; Returns: Json }
       cleanup_rate_limits: { Args: never; Returns: undefined }
+      compute_company_profile_completion: {
+        Args: { c: Database["public"]["Tables"]["companies"]["Row"] }
+        Returns: number
+      }
       connect_agent: {
         Args: { _agent_key: string; _fee?: number; _talent_id: string }
         Returns: undefined
@@ -7760,6 +7797,7 @@ export type Database = {
         | "shortlisted"
         | "rejected"
       application_type: "email" | "link"
+      company_verification_tier: "unverified" | "self_completed" | "verified"
       content_type:
         | "free_video"
         | "recorded_course"
@@ -7983,6 +8021,7 @@ export const Constants = {
         "rejected",
       ],
       application_type: ["email", "link"],
+      company_verification_tier: ["unverified", "self_completed", "verified"],
       content_type: [
         "free_video",
         "recorded_course",
