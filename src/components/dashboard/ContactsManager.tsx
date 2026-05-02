@@ -181,7 +181,7 @@ export function ContactsManager() {
     } finally {
       setIsLoading(false);
     }
-  }, [page, debouncedSearch, companyFilter, sourceFilter, companies.length]);
+  }, [page, debouncedSearch, companyFilter, sourceFilter, registrationTab, companies.length]);
 
   useEffect(() => {
     loadData();
