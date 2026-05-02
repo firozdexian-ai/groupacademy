@@ -151,16 +151,26 @@ async function runTool(admin: any, name: string, args: any) {
     case "send_in_app_message": {
       const ids: string[] = (args.user_ids ?? []).filter(Boolean);
       if (ids.length === 0) return { sent: 0 };
-      const rows = ids.map((uid) => ({
-        user_id: uid,
-        type: "admin_broadcast",
-        title: String(args.title ?? "Message from GroUp Academy"),
-        body: String(args.body ?? ""),
-        metadata: { source: "company-ai-general" },
-      }));
+      // Resolve user_ids → talent_ids when possible (notifications keyed by talent)
+      const { data: tRows } = await admin.from("talents")
+        .select("id, user_id").in("user_id", ids);
+      const map = new Map<string, string>();
+      for (const r of tRows ?? []) if (r.user_id) map.set(r.user_id, r.id);
+      const rows: any[] = [];
+      for (const uid of ids) {
+        const tid = map.get(uid);
+        if (!tid) continue;
+        rows.push({
+          talent_id: tid,
+          type: "admin_broadcast",
+          title: String(args.title ?? "Message from GroUp Academy"),
+          message: String(args.body ?? ""),
+        });
+      }
+      if (rows.length === 0) return { sent: 0, skipped: ids.length, note: "no matching talent profiles" };
       const { error } = await admin.from("notifications").insert(rows);
       if (error) return { sent: 0, error: error.message };
-      return { sent: ids.length };
+      return { sent: rows.length, skipped: ids.length - rows.length };
     }
     default: return { error: `unknown tool: ${name}` };
   }
