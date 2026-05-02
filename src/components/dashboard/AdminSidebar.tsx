@@ -348,6 +348,60 @@ export function AdminSidebar({ activeTab, onTabChange, userRole = "admin", admin
           );
         })()}
 
+        {/* Talent group - admin, super_admin, talent_exec */}
+        {(userRole === "admin" || userRole === "super_admin" || userRole === "talent_exec") && (() => {
+          const talentItems = [
+            { title: "Overview", value: "talent-overview", icon: LayoutDashboard },
+            { title: "Talent Pool", value: "talent", icon: DatabaseIcon },
+            { title: "Aisha Console", value: "talent-aisha", icon: Sparkles },
+            { title: "Lead Hunter", value: "lead-hunter", icon: Target },
+            { title: "AI General Console", value: "talent-ai-general", icon: Bot },
+            { title: "Professions & Roles", value: "professions", icon: GraduationCap },
+          ];
+          const isTalentActive =
+            activeTab === "talent" ||
+            activeTab === "lead-hunter" ||
+            activeTab === "professions" ||
+            activeTab.startsWith("talent-");
+          return (
+            <Collapsible
+              open={openGroups.has("Talent") || isTalentActive}
+              onOpenChange={(isOpen) => toggleGroup("Talent", isOpen)}
+              className="group/collapsible"
+            >
+              <SidebarGroup className="p-0">
+                <CollapsibleTrigger asChild>
+                  <SidebarMenuButton tooltip="Talent" className="font-medium hover:bg-accent/50">
+                    <Users className="w-4 h-4" />
+                    <span>Talent</span>
+                    <ChevronDown className="ml-auto w-4 h-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
+                  </SidebarMenuButton>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <SidebarMenu className="pl-2 mt-1 space-y-0.5 border-l ml-4 border-border/50">
+                    {talentItems.map((item) => (
+                      <SidebarMenuItem key={item.value}>
+                        <SidebarMenuButton
+                          onClick={() => onTabChange(item.value)}
+                          isActive={activeTab === item.value}
+                          className={`h-9 text-sm ${
+                            activeTab === item.value
+                              ? "bg-primary/10 text-primary font-medium"
+                              : "text-muted-foreground"
+                          }`}
+                        >
+                          <item.icon className="w-4 h-4" />
+                          <span>{item.title}</span>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+                  </SidebarMenu>
+                </CollapsibleContent>
+              </SidebarGroup>
+            </Collapsible>
+          );
+        })()}
+
         {/* Nav Groups */}
         {filteredNavGroups.map((group) => (
           <Collapsible
