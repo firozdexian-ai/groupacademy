@@ -91,6 +91,18 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   industries: React.lazy(() =>
     import("@/components/dashboard/IndustriesManager").then((m) => ({ default: m.IndustriesManager })),
   ),
+  "companies-overview": React.lazy(() =>
+    import("@/components/dashboard/companies/CompaniesOverviewTab").then((m) => ({ default: m.CompaniesOverviewTab })),
+  ),
+  "companies-riya": React.lazy(() =>
+    import("@/components/dashboard/companies/RiyaConsoleTab").then((m) => ({ default: m.RiyaConsoleTab })),
+  ),
+  "companies-ai-general": React.lazy(() =>
+    import("@/components/dashboard/companies/CompanyAIGeneralTab").then((m) => ({ default: m.CompanyAIGeneralTab })),
+  ),
+  "companies-outreach": React.lazy(() =>
+    import("@/components/dashboard/companies/CompanyOutreachConsoleTab").then((m) => ({ default: m.CompanyOutreachConsoleTab })),
+  ),
   all: React.lazy(() => import("@/components/dashboard/ContentList")),
   videos: React.lazy(() => import("@/components/dashboard/ContentList")),
   courses: React.lazy(() => import("@/components/dashboard/ContentList")),
