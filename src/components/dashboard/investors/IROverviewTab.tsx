@@ -9,12 +9,13 @@ export default function IROverviewTab() {
   useEffect(() => {
     (async () => {
       const since = new Date(Date.now() - 30 * 86400000).toISOString();
+      const sb = supabase as any;
       const [vc, inv, infl, out, target] = await Promise.all([
-        supabase.from("vc_firms").select("*", { count: "exact", head: true }),
-        supabase.from("investors").select("*", { count: "exact", head: true }),
-        supabase.from("ir_influencers").select("*", { count: "exact", head: true }),
-        supabase.from("ir_outreach_log").select("*", { count: "exact", head: true }).gte("created_at", since),
-        supabase.from("ir_mrr_targets").select("target_mrr_usd").order("target_date", { ascending: false }).limit(1).maybeSingle(),
+        sb.from("vc_firms").select("*", { count: "exact", head: true }),
+        sb.from("investors").select("*", { count: "exact", head: true }),
+        sb.from("ir_influencers").select("*", { count: "exact", head: true }),
+        sb.from("ir_outreach_log").select("*", { count: "exact", head: true }).gte("created_at", since),
+        sb.from("ir_mrr_targets").select("target_mrr_usd").order("target_date", { ascending: false }).limit(1).maybeSingle(),
       ]);
       setStats({
         vcs: vc.count || 0,
