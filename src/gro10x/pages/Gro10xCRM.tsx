@@ -223,7 +223,13 @@ function NewLeadSheet({
   const [value, setValue] = useState("");
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 flex items-end" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 bg-black/60 flex items-end"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="New lead"
+    >
       <div
         className="w-full max-w-md mx-auto bg-[#0B1220] border-t border-white/10 rounded-t-3xl p-4 space-y-3"
         onClick={(e) => e.stopPropagation()}
@@ -319,7 +325,13 @@ function LeadDetail({
   });
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 flex items-end" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 bg-black/60 flex items-end"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Lead: ${lead.name}`}
+    >
       <div
         className="w-full max-w-md mx-auto bg-[#0B1220] border-t border-white/10 rounded-t-3xl max-h-[85vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
