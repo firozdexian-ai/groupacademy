@@ -1,139 +1,201 @@
-# Gro10x + Admin Portal — Infrastructure-First MVP
 
-## Corrected mental model (the whole ecosystem)
+# Gro10x MVP — align with Talent app (profile, credits, activities, feed, agents)
+
+Goal: stop building Gro10x as a separate app. Reuse the talent profile, the same `$0.02/credit` standard, the talent feed widgets, and the same agent-marketplace pattern — but repurposed for the **contact** persona inside a company workspace.
+
+## 1. Bottom nav: 4 tabs (drop Me, drop Notifications)
 
 ```text
-┌──────────────────────────────────────────────────────────────────┐
-│                       ONE BACKEND · ONE CREDIT ECONOMY (USD)     │
-└──────────────────────────────────────────────────────────────────┘
-       │                          │                          │
-       ▼                          ▼                          ▼
- groupacademy.online/app     gro10x.com               groupacademy.online/admin
- (TALENT portal)             (B2B super-app)          (ADMIN portal — ONE app)
- Talent users                Employees + POC          Super Admin
-                             (Company Admin)          + Internal Team
-                                                      + Company Admin (impersonation)
+[ Inbox ]  [ Activities ]  [ Feed ]  [ Company ]
 ```
 
-- **Three portals, not five.** Admin portal serves super-admin, internal team, AND company admins (role-aware views inside the same `/admin` shell).
-- **Gro10x is part of the ecosystem**, not a separate codebase. Reuses the same DB, credits, agents, and learning content.
-- **Credit economy = USD base.** All admin/founder views in USD. Talent/company users see USD with a localized equivalent (e.g. "$5 ≈ ৳550") based on country.
-- **Don't rebuild the existing admin panel** — refine and extend it for three roles.
-- **Don't deep-design agents now.** Build infrastructure; agents come in the next initiative.
+- Profile moves to a tap target on the **TopBar avatar** (top-right), opening `/gro10x/me`.
+- Notifications becomes a **Concierge agent** chat thread auto-pinned in Inbox (no separate tab, no bell). Rename the topbar bell into a pill that opens `c/concierge`.
+- TopBar layout: `[credits pill] · [+ new chat] · [avatar → /gro10x/me]`.
 
-## Stakeholder → portal map (locked)
+## 2. Profile (`/gro10x/me`) = Talent profile, same component
 
-| Stakeholder | Portal | Access mechanism |
-|---|---|---|
-| Talent | `/app` | Existing |
-| Employee / POC (Company Admin in Gro10x) | `gro10x.com` | Existing shell |
-| Company Admin (managing company settings/agents/billing) | `/admin` (scoped view) | Login → company-scoped sidebar |
-| Internal Team / Manager | `/admin` (scoped view) | Login → ops sidebar, can impersonate companies |
-| Super Admin (`growthnxnow@gmail.com`) | `/admin` (full) | All groups visible |
-| Investors / Institutions / Clubs | Tracked as data inside `/admin` | No portal of their own |
+Replace the current minimal Me page with the **same `Profile` component** used at `/app/profile` (`src/pages/app/Profile.tsx`), since every contact is also a talent. Add a thin Gro10x header strip on top:
 
-## Infrastructure to build (no agent work, no GTM)
+- "Workspace: {company.name} · {role}"
+- Button: **Switch to Talent app** → `/app/profile` (cross-app jump).
+- Reuses `useTalent()`, `ProfileCompletionMeter`, `ProfileSectionEditor` — zero new editing logic.
 
-### Block A — Currency & credit economy normalization
-1. Make **USD the base unit** everywhere in DB and UI labels. Add `usd_amount` columns where credits → money is shown. Keep the existing `numeric(12,1)` credit fields.
-2. New table `currency_rates(code, usd_rate, updated_at)` seeded with ~20 major currencies. Daily refresh via scheduled edge function (cron) — placeholder static seed for v1, real fetch later.
-3. Helper `formatMoney(usdAmount, userCountry)` → returns `"$5.00 (≈ ৳550)"`. Use it on every credit/price label across all three portals.
-4. Founder/super-admin dashboards show **USD only**. Talent + company users see **USD + local equivalent**.
+New file: `src/gro10x/pages/Gro10xMe.tsx` becomes a thin wrapper that renders `<Profile />` inside the Gro10x shell with the workspace strip.
 
-### Block B — Three-role admin portal architecture
-1. Extend `app_role` enum / `user_roles` so the existing roles (`admin`, `super_admin`, `staff`, etc.) cleanly map to:
-   - **super_admin** — sees all 10 sidebar groups
-   - **internal_team** (alias for `staff`/`talent_exec`/`content_lead`) — sees ops groups only, no platform settings
-   - **company_admin** — sees only their own company's groups (Page, Team, Billing, Agents, Jobs, Leads, Analytics) scoped by `company_id`
-2. **`AdminSidebar.tsx`**: filter `navGroups` by resolved role. Add a `companyScoped: boolean` flag to each group; for `company_admin` only `companyScoped` groups render.
-3. **Impersonation foundation**: super-admin/internal-team can "Open as Acme Corp" → sets `acting_company_id` in localStorage + a JWT custom claim. Server-side helper `current_company_context()` returns either the user's own membership or the acting company (after verifying the user has admin/staff role). Top banner: "Acting as Acme Corp · Exit".
-4. **Login routing**: extend `useAccountType` → returns `{ accountType, adminScope: 'super' | 'internal' | 'company' | null }`. Post-auth router lands company_admins on `/admin?company={their_id}`, internal team on `/admin`, super admin on `/admin`.
+## 3. Credit economy — one standard across all platforms
 
-### Block C — Company self-service infrastructure (no forced fields)
-1. **Profile completion %**: computed column / view scoring `companies` row across ~10 fields (logo, banner, tagline, about, website, country, industry, address, hours, services). Surface as a ring badge on Company Page + a "Complete your profile" card.
-2. **Verification tiers**: `companies.verification_tier enum('unverified','self_completed','verified')`. Auto-promote to `self_completed` when profile_completion ≥ 80%. `verified` is manual by internal team.
-3. **Editability**: every field on `companies` is owner-editable from Gro10x Company Page. No admin gating except the verification badge itself.
-4. **Gamification hook** (UI only — actual rewards later): "Reach 100% to unlock the Verified Company badge."
+**Single source of truth**: `1 credit = $0.02 USD = ৳2.2` (already in `CREDIT_CONFIG`). No new pricing tables.
 
-### Block D — Gro10x portal completion (the missing pieces only)
-Skip welcome wizard heaviness — the profile completion % above replaces it. Ship only what unlocks the loop:
-1. **Billing visibility**: header credit pill + `/gro10x/billing` (balance, 90-day ledger, top-up CTA via existing `start_topup` → Stripe). All amounts shown as **USD (≈ local)**.
-2. **Team management UI** on Company Page: invite by email, role dropdown, remove (uses existing `invite_teammate` + new `remove_teammate` tool).
-3. **B2B Learning tab inside Gro10x**: new `/gro10x/learn` route that reuses the existing Learning Hub (talent side) but scoped to company-shared content. Reuses `enrollments`, `course_modules`, `learning_activity`. Discoverable agents/courses can be link-shared into Inbox threads (already supported infra).
-4. **Realtime** on `feed_posts`, `company_post_drafts`, `job_applications`, `company_credit_transactions`.
-5. **In-app notifications bell** in Gro10x shell — reuse existing `useNotifications`.
+Three credit pools, all priced the same:
 
-### Block E — CRM + leads infrastructure (data layer only, agent-ready)
-Build the schema + tools so Lead Hunter / CRM agents have something to call when we work on agents next.
-1. New tables: `company_leads` (pipeline status), `company_lead_activities` (calls/emails/notes). RLS via `is_company_member` + `current_company_context()`.
-2. New backend tools in `company-agent-tools`: `find_leads`, `add_lead`, `update_lead_stage`, `log_activity`. Register in agent runtime.
-3. **`/gro10x/work` 3rd tab — CRM kanban** (basic UI; agent integration later).
-4. Outreach via `mailto:` only (per memory rule).
+| Pool | Table | Withdrawable? | Notes |
+|---|---|---|---|
+| Talent personal | `talent_credits.balance` (free) + `earned_balance` | Earned only | Already exists |
+| Contact bonus | **same `talent_credits` row** + new column `contact_bonus_balance numeric(12,1)` | No (future product) | One-time **+250** when user becomes a contact (joins `company_members`) |
+| Company pool | `company_credits.balance` | No | Sponsored agents that talk to B2C talents |
 
-### Block F — Stakeholder registries inside `/admin` (data infrastructure)
-So the admin portal can later manage them — no public portals built:
-1. **Institutions & Organizations**: new table `institutions(id, name, type enum('university','school','club','company','ngo','other'), country, website, verified)` + admin CRUD UI under a new sidebar group.
-2. **Investors**: already exists in IR module — confirm it's reachable only by super_admin + internal_team (not company_admin scope).
-3. **AI Agents registry**: already exists (`ai_agents`). Confirm RBAC scoping — super_admin manages global agents, company_admin manages only `company_agents` for their company.
+Decision: **no separate "contact_credits" table.** It lives on `talent_credits` because the contact *is* the talent. The contact bonus is a separate column so it can be tracked & expired independently.
 
-## Execution order (infrastructure only — ~5 cycles)
+### Spend resolution order (for a contact taking an agent action)
 
-1. **Block A — Currency/USD base** (~0.5 cycle) · foundation for everything else
-2. **Block B — Three-role admin portal** (~1 cycle) · unlocks company-admin self-serve
-3. **Block C — Profile completion + verification** (~0.5 cycle)
-4. **Block D — Gro10x billing + team + learn tab + bell** (~1 cycle)
-5. **Block E — CRM data layer + tools** (~1 cycle)
-6. **Block F — Institutions registry + RBAC audit** (~0.5 cycle)
-7. **Cross-cutting polish** (~0.5 cycle) · realtime, empty states, mobile QA at 390×844
+1. `contact_bonus_balance` (Gro10x-issued bonus)
+2. Personal `balance` (free/topped-up)
+3. Personal `earned_balance` (last — protects withdrawability)
+4. If the agent is **company-sponsored**, charge `company_credits.balance` instead and skip personal entirely.
 
-After this, the **agents initiative** begins (one agent at a time), then **products/categories/GTM**.
+### Company-admin "buy for teammate"
 
-## Technical notes
+On `/gro10x/billing`, the POC/owner sees a **"Top up a teammate"** action that creates a Stripe checkout crediting the chosen member's `talent_credits.balance` (uses `create-checkout` with a `target_user_id` param).
 
-- All currency display goes through one helper to avoid drift; founder dashboards bypass localization.
-- `current_company_context()` is the single source of truth for "which company am I acting on" — every RLS policy and edge function reads from it.
-- Profile completion % is a generated/computed column to avoid drift.
-- Reuse: Gro10x Learning tab is a thin wrapper around the existing talent-side Learning Hub components (per the Learning Hub Tabs memory). No new course infra.
-- No new payment integration — existing Stripe top-up + `create-checkout` handles USD natively.
-- The existing `AdminSidebar.tsx` 10-group hierarchy is preserved; we add filtering, not restructuring.
+### DB changes (one migration)
+- `alter table talent_credits add column contact_bonus_balance numeric(12,1) not null default 0;`
+- `alter table talent_credit_transactions add column source text;` (values: `personal_free`, `personal_earned`, `contact_bonus`, `company_pool`)
+- Trigger `award_contact_bonus()` on `company_members` insert (status=active) → +250 to `contact_bonus_balance` once per `(user_id, company_id)`. Idempotency via a `contact_bonus_grants` table (user_id, company_id unique).
+- Update `useCompanyCredits` & a new `useContactCredits` hook so the topbar pill can show **either** the company pool (for owner/admin) **or** the talent's personal+bonus (for regular contacts).
 
-## Out of scope for this initiative (parking lot)
+### TopBar pill logic
 
-- Agent-by-agent build (next initiative, per your direction)
-- Products / categories / GTM (after agents)
-- Office Admin Manager / attendance agent
-- Calendar OAuth (Google/Outlook)
-- Real currency-rate API (static seed for v1)
-- Public portals for investors/institutions
+- Owner/Admin: show `company_credits.balance` → links to `/gro10x/billing`.
+- Member: show `talent.balance + contact_bonus_balance` → links to `/app/credits` in the talent app (single billing surface).
 
-## Decisions needed before I start Block A
+## 4. Activities (rename **Work** → **Activities**)
 
-1. **Localized currency display** — show on talent + company portals only (founder dashboards stay USD-only), correct?
-2. **Company admin login routing** — when a company-admin signs in, land them in `/admin` (settings-first) or `gro10x.com` (operations-first) by default? My recommendation: `gro10x.com` for daily ops, with a clear "Open admin settings" link.
-3. **Verification tier rewards** — gamify with UI badges only for v1, or also tie a credit bonus (e.g. +50 credits at "verified")? Suggest UI-only for v1.
+Same route `/gro10x/work` keeps working (alias), but UI label = "Activities" and three sub-tabs:
 
-Answer these and I'll start with Block A (currency normalization).
-## Implementation status (2026-05-02)
+```text
+[ Hiring ]  [ Talents ]  [ CRM ]
+```
 
-### Block A — Currency normalization ✅
-- `currency_rates` table + 31 seeded currencies, `formatMoney` / `formatUSD` helpers, `useCurrencyRates` hook.
+- **Hiring** = current `Gro10xJobsList` (unchanged) — each job row has the existing "Applicants" button → `work/jobs/:jobId/applicants`.
+- **Talents** = NEW. Aggregate of every talent who has ever interacted with the company:
+  - Job applicants (any status) from `job_applications`
+  - Gig workers from `gig_*` tables filtered by `company_id`
+  - Manually shortlisted from existing `Gro10xShortlist`
+  - Card uses the same compact talent-card pattern from `/app/jobs/.../applicants` — name, profession, last interaction, action menu (Message · Add to shortlist · View profile).
+- **CRM** = existing `Gro10xCRM` (was a separate route, now folded in as a tab; old `/gro10x/crm` route stays for deep links).
 
-### Block B — Three-role admin scope ✅
-- `useAdminScope`, `ImpersonationProvider`, `ImpersonationBanner`, `AdminSidebar` filtering by `companyScoped`.
+File changes:
+- `src/gro10x/pages/Gro10xWork.tsx` → rename header to "Activities", add `talents` and `crm` tabs to the existing `Tab` union.
+- New: `src/gro10x/pages/work/Gro10xTalents.tsx` (queries `job_applications` + `gig_assignments` joined to `talents`).
+- New: `src/gro10x/components/Gro10xTalentRow.tsx` reused across Hiring & Talents tabs.
 
-### Block C — Profile completion + verification tier ✅
-- `verification_tier` enum, `profile_completion` column, auto-update trigger, `CompletionRing` component on company page.
+## 5. Feed — internal/external toggle + company-POC-only company posts
 
-### Block D — Gro10x portal essentials ✅
-- Member-read RLS for credit tables, `/gro10x/billing` with Stripe top-up, `Gro10xTopBar` (balance pill + bell), `/gro10x/notifications`, `/gro10x/learn`.
+Top of `/gro10x/feed`:
 
-### Block E — CRM data layer ✅
-- `company_leads` + `company_lead_activities` tables, member-scoped RLS, `/gro10x/crm` Kanban-style page with stage filter, lead detail sheet, notes timeline. Linked from Work hub header.
+```text
+[  Network  |  Internal  ]    ← segmented toggle
+```
 
-### Block F — Stakeholder registry ✅
-- `institutions` + `partner_organizations` tables (super-admin only RLS).
-- Admin sidebar gains a **Stakeholders** group with Institutions and Partner Orgs managers.
-- Reusable `StakeholderRegistry` component with add / list / delete.
+- **Network** (default): same query as today — public `feed_posts` from across the platform.
+- **Internal**: `feed_posts` filtered by `audience='internal'` and `author_company_id = my company` (RLS already restricts via membership).
 
-### Next — Agent build initiative
-The platform infrastructure for Talent / Gro10x / Admin is now feature-complete for MVP. Next initiative: build out individual AI agents (Office Admin Manager, Recruiter Co-pilot, etc.) on top of this foundation, then move to products / categories / GTM.
+Authoring rules:
+- Composer always posts as the **user** by default.
+- If the user is `owner` (the POC), an extra toggle **"Post as {company name}"** appears → sets `author_type='company'`. Other roles (admin/member) can never post as the company. (Current code allowed admin too — tighten to owner only.)
+- Reuse the talent app's **ComposePost** widgets to bring **polls, image upload, hashtags** into Gro10x. Concretely: replace the inline `<textarea>` in `Gro10xFeed.tsx` with `<ComposePost mode="gro10x" companyId={...} canPostAsCompany={isOwner} />` — adds a `mode` prop to `src/components/feed/ComposePost.tsx` so dark theme + Gro10x submit handler work.
+
+DB:
+- `alter table feed_posts add column audience text not null default 'network' check (audience in ('network','internal'));`
+- RLS: internal posts visible only to active members of `author_company_id`.
+- Drafts/approval flow stays as-is.
+
+## 6. Company tab — directory + LinkedIn-style page
+
+Keep `/gro10x/page` but expand it. Add sections (in this order):
+
+1. **Banner + header card** (existing) — edit limited to **owner only** (not admin).
+2. **About** (existing).
+3. **Team directory** — full list (not capped at 9), grid → tap a member → opens their `/app/profile/:userId` (read-only public talent profile).
+4. **Open roles** (existing) — already there, keep.
+5. **NEW: Services we offer** — pulls from `services` (or `marketplace_services`) where `company_id = …`. Owner can add/edit.
+6. **NEW: Recent posts** — last 3 company-authored `feed_posts` for this company.
+7. **Public link**: `/c/{slug}` (already shown).
+
+Edit gating:
+- **Only owner** can edit company info, post as company, and manage Services. Admins can manage hiring/CRM but not the public face.
+- Members get read-only company tab.
+
+## 7. Inbox + Agent Network
+
+- Rename `/gro10x/agents` UI label from "Agent Marketplace" → **"Agent Network"**, same route.
+- Inbox `+` button: tooltip + label "Browse Agent Network" so it's discoverable.
+- Bring agents to **the same standard** as the talent agent marketplace (`src/pages/app/AgentMarketplace.tsx`):
+  - Each Gro10x agent gets a **profile page** `/gro10x/agents/:agentKey` with description, **connection fee** (one-time pin cost), per-message cost, sample prompts, ratings — mirrors `AgentProfile`.
+  - Charge logic: pinning an agent debits a connection fee from the appropriate pool (same resolution order as §3); per-message cost continues to debit on each chat reply. Pricing is stored in `ai_agents.message_credit_cost` + new `ai_agents.connection_credit_cost` (already present per types? — verify in migration).
+- Rename **Concierge** in copy: "**Atlas** — your Gro10x concierge" (mirrors how Talent app has "Aisha"/AI General as system controller). One key change in `GRO10X_AGENTS`.
+
+## 8. File-level work summary
+
+```text
+NEW
+  src/gro10x/pages/work/Gro10xTalents.tsx
+  src/gro10x/components/Gro10xTalentRow.tsx
+  src/gro10x/pages/Gro10xAgentProfile.tsx
+  src/gro10x/hooks/useContactCredits.ts
+  supabase/migrations/<ts>_credit_unification_and_feed_audience.sql
+
+EDIT
+  src/gro10x/components/Gro10xBottomNav.tsx        — drop Me; rename Work→Activities
+  src/gro10x/components/Gro10xTopBar.tsx           — add avatar → /gro10x/me; remove bell, replace with concierge shortcut; member vs owner pill
+  src/gro10x/pages/Gro10xMe.tsx                    — wrap <Profile/> from talent app + workspace strip
+  src/gro10x/pages/Gro10xWork.tsx                  — header "Activities", add tabs talents+crm
+  src/gro10x/pages/Gro10xFeed.tsx                  — Network/Internal toggle, use ComposePost, owner-only "Post as company"
+  src/gro10x/pages/Gro10xCompanyPage.tsx           — owner-only edit; add Services + Recent posts; full team list
+  src/gro10x/pages/Gro10xAgentMarketplace.tsx      — rename to "Agent Network", connection-fee UI, link to profile pages
+  src/gro10x/Gro10xRoutes.tsx                      — add /agents/:agentKey, drop /notifications from nav (route can stay as concierge alias)
+  src/gro10x/lib/agents.ts                         — rename concierge → "Atlas"
+  src/components/feed/ComposePost.tsx              — add mode='gro10x' prop (dark variant + companyId target)
+
+DROP
+  bottom-nav entries for Me & Notifications
+```
+
+## 9. Migration sketch (reference only)
+
+```sql
+-- contact bonus pool, lives on talent_credits
+alter table talent_credits add column contact_bonus_balance numeric(12,1) not null default 0;
+alter table talent_credit_transactions add column source text;
+
+create table contact_bonus_grants (
+  user_id uuid not null,
+  company_id uuid not null references companies(id) on delete cascade,
+  granted_at timestamptz not null default now(),
+  primary key (user_id, company_id)
+);
+
+-- award +250 once when a member becomes active in a company
+create or replace function award_contact_bonus() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.status = 'active' and new.user_id is not null then
+    insert into contact_bonus_grants(user_id, company_id)
+    values (new.user_id, new.company_id)
+    on conflict do nothing;
+    if found then
+      update talent_credits set contact_bonus_balance = contact_bonus_balance + 250
+        where talent_id = (select id from talents where user_id = new.user_id);
+    end if;
+  end if;
+  return new;
+end $$;
+create trigger trg_award_contact_bonus after insert or update on company_members
+for each row execute function award_contact_bonus();
+
+-- internal feed audience
+alter table feed_posts add column audience text not null default 'network'
+  check (audience in ('network','internal'));
+-- RLS: internal posts → only members of author_company_id can SELECT.
+```
+
+## 10. Out of scope for this pass
+
+- Withdrawals from contact_bonus / company pool (future product).
+- Office-Admin / industry-specific agents (will be added later per your "agents come last" direction).
+- Cross-app SSO niceties beyond a button — same Supabase user already works on both apps.
+
+---
+
+After approval I'll execute this in two PRs: **(a)** credit unification migration + topbar/profile refactor; **(b)** Activities/Feed/Company/Agent-Network UI changes.
