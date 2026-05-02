@@ -1896,6 +1896,116 @@ export type Database = {
           },
         ]
       }
+      company_lead_activities: {
+        Row: {
+          activity_type: Database["public"]["Enums"]["crm_activity_type"]
+          body: string
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          lead_id: string
+        }
+        Insert: {
+          activity_type?: Database["public"]["Enums"]["crm_activity_type"]
+          body: string
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lead_id: string
+        }
+        Update: {
+          activity_type?: Database["public"]["Enums"]["crm_activity_type"]
+          body?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lead_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_lead_activities_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_lead_activities_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "company_leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_leads: {
+        Row: {
+          company_id: string
+          company_name: string | null
+          created_at: string
+          created_by: string | null
+          email: string | null
+          id: string
+          name: string
+          next_action_at: string | null
+          notes: string | null
+          owner_user_id: string | null
+          phone: string | null
+          source: string | null
+          stage: Database["public"]["Enums"]["crm_lead_stage"]
+          title: string | null
+          updated_at: string
+          value_usd: number | null
+        }
+        Insert: {
+          company_id: string
+          company_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          name: string
+          next_action_at?: string | null
+          notes?: string | null
+          owner_user_id?: string | null
+          phone?: string | null
+          source?: string | null
+          stage?: Database["public"]["Enums"]["crm_lead_stage"]
+          title?: string | null
+          updated_at?: string
+          value_usd?: number | null
+        }
+        Update: {
+          company_id?: string
+          company_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          next_action_at?: string | null
+          notes?: string | null
+          owner_user_id?: string | null
+          phone?: string | null
+          source?: string | null
+          stage?: Database["public"]["Enums"]["crm_lead_stage"]
+          title?: string | null
+          updated_at?: string
+          value_usd?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_leads_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_members: {
         Row: {
           company_id: string
@@ -3952,6 +4062,51 @@ export type Database = {
         }
         Relationships: []
       }
+      institutions: {
+        Row: {
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          country: string | null
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          status: string
+          type: string
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          country?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          status?: string
+          type?: string
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          country?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          status?: string
+          type?: string
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
       instructor_connection_requests: {
         Row: {
           created_at: string
@@ -5719,6 +5874,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      partner_organizations: {
+        Row: {
+          contact_email: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          country: string | null
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          status: string
+          type: string
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          country?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          status?: string
+          type?: string
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          contact_email?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          country?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          status?: string
+          type?: string
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: []
       }
       platform_events: {
         Row: {
@@ -7825,6 +8025,14 @@ export type Database = {
         | "flashcards"
         | "other"
       course_subtask_status: "pending" | "in_review" | "approved" | "rejected"
+      crm_activity_type: "note" | "call" | "email" | "meeting" | "task"
+      crm_lead_stage:
+        | "new"
+        | "contacted"
+        | "qualified"
+        | "proposal"
+        | "won"
+        | "lost"
       delivery_status: "pending" | "sent" | "failed"
       enrollment_status: "pending_payment" | "active" | "completed"
       experience_level: "entry" | "mid" | "senior" | "executive"
@@ -8052,6 +8260,15 @@ export const Constants = {
         "other",
       ],
       course_subtask_status: ["pending", "in_review", "approved", "rejected"],
+      crm_activity_type: ["note", "call", "email", "meeting", "task"],
+      crm_lead_stage: [
+        "new",
+        "contacted",
+        "qualified",
+        "proposal",
+        "won",
+        "lost",
+      ],
       delivery_status: ["pending", "sent", "failed"],
       enrollment_status: ["pending_payment", "active", "completed"],
       experience_level: ["entry", "mid", "senior", "executive"],
