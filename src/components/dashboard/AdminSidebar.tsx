@@ -41,6 +41,8 @@ import {
   Zap,
   Store,
   Layers,
+  School,
+  Handshake,
 } from "lucide-react";
 import {
   Sidebar,
