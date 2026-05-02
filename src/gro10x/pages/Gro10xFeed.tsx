@@ -98,6 +98,27 @@ export default function Gro10xFeed() {
     void load();
   }, [load]);
 
+  // Realtime: refresh when drafts or feed posts change for the active company
+  useEffect(() => {
+    if (!companyId) return;
+    const ch = supabase
+      .channel(`gro10x-feed-${companyId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "company_post_drafts", filter: `company_id=eq.${companyId}` },
+        () => void load(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "feed_posts" },
+        () => void load(),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(ch);
+    };
+  }, [companyId, load]);
+
   // Only the company POC (owner) can publish company posts and post-as-company.
   const isOwner = role === "owner";
 
@@ -198,18 +219,24 @@ export default function Gro10xFeed() {
 
   return (
     <div className="max-w-md mx-auto">
-      <header className="sticky top-0 z-10 bg-[#0B1220]/95 backdrop-blur-md border-b border-white/5 px-4 py-3">
-        <h1 className="text-xl font-semibold tracking-tight">Feed</h1>
-        <p className={`text-xs ${GRO10X_MUTED}`}>What your network is up to</p>
+      <header className="sticky top-0 z-10 bg-[#0B1220]/95 backdrop-blur-md border-b border-white/5 px-4 py-3 flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-xl font-semibold tracking-tight">Feed</h1>
+          <p className={`text-xs ${GRO10X_MUTED} truncate`}>What your network is up to</p>
+        </div>
         {companyId && (
-          <div className="mt-2 inline-flex rounded-full bg-white/5 border border-white/10 p-0.5 text-[11px]">
+          <div className="inline-flex rounded-full bg-white/5 border border-white/10 p-0.5 text-[11px] shrink-0" role="tablist" aria-label="Feed audience">
             <button
+              role="tab"
+              aria-selected={audience === "network"}
               onClick={() => setAudience("network")}
               className={`px-3 py-1 rounded-full ${audience === "network" ? "bg-[#33E1E4] text-[#06121A] font-semibold" : "text-slate-300"}`}
             >
               Network
             </button>
             <button
+              role="tab"
+              aria-selected={audience === "internal"}
               onClick={() => setAudience("internal")}
               className={`px-3 py-1 rounded-full ${audience === "internal" ? "bg-[#33E1E4] text-[#06121A] font-semibold" : "text-slate-300"}`}
             >
@@ -224,6 +251,7 @@ export default function Gro10xFeed() {
         <div className="px-4 pt-3">
           <div className={`${GRO10X_PANEL} border border-white/10 rounded-2xl p-3`}>
             <textarea
+              aria-label="Write a post"
               value={composer}
               onChange={(e) => setComposer(e.target.value)}
               placeholder={

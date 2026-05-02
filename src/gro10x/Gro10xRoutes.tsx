@@ -16,7 +16,7 @@ import Gro10xBilling from "./pages/Gro10xBilling";
 import Gro10xLearn from "./pages/Gro10xLearn";
 import Gro10xCRM from "./pages/Gro10xCRM";
 import Gro10xOfferings from "./pages/Gro10xOfferings";
-// Notifications are now folded into the Atlas concierge agent thread (no standalone tab).
+// Notifications fold into the Atlas concierge thread — no standalone tab/route.
 
 /**
  * Routes for the Gro10x B2B super-app. Mounted under /gro10x on the
