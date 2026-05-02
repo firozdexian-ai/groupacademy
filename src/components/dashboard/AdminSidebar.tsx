@@ -221,9 +221,11 @@ interface AdminSidebarProps {
   activeTab: string;
   onTabChange: (value: string) => void;
   userRole?: AppRole | null;
+  /** Drives sidebar filtering. Defaults to "super" for backward compatibility. */
+  adminScope?: "super" | "internal" | "company" | "none";
 }
 
-export function AdminSidebar({ activeTab, onTabChange, userRole = "admin" }: AdminSidebarProps) {
+export function AdminSidebar({ activeTab, onTabChange, userRole = "admin", adminScope = "super" }: AdminSidebarProps) {
   const navigate = useNavigate();
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
@@ -234,7 +236,11 @@ export function AdminSidebar({ activeTab, onTabChange, userRole = "admin" }: Adm
     navigate("/auth");
   };
 
-  const filteredNavGroups = navGroups.filter((group) => userRole && group.roles.includes(userRole));
+  const filteredNavGroups = navGroups.filter((group) => {
+    if (adminScope === "company") return group.companyScoped === true;
+    if (!userRole) return false;
+    return group.roles.includes(userRole);
+  });
 
   // Auto-expand group containing the active tab. Multiple groups may be open
   // simultaneously so admins can keep context while jumping between modules.
