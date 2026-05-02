@@ -253,6 +253,7 @@ interface AdminSidebarProps {
 
 export function AdminSidebar({ activeTab, onTabChange, userRole = "admin", adminScope = "super" }: AdminSidebarProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
 
@@ -315,7 +316,6 @@ export function AdminSidebar({ activeTab, onTabChange, userRole = "admin", admin
       <SidebarContent className="p-2 gap-2">
         {/* Agentic Dashboard (Chat) — top-level link */}
         {(userRole === "admin" || userRole === "super_admin") && (() => {
-          const location = useLocation();
           const isChat = location.pathname.startsWith("/dashboard/chat");
           return (
             <SidebarGroup className="p-0">
