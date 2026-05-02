@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Building2, Globe, MapPin, Briefcase, Edit2, Check, X } from "lucide-react";
 import { GRO10X_PANEL, GRO10X_MUTED } from "../lib/tokens";
+import { CompletionRing } from "../components/CompletionRing";
 import { toast } from "sonner";
 
 interface Company {
@@ -16,6 +17,8 @@ interface Company {
   website?: string | null;
   country?: string | null;
   slug?: string | null;
+  profile_completion?: number | null;
+  verification_tier?: "unverified" | "self_completed" | "verified" | null;
 }
 
 interface Member {
@@ -81,7 +84,7 @@ export default function Gro10xCompanyPage() {
 
     const { data: c } = await supabase
       .from("companies")
-      .select("id,name,tagline,about,logo_url,banner_url,website,country,slug")
+      .select("id,name,tagline,about,logo_url,banner_url,website,country,slug,profile_completion,verification_tier")
       .eq("id", companyId)
       .maybeSingle();
     setCompany(c as Company | null);
