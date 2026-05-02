@@ -1817,6 +1817,111 @@ export type Database = {
           },
         ]
       }
+      company_course_assignments: {
+        Row: {
+          assigned_to: string | null
+          company_id: string
+          content_id: string
+          created_at: string
+          created_by: string
+          credit_cost: number
+          due_at: string | null
+          id: string
+          note: string | null
+          sponsorship_mode: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          company_id: string
+          content_id: string
+          created_at?: string
+          created_by: string
+          credit_cost?: number
+          due_at?: string | null
+          id?: string
+          note?: string | null
+          sponsorship_mode: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          company_id?: string
+          content_id?: string
+          created_at?: string
+          created_by?: string
+          credit_cost?: number
+          due_at?: string | null
+          id?: string
+          note?: string | null
+          sponsorship_mode?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_course_assignments_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_course_assignments_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_course_sponsorships: {
+        Row: {
+          assignment_id: string
+          company_id: string
+          consumed_at: string | null
+          credits_granted: number
+          granted_at: string
+          id: string
+          talent_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          assignment_id: string
+          company_id: string
+          consumed_at?: string | null
+          credits_granted?: number
+          granted_at?: string
+          id?: string
+          talent_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          assignment_id?: string
+          company_id?: string
+          consumed_at?: string | null
+          credits_granted?: number
+          granted_at?: string
+          id?: string
+          talent_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_course_sponsorships_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "company_course_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_course_sponsorships_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_credit_transactions: {
         Row: {
           amount: number
@@ -1939,6 +2044,13 @@ export type Database = {
             referencedRelation: "company_leads"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "company_lead_activities_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_sales_context"
+            referencedColumns: ["lead_id"]
+          },
         ]
       }
       company_leads: {
@@ -1951,7 +2063,9 @@ export type Database = {
           id: string
           name: string
           next_action_at: string | null
+          next_step: string | null
           notes: string | null
+          offering_id: string | null
           owner_user_id: string | null
           phone: string | null
           source: string | null
@@ -1969,7 +2083,9 @@ export type Database = {
           id?: string
           name: string
           next_action_at?: string | null
+          next_step?: string | null
           notes?: string | null
+          offering_id?: string | null
           owner_user_id?: string | null
           phone?: string | null
           source?: string | null
@@ -1987,7 +2103,9 @@ export type Database = {
           id?: string
           name?: string
           next_action_at?: string | null
+          next_step?: string | null
           notes?: string | null
+          offering_id?: string | null
           owner_user_id?: string | null
           phone?: string | null
           source?: string | null
@@ -2003,6 +2121,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "companies"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_leads_offering_id_fkey"
+            columns: ["offering_id"]
+            isOneToOne: false
+            referencedRelation: "company_offerings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_leads_offering_id_fkey"
+            columns: ["offering_id"]
+            isOneToOne: false
+            referencedRelation: "v_company_sales_context"
+            referencedColumns: ["offering_id"]
           },
         ]
       }
@@ -2040,6 +2172,71 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "company_members_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_offerings: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string
+          currency: string
+          description: string | null
+          display_order: number
+          id: string
+          is_active: boolean
+          kind: string
+          name: string
+          price_max: number | null
+          price_min: number | null
+          tagline: string | null
+          tags: string[]
+          unit: string | null
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by: string
+          currency?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          kind: string
+          name: string
+          price_max?: number | null
+          price_min?: number | null
+          tagline?: string | null
+          tags?: string[]
+          unit?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          currency?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          kind?: string
+          name?: string
+          price_max?: number | null
+          price_min?: number | null
+          tagline?: string | null
+          tags?: string[]
+          unit?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_offerings_company_id_fkey"
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
@@ -2484,6 +2681,7 @@ export type Database = {
       }
       content: {
         Row: {
+          b2b_audience: string[]
           content_type: Database["public"]["Enums"]["content_type"]
           cover_image_url: string | null
           created_at: string | null
@@ -2498,6 +2696,7 @@ export type Database = {
           event_duration_minutes: number | null
           id: string
           instructor_name: string | null
+          is_b2b: boolean
           is_private: boolean | null
           is_published: boolean | null
           is_ready: boolean
@@ -2519,6 +2718,7 @@ export type Database = {
           youtube_url: string | null
         }
         Insert: {
+          b2b_audience?: string[]
           content_type: Database["public"]["Enums"]["content_type"]
           cover_image_url?: string | null
           created_at?: string | null
@@ -2533,6 +2733,7 @@ export type Database = {
           event_duration_minutes?: number | null
           id?: string
           instructor_name?: string | null
+          is_b2b?: boolean
           is_private?: boolean | null
           is_published?: boolean | null
           is_ready?: boolean
@@ -2554,6 +2755,7 @@ export type Database = {
           youtube_url?: string | null
         }
         Update: {
+          b2b_audience?: string[]
           content_type?: Database["public"]["Enums"]["content_type"]
           cover_image_url?: string | null
           created_at?: string | null
@@ -2568,6 +2770,7 @@ export type Database = {
           event_duration_minutes?: number | null
           id?: string
           instructor_name?: string | null
+          is_b2b?: boolean
           is_private?: boolean | null
           is_published?: boolean | null
           is_ready?: boolean
@@ -7718,6 +7921,37 @@ export type Database = {
           total_courses: number | null
         }
         Relationships: []
+      }
+      v_company_sales_context: {
+        Row: {
+          company_id: string | null
+          currency: string | null
+          email: string | null
+          lead_company_name: string | null
+          lead_id: string | null
+          name: string | null
+          next_action_at: string | null
+          next_step: string | null
+          offering_id: string | null
+          offering_kind: string | null
+          offering_name: string | null
+          phone: string | null
+          price_max: number | null
+          price_min: number | null
+          recent_activities: Json | null
+          stage: Database["public"]["Enums"]["crm_lead_stage"] | null
+          title: string | null
+          value_usd: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_leads_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Functions: {
