@@ -294,6 +294,79 @@ export type Database = {
           },
         ]
       }
+      agent_channel_bindings: {
+        Row: {
+          agent_id: string
+          channel_id: string
+          created_at: string
+          is_primary: boolean
+        }
+        Insert: {
+          agent_id: string
+          channel_id: string
+          created_at?: string
+          is_primary?: boolean
+        }
+        Update: {
+          agent_id?: string
+          channel_id?: string
+          created_at?: string
+          is_primary?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_channel_bindings_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_channel_bindings_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_channel_bindings_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "agent_channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_channels: {
+        Row: {
+          channel_key: string
+          created_at: string
+          description: string | null
+          direction: string | null
+          id: string
+          is_active: boolean
+          label: string
+        }
+        Insert: {
+          channel_key: string
+          created_at?: string
+          description?: string | null
+          direction?: string | null
+          id?: string
+          is_active?: boolean
+          label: string
+        }
+        Update: {
+          channel_key?: string
+          created_at?: string
+          description?: string | null
+          direction?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string
+        }
+        Relationships: []
+      }
       agent_chat_sessions: {
         Row: {
           agent_key: string
@@ -926,10 +999,51 @@ export type Database = {
           },
         ]
       }
+      agent_tool_bindings: {
+        Row: {
+          agent_id: string
+          created_at: string
+          tool_id: string
+        }
+        Insert: {
+          agent_id: string
+          created_at?: string
+          tool_id: string
+        }
+        Update: {
+          agent_id?: string
+          created_at?: string
+          tool_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_tool_bindings_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_tool_bindings_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "ai_agents_with_stats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_tool_bindings_tool_id_fkey"
+            columns: ["tool_id"]
+            isOneToOne: false
+            referencedRelation: "agent_tools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_tools: {
         Row: {
           audience: string[]
           category: string
+          connector_id: string | null
           created_at: string
           default_credit_cost: number
           description: string
@@ -940,12 +1054,14 @@ export type Database = {
           is_active: boolean
           min_level: number
           name: string
+          status: string
           tool_key: string
           updated_at: string
         }
         Insert: {
           audience?: string[]
           category: string
+          connector_id?: string | null
           created_at?: string
           default_credit_cost?: number
           description: string
@@ -956,12 +1072,14 @@ export type Database = {
           is_active?: boolean
           min_level?: number
           name: string
+          status?: string
           tool_key: string
           updated_at?: string
         }
         Update: {
           audience?: string[]
           category?: string
+          connector_id?: string | null
           created_at?: string
           default_credit_cost?: number
           description?: string
@@ -972,6 +1090,7 @@ export type Database = {
           is_active?: boolean
           min_level?: number
           name?: string
+          status?: string
           tool_key?: string
           updated_at?: string
         }
