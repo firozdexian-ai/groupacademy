@@ -132,6 +132,7 @@ export function ContactsManager() {
   const debouncedSearch = useDebounce(searchQuery, 500);
   const [companyFilter, setCompanyFilter] = useState<string>("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
+  const [registrationTab, setRegistrationTab] = useState<"all" | "registered" | "uploaded" | "cv-matched">("all");
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
@@ -161,6 +162,9 @@ export function ContactsManager() {
 
       if (companyFilter !== "all") query = query.eq("company_id", companyFilter);
       if (sourceFilter !== "all") query = query.eq("source", sourceFilter);
+      if (registrationTab === "registered") query = query.not("user_id", "is", null);
+      else if (registrationTab === "uploaded") query = query.is("user_id", null).neq("source", "cv_match");
+      else if (registrationTab === "cv-matched") query = query.eq("source", "cv_match");
 
       const from = (page - 1) * ITEMS_PER_PAGE;
       const to = from + ITEMS_PER_PAGE - 1;
@@ -177,7 +181,7 @@ export function ContactsManager() {
     } finally {
       setIsLoading(false);
     }
-  }, [page, debouncedSearch, companyFilter, sourceFilter, companies.length]);
+  }, [page, debouncedSearch, companyFilter, sourceFilter, registrationTab, companies.length]);
 
   useEffect(() => {
     loadData();
@@ -357,6 +361,28 @@ export function ContactsManager() {
         </CardHeader>
 
         <CardContent className="p-8">
+          {/* Registration segmentation tabs */}
+          <div className="mb-4 inline-flex rounded-2xl border-2 border-border/40 bg-muted/20 p-1 text-xs font-semibold">
+            {([
+              ["all", "All"],
+              ["registered", "Registered"],
+              ["uploaded", "Uploaded"],
+              ["cv-matched", "CV-matched"],
+            ] as const).map(([k, label]) => (
+              <button
+                key={k}
+                onClick={() => { setRegistrationTab(k); setPage(1); }}
+                className={cn(
+                  "px-4 py-1.5 rounded-xl transition-colors",
+                  registrationTab === k
+                    ? "bg-primary text-primary-foreground shadow"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
           {/* Query Console */}
           <div className="mb-8 flex flex-col md:flex-row gap-4 bg-muted/20 p-4 rounded-[28px] border-2 border-border/40 backdrop-blur-md">
             <div className="relative flex-1 group">

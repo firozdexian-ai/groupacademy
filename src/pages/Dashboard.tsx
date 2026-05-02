@@ -91,6 +91,18 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   industries: React.lazy(() =>
     import("@/components/dashboard/IndustriesManager").then((m) => ({ default: m.IndustriesManager })),
   ),
+  "companies-overview": React.lazy(() =>
+    import("@/components/dashboard/companies/CompaniesOverviewTab").then((m) => ({ default: m.CompaniesOverviewTab })),
+  ),
+  "companies-riya": React.lazy(() =>
+    import("@/components/dashboard/companies/RiyaConsoleTab").then((m) => ({ default: m.RiyaConsoleTab })),
+  ),
+  "companies-ai-general": React.lazy(() =>
+    import("@/components/dashboard/companies/CompanyAIGeneralTab").then((m) => ({ default: m.CompanyAIGeneralTab })),
+  ),
+  "companies-outreach": React.lazy(() =>
+    import("@/components/dashboard/companies/CompanyOutreachConsoleTab").then((m) => ({ default: m.CompanyOutreachConsoleTab })),
+  ),
   all: React.lazy(() => import("@/components/dashboard/ContentList")),
   videos: React.lazy(() => import("@/components/dashboard/ContentList")),
   courses: React.lazy(() => import("@/components/dashboard/ContentList")),
@@ -257,6 +269,10 @@ const TAB_TITLES: Record<string, string> = {
   contacts: "B2B Contacts",
   "company-agents": "Internal Agents",
   industries: "Verticals",
+  "companies-overview": "Companies Overview",
+  "companies-riya": "Riya Console",
+  "companies-ai-general": "Company AI General",
+  "companies-outreach": "Company Outreach",
   all: "Catalog Architecture",
   videos: "Digital Library",
   courses: "Academy Courses",

@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 /**
  * Gro10x — Riya: B2B Auth Concierge
@@ -100,6 +101,23 @@ serve(async (req) => {
       parsed.quiz = { answer: q.a };
       parsed.reply = `Quick human check!\n\n${q.q}`;
     }
+
+    // Telemetry: upsert into riya_conversations (best-effort, non-blocking)
+    try {
+      if (context?.session_id) {
+        const SUPA_URL = Deno.env.get("SUPABASE_URL");
+        const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+        if (SUPA_URL && SERVICE_KEY) {
+          const admin = createClient(SUPA_URL, SERVICE_KEY);
+          await admin.from("riya_conversations").upsert({
+            session_id: String(context.session_id),
+            last_step: parsed.action ?? context.action ?? null,
+            completed_at: parsed.action === "complete" ? new Date().toISOString() : null,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: "session_id" });
+        }
+      }
+    } catch (_e) { /* swallow telemetry errors */ }
 
     return new Response(JSON.stringify(parsed), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -102,15 +102,19 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
-    title: "Companies & Contacts",
+    title: "Companies",
     icon: Building2,
     roles: ["admin", "talent_exec"],
     companyScoped: true,
     items: [
+      { title: "Overview", icon: LayoutDashboard, value: "companies-overview" },
       { title: "Companies", icon: Building2, value: "companies" },
+      { title: "Industries", icon: Factory, value: "industries" },
       { title: "Contacts", icon: Users, value: "contacts" },
       { title: "Company Agents", icon: Bot, value: "company-agents" },
-      { title: "Industries", icon: Factory, value: "industries" },
+      { title: "Riya Console", icon: Sparkles, value: "companies-riya" },
+      { title: "Company AI General", icon: Bot, value: "companies-ai-general" },
+      { title: "Outreach Agent", icon: Send, value: "companies-outreach" },
     ],
   },
   {
