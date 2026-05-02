@@ -190,18 +190,16 @@ export default function Gigs() {
   const [deliverableDialog, setDeliverableDialog] = useState<string | null>(null);
   const [delivTitle, setDelivTitle] = useState("");
   const [delivDesc, setDelivDesc] = useState("");
-  const [delivFile, setDelivFile] = useState<File | null>(null);
+  const [delivFiles, setDelivFiles] = useState<UploadedFile[]>([]);
 
   const submitDeliverable = useMutation({
     mutationFn: async () => {
       if (!deliverableDialog) throw new Error("Contract context lost");
-      let fileUrl = null;
-      if (delivFile) {
-        const path = `deliv/${talent!.id}/${deliverableDialog}/${Date.now()}-${delivFile.name}`;
-        const { error: uploadErr } = await supabase.storage.from("marketplace-deliverables").upload(path, delivFile);
-        if (uploadErr) throw uploadErr;
-        fileUrl = supabase.storage.from("marketplace-deliverables").getPublicUrl(path).data.publicUrl;
-      }
+      // Store the first uploaded file URL for back-compat with the existing schema.
+      const primary = delivFiles[0];
+      const fileUrl = primary
+        ? supabase.storage.from("gig-submissions").getPublicUrl(primary.path).data.publicUrl
+        : null;
       const { error } = await supabase.from("marketplace_deliverables").insert({
         contract_id: deliverableDialog,
         title: delivTitle,
@@ -213,6 +211,8 @@ export default function Gigs() {
     onSuccess: () => {
       setDeliverableDialog(null);
       setDelivTitle("");
+      setDelivDesc("");
+      setDelivFiles([]);
       queryClient.invalidateQueries({ queryKey: ["my-marketplace-contracts"] });
     },
   });
