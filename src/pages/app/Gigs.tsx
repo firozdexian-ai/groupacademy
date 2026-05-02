@@ -103,44 +103,45 @@ export default function Gigs() {
     },
   });
 
-  // ── Course Projects: open content_gigs grouped by their course ──
+  // ── Course Projects: open course_projects (Phase 3 model) ──
   const { data: courseProjects, isLoading: courseProjectsLoading } = useQuery({
     queryKey: ["course-projects-grouped"],
     queryFn: async () => {
-      const { data: contentGigs } = await supabase
-        .from("content_gigs" as any)
-        .select("id, title, brief, resource_type, credit_reward, status, content_id, school_id, stage_number")
-        .eq("status", "open")
+      const { data: projects } = await supabase
+        .from("course_projects" as any)
+        .select("id, course_id, status, total_credit_reward, completion_bonus, deadline, progress_percent")
+        .in("status", ["open", "claimed", "in_progress"])
         .order("created_at", { ascending: false })
-        .limit(200);
+        .limit(60);
 
-      const rows = (contentGigs as any[]) || [];
+      const rows = (projects as any[]) || [];
       if (!rows.length) return [];
 
-      // Group by content_id
-      const contentIds = Array.from(new Set(rows.map((r) => r.content_id).filter(Boolean)));
+      const contentIds = Array.from(new Set(rows.map((r) => r.course_id).filter(Boolean)));
       const { data: courses } = contentIds.length
-        ? await supabase.from("content").select("id, title, cover_image_url, type").in("id", contentIds)
+        ? await supabase.from("content").select("id, title, cover_image_url").in("id", contentIds)
         : { data: [] as any[] };
+
+      const { data: subtaskCounts } = await supabase
+        .from("course_project_subtasks" as any)
+        .select("project_id")
+        .in("project_id", rows.map((r) => r.id));
+
+      const counts: Record<string, number> = {};
+      ((subtaskCounts as any[]) || []).forEach((s: any) => {
+        counts[s.project_id] = (counts[s.project_id] || 0) + 1;
+      });
 
       const courseMap: Record<string, any> = {};
       (courses || []).forEach((c: any) => { courseMap[c.id] = c; });
 
-      const grouped: Record<string, { course: any; subtasks: any[]; totalReward: number }> = {};
-      rows.forEach((r) => {
-        const key = r.content_id || "unassigned";
-        if (!grouped[key]) {
-          grouped[key] = {
-            course: courseMap[r.content_id] || { id: key, title: "Unassigned tasks", type: "misc" },
-            subtasks: [],
-            totalReward: 0,
-          };
-        }
-        grouped[key].subtasks.push(r);
-        grouped[key].totalReward += Number(r.credit_reward || 0);
-      });
-
-      return Object.values(grouped).sort((a, b) => b.subtasks.length - a.subtasks.length);
+      return rows.map((p) => ({
+        projectId: p.id,
+        course: courseMap[p.course_id] || { id: p.course_id, title: "Untitled course" },
+        subtasks: Array(counts[p.id] || 0).fill(null),
+        totalReward: Number(p.total_credit_reward || 0),
+        status: p.status,
+      }));
     },
   });
 
