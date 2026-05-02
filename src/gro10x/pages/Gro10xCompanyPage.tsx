@@ -227,6 +227,14 @@ export default function Gro10xCompanyPage() {
               </div>
             </div>
           </div>
+          {canEdit && (
+            <div className="mt-3 pt-3 border-t border-white/10">
+              <CompletionRing
+                completion={company.profile_completion ?? 0}
+                tier={company.verification_tier ?? "unverified"}
+              />
+            </div>
+          )}
         </div>
       </div>
 
