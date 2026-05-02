@@ -551,14 +551,13 @@ export default function Gigs() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">File (optional)</Label>
-              <div className="p-2.5 rounded-xl border border-dashed border-border/60 bg-muted/10">
-                <Input
-                  type="file"
-                  onChange={(e) => setDelivFile(e.target.files?.[0] || null)}
-                  className="border-none bg-transparent h-auto p-0 text-xs"
-                />
-              </div>
+              <Label className="text-xs font-semibold">Files</Label>
+              <GigUploader
+                value={delivFiles}
+                onChange={setDelivFiles}
+                folder={`deliverable/${deliverableDialog || "misc"}`}
+                maxFiles={5}
+              />
             </div>
             <Button
               className="w-full h-11 rounded-xl text-sm"
