@@ -126,6 +126,9 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   ),
   portfolios: React.lazy(() => import("@/components/dashboard/PortfolioRequestsManager")),
   gigs: React.lazy(() => import("@/components/dashboard/GigsManager").then((m) => ({ default: m.GigsManager }))),
+  "course-projects": React.lazy(() =>
+    import("@/components/dashboard/CourseProjectsManager").then((m) => ({ default: m.CourseProjectsManager })),
+  ),
   "marketplace-gigs": React.lazy(() =>
     import("@/components/dashboard/MarketplaceGigsManager").then((m) => ({ default: m.MarketplaceGigsManager })),
   ),
@@ -228,6 +231,7 @@ const TAB_TITLES: Record<string, string> = {
   salary: "Market Valuation",
   portfolios: "Creative Assets",
   gigs: "Micro-Earning",
+  "course-projects": "Course Projects",
   "marketplace-gigs": "Project Gigs",
   "gig-submissions": "Work Evidence",
   credits: "Financial Ledger",

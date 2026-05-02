@@ -40,6 +40,7 @@ import {
   Network,
   Zap,
   Store,
+  Layers,
 } from "lucide-react";
 import {
   Sidebar,
@@ -118,6 +119,7 @@ const navGroups: NavGroup[] = [
     roles: ["admin"],
     items: [
       { title: "All Content", icon: BookOpen, value: "all" },
+      { title: "Course Projects", icon: Layers, value: "course-projects" },
       { title: "Enrollments", icon: Users, value: "enrollments" },
       { title: "Learner Progress", icon: BarChart, value: "learner-progress" },
       { title: "AI Content Tools", icon: Bot, value: "ai-content-tools" },
