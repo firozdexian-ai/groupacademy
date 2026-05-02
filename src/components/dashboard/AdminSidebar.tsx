@@ -298,22 +298,62 @@ export function AdminSidebar({ activeTab, onTabChange, userRole = "admin", admin
       </SidebarHeader>
 
       <SidebarContent className="p-2 gap-2">
-        {/* Overview - Only for admin */}
-        {userRole === "admin" && (
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                onClick={() => onTabChange("overview")}
-                isActive={activeTab === "overview"}
-                tooltip="Dashboard Overview"
-                className="hover:bg-accent/50"
-              >
-                <LayoutDashboard className="w-4 h-4" />
-                <span className="font-medium">Overview</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        )}
+        {/* Overview group - admin & super_admin */}
+        {(userRole === "admin" || userRole === "super_admin") && (() => {
+          const overviewItems = [
+            { title: "Lifetime", value: "overview-lifetime", icon: LayoutDashboard },
+            { title: "Monthly", value: "overview-month", icon: Calendar },
+            { title: "Quarterly", value: "overview-quarter", icon: BarChart },
+            { title: "Business Analyst", value: "overview-analyst", icon: Sparkles },
+            { title: "Report Builder", value: "overview-reports", icon: FileText },
+          ];
+          const isOverviewActive =
+            activeTab === "overview" || activeTab.startsWith("overview-");
+          return (
+            <Collapsible
+              open={openGroups.has("Overview") || isOverviewActive}
+              onOpenChange={(isOpen) => toggleGroup("Overview", isOpen)}
+              className="group/collapsible"
+            >
+              <SidebarGroup className="p-0">
+                <CollapsibleTrigger asChild>
+                  <SidebarMenuButton
+                    tooltip="Overview"
+                    className="font-medium hover:bg-accent/50"
+                  >
+                    <LayoutDashboard className="w-4 h-4" />
+                    <span>Overview</span>
+                    <ChevronDown className="ml-auto w-4 h-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
+                  </SidebarMenuButton>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <SidebarMenu className="pl-2 mt-1 space-y-0.5 border-l ml-4 border-border/50">
+                    {overviewItems.map((item) => (
+                      <SidebarMenuItem key={item.value}>
+                        <SidebarMenuButton
+                          onClick={() => onTabChange(item.value)}
+                          isActive={
+                            activeTab === item.value ||
+                            (item.value === "overview-lifetime" && activeTab === "overview")
+                          }
+                          className={`h-9 text-sm ${
+                            activeTab === item.value ||
+                            (item.value === "overview-lifetime" && activeTab === "overview")
+                              ? "bg-primary/10 text-primary font-medium"
+                              : "text-muted-foreground"
+                          }`}
+                        >
+                          <item.icon className="w-4 h-4" />
+                          <span>{item.title}</span>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    ))}
+                  </SidebarMenu>
+                </CollapsibleContent>
+              </SidebarGroup>
+            </Collapsible>
+          );
+        })()}
 
         {/* Nav Groups */}
         {filteredNavGroups.map((group) => (
