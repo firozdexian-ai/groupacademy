@@ -31,22 +31,25 @@ export default function Gro10xFeed() {
   const [posts, setPosts] = useState<FeedPost[]>([]);
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [companyId, setCompanyId] = useState<string | null>(null);
+  const [companyName, setCompanyName] = useState<string | null>(null);
   const [role, setRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [composer, setComposer] = useState("");
   const [posting, setPosting] = useState(false);
   const [working, setWorking] = useState<string | null>(null);
+  const [audience, setAudience] = useState<"network" | "internal">("network");
+  const [postAsCompany, setPostAsCompany] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
 
-    // Resolve company membership (gates drafts + composer)
     let cid: string | null = null;
     let r: string | null = null;
+    let cname: string | null = null;
     if (user?.id) {
       const { data: m } = await supabase
         .from("company_members")
-        .select("company_id, role")
+        .select("company_id, role, companies:company_id (name)")
         .eq("user_id", user.id)
         .eq("status", "active")
         .order("created_at", { ascending: true })
@@ -54,11 +57,12 @@ export default function Gro10xFeed() {
         .maybeSingle();
       cid = m?.company_id ?? null;
       r = m?.role ?? null;
+      cname = (m as any)?.companies?.name ?? null;
     }
     setCompanyId(cid);
     setRole(r);
+    setCompanyName(cname);
 
-    // Pending drafts (only company members see them via RLS)
     if (cid) {
       const { data: d } = await supabase
         .from("company_post_drafts")
@@ -72,17 +76,23 @@ export default function Gro10xFeed() {
       setDrafts([]);
     }
 
-    // Active feed posts
-    const { data: p } = await supabase
+    // Audience-aware feed
+    let query = supabase
       .from("feed_posts")
       .select("id, author_name, author_avatar, author_title, text_content, tags, created_at, author_type, author_company_id")
       .eq("is_active", true)
       .eq("status", "published")
       .order("created_at", { ascending: false })
       .limit(30);
+    if (audience === "internal" && cid) {
+      query = query.eq("audience", "internal").eq("author_company_id", cid);
+    } else {
+      query = query.eq("audience", "network");
+    }
+    const { data: p } = await query;
     setPosts((p ?? []) as FeedPost[]);
     setLoading(false);
-  }, [user?.id]);
+  }, [user?.id, audience]);
 
   useEffect(() => {
     void load();
