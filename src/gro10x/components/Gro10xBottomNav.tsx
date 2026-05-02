@@ -21,14 +21,25 @@ export function Gro10xBottomNav() {
           <li key={to}>
             <NavLink
               to={to}
+              aria-label={label}
               className={({ isActive }) =>
-                `flex flex-col items-center justify-center gap-0.5 py-2 text-[10px] transition-colors ${
+                `relative flex flex-col items-center justify-center gap-0.5 py-2 text-[10px] transition-colors ${
                   isActive ? "text-[#33E1E4]" : "text-slate-400 hover:text-slate-200"
                 }`
               }
             >
-              <Icon className="h-5 w-5" aria-hidden />
-              <span className="truncate max-w-full px-1">{label}</span>
+              {({ isActive }) => (
+                <>
+                  {isActive && (
+                    <span
+                      aria-hidden
+                      className="absolute top-0 left-1/2 -translate-x-1/2 h-0.5 w-8 rounded-full bg-[#33E1E4]"
+                    />
+                  )}
+                  <Icon className="h-5 w-5" aria-hidden />
+                  <span className="truncate max-w-full px-1">{label}</span>
+                </>
+              )}
             </NavLink>
           </li>
         ))}
