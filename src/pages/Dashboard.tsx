@@ -185,6 +185,12 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   "all-gigs": React.lazy(() =>
     import("@/components/dashboard/AllGigsCrossSystem").then((m) => ({ default: m.AllGigsCrossSystem })),
   ),
+  institutions: React.lazy(() =>
+    import("@/components/dashboard/StakeholderRegistry").then((m) => ({ default: m.InstitutionsManager })),
+  ),
+  "partner-orgs": React.lazy(() =>
+    import("@/components/dashboard/StakeholderRegistry").then((m) => ({ default: m.PartnerOrgsManager })),
+  ),
   // INTEGRATION INJECTIONS
   modules: React.lazy(() => import("@/components/dashboard/ModulePickerPanel")),
   "quiz-manage": React.lazy(() => import("@/pages/QuizManagement")),
