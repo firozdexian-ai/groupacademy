@@ -38,70 +38,82 @@ export function AnalystChatTab() {
         body: { messages: next },
       });
       if (error) throw error;
-      if ((data as any)?.error) throw new Error((data as any).error);
-      setMessages([...next, { role: "assistant", content: (data as any).content || "(no answer)" }]);
+      const payload = data as any;
+      if (payload?.error) {
+        const detail = payload.detail ? ` — ${typeof payload.detail === "string" ? payload.detail : JSON.stringify(payload.detail)}` : "";
+        throw new Error(`${payload.error}${detail}`);
+      }
+      setMessages([...next, { role: "assistant", content: payload.content || "(no answer)" }]);
     } catch (e: any) {
-      toast({ title: "Analyst error", description: e.message ?? String(e), variant: "destructive" });
-      setMessages([...next, { role: "assistant", content: `_Error: ${e.message ?? e}_` }]);
+      const msg = e?.message ?? String(e);
+      toast({ title: "Analyst error", description: msg, variant: "destructive" });
+      setMessages([...next, { role: "assistant", content: `_Error: ${msg}_` }]);
     } finally { setLoading(false); }
   };
 
   return (
-    <div className="flex flex-col h-[70vh] gap-4">
-      <div className="flex items-center gap-3">
-        <div className="p-3 rounded-2xl bg-primary/10 text-primary">
-          <Sparkles className="h-6 w-6" />
-        </div>
-        <div>
-          <h2 className="text-2xl font-black uppercase tracking-tighter italic">Business Analyst</h2>
-          <p className="text-xs text-muted-foreground">Ask anything about your platform's data.</p>
-        </div>
-      </div>
-
-      <Card className="flex-1 overflow-y-auto p-6 rounded-3xl border-2 border-border/40 bg-card/30 backdrop-blur space-y-4">
-        {messages.length === 0 && (
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">Try one of these:</p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {SUGGESTIONS.map((s) => (
-                <Button key={s} variant="outline" className="justify-start text-left h-auto py-3" onClick={() => send(s)}>
-                  {s}
-                </Button>
-              ))}
-            </div>
+    <div className="space-y-8 animate-in fade-in duration-500">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-muted/20 p-8 rounded-[40px] border-2 border-border/40 backdrop-blur-md">
+        <div className="space-y-1">
+          <div className="flex items-center gap-3 text-primary">
+            <Sparkles className="h-8 w-8" />
+            <h2 className="text-3xl font-black uppercase tracking-tighter italic leading-none">Business Analyst</h2>
           </div>
-        )}
-        {messages.map((m, i) => (
-          <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
-            <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm ${
-              m.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted/50 border border-border/40"
-            }`}>
-              <div className="prose prose-sm dark:prose-invert max-w-none">
-                <ReactMarkdown>{m.content}</ReactMarkdown>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 italic">
+            Ask anything · powered by whitelisted DB tools
+          </p>
+        </div>
+      </header>
+
+      <Card className="rounded-[40px] border-2 border-border/40 bg-card/30 backdrop-blur-xl shadow-2xl overflow-hidden flex flex-col h-[65vh]">
+        <div className="h-1.5 w-full bg-gradient-to-r from-primary via-blue-600 to-primary" />
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          {messages.length === 0 && (
+            <div className="space-y-3">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 italic">
+                Try one of these
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {SUGGESTIONS.map((s) => (
+                  <Button key={s} variant="outline" className="justify-start text-left h-auto py-3 rounded-2xl border-2" onClick={() => send(s)}>
+                    {s}
+                  </Button>
+                ))}
               </div>
             </div>
-          </div>
-        ))}
-        {loading && (
-          <div className="flex items-center gap-2 text-muted-foreground text-sm">
-            <Loader2 className="h-4 w-4 animate-spin" /> Analyzing…
-          </div>
-        )}
-        <div ref={endRef} />
-      </Card>
+          )}
+          {messages.map((m, i) => (
+            <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+              <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm ${
+                m.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted/50 border border-border/40"
+              }`}>
+                <div className="prose prose-sm dark:prose-invert max-w-none">
+                  <ReactMarkdown>{m.content}</ReactMarkdown>
+                </div>
+              </div>
+            </div>
+          ))}
+          {loading && (
+            <div className="flex items-center gap-2 text-muted-foreground text-sm">
+              <Loader2 className="h-4 w-4 animate-spin" /> Analyzing…
+            </div>
+          )}
+          <div ref={endRef} />
+        </div>
 
-      <div className="flex gap-2 items-end">
-        <Textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input); } }}
-          placeholder="Ask the analyst…"
-          className="rounded-2xl resize-none min-h-[56px]"
-        />
-        <Button onClick={() => send(input)} disabled={loading || !input.trim()} className="h-14 rounded-2xl px-6">
-          <Send className="h-4 w-4" />
-        </Button>
-      </div>
+        <div className="border-t border-border/20 p-4 flex gap-2 items-end bg-background/60 backdrop-blur">
+          <Textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input); } }}
+            placeholder="Ask the analyst…"
+            className="rounded-2xl resize-none min-h-[56px] border-2"
+          />
+          <Button onClick={() => send(input)} disabled={loading || !input.trim()} className="h-14 rounded-2xl px-6">
+            <Send className="h-4 w-4" />
+          </Button>
+        </div>
+      </Card>
     </div>
   );
 }
