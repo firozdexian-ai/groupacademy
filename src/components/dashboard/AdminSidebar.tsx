@@ -99,6 +99,7 @@ const navGroups: NavGroup[] = [
     title: "Recruitment",
     icon: Briefcase,
     roles: ["admin", "talent_exec"],
+    companyScoped: true,
     items: [
       { title: "Jobs KPIs", icon: TrendingUp, value: "jobs-kpis" },
       { title: "Jobs Hub", icon: Briefcase, value: "jobs-hub" },
@@ -108,6 +109,7 @@ const navGroups: NavGroup[] = [
     title: "Companies & Contacts",
     icon: Building2,
     roles: ["admin", "talent_exec"],
+    companyScoped: true,
     items: [
       { title: "Companies", icon: Building2, value: "companies" },
       { title: "Contacts", icon: Users, value: "contacts" },
