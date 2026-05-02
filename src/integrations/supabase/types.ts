@@ -162,6 +162,42 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean | null
+          link: string | null
+          message: string
+          metadata: Json | null
+          read_at: string | null
+          title: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          link?: string | null
+          message: string
+          metadata?: Json | null
+          read_at?: string | null
+          title: string
+          type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          link?: string | null
+          message?: string
+          metadata?: Json | null
+          read_at?: string | null
+          title?: string
+          type?: string
+        }
+        Relationships: []
+      }
       admin_reports: {
         Row: {
           created_at: string
@@ -1305,6 +1341,65 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "ai_recommendations_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      aisha_conversations: {
+        Row: {
+          abandoned: boolean | null
+          completed_at: string | null
+          country: string | null
+          email: string | null
+          id: string
+          last_step: string | null
+          message_count: number | null
+          name: string | null
+          phone: string | null
+          raw_messages: Json | null
+          session_id: string
+          started_at: string
+          talent_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          abandoned?: boolean | null
+          completed_at?: string | null
+          country?: string | null
+          email?: string | null
+          id?: string
+          last_step?: string | null
+          message_count?: number | null
+          name?: string | null
+          phone?: string | null
+          raw_messages?: Json | null
+          session_id: string
+          started_at?: string
+          talent_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          abandoned?: boolean | null
+          completed_at?: string | null
+          country?: string | null
+          email?: string | null
+          id?: string
+          last_step?: string | null
+          message_count?: number | null
+          name?: string | null
+          phone?: string | null
+          raw_messages?: Json | null
+          session_id?: string
+          started_at?: string
+          talent_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aisha_conversations_talent_id_fkey"
             columns: ["talent_id"]
             isOneToOne: false
             referencedRelation: "talents"
@@ -6597,6 +6692,50 @@ export type Database = {
         }
         Relationships: []
       }
+      professional_roles: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number | null
+          id: string
+          is_active: boolean | null
+          name: string
+          profession_category_id: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          profession_category_id: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          profession_category_id?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "professional_roles_profession_category_id_fkey"
+            columns: ["profession_category_id"]
+            isOneToOne: false
+            referencedRelation: "profession_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       professionals: {
         Row: {
           achievements: Json | null
@@ -7650,6 +7789,7 @@ export type Database = {
           phone: string | null
           portfolio_url: string | null
           profession_category_id: string | null
+          professional_role_id: string | null
           profile_photo_url: string | null
           projects: Json | null
           ref_code: string | null
@@ -7690,6 +7830,7 @@ export type Database = {
           phone?: string | null
           portfolio_url?: string | null
           profession_category_id?: string | null
+          professional_role_id?: string | null
           profile_photo_url?: string | null
           projects?: Json | null
           ref_code?: string | null
@@ -7730,6 +7871,7 @@ export type Database = {
           phone?: string | null
           portfolio_url?: string | null
           profession_category_id?: string | null
+          professional_role_id?: string | null
           profile_photo_url?: string | null
           projects?: Json | null
           ref_code?: string | null
@@ -7755,6 +7897,13 @@ export type Database = {
             columns: ["profession_category_id"]
             isOneToOne: false
             referencedRelation: "profession_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "talents_professional_role_id_fkey"
+            columns: ["professional_role_id"]
+            isOneToOne: false
+            referencedRelation: "professional_roles"
             referencedColumns: ["id"]
           },
         ]
