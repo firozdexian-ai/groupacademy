@@ -80,27 +80,8 @@ interface NavGroup {
 }
 
 const navGroups: NavGroup[] = [
-  {
-    title: "Workforce",
-    icon: Network,
-    roles: ["admin"],
-    items: [
-      { title: "Workforce Members", icon: UserCog, value: "workforce" },
-    ],
-  },
-  // Talent group is rendered separately as a collapsible (like Overview).
-  // It contains: Overview, Talent Pool, Aisha Console, Lead Hunter,
-  // AI General Console, Professions & Roles.
-  {
-    title: "Recruitment",
-    icon: Briefcase,
-    roles: ["admin", "talent_exec"],
-    companyScoped: true,
-    items: [
-      { title: "Jobs KPIs", icon: TrendingUp, value: "jobs-kpis" },
-      { title: "Jobs Hub", icon: Briefcase, value: "jobs-hub" },
-    ],
-  },
+  // Companies first (after the standalone Talent group rendered above) so the
+  // stakeholder order is Overview → Talent → Companies → AI Agents → ...
   {
     title: "Companies",
     icon: Building2,
@@ -115,6 +96,44 @@ const navGroups: NavGroup[] = [
       { title: "Riya Console", icon: Sparkles, value: "companies-riya" },
       { title: "Company AI General", icon: Bot, value: "companies-ai-general" },
       { title: "Outreach Agent", icon: Send, value: "companies-outreach" },
+    ],
+  },
+  {
+    title: "AI Agents",
+    icon: Bot,
+    roles: ["admin"],
+    items: [
+      { title: "Agent OS Overview", icon: LayoutDashboard, value: "agents-overview" },
+      { title: "Channels & Triggers", icon: Zap, value: "agents-channels" },
+      { title: "Tools, Skills & Connectors", icon: Network, value: "agents-tools" },
+      { title: "Agent Studio (Builder)", icon: Sparkles, value: "agents-studio" },
+      { title: "Gro10x B2C Agents", icon: Users, value: "agents-b2c" },
+      { title: "Platform Tool-Agents", icon: Sparkles, value: "agents-platform" },
+      { title: "Company / B2B Agents", icon: Building2, value: "agents-b2b" },
+      { title: "User-Generated Agents", icon: UserCog, value: "agents-ugc" },
+      { title: "Marketplace", icon: Store, value: "agents-marketplace" },
+      { title: "Marketplace Payouts", icon: Coins, value: "agents-payouts" },
+      { title: "Agent Manager", icon: Bot, value: "agents-manager" },
+      { title: "Sessions Log", icon: MessageSquare, value: "agents-sessions" },
+      { title: "Agent Insights", icon: BarChart, value: "agents-insights" },
+    ],
+  },
+  {
+    title: "Workforce",
+    icon: Network,
+    roles: ["admin"],
+    items: [
+      { title: "Workforce Members", icon: UserCog, value: "workforce" },
+    ],
+  },
+  {
+    title: "Recruitment",
+    icon: Briefcase,
+    roles: ["admin", "talent_exec"],
+    companyScoped: true,
+    items: [
+      { title: "Jobs KPIs", icon: TrendingUp, value: "jobs-kpis" },
+      { title: "Jobs Hub", icon: Briefcase, value: "jobs-hub" },
     ],
   },
   {
