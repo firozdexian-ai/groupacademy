@@ -2804,6 +2804,155 @@ export type Database = {
           },
         ]
       }
+      course_project_subtasks: {
+        Row: {
+          ai_feedback: string | null
+          ai_score: number | null
+          brief: string | null
+          created_at: string
+          credit_reward: number
+          display_order: number
+          expected_format: string | null
+          id: string
+          kind: Database["public"]["Enums"]["course_subtask_kind"]
+          module_id: string | null
+          project_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          reviewer_notes: string | null
+          status: Database["public"]["Enums"]["course_subtask_status"]
+          submitted_at: string | null
+          submitted_files: Json
+          submitted_notes: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          ai_feedback?: string | null
+          ai_score?: number | null
+          brief?: string | null
+          created_at?: string
+          credit_reward?: number
+          display_order?: number
+          expected_format?: string | null
+          id?: string
+          kind: Database["public"]["Enums"]["course_subtask_kind"]
+          module_id?: string | null
+          project_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewer_notes?: string | null
+          status?: Database["public"]["Enums"]["course_subtask_status"]
+          submitted_at?: string | null
+          submitted_files?: Json
+          submitted_notes?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          ai_feedback?: string | null
+          ai_score?: number | null
+          brief?: string | null
+          created_at?: string
+          credit_reward?: number
+          display_order?: number
+          expected_format?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["course_subtask_kind"]
+          module_id?: string | null
+          project_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewer_notes?: string | null
+          status?: Database["public"]["Enums"]["course_subtask_status"]
+          submitted_at?: string | null
+          submitted_files?: Json
+          submitted_notes?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_project_subtasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "course_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      course_projects: {
+        Row: {
+          approved_at: string | null
+          claimed_at: string | null
+          claimed_by: string | null
+          completion_bonus: number
+          course_id: string
+          created_at: string
+          created_by: string | null
+          deadline: string | null
+          id: string
+          paid_at: string | null
+          progress_percent: number
+          reviewer_notes: string | null
+          status: Database["public"]["Enums"]["course_project_status"]
+          submitted_at: string | null
+          total_credit_reward: number
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          claimed_at?: string | null
+          claimed_by?: string | null
+          completion_bonus?: number
+          course_id: string
+          created_at?: string
+          created_by?: string | null
+          deadline?: string | null
+          id?: string
+          paid_at?: string | null
+          progress_percent?: number
+          reviewer_notes?: string | null
+          status?: Database["public"]["Enums"]["course_project_status"]
+          submitted_at?: string | null
+          total_credit_reward?: number
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          claimed_at?: string | null
+          claimed_by?: string | null
+          completion_bonus?: number
+          course_id?: string
+          created_at?: string
+          created_by?: string | null
+          deadline?: string | null
+          id?: string
+          paid_at?: string | null
+          progress_percent?: number
+          reviewer_notes?: string | null
+          status?: Database["public"]["Enums"]["course_project_status"]
+          submitted_at?: string | null
+          total_credit_reward?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_projects_claimed_by_fkey"
+            columns: ["claimed_by"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_projects_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: true
+            referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       course_sessions: {
         Row: {
           content_id: string
@@ -7371,6 +7520,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      claim_course_project: { Args: { p_project_id: string }; Returns: Json }
       cleanup_rate_limits: { Args: never; Returns: undefined }
       connect_agent: {
         Args: { _agent_key: string; _fee?: number; _talent_id: string }
@@ -7533,6 +7683,10 @@ export type Database = {
         Args: { _content_id: string }
         Returns: undefined
       }
+      recompute_course_project_progress: {
+        Args: { p_project_id: string }
+        Returns: undefined
+      }
       recompute_school_readiness: {
         Args: { _school_id: string }
         Returns: undefined
@@ -7597,6 +7751,27 @@ export type Database = {
         | "live_webinar"
         | "batch_class"
         | "offline_seminar"
+      course_project_status:
+        | "open"
+        | "claimed"
+        | "in_progress"
+        | "submitted"
+        | "approved"
+        | "paid"
+        | "abandoned"
+      course_subtask_kind:
+        | "cover"
+        | "intro_video"
+        | "module_slides"
+        | "module_quiz"
+        | "module_video"
+        | "reading"
+        | "caption"
+        | "translation"
+        | "exercise"
+        | "flashcards"
+        | "other"
+      course_subtask_status: "pending" | "in_review" | "approved" | "rejected"
       delivery_status: "pending" | "sent" | "failed"
       enrollment_status: "pending_payment" | "active" | "completed"
       experience_level: "entry" | "mid" | "senior" | "executive"
@@ -7800,6 +7975,29 @@ export const Constants = {
         "batch_class",
         "offline_seminar",
       ],
+      course_project_status: [
+        "open",
+        "claimed",
+        "in_progress",
+        "submitted",
+        "approved",
+        "paid",
+        "abandoned",
+      ],
+      course_subtask_kind: [
+        "cover",
+        "intro_video",
+        "module_slides",
+        "module_quiz",
+        "module_video",
+        "reading",
+        "caption",
+        "translation",
+        "exercise",
+        "flashcards",
+        "other",
+      ],
+      course_subtask_status: ["pending", "in_review", "approved", "rejected"],
       delivery_status: ["pending", "sent", "failed"],
       enrollment_status: ["pending_payment", "active", "completed"],
       experience_level: ["entry", "mid", "senior", "executive"],
