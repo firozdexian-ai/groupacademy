@@ -100,7 +100,6 @@ export default function Gro10xFeed() {
 
   // Only the company POC (owner) can publish company posts and post-as-company.
   const isOwner = role === "owner";
-  const isAdmin = role === "owner" || role === "admin";
 
   const handlePublish = async (draftId: string) => {
     setWorking(draftId);
