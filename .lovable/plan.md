@@ -1,90 +1,63 @@
-# Admin Panel — Segment 1: Overview
+# Admin Overview — Polish, Pickers, and Bug Fixes
 
-Transform the current single "Business Overview" into a 3-tab time-scoped command center, and add two AI tools: a **Business Analyst** chat agent and a **Report Builder** agent that produces shareable canvases.
+Three real problems to close before we move on:
 
-## 1. Restructure the Overview page
+1. **Edge functions return 403** — `admin-analyst` and `admin-report-builder` both gate on `super_admin`, but no user in `user_roles` actually has that role. The operator (you) is currently just `admin`, so every call is rejected.
+2. **Month / Quarter tabs have no picker** — they only ever show the *current* period vs. the previous one. You can't pick June 2026 or Q1 2026.
+3. **UI drift** — the new tabs (Period, Analyst, Reports) don't match the brand language used in `LifetimeOverviewTab` (rounded‑[40px] cards, italic black uppercase headers, accent gradient strip, StatsCard usage).
 
-Rebuild `DashboardOverview.tsx` as a tabbed shell with 5 tabs:
+There is also one piece of dead UI: `DashboardOverview.tsx` still renders an internal horizontal `<Tabs>`, but the sidebar now routes directly to each sub‑view via `?tab=overview-*`. That inner tab strip is no longer reachable and should be removed.
 
-```text
-[ Lifetime ] [ This Month ] [ This Quarter ] [ Analyst ] [ Reports ]
-```
+---
 
-- **Lifetime** — current KPI grid (Talents, Revenue, Credits, Agents, Jobs, etc.) — no date filter.
-- **This Month** — same KPI shape, scoped to current calendar month, with delta vs. previous month (▲/▼ %).
-- **This Quarter** — same KPIs scoped to current quarter, with delta vs. previous quarter and a small sparkline (3 months).
-- Add a **period switcher** (MTD / QTD / Custom range) at the top of Month/Quarter tabs.
-- Reuse `StatsCard` and add a thin `<TrendDelta />` helper. New shared hook `useOverviewMetrics(period)` (parallel `count` + `sum` queries with `gte/lte` on `created_at`).
-- Add Top movers row: "Fastest growing service this month", "Top earning agent", "Most active company".
+## 1. Fix the 403 errors (root cause: missing role)
 
-## 2. Business Analyst Agent (chat)
+Migration:
+- Insert `super_admin` rows into `user_roles` for the two existing admin user_ids (`a424…` and `a840…`). Idempotent `ON CONFLICT DO NOTHING`.
+- Keep the edge functions' `super_admin` gate as‑is (matches your stated intent: "the platform / super admin panel … that is for me").
 
-A new tab "Analyst" that opens a chat interface backed by an edge function `admin-analyst`:
+After the migration, both functions resolve normally:
+- `admin-analyst` → tool‑calls `analyst_metric` / `analyst_top_n` / `analyst_series`
+- `admin-report-builder` → plans a spec, resolves each section
 
-- **Edge function**: validates JWT → confirms `super_admin` role via `user_roles` (hard gate) → uses Lovable AI (`google/gemini-2.5-pro`) with tool-calling. Tools exposed to the model:
-  - `run_metric(metric, period)` — whitelisted aggregate queries (transactions, signups, revenue, credits issued, jobs posted, applications, gigs, courses sold, etc.).
-  - `count_table(table, filters)` — only allowed against a whitelist of safe tables.
-  - `top_n(dimension, metric, period, limit)` — group-by helper.
-  - `time_series(metric, period, granularity)` — daily/weekly buckets.
-- **No raw SQL execution.** All access goes through whitelisted RPC helpers (`analyst_metric`, `analyst_top_n`, `analyst_series`) created with `security definer` and `set search_path = public`, callable only when `has_role(auth.uid(), 'super_admin')`.
-- Frontend: streaming chat (SSE) reusing the Lovable AI streaming pattern, renders markdown + small inline tables/number cards when the model returns structured tool results.
-- Persist threads in a new `admin_analyst_threads` / `admin_analyst_messages` pair (RLS: super_admin only).
+Small hardening while we're in there:
+- Surface the upstream gateway error message in the toast (currently "Edge function returned 403" is opaque). The functions already return `{error, detail}`; the client will display `detail` if present.
 
-Example prompts seeded in the empty state:
-- "How many transactions happened today?"
-- "Revenue this month vs last month, by service."
-- "Top 10 companies by credits spent this quarter."
+## 2. Month / Quarter pickers
 
-## 3. Report Builder Agent (canvas)
+Refactor `PeriodOverviewTab` to accept an explicit period instead of always computing "now":
 
-Tab "Reports" — generates a shareable visual report from a natural-language brief.
+- Add a header row with **◄ / ►** chevrons and a `Select` dropdown.
+  - Month mode: dropdown of last 24 months (e.g. "May 2026", "April 2026", …).
+  - Quarter mode: dropdown of last 12 quarters (e.g. "Q2 2026", "Q1 2026", …).
+- The picked period drives `cur`; `prev` is auto‑computed (one period back) for delta.
+- Default selection = current period, so behaviour is unchanged on first load.
+- URL sync: `?tab=overview-month&p=2026-05` so a chosen period is shareable.
 
-- **Edge function** `admin-report-builder`:
-  1. LLM plans the report → returns a structured JSON spec (title, period, sections: `kpi | bar | line | pie | table | note`).
-  2. Backend executes each section via the same whitelisted analyst RPCs.
-  3. Returns spec + resolved data.
-- **Frontend canvas** (`AdminReportCanvas.tsx`): renders the spec using Recharts (already in deps) on a printable A4-style canvas with the platform's brand tokens. Each block is editable inline (title, swap chart type, remove, reorder via drag).
-- **Save / share / export**:
-  - Save to new table `admin_reports` (super_admin RLS) — stores `spec_json`, `data_snapshot`, `title`, `period`.
-  - Share link `/admin/reports/:id` — gated to internal/super scope; optional public read-only token for stakeholders.
-  - Export as PNG (html2canvas, already used) and PDF (existing `pdfGenerator`).
+## 3. Brand‑consistent UI pass
 
-Seeded prompts:
-- "Month-on-month talent growth, last 12 months."
-- "Job distribution across countries this quarter."
-- "Credit economy: issued vs spent vs withdrawn, last 6 months."
+Match the `LifetimeOverviewTab` system across the three new tabs:
 
-## 4. Database changes
+- **Header block**: replace the small h2 with the `bg-muted/20 p-8 rounded-[40px] border-2 border-border/40 backdrop-blur-md` header used in Lifetime, with the icon chip + italic black uppercase title + 0.3em tracking eyebrow.
+- **Period KPI cards**: swap raw `Card` for `StatsCard` (already used in Lifetime) so deltas render in the same visual language. Remove the smaller "rounded‑3xl" cards.
+- **Analyst tab**: use the same big header; wrap the chat in a rounded‑[40px] card with a 1.5px gradient strip on top; add a left‑rail thread list placeholder (wired to `admin_analyst_threads` in a follow‑up — for now show "New chat" + recent local thread).
+- **Reports tab**: same header treatment; canvas card uses rounded‑[40px], gradient strip, and section titles in italic black uppercase. Chart palette already uses brand colors (`#2A7DDE`, `#33E1E4`, `#10D576`) — keep it.
 
-```sql
--- Threads + messages for the analyst chat
-create table admin_analyst_threads (id uuid pk, user_id uuid, title text, created_at, updated_at);
-create table admin_analyst_messages (id uuid pk, thread_id uuid fk, role text, content text, tool_calls jsonb, created_at);
+## 4. Cleanup
 
--- Saved reports
-create table admin_reports (id uuid pk, user_id uuid, title text, period jsonb,
-  spec_json jsonb, data_snapshot jsonb, share_token text unique, created_at, updated_at);
+- `DashboardOverview.tsx`: remove the inner `<Tabs>` strip and just render `<LifetimeOverviewTab />`. The sidebar already handles sub‑routing, and the legacy `?tab=overview` key in `Dashboard.tsx` already points here, so behaviour is preserved.
+- Move `period` math out of `PeriodOverviewTab` into a tiny pure helper (`src/components/dashboard/overview/period.ts`) so it's unit‑testable and reusable by the picker.
 
--- Whitelisted analyst RPCs (security definer, gated by has_role super_admin)
-create function analyst_metric(metric text, period jsonb) returns jsonb ...;
-create function analyst_top_n(dimension text, metric text, period jsonb, n int) returns jsonb ...;
-create function analyst_series(metric text, period jsonb, granularity text) returns jsonb ...;
-```
+## Technical notes
 
-All tables: RLS on, super_admin only (via `has_role`). Functions: `set search_path = public`.
+- Files touched:
+  - `supabase/migrations/<new>.sql` — grant `super_admin` to the two existing admin user_ids
+  - `src/components/dashboard/overview/PeriodOverviewTab.tsx` — picker + StatsCard + branded header
+  - `src/components/dashboard/overview/period.ts` (new) — period math + label formatting
+  - `src/components/dashboard/overview/AnalystChatTab.tsx` — branded header + canvas; better error toast
+  - `src/components/dashboard/overview/ReportsBuilderTab.tsx` — branded header + canvas; better error toast
+  - `src/components/dashboard/DashboardOverview.tsx` — drop dead inner tabs
+- No changes to RPCs, schema, or routing keys.
+- Out of scope (separate follow‑up): persisting analyst threads and saved reports to `admin_analyst_threads` / `admin_reports` with a real left‑rail history. Tables already exist; we'll wire them in the next pass once you've validated the visuals.
 
-## 5. Files
-
-- New: `src/components/dashboard/overview/{LifetimeTab,PeriodTab,AnalystTab,ReportsTab,TrendDelta,PeriodSwitcher}.tsx`
-- New: `src/components/dashboard/overview/AdminReportCanvas.tsx`
-- New hooks: `useOverviewMetrics.ts`, `useAdminAnalystChat.ts`, `useAdminReports.ts`
-- New edge functions: `supabase/functions/admin-analyst/index.ts`, `supabase/functions/admin-report-builder/index.ts`
-- Modified: `src/components/dashboard/DashboardOverview.tsx` (becomes tab shell), `src/pages/Dashboard.tsx` (label tweaks), 1 migration file.
-
-## 6. Security notes
-
-- Hard role check (`super_admin`) in every edge function and RPC — no client-trusted flags.
-- No arbitrary SQL: model can only invoke the 3 whitelisted RPCs with enumerated metric keys.
-- Share tokens for reports use `gen_random_uuid()` and are revocable.
-
-Approve and I'll implement Segment 1 in build mode, then we move to the next admin segment.
+Approve and I'll implement.
