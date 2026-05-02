@@ -64,7 +64,8 @@ export default function Gro10xCompanyPage() {
         .limit(1)
         .maybeSingle();
       companyId = m?.company_id;
-      editor = m?.role === "owner" || m?.role === "admin";
+      // Owner only — admins can manage hiring/CRM but not the public face.
+      editor = m?.role === "owner";
     } else if (companyId && user?.id) {
       const { data: m } = await supabase
         .from("company_members")
@@ -73,7 +74,7 @@ export default function Gro10xCompanyPage() {
         .eq("company_id", companyId)
         .eq("status", "active")
         .maybeSingle();
-      editor = m?.role === "owner" || m?.role === "admin";
+      editor = m?.role === "owner";
     }
     setCanEdit(editor);
 
@@ -275,8 +276,12 @@ export default function Gro10xCompanyPage() {
         <section className="px-4 mt-6">
           <h2 className="text-sm font-semibold mb-2">Team · {members.length}</h2>
           <div className="grid grid-cols-3 gap-2">
-            {members.slice(0, 9).map((m, i) => (
-              <div key={i} className={`${GRO10X_PANEL} border border-white/10 rounded-xl p-2 text-center`}>
+            {members.map((m, i) => (
+              <Link
+                key={i}
+                to={m.user_id ? `/app/profile/${m.user_id}` : "#"}
+                className={`${GRO10X_PANEL} border border-white/10 rounded-xl p-2 text-center hover:bg-white/5`}
+              >
                 <div className="h-10 w-10 mx-auto rounded-full bg-[#0B1220] border border-white/10 grid place-items-center text-xs overflow-hidden">
                   {m.profile_photo_url ? (
                     <img src={m.profile_photo_url} alt="" className="h-full w-full object-cover" />
@@ -286,7 +291,7 @@ export default function Gro10xCompanyPage() {
                 </div>
                 <p className="text-[11px] mt-1 truncate">{m.full_name || m.invited_email || "Member"}</p>
                 <p className="text-[9px] text-slate-500 capitalize">{m.role}</p>
-              </div>
+              </Link>
             ))}
           </div>
         </section>
