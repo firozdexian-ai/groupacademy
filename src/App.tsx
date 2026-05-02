@@ -411,6 +411,7 @@ export default function App() {
                     <Route path="job-assessment/:assessmentId/results" element={<JobAssessmentResults />} />
                     <Route path="applications" element={<MyApplications />} />
                     <Route path="saved" element={<SavedItems />} />
+                    <Route path="course-project/:projectId" element={<CourseProjectDetail />} />
 
                     {/* Learning Routes */}
                     <Route path="learning/tracks" element={<AppProfessions />} />
