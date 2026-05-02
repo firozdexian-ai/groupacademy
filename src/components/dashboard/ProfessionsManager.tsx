@@ -38,6 +38,7 @@ import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { DashboardCardSkeleton } from "./DashboardSkeleton";
 import { cn } from "@/lib/utils";
+import { ProfessionalRolesPanel } from "@/components/dashboard/talent/ProfessionalRolesPanel";
 
 /**
  * GroUp Academy: Academic Infrastructure Orchestrator
