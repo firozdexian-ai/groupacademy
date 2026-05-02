@@ -4880,6 +4880,90 @@ export type Database = {
           },
         ]
       }
+      ir_fpa_conversations: {
+        Row: {
+          created_at: string
+          id: string
+          last_answer_summary: string | null
+          last_question: string | null
+          message_count: number | null
+          session_id: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_answer_summary?: string | null
+          last_question?: string | null
+          message_count?: number | null
+          session_id: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_answer_summary?: string | null
+          last_question?: string | null
+          message_count?: number | null
+          session_id?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      ir_influencers: {
+        Row: {
+          contact_json: Json | null
+          country: string | null
+          created_at: string
+          email: string | null
+          id: string
+          linkedin_url: string | null
+          name: string
+          notes: string | null
+          organization: string | null
+          owner_user_id: string | null
+          role: string | null
+          tags: string[] | null
+          tier: string | null
+          updated_at: string
+        }
+        Insert: {
+          contact_json?: Json | null
+          country?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          linkedin_url?: string | null
+          name: string
+          notes?: string | null
+          organization?: string | null
+          owner_user_id?: string | null
+          role?: string | null
+          tags?: string[] | null
+          tier?: string | null
+          updated_at?: string
+        }
+        Update: {
+          contact_json?: Json | null
+          country?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          linkedin_url?: string | null
+          name?: string
+          notes?: string | null
+          organization?: string | null
+          owner_user_id?: string | null
+          role?: string | null
+          tags?: string[] | null
+          tier?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ir_investor_interactions: {
         Row: {
           content: string | null
@@ -5094,6 +5178,48 @@ export type Database = {
           target_paying_users?: number | null
           total_talents?: number | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      ir_outreach_log: {
+        Row: {
+          body: string | null
+          channel: string
+          created_at: string
+          created_by: string | null
+          id: string
+          sentiment: string | null
+          status: string | null
+          subject: string | null
+          target_id: string | null
+          target_label: string | null
+          target_type: string
+        }
+        Insert: {
+          body?: string | null
+          channel: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          sentiment?: string | null
+          status?: string | null
+          subject?: string | null
+          target_id?: string | null
+          target_label?: string | null
+          target_type: string
+        }
+        Update: {
+          body?: string | null
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          sentiment?: string | null
+          status?: string | null
+          subject?: string | null
+          target_id?: string | null
+          target_label?: string | null
+          target_type?: string
         }
         Relationships: []
       }
