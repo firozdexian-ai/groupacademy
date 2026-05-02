@@ -253,6 +253,10 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   "ir-emails": React.lazy(() =>
     import("@/components/dashboard/ir/EmailComposer").then((m) => ({ default: m.EmailComposer })),
   ),
+  "ir-overview": React.lazy(() => import("@/components/dashboard/investors/IROverviewTab")),
+  "ir-influencers": React.lazy(() => import("@/components/dashboard/investors/KeyInfluencersTab")),
+  "ir-relationship-exec": React.lazy(() => import("@/components/dashboard/investors/RelationshipExecConsoleTab")),
+  "ir-fpa-agent": React.lazy(() => import("@/components/dashboard/investors/FpaAgentConsoleTab")),
   "support-assistant": React.lazy(() =>
     import("@/components/dashboard/SupportAssistant").then((m) => ({ default: m.SupportAssistant })),
   ),
@@ -366,6 +370,10 @@ const TAB_TITLES: Record<string, string> = {
   "ir-vcs": "VC Portfolio",
   ir_investors: "Shareholders",
   "ir-emails": "Executive Updates",
+  "ir-overview": "IR Overview",
+  "ir-influencers": "Key Influencers",
+  "ir-relationship-exec": "Relationship Exec",
+  "ir-fpa-agent": "Fundraising FP&A",
   "support-assistant": "Helpdesk AI",
   codes: "Priority Codes",
   banners: "Display Layer",
