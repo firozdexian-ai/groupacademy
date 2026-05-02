@@ -85,6 +85,7 @@ import ApplicationHelper from "./pages/app/tools/ApplicationHelper";
 // Feature Details
 import AppJobs from "./pages/app/AppJobs";
 import AppJobDetail from "./pages/app/AppJobDetail";
+import CourseProjectDetail from "./pages/app/CourseProjectDetail";
 import AppJobApplication from "./pages/app/AppJobApplication";
 import AppCourses from "./pages/app/AppCourses";
 import AppCourseDetail from "./pages/app/AppCourseDetail";
