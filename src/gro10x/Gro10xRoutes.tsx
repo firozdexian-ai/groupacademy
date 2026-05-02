@@ -44,6 +44,7 @@ export function Gro10xRoutes() {
         <Route path="billing" element={<Gro10xBilling />} />
         <Route path="learn" element={<Gro10xLearn />} />
         <Route path="notifications" element={<Gro10xNotifications />} />
+        <Route path="crm" element={<Gro10xCRM />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/gro10x" replace />} />
