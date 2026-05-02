@@ -227,7 +227,7 @@ export function ProfessionsManager() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="bg-muted/30 backdrop-blur-md rounded-[24px] border-2 border-border/40 p-1.5 mb-8 w-full max-w-lg">
+        <TabsList className="bg-muted/30 backdrop-blur-md rounded-[24px] border-2 border-border/40 p-1.5 mb-8 w-full max-w-2xl">
           <TabsTrigger
             value="academies"
             className="flex-1 rounded-xl font-black uppercase text-[10px] tracking-widest py-3"
@@ -239,6 +239,12 @@ export function ProfessionsManager() {
             className="flex-1 rounded-xl font-black uppercase text-[10px] tracking-widest py-3"
           >
             Professions
+          </TabsTrigger>
+          <TabsTrigger
+            value="roles"
+            className="flex-1 rounded-xl font-black uppercase text-[10px] tracking-widest py-3"
+          >
+            Roles
           </TabsTrigger>
         </TabsList>
 
@@ -269,6 +275,10 @@ export function ProfessionsManager() {
               }}
             />
           ))}
+        </TabsContent>
+
+        <TabsContent value="roles">
+          <ProfessionalRolesPanel />
         </TabsContent>
       </Tabs>
 
