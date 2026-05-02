@@ -23,12 +23,16 @@ export const PRO_GOALS = [
 
 export type ProGoalKey = typeof PRO_GOALS[number]["key"];
 
-/** Maps a goal to the agents that should be pre-pinned in the inbox. */
+/**
+ * Maps a goal to the agents that should be pre-pinned in the inbox.
+ * IMPORTANT: every key here must exist in `GRO10X_AGENTS` (lib/agents.ts) —
+ * otherwise the inbox seeds rows that render as the generic 🤖 fallback.
+ */
 export const GOAL_TO_AGENTS: Record<ProGoalKey, string[]> = {
   hire:      ["recruiter", "sourcer", "outreach"],
-  freelance: ["gig_finder", "briefing", "escrow"],
-  sell_b2b:  ["lead_hunter", "outreach_writer", "crm"],
-  train:     ["curriculum", "cohort_manager", "progress_tracker"],
+  freelance: ["gig_finder", "briefing"],
+  sell_b2b:  ["lead_hunter", "outreach", "crm", "sales"],
+  train:     ["concierge"], // dedicated training agents arrive in a later phase
   ops:       ["billing", "ops", "calendar"],
   explore:   ["concierge"],
 };

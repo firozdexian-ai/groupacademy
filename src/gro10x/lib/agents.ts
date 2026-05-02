@@ -31,3 +31,16 @@ export const GRO10X_AGENTS: Gro10xAgent[] = [
 export const AGENT_BY_KEY: Record<string, Gro10xAgent> = Object.fromEntries(
   GRO10X_AGENTS.map((a) => [a.key, a])
 );
+
+/** Safe lookup with a sensible fallback so unknown keys never break the UI. */
+export function getAgentMeta(key: string): Gro10xAgent {
+  return (
+    AGENT_BY_KEY[key] ?? {
+      key,
+      name: key,
+      desc: "AI agent",
+      emoji: "🤖",
+      goals: [],
+    }
+  );
+}
