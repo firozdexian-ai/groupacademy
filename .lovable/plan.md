@@ -1,126 +1,172 @@
+# Stakeholder Restructure — Companies Reorder + AI Agents OS
 
-# Stakeholder Segment 2 — Companies
+## Part 1 — Reorder Sidebar Stakeholders
 
-Mirrors the Talent group structure but for B2B (Gro10x) stakeholders. Reuses `AdminAnalystShell` + analyst edge-function pattern already shipped for Aisha / AI General.
+Move **Companies** to sit immediately after **Talent** so the stakeholder order reads: Overview → Talent → **Companies** → **AI Agents** (new) → Recruitment → Learning → ...
 
-## Sidebar
-
-Rename `Companies & Contacts` → standalone collapsible **`Companies`** group (parallel to `Talent`):
+Both `Companies` and the new `AI Agents` group will use the same collapsible-group pattern as Talent.
 
 ```text
-Companies (collapsible)
-├── Overview                  (NEW)
-├── Companies                 (existing CompaniesManager)
-├── Industries                (existing IndustriesManager)
-├── Contacts                  (upgraded ContactsManager: Uploaded / Registered tabs)
-├── Riya Console              (NEW — B2B auth concierge telemetry)
-├── Company AI General        (NEW — in-app messaging to registered company users)
-└── Company Outreach Agent    (NEW — outreach to unregistered company contacts/owners)
+Sidebar order
+├── Overview
+├── Talent (group)
+├── Companies (group) ← moved up (already exists)
+├── AI Agents (group) ← NEW: replaces flat entries in "AI & Monetization"
+├── Recruitment
+├── Learning
+├── Marketing & Outreach
+├── Career Abroad
+├── Content Ops
+├── Monetization (renamed from "AI & Monetization", agent-related items removed)
+├── Investor Relations
+├── Stakeholders
+└── Platform Config
 ```
 
-Removes the `Company Agents` row from this group (it stays accessible elsewhere, or moves under AI & Monetization — confirm).
+The existing flat agent entries (`AI Agents`, `Agent Studio`, `Channel Triggers`, `Marketplace Review`, `Agent Sessions`, `Agent Insights`, `Agent Payouts`) move into the new **AI Agents** group and are replaced by the structure below. Non-agent items (Credits, Withdrawals, Leads, Mock Interviews, Salary, Portfolios, Gigs, Notifications) stay under **Monetization**.
 
-## 1. Companies Overview (`?tab=companies-overview`)
+---
 
-New `src/components/dashboard/companies/CompaniesOverviewTab.tsx`. KPIs:
+## Part 2 — AI Agents Stakeholder Group ("Agent OS")
 
-- Total companies / verified / claimed (have onboarded owner)
-- Industry distribution (top 8 + "other")
-- Contacts: total / uploaded / registered (linked to `auth.users` via `contacts.user_id`) / matched-from-CV (`source = 'cv_match'`)
-- Riya funnel: started → email → role/company → goals → phone → completed (from `riya_conversations` — new table, mirror of `aisha_conversations`)
-- Recent admin notifications related to company signups
+A unified operating system for every AI agent across the platform (B2C, B2B, platform tools, user-generated, marketplace). Mirrors the Talent / Companies architecture: a collapsible sidebar group with sub-tabs, each backed by a tab component and (where conversational) an `AdminAnalystShell` console wired to a dedicated edge function.
 
-Same compact KPI card style as `TalentOverviewTab`.
+### Sub-tabs (in order)
 
-## 2. Companies / 3. Industries
+```text
+AI Agents (collapsible)
+├── 1. Agent OS Overview              ?tab=agents-overview
+├── 2. Channels & Triggers            ?tab=agents-channels
+├── 3. Tools, Skills & Connectors     ?tab=agents-tools
+├── 4. Agent Studio (Builder)         ?tab=agents-studio
+├── 5. Gro10x B2C Agents              ?tab=agents-b2c
+├── 6. Platform Tool-Agents           ?tab=agents-platform
+├── 7. Company / B2B Agents           ?tab=agents-b2b
+├── 8. User-Generated Agents          ?tab=agents-ugc
+├── 9. Marketplace & Payouts          ?tab=agents-marketplace
+├── 10. Agent Manager (Console)       ?tab=agents-manager
+└── 11. Sessions & Insights           ?tab=agents-sessions
+```
 
-Existing `CompaniesManager` and `IndustriesManager` re-mounted under the new group. No code changes.
+### Tab-by-tab scope
 
-## 4. Contacts — upgraded `ContactsManager`
+**1. Agent OS Overview** — KPI dashboard. Counts by type (B2C / Platform / B2B / UGC / Marketplace), active vs draft, total runs (24h/7d/30d), credits earned per agent, top 10 by revenue, error/abort rate, channel mix (in-app / email / web / WhatsApp later), connector health summary.
 
-Three sub-tabs (shadcn `Tabs`):
+**2. Channels & Triggers** — CRUD over an `agent_channels` table. A channel is *where* an agent fires (in-app chat, profile sidebar, feed prompt, email reply, scheduled cron, webhook). Each agent can be assigned to one or more channels with a primary direction (talent-facing / company-facing / admin-facing).
 
-- **Registered** — `contacts.user_id IS NOT NULL` (joined to a Gro10x account).
-- **Uploaded** — `contacts.user_id IS NULL` AND `source IN ('manual','batch_upload','admin')`.
-- **CV-matched** — `source = 'cv_match'` (auto-suggested from talent CV parsing — see §7).
+**3. Tools, Skills & Connectors** — Registry of capabilities an agent can call. Three categories:
+- **Internal tools** (auto-discovered): every existing edge function exposed as an invokable tool (job search, CV parse, credit deduction, send-email, gig-create, etc.).
+- **Skills** (composed prompts + tool chains, reusable across agents).
+- **External connectors** (extensible): seed catalogue of Lovable-supported connectors that fit our roadmap (Resend, Google Sheets, Gmail, HubSpot, Slack, Telegram, Twilio, Airtable, Linear, Notion, Google Drive, Google Calendar, Asana, AWS S3, ElevenLabs, Firecrawl, Perplexity, Gemini Enterprise) with a "Status: not connected / linked / scoped to" flag. Provides the future scalability layer requested.
 
-Each row shows: avatar/initial, name, designation, company (linked), source badge, last contacted, actions (edit, send invite via Outreach Agent, link to user, delete).
+**4. Agent Studio (Builder)** — Form-based agent authoring. Pick: name, slug, persona/system prompt, model (gemini-2.5-flash / pro / gpt-5-mini etc.), allowed tools (from #3), channels (from #2), audience (talent / company / both / admin / public), monetization (free / per-response credits / subscription), visibility (internal / marketplace).
 
-Add a "Tag as contact" action on the existing Talent Pool row → inserts into `contacts` with `source='admin'` and pre-fills company from designation match.
+**5. Gro10x B2C Agents** — Filtered list of platform-built agents serving talents/users (Career Consultant, CV Coach, Interview Coach, Salary Negotiator, IELTS Tutor, Skill Advisor, Study Abroad, Mental Wellness, AI General). Inline metrics + edit shortcut.
 
-## 5. Riya Console (`?tab=companies-riya`)
+**6. Platform Tool-Agents** — Non-conversational AI tools that earn credits (job-matching engine, AI insights on job cards, salary analysis processor, CV parser, portfolio generator, AI captions, recommendation engine). Shows usage volume × credit price = revenue.
 
-`src/components/dashboard/companies/RiyaConsoleTab.tsx` using `AdminAnalystShell`. New edge function `admin-riya-analyst` (clone of `admin-aisha-analyst`) with tools:
+**7. Company / B2B Agents** — Gro10x B2B side (Atlas, Recruiter, Sourcer, Outreach Writer, Growth, Lead Hunter, CRM, Sales, Gig Finder, Briefing, Billing, Ops, Calendar — the existing `GRO10X_AGENTS` catalog). Each row: primary direction (toward talent / toward company), channel, run count, credits consumed.
 
-- `riya_funnel_stats(period)`
-- `recent_signups(limit)` — companies created in window
-- `stuck_sessions(step)` — sessions that didn't complete
-- `signup_notifications()` — pulls `admin_notifications` of type `company_signup`
+**8. User-Generated Agents** — Future-facing: agents created by talents or company contacts via a self-serve builder (gem-style). Admin queue for review/approval, abuse flags, owner attribution. v1 ships read-only with the schema in place so creation can light up later.
 
-DB additions:
-- `riya_conversations` table — same shape as `aisha_conversations` (`session_id`, `last_step`, `payload jsonb`, `completed_at`, timestamps), RLS admin-only.
-- Patch `ai-company-auth-agent` edge function to upsert into `riya_conversations` on every turn (mirror of the Aisha patch).
-- Trigger on `companies` insert → `admin_notifications` row of type `company_signup`.
+**9. Marketplace & Payouts** — Public-facing agent marketplace listings (already partially exists), reviews, featured slots, creator payout ledger (carries existing `agent-payouts` functionality).
 
-## 6. Company AI General Console (`?tab=companies-ai-general`)
+**10. Agent Manager (Console)** — Conversational `AdminAnalystShell` powered by a new `admin-agent-manager` edge function. Lets the admin chat: "How is Aisha doing this week?", "Which 3 agents lost the most credits to errors?", "Draft a new pricing for CV Coach". The manager can read the registry, sessions, and run aggregations.
 
-`src/components/dashboard/companies/CompanyAIGeneralTab.tsx` + `admin-company-ai-general-analyst` edge function. Operates on the **registered** company-side users (Gro10x accounts) — analytics + the ability to push in-app messages via existing `messages` / `notifications` infra. Tools:
+**11. Sessions & Insights** — Replaces current "Agent Sessions" + "Agent Insights" tabs. Filterable session log (agent, user, channel, duration, credits, outcome) plus charts.
 
-- `active_company_users(period)` — DAU/WAU on Gro10x routes
-- `inactive_users(days)` — for re-engagement
-- `send_in_app_message(user_ids[], body)` — uses existing `enqueue_email` + in-app notification helper; logs to `admin_notifications`
+---
 
-## 7. Company Outreach Agent (`?tab=companies-outreach`)
+## Part 3 — Database (new tables)
 
-`src/components/dashboard/companies/CompanyOutreachConsoleTab.tsx` + `admin-company-outreach` edge function — parallel of `admin-talent-outreach`, but for **company contacts/owners** not yet on Gro10x. Tools:
+```sql
+-- Channels an agent can be wired to
+create table agent_channels (
+  id uuid primary key default gen_random_uuid(),
+  key text unique not null,           -- 'in_app_chat', 'feed_prompt', 'email_reply', 'cron', 'webhook'
+  label text not null,
+  direction text,                     -- 'talent' | 'company' | 'admin' | 'public'
+  description text,
+  is_active boolean default true,
+  created_at timestamptz default now()
+);
 
-- `unregistered_contacts(filter)` — `contacts.user_id IS NULL`
-- `cv_matched_contacts(limit)` — surfaced by §7's CV matcher
-- `send_invite(contact_ids[], channel)` — uses native email queue with new `company-invite` template (or reuses `talent-invite` until copy approved); logs to new `company_outreach_log` table.
-- `recent_outreach(limit)`
+-- Tools / skills / connectors registry
+create table agent_tools (
+  id uuid primary key default gen_random_uuid(),
+  key text unique not null,
+  label text not null,
+  kind text not null,                 -- 'internal_tool' | 'skill' | 'external_connector'
+  category text,                      -- 'jobs','credits','email','crm','data','comms', etc.
+  edge_function text,                 -- for internal_tool
+  connector_id text,                  -- for external_connector (matches Lovable connector_id)
+  status text default 'available',    -- 'available' | 'linked' | 'scoped' | 'unavailable'
+  config jsonb default '{}'::jsonb,
+  created_at timestamptz default now()
+);
 
-DB: `company_outreach_log` (contact_id, channel, sent_at, status, response_at) + RLS admin-only.
+-- Many-to-many: which agent uses which tools / channels
+create table agent_tool_bindings (
+  agent_id uuid references ai_agents(id) on delete cascade,
+  tool_id  uuid references agent_tools(id) on delete cascade,
+  primary key (agent_id, tool_id)
+);
+create table agent_channel_bindings (
+  agent_id   uuid references ai_agents(id) on delete cascade,
+  channel_id uuid references agent_channels(id) on delete cascade,
+  is_primary boolean default false,
+  primary key (agent_id, channel_id)
+);
 
-## 8. CV → Contacts auto-match (background)
+-- Classification + ownership for the 5 type buckets
+alter table ai_agents
+  add column if not exists agent_type text default 'b2c',
+  -- 'b2c' | 'platform_tool' | 'b2b' | 'ugc' | 'marketplace'
+  add column if not exists owner_user_id uuid,        -- for ugc/marketplace
+  add column if not exists audience text,             -- 'talent'|'company'|'both'|'admin'
+  add column if not exists monetization jsonb default '{}'::jsonb,
+  add column if not exists visibility text default 'internal'; -- 'internal'|'marketplace'
 
-Extend the existing CV parsing pipeline (in `parse-cv` / `auto-review-gig-submission` flow). After a talent is parsed, if the parsed CV exposes `current_company` and `designation` and the company name matches an existing `companies.name` (case-insensitive, trimmed), insert a row into `contacts` with `source='cv_match'`, `company_id = matched.id`, `user_id = talent.auth_user_id` (nullable), `notes = 'Auto-matched from CV upload'`. No-op if a contact already exists for that (email, company_id).
+-- All RLS: admin/super_admin via has_role(); UGC owners can read/update their own.
+```
 
-## Verification pass
+Seed `agent_channels` with the 5 default channels and `agent_tools` with: every existing internal edge function (auto-listed) + the connector catalog above.
 
-- All 7 sub-tabs render for `super_admin` and 403 for anon.
-- `riya_conversations` populated when a Gro10x signup chat runs (curl smoke test).
-- `admin_notifications` fires on new `companies` insert.
-- Outreach send writes to `company_outreach_log` and queues a real email via `enqueue_email`.
-- Lint / type-check.
+---
 
-## Files
+## Part 4 — Edge Functions
 
-**New**
-- `src/components/dashboard/companies/CompaniesOverviewTab.tsx`
-- `src/components/dashboard/companies/RiyaConsoleTab.tsx`
-- `src/components/dashboard/companies/CompanyAIGeneralTab.tsx`
-- `src/components/dashboard/companies/CompanyOutreachConsoleTab.tsx`
-- `supabase/functions/admin-riya-analyst/index.ts`
-- `supabase/functions/admin-company-ai-general-analyst/index.ts`
-- `supabase/functions/admin-company-outreach/index.ts`
-- Migration: `riya_conversations`, `company_outreach_log`, `companies` insert → `admin_notifications` trigger, contacts indexes (`user_id IS NULL`, `source`).
+- `admin-agent-manager` — analyst chatbot for tab #10 (Lovable AI gateway, gemini-2.5-flash; reads registry + sessions; same JWT-verify + admin role check pattern used by `admin-aisha-analyst`).
+- `admin-agent-tools-discover` — one-shot scanner that lists every `supabase/functions/*` and upserts them into `agent_tools` with `kind='internal_tool'` so the registry stays current.
 
-**Edited**
-- `src/components/dashboard/AdminSidebar.tsx` — promote Companies to a collapsible group with 7 entries.
-- `src/components/dashboard/ContactsManager.tsx` — add Registered / Uploaded / CV-matched sub-tabs and "tag as contact" entrypoint.
-- `src/components/dashboard/TalentPoolManager.tsx` — add "Tag as contact" row action.
-- `src/pages/Dashboard.tsx` — register 4 new lazy routes.
-- `supabase/functions/ai-company-auth-agent/index.ts` — upsert `riya_conversations`.
-- `supabase/functions/parse-cv` (or equivalent) — emit `contacts` row on company-name match.
+No changes needed to existing agent runtime functions.
 
-## Quick decisions I'll make unless you object
+---
 
-- Keep "Company Agents" tab where it is for now (no move).
-- Use `talent-invite` email template for company outreach v1; ship dedicated `company-invite` template in a follow-up.
-- Riya logging starts from now (no historical backfill, same as Aisha).
-- Seed: none — Industries already curated; contacts populate organically.
+## Part 5 — UI components (new)
 
-## Out of scope (next stakeholder)
+```
+src/components/dashboard/agents/
+  AgentsOverviewTab.tsx
+  AgentChannelsTab.tsx
+  AgentToolsTab.tsx          (3 sub-sections: Internal / Skills / Connectors)
+  AgentStudioTab.tsx         (re-uses existing AgentStudio if present; wraps it)
+  AgentsB2CTab.tsx
+  AgentsPlatformTab.tsx
+  AgentsB2BTab.tsx
+  AgentsUGCTab.tsx
+  AgentsMarketplaceTab.tsx   (wraps existing Marketplace Review + Payouts)
+  AgentManagerConsoleTab.tsx (uses AdminAnalystShell)
+  AgentSessionsTab.tsx       (wraps existing sessions+insights)
+```
 
-- B2B billing / credits dashboards.
-- Company-side moderator role permissions overhaul.
+Update `AdminSidebar.tsx` (reorder + new group) and `Dashboard.tsx` (route the 11 new `tab=agents-*` values).
+
+---
+
+## Quick decisions (proceeding unless objected)
+
+1. Keep existing `Marketplace Review`, `Agent Payouts`, `Agent Sessions`, `Agent Insights` components alive — wrap them inside the new tabs rather than rewrite.
+2. v1 of UGC tab is read-only (schema + admin queue ready, creator-facing builder ships later).
+3. External connector catalog seeded as "available, not linked" — actual `standard_connectors--connect` flows wired only when a specific agent needs them.
+4. Agent Manager analyst starts logging from now (no historical backfill).
