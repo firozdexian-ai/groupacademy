@@ -1,118 +1,81 @@
+# Talent Segment — Round 2: Uploads, Outreach Agent, Polish
 
-# Admin Panel — Talent Stakeholder Restructure
+Build on the approved Talent group. Three additions + one verification pass, then we move to the next stakeholder.
 
-Convert the current flat "Talent & Leads" sidebar group into a collapsible **Talent** group with 6 sub-views, mirroring the Overview pattern. Each sub-view is its own lazy-loaded route under `?tab=talent-*`.
+## 1. New tab: Talent Upload (`?tab=talent-upload`)
 
+Bring back the bulk-ingest flow inside the Talent group. New file `src/components/dashboard/talent/TalentUploadTab.tsx` composed of three sub-tabs (shadcn `Tabs`), all under a branded header:
+
+```text
+Talent Upload
+├── Single Upload     — one CV / LinkedIn URL → parse → create talent
+├── Batch Upload      — existing BatchTalentUpload (drag many CVs / LinkedIn JSON)
+└── Gig Submissions   — review CV uploads coming from the cv-upload gig
 ```
+
+- **Single Upload**: a thin wrapper that reuses the parsing path inside `BatchTalentUpload` for one file/URL, with inline preview of parsed fields before commit.
+- **Batch Upload**: re-mount existing `BatchTalentUpload` (already production-ready, no changes needed).
+- **Gig Submissions (CV uploads)**: filter `gig_submissions` to the CV-upload gig, list pending entries with the parsed talent preview, status badge (auto-approved / needs review), and a "Convert to talent" / "View talent" action. Auto-approval continues via the existing `auto-review-gig-submission` pipeline; this view is observability + manual override.
+
+Sidebar entry added between **Talent Pool** and **Aisha Console** with the `Upload` icon. New route key registered in `Dashboard.tsx` lazy map.
+
+## 2. New tab: Talent Outreach Agent (`?tab=talent-outreach`)
+
+A fourth conversational console (same shell as Aisha / AI General) focused on **uploaded-but-not-registered** talents. New files:
+- `src/components/dashboard/talent/TalentOutreachConsoleTab.tsx`
+- `supabase/functions/admin-talent-outreach/index.ts`
+
+Edge-function tools:
+- `unregistered_talents(filter)` — talents in DB without `auth_user_id` (came from CV upload / batch / gig).
+- `outreach_queue_status()` — counts: never contacted / contacted / responded / signed up.
+- `send_invite(talent_ids[], channel)` — uses native email queue (`enqueue_email`) with a "Claim your profile" template; logs to `admin_notifications` + a new `talent_outreach_log` table (talent_id, channel, sent_at, status, response_at).
+- `recent_outreach(limit)` — last sends with status.
+
+DB migration adds `talent_outreach_log` (RLS: admin only) and an index on `talents (auth_user_id IS NULL)` for fast unregistered queries.
+
+Sidebar slot below AI General Console, icon `Send`.
+
+## 3. Seed Professional Roles (8–12 per category)
+
+Generate the seed list with Lovable AI (Gemini 2.5 Flash) using the current `profession_categories`, present a single migration that inserts them into `professional_roles` with `display_order`. You'll be able to edit/disable inline in the Roles panel. No client changes needed — panel already exists.
+
+## 4. Verification pass (no scope creep)
+
+Before declaring the Talent segment done:
+- Smoke-test all 7 sub-tabs for render / 403 / empty-state behavior.
+- Confirm `ai-auth-agent` writes one row per session into `aisha_conversations` (deploy + curl test with a fake session id).
+- Confirm `admin-aisha-analyst` and `admin-ai-general-analyst` respond for `super_admin` and reject anonymous calls.
+- Confirm new talent insert fires the `admin_notifications` trigger (insert a test row via psql, check notification, delete).
+- Lint / type-check the new files.
+
+## Updated Talent sidebar
+
+```text
 Talent (collapsible)
-├── Overview            ?tab=talent-overview        (NEW)
-├── Talent Pool         ?tab=talent                 (existing TalentPoolManager)
-├── Aisha Console       ?tab=talent-aisha           (NEW)
-├── Lead Hunter         ?tab=lead-hunter            (existing LeadHunterManager, polished)
-├── AI General Console  ?tab=talent-ai-general      (NEW)
-└── Professions & Roles ?tab=professions            (existing + new Roles layer)
+├── Overview
+├── Talent Pool
+├── Talent Upload          (NEW)
+├── Aisha Console
+├── Lead Hunter
+├── AI General Console
+├── Talent Outreach Agent  (NEW)
+└── Professions & Roles
 ```
-
-## 1. Talent Overview (new)
-
-Branded header (rounded-[40px], italic uppercase) matching Lifetime Overview. KPI grid + breakdowns:
-
-- **KPIs (StatsCard)**: Total talents, New today / 7d / 30d (with WoW & MoM deltas), Profile completion rate, CV uploaded %, Profession-tagged %, Active in last 30d.
-- **Breakdowns**:
-  - Talents by Academy (bar)
-  - Talents by Profession Category (bar) — highlights the "untagged" gap
-  - Talents by Professional Role (top 15)
-  - Talents by Country (top 10)
-  - Onboarding funnel: Aisha conversations started → email captured → completed signup → profile complete → CV parsed
-- **Recent activity feed**: last 20 signups with academy / profession / completion %.
-
-Data source: direct queries on `talents`, `profession_categories`, new `professional_roles`, and `aisha_conversations` (see §3). All queries client-side via supabase-js — no edge function needed for v1.
-
-## 2. Talent Pool (existing)
-
-Keep `TalentPoolManager` as-is under the new sidebar slot. No code changes.
-
-## 3. Aisha Console (new)
-
-Two-pane view:
-
-- **Left rail**: list of recent Aisha conversations (completed + abandoned), search, filter (today / 7d / abandoned only).
-- **Right pane**: chat with **AishaAdmin agent** — a new edge function `admin-aisha-analyst` modelled on `admin-analyst`. System prompt grants tools:
-  - `aisha_count(status, since)` — completed / abandoned / in-progress conversations
-  - `aisha_recent(limit, status)` — recent leads
-  - `aisha_drop_off_step()` — where leads abandon (email / country / phone / quiz / password)
-  - `notify_super_admin_on_signup` (config toggle, not tool) — push notifications for every new talent
-- **Notifications**: insert a new admin-only notification row whenever a talent is created (DB trigger on `talents` insert → `admin_notifications` table). Surfaced in the existing super-admin notification bell.
-
-Schema additions (migration):
-- `aisha_conversations` (id, started_at, completed_at, email, name, country, phone, last_step, abandoned bool, talent_id nullable, raw_messages jsonb). Backfilled from edge function logs going forward — `ai-auth-agent` updated to upsert one row per conversation keyed by session.
-- `admin_notifications` if not already present (check existing `notifications` table first; reuse if there's an admin scope).
-
-## 4. Lead Hunter (polish existing)
-
-Keep current functionality, plus:
-- Search by phone / email / name (already partially there).
-- New filter: "Match against job requirement" — pick a job from `jobs`, run server-side ranking RPC (`rank_talents_for_job(job_id, limit)`) reusing the matching logic from the jobs hub.
-- Branded header to match Overview style.
-
-## 5. AI General Console (new)
-
-Same chat pattern as Aisha Console but powered by a new `admin-ai-general-analyst` edge function. Tools:
-- `general_chat_count(since)` — total chats with AI General
-- `profile_completion_stats()` — % complete, median fields filled, CV uploaded %
-- `outreach_nudge(talent_ids[], message)` — sends an in-app notification + email asking the user to complete their profile/upload CV (uses existing `enqueue_email` RPC + `notifications` insert).
-- `general_chat_recent(limit, intent_filter)`.
-
-This is the place where the super admin can say *"nudge the 412 talents who haven't uploaded a CV"* and AI General will draft + send.
-
-## 6. Professions & Roles (extend existing)
-
-The core gap: 2,362 of 2,646 talents are untagged because Profession Categories are too broad (e.g. "Video Production & Editing"). Introduce a child level: **Professional Roles**.
-
-Schema migration:
-- New table `professional_roles` (id, profession_category_id FK, name, slug, display_order, is_active). RLS: admin manage / anyone select active.
-- New column `talents.professional_role_id uuid` nullable, FK → `professional_roles(id) ON DELETE SET NULL`.
-- Seed table with curated roles per category (e.g. for Video → Motion Designer, Senior Motion Designer, Video Editor, Colorist, Animator, VFX Artist; for Marketing → Performance Marketer, SEO Specialist, Brand Manager, etc.). Initial seed list confirmed with you in a follow-up; ~8–12 roles per category.
-
-`ProfessionsManager` UI changes:
-- Two-column master/detail: left = Profession Categories (existing), right = Roles for the selected category with inline add/edit/reorder/disable.
-- Per-row counts: "X talents tagged".
-- "Untagged talents" link next to each category.
-
-Talent profile / onboarding (small follow-up wiring, included here to close the loop):
-- Where the user already picks a profession (onboarding wizard + profile edit), add a dependent role dropdown that appears once a category is selected. Optional — does not block submit.
-- Bulk re-tag tool inside `ProfessionsManager`: pick a category → search untagged talents whose `headline`/`custom_profession` matches a role keyword → assign in bulk.
-
-## Sidebar & routing wiring
-
-- `src/components/dashboard/AdminSidebar.tsx`: replace the flat "Talent & Leads" group with a `Collapsible` group called **Talent** containing the 6 items above. Icons: `LayoutDashboard`, `DatabaseIcon`, `Sparkles` (Aisha), `Target`, `Bot` (AI General), `GraduationCap`.
-- `src/pages/Dashboard.tsx`: register lazy components for `talent-overview`, `talent-aisha`, `talent-ai-general`. Keep `talent`, `lead-hunter`, `professions` keys for back-compat.
-- Both new agent consoles reuse the same chat shell as `AnalystChatTab` (extract a small `<AdminAnalystShell>` component to avoid copy-paste).
 
 ## Files
 
-New:
-- `src/components/dashboard/talent/TalentOverviewTab.tsx`
-- `src/components/dashboard/talent/AishaConsoleTab.tsx`
-- `src/components/dashboard/talent/AIGeneralConsoleTab.tsx`
-- `src/components/dashboard/talent/AdminAnalystShell.tsx` (extracted)
-- `src/components/dashboard/talent/ProfessionalRolesPanel.tsx` (used inside ProfessionsManager)
-- `supabase/functions/admin-aisha-analyst/index.ts`
-- `supabase/functions/admin-ai-general-analyst/index.ts`
-- Migrations: `professional_roles` table + `talents.professional_role_id` + `aisha_conversations` table + admin signup notification trigger + RLS + seed roles.
+**New**
+- `src/components/dashboard/talent/TalentUploadTab.tsx`
+- `src/components/dashboard/talent/TalentOutreachConsoleTab.tsx`
+- `supabase/functions/admin-talent-outreach/index.ts`
+- Migration: `talent_outreach_log` table + RLS + index on unregistered talents + seed insert into `professional_roles`.
 
-Edited:
-- `AdminSidebar.tsx`, `Dashboard.tsx`, `ProfessionsManager.tsx`, `LeadHunterManager.tsx` (header polish + job-match filter), `ai-auth-agent/index.ts` (upsert into `aisha_conversations`).
+**Edited**
+- `src/components/dashboard/AdminSidebar.tsx` — add 2 sidebar items.
+- `src/pages/Dashboard.tsx` — register 2 lazy routes.
 
-## Out of scope for this pass
+## Out of scope (next step)
+- Moving Academic Infrastructure into Learning group.
+- Onboarding wizard role-picker UI work.
 
-- Moving the academic infrastructure into the Learning tab (you mentioned it as a future move; flagged for a later step).
-- Onboarding wizard role-picker UI changes beyond a single dependent dropdown — heavier UX work tracked separately if needed.
-
-## Open questions before I build
-
-1. Aisha conversation logging: OK to start logging from "now" (no historical backfill, since there's no source-of-truth log today)?
-2. For the seed list of Professional Roles per category, do you want me to draft it with AI based on existing categories and have you approve before insert, or just ship a sensible default and let you edit in the UI?
-3. Admin signup notifications: send only in-app (notification bell), or also email you at a configured address?
-
-Approve and I'll implement, asking the open questions inline as I go.
+Approve and I'll build it, ask any inline follow-ups (e.g. invite email copy) as I go.
