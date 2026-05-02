@@ -204,15 +204,19 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
-    title: "Investor Relations",
+    title: "Investors & Stakeholders",
     icon: Landmark,
     roles: ["admin"],
     items: [
+      { title: "IR Overview", icon: LayoutDashboard, value: "ir-overview" },
       { title: "IR Dashboard", icon: LayoutDashboard, value: "ir-dashboard" },
-      { title: "MRR Targets", icon: Target, value: "ir-targets" },
+      { title: "MRR / ARR Targets", icon: Target, value: "ir-targets" },
       { title: "VC Firms", icon: Building2, value: "ir-vcs" },
       { title: "Investors", icon: Users, value: "ir-investors" },
+      { title: "Key Influencers", icon: Handshake, value: "ir-influencers" },
       { title: "Email Updates", icon: Mail, value: "ir-emails" },
+      { title: "Relationship Exec", icon: Handshake, value: "ir-relationship-exec" },
+      { title: "Fundraising FP&A", icon: Sparkles, value: "ir-fpa-agent" },
     ],
   },
   {
