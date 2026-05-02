@@ -10,6 +10,8 @@ import Gro10xFeed from "./pages/Gro10xFeed";
 import Gro10xCompanyPage from "./pages/Gro10xCompanyPage";
 import Gro10xMe from "./pages/Gro10xMe";
 import Gro10xAgentMarketplace from "./pages/Gro10xAgentMarketplace";
+import Gro10xWork from "./pages/Gro10xWork";
+import Gro10xJobApplicants from "./pages/work/Gro10xJobApplicants";
 
 /**
  * Routes for the Gro10x B2B super-app. Mounted under /gro10x on the
@@ -33,6 +35,8 @@ export function Gro10xRoutes() {
         <Route path="page/:companyId" element={<Gro10xCompanyPage />} />
         <Route path="me" element={<Gro10xMe />} />
         <Route path="agents" element={<Gro10xAgentMarketplace />} />
+        <Route path="work" element={<Gro10xWork />} />
+        <Route path="work/jobs/:jobId/applicants" element={<Gro10xJobApplicants />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/gro10x" replace />} />
