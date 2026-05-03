@@ -24,7 +24,7 @@ import {
   Briefcase,
   Activity,
   ShieldCheck,
-  Hammer,
+  
   BookOpen,
   Zap,
 } from "lucide-react";
@@ -38,7 +38,7 @@ import { cn } from "@/lib/utils";
  * Tab 2 — My Work: My submissions, bids, contracts, deliverables.
  *
  * Build Academy (Content Lead studio) is now a thin banner shown only to roles
- * that need it; full UI lives at /app/studio.
+ * Course Projects (course-as-project) is the single source of truth for build work.
  */
 
 export default function Gigs() {
@@ -53,24 +53,12 @@ export default function Gigs() {
 
   const [search, setSearch] = useState("");
   const [verificationStatus, setVerificationStatus] = useState<string>("unverified");
-  const [hasContentRole, setHasContentRole] = useState(false);
 
   useEffect(() => {
     if (!talent?.id) return;
     supabase.from("talents").select("verification_status").eq("id", talent.id).maybeSingle()
       .then(({ data }) => setVerificationStatus(((data as any)?.verification_status) || "unverified"));
   }, [talent?.id]);
-
-  useEffect(() => {
-    (async () => {
-      const { data: sess } = await supabase.auth.getSession();
-      const uid = sess.session?.user.id;
-      if (!uid) return;
-      const { data } = await supabase.from("user_roles").select("role").eq("user_id", uid);
-      const roles = (data || []).map((r: any) => r.role);
-      setHasContentRole(roles.some((r: string) => ["content_lead", "admin", "super_admin", "talent_exec"].includes(r)));
-    })();
-  }, []);
 
   const handleTabChange = (tab: string) => setSearchParams({ tab });
 
@@ -252,25 +240,7 @@ export default function Gigs() {
         </button>
       </header>
 
-      {/* Content Lead banner — only for staff */}
-      {hasContentRole && (
-        <button
-          type="button"
-          onClick={() => navigate("/app/studio")}
-          className="w-full flex items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-primary/5 px-4 py-3 hover:bg-primary/10 transition-all active:scale-[0.99]"
-        >
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-              <Hammer className="h-4 w-4 text-primary" />
-            </div>
-            <div className="text-left min-w-0">
-              <p className="text-sm font-bold leading-tight">Content Studio</p>
-              <p className="text-[11px] text-muted-foreground">Manage course production work</p>
-            </div>
-          </div>
-          <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-        </button>
-      )}
+
 
       {/* Two-tab strip */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">

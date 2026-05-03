@@ -263,9 +263,6 @@ export function TalentAppShell() {
                         { icon: BookOpen, label: "My Learning", action: () => navigate("/app/learning/my-courses") },
                         { icon: Globe, label: "Study & Work Abroad", action: () => navigate("/app/abroad"), suffix: "New" },
                         { icon: FileText, label: "My Applications", action: () => navigate("/app/applications") },
-                        ...(isContentLead
-                          ? [{ icon: Edit2, label: "Content Studio", action: () => navigate("/app/studio"), suffix: "Lead" }]
-                          : []),
                         ...(hasCompanyAccess
                           ? [{ icon: Sparkles, label: "Switch to Company Portal", action: () => window.open("/company", "_blank") }]
                           : []),

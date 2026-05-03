@@ -5,8 +5,6 @@ import { Coins, Sparkles, AlertCircle, Zap, ShieldCheck } from "lucide-react";
 import { CVUploadGigForm } from "./CVUploadGigForm";
 import { JobPostingGigForm } from "./JobPostingGigForm";
 import { JobSharingGigForm } from "./JobSharingGigForm";
-import { ContentCreationGigForm } from "./ContentCreationGigForm";
-import { CourseResellGigForm } from "./CourseResellGigForm";
 import { cn } from "@/lib/utils";
 
 /**
@@ -52,10 +50,6 @@ export function GigSubmissionForm({ gig, open, onOpenChange }: GigSubmissionForm
         return <JobPostingGigForm {...props} />;
       case "job_sharing":
         return <JobSharingGigForm {...props} />;
-      case "content_creation":
-        return <ContentCreationGigForm {...props} />;
-      case "course_resell":
-        return <CourseResellGigForm {...props} />;
       default:
         return (
           <div className="py-16 text-center space-y-4 animate-pulse">

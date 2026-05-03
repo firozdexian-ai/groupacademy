@@ -3274,120 +3274,6 @@ export type Database = {
           },
         ]
       }
-      content_gigs: {
-        Row: {
-          brief: string | null
-          claimed_at: string | null
-          claimed_by: string | null
-          content_id: string
-          created_at: string
-          credit_reward: number
-          expected_format: string | null
-          id: string
-          module_id: string
-          quality_score: number | null
-          resource_category: string | null
-          resource_type: string
-          review_notes: string | null
-          reviewed_at: string | null
-          reviewed_by: string | null
-          school_id: string | null
-          stage_number: number
-          status: string
-          submitted_at: string | null
-          submitted_data: Json | null
-          submitted_url: string | null
-          title: string
-          updated_at: string
-        }
-        Insert: {
-          brief?: string | null
-          claimed_at?: string | null
-          claimed_by?: string | null
-          content_id: string
-          created_at?: string
-          credit_reward?: number
-          expected_format?: string | null
-          id?: string
-          module_id: string
-          quality_score?: number | null
-          resource_category?: string | null
-          resource_type: string
-          review_notes?: string | null
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          school_id?: string | null
-          stage_number?: number
-          status?: string
-          submitted_at?: string | null
-          submitted_data?: Json | null
-          submitted_url?: string | null
-          title: string
-          updated_at?: string
-        }
-        Update: {
-          brief?: string | null
-          claimed_at?: string | null
-          claimed_by?: string | null
-          content_id?: string
-          created_at?: string
-          credit_reward?: number
-          expected_format?: string | null
-          id?: string
-          module_id?: string
-          quality_score?: number | null
-          resource_category?: string | null
-          resource_type?: string
-          review_notes?: string | null
-          reviewed_at?: string | null
-          reviewed_by?: string | null
-          school_id?: string | null
-          stage_number?: number
-          status?: string
-          submitted_at?: string | null
-          submitted_data?: Json | null
-          submitted_url?: string | null
-          title?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "content_gigs_claimed_by_fkey"
-            columns: ["claimed_by"]
-            isOneToOne: false
-            referencedRelation: "talents"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "content_gigs_content_id_fkey"
-            columns: ["content_id"]
-            isOneToOne: false
-            referencedRelation: "content"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "content_gigs_module_id_fkey"
-            columns: ["module_id"]
-            isOneToOne: false
-            referencedRelation: "course_modules"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "content_gigs_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "school_readiness_v"
-            referencedColumns: ["school_id"]
-          },
-          {
-            foreignKeyName: "content_gigs_school_id_fkey"
-            columns: ["school_id"]
-            isOneToOne: false
-            referencedRelation: "schools"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       content_instructors: {
         Row: {
           content_id: string
@@ -8804,15 +8690,6 @@ export type Database = {
         }
         Returns: string
       }
-      generate_content_gigs_for_all_unready: { Args: never; Returns: number }
-      generate_content_gigs_for_course: {
-        Args: { _content_id: string }
-        Returns: number
-      }
-      generate_content_gigs_for_school: {
-        Args: { _school_id: string }
-        Returns: number
-      }
       generate_course_project: {
         Args: {
           p_completion_bonus?: number
@@ -8930,7 +8807,6 @@ export type Database = {
         Args: { p_admin_notes?: string; p_submission_id: string }
         Returns: Json
       }
-      release_stale_content_gigs: { Args: { p_days?: number }; Returns: number }
       school_id_for_content: { Args: { _content_id: string }; Returns: string }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }

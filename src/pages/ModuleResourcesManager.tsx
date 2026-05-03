@@ -129,7 +129,7 @@ export default function ModuleResourcesManager() {
   const [resources, setResources] = useState<ModuleResource[]>([]);
   const [activeStage, setActiveStage] = useState("1");
   const [saveStates, setSaveStates] = useState<Record<string, ResourceSaveState>>({});
-  const [generating, setGenerating] = useState(false);
+  
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -272,21 +272,6 @@ export default function ModuleResourcesManager() {
     }
   };
 
-  const generateGigs = async () => {
-    setGenerating(true);
-    try {
-      const { data, error } = await supabase.rpc("generate_content_gigs_for_course" as any, {
-        _content_id: contentId,
-      });
-      if (error) throw error;
-      toast.success(`Generated ${data ?? 0} content gigs (with research prompts) for this course.`);
-    } catch (e: any) {
-      toast.error(e.message);
-    } finally {
-      setGenerating(false);
-    }
-  };
-
   if (loading)
     return (
       <div className="h-screen flex items-center justify-center text-muted-foreground">
@@ -323,13 +308,12 @@ export default function ModuleResourcesManager() {
               </Badge>
             )}
             <Button
-              onClick={generateGigs}
-              disabled={generating}
+              onClick={() => navigate("/dashboard?tab=course-projects")}
               variant="outline"
               className="h-10 rounded-xl border-primary/30 bg-primary/5 text-primary font-black uppercase text-[10px] tracking-widest"
             >
-              {generating ? <Loader2 className="h-3 w-3 mr-2 animate-spin" /> : <Zap className="h-3 w-3 mr-2" />}
-              Generate Gigs
+              <Zap className="h-3 w-3 mr-2" />
+              Open Course Projects
             </Button>
             <Button
               onClick={loadData}

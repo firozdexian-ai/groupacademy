@@ -1,58 +1,87 @@
-# Module Management — Final Polish
+# Cleanup: One Gig Model — Course as a Project
 
-## Confirmed scope
-You're happy with the **outer "Manage Modules" → Manage Resources** flow (Dashboard → Modules tab). We won't touch that. Three remaining items to fix:
+You currently have **two parallel systems** for "build the course" work, which is why it feels messy:
 
-1. The **"Manage Resources" button inside ContentEdit** (the one that doesn't work).
-2. Add an **AI "Generate Research Prompt"** action to each module in admin (so admins, not just gig workers, can use it).
-3. Bring **Quiz Manager** and **AI Content Studio (batch generator)** into the Module Management screen so admins can create resources individually right next to a module — without leaving the page.
+| | Old (to discard) | New (keep) |
+|---|---|---|
+| Table | `content_gigs` | `course_projects` + `course_project_subtasks` |
+| Talent UI | `BuildAcademyTab`, `/app/studio` (ContentStudio) | Course Projects section in `/app/gigs` + `/app/course-project/:id` |
+| Admin UI | Readiness Board, Content Gigs, All Gigs (cross-system), Content Leads | Course Projects manager |
+| RPC | `generate_content_gigs_for_course/_school/_all_unready`, `release_stale_content_gigs` | `generate_course_project`, `delete_course_project` |
+
+We'll keep only the **course-as-project** flow (the one you're happy with) and delete the old `content_gigs` surfaces end-to-end so admins and talents see one consistent thing.
 
 ---
 
-## 1. Fix the broken Manage Resources button in ContentEdit
+## 1. Talent-side cleanup
 
-In `src/pages/ContentEdit.tsx` the right-hand sidebar only has **Manage Modules** and **Manage Quiz**. There's no resources button there today, but inside `ModuleManagement` the per-module **Manage Resources** button calls `navigate('/content/${id}/modules/${moduleId}/resources')` which works only if the route is registered and the user has the page chrome.
+- **`src/pages/app/Gigs.tsx`**: remove the "Content Studio" banner shown to content leads (lines ~256–273) and the `hasContentRole` state. Build work now flows through "Course Projects" only.
+- **Delete** `src/components/gigs/BuildAcademyTab.tsx` (no longer mounted anywhere after step 1).
+- **Delete** `src/pages/app/ContentStudio.tsx` and remove its route from `src/App.tsx` (`<Route path="studio" …>`) plus the nav entry in `src/layouts/TalentAppShell.tsx` ("Content Studio" quick link).
+- **`src/components/gigs/GigSubmissionForm.tsx`**: drop the `ContentCreationGigForm` and `CourseResellGigForm` branches — the per-resource submit now happens inside the course-project subtask flow. **Delete** both form files.
 
-Fix:
-- Verify `App.tsx` route `/content/:contentId/modules/:moduleId/resources` points to `ModuleResourcesManager` (it does); ensure the link includes `?fromTab=1` whenever the user came from the dashboard so Back returns to the dashboard Modules tab instead of the standalone page.
-- Inside `ContentEdit`, replace the dead Manage Resources affordance (if user is referring to it) by routing to `/dashboard?tab=modules&id=<contentId>` — the same destination as the working outer button — so both entry points land in one place.
-- Delete any stale duplicate "Manage Resources" buttons from older versions of the sidebar.
+## 2. Admin-side cleanup
 
-## 2. AI Research Prompt available to admins per module
+In `src/pages/Dashboard.tsx`:
+- Remove tab registrations: `content-readiness`, `content-gigs`, `content-leads`, `all-gigs` (lines ~272–283).
+- Remove their `TAB_TITLES` entries.
 
-`ResearchPromptDialog` already exists and is great, but it's currently only surfaced through the gig flow. Wire it into `ModuleManagement.tsx`:
+In `src/components/dashboard/AdminSidebar.tsx`:
+- Delete the entire **"Content Ops"** group (lines 180–189).
+- Keep `Course Projects` under **Learning** as the single entry point for build work.
 
-- Add a small **"Research Prompt"** button on each module card (next to Manage Resources).
-- Open `ResearchPromptDialog` populated with the module + course context the admin already has loaded.
-- Provide both **Copy Prompt** (existing behaviour) and a new **Generate with AI** action that calls a new edge function `generate-module-research` which posts the prompt to Lovable AI Gateway (`google/gemini-2.5-flash` for cost / `gpt-5-mini` for depth — default flash) and streams the result back into a textarea the admin can save into the module's `description` or attach as a new `module_resources` row of type `report`.
-- Edge function uses `LOVABLE_API_KEY`, validates JWT + admin role, returns SSE.
+**Delete** the four admin components no longer referenced:
+- `src/components/dashboard/ContentReadinessBoard.tsx`
+- `src/components/dashboard/ContentGigReview.tsx`
+- `src/components/dashboard/AllGigsCrossSystem.tsx`
+- `src/components/dashboard/ContentLeadsManager.tsx` (verify no other usage first)
 
-## 3. Inline Quiz + AI Content Studio inside Module Management
+## 3. Module Resources page cleanup
 
-Right now admins must leave the Modules tab and go to **Certification Logic** (`tab=quiz-manage`) or **Generative Suite** (`tab=ai-content-tools`) to bulk-create. Bring those tools to the module level:
+`src/pages/ModuleResourcesManager.tsx` calls `generate_content_gigs_for_course` (line 278). Replace that "Generate gigs" affordance with a **"Open in Course Projects"** link that navigates to `/dashboard?tab=course-projects` — the new manager covers the same need (auto-generate subtasks per module) and respects the new model.
 
-- **Per-module Quick Tools row** in `ModuleManagement.tsx` showing 3 buttons:
-  - `Open Quiz Builder` → opens `QuizManagement` in a side sheet pre-scoped to that module/course.
-  - `AI Content Studio` → opens `BatchContentGenerator` in a side sheet pre-filled with this module's id and stage scaffolding so generated artifacts auto-attach to `module_resources`.
-  - `Add Single Resource` → opens `ModuleResourcesManager` in a slide-over for that module without leaving the page.
-- Use the existing shadcn `Sheet` component for slide-overs (no route change → no navigation loss).
-- After save in the sheet, refetch `module_resources` counts on the module card so the readiness badge updates instantly.
+## 4. Database cleanup (migration)
 
-## Technical notes
-- New edge function `supabase/functions/generate-module-research/index.ts` (CORS, JWT verify, admin-role check via `has_role`, calls AI Gateway with system prompt = curriculum researcher).
-- Reuse `ResearchPromptDialog`'s `buildResearchProtocol` as the user message.
-- No DB migration needed; we already have `module_resources` and `course_modules`.
-- Keep the working outer **Manage Modules → Manage Resources** untouched.
+New migration that:
+- Drops RPCs: `generate_content_gigs_for_course`, `generate_content_gigs_for_school`, `generate_content_gigs_for_all_unready`, `release_stale_content_gigs`.
+- Drops table `public.content_gigs` (with `CASCADE` to remove dependent FKs / policies). Any historical claims live under the new `course_project_subtasks`.
+- Leaves `course_projects`, `course_project_subtasks`, `gigs` (quick tasks), and `marketplace_gigs` untouched.
+
+Because this drops a table, the migration will surface a destructive-change confirmation; that's expected and required to actually clean up.
+
+## 5. Sanity sweep
+
+After deletes, run a project-wide grep for `content_gigs`, `BuildAcademy`, `ContentStudio`, `content-readiness`, `content-gigs`, `all-gigs`, `content-leads`, and remove any stragglers (imports, dead route guards, sidebar fallbacks, generated types references will refresh automatically after the migration).
+
+---
 
 ## Files touched
-- `src/pages/ContentEdit.tsx` — fix/redirect the broken inner Manage Resources affordance.
-- `src/pages/ModuleManagement.tsx` — add Research Prompt + Quiz + Studio + Resources buttons per module, mount slide-over sheets.
-- `src/components/modules/ResearchPromptDialog.tsx` — add **Generate with AI** action streaming from new edge function.
-- `src/components/dashboard/BatchContentGenerator.tsx` — accept optional `moduleId`/`courseId` props for sheet mode.
-- `src/pages/QuizManagement.tsx` — accept optional `contentId`/`moduleId` props for sheet mode (keeps standalone route).
-- `src/pages/ModuleResourcesManager.tsx` — accept optional props so it can render inside a sheet.
-- `supabase/functions/generate-module-research/index.ts` — NEW: streamed AI research generation, admin-only.
 
-## Out of scope
-- Outer Modules tab navigation (already working).
-- Job AI Assessment regression (shipped previously; reverify after this).
+**Edited**
+- `src/pages/app/Gigs.tsx`
+- `src/pages/Dashboard.tsx`
+- `src/components/dashboard/AdminSidebar.tsx`
+- `src/components/gigs/GigSubmissionForm.tsx`
+- `src/layouts/TalentAppShell.tsx`
+- `src/pages/ModuleResourcesManager.tsx`
+- `src/App.tsx`
+
+**Deleted**
+- `src/components/gigs/BuildAcademyTab.tsx`
+- `src/components/gigs/ContentCreationGigForm.tsx`
+- `src/components/gigs/CourseResellGigForm.tsx`
+- `src/pages/app/ContentStudio.tsx`
+- `src/components/dashboard/ContentReadinessBoard.tsx`
+- `src/components/dashboard/ContentGigReview.tsx`
+- `src/components/dashboard/AllGigsCrossSystem.tsx`
+- `src/components/dashboard/ContentLeadsManager.tsx`
+
+**Migration (new)**
+- Drop `content_gigs` table + the four `generate_content_gigs_*` / `release_stale_content_gigs` functions.
+
+## Out of scope (kept as-is)
+- Quick Tasks (`gigs` table) — different flow, working fine.
+- Marketplace Gigs (employer-posted) — separate system.
+- `Course Projects` manager and talent UI — already approved.
+
+Approve and I'll execute the cleanup + migration in one pass.
