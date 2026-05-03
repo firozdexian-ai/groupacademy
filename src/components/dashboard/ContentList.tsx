@@ -289,14 +289,23 @@ const ContentList = ({ filter }: ContentListProps) => {
                     </div>
                   </div>
 
-                  <div className="pt-6 border-t border-border/10 flex gap-3">
+                  <div className="pt-6 border-t border-border/10 flex flex-wrap gap-2">
                     <Button
                       variant="outline"
-                      className="flex-1 rounded-xl h-11 border-2 font-black uppercase text-[10px] tracking-widest hover:bg-primary hover:text-white transition-all"
+                      className="flex-1 min-w-[120px] rounded-xl h-11 border-2 font-black uppercase text-[10px] tracking-widest hover:bg-primary hover:text-white transition-all"
                       onClick={() => navigate(`/content/${item.id}/edit`)}
                     >
-                      Recalibrate
+                      Edit
                     </Button>
+                    {(item.content_type === "recorded_course" || item.content_type === "live_webinar") && (
+                      <Button
+                        variant="default"
+                        className="flex-1 min-w-[120px] rounded-xl h-11 font-black uppercase text-[10px] tracking-widest"
+                        onClick={() => navigate(`/dashboard?tab=modules&id=${item.id}`)}
+                      >
+                        <Layers className="w-3.5 h-3.5 mr-1.5" /> Modules
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       className="rounded-xl h-11 w-11 text-destructive/20 hover:text-destructive hover:bg-destructive/10 transition-all border-none"
