@@ -196,30 +196,12 @@ export function useAdminChatThread(agentKey: string | null) {
       }
 
       try {
-        // Render attachments inline in the prompt so even agents that don't
-        // know about the new field still see them as context.
-        const augmentedNext = next.map((m, idx) => {
-          if (idx !== next.length - 1) return { role: m.role, content: m.content };
-          if (!attachments.length) return { role: m.role, content: m.content };
-          const lines = attachments
-            .map(
-              (a) =>
-                `- ${a.name} (${a.mime}, ${(a.size / 1024).toFixed(1)} KB)${
-                  a.url ? ` — ${a.url}` : ""
-                }`,
-            )
-            .join("\n");
-          return {
-            role: m.role,
-            content:
-              `${m.content}\n\n[Attached files]\n${lines}`.trim(),
-          };
-        });
-
+        const plainMessages = next.map(({ role, content }) => ({ role, content }));
         const { data, error } = await supabase.functions.invoke(agent.functionName, {
           body: {
-            messages: augmentedNext,
-            attachments: attachments.map(({ url, ...rest }) => ({ ...rest, url })),
+            messages: plainMessages,
+            // server-side helper signs URLs and pulls file bytes itself
+            attachments: attachments.map(({ url: _u, ...rest }) => rest),
           },
         });
         if (error) throw error;
