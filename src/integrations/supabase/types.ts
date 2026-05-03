@@ -164,6 +164,7 @@ export type Database = {
       }
       admin_chat_messages: {
         Row: {
+          attachments: Json
           content: string
           created_at: string
           id: string
@@ -171,6 +172,7 @@ export type Database = {
           thread_id: string
         }
         Insert: {
+          attachments?: Json
           content: string
           created_at?: string
           id?: string
@@ -178,6 +180,7 @@ export type Database = {
           thread_id: string
         }
         Update: {
+          attachments?: Json
           content?: string
           created_at?: string
           id?: string
