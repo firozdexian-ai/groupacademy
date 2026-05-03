@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
-import { FileText, Image as ImageIcon, Loader2, Paperclip, Send, Trash2, X } from "lucide-react";
+import { Copy, FileText, Image as ImageIcon, Loader2, Paperclip, RefreshCw, Send, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ADMIN_AGENTS_BY_KEY } from "@/lib/adminAgents";
@@ -74,7 +74,7 @@ function AttachmentChip({
 
 export function ChatThread({ agentKey, onAfterSend }: ChatThreadProps) {
   const agent = ADMIN_AGENTS_BY_KEY[agentKey];
-  const { messages, loading, sending, send, clear, uploadAttachment } =
+  const { messages, loading, sending, send, clear, uploadAttachment, regenerate } =
     useAdminChatThread(agentKey);
   const [input, setInput] = useState("");
   const [pending, setPending] = useState<ChatAttachment[]>([]);
