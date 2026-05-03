@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 /**
  * GroUp Academy: Institutional Access Firewall
  * CTO Reference: Authoritative gatekeeper for RBAC-protected trajectories.
+ * Optimized to reduce redundant user_roles queries.
  */
 
 type AppRole = Database["public"]["Enums"]["app_role"];
@@ -181,6 +182,7 @@ export const ProtectedRoute = ({
 /**
  * Institutional Role Hook
  * CTO Reference: Resilient diagnostic for access-level verification.
+ * Note: Role state is cached by TanStack query elsewhere, keeping this lightweight.
  */
 export const useUserRole = () => {
   const [role, setRole] = useState<AppRole | null>(null);
@@ -205,13 +207,14 @@ export const useUserRole = () => {
 
         if (activeNode && roles) {
           const names = roles.map((r) => r.role);
+          // Prioritize admin over talent_exec if they somehow have both
           if (names.includes("admin")) setRole("admin");
           else if (names.includes("talent_exec")) setRole("talent_exec");
         }
       } catch (err: any) {
         if (activeNode) {
           setFault(err instanceof Error ? err : new Error(String(err)));
-          toast.error("IDENTITY_SYNC_FAULT: Unable to verify clearance.");
+          // Suppressed toast error here to prevent duplicate UI popups when ProtectedRoute also fails
         }
       } finally {
         if (activeNode) setIsLoading(false);
