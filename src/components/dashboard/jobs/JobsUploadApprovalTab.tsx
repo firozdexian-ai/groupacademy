@@ -13,8 +13,8 @@ export default function JobsUploadApprovalTab() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("jobs" as any)
-        .select("id,title,company_name,country,status,created_at")
-        .in("status", ["pending", "draft", "review"])
+        .select("id,title,company_name,location,is_active,is_featured,created_at")
+        .eq("is_active", false)
         .order("created_at", { ascending: false })
         .limit(200);
       if (error) throw error;
@@ -22,9 +22,9 @@ export default function JobsUploadApprovalTab() {
     },
   });
 
-  const setStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const { error } = await supabase.from("jobs" as any).update({ status }).eq("id", id);
+  const setActive = useMutation({
+    mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
+      const { error } = await supabase.from("jobs" as any).update({ is_active }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -40,7 +40,7 @@ export default function JobsUploadApprovalTab() {
       <div>
         <h2 className="text-xl font-semibold">Jobs Upload & Approval</h2>
         <p className="text-sm text-muted-foreground">
-          Moderation queue for newly posted jobs. Approve to publish or reject with one click.
+          Inactive (pending) jobs awaiting moderation. Approve to publish or keep inactive.
         </p>
       </div>
       {list.isLoading ? (
@@ -54,19 +54,19 @@ export default function JobsUploadApprovalTab() {
               <div className="min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <p className="font-medium truncate">{j.title}</p>
-                  <Badge variant="outline" className="text-[10px]">{j.status}</Badge>
+                  <Badge variant="outline" className="text-[10px]">inactive</Badge>
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {j.company_name ?? "—"} · {j.country ?? ""}
+                  {j.company_name ?? "—"} · {j.location ?? ""}
                 </p>
               </div>
               <div className="flex gap-1">
-                <Button size="sm" variant="ghost"
-                  onClick={() => setStatus.mutate({ id: j.id, status: "approved" })}>
+                <Button size="sm" variant="ghost" title="Approve & publish"
+                  onClick={() => setActive.mutate({ id: j.id, is_active: true })}>
                   <CheckCircle2 className="h-4 w-4 text-emerald-500" />
                 </Button>
-                <Button size="sm" variant="ghost"
-                  onClick={() => setStatus.mutate({ id: j.id, status: "rejected" })}>
+                <Button size="sm" variant="ghost" title="Keep inactive"
+                  onClick={() => setActive.mutate({ id: j.id, is_active: false })}>
                   <XCircle className="h-4 w-4 text-destructive" />
                 </Button>
               </div>
