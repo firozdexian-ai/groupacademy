@@ -129,7 +129,7 @@ export default function ModuleResourcesManager() {
   const [resources, setResources] = useState<ModuleResource[]>([]);
   const [activeStage, setActiveStage] = useState("1");
   const [saveStates, setSaveStates] = useState<Record<string, ResourceSaveState>>({});
-  const [generating, setGenerating] = useState(false);
+  
 
   const loadData = useCallback(async () => {
     setLoading(true);
