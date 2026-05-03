@@ -318,6 +318,24 @@ export default function ModuleManagement(props: ModuleManagementProps = {}) {
                           <Video className="h-3 w-3" /> Video
                         </Badge>
                       )}
+                      {(() => {
+                        const c = resourceCounts[mod.id] || 0;
+                        return (
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "rounded-lg gap-1 font-black text-[10px] tracking-widest",
+                              c === 0
+                                ? "border-rose-500/30 text-rose-600 bg-rose-500/5"
+                                : c < 6
+                                  ? "border-amber-500/30 text-amber-600 bg-amber-500/5"
+                                  : "border-emerald-500/30 text-emerald-600 bg-emerald-500/5",
+                            )}
+                          >
+                            <Layers className="h-3 w-3" /> {c} resource{c === 1 ? "" : "s"}
+                          </Badge>
+                        );
+                      })()}
                       {status === "unsaved" && (
                         <Badge className="rounded-lg bg-amber-500/15 text-amber-600 border-amber-500/30 font-black text-[10px] tracking-widest">
                           Unsaved
