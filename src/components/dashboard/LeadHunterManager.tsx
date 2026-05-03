@@ -1,11 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { withTimeout } from "@/hooks/useQueryWithTimeout";
-import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { DashboardTableSkeleton, DashboardErrorState } from "./DashboardSkeleton";
 import { TalentDetailDialog } from "./TalentDetailDialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -32,11 +30,12 @@ import {
   AlertCircle,
   X,
   Eye,
-  Download,
   Activity,
   ShieldCheck,
   Layers,
   Terminal,
+  BrainCircuit,
+  ChevronDown,
 } from "lucide-react";
 import {
   Dialog,
@@ -44,7 +43,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-  DialogDescription, // CTO FIX: Restored missing UI identifier
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -52,15 +51,13 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { getOutreachWhatsAppLink, getOutreachEmailLink, getOutreachLinkedInMessage } from "@/lib/outreachTemplates";
 import { extractFirstName, cn } from "@/lib/utils";
 
 /**
  * Platform Logic: Lead Hunter Terminal (Lead Extraction)
- * High-fidelity orchestrator for AI-driven talent matching and cold-outreach synthesis.
- * 2026 Standard: Executive Logic geometry with reinforced match forensics.
+ * CTO Audit: Injected "Match Forensics" (explain-score) panel to solve the B2B Black Box problem.
  */
 
 export function LeadHunterManager() {
@@ -90,6 +87,9 @@ export function LeadHunterManager() {
   const [loadingMatches, setLoadingMatches] = useState(false);
   const [talentDetailOpen, setTalentDetailOpen] = useState(false);
   const [selectedTalent, setSelectedTalent] = useState<any>(null);
+
+  // CTO FIX: State to manage which explanation panel is expanded
+  const [expandedExplanationId, setExpandedExplanationId] = useState<string | null>(null);
 
   const loadRegistry = useCallback(async () => {
     setIsLoading(true);
@@ -121,10 +121,14 @@ export function LeadHunterManager() {
   const loadSessionMatches = async (session: any) => {
     setSelectedSession(session);
     setLoadingMatches(true);
+    setExpandedExplanationId(null); // Reset expansions on new session
     try {
+      // CTO FIX: Added ai_explanation to the select query to expose the AI's reasoning
       const { data, error: matchErr } = await supabase
         .from("lead_hunt_matches")
-        .select(`id, ai_match_score, shortlisted, talent:talents ( id, full_name, email, phone, country, cv_url )`)
+        .select(
+          `id, ai_match_score, ai_explanation, shortlisted, talent:talents ( id, full_name, email, phone, country, cv_url )`,
+        )
         .eq("session_id", session.id)
         .order("ai_match_score", { ascending: false });
       if (matchErr) throw matchErr;
@@ -209,7 +213,7 @@ export function LeadHunterManager() {
             variant="outline"
             size="icon"
             onClick={() => setSelectedSession(null)}
-            className="rounded-xl h-12 w-12 border-2 hover:bg-background"
+            className="rounded-xl h-12 w-12 border-2 hover:bg-background shrink-0"
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
@@ -233,13 +237,13 @@ export function LeadHunterManager() {
           <Table>
             <TableHeader className="bg-muted/30">
               <TableRow className="hover:bg-transparent border-b-2">
-                <TableHead className="text-[10px] font-black uppercase tracking-widest py-8 px-8 text-left">
+                <TableHead className="text-[10px] font-black uppercase tracking-widest py-8 px-8 text-left w-1/3">
                   Candidate Artifact
                 </TableHead>
-                <TableHead className="text-[10px] font-black uppercase tracking-widest text-left">
+                <TableHead className="text-[10px] font-black uppercase tracking-widest text-left w-1/3">
                   Logic Match Yield
                 </TableHead>
-                <TableHead className="text-right text-[10px] font-black uppercase tracking-widest pr-8">
+                <TableHead className="text-right text-[10px] font-black uppercase tracking-widest pr-8 w-1/3">
                   Outreach Hub
                 </TableHead>
               </TableRow>
@@ -251,11 +255,20 @@ export function LeadHunterManager() {
                     <Loader2 className="animate-spin h-10 w-10 mx-auto opacity-20" />
                   </TableCell>
                 </TableRow>
+              ) : matches.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={3}
+                    className="text-center py-20 text-muted-foreground/50 font-black uppercase tracking-widest italic text-sm"
+                  >
+                    No viable candidates extracted.
+                  </TableCell>
+                </TableRow>
               ) : (
                 matches.map((m) => (
                   <TableRow
                     key={m.id}
-                    className="group transition-all hover:bg-primary/[0.02] border-b border-border/5 last:border-0"
+                    className="group transition-all hover:bg-primary/[0.02] border-b border-border/5 last:border-0 relative"
                   >
                     <TableCell className="px-8 py-6">
                       <div className="space-y-1 text-left">
@@ -267,34 +280,61 @@ export function LeadHunterManager() {
                         </p>
                       </div>
                     </TableCell>
-                    <TableCell className="text-left">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className={cn(
-                            "h-10 w-10 rounded-xl flex items-center justify-center border shadow-inner",
-                            m.ai_match_score >= 80
-                              ? "bg-emerald-500/10 border-emerald-500/20"
-                              : "bg-amber-500/10 border-amber-500/20",
-                          )}
-                        >
-                          <Sparkles
-                            className={cn("h-4 w-4", m.ai_match_score >= 80 ? "text-emerald-500" : "text-amber-500")}
-                          />
-                        </div>
-                        <div>
-                          <p
+                    <TableCell className="text-left py-6">
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-3">
+                          <div
                             className={cn(
-                              "text-xl font-black italic tracking-tighter leading-none",
-                              m.ai_match_score >= 80 ? "text-emerald-600" : "text-amber-600",
+                              "h-10 w-10 rounded-xl flex items-center justify-center border shadow-inner shrink-0",
+                              m.ai_match_score >= 80
+                                ? "bg-emerald-500/10 border-emerald-500/20"
+                                : "bg-amber-500/10 border-amber-500/20",
                             )}
                           >
-                            {m.ai_match_score}%
-                          </p>
-                          <p className="text-[9px] font-black uppercase opacity-30 tracking-widest">Match Strength</p>
+                            <Sparkles
+                              className={cn("h-4 w-4", m.ai_match_score >= 80 ? "text-emerald-500" : "text-amber-500")}
+                            />
+                          </div>
+                          <div>
+                            <p
+                              className={cn(
+                                "text-xl font-black italic tracking-tighter leading-none",
+                                m.ai_match_score >= 80 ? "text-emerald-600" : "text-amber-600",
+                              )}
+                            >
+                              {m.ai_match_score}%
+                            </p>
+                            <p className="text-[9px] font-black uppercase opacity-30 tracking-widest">Match Strength</p>
+                          </div>
                         </div>
+
+                        {/* CTO FIX: Match Forensics Panel */}
+                        {m.ai_explanation && (
+                          <div className="mt-2 w-full max-w-sm">
+                            <button
+                              onClick={() => setExpandedExplanationId(expandedExplanationId === m.id ? null : m.id)}
+                              className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-primary/70 hover:text-primary transition-colors py-1"
+                            >
+                              <BrainCircuit className="w-3 h-3" />
+                              {expandedExplanationId === m.id ? "Hide Forensics" : "View Match Forensics"}
+                              <ChevronDown
+                                className={cn(
+                                  "w-3 h-3 transition-transform",
+                                  expandedExplanationId === m.id && "rotate-180",
+                                )}
+                              />
+                            </button>
+
+                            {expandedExplanationId === m.id && (
+                              <div className="mt-2 p-3 bg-muted/30 border border-border/20 rounded-xl text-xs font-medium text-foreground/80 italic leading-relaxed animate-in slide-in-from-top-2">
+                                {m.ai_explanation}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-right pr-8">
+                    <TableCell className="text-right pr-8 align-top py-6">
                       <div className="flex justify-end gap-2">
                         <Button
                           variant="ghost"
@@ -322,19 +362,19 @@ export function LeadHunterManager() {
                             className="w-56 rounded-2xl border-2 shadow-2xl p-2 bg-background/95 backdrop-blur-xl"
                           >
                             <DropdownMenuItem
-                              className="rounded-xl font-bold p-3 gap-3"
+                              className="rounded-xl font-bold p-3 gap-3 cursor-pointer"
                               onClick={() => handleInvite(m, "whatsapp")}
                             >
                               <MessageSquare className="w-4 h-4 text-emerald-500" /> WhatsApp Direct
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              className="rounded-xl font-bold p-3 gap-3"
+                              className="rounded-xl font-bold p-3 gap-3 cursor-pointer"
                               onClick={() => handleInvite(m, "email")}
                             >
                               <Mail className="w-4 h-4 text-blue-500" /> Email Synthesis
                             </DropdownMenuItem>
                             <DropdownMenuItem
-                              className="rounded-xl font-bold p-3 gap-3"
+                              className="rounded-xl font-bold p-3 gap-3 cursor-pointer"
                               onClick={() => handleInvite(m, "linkedin")}
                             >
                               <Linkedin className="w-4 h-4 text-indigo-500" /> LinkedIn Pitch
@@ -407,6 +447,14 @@ export function LeadHunterManager() {
             </CardContent>
           </Card>
         ))}
+        {sessions.length === 0 && !isLoading && (
+          <div className="col-span-full text-center py-20 bg-muted/10 rounded-[40px] border-2 border-dashed border-border/40">
+            <Database className="h-10 w-10 mx-auto text-muted-foreground/30 mb-4" />
+            <p className="text-sm font-black uppercase tracking-widest text-muted-foreground/50 italic">
+              No Extraction Logs Found. Initialize a Hunt to begin.
+            </p>
+          </div>
+        )}
       </div>
 
       <Dialog open={showNewHunt} onOpenChange={setShowNewHunt}>
@@ -525,7 +573,7 @@ export function LeadHunterManager() {
                   disabled={
                     isSearching || (huntMode === "select" && !selectedJobId) || (huntMode === "paste" && !rawJD)
                   }
-                  className="h-14 px-12 rounded-2xl bg-primary font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-primary/30 gap-3"
+                  className="h-14 px-12 rounded-2xl bg-primary font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-primary/30 gap-3 text-white"
                 >
                   {isSearching ? <Loader2 className="animate-spin h-5 w-5" /> : <Target className="h-5 w-5" />} Launch
                   Extraction Protocol
