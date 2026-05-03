@@ -4,6 +4,11 @@ import { User, Session } from "@supabase/supabase-js";
 import { useAuth } from "@/hooks/useAuth";
 import { Education, Experience, Skill } from "@/types/common";
 
+/**
+ * GroUp Academy: Talent Context Node
+ * CTO Audit: Expanded interface to capture 'profession' and 'experience_years' to perfectly ground AI logic.
+ */
+
 export interface TalentProfile {
   id: string;
   userId: string | null;
@@ -15,6 +20,8 @@ export interface TalentProfile {
   cvParsedAt: string | null;
   professionCategoryId: string | null;
   customProfession: string | null;
+  profession: string | null; // CTO FIX: Explicitly added for AI context
+  experience_years: number | null; // CTO FIX: Explicitly added for AI context
   currentStatus: string | null;
   fieldOfStudy: string | null;
   institution: string | null;
@@ -77,6 +84,8 @@ function mapRowToTalent(row: any): TalentProfile {
     cvParsedAt: row.cv_parsed_at,
     professionCategoryId: row.profession_category_id,
     customProfession: row.custom_profession,
+    profession: row.profession || row.custom_profession || null, // CTO FIX: Mapping explicit profession
+    experience_years: row.experience_years || 0, // CTO FIX: Mapping explicit experience
     currentStatus: row.current_status,
     fieldOfStudy: row.field_of_study,
     institution: row.institution,
@@ -147,7 +156,7 @@ export function TalentProvider({ children }: { children: React.ReactNode }) {
       setTalent(null);
       setIsTalentLoading(false);
     }
-  }, [user, isAuthLoading, fetchTalent]); // Removed talent from deps to prevent effect loop
+  }, [user, isAuthLoading, fetchTalent]);
 
   const refreshTalent = useCallback(async () => {
     if (user) await fetchTalent(user.id);
@@ -167,6 +176,8 @@ export function TalentProvider({ children }: { children: React.ReactNode }) {
           cvParsedAt: "cv_parsed_at",
           professionCategoryId: "profession_category_id",
           customProfession: "custom_profession",
+          profession: "profession", // CTO FIX: Added to update payload
+          experience_years: "experience_years", // CTO FIX: Added to update payload
           currentStatus: "current_status",
           fieldOfStudy: "field_of_study",
           institution: "institution",
