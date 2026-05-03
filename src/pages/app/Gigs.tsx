@@ -53,24 +53,7 @@ export default function Gigs() {
 
   const [search, setSearch] = useState("");
   const [verificationStatus, setVerificationStatus] = useState<string>("unverified");
-  const [hasContentRole, setHasContentRole] = useState(false);
 
-  useEffect(() => {
-    if (!talent?.id) return;
-    supabase.from("talents").select("verification_status").eq("id", talent.id).maybeSingle()
-      .then(({ data }) => setVerificationStatus(((data as any)?.verification_status) || "unverified"));
-  }, [talent?.id]);
-
-  useEffect(() => {
-    (async () => {
-      const { data: sess } = await supabase.auth.getSession();
-      const uid = sess.session?.user.id;
-      if (!uid) return;
-      const { data } = await supabase.from("user_roles").select("role").eq("user_id", uid);
-      const roles = (data || []).map((r: any) => r.role);
-      setHasContentRole(roles.some((r: string) => ["content_lead", "admin", "super_admin", "talent_exec"].includes(r)));
-    })();
-  }, []);
 
   const handleTabChange = (tab: string) => setSearchParams({ tab });
 
