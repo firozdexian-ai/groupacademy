@@ -44,7 +44,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * Platform Logic: Incentive Validation Terminal (Gig Submissions)
- * CTO Audit: Wired automated in-app notifications upon successful gig payout to complete the feedback loop.
+ * CTO Audit: Notifications schema aligned with strict DB types (talent_id, message, link).
  */
 
 /* -----------------------------------------------------------
@@ -225,14 +225,14 @@ export function GigSubmissionsManager() {
       if (error) throw error;
       if (!(data as any)?.success) throw new Error((data as any)?.error || "Protocol Failure");
 
-      // CTO FIX: Closing the loop! Auto-trigger a notification to the talent.
+      // CTO FIX: DB schema match for notifications (talent_id, message, link)
       try {
         await supabase.from("notifications").insert({
-          user_id: submission.talent_id,
+          talent_id: submission.talent_id,
           title: "Gig Approved!",
-          content: `Your submission for "${submission.gigs?.title}" was approved. You earned ${(data as any).credits_awarded} credits!`,
+          message: `Your submission for "${submission.gigs?.title}" was approved. You earned ${(data as any).credits_awarded} credits!`,
           type: "system",
-          action_url: "/app/transactions",
+          link: "/app/transactions",
         });
       } catch (notifErr) {
         console.warn("Failed to dispatch user notification", notifErr);
@@ -260,14 +260,14 @@ export function GigSubmissionsManager() {
       if (error) throw error;
       if (!(data as any)?.success) throw new Error((data as any)?.error || "Rejection logic failed");
 
-      // Notify user of rejection
+      // CTO FIX: DB schema match for notifications
       try {
         await supabase.from("notifications").insert({
-          user_id: submission.talent_id,
+          talent_id: submission.talent_id,
           title: "Gig Review Update",
-          content: `Your submission for "${submission.gigs?.title}" requires attention. Check your gig history for admin notes.`,
+          message: `Your submission for "${submission.gigs?.title}" requires attention. Check your gig history for admin notes.`,
           type: "system",
-          action_url: "/app/gigs",
+          link: "/app/gigs",
         });
       } catch (notifErr) {
         console.warn("Failed to dispatch user notification", notifErr);
