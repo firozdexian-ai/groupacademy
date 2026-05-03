@@ -50,10 +50,6 @@ export function GigSubmissionForm({ gig, open, onOpenChange }: GigSubmissionForm
         return <JobPostingGigForm {...props} />;
       case "job_sharing":
         return <JobSharingGigForm {...props} />;
-      case "content_creation":
-        return <ContentCreationGigForm {...props} />;
-      case "course_resell":
-        return <CourseResellGigForm {...props} />;
       default:
         return (
           <div className="py-16 text-center space-y-4 animate-pulse">
