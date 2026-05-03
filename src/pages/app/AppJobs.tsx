@@ -20,9 +20,8 @@ import { cn } from "@/lib/utils";
 
 /**
  * GroUp Academy: Job Listings Marketplace
- * CTO Audit: Applied 2024 Clean SaaS aesthetic (soft UI, friendly typography).
- * Fixed "Pagination Mirage" by shifting primary filters to the server-side query.
- * Bypassed editor markdown parser bug using programmatic arrays for skeletons.
+ * CTO Audit: Applied 2024 Clean SaaS aesthetic.
+ * Fixed strict TS compiler errors (Supabase Enum mismatch & Slider undefined bounds).
  */
 
 interface JobWithSalary extends JobCardData {
@@ -31,7 +30,6 @@ interface JobWithSalary extends JobCardData {
   salary_currency?: string | null;
 }
 
-// CTO FIX: Programmatic array generation bypasses the editor's markdown citation parser bug
 const SKELETON_ITEMS = Array.from({ length: 4 }, (_, i) => i + 1);
 
 export default function AppJobs() {
@@ -53,7 +51,9 @@ export default function AppJobs() {
   const [loading, setLoading] = useState(true);
   const [, setError] = useState<string | null>(null);
   const [selectedExpLevels, setSelectedExpLevels] = useState<string[]>([]);
-  const [salaryRange, setSalaryRange] = useState();
+
+  // CTO FIX: Explicitly typed as number[] to satisfy the shadcn Slider component
+  const [salaryRange, setSalaryRange] = useState<number[]>();
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   const [page, setPage] = useState(0);
@@ -61,7 +61,6 @@ export default function AppJobs() {
   const [loadingMore, setLoadingMore] = useState(false);
   const PAGE_SIZE = 50;
 
-  // Debounce Search Input
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchQuery);
@@ -73,7 +72,6 @@ export default function AppJobs() {
     return () => clearTimeout(timer);
   }, [searchQuery, setSearchParams, searchParams]);
 
-  // CTO FIX: Server-Side Querying to fix pagination bugs
   const fetchJobs = useCallback(
     async (pageNum = 0, append = false) => {
       if (!append) {
@@ -94,14 +92,14 @@ export default function AppJobs() {
           .eq("is_active", true)
           .or("deadline.is.null,deadline.gte.now()");
 
-        // Push heavy filtering to the database to ensure accurate pagination batches
         if (targetCompany) query = query.ilike("company_name", `%${targetCompany}%`);
         if (targetLocation && targetLocation !== "abroad") query = query.ilike("location", `%${targetLocation}%`);
         if (debouncedSearch) {
           query = query.or(`title.ilike.%${debouncedSearch}%,company_name.ilike.%${debouncedSearch}%`);
         }
         if (selectedJobTypes.length > 0) {
-          query = query.in("job_type", selectedJobTypes);
+          // CTO FIX: Cast to any[] to bypass Supabase's strict literal string union constraint
+          query = query.in("job_type", selectedJobTypes as any[]);
         }
 
         if (sortOrder === "hot") query = query.order("is_featured", { ascending: false });
@@ -124,12 +122,10 @@ export default function AppJobs() {
     [targetCompany, targetLocation, sortOrder, debouncedSearch, selectedJobTypes],
   );
 
-  // Re-fetch from page 0 when core filters change
   useEffect(() => {
     fetchJobs(0, false);
   }, [fetchJobs]);
 
-  // Client-side filtering only for complex derived data (Currency conversion & fuzzy locations)
   const filteredJobs = useMemo(() => {
     return jobs.filter((job) => {
       const normalizedExpLevel = job.experience_level?.replace("_level", "") || job.experience_level;
@@ -137,7 +133,8 @@ export default function AppJobs() {
         selectedExpLevels.length === 0 ||
         selectedExpLevels.some((sel) => sel.replace("_level", "") === normalizedExpLevel);
 
-      const minSalaryK = salaryRange;
+      // CTO FIX: Added `?? 0` fallback for strict array indexing
+      const minSalaryK = salaryRange ?? 0;
       let matchSalary = true;
       if (minSalaryK > 0 && job.salary_range_max) {
         const thresholdInUSD = minSalaryK * 1000;
@@ -162,7 +159,9 @@ export default function AppJobs() {
     setSearchParams({}, { replace: true });
   };
 
-  const activeFilterCount = selectedJobTypes.length + selectedExpLevels.length + (salaryRange > 0 ? 1 : 0);
+  // CTO FIX: Safely fallback the array index
+  const activeSalaryFilterCount = (salaryRange ?? 0) > 0 ? 1 : 0;
+  const activeFilterCount = selectedJobTypes.length + selectedExpLevels.length + activeSalaryFilterCount;
 
   return (
     <div className={cn(PAGE_SHELL_WIDE, "max-w-4xl mx-auto space-y-6")}>
@@ -261,7 +260,7 @@ export default function AppJobs() {
                       Minimum Salary
                     </Label>
                     <span className="text-sm font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded-md">
-                      {salaryRange > 0 ? `$${salaryRange}k+` : "Any"}
+                      {(salaryRange ?? 0) > 0 ? `$${salaryRange}k+` : "Any"}
                     </span>
                   </div>
                   <div className="pt-2">
