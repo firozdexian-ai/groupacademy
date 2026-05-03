@@ -26,7 +26,7 @@ export default function DashboardChat() {
     if (activeKey) setSearchParams({ agent: activeKey }, { replace: true });
   }, [activeKey, setSearchParams]);
 
-  const showRail = activeKey === null || typeof window === "undefined" || window.innerWidth >= 768;
+  const isDesktop = useMediaQuery("(min-width: 768px)");
   const showThread = activeKey !== null;
 
   return (
