@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
     const { data: isAdmin } = await admin.rpc("has_role", { _user_id: user.id, _role: "admin" });
     if (!isAdmin) return json({ error: "Admin only" }, 403);
 
-    const { messages = [], session_id } = await req.json();
+    const { messages = [], session_id, attachments } = await req.json();
 
     const tools = [
       { type: "function", function: { name: "mrr_targets_read", description: "Read MRR targets and progress", parameters: { type: "object", properties: {} } } },
@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
     ];
 
     let convo = [{ role: "system", content: SYSTEM }, ...messages];
-    await augmentLastUserMessage(admin, convo, (await Promise.resolve()).valueOf() as any);
+    await augmentLastUserMessage(admin, convo, attachments);
     let final = "";
     for (let i = 0; i < 4; i++) {
       const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
