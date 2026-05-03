@@ -1,83 +1,126 @@
-# Admin Sidebar Groups 7–10 Restructure
+# Admin Restructure — Final Groups 11–16
 
-Following your handwritten plan, add four new stakeholder groups after **Institutions & Organizations** (currently #6). All conversational agents shown in the notes move to `/dashboard/chat` (not new sidebar tabs), and we remove duplicates already covered elsewhere.
+This completes the 16-group admin sidebar. Existing groups 1–10 (Overview, Talent, Companies, AI Agents, Investors, Institutions, Workforce, GTM, UGC & Contents, Jobs) stay as-is. We now restructure the remaining legacy groups (Learning, Marketing & Outreach, Career Abroad, Monetization, Platform Config) into the layout from your notes and remove duplicates.
 
-## New Sidebar Order (admin)
+## Final sidebar order
 
-1. Overview · 2. Talent · 3. Companies · 4. AI Agents · 5. Investors · 6. Institutions
-7. **Team & Workforce**
-8. **GTM (Geography)**
-9. **UGC & Contents**
-10. **Jobs**
-… then Marketing & Outreach (slimmed), Career Abroad, Monetization (slimmed), Platform Config.
+1–10. (unchanged)
 
-## Group 7 — Team & Workforce
-Tabs (data managers only, agents go to Chat):
-- Dashboard (KPIs: headcount, attrition, payout this month)
-- Grades & Levels
-- Verticals
-- Functions
-- Teams
-- Workforce Members *(moves out of standalone "Workforce" group)*
-- Targets & Incentives
-- Onboarding (checklists & status)
-- Rewards & Payroll
+**11. Learn**
+- Dashboard (overview)
+- Academies (registry)
+- Schools (registry)
+- Professional Lives (career-story library)
+- Career Track AI Courses
+- Recorded Courses
+- Online Courses (Webinars & Live Classes — merged tab)
+- Enrollments
+- Learner Progress
+- Graduates (new — completed-with-certificate view)
+- B2B Courses (company-assigned cohorts)
 
-Chat agents added: **CHRO**, **HR Admin / Onboarding**, **Recruiter**.
+**12. Gig Economy**
+- Overview & Dashboard
+- Quick Action Gigs
+- Course Projects
+- Client Projects
+- Gig Submissions (approval queue)
+- Gig Workers & Wallet (people + payouts merged)
 
-## Group 8 — GTM (Geography)
-Tabs:
-- Dashboard (geo heatmap of users, revenue, jobs)
-- Countries
-- States / Regions / Divisions
-- Cities
-- Clusters (custom groupings, e.g. "Dhaka Metro", "GCC")
+**13. Career Abroad**
+- Dashboard
+- University Programs
+- IELTS Resources (redesigned as course-module style — reuses module/lesson UI)
+- Roadmap Leads
 
-Chat agent added: **Country Agent** (per-country GTM analyst/outreach).
+**14. Marketing & Outreach**
+- Analytics Overview
+- Channels
+- Community
+- Admins & Reps
+- Talent Outreach (logs)
+- Content Outreach (logs)
+- Service & Agent Outreach (logs)
+- Leads & Activities
+- Banner Management (moved from Platform Config)
+- Access Codes (moved from Platform Config)
 
-## Group 9 — UGC & Contents
-Consolidates content scattered across Learning, Marketing & Outreach, and Monetization.
+**15. Finance & Monetization**
+- Dashboard
+- Talent Credits Management
+- Gro10x Credit Management
+- Company Credit Management
+- Transactions
+- Payment Infrastructure (Stripe / Paddle / bKash config)
+- Invoices & Payments
+- Withdrawals (gig/creator payouts)
 
-Tabs:
-- Content Overview (KPIs across all UGC types)
-- Free Videos *(moves from Learning)*
-- Blog Posts *(moves from Marketing & Outreach)*
-- Feed Posts *(moves from Marketing & Outreach)*
-- Competitions & Events *(moves from Marketing & Outreach)*
-- Submissions, Gig Approval & Payout *(merges Manage Gigs + Marketplace Gigs + Gig Submissions from Monetization)*
+**16. Platform Config & Others**
+- Support AI
+- Team Members
+- Notifications Center
+- Anything left (system settings, feature flags)
 
-Chat agents added: **Free Video Agent**, **Blog Post Agent**, **Feed Post Agent**, **Competition & Event Agent**, **UGC Outreach Agent**.
+## Duplicates removed
 
-## Group 10 — Jobs
-Replaces the small "Recruitment" group with a full module.
+- `Recruitment` group (already replaced by group 10 Jobs)
+- Banners + Access Codes — moved out of Platform Config into Marketing
+- Withdrawals — moved into Finance
+- Notifications — moved into Platform Config (centralized)
+- Standalone "AI Content Tools" — replaced by chat agents
+- Legacy `study-abroad` / `ielts` / `roadmap-leads` flat tabs — folded under Career Abroad with Dashboard
+- Old Monetization leads tabs (Assessment / Mock / Salary / Portfolio leads) — these are service leads; consolidated under a single **Service Leads** tab inside Marketing → Leads & Activities (filterable by service type) instead of 4 separate sidebar entries
 
-Tabs:
-- Jobs Overview *(replaces Jobs KPIs)*
-- Jobs Upload & Approval (new — moderation queue for posted jobs)
-- Jobs Manager *(was Jobs Hub)*
-- Applications (admin view of all applicants)
-- Jobs Assessments (assessment templates & results)
+## Agents → moved to `/dashboard/chat`
 
-Chat agent added: **Jobs Outreach Agent** (B2B mailto drafts to hiring managers).
+Add these to `ADMIN_AGENTS` and remove any duplicate sidebar tabs:
 
-## Duplicates & Cleanup
+- **Learn**: `learn-dean` (Academies & Schools Dean Agent — analytics + outreach to instructors/deans)
+- **Gig Economy**: one agent per major category — `gig-design`, `gig-dev`, `gig-content`, `gig-data`, `gig-ops` (drafts gig briefs, screens submissions, suggests pricing). Plus `gig-ops-manager` for overall gig health.
+- **Career Abroad**: `abroad-counselor` (study-plan + university shortlisting), `abroad-ielts-coach` (IELTS prep guidance), `abroad-outreach` (university partner mailto drafts)
+- **Marketing & Outreach**: `mkt-outreach-strategist` (campaign planner across channels + community), `mkt-content-outreach` (already partially exists — consolidate)
+- **Finance**: `fin-controller` (read-only finance analyst — MRR, transactions, gross margin, payout health), `fin-credits-ops` (credit issuance / refund drafts)
 
-Removed / merged:
-- Standalone **Workforce** group → folded into Group 7.
-- **Recruitment** group → replaced by Group 10.
-- Learning › *Free Videos* → moved to Group 9.
-- Marketing & Outreach › *Blog Posts*, *Feed Posts*, *Competitions* → moved to Group 9.
-- Monetization › *Manage Gigs*, *Marketplace Gigs*, *Gig Submissions* → merged into Group 9 single tab.
-- Marketing & Outreach › *CV Outreach*, *Content Outreach*, *Service Outreach* → kept (these are operational queues, not agents) but flagged for future consolidation under one "Outreach Hub".
+That brings total chat agents to ~25, all reachable from the unified chat inbox.
 
-## Technical Changes
+## Technical changes
 
-- **`src/components/dashboard/AdminSidebar.tsx`** — replace Workforce + Recruitment groups; add Groups 7/8/9/10; remove moved items from Learning/Marketing/Monetization.
-- **`src/lib/adminAgents.ts`** — register 9 new chat agents: `hr-chro`, `hr-onboarding`, `hr-recruiter`, `gtm-country`, `ugc-video`, `ugc-blog`, `ugc-feed`, `ugc-events`, `ugc-outreach`, `jobs-outreach`. (Each gets a lightweight edge function mirroring `admin-inst-outreach` / `admin-inst-analyst` patterns.)
-- **`src/pages/Dashboard.tsx`** — register lazy components for new tab keys (`hr-overview`, `hr-grades`, `hr-verticals`, `hr-functions`, `hr-teams`, `hr-targets`, `hr-onboarding`, `hr-payroll`, `gtm-overview`, `gtm-countries`, `gtm-states`, `gtm-cities`, `gtm-clusters`, `ugc-overview`, `jobs-overview`, `jobs-upload`, `jobs-applications`, `jobs-assessments`). Reuse existing components where possible (e.g. Free Videos, Blog, Feed, Competitions, Gigs, Jobs Hub).
-- **Database** — add minimal tables only where missing: `hr_grades`, `hr_verticals`, `hr_functions`, `hr_teams`, `hr_targets`, `hr_onboarding_tasks`, `hr_payroll_runs`, `gtm_clusters`. (Countries/states/cities already exist in normalization triggers.) Admin-only RLS.
-- **Edge functions** — scaffold the 10 new agent functions with the standard auth + Lovable AI gateway pattern. `verify_jwt = false` in `supabase/config.toml` (functions self-validate).
+```text
+src/components/dashboard/AdminSidebar.tsx   — replace groups 11–16
+src/pages/Dashboard.tsx                     — register new tab keys + lazy components
+src/lib/adminAgents.ts                      — add ~9 new agent entries
+src/components/dashboard/learn/             — new: LearnOverviewTab, GraduatesTab,
+                                              OnlineCoursesTab (merge webinars+live),
+                                              B2BCoursesTab
+src/components/dashboard/gig/               — new: GigOverviewTab, QuickActionGigsTab,
+                                              CourseProjectsTab, ClientProjectsTab,
+                                              GigWorkersWalletTab
+src/components/dashboard/abroad/            — new: AbroadOverviewTab,
+                                              IeltsModulesTab (course-module style)
+src/components/dashboard/marketing/         — new: ChannelsTab, CommunityTab,
+                                              AdminsRepsTab, LeadsActivitiesTab
+src/components/dashboard/finance/           — new: FinOverviewTab, TalentCreditsTab,
+                                              Gro10xCreditsTab, CompanyCreditsTab,
+                                              TransactionsTab, PaymentInfraTab,
+                                              InvoicesPaymentsTab
+supabase/functions/                         — 9 new lightweight chat-agent functions
+                                              (admin-learn-dean, admin-gig-*,
+                                              admin-abroad-*, admin-fin-controller,
+                                              admin-fin-credits-ops, admin-mkt-strategist)
+supabase/migrations/...sql                  — new tables:
+                                              academies, schools, professional_lives,
+                                              gig_categories, mkt_channels,
+                                              mkt_community_groups, fin_payment_configs
+                                              (admin-only RLS via has_role)
+```
 
-No changes to Talent, Companies, AI Agents, Investors, Institutions groups.
+All new edge functions follow the existing pattern: `verify_jwt = false` in config + manual `auth.getUser(token)` + `has_role(user, 'admin')` check.
 
-Approve to implement.
+## Open questions
+
+If you want any of the following changed, say so and I'll revise before building:
+1. Should **Online Courses** truly merge Webinars + Live Classes into one tab, or keep them separate?
+2. **Service Leads** — keep one combined tab under Marketing, or restore 4 separate tabs (assessment / mock / salary / portfolio) under Finance?
+3. Any additional category-specific Gig Agents beyond the 5 listed (design/dev/content/data/ops)?
+
+Approve to start implementation.
