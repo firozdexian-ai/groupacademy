@@ -288,6 +288,51 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   ),
   "inst-outreach": React.lazy(() => import("@/components/dashboard/institutions/InstOutreachTab")),
   "inst-analyst": React.lazy(() => import("@/components/dashboard/institutions/InstAnalystTab")),
+  // ── Group 7: Team & Workforce ──────────────────────────────────────
+  "hr-overview": React.lazy(() => import("@/components/dashboard/hr/HrOverviewTab")),
+  "hr-grades": React.lazy(() =>
+    import("@/components/dashboard/hr/HrSimpleTabs").then((m) => ({ default: m.HrGradesTab })),
+  ),
+  "hr-verticals": React.lazy(() =>
+    import("@/components/dashboard/hr/HrSimpleTabs").then((m) => ({ default: m.HrVerticalsTab })),
+  ),
+  "hr-functions": React.lazy(() =>
+    import("@/components/dashboard/hr/HrSimpleTabs").then((m) => ({ default: m.HrFunctionsTab })),
+  ),
+  "hr-teams": React.lazy(() =>
+    import("@/components/dashboard/hr/HrSimpleTabs").then((m) => ({ default: m.HrTeamsTab })),
+  ),
+  "hr-targets": React.lazy(() =>
+    import("@/components/dashboard/hr/HrSimpleTabs").then((m) => ({ default: m.HrTargetsTab })),
+  ),
+  "hr-onboarding": React.lazy(() =>
+    import("@/components/dashboard/hr/HrSimpleTabs").then((m) => ({ default: m.HrOnboardingTab })),
+  ),
+  "hr-payroll": React.lazy(() =>
+    import("@/components/dashboard/hr/HrSimpleTabs").then((m) => ({ default: m.HrPayrollTab })),
+  ),
+  // ── Group 8: GTM ──────────────────────────────────────────────────
+  "gtm-overview": React.lazy(() =>
+    import("@/components/dashboard/gtm/GtmTabs").then((m) => ({ default: m.GtmOverviewTab })),
+  ),
+  "gtm-countries": React.lazy(() =>
+    import("@/components/dashboard/gtm/GtmTabs").then((m) => ({ default: m.GtmCountriesTab })),
+  ),
+  "gtm-states": React.lazy(() =>
+    import("@/components/dashboard/gtm/GtmTabs").then((m) => ({ default: m.GtmStatesTab })),
+  ),
+  "gtm-cities": React.lazy(() =>
+    import("@/components/dashboard/gtm/GtmTabs").then((m) => ({ default: m.GtmCitiesTab })),
+  ),
+  "gtm-clusters": React.lazy(() =>
+    import("@/components/dashboard/gtm/GtmTabs").then((m) => ({ default: m.GtmClustersTab })),
+  ),
+  // ── Group 9: UGC overview (other tabs reuse existing managers) ────
+  "ugc-overview": React.lazy(() => import("@/components/dashboard/ugc/UgcOverviewTab")),
+  // ── Group 10: Jobs ────────────────────────────────────────────────
+  "jobs-overview": React.lazy(() => import("@/components/dashboard/jobs/JobsOverviewTab")),
+  "jobs-upload": React.lazy(() => import("@/components/dashboard/jobs/JobsUploadApprovalTab")),
+  "jobs-assessments": React.lazy(() => import("@/components/dashboard/jobs/JobsAssessmentsTab")),
   // INTEGRATION INJECTIONS
   modules: React.lazy(() => import("@/components/dashboard/ModulePickerPanel")),
   "quiz-manage": React.lazy(() => import("@/pages/QuizManagement")),
@@ -390,6 +435,23 @@ const TAB_TITLES: Record<string, string> = {
   "inst-events": "Events & Competitions",
   "inst-outreach": "Institutions Outreach",
   "inst-analyst": "Organizations Analyst",
+  "hr-overview": "Team & Workforce",
+  "hr-grades": "Grades & Levels",
+  "hr-verticals": "Verticals",
+  "hr-functions": "Functions",
+  "hr-teams": "Teams",
+  "hr-targets": "Targets & Incentives",
+  "hr-onboarding": "Onboarding",
+  "hr-payroll": "Rewards & Payroll",
+  "gtm-overview": "GTM (Geography)",
+  "gtm-countries": "Countries",
+  "gtm-states": "States / Regions",
+  "gtm-cities": "Cities",
+  "gtm-clusters": "Clusters",
+  "ugc-overview": "UGC & Contents",
+  "jobs-overview": "Jobs Overview",
+  "jobs-upload": "Jobs Upload & Approval",
+  "jobs-assessments": "Jobs Assessments",
   modules: "Module Architecture",
   "quiz-manage": "Certification Logic",
 };
