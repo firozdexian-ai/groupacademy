@@ -21,7 +21,8 @@ import { cn } from "@/lib/utils";
 /**
  * GroUp Academy: Job Listings Marketplace
  * CTO Audit: Applied 2024 Clean SaaS aesthetic (soft UI, friendly typography).
- * Bypassed editor markdown parser bug using Array.of() and .at() methods.
+ * Bypassed editor markdown parser bug using Array.of() and .shift().
+ * Satisfied pre-ES2022 TypeScript compiler restrictions.
  */
 
 interface JobWithSalary extends JobCardData {
@@ -61,9 +62,9 @@ export default function AppJobs() {
   const [loadingMore, setLoadingMore] = useState<boolean>(false);
   const PAGE_SIZE = 50;
 
-  // CTO FIX: Safely extracting the first array item without using bracket notation
+  // CTO FIX: Completely parser-proof and TS-proof array extraction using .shift() on a clone
   const safeSalaryRange = salaryRange || Array.of(0);
-  const rawSalary = Array.isArray(safeSalaryRange) ? safeSalaryRange.at(0) : safeSalaryRange;
+  const rawSalary = Array.isArray(safeSalaryRange) ? Array.from(safeSalaryRange).shift() : safeSalaryRange;
   const minSalaryK: number = typeof rawSalary === "number" && !isNaN(rawSalary) ? rawSalary : 0;
 
   // Debounce Search Input
@@ -159,7 +160,6 @@ export default function AppJobs() {
     setSearchQuery("");
     setSelectedJobTypes([]);
     setSelectedExpLevels([]);
-    // CTO FIX: Bypassing markdown parser
     setSalaryRange(Array.of(0));
     setSearchParams(new URLSearchParams(), { replace: true });
   };
