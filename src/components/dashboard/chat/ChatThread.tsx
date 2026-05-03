@@ -201,37 +201,64 @@ export function ChatThread({ agentKey, onAfterSend }: ChatThreadProps) {
           </div>
         )}
 
-        {messages.map((m, i) => (
-          <div
-            key={m.id ?? i}
-            className={cn(
-              "flex",
-              m.role === "user" ? "justify-end" : "justify-start",
-            )}
-          >
+        {messages.map((m, i) => {
+          const isLastAssistant =
+            m.role === "assistant" && i === messages.length - 1 && !sending;
+          return (
             <div
+              key={m.id ?? i}
               className={cn(
-                "max-w-[85%] rounded-2xl px-4 py-2.5 text-sm shadow-sm space-y-2",
-                m.role === "user"
-                  ? "bg-primary text-primary-foreground rounded-br-md"
-                  : "bg-card border border-border/40 rounded-bl-md",
+                "flex flex-col",
+                m.role === "user" ? "items-end" : "items-start",
               )}
             >
-              {!!m.attachments?.length && (
-                <div className="flex flex-wrap gap-2">
-                  {m.attachments.map((a) => (
-                    <AttachmentChip key={a.path} att={a} />
-                  ))}
-                </div>
-              )}
-              {m.content && (
-                <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:my-1.5 [&>ul]:my-1.5 [&>ol]:my-1.5">
-                  <ReactMarkdown>{m.content}</ReactMarkdown>
+              <div
+                className={cn(
+                  "max-w-[85%] rounded-2xl px-4 py-2.5 text-sm shadow-sm space-y-2",
+                  m.role === "user"
+                    ? "bg-primary text-primary-foreground rounded-br-md"
+                    : "bg-card border border-border/40 rounded-bl-md",
+                )}
+              >
+                {!!m.attachments?.length && (
+                  <div className="flex flex-wrap gap-2">
+                    {m.attachments.map((a) => (
+                      <AttachmentChip key={a.path} att={a} />
+                    ))}
+                  </div>
+                )}
+                {m.content && (
+                  <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:my-1.5 [&>ul]:my-1.5 [&>ol]:my-1.5">
+                    <ReactMarkdown>{m.content}</ReactMarkdown>
+                  </div>
+                )}
+              </div>
+              {m.role === "assistant" && m.content && (
+                <div className="flex gap-1 mt-1 ml-1 opacity-60 hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(m.content);
+                      toast({ title: "Copied" });
+                    }}
+                    className="p-1 rounded hover:bg-muted"
+                    title="Copy"
+                  >
+                    <Copy className="h-3 w-3" />
+                  </button>
+                  {isLastAssistant && (
+                    <button
+                      onClick={() => regenerate()}
+                      className="p-1 rounded hover:bg-muted"
+                      title="Regenerate"
+                    >
+                      <RefreshCw className="h-3 w-3" />
+                    </button>
+                  )}
                 </div>
               )}
             </div>
-          </div>
-        ))}
+          );
+        })}
 
         {sending && (
           <div className="flex items-center gap-2 text-muted-foreground text-sm">
