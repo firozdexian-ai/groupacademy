@@ -47,9 +47,17 @@ export default function Gigs() {
   const { talent } = useTalent();
   const queryClient = useQueryClient();
 
-  // Back-compat: old links use ?tab=tasks/projects/build/activity → collapse to earn/work
-  const rawTab = searchParams.get("tab") || "earn";
-  const activeTab = ["activity", "work"].includes(rawTab) ? "work" : "earn";
+  // 4-tab layout with back-compat for older links
+  const rawTab = searchParams.get("tab") || "tasks";
+  const activeTab = ["work", "activity"].includes(rawTab)
+    ? "work"
+    : ["projects", "course", "courses", "course-projects"].includes(rawTab)
+    ? "course"
+    : ["client", "marketplace", "employer"].includes(rawTab)
+    ? "client"
+    : ["earn", "tasks", "quick"].includes(rawTab)
+    ? "tasks"
+    : "tasks";
 
   const [search, setSearch] = useState("");
   const [verificationStatus, setVerificationStatus] = useState<string>("unverified");

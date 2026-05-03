@@ -1,87 +1,40 @@
-# Cleanup: One Gig Model — Course as a Project
+# Gig Hub: 4-Tab Layout
 
-You currently have **two parallel systems** for "build the course" work, which is why it feels messy:
+**Quick answer to "do unclaimed projects show?":** Yes. The list pulls every `course_projects` row with status `open / claimed / in_progress`, regardless of whether you've claimed it. So a freshly published, unclaimed project does appear (as long as `is_published = true` and `status = open`).
 
-| | Old (to discard) | New (keep) |
+## Restructure `/app/gigs` from 2 tabs → 4 tabs
+
+Today: **Earn** (everything mashed together) + **My Work**.
+New:
+
+```
+[ Quick Tasks ] [ Course Projects ] [ Client Projects ] [ My Work ]
+```
+
+| Tab | Source | Purpose |
 |---|---|---|
-| Table | `content_gigs` | `course_projects` + `course_project_subtasks` |
-| Talent UI | `BuildAcademyTab`, `/app/studio` (ContentStudio) | Course Projects section in `/app/gigs` + `/app/course-project/:id` |
-| Admin UI | Readiness Board, Content Gigs, All Gigs (cross-system), Content Leads | Course Projects manager |
-| RPC | `generate_content_gigs_for_course/_school/_all_unready`, `release_stale_content_gigs` | `generate_course_project`, `delete_course_project` |
+| Quick Tasks | `gigs` table | 1-tap micro gigs (CV upload, job sharing, etc.) |
+| Course Projects | `course_projects` (published, open/claimed/in_progress) | Build-a-course bundles |
+| Client Projects | `marketplace_gigs` (approved/active) | Employer-posted freelance work |
+| My Work | submissions + bids + contracts | Everything I've engaged with |
 
-We'll keep only the **course-as-project** flow (the one you're happy with) and delete the old `content_gigs` surfaces end-to-end so admins and talents see one consistent thing.
+### Edits to `src/pages/app/Gigs.tsx`
 
----
+1. **Tab state**: replace the `earn / work` collapse with a 4-value tab (`tasks / course / client / work`). Add back-compat so old `?tab=earn` lands on `tasks` and `?tab=projects` lands on `course`.
+2. **TabsList**: change `grid-cols-2` → `grid-cols-4`, add `BookOpen` (Course) and `Briefcase` (Client) triggers next to existing Quick + My Work.
+3. **Split the existing Earn content into 3 tab panels**:
+   - `tasks` panel: keep the search + Quick Tasks grid only.
+   - `course` panel: move the Course Projects section here, full-width (no longer "below the fold"). Keep the same card UI; show empty-state when none.
+   - `client` panel: promote the marketplace peek into a real list (not just 6). Remove the "See all → /app/marketplace" button since this tab _is_ the list. Add a small CTA at top: "Post a gig" only if the user has employer access (skip for v1, just show the list).
+4. **My Work** panel: untouched.
+5. **Search**: keep one search box at the top of each list tab (tasks/course/client), each filtering its own list.
+6. **Marketplace query**: bump `limit(6)` → `limit(50)` and reuse for the Client tab.
 
-## 1. Talent-side cleanup
+### No DB / route changes needed
+- Course projects already include unclaimed ones (status `open`).
+- Marketplace listing route stays at `/app/marketplace` for the standalone deep link, but the in-hub Client tab now covers the same need.
 
-- **`src/pages/app/Gigs.tsx`**: remove the "Content Studio" banner shown to content leads (lines ~256–273) and the `hasContentRole` state. Build work now flows through "Course Projects" only.
-- **Delete** `src/components/gigs/BuildAcademyTab.tsx` (no longer mounted anywhere after step 1).
-- **Delete** `src/pages/app/ContentStudio.tsx` and remove its route from `src/App.tsx` (`<Route path="studio" …>`) plus the nav entry in `src/layouts/TalentAppShell.tsx` ("Content Studio" quick link).
-- **`src/components/gigs/GigSubmissionForm.tsx`**: drop the `ContentCreationGigForm` and `CourseResellGigForm` branches — the per-resource submit now happens inside the course-project subtask flow. **Delete** both form files.
+### Files touched
+- `src/pages/app/Gigs.tsx` (only file)
 
-## 2. Admin-side cleanup
-
-In `src/pages/Dashboard.tsx`:
-- Remove tab registrations: `content-readiness`, `content-gigs`, `content-leads`, `all-gigs` (lines ~272–283).
-- Remove their `TAB_TITLES` entries.
-
-In `src/components/dashboard/AdminSidebar.tsx`:
-- Delete the entire **"Content Ops"** group (lines 180–189).
-- Keep `Course Projects` under **Learning** as the single entry point for build work.
-
-**Delete** the four admin components no longer referenced:
-- `src/components/dashboard/ContentReadinessBoard.tsx`
-- `src/components/dashboard/ContentGigReview.tsx`
-- `src/components/dashboard/AllGigsCrossSystem.tsx`
-- `src/components/dashboard/ContentLeadsManager.tsx` (verify no other usage first)
-
-## 3. Module Resources page cleanup
-
-`src/pages/ModuleResourcesManager.tsx` calls `generate_content_gigs_for_course` (line 278). Replace that "Generate gigs" affordance with a **"Open in Course Projects"** link that navigates to `/dashboard?tab=course-projects` — the new manager covers the same need (auto-generate subtasks per module) and respects the new model.
-
-## 4. Database cleanup (migration)
-
-New migration that:
-- Drops RPCs: `generate_content_gigs_for_course`, `generate_content_gigs_for_school`, `generate_content_gigs_for_all_unready`, `release_stale_content_gigs`.
-- Drops table `public.content_gigs` (with `CASCADE` to remove dependent FKs / policies). Any historical claims live under the new `course_project_subtasks`.
-- Leaves `course_projects`, `course_project_subtasks`, `gigs` (quick tasks), and `marketplace_gigs` untouched.
-
-Because this drops a table, the migration will surface a destructive-change confirmation; that's expected and required to actually clean up.
-
-## 5. Sanity sweep
-
-After deletes, run a project-wide grep for `content_gigs`, `BuildAcademy`, `ContentStudio`, `content-readiness`, `content-gigs`, `all-gigs`, `content-leads`, and remove any stragglers (imports, dead route guards, sidebar fallbacks, generated types references will refresh automatically after the migration).
-
----
-
-## Files touched
-
-**Edited**
-- `src/pages/app/Gigs.tsx`
-- `src/pages/Dashboard.tsx`
-- `src/components/dashboard/AdminSidebar.tsx`
-- `src/components/gigs/GigSubmissionForm.tsx`
-- `src/layouts/TalentAppShell.tsx`
-- `src/pages/ModuleResourcesManager.tsx`
-- `src/App.tsx`
-
-**Deleted**
-- `src/components/gigs/BuildAcademyTab.tsx`
-- `src/components/gigs/ContentCreationGigForm.tsx`
-- `src/components/gigs/CourseResellGigForm.tsx`
-- `src/pages/app/ContentStudio.tsx`
-- `src/components/dashboard/ContentReadinessBoard.tsx`
-- `src/components/dashboard/ContentGigReview.tsx`
-- `src/components/dashboard/AllGigsCrossSystem.tsx`
-- `src/components/dashboard/ContentLeadsManager.tsx`
-
-**Migration (new)**
-- Drop `content_gigs` table + the four `generate_content_gigs_*` / `release_stale_content_gigs` functions.
-
-## Out of scope (kept as-is)
-- Quick Tasks (`gigs` table) — different flow, working fine.
-- Marketplace Gigs (employer-posted) — separate system.
-- `Course Projects` manager and talent UI — already approved.
-
-Approve and I'll execute the cleanup + migration in one pass.
+Approve and I'll ship it.
