@@ -195,6 +195,132 @@ export const ADMIN_AGENTS: AdminAgent[] = [
       "Upcoming events and competitions this month",
     ],
   },
+  // ── Group 7 — Team & Workforce ─────────────────────────────────────
+  {
+    key: "hr-chro",
+    functionName: "admin-hr-chro",
+    name: "CHRO",
+    tagline: "Org strategy, headcount planning, attrition insights",
+    icon: UserCog,
+    accent: "bg-indigo-500/15 text-indigo-500",
+    suggestions: [
+      "What's our current headcount by vertical?",
+      "Suggest a hiring plan for next quarter",
+      "Where are we most under-staffed?",
+    ],
+  },
+  {
+    key: "hr-onboarding",
+    functionName: "admin-hr-onboarding",
+    name: "HR Admin / Onboarding",
+    tagline: "Onboarding checklists, document collection, day-1 prep",
+    icon: UserCog,
+    accent: "bg-violet-500/15 text-violet-500",
+    suggestions: [
+      "Generate an onboarding checklist for a new sales hire",
+      "Who has pending onboarding tasks this week?",
+    ],
+  },
+  {
+    key: "hr-recruiter",
+    functionName: "admin-hr-recruiter",
+    name: "Recruiter",
+    tagline: "Internal hiring drafts and candidate outreach (mailto)",
+    icon: Send,
+    accent: "bg-emerald-500/15 text-emerald-500",
+    suggestions: [
+      "Draft a recruiter reach-out for a senior backend engineer",
+      "Write a short JD for a country manager role",
+    ],
+  },
+  // ── Group 8 — GTM ──────────────────────────────────────────────────
+  {
+    key: "gtm-country",
+    functionName: "admin-gtm-country",
+    name: "Country Agent",
+    tagline: "Per-country GTM analyst & outreach drafts",
+    icon: Sparkles,
+    accent: "bg-cyan-500/15 text-cyan-500",
+    suggestions: [
+      "How is Bangladesh performing this month?",
+      "Draft a partner outreach email for the GCC cluster",
+      "Top 5 cities by talent supply",
+    ],
+  },
+  // ── Group 9 — UGC & Content drafting agents ────────────────────────
+  {
+    key: "ugc-video",
+    functionName: "admin-ugc-video",
+    name: "Free Video Agent",
+    tagline: "Drafts titles, descriptions & captions for free videos",
+    icon: Sparkles,
+    accent: "bg-rose-500/15 text-rose-500",
+    suggestions: [
+      "Suggest 5 free-video topics for product managers",
+      "Write a YouTube-style description for a Python tutorial",
+    ],
+  },
+  {
+    key: "ugc-blog",
+    functionName: "admin-ugc-blog",
+    name: "Blog Post Agent",
+    tagline: "Drafts blog post outlines and full long-form content",
+    icon: Sparkles,
+    accent: "bg-amber-500/15 text-amber-500",
+    suggestions: [
+      "Outline a blog about acing data analyst interviews",
+      "Write a 600-word post on remote work tips",
+    ],
+  },
+  {
+    key: "ugc-feed",
+    functionName: "admin-ugc-feed",
+    name: "Feed Post Agent",
+    tagline: "Short social-style posts for the in-app feed",
+    icon: Sparkles,
+    accent: "bg-pink-500/15 text-pink-500",
+    suggestions: [
+      "Draft 3 feed posts about new courses launched",
+      "Write a celebratory feed post for hiring milestones",
+    ],
+  },
+  {
+    key: "ugc-events",
+    functionName: "admin-ugc-events",
+    name: "Competition & Event Agent",
+    tagline: "Drafts competition copy, prize structures & event briefs",
+    icon: Sparkles,
+    accent: "bg-orange-500/15 text-orange-500",
+    suggestions: [
+      "Plan a 7-day data viz competition",
+      "Draft an event brief for a fintech meetup",
+    ],
+  },
+  {
+    key: "ugc-outreach",
+    functionName: "admin-ugc-outreach",
+    name: "UGC Outreach Agent",
+    tagline: "Reach out to creators and content partners (mailto)",
+    icon: Mail,
+    accent: "bg-teal-500/15 text-teal-500",
+    suggestions: [
+      "Outreach to Bangla tech YouTubers for collabs",
+      "Re-engage dormant content partners",
+    ],
+  },
+  // ── Group 10 — Jobs ────────────────────────────────────────────────
+  {
+    key: "jobs-outreach",
+    functionName: "admin-jobs-outreach",
+    name: "Jobs Outreach Agent",
+    tagline: "Drafts B2B emails to hiring managers & employers (mailto)",
+    icon: Briefcase,
+    accent: "bg-blue-500/15 text-blue-500",
+    suggestions: [
+      "Draft outreach to HR heads of fintech companies in Dhaka",
+      "Re-engage employers who posted jobs 60+ days ago",
+    ],
+  },
 ];
 
 export const ADMIN_AGENTS_BY_KEY: Record<string, AdminAgent> = Object.fromEntries(
