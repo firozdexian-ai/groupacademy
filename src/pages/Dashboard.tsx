@@ -333,6 +333,48 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   "jobs-overview": React.lazy(() => import("@/components/dashboard/jobs/JobsOverviewTab")),
   "jobs-upload": React.lazy(() => import("@/components/dashboard/jobs/JobsUploadApprovalTab")),
   "jobs-assessments": React.lazy(() => import("@/components/dashboard/jobs/JobsAssessmentsTab")),
+  // ── Group 11: Learn ────────────────────────────────────────────────
+  "learn-overview": React.lazy(() => import("@/components/dashboard/learn/LearnOverviewTab")),
+  academies: React.lazy(() =>
+    import("@/components/dashboard/learn/LearnSimpleTabs").then((m) => ({ default: m.AcademiesTab })),
+  ),
+  schools: React.lazy(() =>
+    import("@/components/dashboard/learn/LearnSimpleTabs").then((m) => ({ default: m.SchoolsTab })),
+  ),
+  "professional-lives": React.lazy(() =>
+    import("@/components/dashboard/learn/LearnSimpleTabs").then((m) => ({ default: m.ProfessionalLivesTab })),
+  ),
+  "career-tracks": React.lazy(() => import("@/components/dashboard/ContentList")),
+  graduates: React.lazy(() => import("@/components/dashboard/learn/GraduatesTab")),
+  "b2b-courses": React.lazy(() => import("@/components/dashboard/learn/B2BCoursesTab")),
+  // ── Group 12: Gig Economy ──────────────────────────────────────────
+  "gig-overview": React.lazy(() => import("@/components/dashboard/gig/GigOverviewTab")),
+  "quick-action-gigs": React.lazy(() => import("@/components/dashboard/gig/QuickActionGigsTab")),
+  "client-projects": React.lazy(() => import("@/components/dashboard/gig/ClientProjectsTab")),
+  "gig-workers-wallet": React.lazy(() => import("@/components/dashboard/gig/GigWorkersWalletTab")),
+  // ── Group 13: Career Abroad ────────────────────────────────────────
+  "abroad-overview": React.lazy(() => import("@/components/dashboard/abroad/AbroadOverviewTab")),
+  // ── Group 14: Marketing & Outreach ─────────────────────────────────
+  "mkt-channels": React.lazy(() =>
+    import("@/components/dashboard/marketing/MktSimpleTabs").then((m) => ({ default: m.ChannelsTab })),
+  ),
+  "mkt-community": React.lazy(() =>
+    import("@/components/dashboard/marketing/MktSimpleTabs").then((m) => ({ default: m.CommunityTab })),
+  ),
+  "mkt-admins-reps": React.lazy(() => import("@/components/dashboard/marketing/AdminsRepsTab")),
+  "leads-activities": React.lazy(() => import("@/components/dashboard/marketing/LeadsActivitiesTab")),
+  // ── Group 15: Finance & Monetization ───────────────────────────────
+  "fin-overview": React.lazy(() => import("@/components/dashboard/finance/FinOverviewTab")),
+  "gro10x-credits": React.lazy(() =>
+    import("@/components/dashboard/finance/CreditsTabs").then((m) => ({ default: m.Gro10xCreditsTab })),
+  ),
+  "company-credits": React.lazy(() =>
+    import("@/components/dashboard/finance/CreditsTabs").then((m) => ({ default: m.CompanyCreditsTab })),
+  ),
+  transactions: React.lazy(() =>
+    import("@/components/dashboard/finance/CreditsTabs").then((m) => ({ default: m.TransactionsTab })),
+  ),
+  payments: React.lazy(() => import("@/components/dashboard/finance/PaymentInfraTab")),
   // INTEGRATION INJECTIONS
   modules: React.lazy(() => import("@/components/dashboard/ModulePickerPanel")),
   "quiz-manage": React.lazy(() => import("@/pages/QuizManagement")),
