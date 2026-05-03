@@ -54,6 +54,11 @@ export default function Gigs() {
   const [search, setSearch] = useState("");
   const [verificationStatus, setVerificationStatus] = useState<string>("unverified");
 
+  useEffect(() => {
+    if (!talent?.id) return;
+    supabase.from("talents").select("verification_status").eq("id", talent.id).maybeSingle()
+      .then(({ data }) => setVerificationStatus(((data as any)?.verification_status) || "unverified"));
+  }, [talent?.id]);
 
   const handleTabChange = (tab: string) => setSearchParams({ tab });
 
