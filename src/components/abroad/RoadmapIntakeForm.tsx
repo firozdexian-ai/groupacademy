@@ -30,7 +30,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * GroUp Academy: Admissions Trajectory Orchestrator
- * CTO Reference: Authoritative intake node for Study Abroad neural mapping.
+ * CTO Audit: Wired comprehensive talent payload (skills, profession, origin) into AI to prevent generic roadmaps.
  */
 
 const POPULAR_NODES = COUNTRIES.filter((c) =>
@@ -128,9 +128,18 @@ export function RoadmapIntakeForm() {
 
       if (insertError) throw insertError;
 
-      // Invoke AI Generation Orchestrator
+      // CTO FIX: Inject comprehensive talent payload to context-ground the AI
       await supabase.functions.invoke("generate-study-roadmap", {
-        body: { roadmapId: roadmap.id, ...formData, fullName: talent.fullName, email: talent.email },
+        body: {
+          roadmapId: roadmap.id,
+          ...formData,
+          fullName: talent.fullName,
+          email: talent.email,
+          currentProfession: talent.profession || "Student",
+          currentSkills: talent.skills || [],
+          originCountry: talent.country || "International",
+          yearsExperience: talent.experience_years || 0,
+        },
       });
 
       toast.success("NEURAL_GENERATION_INITIALIZED");
