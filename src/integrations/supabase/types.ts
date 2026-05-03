@@ -4280,6 +4280,36 @@ export type Database = {
           },
         ]
       }
+      fin_payment_configs: {
+        Row: {
+          created_at: string
+          id: string
+          label: string
+          notes: string | null
+          provider: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label: string
+          notes?: string | null
+          provider: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string
+          notes?: string | null
+          provider?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       gig_share_logs: {
         Row: {
           channel: string
@@ -6671,6 +6701,63 @@ export type Database = {
           },
         ]
       }
+      mkt_channels: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      mkt_community_groups: {
+        Row: {
+          created_at: string
+          id: string
+          link: string | null
+          member_count: number | null
+          name: string
+          platform: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          link?: string | null
+          member_count?: number | null
+          name: string
+          platform?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          link?: string | null
+          member_count?: number | null
+          name?: string
+          platform?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       mock_interview_access_codes: {
         Row: {
           code: string
@@ -7373,6 +7460,36 @@ export type Database = {
           level_type?: Database["public"]["Enums"]["profession_level_type"]
           name?: string
           slug?: string
+        }
+        Relationships: []
+      }
+      professional_lives: {
+        Row: {
+          country: string | null
+          created_at: string
+          id: string
+          profession: string | null
+          summary: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          country?: string | null
+          created_at?: string
+          id?: string
+          profession?: string | null
+          summary?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          country?: string | null
+          created_at?: string
+          id?: string
+          profession?: string | null
+          summary?: string | null
+          title?: string
+          updated_at?: string
         }
         Relationships: []
       }
