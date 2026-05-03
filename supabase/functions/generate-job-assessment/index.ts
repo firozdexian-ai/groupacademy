@@ -81,17 +81,47 @@ serve(async (req) => {
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "openai/gpt-4o-mini",
+        model: "google/gemini-2.5-flash",
         messages: [
-          { role: "system", content: "Expert HR Recruiter. Output JSON ONLY." },
+          { role: "system", content: "Expert HR Recruiter. Output strictly valid JSON matching the requested schema. No prose." },
           { role: "user", content: prompt },
         ],
+        response_format: { type: "json_object" },
       }),
     });
 
+    if (!aiRes.ok) {
+      const errText = await aiRes.text();
+      console.error("[AI Gateway Error]", aiRes.status, errText);
+      if (aiRes.status === 402) throw new Error("AI credits exhausted. Please top up your workspace.");
+      if (aiRes.status === 429) throw new Error("AI is busy right now. Please retry in a few seconds.");
+      throw new Error(`AI service unavailable (${aiRes.status}). Please try again shortly.`);
+    }
+
     const aiData = await aiRes.json();
-    const cleanJson = aiData.choices[0].message.content.replace(/```json|```/g, "").trim();
-    const parsedQuestions = JSON.parse(cleanJson);
+    const rawContent = aiData?.choices?.[0]?.message?.content;
+    if (!rawContent) {
+      console.error("[AI Gateway] Unexpected payload:", JSON.stringify(aiData).slice(0, 500));
+      throw new Error("AI returned an empty response. Please try again.");
+    }
+
+    let parsedQuestions: any;
+    try {
+      const cleanJson = String(rawContent).replace(/```json|```/g, "").trim();
+      parsedQuestions = JSON.parse(cleanJson);
+    } catch (parseErr) {
+      console.error("[AI Parse Error] raw:", String(rawContent).slice(0, 500));
+      throw new Error("AI returned malformed output. Please retry.");
+    }
+
+    if (
+      !Array.isArray(parsedQuestions?.mcq_questions) ||
+      parsedQuestions.mcq_questions.length === 0 ||
+      !Array.isArray(parsedQuestions?.voice_questions)
+    ) {
+      console.error("[AI Shape Error]", JSON.stringify(parsedQuestions).slice(0, 300));
+      throw new Error("AI returned an invalid assessment shape. Please retry.");
+    }
 
     // 5. Insert Record
     const { data: newAssessment, error: insertError } = await supabaseAdmin
