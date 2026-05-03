@@ -321,6 +321,119 @@ export const ADMIN_AGENTS: AdminAgent[] = [
       "Re-engage employers who posted jobs 60+ days ago",
     ],
   },
+  // ── Group 11 — Learn ───────────────────────────────────────────────
+  {
+    key: "learn-dean",
+    functionName: "admin-learn-dean",
+    name: "Academies & Schools Dean",
+    tagline: "Instructor onboarding, school readiness & dean analytics",
+    icon: School,
+    accent: "bg-emerald-500/15 text-emerald-500",
+    suggestions: [
+      "Which schools are ready to launch this quarter?",
+      "Suggest deans to invite for the FinTech academy",
+    ],
+  },
+  // ── Group 12 — Gig Economy ─────────────────────────────────────────
+  {
+    key: "gig-ops",
+    functionName: "admin-gig-ops",
+    name: "Gig Ops Manager",
+    tagline: "Approvals, pricing, payout & worker health",
+    icon: Briefcase,
+    accent: "bg-cyan-500/15 text-cyan-500",
+    suggestions: [
+      "Show pending submissions older than 48 hours",
+      "Suggest pricing tiers for content gigs",
+    ],
+  },
+  {
+    key: "gig-category",
+    functionName: "admin-gig-design",
+    name: "Gig Category Agent",
+    tagline: "Briefs and pricing across creative / dev / data / content gigs",
+    icon: Sparkles,
+    accent: "bg-fuchsia-500/15 text-fuchsia-500",
+    suggestions: [
+      "Draft a gig brief for a brand-identity project",
+      "Suggest deliverables for a 5-page Figma redesign",
+    ],
+  },
+  // ── Group 13 — Career Abroad ───────────────────────────────────────
+  {
+    key: "abroad-counselor",
+    functionName: "admin-abroad-counselor",
+    name: "Abroad Counselor",
+    tagline: "Study-plans, university shortlisting, scholarships",
+    icon: Sparkles,
+    accent: "bg-amber-500/15 text-amber-500",
+    suggestions: [
+      "Shortlist universities for a CS undergrad with 7.5 IELTS",
+      "Top scholarships for Bangladeshi students in Germany",
+    ],
+  },
+  {
+    key: "abroad-ielts",
+    functionName: "admin-abroad-ielts",
+    name: "IELTS Coach",
+    tagline: "Module strategy and band-target plans",
+    icon: BarChart3,
+    accent: "bg-pink-500/15 text-pink-500",
+    suggestions: [
+      "Plan an 8-week IELTS prep schedule for band 7",
+      "Tips to improve writing task 2 quickly",
+    ],
+  },
+  {
+    key: "abroad-outreach",
+    functionName: "admin-abroad-outreach",
+    name: "Abroad Outreach Exec",
+    tagline: "Drafts university & partner outreach (mailto)",
+    icon: Mail,
+    accent: "bg-rose-500/15 text-rose-500",
+    suggestions: [
+      "Draft a partnership pitch for a UK pathway provider",
+      "Re-engage dormant university partners",
+    ],
+  },
+  // ── Group 14 — Marketing & Outreach ────────────────────────────────
+  {
+    key: "mkt-strategist",
+    functionName: "admin-mkt-strategist",
+    name: "Marketing Strategist",
+    tagline: "Plans cross-channel campaigns and community pushes",
+    icon: Sparkles,
+    accent: "bg-orange-500/15 text-orange-500",
+    suggestions: [
+      "Plan a 30-day campaign for the new data analyst track",
+      "Suggest a community-group push for the Dhaka cluster",
+    ],
+  },
+  // ── Group 15 — Finance & Monetization ──────────────────────────────
+  {
+    key: "fin-controller",
+    functionName: "admin-fin-controller",
+    name: "Finance Controller",
+    tagline: "MRR/ARR, transactions, gross margin & payout health (read-only)",
+    icon: BarChart3,
+    accent: "bg-indigo-500/15 text-indigo-500",
+    suggestions: [
+      "What's our MRR this month vs last?",
+      "Top 5 services by gross margin",
+    ],
+  },
+  {
+    key: "fin-credits-ops",
+    functionName: "admin-fin-credits-ops",
+    name: "Credits Ops",
+    tagline: "Credit issuance, refunds and reconciliation drafts",
+    icon: Coins,
+    accent: "bg-teal-500/15 text-teal-500",
+    suggestions: [
+      "Draft a refund note for an overcharged learner",
+      "Reconcile this week's bKash settlements",
+    ],
+  },
 ];
 
 export const ADMIN_AGENTS_BY_KEY: Record<string, AdminAgent> = Object.fromEntries(
