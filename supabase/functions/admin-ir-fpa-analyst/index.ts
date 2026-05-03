@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { augmentLastUserMessage } from "../_shared/attachments.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -35,6 +36,7 @@ Deno.serve(async (req) => {
     ];
 
     let convo = [{ role: "system", content: SYSTEM }, ...messages];
+    await augmentLastUserMessage(admin, convo, (await Promise.resolve()).valueOf() as any);
     let final = "";
     for (let i = 0; i < 4; i++) {
       const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
