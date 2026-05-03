@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 /**
  * CTO NOTE: Registry updated to include curriculum and certification management.
  * PATH OVERRIDE: Using /pages/ directory for ModuleManagement due to environment restrictions.
+ * Lazy loading enforced for all 62+ admin routes to protect mobile PWA memory limits.
  */
 const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   overview: React.lazy(() =>
@@ -63,7 +64,9 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
     import("@/components/dashboard/talent/TalentUploadTab").then((m) => ({ default: m.TalentUploadTab })),
   ),
   "talent-outreach": React.lazy(() =>
-    import("@/components/dashboard/talent/TalentOutreachConsoleTab").then((m) => ({ default: m.TalentOutreachConsoleTab })),
+    import("@/components/dashboard/talent/TalentOutreachConsoleTab").then((m) => ({
+      default: m.TalentOutreachConsoleTab,
+    })),
   ),
   "lead-hunter": React.lazy(() =>
     import("@/components/dashboard/LeadHunterManager").then((m) => ({ default: m.LeadHunterManager })),
@@ -101,7 +104,9 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
     import("@/components/dashboard/companies/CompanyAIGeneralTab").then((m) => ({ default: m.CompanyAIGeneralTab })),
   ),
   "companies-outreach": React.lazy(() =>
-    import("@/components/dashboard/companies/CompanyOutreachConsoleTab").then((m) => ({ default: m.CompanyOutreachConsoleTab })),
+    import("@/components/dashboard/companies/CompanyOutreachConsoleTab").then((m) => ({
+      default: m.CompanyOutreachConsoleTab,
+    })),
   ),
   all: React.lazy(() => import("@/components/dashboard/ContentList")),
   videos: React.lazy(() => import("@/components/dashboard/ContentList")),
@@ -167,7 +172,6 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   "agent-payouts": React.lazy(() =>
     import("@/components/dashboard/AgentPayoutsManager").then((m) => ({ default: m.AgentPayoutsManager })),
   ),
-  // Agent OS — unified stakeholder area
   "agents-overview": React.lazy(() =>
     import("@/components/dashboard/agents/AgentsOverviewTab").then((m) => ({ default: m.AgentsOverviewTab })),
   ),
@@ -281,14 +285,17 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
     import("@/components/dashboard/institutions/InstitutionChildRegistry").then((m) => ({ default: m.ClubsManager })),
   ),
   "inst-reps": React.lazy(() =>
-    import("@/components/dashboard/institutions/InstitutionChildRegistry").then((m) => ({ default: m.RepresentativesManager })),
+    import("@/components/dashboard/institutions/InstitutionChildRegistry").then((m) => ({
+      default: m.RepresentativesManager,
+    })),
   ),
   "inst-events": React.lazy(() =>
-    import("@/components/dashboard/institutions/InstitutionChildRegistry").then((m) => ({ default: m.OrgEventsManager })),
+    import("@/components/dashboard/institutions/InstitutionChildRegistry").then((m) => ({
+      default: m.OrgEventsManager,
+    })),
   ),
   "inst-outreach": React.lazy(() => import("@/components/dashboard/institutions/InstOutreachTab")),
   "inst-analyst": React.lazy(() => import("@/components/dashboard/institutions/InstAnalystTab")),
-  // ── Group 7: Team & Workforce ──────────────────────────────────────
   "hr-overview": React.lazy(() => import("@/components/dashboard/hr/HrOverviewTab")),
   "hr-grades": React.lazy(() =>
     import("@/components/dashboard/hr/HrSimpleTabs").then((m) => ({ default: m.HrGradesTab })),
@@ -311,7 +318,6 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   "hr-payroll": React.lazy(() =>
     import("@/components/dashboard/hr/HrSimpleTabs").then((m) => ({ default: m.HrPayrollTab })),
   ),
-  // ── Group 8: GTM ──────────────────────────────────────────────────
   "gtm-overview": React.lazy(() =>
     import("@/components/dashboard/gtm/GtmTabs").then((m) => ({ default: m.GtmOverviewTab })),
   ),
@@ -327,13 +333,10 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   "gtm-clusters": React.lazy(() =>
     import("@/components/dashboard/gtm/GtmTabs").then((m) => ({ default: m.GtmClustersTab })),
   ),
-  // ── Group 9: UGC overview (other tabs reuse existing managers) ────
   "ugc-overview": React.lazy(() => import("@/components/dashboard/ugc/UgcOverviewTab")),
-  // ── Group 10: Jobs ────────────────────────────────────────────────
   "jobs-overview": React.lazy(() => import("@/components/dashboard/jobs/JobsOverviewTab")),
   "jobs-upload": React.lazy(() => import("@/components/dashboard/jobs/JobsUploadApprovalTab")),
   "jobs-assessments": React.lazy(() => import("@/components/dashboard/jobs/JobsAssessmentsTab")),
-  // ── Group 11: Learn ────────────────────────────────────────────────
   "learn-overview": React.lazy(() => import("@/components/dashboard/learn/LearnOverviewTab")),
   academies: React.lazy(() =>
     import("@/components/dashboard/learn/LearnSimpleTabs").then((m) => ({ default: m.AcademiesTab })),
@@ -347,14 +350,11 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   "career-tracks": React.lazy(() => import("@/components/dashboard/ContentList")),
   graduates: React.lazy(() => import("@/components/dashboard/learn/GraduatesTab")),
   "b2b-courses": React.lazy(() => import("@/components/dashboard/learn/B2BCoursesTab")),
-  // ── Group 12: Gig Economy ──────────────────────────────────────────
   "gig-overview": React.lazy(() => import("@/components/dashboard/gig/GigOverviewTab")),
   "quick-action-gigs": React.lazy(() => import("@/components/dashboard/gig/QuickActionGigsTab")),
   "client-projects": React.lazy(() => import("@/components/dashboard/gig/ClientProjectsTab")),
   "gig-workers-wallet": React.lazy(() => import("@/components/dashboard/gig/GigWorkersWalletTab")),
-  // ── Group 13: Career Abroad ────────────────────────────────────────
   "abroad-overview": React.lazy(() => import("@/components/dashboard/abroad/AbroadOverviewTab")),
-  // ── Group 14: Marketing & Outreach ─────────────────────────────────
   "mkt-channels": React.lazy(() =>
     import("@/components/dashboard/marketing/MktSimpleTabs").then((m) => ({ default: m.ChannelsTab })),
   ),
@@ -363,7 +363,6 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   ),
   "mkt-admins-reps": React.lazy(() => import("@/components/dashboard/marketing/AdminsRepsTab")),
   "leads-activities": React.lazy(() => import("@/components/dashboard/marketing/LeadsActivitiesTab")),
-  // ── Group 15: Finance & Monetization ───────────────────────────────
   "fin-overview": React.lazy(() => import("@/components/dashboard/finance/FinOverviewTab")),
   "gro10x-credits": React.lazy(() =>
     import("@/components/dashboard/finance/CreditsTabs").then((m) => ({ default: m.Gro10xCreditsTab })),
@@ -375,7 +374,6 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
     import("@/components/dashboard/finance/CreditsTabs").then((m) => ({ default: m.TransactionsTab })),
   ),
   payments: React.lazy(() => import("@/components/dashboard/finance/PaymentInfraTab")),
-  // INTEGRATION INJECTIONS
   modules: React.lazy(() => import("@/components/dashboard/ModulePickerPanel")),
   "quiz-manage": React.lazy(() => import("@/pages/QuizManagement")),
 };
@@ -456,7 +454,7 @@ const TAB_TITLES: Record<string, string> = {
   "ir-dashboard": "Investor Nexus",
   "ir-targets": "MRR Projections",
   "ir-vcs": "VC Portfolio",
-  ir_investors: "Shareholders",
+  "ir-investors": "Shareholders", // CTO FIX: Corrected from ir_investors to map properly
   "ir-emails": "Executive Updates",
   "ir-overview": "IR Overview",
   "ir-influencers": "Key Influencers",
@@ -553,12 +551,7 @@ const Dashboard = () => {
   return (
     <SidebarProvider>
       <div className="flex h-screen bg-muted/20 overflow-hidden w-full selection:bg-primary/10">
-        <AdminSidebar
-          activeTab={activeTab}
-          onTabChange={handleTabChange}
-          userRole={role}
-          adminScope={adminScope}
-        />
+        <AdminSidebar activeTab={activeTab} onTabChange={handleTabChange} userRole={role} adminScope={adminScope} />
 
         <main className="flex-1 overflow-y-auto relative bg-background/50">
           <ImpersonationBanner />
@@ -585,7 +578,6 @@ const Dashboard = () => {
                   if (activeTab === "ir-emails") props.onClose = () => handleTabChange("ir-dashboard");
 
                   // PROP INJECTION FOR CURRICULUM TOOLS
-                  // Modules tab now uses ModulePickerPanel which reads ?id= itself.
                   if (activeTab === "quiz-manage") {
                     props.contentId = searchParams.get("id");
                     props.onBack = () => handleTabChange("courses");
