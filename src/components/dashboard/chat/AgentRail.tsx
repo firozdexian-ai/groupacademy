@@ -26,6 +26,11 @@ export function AgentRail({ activeKey, threads, onSelect }: AgentRailProps) {
         {ADMIN_AGENTS.map((agent) => {
           const t = threadByKey.get(agent.key);
           const isActive = activeKey === agent.key;
+          const unread =
+            !!t &&
+            !isActive &&
+            new Date(t.last_message_at).getTime() >
+              new Date(t.last_read_at).getTime() + 1000;
           const Icon = agent.icon;
           return (
             <button
@@ -36,17 +41,29 @@ export function AgentRail({ activeKey, threads, onSelect }: AgentRailProps) {
                 isActive && "bg-muted/60",
               )}
             >
-              <div
-                className={cn(
-                  "h-11 w-11 rounded-full flex items-center justify-center flex-shrink-0",
-                  agent.accent,
+              <div className="relative flex-shrink-0">
+                <div
+                  className={cn(
+                    "h-11 w-11 rounded-full flex items-center justify-center",
+                    agent.accent,
+                  )}
+                >
+                  <Icon className="h-5 w-5" />
+                </div>
+                {unread && (
+                  <span className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full bg-primary border-2 border-background" />
                 )}
-              >
-                <Icon className="h-5 w-5" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="font-semibold text-sm truncate">{agent.name}</span>
+                  <span
+                    className={cn(
+                      "text-sm truncate",
+                      unread ? "font-bold" : "font-semibold",
+                    )}
+                  >
+                    {agent.name}
+                  </span>
                   {t && (
                     <span className="text-[10px] text-muted-foreground/70 flex-shrink-0">
                       {formatDistanceToNowStrict(new Date(t.last_message_at), {
@@ -55,7 +72,12 @@ export function AgentRail({ activeKey, threads, onSelect }: AgentRailProps) {
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground truncate">
+                <p
+                  className={cn(
+                    "text-xs truncate",
+                    unread ? "text-foreground" : "text-muted-foreground",
+                  )}
+                >
                   {t?.title || agent.tagline}
                 </p>
               </div>
