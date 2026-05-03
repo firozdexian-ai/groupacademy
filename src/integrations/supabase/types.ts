@@ -4506,6 +4506,39 @@ export type Database = {
           },
         ]
       }
+      gtm_clusters: {
+        Row: {
+          cities: string[] | null
+          countries: string[] | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          owner_user_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          cities?: string[] | null
+          countries?: string[] | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          owner_user_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cities?: string[] | null
+          countries?: string[] | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          owner_user_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       headless_pool: {
         Row: {
           balance: number
@@ -4529,6 +4562,253 @@ export type Database = {
           month_anchor?: string
           monthly_cap?: number
           spent_this_month?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      hr_functions: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+          vertical_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+          vertical_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          vertical_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_functions_vertical_id_fkey"
+            columns: ["vertical_id"]
+            isOneToOne: false
+            referencedRelation: "hr_verticals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_grades: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          level: number
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          level?: number
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          level?: number
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      hr_onboarding_tasks: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          due_date: string | null
+          id: string
+          notes: string | null
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      hr_payroll_runs: {
+        Row: {
+          base_amount: number
+          created_at: string
+          currency: string
+          id: string
+          incentive_amount: number
+          notes: string | null
+          period_end: string
+          period_start: string
+          status: string
+          total_amount: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          base_amount?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          incentive_amount?: number
+          notes?: string | null
+          period_end: string
+          period_start: string
+          status?: string
+          total_amount?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          base_amount?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          incentive_amount?: number
+          notes?: string | null
+          period_end?: string
+          period_start?: string
+          status?: string
+          total_amount?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      hr_targets: {
+        Row: {
+          created_at: string
+          id: string
+          incentive_amount: number | null
+          metric: string
+          notes: string | null
+          period_end: string | null
+          period_start: string | null
+          scope: string
+          scope_id: string | null
+          target_value: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          incentive_amount?: number | null
+          metric: string
+          notes?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          scope?: string
+          scope_id?: string | null
+          target_value?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          incentive_amount?: number | null
+          metric?: string
+          notes?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          scope?: string
+          scope_id?: string | null
+          target_value?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      hr_teams: {
+        Row: {
+          created_at: string
+          description: string | null
+          function_id: string | null
+          id: string
+          lead_user_id: string | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          function_id?: string | null
+          id?: string
+          lead_user_id?: string | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          function_id?: string | null
+          id?: string
+          lead_user_id?: string | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hr_teams_function_id_fkey"
+            columns: ["function_id"]
+            isOneToOne: false
+            referencedRelation: "hr_functions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hr_verticals: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
           updated_at?: string
         }
         Relationships: []
