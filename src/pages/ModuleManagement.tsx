@@ -84,7 +84,7 @@ export default function ModuleManagement(props: ModuleManagementProps = {}) {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [researchModuleId, setResearchModuleId] = useState<string | null>(null);
   const [studioOpen, setStudioOpen] = useState(false);
-  const [quizOpen, setQuizOpen] = useState(false);
+  
 
   const handleBack = () => {
     if (props.onBack) return props.onBack();
