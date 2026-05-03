@@ -275,6 +275,19 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   "partner-orgs": React.lazy(() =>
     import("@/components/dashboard/StakeholderRegistry").then((m) => ({ default: m.PartnerOrgsManager })),
   ),
+  "inst-overview": React.lazy(() => import("@/components/dashboard/institutions/InstitutionsOverviewTab")),
+  "inst-types": React.lazy(() => import("@/components/dashboard/institutions/InstitutionTypesManager")),
+  "inst-clubs": React.lazy(() =>
+    import("@/components/dashboard/institutions/InstitutionChildRegistry").then((m) => ({ default: m.ClubsManager })),
+  ),
+  "inst-reps": React.lazy(() =>
+    import("@/components/dashboard/institutions/InstitutionChildRegistry").then((m) => ({ default: m.RepresentativesManager })),
+  ),
+  "inst-events": React.lazy(() =>
+    import("@/components/dashboard/institutions/InstitutionChildRegistry").then((m) => ({ default: m.OrgEventsManager })),
+  ),
+  "inst-outreach": React.lazy(() => import("@/components/dashboard/institutions/InstOutreachTab")),
+  "inst-analyst": React.lazy(() => import("@/components/dashboard/institutions/InstAnalystTab")),
   // INTEGRATION INJECTIONS
   modules: React.lazy(() => import("@/components/dashboard/ModulePickerPanel")),
   "quiz-manage": React.lazy(() => import("@/pages/QuizManagement")),
@@ -370,6 +383,13 @@ const TAB_TITLES: Record<string, string> = {
   invoices: "Invoice Manager",
   institutions: "Institutions Registry",
   "partner-orgs": "Partner Organizations",
+  "inst-overview": "Institutions Dashboard",
+  "inst-types": "Institution Types",
+  "inst-clubs": "Clubs & Departments",
+  "inst-reps": "Representatives",
+  "inst-events": "Events & Competitions",
+  "inst-outreach": "Institutions Outreach",
+  "inst-analyst": "Organizations Analyst",
   modules: "Module Architecture",
   "quiz-manage": "Certification Logic",
 };

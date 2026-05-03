@@ -14,6 +14,7 @@ import {
   Landmark,
   Handshake,
   BarChart3,
+  School,
   type LucideIcon,
 } from "lucide-react";
 
@@ -166,6 +167,32 @@ export const ADMIN_AGENTS: AdminAgent[] = [
       "Draft a monthly update email to investors",
       "Outreach to a strategic advisor about a warm intro",
       "Follow-up note for a recent VC meeting",
+    ],
+  },
+  {
+    key: "inst-outreach",
+    functionName: "admin-inst-outreach",
+    name: "Institutions Outreach Exec",
+    tagline: "B2B drafts to universities & partner orgs (mailto)",
+    icon: School,
+    accent: "bg-sky-500/15 text-sky-500",
+    suggestions: [
+      "Draft outreach to top engineering universities in Bangladesh",
+      "Partnership pitch for a training partner in fintech",
+      "Re-engage a dormant university partner",
+    ],
+  },
+  {
+    key: "inst-analyst",
+    functionName: "admin-inst-analyst",
+    name: "Organizations Analyst",
+    tagline: "Read-only analytics on institutions, clubs, reps & events",
+    icon: Handshake,
+    accent: "bg-fuchsia-500/15 text-fuchsia-500",
+    suggestions: [
+      "How many institutions are active this quarter?",
+      "Top 5 institutions by representatives onboarded",
+      "Upcoming events and competitions this month",
     ],
   },
 ];

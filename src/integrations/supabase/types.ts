@@ -4620,6 +4620,151 @@ export type Database = {
         }
         Relationships: []
       }
+      institution_clubs: {
+        Row: {
+          created_at: string
+          department: string | null
+          id: string
+          institution_id: string
+          name: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          department?: string | null
+          id?: string
+          institution_id: string
+          name: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          department?: string | null
+          id?: string
+          institution_id?: string
+          name?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "institution_clubs_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "institutions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      institution_events: {
+        Row: {
+          created_at: string
+          ends_at: string | null
+          id: string
+          institution_id: string
+          location: string | null
+          notes: string | null
+          starts_at: string | null
+          status: string
+          title: string
+          type: string
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          institution_id: string
+          location?: string | null
+          notes?: string | null
+          starts_at?: string | null
+          status?: string
+          title: string
+          type?: string
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          created_at?: string
+          ends_at?: string | null
+          id?: string
+          institution_id?: string
+          location?: string | null
+          notes?: string | null
+          starts_at?: string | null
+          status?: string
+          title?: string
+          type?: string
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "institution_events_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "institutions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      institution_representatives: {
+        Row: {
+          club_id: string | null
+          created_at: string
+          email: string | null
+          id: string
+          institution_id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          role: string | null
+          updated_at: string
+        }
+        Insert: {
+          club_id?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          institution_id: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          role?: string | null
+          updated_at?: string
+        }
+        Update: {
+          club_id?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          institution_id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          role?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "institution_representatives_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "institution_clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "institution_representatives_institution_id_fkey"
+            columns: ["institution_id"]
+            isOneToOne: false
+            referencedRelation: "institutions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       institutions: {
         Row: {
           contact_email: string | null
