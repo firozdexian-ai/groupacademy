@@ -81,9 +81,6 @@ interface NavGroup {
 }
 
 const navGroups: NavGroup[] = [
-  // Stakeholder order: Overview → Talent (rendered above) → Companies → AI Agents
-  // → Investors & High-Value Stakeholders → Institutions & Organizations →
-  // operational groups.
   {
     title: "Companies",
     icon: Building2,
@@ -320,12 +317,10 @@ export function AdminSidebar({ activeTab, onTabChange, userRole = "admin", admin
   const activeGroupTitle = useMemo<string | undefined>(() => {
     const foundGroup = filteredNavGroups.find((g) => g.items.some((i) => i.value === activeTab));
 
-    // If we found the specific group, return its title
     if (foundGroup) {
       return foundGroup.title;
     }
 
-    // If not, but we have groups available, default to the first one's title
     if (filteredNavGroups.length > 0) {
       return filteredNavGroups.title;
     }
@@ -333,7 +328,6 @@ export function AdminSidebar({ activeTab, onTabChange, userRole = "admin", admin
     return undefined;
   }, [activeTab, filteredNavGroups]);
 
-  // Initialize state once, ensuring the active group is open
   const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
     return new Set(activeGroupTitle ? [activeGroupTitle] : []);
   });
