@@ -11,7 +11,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 /**
  * GroUp Academy: Agent Social Proof Node
- * CTO Audit: Standardized data pipeline using React Query. Array constants extracted to prevent JSX parsing drops.
+ * CTO Audit: Standardized data pipeline using React Query. Bypassed markdown parser bug using programmatic arrays.
  */
 
 interface Props {
@@ -28,8 +28,8 @@ interface Review {
   talentName?: string;
 }
 
-// CTO FIX: Extracting the array to a constant so the JSX parser doesn't swallow it.
-const STAR_ARRAY =;
+// CTO FIX: Programmatic array generation bypasses the editor's markdown citation parser bug
+const STARS = Array.from({ length: 5 }, (_, i) => i + 1);
 
 export function AgentReviewSection({ agentKey, canReview }: Props) {
   const { talent } = useTalent();
@@ -46,7 +46,7 @@ export function AgentReviewSection({ agentKey, canReview }: Props) {
         .select("*")
         .eq("agent_key", agentKey)
         .order("created_at", { ascending: false });
-        
+
       if (error) throw error;
       const list = (data || []) as Review[];
 
@@ -64,12 +64,14 @@ export function AgentReviewSection({ agentKey, canReview }: Props) {
   const submitMutation = useMutation({
     mutationFn: async () => {
       if (!talent?.id) throw new Error("Authentication required");
-      
-      const { error } = await supabase.from("agent_reviews").upsert(
-        { agent_key: agentKey, talent_id: talent.id, rating, review_text: text.trim() || null },
-        { onConflict: "agent_key,talent_id" },
-      );
-      
+
+      const { error } = await supabase
+        .from("agent_reviews")
+        .upsert(
+          { agent_key: agentKey, talent_id: talent.id, rating, review_text: text.trim() || null },
+          { onConflict: "agent_key,talent_id" },
+        );
+
       if (error) throw error;
     },
     onSuccess: () => {
@@ -80,7 +82,7 @@ export function AgentReviewSection({ agentKey, canReview }: Props) {
     },
     onError: () => {
       toast.error("Failed to sync review. Please try again.");
-    }
+    },
   });
 
   return (
@@ -93,9 +95,9 @@ export function AgentReviewSection({ agentKey, canReview }: Props) {
           </h2>
         </div>
         {canReview && !isWriting && (
-          <Button 
-            size="sm" 
-            variant="outline" 
+          <Button
+            size="sm"
+            variant="outline"
             onClick={() => setIsWriting(true)}
             className="h-8 rounded-lg font-black uppercase text-[9px] tracking-widest border-2 hover:bg-primary/5"
           >
@@ -109,12 +111,18 @@ export function AgentReviewSection({ agentKey, canReview }: Props) {
           <div className="space-y-1">
             <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60">Quality Metric</p>
             <div className="flex gap-1.5">
-              {STAR_ARRAY.map((s) => (
-                <button key={s} onClick={() => setRating(s)} className="transition-transform hover:scale-110 active:scale-95">
+              {STARS.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setRating(s)}
+                  className="transition-transform hover:scale-110 active:scale-95"
+                >
                   <Star
                     className={cn(
                       "h-7 w-7 transition-colors",
-                      s <= rating ? "fill-yellow-400 text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.5)]" : "text-muted-foreground/20",
+                      s <= rating
+                        ? "fill-yellow-400 text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.5)]"
+                        : "text-muted-foreground/20",
                     )}
                   />
                 </button>
@@ -129,12 +137,17 @@ export function AgentReviewSection({ agentKey, canReview }: Props) {
             className="rounded-xl border-2 bg-background/50 italic font-medium resize-none"
           />
           <div className="flex gap-3 justify-end pt-2">
-            <Button size="sm" variant="ghost" onClick={() => setIsWriting(false)} className="font-black uppercase text-[10px] tracking-widest">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setIsWriting(false)}
+              className="font-black uppercase text-[10px] tracking-widest"
+            >
               Abort
             </Button>
-            <Button 
-              size="sm" 
-              onClick={() => submitMutation.mutate()} 
+            <Button
+              size="sm"
+              onClick={() => submitMutation.mutate()}
               disabled={submitMutation.isPending}
               className="font-black uppercase text-[10px] tracking-widest rounded-xl px-6"
             >
@@ -157,12 +170,15 @@ export function AgentReviewSection({ agentKey, canReview }: Props) {
       ) : (
         <div className="grid gap-3">
           {reviews.slice(0, 10).map((r) => (
-            <div key={r.id} className="rounded-2xl border-2 border-border/10 bg-card/20 p-4 transition-all hover:bg-card/40">
+            <div
+              key={r.id}
+              className="rounded-2xl border-2 border-border/10 bg-card/20 p-4 transition-all hover:bg-card/40"
+            >
               <div className="flex items-start justify-between mb-2">
                 <div>
                   <p className="text-sm font-black uppercase italic tracking-tight">{r.talentName}</p>
                   <div className="flex gap-0.5 mt-1">
-                    {STAR_ARRAY.map((s) => (
+                    {STARS.map((s) => (
                       <Star
                         key={s}
                         className={cn(
@@ -178,9 +194,7 @@ export function AgentReviewSection({ agentKey, canReview }: Props) {
                 </span>
               </div>
               {r.review_text && (
-                <p className="text-xs font-medium text-foreground/70 italic leading-relaxed pt-1">
-                  "{r.review_text}"
-                </p>
+                <p className="text-xs font-medium text-foreground/70 italic leading-relaxed pt-1">"{r.review_text}"</p>
               )}
             </div>
           ))}
