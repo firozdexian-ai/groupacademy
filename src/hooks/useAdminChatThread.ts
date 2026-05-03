@@ -120,6 +120,49 @@ export function useAdminChatThread(agentKey: string | null) {
     };
   }, [agentKey]);
 
+  // realtime: mirror new messages from other tabs/devices
+  useEffect(() => {
+    if (!threadId) return;
+    const channel = supabase
+      .channel(`admin_chat_${threadId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "admin_chat_messages",
+          filter: `thread_id=eq.${threadId}`,
+        },
+        async (payload) => {
+          const row: any = payload.new;
+          setMessages((prev) => {
+            if (prev.some((m) => m.id === row.id)) return prev;
+            return [...prev, { ...row, attachments: row.attachments ?? [] }];
+          });
+          if (row.attachments?.length) {
+            const signed = await signAttachments(row.attachments);
+            setMessages((prev) =>
+              prev.map((m) => (m.id === row.id ? { ...m, attachments: signed } : m)),
+            );
+          }
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [threadId]);
+
+  // mark thread as read while it's open
+  useEffect(() => {
+    if (!threadId || messages.length === 0) return;
+    supabase
+      .from("admin_chat_threads")
+      .update({ last_read_at: new Date().toISOString() })
+      .eq("id", threadId)
+      .then(() => {});
+  }, [threadId, messages.length]);
+
   /**
    * Upload a File to the admin chat attachments bucket and return its
    * metadata (without signed URL). Caller is expected to attach this
