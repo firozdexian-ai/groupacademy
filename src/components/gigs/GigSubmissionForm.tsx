@@ -5,8 +5,6 @@ import { Coins, Sparkles, AlertCircle, Zap, ShieldCheck } from "lucide-react";
 import { CVUploadGigForm } from "./CVUploadGigForm";
 import { JobPostingGigForm } from "./JobPostingGigForm";
 import { JobSharingGigForm } from "./JobSharingGigForm";
-import { ContentCreationGigForm } from "./ContentCreationGigForm";
-import { CourseResellGigForm } from "./CourseResellGigForm";
 import { cn } from "@/lib/utils";
 
 /**
