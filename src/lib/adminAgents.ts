@@ -43,6 +43,19 @@ export const ADMIN_AGENTS: AdminAgent[] = [
     ],
   },
   {
+    key: "report-builder",
+    functionName: "admin-report-builder",
+    name: "Report Builder",
+    tagline: "Reports · charts · weekly digests",
+    icon: BarChart3,
+    accent: "bg-teal-500/15 text-teal-500",
+    suggestions: [
+      "Build a weekly revenue & signups report",
+      "Generate a Q-on-Q growth digest",
+      "Make a one-pager summary for the leadership meeting",
+    ],
+  },
+  {
     key: "talent-aisha",
     functionName: "admin-aisha-analyst",
     name: "Aisha",
