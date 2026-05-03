@@ -1,6 +1,7 @@
 // Admin Business Analyst — streaming chat with whitelisted DB tools.
 // Super-admin only. Uses Lovable AI Gateway with tool calling.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { augmentLastUserMessage } from "../_shared/attachments.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

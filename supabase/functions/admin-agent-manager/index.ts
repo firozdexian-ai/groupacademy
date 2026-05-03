@@ -1,6 +1,7 @@
 // Admin Agent Manager — chat with the entire AI Agent OS.
 // Admin/super_admin only. Reports on agents, tools, channels, sessions, credits.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { augmentLastUserMessage } from "../_shared/attachments.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

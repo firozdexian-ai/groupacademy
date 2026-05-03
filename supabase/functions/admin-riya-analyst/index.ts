@@ -1,6 +1,7 @@
 // Admin Riya Analyst — chat with the B2B onboarding agent's data.
 // Super-admin only. Tools resolve against riya_conversations + companies.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { augmentLastUserMessage } from "../_shared/attachments.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

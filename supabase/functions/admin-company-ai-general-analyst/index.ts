@@ -1,6 +1,7 @@
 // Admin Company AI General — analytics + in-app messaging for registered
 // company-side users (Gro10x). Super-admin only.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { augmentLastUserMessage } from "../_shared/attachments.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

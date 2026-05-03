@@ -1,6 +1,7 @@
 // Admin Aisha Analyst — chat with the onboarding agent's data.
 // Super-admin only. Tools resolve against aisha_conversations + talents.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { augmentLastUserMessage } from "../_shared/attachments.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

@@ -1,6 +1,7 @@
 // Admin AI General Analyst — operator-side console for the platform concierge.
 // Tools: profile completion stats, talent search, broadcast nudges.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { augmentLastUserMessage } from "../_shared/attachments.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
