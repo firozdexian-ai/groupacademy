@@ -24,7 +24,7 @@ import {
   Briefcase,
   Activity,
   ShieldCheck,
-  Hammer,
+  
   BookOpen,
   Zap,
 } from "lucide-react";
