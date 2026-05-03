@@ -1,12 +1,12 @@
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Building2, Bot, Zap, ShieldCheck } from "lucide-react";
+import { Building2, Bot, Zap, ShieldCheck, Sparkles } from "lucide-react";
 import { LucideIcon } from "lucide-react";
 
 /**
  * GroUp Academy: Agent Identity Representation Node
- * CTO Reference: Authoritative visual anchor for neural and corporate agents.
+ * CTO Audit: Expanded visual registry to support the new Creator Economy (Community Agents).
  */
 
 interface AgentAvatarProps {
@@ -18,6 +18,7 @@ interface AgentAvatarProps {
   size?: "sm" | "md" | "lg" | "xl";
   isOnline?: boolean;
   isCompanyAgent?: boolean;
+  isCreatorAgent?: boolean; // CTO FIX: Added support for user-generated marketplace agents
   companyName?: string;
   className?: string;
 }
@@ -52,6 +53,7 @@ export function AgentAvatar({
   size = "md",
   isOnline = false,
   isCompanyAgent = false,
+  isCreatorAgent = false,
   companyName,
   className,
 }: AgentAvatarProps) {
@@ -59,7 +61,7 @@ export function AgentAvatar({
   const initials = (name || "AI")
     .split(" ")
     .filter(Boolean)
-    .map((n) => n[0])
+    .map((n) => n)
     .join("")
     .toUpperCase()
     .slice(0, 2);
@@ -69,16 +71,17 @@ export function AgentAvatar({
       <Avatar
         className={cn(
           sizeRegistry[size],
-          "ring-2 ring-background shadow-xl border-2 border-border/10 transition-transform duration-500 hover:scale-110",
-          isCompanyAgent ? "rounded-[35%]" : "rounded-full", // Squircle for Institutional Agents
+          "ring-2 ring-background shadow-xl border-2 transition-transform duration-500 hover:scale-110",
+          isCompanyAgent ? "rounded-[35%] border-blue-500/20" : "rounded-full", // Squircle for Institutional Agents
+          isCreatorAgent ? "border-amber-500/30 ring-amber-500/10" : "border-border/10", // Gold tint for creators
         )}
       >
         {avatarUrl && <AvatarImage src={avatarUrl} alt={name} className="object-cover" />}
         <AvatarFallback
           className="font-black uppercase italic tracking-tighter"
           style={{
-            backgroundColor: bgColor || "hsl(var(--primary) / 0.1)",
-            color: iconColor || "hsl(var(--primary))",
+            backgroundColor: bgColor || (isCreatorAgent ? "hsl(var(--amber-500) / 0.1)" : "hsl(var(--primary) / 0.1)"),
+            color: iconColor || (isCreatorAgent ? "hsl(var(--amber-500))" : "hsl(var(--primary))"),
           }}
         >
           {Icon ? (
@@ -116,6 +119,22 @@ export function AgentAvatar({
             title={companyName ? `VERIFIED_AGENT: ${companyName.toUpperCase()}` : "CORPORATE_AGENT"}
           >
             <Building2 className={cn("text-white", size === "xl" ? "h-3.5 w-3.5" : "h-2.5 w-2.5")} />
+          </Badge>
+        </div>
+      )}
+
+      {/* CTO FIX: CREATOR_ECONOMY_BADGE */}
+      {isCreatorAgent && !isCompanyAgent && (
+        <div className="absolute -top-1 -left-1 z-20">
+          <Badge
+            variant="secondary"
+            className={cn(
+              "p-0 flex items-center justify-center rounded-full bg-amber-500 border-2 border-background shadow-2xl transition-all hover:-rotate-12",
+              size === "xl" ? "h-6 w-6" : "h-4 w-4",
+            )}
+            title="COMMUNITY_CREATOR_AGENT"
+          >
+            <Sparkles className={cn("text-white", size === "xl" ? "h-3.5 w-3.5" : "h-2.5 w-2.5")} />
           </Badge>
         </div>
       )}
