@@ -266,7 +266,7 @@ export function useAgentChat(): UseAgentChatReturn {
               if (payload === "[DONE]") break;
               try {
                 const parsed = JSON.parse(payload);
-                const token = parsed.choices?.?.delta?.content;
+                const token = parsed.choices?.[0]?.delta?.content;
                 if (token) {
                   assistantBuffer += token;
                   setMessages((prev) => {
