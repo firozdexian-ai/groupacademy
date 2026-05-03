@@ -81,8 +81,9 @@ interface NavGroup {
 }
 
 const navGroups: NavGroup[] = [
-  // Companies first (after the standalone Talent group rendered above) so the
-  // stakeholder order is Overview → Talent → Companies → AI Agents → ...
+  // Stakeholder order: Overview → Talent (rendered above) → Companies → AI Agents
+  // → Investors & High-Value Stakeholders → Institutions & Organizations →
+  // operational groups.
   {
     title: "Companies",
     icon: Building2,
@@ -94,9 +95,6 @@ const navGroups: NavGroup[] = [
       { title: "Industries", icon: Factory, value: "industries" },
       { title: "Contacts", icon: Users, value: "contacts" },
       { title: "Company Agents", icon: Bot, value: "company-agents" },
-      { title: "Riya Console", icon: Sparkles, value: "companies-riya" },
-      { title: "Company AI General", icon: Bot, value: "companies-ai-general" },
-      { title: "Outreach Agent", icon: Send, value: "companies-outreach" },
     ],
   },
   {
@@ -114,9 +112,38 @@ const navGroups: NavGroup[] = [
       { title: "User-Generated Agents", icon: UserCog, value: "agents-ugc" },
       { title: "Marketplace", icon: Store, value: "agents-marketplace" },
       { title: "Marketplace Payouts", icon: Coins, value: "agents-payouts" },
-      { title: "Agent Manager", icon: Bot, value: "agents-manager" },
       { title: "Sessions Log", icon: MessageSquare, value: "agents-sessions" },
       { title: "Agent Insights", icon: BarChart, value: "agents-insights" },
+    ],
+  },
+  {
+    title: "Investors & High-Value Stakeholders",
+    icon: Landmark,
+    roles: ["admin"],
+    items: [
+      { title: "IR Overview", icon: LayoutDashboard, value: "ir-overview" },
+      { title: "IR Dashboard", icon: LayoutDashboard, value: "ir-dashboard" },
+      { title: "MRR / ARR Targets", icon: Target, value: "ir-targets" },
+      { title: "VC Firms", icon: Building2, value: "ir-vcs" },
+      { title: "Investors", icon: Users, value: "ir-investors" },
+      { title: "Key Influencers", icon: Handshake, value: "ir-influencers" },
+      { title: "Email Updates", icon: Mail, value: "ir-emails" },
+    ],
+  },
+  {
+    title: "Institutions & Organizations",
+    icon: School,
+    roles: ["admin"],
+    items: [
+      { title: "Dashboard", icon: LayoutDashboard, value: "inst-overview" },
+      { title: "Institution Types", icon: Layers, value: "inst-types" },
+      { title: "Institutions Registry", icon: School, value: "institutions" },
+      { title: "Partner Organizations", icon: Handshake, value: "partner-orgs" },
+      { title: "Clubs & Departments", icon: Network, value: "inst-clubs" },
+      { title: "Representatives", icon: Users, value: "inst-reps" },
+      { title: "Events & Competitions", icon: Trophy, value: "inst-events" },
+      { title: "Outreach Agent", icon: Send, value: "inst-outreach" },
+      { title: "Query Agent", icon: Sparkles, value: "inst-analyst" },
     ],
   },
   {
@@ -191,31 +218,6 @@ const navGroups: NavGroup[] = [
       { title: "Credits Manager", icon: Coins, value: "credits" },
       { title: "Withdrawals", icon: Coins, value: "withdrawals" },
       { title: "Notifications", icon: Bell, value: "notifications" },
-    ],
-  },
-  {
-    title: "Investors & Stakeholders",
-    icon: Landmark,
-    roles: ["admin"],
-    items: [
-      { title: "IR Overview", icon: LayoutDashboard, value: "ir-overview" },
-      { title: "IR Dashboard", icon: LayoutDashboard, value: "ir-dashboard" },
-      { title: "MRR / ARR Targets", icon: Target, value: "ir-targets" },
-      { title: "VC Firms", icon: Building2, value: "ir-vcs" },
-      { title: "Investors", icon: Users, value: "ir-investors" },
-      { title: "Key Influencers", icon: Handshake, value: "ir-influencers" },
-      { title: "Email Updates", icon: Mail, value: "ir-emails" },
-      { title: "Relationship Exec", icon: Handshake, value: "ir-relationship-exec" },
-      { title: "Fundraising FP&A", icon: Sparkles, value: "ir-fpa-agent" },
-    ],
-  },
-  {
-    title: "Stakeholders",
-    icon: Handshake,
-    roles: ["admin"],
-    items: [
-      { title: "Institutions", icon: School, value: "institutions" },
-      { title: "Partner Orgs", icon: Handshake, value: "partner-orgs" },
     ],
   },
   {
