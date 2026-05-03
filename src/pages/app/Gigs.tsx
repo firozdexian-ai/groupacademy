@@ -38,7 +38,7 @@ import { cn } from "@/lib/utils";
  * Tab 2 — My Work: My submissions, bids, contracts, deliverables.
  *
  * Build Academy (Content Lead studio) is now a thin banner shown only to roles
- * that need it; full UI lives at /app/studio.
+ * Course Projects (course-as-project) is the single source of truth for build work.
  */
 
 export default function Gigs() {
