@@ -66,6 +66,7 @@ export default function ModuleManagement(props: ModuleManagementProps = {}) {
   const [loading, setLoading] = useState(true);
   const [course, setCourse] = useState<{ title: string; content_type: string } | null>(null);
   const [modules, setModules] = useState<CourseModule[]>([]);
+  const [resourceCounts, setResourceCounts] = useState<Record<string, number>>({});
   const [saveStates, setSaveStates] = useState<Record<string, SaveStatus>>({});
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
