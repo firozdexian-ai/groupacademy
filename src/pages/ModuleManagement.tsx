@@ -30,9 +30,21 @@ import {
   ChevronRight,
   Loader2,
   RefreshCw,
+  Sparkles,
+  HelpCircle,
+  Wand2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import ResearchPromptDialog from "@/components/modules/ResearchPromptDialog";
+import { BatchContentGenerator } from "@/components/dashboard/BatchContentGenerator";
 
 /**
  * Curriculum Module Manager
@@ -69,6 +81,9 @@ export default function ModuleManagement(props: ModuleManagementProps = {}) {
   const [resourceCounts, setResourceCounts] = useState<Record<string, number>>({});
   const [saveStates, setSaveStates] = useState<Record<string, SaveStatus>>({});
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [researchModuleId, setResearchModuleId] = useState<string | null>(null);
+  const [studioOpen, setStudioOpen] = useState(false);
+  
 
   const handleBack = () => {
     if (props.onBack) return props.onBack();
@@ -223,7 +238,11 @@ export default function ModuleManagement(props: ModuleManagementProps = {}) {
   };
 
   const openResources = (moduleId: string) => {
-    navigate(`/content/${contentId}/modules/${moduleId}/resources`);
+    // When the admin opened Module Management from the dashboard (via props.onBack),
+    // tag the deep-link so ModuleResourcesManager returns to the dashboard tab on Back.
+    const fromDashboard = !!props.onBack;
+    const qs = fromDashboard ? "?fromTab=1" : "";
+    navigate(`/content/${contentId}/modules/${moduleId}/resources${qs}`);
   };
 
   if (!contentId) {
@@ -447,21 +466,50 @@ export default function ModuleManagement(props: ModuleManagementProps = {}) {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between gap-3 pt-2 border-t border-border/40">
-                    <Button
-                      variant="outline"
-                      onClick={() => openResources(mod.id)}
-                      className={cn(
-                        "rounded-xl font-bold uppercase text-[10px] tracking-widest group",
-                      )}
-                    >
-                      <Layers className="mr-2 h-3.5 w-3.5" />
-                      Manage Resources
-                      <ChevronRight className="ml-1 h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-                    </Button>
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-border/40">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openResources(mod.id)}
+                        className="rounded-xl font-bold uppercase text-[10px] tracking-widest group"
+                      >
+                        <Layers className="mr-1.5 h-3.5 w-3.5" />
+                        Resources
+                        <ChevronRight className="ml-1 h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setResearchModuleId(mod.id)}
+                        className="rounded-xl font-bold uppercase text-[10px] tracking-widest border-primary/30 text-primary"
+                        title="Open AI deep-research prompt for this module"
+                      >
+                        <Sparkles className="mr-1.5 h-3.5 w-3.5" /> AI Research
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate(`/quiz-manage/${contentId}`)}
+                        className="rounded-xl font-bold uppercase text-[10px] tracking-widest"
+                        title="Open the quiz builder for this course"
+                      >
+                        <HelpCircle className="mr-1.5 h-3.5 w-3.5" /> Quiz
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setStudioOpen(true)}
+                        className="rounded-xl font-bold uppercase text-[10px] tracking-widest"
+                        title="Bulk-generate content with AI Content Studio"
+                      >
+                        <Wand2 className="mr-1.5 h-3.5 w-3.5" /> AI Studio
+                      </Button>
+                    </div>
                     <Button
                       onClick={() => saveModule(mod)}
                       disabled={status === "saving" || status === "saved"}
+                      size="sm"
                       className="rounded-xl font-bold uppercase text-[10px] tracking-widest"
                     >
                       {status === "saving" ? (
@@ -498,6 +546,41 @@ export default function ModuleManagement(props: ModuleManagementProps = {}) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {researchModuleId && (() => {
+        const mod = modules.find((m) => m.id === researchModuleId);
+        if (!mod) return null;
+        const idx = modules.findIndex((m) => m.id === researchModuleId);
+        return (
+          <ResearchPromptDialog
+            open={!!researchModuleId}
+            onOpenChange={(o) => !o && setResearchModuleId(null)}
+            moduleTitle={mod.title}
+            moduleDescription={mod.description ?? ""}
+            moduleIndex={idx + 1}
+            totalModules={modules.length}
+            courseTitle={course?.title ?? "Course"}
+            courseIndex={1}
+            totalCourses={1}
+            levelName={course?.content_type ?? "Course"}
+            programName={course?.title ?? ""}
+            schoolName="GroUp Academy"
+            academyName="GroUp Academy"
+          />
+        );
+      })()}
+
+      <Sheet open={studioOpen} onOpenChange={setStudioOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-3xl overflow-y-auto p-0">
+          <SheetHeader className="px-6 py-4 border-b">
+            <SheetTitle>AI Content Studio</SheetTitle>
+            <SheetDescription>Bulk-generate quizzes, scenarios, and other resources.</SheetDescription>
+          </SheetHeader>
+          <div className="p-4">
+            <BatchContentGenerator />
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

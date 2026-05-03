@@ -1,86 +1,58 @@
-I hear you. The current flow is blocking you because “module management” is split across course editing, a dashboard picker, a resource manager, and a gig system — but the actual upload path for module resources is still mostly URL/manual-entry based. I checked the current implementation and the session replay: you reached the module list after saving a course, but the resource upload workflow is not clear enough and does not support direct file uploads inside module management.
+# Module Management — Final Polish
 
-Plan to make Module Management usable end-to-end:
+## Confirmed scope
+You're happy with the **outer "Manage Modules" → Manage Resources** flow (Dashboard → Modules tab). We won't touch that. Three remaining items to fix:
 
-1. Repair the admin navigation flow
-- Add clear “Manage Modules” access from the Courses/content cards, not only from the content edit sidebar.
-- Keep admins inside `/dashboard?tab=modules&id=...` where possible instead of jumping between full-page routes.
-- Fix the “Back” behavior so returning from module/resource management goes back to the dashboard Modules tab or course list reliably.
-- Add visible course context at every level: Course → Module → Stage Resources.
+1. The **"Manage Resources" button inside ContentEdit** (the one that doesn't work).
+2. Add an **AI "Generate Research Prompt"** action to each module in admin (so admins, not just gig workers, can use it).
+3. Bring **Quiz Manager** and **AI Content Studio (batch generator)** into the Module Management screen so admins can create resources individually right next to a module — without leaving the page.
 
-2. Upgrade the module list manager
-- Make module creation/editing more practical:
-  - Add better empty states and next-step buttons.
-  - Add resource counts per module so you can see which modules still have no content.
-  - Add “Manage Resources” as the primary action.
-  - Improve save/error feedback so failures are shown directly on the module card, not just as a toast.
-- Keep the course-wise module structure as the source of truth.
-- Avoid bringing back task-wise content management logic inside admin module editing.
+---
 
-3. Add direct module resource uploads
-- Add a reusable file uploader for module resources in `ModuleResourcesManager`.
-- Allow admins to upload files directly to the existing `course-content` storage bucket.
-- Supported direct uploads: PDFs, images, slides/documents, audio, and video links/files where practical.
-- On upload, automatically save the uploaded public URL into `module_resources.resource_url`.
-- Show uploaded file name, type, open/download link, and replace/remove controls.
-- Keep manual URL entry available for YouTube, Drive, or external content.
+## 1. Fix the broken Manage Resources button in ContentEdit
 
-4. Make resource editing reliable
-- Fix the temporary resource ID/state bug in `ModuleResourcesManager`, where new unsaved resources can lose their correct save-state mapping.
-- Add delete functionality for module resources; the trash button currently has no handler.
-- Add per-resource save status and error display.
-- Refresh data after save/delete so the admin screen reflects the real database state.
-- Validate resource payloads before saving:
-  - URL/file required for file-like resources.
-  - JSON validation for flashcards/scenarios.
-  - Required fields for quizzes/reports where relevant.
+In `src/pages/ContentEdit.tsx` the right-hand sidebar only has **Manage Modules** and **Manage Quiz**. There's no resources button there today, but inside `ModuleManagement` the per-module **Manage Resources** button calls `navigate('/content/${id}/modules/${moduleId}/resources')` which works only if the route is registered and the user has the page chrome.
 
-5. Clean up gig/content creation alignment
-- Keep gigs generated from course modules and stages only.
-- Update the gig generation prompt/brief so each gig includes:
-  - Course title
-  - Module title
-  - Stage name
-  - Expected resource type
-  - Deep research prompt/instructions
-  - Quality expectations and output format
-- Make the gig side show these instructions clearly to collaborators so they can copy the research prompt and produce the right material.
-- Keep gig approval publishing into `module_resources` as the final step, so approved gig submissions appear in the same module resource manager.
+Fix:
+- Verify `App.tsx` route `/content/:contentId/modules/:moduleId/resources` points to `ModuleResourcesManager` (it does); ensure the link includes `?fromTab=1` whenever the user came from the dashboard so Back returns to the dashboard Modules tab instead of the standalone page.
+- Inside `ContentEdit`, replace the dead Manage Resources affordance (if user is referring to it) by routing to `/dashboard?tab=modules&id=<contentId>` — the same destination as the working outer button — so both entry points land in one place.
+- Delete any stale duplicate "Manage Resources" buttons from older versions of the sidebar.
 
-6. Add database/storage hardening if needed
-- Review the existing `course-content` bucket policies and confirm admin upload access is correct.
-- If needed, add a migration to update bucket MIME/file-size limits and storage policies for module resource uploads.
-- Keep public course resources public only because these are learning assets; do not change private CV or sensitive file buckets.
+## 2. AI Research Prompt available to admins per module
 
-7. Verification after implementation
-- Test the admin flow:
-  - Dashboard → Courses → Manage Modules
-  - Dashboard → Modules → pick course
-  - Add module
-  - Open resources
-  - Add resource
-  - Upload file
-  - Save resource
-  - Delete resource
-  - Generate gigs
-- Check that uploaded module resources appear in the learning/player hooks that read `module_resources`.
-- Confirm no build errors from the resource manager updates.
+`ResearchPromptDialog` already exists and is great, but it's currently only surfaced through the gig flow. Wire it into `ModuleManagement.tsx`:
 
-Technical details
-- Main files to update:
-  - `src/components/dashboard/ModulePickerPanel.tsx`
-  - `src/components/dashboard/ContentList.tsx`
-  - `src/pages/ModuleManagement.tsx`
-  - `src/pages/ModuleResourcesManager.tsx`
-  - `src/pages/app/ContentStudio.tsx`
-  - gig generation SQL function/migration for `generate_content_gigs_for_course`
-- Existing tables involved:
-  - `content`
-  - `course_modules`
-  - `module_resources`
-  - `content_gigs`
-- Existing bucket to use:
-  - `course-content`
+- Add a small **"Research Prompt"** button on each module card (next to Manage Resources).
+- Open `ResearchPromptDialog` populated with the module + course context the admin already has loaded.
+- Provide both **Copy Prompt** (existing behaviour) and a new **Generate with AI** action that calls a new edge function `generate-module-research` which posts the prompt to Lovable AI Gateway (`google/gemini-2.5-flash` for cost / `gpt-5-mini` for depth — default flash) and streams the result back into a textarea the admin can save into the module's `description` or attach as a new `module_resources` row of type `report`.
+- Edge function uses `LOVABLE_API_KEY`, validates JWT + admin role, returns SSE.
 
-Expected result
-- You will be able to go into the admin panel, pick a course, manage its modules, upload actual learning resources into those modules, generate gig work with proper research prompts, and see approved gig content flow back into module resources.
+## 3. Inline Quiz + AI Content Studio inside Module Management
+
+Right now admins must leave the Modules tab and go to **Certification Logic** (`tab=quiz-manage`) or **Generative Suite** (`tab=ai-content-tools`) to bulk-create. Bring those tools to the module level:
+
+- **Per-module Quick Tools row** in `ModuleManagement.tsx` showing 3 buttons:
+  - `Open Quiz Builder` → opens `QuizManagement` in a side sheet pre-scoped to that module/course.
+  - `AI Content Studio` → opens `BatchContentGenerator` in a side sheet pre-filled with this module's id and stage scaffolding so generated artifacts auto-attach to `module_resources`.
+  - `Add Single Resource` → opens `ModuleResourcesManager` in a slide-over for that module without leaving the page.
+- Use the existing shadcn `Sheet` component for slide-overs (no route change → no navigation loss).
+- After save in the sheet, refetch `module_resources` counts on the module card so the readiness badge updates instantly.
+
+## Technical notes
+- New edge function `supabase/functions/generate-module-research/index.ts` (CORS, JWT verify, admin-role check via `has_role`, calls AI Gateway with system prompt = curriculum researcher).
+- Reuse `ResearchPromptDialog`'s `buildResearchProtocol` as the user message.
+- No DB migration needed; we already have `module_resources` and `course_modules`.
+- Keep the working outer **Manage Modules → Manage Resources** untouched.
+
+## Files touched
+- `src/pages/ContentEdit.tsx` — fix/redirect the broken inner Manage Resources affordance.
+- `src/pages/ModuleManagement.tsx` — add Research Prompt + Quiz + Studio + Resources buttons per module, mount slide-over sheets.
+- `src/components/modules/ResearchPromptDialog.tsx` — add **Generate with AI** action streaming from new edge function.
+- `src/components/dashboard/BatchContentGenerator.tsx` — accept optional `moduleId`/`courseId` props for sheet mode.
+- `src/pages/QuizManagement.tsx` — accept optional `contentId`/`moduleId` props for sheet mode (keeps standalone route).
+- `src/pages/ModuleResourcesManager.tsx` — accept optional props so it can render inside a sheet.
+- `supabase/functions/generate-module-research/index.ts` — NEW: streamed AI research generation, admin-only.
+
+## Out of scope
+- Outer Modules tab navigation (already working).
+- Job AI Assessment regression (shipped previously; reverify after this).
