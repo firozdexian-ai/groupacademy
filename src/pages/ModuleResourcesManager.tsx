@@ -323,13 +323,12 @@ export default function ModuleResourcesManager() {
               </Badge>
             )}
             <Button
-              onClick={generateGigs}
-              disabled={generating}
+              onClick={() => navigate("/dashboard?tab=course-projects")}
               variant="outline"
               className="h-10 rounded-xl border-primary/30 bg-primary/5 text-primary font-black uppercase text-[10px] tracking-widest"
             >
-              {generating ? <Loader2 className="h-3 w-3 mr-2 animate-spin" /> : <Zap className="h-3 w-3 mr-2" />}
-              Generate Gigs
+              <Zap className="h-3 w-3 mr-2" />
+              Open Course Projects
             </Button>
             <Button
               onClick={loadData}
