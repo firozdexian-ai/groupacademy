@@ -308,19 +308,29 @@ export function AdminSidebar({ activeTab, onTabChange, userRole = "admin", admin
     navigate("/auth");
   };
 
-  const filteredNavGroups = useMemo(
-    () =>
-      navGroups.filter((group) => {
-        if (adminScope === "company") return group.companyScoped === true;
-        if (!userRole) return false;
-        return group.roles.includes(userRole);
-      }),
-    [adminScope, userRole],
-  );
+  const filteredNavGroups = useMemo<NavGroup[]>(() => {
+    return navGroups.filter((group) => {
+      if (adminScope === "company") return group.companyScoped === true;
+      if (!userRole) return false;
+      return group.roles.includes(userRole);
+    });
+  }, [adminScope, userRole]);
 
   // Determine the active group title based on the activeTab
-  const activeGroupTitle = useMemo(() => {
-    return filteredNavGroups.find((g) => g.items.some((i) => i.value === activeTab))?.title || filteredNavGroups?.title;
+  const activeGroupTitle = useMemo<string | undefined>(() => {
+    const foundGroup = filteredNavGroups.find((g) => g.items.some((i) => i.value === activeTab));
+
+    // If we found the specific group, return its title
+    if (foundGroup) {
+      return foundGroup.title;
+    }
+
+    // If not, but we have groups available, default to the first one's title
+    if (filteredNavGroups.length > 0) {
+      return filteredNavGroups.title;
+    }
+
+    return undefined;
   }, [activeTab, filteredNavGroups]);
 
   // Initialize state once, ensuring the active group is open
