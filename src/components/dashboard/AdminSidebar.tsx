@@ -1,4 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
+import { useState, useMemo } from "react";
 import {
   LayoutDashboard,
   BookOpen,
@@ -61,7 +62,6 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
-import { useState } from "react";
 
 type AppRole = Database["public"]["Enums"]["app_role"];
 
@@ -287,6 +287,7 @@ const navGroups: NavGroup[] = [
     ],
   },
 ];
+
 interface AdminSidebarProps {
   activeTab: string;
   onTabChange: (value: string) => void;
@@ -307,28 +308,25 @@ export function AdminSidebar({ activeTab, onTabChange, userRole = "admin", admin
     navigate("/auth");
   };
 
-  const filteredNavGroups = navGroups.filter((group) => {
-    if (adminScope === "company") return group.companyScoped === true;
-    if (!userRole) return false;
-    return group.roles.includes(userRole);
-  });
-
-  // Auto-expand group containing the active tab. Multiple groups may be open
-  // simultaneously so admins can keep context while jumping between modules.
-  const activeGroupTitle =
-    filteredNavGroups.find((g) => g.items.some((i) => i.value === activeTab))?.title || filteredNavGroups[0]?.title;
-  const [openGroups, setOpenGroups] = useState<Set<string>>(
-    () => new Set(activeGroupTitle ? [activeGroupTitle] : []),
+  const filteredNavGroups = useMemo(
+    () =>
+      navGroups.filter((group) => {
+        if (adminScope === "company") return group.companyScoped === true;
+        if (!userRole) return false;
+        return group.roles.includes(userRole);
+      }),
+    [adminScope, userRole],
   );
 
-  // Ensure the group containing the active tab is always open when activeTab changes.
-  if (activeGroupTitle && !openGroups.has(activeGroupTitle)) {
-    setOpenGroups((prev) => {
-      const next = new Set(prev);
-      next.add(activeGroupTitle);
-      return next;
-    });
-  }
+  // Determine the active group title based on the activeTab
+  const activeGroupTitle = useMemo(() => {
+    return filteredNavGroups.find((g) => g.items.some((i) => i.value === activeTab))?.title || filteredNavGroups?.title;
+  }, [activeTab, filteredNavGroups]);
+
+  // Initialize state once, ensuring the active group is open
+  const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
+    return new Set(activeGroupTitle ? [activeGroupTitle] : []);
+  });
 
   const toggleGroup = (title: string, isOpen: boolean) => {
     setOpenGroups((prev) => {
@@ -359,138 +357,135 @@ export function AdminSidebar({ activeTab, onTabChange, userRole = "admin", admin
 
       <SidebarContent className="p-2 gap-2">
         {/* Agentic Dashboard (Chat) — top-level link */}
-        {(userRole === "admin" || userRole === "super_admin") && (() => {
-          const isChat = location.pathname.startsWith("/dashboard/chat");
-          return (
-            <SidebarGroup className="p-0">
-              <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    tooltip="Agentic Dashboard"
-                    onClick={() => navigate("/dashboard/chat")}
-                    isActive={isChat}
-                    className={`font-medium ${
-                      isChat ? "bg-primary/10 text-primary" : "hover:bg-accent/50"
-                    }`}
-                  >
-                    <MessageCircle className="w-4 h-4" />
-                    <span>Chat</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
-            </SidebarGroup>
-          );
-        })()}
+        {(userRole === "admin" || userRole === "super_admin") &&
+          (() => {
+            const isChat = location.pathname.startsWith("/dashboard/chat");
+            return (
+              <SidebarGroup className="p-0">
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      tooltip="Agentic Dashboard"
+                      onClick={() => navigate("/dashboard/chat")}
+                      isActive={isChat}
+                      className={`font-medium ${isChat ? "bg-primary/10 text-primary" : "hover:bg-accent/50"}`}
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      <span>Chat</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroup>
+            );
+          })()}
 
         {/* Overview group - admin & super_admin */}
-        {(userRole === "admin" || userRole === "super_admin") && (() => {
-          const overviewItems = [
-            { title: "Lifetime", value: "overview-lifetime", icon: LayoutDashboard },
-            { title: "Monthly", value: "overview-month", icon: Calendar },
-            { title: "Quarterly", value: "overview-quarter", icon: BarChart },
-            { title: "Business Analyst", value: "overview-analyst", icon: Sparkles },
-            { title: "Report Builder", value: "overview-reports", icon: FileText },
-          ];
-          const isOverviewActive =
-            activeTab === "overview" || activeTab.startsWith("overview-");
-          return (
-            <Collapsible
-              open={openGroups.has("Overview") || isOverviewActive}
-              onOpenChange={(isOpen) => toggleGroup("Overview", isOpen)}
-              className="group/collapsible"
-            >
-              <SidebarGroup className="p-0">
-                <CollapsibleTrigger asChild>
-                  <SidebarMenuButton
-                    tooltip="Overview"
-                    className="font-medium hover:bg-accent/50"
-                  >
-                    <LayoutDashboard className="w-4 h-4" />
-                    <span>Overview</span>
-                    <ChevronDown className="ml-auto w-4 h-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
-                  </SidebarMenuButton>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <SidebarMenu className="pl-2 mt-1 space-y-0.5 border-l ml-4 border-border/50">
-                    {overviewItems.map((item) => (
-                      <SidebarMenuItem key={item.value}>
-                        <SidebarMenuButton
-                          onClick={() => onTabChange(item.value)}
-                          isActive={
-                            activeTab === item.value ||
-                            (item.value === "overview-lifetime" && activeTab === "overview")
-                          }
-                          className={`h-9 text-sm ${
-                            activeTab === item.value ||
-                            (item.value === "overview-lifetime" && activeTab === "overview")
-                              ? "bg-primary/10 text-primary font-medium"
-                              : "text-muted-foreground"
-                          }`}
-                        >
-                          <item.icon className="w-4 h-4" />
-                          <span>{item.title}</span>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    ))}
-                  </SidebarMenu>
-                </CollapsibleContent>
-              </SidebarGroup>
-            </Collapsible>
-          );
-        })()}
+        {(userRole === "admin" || userRole === "super_admin") &&
+          (() => {
+            const overviewItems = [
+              { title: "Lifetime", value: "overview-lifetime", icon: LayoutDashboard },
+              { title: "Monthly", value: "overview-month", icon: Calendar },
+              { title: "Quarterly", value: "overview-quarter", icon: BarChart },
+              { title: "Business Analyst", value: "overview-analyst", icon: Sparkles },
+              { title: "Report Builder", value: "overview-reports", icon: FileText },
+            ];
+            const isOverviewActive = activeTab === "overview" || activeTab.startsWith("overview-");
+            return (
+              <Collapsible
+                open={openGroups.has("Overview") || isOverviewActive}
+                onOpenChange={(isOpen) => toggleGroup("Overview", isOpen)}
+                className="group/collapsible"
+              >
+                <SidebarGroup className="p-0">
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton tooltip="Overview" className="font-medium hover:bg-accent/50">
+                      <LayoutDashboard className="w-4 h-4" />
+                      <span>Overview</span>
+                      <ChevronDown className="ml-auto w-4 h-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenu className="pl-2 mt-1 space-y-0.5 border-l ml-4 border-border/50">
+                      {overviewItems.map((item) => (
+                        <SidebarMenuItem key={item.value}>
+                          <SidebarMenuButton
+                            onClick={() => onTabChange(item.value)}
+                            isActive={
+                              activeTab === item.value ||
+                              (item.value === "overview-lifetime" && activeTab === "overview")
+                            }
+                            className={`h-9 text-sm ${
+                              activeTab === item.value ||
+                              (item.value === "overview-lifetime" && activeTab === "overview")
+                                ? "bg-primary/10 text-primary font-medium"
+                                : "text-muted-foreground"
+                            }`}
+                          >
+                            <item.icon className="w-4 h-4" />
+                            <span>{item.title}</span>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      ))}
+                    </SidebarMenu>
+                  </CollapsibleContent>
+                </SidebarGroup>
+              </Collapsible>
+            );
+          })()}
 
         {/* Talent group - admin, super_admin, talent_exec */}
-        {(userRole === "admin" || userRole === "super_admin" || userRole === "talent_exec") && (() => {
-          const talentItems = [
-            { title: "Overview", value: "talent-overview", icon: LayoutDashboard },
-            { title: "Talent Pool", value: "talent", icon: DatabaseIcon },
-            { title: "Talent Upload", value: "talent-upload", icon: Upload },
-            { title: "Lead Hunter", value: "lead-hunter", icon: Target },
-            { title: "Professions & Roles", value: "professions", icon: GraduationCap },
-          ];
-          const isTalentActive =
-            activeTab === "talent" ||
-            activeTab === "lead-hunter" ||
-            activeTab === "professions" ||
-            activeTab.startsWith("talent-");
-          return (
-            <Collapsible
-              open={openGroups.has("Talent") || isTalentActive}
-              onOpenChange={(isOpen) => toggleGroup("Talent", isOpen)}
-              className="group/collapsible"
-            >
-              <SidebarGroup className="p-0">
-                <CollapsibleTrigger asChild>
-                  <SidebarMenuButton tooltip="Talent" className="font-medium hover:bg-accent/50">
-                    <Users className="w-4 h-4" />
-                    <span>Talent</span>
-                    <ChevronDown className="ml-auto w-4 h-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
-                  </SidebarMenuButton>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <SidebarMenu className="pl-2 mt-1 space-y-0.5 border-l ml-4 border-border/50">
-                    {talentItems.map((item) => (
-                      <SidebarMenuItem key={item.value}>
-                        <SidebarMenuButton
-                          onClick={() => onTabChange(item.value)}
-                          isActive={activeTab === item.value}
-                          className={`h-9 text-sm ${
-                            activeTab === item.value
-                              ? "bg-primary/10 text-primary font-medium"
-                              : "text-muted-foreground"
-                          }`}
-                        >
-                          <item.icon className="w-4 h-4" />
-                          <span>{item.title}</span>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    ))}
-                  </SidebarMenu>
-                </CollapsibleContent>
-              </SidebarGroup>
-            </Collapsible>
-          );
-        })()}
+        {(userRole === "admin" || userRole === "super_admin" || userRole === "talent_exec") &&
+          (() => {
+            const talentItems = [
+              { title: "Overview", value: "talent-overview", icon: LayoutDashboard },
+              { title: "Talent Pool", value: "talent", icon: DatabaseIcon },
+              { title: "Talent Upload", value: "talent-upload", icon: Upload },
+              { title: "Lead Hunter", value: "lead-hunter", icon: Target },
+              { title: "Professions & Roles", value: "professions", icon: GraduationCap },
+            ];
+            const isTalentActive =
+              activeTab === "talent" ||
+              activeTab === "lead-hunter" ||
+              activeTab === "professions" ||
+              activeTab.startsWith("talent-");
+            return (
+              <Collapsible
+                open={openGroups.has("Talent") || isTalentActive}
+                onOpenChange={(isOpen) => toggleGroup("Talent", isOpen)}
+                className="group/collapsible"
+              >
+                <SidebarGroup className="p-0">
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton tooltip="Talent" className="font-medium hover:bg-accent/50">
+                      <Users className="w-4 h-4" />
+                      <span>Talent</span>
+                      <ChevronDown className="ml-auto w-4 h-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-180" />
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenu className="pl-2 mt-1 space-y-0.5 border-l ml-4 border-border/50">
+                      {talentItems.map((item) => (
+                        <SidebarMenuItem key={item.value}>
+                          <SidebarMenuButton
+                            onClick={() => onTabChange(item.value)}
+                            isActive={activeTab === item.value}
+                            className={`h-9 text-sm ${
+                              activeTab === item.value
+                                ? "bg-primary/10 text-primary font-medium"
+                                : "text-muted-foreground"
+                            }`}
+                          >
+                            <item.icon className="w-4 h-4" />
+                            <span>{item.title}</span>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      ))}
+                    </SidebarMenu>
+                  </CollapsibleContent>
+                </SidebarGroup>
+              </Collapsible>
+            );
+          })()}
 
         {/* Nav Groups */}
         {filteredNavGroups.map((group) => (
