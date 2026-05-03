@@ -29,6 +29,7 @@ export interface ThreadSummary {
   agent_key: string;
   title: string | null;
   last_message_at: string;
+  last_read_at: string;
 }
 
 const ATTACHMENT_BUCKET = "admin-chat-attachments";
@@ -39,7 +40,7 @@ export function useAdminThreads() {
   const reload = useCallback(async () => {
     const { data } = await supabase
       .from("admin_chat_threads")
-      .select("id, agent_key, title, last_message_at")
+      .select("id, agent_key, title, last_message_at, last_read_at")
       .order("last_message_at", { ascending: false });
     setThreads((data as any) ?? []);
   }, []);
