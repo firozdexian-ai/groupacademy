@@ -16,6 +16,13 @@ import { JobCard, type JobCardData } from "@/components/jobs/JobCard";
 import { JOB_TYPES } from "@/lib/constants/jobTypes";
 import { EmptyState } from "@/components/common/EmptyState";
 import { PAGE_SHELL_WIDE, PAGE_TITLE, PAGE_SUBTITLE } from "@/lib/uiTokens";
+import { cn } from "@/lib/utils";
+
+/**
+ * GroUp Academy: Job Listings Marketplace
+ * CTO Audit: Applied 2024 Clean SaaS aesthetic (soft UI, friendly typography).
+ * Fixed "Pagination Mirage" by shifting primary filters to the server-side query.
+ */
 
 interface JobWithSalary extends JobCardData {
   salary_range_min?: number | null;
@@ -42,13 +49,15 @@ export default function AppJobs() {
   const [loading, setLoading] = useState(true);
   const [, setError] = useState<string | null>(null);
   const [selectedExpLevels, setSelectedExpLevels] = useState<string[]>([]);
-  const [salaryRange, setSalaryRange] = useState([0]);
+  const [salaryRange, setSalaryRange] = useState();
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const PAGE_SIZE = 50;
 
+  // Debounce Search Input
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchQuery);
@@ -60,201 +69,246 @@ export default function AppJobs() {
     return () => clearTimeout(timer);
   }, [searchQuery, setSearchParams, searchParams]);
 
+  // CTO FIX: Server-Side Querying to fix pagination bugs
   const fetchJobs = useCallback(
     async (pageNum = 0, append = false) => {
       if (!append) { setLoading(true); setError(null); } else { setLoadingMore(true); }
       try {
         const from = pageNum * PAGE_SIZE;
         const to = from + PAGE_SIZE - 1;
+        
         let query = supabase
           .from("jobs")
           .select(`id, title, company_name, company_logo_url, location, job_type, experience_level, is_featured, created_at, deadline, salary_range_min, salary_range_max, salary_currency`)
           .eq("is_active", true)
           .or("deadline.is.null,deadline.gte.now()");
+
+        // Push heavy filtering to the database to ensure accurate pagination batches
         if (targetCompany) query = query.ilike("company_name", `%${targetCompany}%`);
         if (targetLocation && targetLocation !== "abroad") query = query.ilike("location", `%${targetLocation}%`);
+        if (debouncedSearch) {
+          query = query.or(`title.ilike.%${debouncedSearch}%,company_name.ilike.%${debouncedSearch}%`);
+        }
+        if (selectedJobTypes.length > 0) {
+          query = query.in("job_type", selectedJobTypes);
+        }
+
         if (sortOrder === "hot") query = query.order("is_featured", { ascending: false });
         else if (sortOrder === "expiring") query = query.order("deadline", { ascending: true });
+        
         const { data, error } = await query.order("created_at", { ascending: false }).range(from, to);
         if (error) throw error;
+        
         const newJobs = (data as JobWithSalary[]) || [];
         setHasMore(newJobs.length === PAGE_SIZE);
         setJobs((prev) => (append ? [...prev, ...newJobs] : newJobs));
         setPage(pageNum);
       } catch (err: any) {
         setError(err.message || "Couldn't load jobs.");
-      } finally { setLoading(false); setLoadingMore(false); }
+      } finally { 
+        setLoading(false); 
+        setLoadingMore(false); 
+      }
     },
-    [targetCompany, targetLocation, sortOrder],
+    [targetCompany, targetLocation, sortOrder, debouncedSearch, selectedJobTypes],
   );
 
-  useEffect(() => { fetchJobs(); }, [fetchJobs]);
+  // Re-fetch from page 0 when core filters change
+  useEffect(() => { 
+    fetchJobs(0, false); 
+  }, [fetchJobs]);
 
+  // Client-side filtering only for complex derived data (Currency conversion & fuzzy locations)
   const filteredJobs = useMemo(() => {
     return jobs.filter((job) => {
-      const matchSearch =
-        !debouncedSearch ||
-        job.title.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-        job.company_name.toLowerCase().includes(debouncedSearch.toLowerCase());
-      const matchType = selectedJobTypes.length === 0 || selectedJobTypes.includes(job.job_type);
       const normalizedExpLevel = job.experience_level?.replace("_level", "") || job.experience_level;
       const matchExp = selectedExpLevels.length === 0 ||
         selectedExpLevels.some((sel) => sel.replace("_level", "") === normalizedExpLevel);
-      const minSalaryK = salaryRange[0];
+      
+      const minSalaryK = salaryRange;
       let matchSalary = true;
       if (minSalaryK > 0 && job.salary_range_max) {
         const thresholdInUSD = minSalaryK * 1000;
         const jobMaxInUSD = job.salary_currency === "BDT" ? job.salary_range_max / 110 : job.salary_range_max;
         matchSalary = jobMaxInUSD >= thresholdInUSD;
       }
+      
       const matchLocationFilter =
         targetLocation !== "abroad" ||
         ["remote", "international", "abroad", "overseas"].some((term) => job.location?.toLowerCase().includes(term)) ||
         job.job_type === "remote";
-      return matchSearch && matchType && matchExp && matchSalary && matchLocationFilter;
+        
+      return matchExp && matchSalary && matchLocationFilter;
     });
-  }, [jobs, debouncedSearch, selectedJobTypes, selectedExpLevels, salaryRange, targetLocation]);
+  }, [jobs, selectedExpLevels, salaryRange, targetLocation]);
 
   const clearFilters = () => {
     setSearchQuery("");
     setSelectedJobTypes([]);
     setSelectedExpLevels([]);
-    setSalaryRange([0]);
+    setSalaryRange();
     setSearchParams({}, { replace: true });
   };
 
-  const activeFilterCount = selectedJobTypes.length + selectedExpLevels.length + (salaryRange[0] > 0 ? 1 : 0);
+  const activeFilterCount = selectedJobTypes.length + selectedExpLevels.length + (salaryRange > 0 ? 1 : 0);
 
   return (
-    <div className={PAGE_SHELL_WIDE}>
-      <Button variant="ghost" size="sm" onClick={() => navigate("/app/jobs")} className="gap-1.5 -ml-2">
-        <ArrowLeft className="h-4 w-4" /> Back
+    <div className={cn(PAGE_SHELL_WIDE, "max-w-4xl mx-auto space-y-6")}>
+      <Button 
+        variant="ghost" 
+        size="sm" 
+        onClick={() => navigate("/app/jobs")} 
+        className="gap-2 -ml-3 text-muted-foreground hover:text-foreground font-medium rounded-full"
+      >
+        <ArrowLeft className="h-4 w-4" /> Back to hub
       </Button>
 
-      <header className="space-y-1">
-        <div className="flex items-center gap-2">
-          <Briefcase className="h-5 w-5 text-primary" />
-          <h1 className={PAGE_TITLE}>{targetCompany ? `${targetCompany} jobs` : "All jobs"}</h1>
+      <header className="space-y-2">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center border border-blue-100">
+            <Briefcase className="h-5 w-5 text-blue-600" />
+          </div>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+            {targetCompany ? `${targetCompany} Openings` : "Discover Opportunities"}
+          </h1>
         </div>
-        <p className={PAGE_SUBTITLE}>
-          {loading ? "Loading…" : `${filteredJobs.length} open positions`}
+        <p className="text-muted-foreground text-base">
+          {loading ? "Searching our database…" : `Found ${filteredJobs.length} open positions matching your criteria.`}
         </p>
       </header>
 
-      {/* Search + filters */}
-      <div className="flex gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      {/* 2024 Clean SaaS Search Bar */}
+      <div className="flex gap-3">
+        <div className="relative flex-1 group">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-blue-600 transition-colors" />
           <Input
-            placeholder="Search title or company…"
+            placeholder="Search by job title or company…"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 pr-9 h-9 text-sm rounded-xl"
+            className="pl-11 pr-11 h-12 text-base rounded-full border-border/40 bg-card shadow-sm focus-visible:ring-blue-500/20 focus-visible:border-blue-500 transition-all"
           />
           {searchQuery && (
             <Button
               variant="ghost"
               size="icon"
-              className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 rounded-lg"
+              className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full text-muted-foreground hover:bg-muted"
               onClick={() => setSearchQuery("")}
             >
-              <X className="h-3.5 w-3.5" />
+              <X className="h-4 w-4" />
             </Button>
           )}
         </div>
+        
         <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
           <SheetTrigger asChild>
-            <Button variant="outline" size="sm" className="h-9 rounded-xl gap-1.5 relative">
-              <SlidersHorizontal className="h-3.5 w-3.5" /> Filters
+            <Button 
+              variant="outline" 
+              className="h-12 px-6 rounded-full gap-2 border-border/40 shadow-sm hover:bg-muted/50 font-medium relative"
+            >
+              <SlidersHorizontal className="h-4 w-4" /> Filters
               {activeFilterCount > 0 && (
-                <span className="absolute -top-1 -right-1 h-4 min-w-4 px-1 rounded-full bg-primary text-primary-foreground text-[10px] flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 h-5 min-w-[20px] px-1 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center shadow-sm">
                   {activeFilterCount}
                 </span>
               )}
             </Button>
           </SheetTrigger>
-          <SheetContent side="right" className="w-full sm:w-96">
+          <SheetContent side="right" className="w-full sm:w-[400px] border-l border-border/20 shadow-2xl">
             <SheetHeader>
-              <SheetTitle className="text-base">Filters</SheetTitle>
+              <SheetTitle className="text-xl font-bold">Refine Results</SheetTitle>
             </SheetHeader>
-            <ScrollArea className="h-[calc(100vh-180px)] pr-3 mt-4">
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <Label className="text-xs font-semibold">Job type</Label>
-                  <div className="space-y-1.5">
+            <ScrollArea className="h-[calc(100vh-180px)] pr-4 mt-6">
+              <div className="space-y-8">
+                <div className="space-y-4">
+                  <Label className="text-sm font-semibold text-foreground/80 uppercase tracking-wide">Work Type</Label>
+                  <div className="space-y-2">
                     {Object.entries(JOB_TYPES).map(([key, value]) => (
-                      <label key={key} className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/40 cursor-pointer">
+                      <label key={key} className="flex items-center gap-3 p-3 rounded-xl border border-transparent hover:bg-muted/50 hover:border-border/40 cursor-pointer transition-colors">
                         <Checkbox
                           checked={selectedJobTypes.includes(key)}
                           onCheckedChange={() => {
                             const active = selectedJobTypes.includes(key);
                             setSelectedJobTypes(active ? selectedJobTypes.filter((t) => t !== key) : [...selectedJobTypes, key]);
                           }}
+                          className="rounded-md data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
                         />
-                        <span className="text-sm">{value.label}</span>
+                        <span className="text-sm font-medium">{value.label}</span>
                       </label>
                     ))}
                   </div>
                 </div>
-                <div className="space-y-2">
+                
+                <div className="space-y-4">
                   <div className="flex justify-between items-baseline">
-                    <Label className="text-xs font-semibold">Min salary</Label>
-                    <span className="text-xs text-muted-foreground">
-                      {salaryRange[0] > 0 ? `$${salaryRange[0]}k+` : "Any"}
+                    <Label className="text-sm font-semibold text-foreground/80 uppercase tracking-wide">Minimum Salary</Label>
+                    <span className="text-sm font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded-md">
+                      {salaryRange > 0 ? `$${salaryRange}k+` : "Any"}
                     </span>
                   </div>
-                  <Slider value={salaryRange} onValueChange={setSalaryRange} max={150} step={5} />
+                  <div className="pt-2">
+                    <Slider 
+                      value={salaryRange} 
+                      onValueChange={setSalaryRange} 
+                      max={150} 
+                      step={5}
+                      className="[&_[role=slider]]:border-blue-600 [&_[role=slider]]:bg-blue-600"
+                    />
+                  </div>
                 </div>
               </div>
             </ScrollArea>
-            <SheetFooter className="absolute bottom-0 left-0 right-0 p-4 bg-background border-t border-border/40 flex-row gap-2">
-              <Button variant="outline" size="sm" onClick={clearFilters} className="flex-1 h-9 rounded-lg">Clear</Button>
-              <Button size="sm" onClick={() => setIsFilterOpen(false)} className="flex-1 h-9 rounded-lg">Apply</Button>
+            <SheetFooter className="absolute bottom-0 left-0 right-0 p-5 bg-background/80 backdrop-blur-md border-t border-border/20 flex-row gap-3">
+              <Button variant="ghost" onClick={clearFilters} className="flex-1 h-11 rounded-full font-medium">Clear All</Button>
+              <Button onClick={() => setIsFilterOpen(false)} className="flex-1 h-11 rounded-full bg-blue-600 hover:bg-blue-700 font-semibold shadow-md">Show Results</Button>
             </SheetFooter>
           </SheetContent>
         </Sheet>
       </div>
 
+      {/* Main Content Area */}
       {loading ? (
-        <div className="space-y-2">
-          {[1, 2, 3, 4].map((i) => (
-            <Card key={i} className="rounded-2xl border border-border/40">
-              <CardContent className="p-3 space-y-2">
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-3 w-1/2" />
+        <div className="space-y-3">
+          {.map((i) => (
+            <Card key={i} className="rounded-2xl border border-border/20 shadow-sm">
+              <CardContent className="p-5 space-y-3">
+                <Skeleton className="h-5 w-2/3 rounded-md" />
+                <Skeleton className="h-4 w-1/3 rounded-md" />
               </CardContent>
             </Card>
           ))}
         </div>
       ) : filteredJobs.length === 0 ? (
-        <EmptyState
-          icon={Briefcase}
-          title="No jobs match your filters"
-          description="Try removing some filters to see more results."
-          action={{ label: "Clear filters", onClick: clearFilters }}
-        />
+        <div className="pt-8 pb-12">
+          <EmptyState
+            icon={Briefcase}
+            title="No matches found"
+            description="We couldn't find any positions that match your current search and filters."
+            action={{ label: "Clear filters", onClick: clearFilters }}
+          />
+        </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3 pb-10">
           {filteredJobs.map((job) => (
-            <JobCard
-              key={job.id}
-              job={job}
-              isSaved={isSaved(job.id, "job")}
-              onSaveToggle={() => toggleSave(job.id, "job")}
-              onClick={() => navigate(`/app/jobs/${job.id}`)}
-            />
+            <div key={job.id} className="transition-transform duration-200 hover:-translate-y-0.5">
+              <JobCard
+                job={job}
+                isSaved={isSaved(job.id, "job")}
+                onSaveToggle={() => toggleSave(job.id, "job")}
+                onClick={() => navigate(`/app/jobs/${job.id}`)}
+              />
+            </div>
           ))}
+          
           {hasMore && (
-            <div className="flex justify-center pt-2">
+            <div className="flex justify-center pt-6">
               <Button
                 variant="outline"
-                size="sm"
-                className="h-9 rounded-lg gap-1.5"
+                className="h-11 px-8 rounded-full gap-2 font-medium border-border/40 hover:bg-muted/50"
                 onClick={() => fetchJobs(page + 1, true)}
                 disabled={loadingMore}
               >
-                <RefreshCw className={loadingMore ? "h-3.5 w-3.5 animate-spin" : "h-3.5 w-3.5"} />
-                Load more
+                <RefreshCw className={cn("h-4 w-4 text-muted-foreground", loadingMore && "animate-spin")} />
+                {loadingMore ? "Loading..." : "Load more positions"}
               </Button>
             </div>
           )}
