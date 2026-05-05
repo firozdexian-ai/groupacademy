@@ -23,10 +23,7 @@ export default function WebinarLanding() {
     const ref = searchParams.get("ref");
     if (ref) {
       localStorage.setItem("ga_referral", ref);
-      // Scope the ref to this specific course so enroll_in_content can pay out the affiliate
       if (slug) localStorage.setItem(`course_ref:${slug}`, ref);
-      // Fire-and-forget click tracking
-      supabase.rpc("track_course_referral_click", { p_slug: slug, p_ref_code: ref }).then(() => {});
     }
   }, [searchParams, slug]);
 
