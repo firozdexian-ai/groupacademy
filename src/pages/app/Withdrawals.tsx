@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
+import { InboxUnlockCard } from "@/components/talents/InboxUnlockCard";
 
 interface WithdrawalRow {
   id: string;
