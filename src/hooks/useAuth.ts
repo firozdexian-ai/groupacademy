@@ -169,6 +169,26 @@ export const useAuth = (): AuthState => {
         return false;
       }
 
+      // Apply pending referral, if any
+      try {
+        const ref = localStorage.getItem("pending_ref");
+        if (ref && authData.user) {
+          // Look up referrer by ref_code or by id
+          const { data: referrer } = await supabase
+            .from("talents")
+            .select("id")
+            .or(`ref_code.eq.${ref},id.eq.${ref}`)
+            .maybeSingle();
+          if (referrer?.id) {
+            await supabase
+              .from("talents")
+              .update({ referred_by: referrer.id })
+              .eq("user_id", authData.user.id);
+          }
+          localStorage.removeItem("pending_ref");
+        }
+      } catch {}
+
       toast.dismiss();
       toast.success("ACCOUNT_SYNC_COMPLETE");
       return true;
