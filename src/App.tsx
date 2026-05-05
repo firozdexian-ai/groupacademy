@@ -80,6 +80,8 @@ import Gigs from "./pages/app/Gigs";
 import MarketplaceGigDetail from "./pages/app/MarketplaceGigDetail";
 import Transactions from "./pages/app/Transactions";
 import Withdrawals from "./pages/app/Withdrawals";
+import TalentDirectory from "./pages/app/TalentDirectory";
+import TalentPublicProfile from "./pages/app/TalentPublicProfile";
 import ProfileVerify from "./pages/app/ProfileVerify";
 
 import CVMaker from "./pages/app/tools/CVMaker";
@@ -422,6 +424,8 @@ export default function App() {
                     <Route path="marketplace/:id" element={<MarketplaceGigDetail />} />
                     <Route path="my-gigs" element={<Navigate to="/app/gigs?tab=activity" replace />} />
                     <Route path="profile" element={<Profile />} />
+                    <Route path="talents" element={<TalentDirectory />} />
+                    <Route path="talents/:id" element={<TalentPublicProfile />} />
 
                     {/* Job Routes - Specific Routes First */}
                     <Route path="jobs/all" element={<AppJobs />} />
