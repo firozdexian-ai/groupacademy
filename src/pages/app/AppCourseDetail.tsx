@@ -208,3 +208,9 @@ function RecordedEnrollCta({ course }: { course: any }) {
     </Button>
   );
 }
+
+function LiveSessionPanels({ course }: { course: any }) {
+  const { enrollment } = useEnrollment(course.id);
+  if (enrollment) return <JoinLivePanel course={course} />;
+  return <WebinarEnrollPanel course={course} />;
+}
