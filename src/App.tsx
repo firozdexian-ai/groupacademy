@@ -277,6 +277,14 @@ export default function App() {
                       </ProtectedRoute>
                     }
                   />
+                  <Route
+                    path="/dashboard/messaging"
+                    element={
+                      <ProtectedRoute requireAnyAdminRole>
+                        <AdminMessagingInbox />
+                      </ProtectedRoute>
+                    }
+                  />
                   {/* Legacy company portal — redirect to Gro10x */}
                   <Route path="/company" element={<Navigate to="/gro10x" replace />} />
                   <Route path="/company/*" element={<Navigate to="/gro10x" replace />} />
