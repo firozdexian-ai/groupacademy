@@ -5,3 +5,9 @@ verify_jwt = false
 
 [functions.ai-agent-chat]
 verify_jwt = false
+
+[functions.unipile-webhook]
+verify_jwt = false
+
+[functions.messaging-autoreply]
+verify_jwt = false
