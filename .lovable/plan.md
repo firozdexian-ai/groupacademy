@@ -1,99 +1,98 @@
-# Creator Economy — Remaining Roadmap
+# Phase 7 — Advanced Gamification & Creator Loyalty
 
-We've shipped the foundation: Hype button, paid connection requests, inbox gate, talent directory, and public profiles. Here's how we land the rest, broken into 5 shippable phases. Each phase is independent and can be approved one at a time.
+Build on the Hype + Connections economy with mechanics that reward consistency, deepen engagement on individual posts, and create weekly competition that drives daily returns.
 
----
-
-## Phase 3 — Connections Inbox & DM Loop (next up)
-
-Right now a user can *send* a request, but recipients have nowhere to see/accept them, and once accepted there's no actual messaging surface. This closes the loop.
-
-**Build:**
-- **Connection Requests inbox** at `/app/connections` — pending received, sent, accepted tabs.
-- Accept / decline buttons calling existing `talent_connection_respond` RPC (already shipped).
-- On accept → auto-create a `messaging_threads` row between both talents → redirect to existing `/app/messages/:threadKey`.
-- Notification triggers: "X wants to connect (Y credits escrowed)", "Z accepted your request", "Refunded — request expired".
-- Badge on bottom nav profile icon when pending received > 0.
-- Nightly cron edge function `connection-expiry-sweep` to refund 14-day-old pending requests.
+## Goals
+1. Give fans a second, lower-friction way to reward creators (comment tips).
+2. Reward creators who post consistently (hype streaks).
+3. Create weekly competition with real credit payouts (leaderboard).
+4. Reward connectors who bring new talent into the network (referrals).
 
 ---
 
-## Phase 4 — Hype Visibility & Creator Earnings Surface
+## 1. Comment Tips (90/10 split)
 
-Hype works but creators can't see what they earned, and viewers can't discover hyped content.
+A "Tip" button on every comment. Fans spend **2 / 5 / 10 credits** in one tap; creator receives 90%, platform takes 10%. Reuses the same `wallet_ledger` flow as Hype.
 
-**Build:**
-- **"Hype Earnings" card** on `/app/withdrawals` — total received, last 30 days, top hyped post.
-- **Top Hyped This Week** sidebar widget on `/app/feed` (read from `feed_posts.hype_count` ordered desc, last 7 days).
-- **Creator badges** on profile + post author chip: 🔥 500 / 🔥 1k / 🔥 5k cumulative hypes received → auto-grant via trigger on `post_hypes` insert.
-- Animated hype counter (live realtime subscription on `feed_posts.hype_count`).
-- Self-hype client-side block + server-side guard already exists — just need the toast UX.
-- Hype rate-limit (50/post/user/day) enforced in `hype_post` RPC.
+- Table: `comment_tips` (id, comment_id, post_id, sender_talent_id, recipient_talent_id, amount, creator_share, platform_share, created_at)
+- RPC: `tip_comment(p_comment_id, p_amount)` — atomic deduction, 90/10 split, ledger entries, notification to recipient
+- UI: small `TipButton` on each comment row in `PostCard.tsx` with a popover for amount selection
+- Aggregated tip count badge on comments with ≥3 tips
 
----
+## 2. Hype Streaks
 
-## Phase 5 — Discovery, Search & Profile Boost
+Daily streak counter for creators who publish at least one post per day. Visible on profile and directory cards.
 
-Make the directory actually useful at scale.
+- Column: `talents.current_streak int`, `talents.longest_streak int`, `talents.last_post_date date`
+- Trigger on `posts` insert: increments if last_post_date = yesterday, resets if older, no-op if today
+- Badge unlocks at **7, 30, 100** day streaks (extend `creator_badges` enum)
+- UI: 🔥 chip on profile + tooltip showing longest streak
 
-**Build:**
-- **Filters** on `/app/talents`: country, profession, skill, "open inbox only", sort by hype / volume / recency.
-- Full-text search on talent name + skills + profession (Postgres `tsvector` index).
-- **Profile Boost**: spend 100 credits → pin your card to top of directory results for 24h. New `talent_boosts` table + `boost_until` column.
-- Public profile gets: recent posts, hype timeline chart, connection price live indicator.
-- SEO: server-rendered meta tags for `/app/talents/:id` so profiles are shareable and indexable.
+## 3. Weekly Leaderboard with Credit Payouts
 
----
+Every Monday 00:00 UTC, top 10 hyped creators of the previous week receive bonus credits.
 
-## Phase 6 — Admin Creator Economy Console
+- View: `v_weekly_leaderboard` (already partially built via `v_top_hyped_posts_week`, extend to per-creator aggregation)
+- Table: `leaderboard_payouts` (week_start, talent_id, rank, credits_awarded, paid_at)
+- Edge function: `award-weekly-leaderboard` (scheduled via pg_cron weekly)
+  - Payout schedule: Rank 1 → 500cr, 2 → 300, 3 → 200, 4–10 → 100 each
+  - Credits land in `bonus_credits` bucket, fully withdrawable
+- UI:
+  - `WeeklyLeaderboardWidget.tsx` in feed sidebar (live current-week ranking)
+  - "Last week's winners" section with crown icons
+  - Notification + badge when user wins
 
-Give ops visibility + abuse controls.
+## 4. Connection Referrals
 
-**Build:**
-- New tab in admin Talent group → **"Creator Economy"**.
-- Metrics: total hype volume, connection revenue (last 7/30/90d), top earners, top spenders, pending-request backlog, refund rate.
-- Abuse flags: users with >100 hypes/day sent, suspicious sender→recipient loops (collusion), connection requests with >50% decline rate.
-- Manual controls: freeze a talent's hype receiving, force-refund a stuck connection, adjust connection price floor.
-- Wire into existing `/dashboard?group=talent` admin shell.
+Talents earn 10 credits when someone they invited makes their first paid connection.
 
----
+- Column: `talents.referred_by uuid` (set during signup if `?ref=` param present)
+- Trigger on `talent_connections` first acceptance per inviter: credit `referred_by` user 10 credits
+- Profile share link includes `?ref=<talent_id>`
+- "Invite & Earn" card on Wallet page showing referral link, count, and earnings
 
-## Phase 7 — Phase 2 Gamification (the "interesting layer")
+## 5. Admin Console additions (Creator Economy tab)
 
-The extras you originally floated. Save these for after Phases 3–6 prove the core loop monetizes.
-
-**Build:**
-- **Comment tips** — same 1-credit micro-payment on comments, 90/10 split.
-- **Hype streaks** — receive ≥10 hypes 5 days running → bonus 50 credits (cron job + `streak_state` table).
-- **Weekly leaderboard payout** — top 10 hyped creators get 2× multiplier on next week's earnings.
-- **Verified Creator badge** — auto-grant at 10k cumulative hypes, unlocks 85/15 split (vs default 80/20).
-- **Referral-to-connection** — A introduces B to C → A earns 10% of connection fee. New `connection_referrals` table.
-- **Per-DM micro-fees** for top creators (opt-in, set their own per-message price, 70/30 split).
+- Streaks leaderboard (top 20 active streaks)
+- Weekly payout history table with manual "Re-run payout" button
+- Tip volume KPI + top-tipped creators
+- Referral graph KPI (signups via ref, conversions, payouts)
 
 ---
 
-## Suggested Order
+## Technical Section
 
-```text
-Phase 3 (loop)  →  Phase 4 (visibility)  →  Phase 5 (discovery)
-                          ↓
-                    Phase 6 (admin)  →  Phase 7 (advanced gamification)
-```
+**Migrations**
+1. `comment_tips` table + `tip_comment` RPC + RLS
+2. `talents` columns: `current_streak`, `longest_streak`, `last_post_date`, `referred_by`
+3. Streak trigger on `posts`
+4. Extend `creator_badges` types: `streak_7`, `streak_30`, `streak_100`, `weekly_winner`
+5. `leaderboard_payouts` table + `v_weekly_leaderboard` view
+6. Referral trigger on `talent_connections`
+7. pg_cron job invoking `award-weekly-leaderboard` every Monday 00:05 UTC
 
-Phases 3 + 4 are the highest leverage — without them the system is technically live but invisible. I'd suggest shipping Phase 3 immediately on approval, then Phase 4 right after.
+**Edge Function**
+- `award-weekly-leaderboard/index.ts` — service-role client, idempotent (skip if `leaderboard_payouts` row exists for week), inserts ledger entries + payout rows + notifications
+
+**Frontend**
+- `src/components/feed/TipButton.tsx`
+- `src/components/feed/WeeklyLeaderboardWidget.tsx`
+- `src/components/talents/StreakBadge.tsx`
+- `src/components/wallet/ReferralCard.tsx`
+- Updates to: `PostCard.tsx`, `TalentDirectory.tsx`, `TalentPublicProfile.tsx`, `Withdrawals.tsx`, `CreatorEconomyTab.tsx`
+- Capture `?ref=` in `Auth.tsx` signup flow → store in `localStorage` → pass to profile insert
+
+**Economics summary**
+| Mechanic | User cost | Creator earns | Platform |
+|---|---|---|---|
+| Comment tip | 2/5/10 cr | 90% | 10% |
+| Weekly leaderboard | — | 100–500 cr bonus | — (growth spend) |
+| Referral | — | 10 cr per converted invite | — (growth spend) |
+| Streak badges | — | Status only | — |
 
 ---
 
-## Technical Notes
-
-- **New tables (Phase 5–7)**: `talent_boosts`, `comment_tips`, `streak_state`, `connection_referrals`. All RLS-gated to owner-only writes, public-readable counters.
-- **New edge functions**: `connection-expiry-sweep` (Phase 3, cron), `hype-streak-tick` (Phase 7, cron), `tip-comment` (Phase 7).
-- **New RPCs**: `accept_connection_creates_thread`, `boost_profile`, `claim_creator_badge`.
-- **Realtime**: subscribe `feed_posts` for live hype counter (Phase 4); subscribe `talent_connections` for inbox badge (Phase 3).
-- **Triggers**: badge auto-grant on `post_hypes` insert; `feed_posts.hype_count` denorm already in place.
-- **Cron**: Supabase `pg_cron` for nightly expiry sweep + weekly leaderboard payout.
-- **Memory**: extend `mem://product/creator-economy-hype-and-connections` after each phase.
-
----
-
-**Tell me which phase to start with** (default: Phase 3). Or pick & mix — happy to bundle Phases 3 + 4 in one push since they share the realtime/notification plumbing.
+## Out of scope (Phase 8 candidates)
+- Paid subscriptions to creators (monthly recurring hype)
+- Live audio/video rooms
+- Brand-sponsored challenges
