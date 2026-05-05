@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/common/EmptyState";
 import { PAGE_SHELL, PAGE_TITLE, PAGE_SUBTITLE, SECTION_TITLE, META_TEXT, CARD } from "@/lib/uiTokens";
+import { WebinarEnrollPanel } from "@/components/learning/WebinarEnrollPanel";
 
 interface AppCourseDetailProps {
   inlineSlug?: string;
@@ -111,6 +112,11 @@ export default function AppCourseDetail({ inlineSlug, onBack }: AppCourseDetailP
           <p className="text-sm text-muted-foreground leading-relaxed">{course.description}</p>
         )}
       </div>
+
+      {/* Live event registration */}
+      {(course.content_type === "live_webinar" || course.content_type === "batch_class") && (
+        <WebinarEnrollPanel course={course as any} />
+      )}
 
       {/* Credential card */}
       <Card className={`${CARD} bg-primary/5 border-primary/20`}>
