@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/common/EmptyState";
 import { PAGE_SHELL, PAGE_TITLE, PAGE_SUBTITLE, SECTION_TITLE, META_TEXT, CARD } from "@/lib/uiTokens";
 import { WebinarEnrollPanel } from "@/components/learning/WebinarEnrollPanel";
+import { JoinLivePanel } from "@/components/learning/JoinLivePanel";
 import { useEnrollment } from "@/hooks/useEnrollment";
 import { useTalent } from "@/hooks/useTalent";
 import { getCourseCredits } from "@/lib/creditPricing";
@@ -116,9 +117,9 @@ export default function AppCourseDetail({ inlineSlug, onBack }: AppCourseDetailP
         )}
       </div>
 
-      {/* Live event registration */}
+      {/* Live event registration / join */}
       {(course.content_type === "live_webinar" || course.content_type === "batch_class") && (
-        <WebinarEnrollPanel course={course as any} />
+        <LiveSessionPanels course={course as any} />
       )}
 
       {/* Credential card */}
@@ -206,4 +207,10 @@ function RecordedEnrollCta({ course }: { course: any }) {
       {isEnrolling ? "Enrolling..." : cost > 0 ? `Enroll · ${cost} cr` : "Enroll for free"}
     </Button>
   );
+}
+
+function LiveSessionPanels({ course }: { course: any }) {
+  const { enrollment } = useEnrollment(course.id);
+  if (enrollment) return <JoinLivePanel course={course} />;
+  return <WebinarEnrollPanel course={course} />;
 }
