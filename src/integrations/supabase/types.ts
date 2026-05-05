@@ -9164,6 +9164,45 @@ export type Database = {
           },
         ]
       }
+      talent_boosts: {
+        Row: {
+          boosted_until: string
+          created_at: string
+          credits_spent: number
+          id: string
+          talent_id: string
+        }
+        Insert: {
+          boosted_until: string
+          created_at?: string
+          credits_spent: number
+          id?: string
+          talent_id: string
+        }
+        Update: {
+          boosted_until?: string
+          created_at?: string
+          credits_spent?: number
+          id?: string
+          talent_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_boosts_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "talent_boosts_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
+        ]
+      }
       talent_connections: {
         Row: {
           created_at: string
@@ -9345,6 +9384,7 @@ export type Database = {
       }
       talent_inbox_settings: {
         Row: {
+          boost_until: string | null
           created_at: string
           talent_id: string
           unlock_method: string | null
@@ -9353,6 +9393,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          boost_until?: string | null
           created_at?: string
           talent_id: string
           unlock_method?: string | null
@@ -9361,6 +9402,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          boost_until?: string | null
           created_at?: string
           talent_id?: string
           unlock_method?: string | null
@@ -9529,6 +9571,7 @@ export type Database = {
           profile_photo_url: string | null
           projects: Json | null
           ref_code: string | null
+          search_tsv: unknown
           services_used: Json | null
           skills: Json | null
           student_id: string | null
@@ -9570,6 +9613,7 @@ export type Database = {
           profile_photo_url?: string | null
           projects?: Json | null
           ref_code?: string | null
+          search_tsv?: unknown
           services_used?: Json | null
           skills?: Json | null
           student_id?: string | null
@@ -9611,6 +9655,7 @@ export type Database = {
           profile_photo_url?: string | null
           projects?: Json | null
           ref_code?: string | null
+          search_tsv?: unknown
           services_used?: Json | null
           skills?: Json | null
           student_id?: string | null
@@ -10028,6 +10073,7 @@ export type Database = {
         Args: { p_admin_notes?: string; p_submission_id: string }
         Returns: Json
       }
+      boost_profile: { Args: never; Returns: Json }
       can_operate_messaging_channel: {
         Args: { _channel: string; _user: string }
         Returns: boolean
