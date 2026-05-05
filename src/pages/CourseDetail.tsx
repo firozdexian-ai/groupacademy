@@ -125,7 +125,12 @@ const CourseDetail = () => {
       setCourse(data);
 
       const source = searchParams.get("source");
+      const ref = searchParams.get("ref");
       if (source) await supabase.rpc("track_content_click", { p_content_id: data.id, p_source: source });
+      if (ref) {
+        localStorage.setItem("course_ref", ref);
+        try { await (supabase.rpc as any)("track_course_referral_click", { p_content_id: data.id, p_ref_code: ref }); } catch {}
+      }
 
       if (user) {
         const { data: enrollment } = await supabase
