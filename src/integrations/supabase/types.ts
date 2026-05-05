@@ -6701,6 +6701,286 @@ export type Database = {
           },
         ]
       }
+      messaging_channels: {
+        Row: {
+          agent_key: string
+          assigned_operator_ids: string[]
+          auto_reply_enabled: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          label: string
+          language: string | null
+          metadata: Json
+          phone_e164: string | null
+          provider: Database["public"]["Enums"]["messaging_provider"]
+          rate_limit_per_min: number
+          region: string | null
+          status: Database["public"]["Enums"]["messaging_channel_status"]
+          telegram_bot_id: string | null
+          telegram_bot_username: string | null
+          telegram_connection_key: string | null
+          unipile_account_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          agent_key: string
+          assigned_operator_ids?: string[]
+          auto_reply_enabled?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label: string
+          language?: string | null
+          metadata?: Json
+          phone_e164?: string | null
+          provider: Database["public"]["Enums"]["messaging_provider"]
+          rate_limit_per_min?: number
+          region?: string | null
+          status?: Database["public"]["Enums"]["messaging_channel_status"]
+          telegram_bot_id?: string | null
+          telegram_bot_username?: string | null
+          telegram_connection_key?: string | null
+          unipile_account_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          agent_key?: string
+          assigned_operator_ids?: string[]
+          auto_reply_enabled?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label?: string
+          language?: string | null
+          metadata?: Json
+          phone_e164?: string | null
+          provider?: Database["public"]["Enums"]["messaging_provider"]
+          rate_limit_per_min?: number
+          region?: string | null
+          status?: Database["public"]["Enums"]["messaging_channel_status"]
+          telegram_bot_id?: string | null
+          telegram_bot_username?: string | null
+          telegram_connection_key?: string | null
+          unipile_account_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      messaging_conversations: {
+        Row: {
+          assigned_human_user_id: string | null
+          auto_reply_paused: boolean
+          channel_id: string
+          created_at: string
+          external_chat_id: string
+          id: string
+          last_message_at: string | null
+          last_message_preview: string | null
+          metadata: Json
+          peer_display_name: string | null
+          peer_handle: string | null
+          unread_count: number
+          updated_at: string
+        }
+        Insert: {
+          assigned_human_user_id?: string | null
+          auto_reply_paused?: boolean
+          channel_id: string
+          created_at?: string
+          external_chat_id: string
+          id?: string
+          last_message_at?: string | null
+          last_message_preview?: string | null
+          metadata?: Json
+          peer_display_name?: string | null
+          peer_handle?: string | null
+          unread_count?: number
+          updated_at?: string
+        }
+        Update: {
+          assigned_human_user_id?: string | null
+          auto_reply_paused?: boolean
+          channel_id?: string
+          created_at?: string
+          external_chat_id?: string
+          id?: string
+          last_message_at?: string | null
+          last_message_preview?: string | null
+          metadata?: Json
+          peer_display_name?: string | null
+          peer_handle?: string | null
+          unread_count?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messaging_conversations_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "messaging_channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messaging_messages: {
+        Row: {
+          agent_run_id: string | null
+          attachments: Json
+          author: Database["public"]["Enums"]["messaging_author"]
+          body: string | null
+          conversation_id: string
+          created_at: string
+          direction: Database["public"]["Enums"]["messaging_direction"]
+          error: string | null
+          external_message_id: string | null
+          id: string
+          sent_by_user_id: string | null
+          status: Database["public"]["Enums"]["messaging_status"]
+        }
+        Insert: {
+          agent_run_id?: string | null
+          attachments?: Json
+          author: Database["public"]["Enums"]["messaging_author"]
+          body?: string | null
+          conversation_id: string
+          created_at?: string
+          direction: Database["public"]["Enums"]["messaging_direction"]
+          error?: string | null
+          external_message_id?: string | null
+          id?: string
+          sent_by_user_id?: string | null
+          status?: Database["public"]["Enums"]["messaging_status"]
+        }
+        Update: {
+          agent_run_id?: string | null
+          attachments?: Json
+          author?: Database["public"]["Enums"]["messaging_author"]
+          body?: string | null
+          conversation_id?: string
+          created_at?: string
+          direction?: Database["public"]["Enums"]["messaging_direction"]
+          error?: string | null
+          external_message_id?: string | null
+          id?: string
+          sent_by_user_id?: string | null
+          status?: Database["public"]["Enums"]["messaging_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messaging_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "messaging_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messaging_outbound_queue: {
+        Row: {
+          attempts: number
+          body: string
+          channel_id: string
+          conversation_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          last_error: string | null
+          scheduled_for: string
+          sent_at: string | null
+          status: Database["public"]["Enums"]["messaging_queue_status"]
+          template_key: string | null
+          to_handle: string
+          variables: Json
+        }
+        Insert: {
+          attempts?: number
+          body: string
+          channel_id: string
+          conversation_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          last_error?: string | null
+          scheduled_for?: string
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["messaging_queue_status"]
+          template_key?: string | null
+          to_handle: string
+          variables?: Json
+        }
+        Update: {
+          attempts?: number
+          body?: string
+          channel_id?: string
+          conversation_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          last_error?: string | null
+          scheduled_for?: string
+          sent_at?: string | null
+          status?: Database["public"]["Enums"]["messaging_queue_status"]
+          template_key?: string | null
+          to_handle?: string
+          variables?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messaging_outbound_queue_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "messaging_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messaging_outbound_queue_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "messaging_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messaging_templates: {
+        Row: {
+          agent_key: string
+          body: string
+          created_at: string
+          created_by: string | null
+          id: string
+          key: string
+          name: string
+          provider: Database["public"]["Enums"]["messaging_provider"] | null
+          updated_at: string
+          variables: Json
+        }
+        Insert: {
+          agent_key: string
+          body: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          key: string
+          name: string
+          provider?: Database["public"]["Enums"]["messaging_provider"] | null
+          updated_at?: string
+          variables?: Json
+        }
+        Update: {
+          agent_key?: string
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          key?: string
+          name?: string
+          provider?: Database["public"]["Enums"]["messaging_provider"] | null
+          updated_at?: string
+          variables?: Json
+        }
+        Relationships: []
+      }
       mkt_channels: {
         Row: {
           created_at: string
@@ -9137,6 +9417,10 @@ export type Database = {
         Args: { p_admin_notes?: string; p_submission_id: string }
         Returns: Json
       }
+      can_operate_messaging_channel: {
+        Args: { _channel: string; _user: string }
+        Returns: boolean
+      }
       cancel_invoice: {
         Args: { p_invoice_id: string; p_reason?: string }
         Returns: Json
@@ -9388,6 +9672,7 @@ export type Database = {
         | "talent_exec"
         | "content_lead"
         | "super_admin"
+        | "talent_success_executive"
       application_status:
         | "submitted"
         | "sent_to_employer"
@@ -9441,6 +9726,21 @@ export type Database = {
         | "internship"
         | "freelance"
         | "remote"
+      messaging_author: "user" | "agent" | "human_operator" | "system"
+      messaging_channel_status:
+        | "pending"
+        | "connected"
+        | "disconnected"
+        | "error"
+      messaging_direction: "in" | "out"
+      messaging_provider: "whatsapp" | "telegram"
+      messaging_queue_status:
+        | "pending"
+        | "processing"
+        | "sent"
+        | "failed"
+        | "cancelled"
+      messaging_status: "queued" | "sent" | "delivered" | "read" | "failed"
       portfolio_status:
         | "pending"
         | "contacted"
@@ -9624,6 +9924,7 @@ export const Constants = {
         "talent_exec",
         "content_lead",
         "super_admin",
+        "talent_success_executive",
       ],
       application_status: [
         "submitted",
@@ -9684,6 +9985,23 @@ export const Constants = {
         "freelance",
         "remote",
       ],
+      messaging_author: ["user", "agent", "human_operator", "system"],
+      messaging_channel_status: [
+        "pending",
+        "connected",
+        "disconnected",
+        "error",
+      ],
+      messaging_direction: ["in", "out"],
+      messaging_provider: ["whatsapp", "telegram"],
+      messaging_queue_status: [
+        "pending",
+        "processing",
+        "sent",
+        "failed",
+        "cancelled",
+      ],
+      messaging_status: ["queued", "sent", "delivered", "read", "failed"],
       portfolio_status: [
         "pending",
         "contacted",
