@@ -33,6 +33,7 @@ import PublicServices from "./pages/PublicServices";
 import PublicCourses from "./pages/PublicCourses";
 import ServiceLanding from "./pages/ServiceLanding";
 import VerifyCertificate from "./pages/VerifyCertificate";
+import WebinarLanding from "./pages/public/WebinarLanding";
 import { PWAInstallPrompt } from "./components/PWAInstallPrompt";
 import { PWAUpdatePrompt } from "./components/PWAUpdatePrompt";
 
@@ -219,6 +220,7 @@ export default function App() {
                   {/* Public Content */}
                   <Route path="/courses/:slug" element={<CourseDetail />} />
                   <Route path="/courses" element={<PublicCourses />} />
+                  <Route path="/webinar/:slug" element={<WebinarLanding />} />
                   <Route path="/services" element={<PublicServices />} />
                   <Route path="/career-services" element={<PublicServices />} />
                   {/* Legacy B2B routes — redirect to the unified Gro10x funnel */}
