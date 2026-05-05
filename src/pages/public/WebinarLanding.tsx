@@ -18,11 +18,14 @@ export default function WebinarLanding() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
-  // Capture referral in localStorage so the auth flow can persist it
+  // Capture referral in localStorage so the auth flow / enrollment can persist & reward it
   useEffect(() => {
     const ref = searchParams.get("ref");
-    if (ref) localStorage.setItem("ga_referral", ref);
-  }, [searchParams]);
+    if (ref) {
+      localStorage.setItem("ga_referral", ref);
+      if (slug) localStorage.setItem(`course_ref:${slug}`, ref);
+    }
+  }, [searchParams, slug]);
 
   const { data: webinar, isLoading } = useQuery({
     queryKey: ["public-webinar", slug],
@@ -40,6 +43,14 @@ export default function WebinarLanding() {
       return data;
     },
   });
+
+  // Track referral click once the webinar id is known
+  useEffect(() => {
+    const ref = searchParams.get("ref");
+    if (ref && webinar?.id) {
+      supabase.rpc("track_course_referral_click", { p_content_id: webinar.id, p_ref_code: ref }).then(() => {});
+    }
+  }, [searchParams, webinar?.id]);
 
   const handleJoin = async () => {
     const { data: { session } } = await supabase.auth.getSession();
