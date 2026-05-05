@@ -44,6 +44,14 @@ export default function WebinarLanding() {
     },
   });
 
+  // Track referral click once the webinar id is known
+  useEffect(() => {
+    const ref = searchParams.get("ref");
+    if (ref && webinar?.id) {
+      supabase.rpc("track_course_referral_click", { p_content_id: webinar.id, p_ref_code: ref }).then(() => {});
+    }
+  }, [searchParams, webinar?.id]);
+
   const handleJoin = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     const target = `/app/learning/courses/${slug}?promo=webinar`;
