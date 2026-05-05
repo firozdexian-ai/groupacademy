@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { InboxUnlockCard } from "@/components/talents/InboxUnlockCard";
+import { HypeEarningsCard } from "@/components/feed/HypeEarningsCard";
 
 interface WithdrawalRow {
   id: string;
@@ -127,6 +128,7 @@ export default function Withdrawals() {
         </div>
       </header>
 
+      <HypeEarningsCard />
       <InboxUnlockCard />
 
       <Card>

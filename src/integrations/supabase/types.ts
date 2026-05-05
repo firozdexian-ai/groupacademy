@@ -3792,6 +3792,39 @@ export type Database = {
           },
         ]
       }
+      creator_badges: {
+        Row: {
+          badge: string
+          granted_at: string
+          talent_id: string
+        }
+        Insert: {
+          badge: string
+          granted_at?: string
+          talent_id: string
+        }
+        Update: {
+          badge?: string
+          granted_at?: string
+          talent_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creator_badges_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "creator_badges_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
+        ]
+      }
       credit_invoices: {
         Row: {
           admin_notes: string | null
@@ -6892,6 +6925,7 @@ export type Database = {
           last_message_at: string
           last_message_preview: string | null
           last_message_sender: string | null
+          peer_talent_id: string | null
           talent_id: string
           thread_type: string
           unread_count: number
@@ -6906,6 +6940,7 @@ export type Database = {
           last_message_at?: string
           last_message_preview?: string | null
           last_message_sender?: string | null
+          peer_talent_id?: string | null
           talent_id: string
           thread_type: string
           unread_count?: number
@@ -6920,12 +6955,27 @@ export type Database = {
           last_message_at?: string
           last_message_preview?: string | null
           last_message_sender?: string | null
+          peer_talent_id?: string | null
           talent_id?: string
           thread_type?: string
           unread_count?: number
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "message_threads_peer_talent_id_fkey"
+            columns: ["peer_talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_threads_peer_talent_id_fkey"
+            columns: ["peer_talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
           {
             foreignKeyName: "message_threads_talent_id_fkey"
             columns: ["talent_id"]
@@ -9904,6 +9954,21 @@ export type Database = {
         }
         Relationships: []
       }
+      v_top_hyped_posts_week: {
+        Row: {
+          hypes_week: number | null
+          post_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_hypes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "feed_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       add_credits: {
@@ -10001,6 +10066,10 @@ export type Database = {
       connect_agent: {
         Args: { _agent_key: string; _fee?: number; _talent_id: string }
         Returns: undefined
+      }
+      connection_accept_and_open_thread: {
+        Args: { _connection_id: string }
+        Returns: string
       }
       create_credit_invoice: {
         Args: {
@@ -10187,6 +10256,7 @@ export type Database = {
       school_id_for_content: { Args: { _content_id: string }; Returns: string }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      sweep_expired_connections: { Args: never; Returns: number }
       talent_connection_request: { Args: { _recipient: string }; Returns: Json }
       talent_connection_respond: {
         Args: { _accept: boolean; _request: string }
