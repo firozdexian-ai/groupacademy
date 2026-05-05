@@ -7,6 +7,7 @@ import { PostAuthor } from "./PostAuthor";
 import { ReactionBar } from "./ReactionBar";
 import { PollWidget } from "./PollWidget";
 import { ShareSheet } from "./ShareSheet";
+import { HypeButton } from "./HypeButton";
 import { usePostReactions } from "@/hooks/usePostReactions";
 import { usePollVoting } from "@/hooks/usePollVoting";
 import { cn } from "@/lib/utils";
@@ -194,6 +195,7 @@ export function PostCard({ post }: PostCardProps) {
             />
           </div>
           <div className="flex items-center gap-1">
+            <HypeButton postId={post.id} />
             <Button
               variant="ghost"
               size="icon"

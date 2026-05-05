@@ -483,6 +483,13 @@ export type Database = {
             referencedRelation: "talents"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "agent_chat_sessions_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
         ]
       }
       agent_connections: {
@@ -961,6 +968,13 @@ export type Database = {
             referencedRelation: "talents"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "agent_payout_requests_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
         ]
       }
       agent_reviews: {
@@ -998,6 +1012,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "talents"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_reviews_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
           },
         ]
       }
@@ -1495,6 +1516,13 @@ export type Database = {
             referencedRelation: "talents"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "ai_job_recommendations_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
         ]
       }
       ai_recommendations: {
@@ -1532,6 +1560,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "talents"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_recommendations_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
           },
         ]
       }
@@ -1591,6 +1626,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "talents"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "aisha_conversations_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
           },
         ]
       }
@@ -1899,6 +1941,13 @@ export type Database = {
             referencedRelation: "talents"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "career_assessments_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
         ]
       }
       certificates: {
@@ -1965,6 +2014,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "talents"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certificates_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
           },
         ]
       }
@@ -2130,6 +2186,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "talents"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_agent_leads_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
           },
         ]
       }
@@ -2810,6 +2873,13 @@ export type Database = {
             referencedRelation: "talents"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "company_talent_reveals_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
         ]
       }
       company_talent_shortlists: {
@@ -2851,6 +2921,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "talents"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_talent_shortlists_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
           },
         ]
       }
@@ -2911,6 +2988,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "talents"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "competition_submissions_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
           },
         ]
       }
@@ -3382,6 +3466,13 @@ export type Database = {
             referencedRelation: "talents"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "content_lead_applications_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
         ]
       }
       content_share_logs: {
@@ -3619,6 +3710,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "course_projects_claimed_by_fkey"
+            columns: ["claimed_by"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
+          {
             foreignKeyName: "course_projects_course_id_fkey"
             columns: ["course_id"]
             isOneToOne: true
@@ -3779,6 +3877,13 @@ export type Database = {
             referencedRelation: "talents"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "credit_invoices_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
         ]
       }
       credit_transactions: {
@@ -3828,6 +3933,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "talents"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_transactions_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
           },
         ]
       }
@@ -3899,6 +4011,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "talents"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_notifications_log_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
           },
         ]
       }
@@ -4115,6 +4234,13 @@ export type Database = {
             referencedRelation: "talents"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "enrollments_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
         ]
       }
       external_application_questions: {
@@ -4188,6 +4314,13 @@ export type Database = {
             referencedRelation: "talents"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "feed_interactions_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
         ]
       }
       feed_posts: {
@@ -4201,6 +4334,7 @@ export type Database = {
           author_user_id: string | null
           content_type: Database["public"]["Enums"]["post_content_type"]
           created_at: string | null
+          hype_count: number
           id: string
           is_active: boolean | null
           is_pinned: boolean | null
@@ -4225,6 +4359,7 @@ export type Database = {
           author_user_id?: string | null
           content_type?: Database["public"]["Enums"]["post_content_type"]
           created_at?: string | null
+          hype_count?: number
           id?: string
           is_active?: boolean | null
           is_pinned?: boolean | null
@@ -4249,6 +4384,7 @@ export type Database = {
           author_user_id?: string | null
           content_type?: Database["public"]["Enums"]["post_content_type"]
           created_at?: string | null
+          hype_count?: number
           id?: string
           is_active?: boolean | null
           is_pinned?: boolean | null
@@ -4277,6 +4413,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "talents"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feed_posts_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
           },
         ]
       }
@@ -4357,6 +4500,13 @@ export type Database = {
             referencedRelation: "talents"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "gig_share_logs_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
         ]
       }
       gig_submissions: {
@@ -4419,6 +4569,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "talents"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gig_submissions_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
           },
         ]
       }
@@ -4877,6 +5034,13 @@ export type Database = {
             referencedRelation: "talents"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "ielts_resource_access_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
         ]
       }
       ielts_resources: {
@@ -5182,6 +5346,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "talents"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instructor_connection_requests_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
           },
         ]
       }
@@ -5779,6 +5950,13 @@ export type Database = {
             referencedRelation: "talents"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "job_application_usage_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
         ]
       }
       job_applications: {
@@ -5874,6 +6052,13 @@ export type Database = {
             referencedRelation: "talents"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "job_applications_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
         ]
       }
       job_apply_clicks: {
@@ -5912,6 +6097,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "talents"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_apply_clicks_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
           },
         ]
       }
@@ -5985,6 +6177,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "talents"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_assessments_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
           },
         ]
       }
@@ -6062,6 +6261,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "talents"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_share_clicks_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
           },
         ]
       }
@@ -6300,6 +6506,13 @@ export type Database = {
             referencedRelation: "talents"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "lead_hunt_matches_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
         ]
       }
       lead_hunt_sessions: {
@@ -6377,6 +6590,13 @@ export type Database = {
             referencedRelation: "talents"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "learning_activity_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
         ]
       }
       marketplace_bids: {
@@ -6431,6 +6651,13 @@ export type Database = {
             referencedRelation: "talents"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "marketplace_bids_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
         ]
       }
       marketplace_contracts: {
@@ -6484,6 +6711,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "talents"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_contracts_freelancer_id_fkey"
+            columns: ["freelancer_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
           },
           {
             foreignKeyName: "marketplace_contracts_gig_id_fkey"
@@ -6698,6 +6932,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "talents"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "message_threads_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
           },
         ]
       }
@@ -7165,6 +7406,13 @@ export type Database = {
             referencedRelation: "talents"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "mock_interviews_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
         ]
       }
       module_resources: {
@@ -7268,6 +7516,13 @@ export type Database = {
             referencedRelation: "talents"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "notifications_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
         ]
       }
       organization_waitlist: {
@@ -7348,6 +7603,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "talents"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "outreach_messages_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
           },
         ]
       }
@@ -7493,6 +7755,13 @@ export type Database = {
             referencedRelation: "talents"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "poll_votes_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
         ]
       }
       portfolio_requests: {
@@ -7609,6 +7878,82 @@ export type Database = {
             referencedRelation: "talents"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "portfolio_requests_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
+        ]
+      }
+      post_hypes: {
+        Row: {
+          created_at: string
+          creator_share: number
+          credits_spent: number
+          id: string
+          platform_share: number
+          post_id: string
+          recipient_talent_id: string
+          sender_talent_id: string
+        }
+        Insert: {
+          created_at?: string
+          creator_share?: number
+          credits_spent?: number
+          id?: string
+          platform_share?: number
+          post_id: string
+          recipient_talent_id: string
+          sender_talent_id: string
+        }
+        Update: {
+          created_at?: string
+          creator_share?: number
+          credits_spent?: number
+          id?: string
+          platform_share?: number
+          post_id?: string
+          recipient_talent_id?: string
+          sender_talent_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_hypes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "feed_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_hypes_recipient_talent_id_fkey"
+            columns: ["recipient_talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_hypes_recipient_talent_id_fkey"
+            columns: ["recipient_talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
+          {
+            foreignKeyName: "post_hypes_sender_talent_id_fkey"
+            columns: ["sender_talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_hypes_sender_talent_id_fkey"
+            columns: ["sender_talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
         ]
       }
       post_reactions: {
@@ -7647,6 +7992,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "talents"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_reactions_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
           },
         ]
       }
@@ -8175,6 +8527,13 @@ export type Database = {
             referencedRelation: "talents"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "salary_analyses_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
         ]
       }
       salary_analysis_access_codes: {
@@ -8237,6 +8596,13 @@ export type Database = {
             referencedRelation: "talents"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "saved_items_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
         ]
       }
       school_waitlist: {
@@ -8279,6 +8645,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "talents"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "school_waitlist_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
           },
         ]
       }
@@ -8665,6 +9038,13 @@ export type Database = {
             referencedRelation: "talents"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "study_abroad_roadmaps_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
         ]
       }
       suppressed_emails: {
@@ -8725,6 +9105,81 @@ export type Database = {
             referencedRelation: "talents"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "talent_assignments_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
+        ]
+      }
+      talent_connections: {
+        Row: {
+          created_at: string
+          expires_at: string
+          fee_paid: number
+          id: string
+          platform_share: number
+          recipient_share: number
+          recipient_talent_id: string
+          responded_at: string | null
+          sender_talent_id: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          fee_paid: number
+          id?: string
+          platform_share?: number
+          recipient_share?: number
+          recipient_talent_id: string
+          responded_at?: string | null
+          sender_talent_id: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          fee_paid?: number
+          id?: string
+          platform_share?: number
+          recipient_share?: number
+          recipient_talent_id?: string
+          responded_at?: string | null
+          sender_talent_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_connections_recipient_talent_id_fkey"
+            columns: ["recipient_talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "talent_connections_recipient_talent_id_fkey"
+            columns: ["recipient_talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
+          {
+            foreignKeyName: "talent_connections_sender_talent_id_fkey"
+            columns: ["sender_talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "talent_connections_sender_talent_id_fkey"
+            columns: ["sender_talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
         ]
       }
       talent_credits: {
@@ -8762,6 +9217,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "talents"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "talent_credits_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: true
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
           },
         ]
       }
@@ -8822,6 +9284,55 @@ export type Database = {
             referencedRelation: "talents"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "talent_id_documents_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
+        ]
+      }
+      talent_inbox_settings: {
+        Row: {
+          created_at: string
+          talent_id: string
+          unlock_method: string | null
+          unlocked: boolean
+          unlocked_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          talent_id: string
+          unlock_method?: string | null
+          unlocked?: boolean
+          unlocked_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          talent_id?: string
+          unlock_method?: string | null
+          unlocked?: boolean
+          unlocked_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_inbox_settings_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: true
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "talent_inbox_settings_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: true
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
         ]
       }
       talent_outreach_log: {
@@ -8872,6 +9383,13 @@ export type Database = {
             referencedRelation: "talents"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "talent_outreach_log_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
         ]
       }
       talent_payout_accounts: {
@@ -8918,6 +9436,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "talents"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "talent_payout_accounts_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
           },
         ]
       }
@@ -9150,6 +9675,13 @@ export type Database = {
             referencedRelation: "talents"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "withdrawal_requests_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
         ]
       }
       workforce_members: {
@@ -9209,6 +9741,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "talents"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workforce_members_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: true
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
           },
         ]
       }
@@ -9357,6 +9896,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      v_talent_transaction_volume: {
+        Row: {
+          talent_id: string | null
+          volume: number | null
+        }
+        Relationships: []
       }
     }
     Functions: {
@@ -9533,6 +10079,10 @@ export type Database = {
         }
         Returns: string
       }
+      get_talent_connection_price: {
+        Args: { _recipient: string }
+        Returns: number
+      }
       grant_company_welcome_credits: {
         Args: { p_amount?: number; p_company_id: string }
         Returns: boolean
@@ -9549,6 +10099,7 @@ export type Database = {
         Args: { p_amount: number; p_reason?: string }
         Returns: Json
       }
+      hype_post: { Args: { _post_id: string }; Returns: Json }
       increment_agent_conversations: {
         Args: { p_agent_key: string }
         Returns: undefined
@@ -9636,6 +10187,11 @@ export type Database = {
       school_id_for_content: { Args: { _content_id: string }; Returns: string }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      talent_connection_request: { Args: { _recipient: string }; Returns: Json }
+      talent_connection_respond: {
+        Args: { _accept: boolean; _request: string }
+        Returns: Json
+      }
       talent_marketplace_summary: { Args: never; Returns: Json }
       track_content_click: {
         Args: { p_content_id: string; p_source: string }
@@ -9657,6 +10213,7 @@ export type Database = {
         Args: { p_job_id: string; p_ref_code: string }
         Returns: Json
       }
+      unlock_talent_inbox: { Args: never; Returns: Json }
       user_company_ids: { Args: { _user_id: string }; Returns: string[] }
     }
     Enums: {

@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
+import { InboxUnlockCard } from "@/components/talents/InboxUnlockCard";
 
 interface WithdrawalRow {
   id: string;
@@ -126,7 +127,10 @@ export default function Withdrawals() {
         </div>
       </header>
 
+      <InboxUnlockCard />
+
       <Card>
+
         <CardContent className="p-5 flex items-center gap-4">
           <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
             <Wallet className="h-6 w-6 text-primary" />

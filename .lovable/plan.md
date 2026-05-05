@@ -1,92 +1,112 @@
-## Goal
+# Gamification & Creator Economy — Hype Button + Talent Connections
 
-Enable each AI agent (starting with **Talent Executive — Bangladesh**) to own its own WhatsApp and Telegram numbers, send/receive real two-way messages (replacing the current `wa.me` link buttons), and let the agent auto-reply while supporting human takeover.
-
-The DB schema (`messaging_channels`, `messaging_conversations`, `messaging_messages`, `messaging_outbound_queue`, `messaging_templates`) is already in place. This plan covers everything that comes after.
+Two new monetization layers that make GroUp Academy "fun to come back to" — turning the feed into a creator earnings engine, and turning every talent profile into a paid connection node (LinkedIn-meets-OnlyFans-meets-Cameo, but for careers).
 
 ---
 
-## Step 1 — Credentials & connectors
+## Feature 1 — Hype Button (Paid Reactions on Posts)
 
-1. Add two project secrets via `add_secret`:
-   - `UNIPILE_API_KEY`
-   - `UNIPILE_DSN` (e.g. `api8.unipile.com:13852`)
-2. Link the **Telegram** standard connector via `standard_connectors--connect` (Lovable-managed gateway, no raw bot token needed).
+A new reaction on every feed/UGC post. Pressing **Hype** spends **1 credit** from the sender and credits the post author with a share. Counters are public — high-hype posts surface to the top.
 
-No global webhook secret — each channel row gets its own random `webhook_secret` stored in `messaging_channels.metadata` (pattern from Rob's Sales Hub).
+### Economy
+- Cost per hype: **1 credit** (= 0.5 BDT).
+- Split: **80% creator → `earned_balance`**, **20% platform**.
+- No daily cap, but rate-limit (max 50 hypes/post/user) to prevent self-pumping.
+- Self-hype blocked. Hype on own post → toast "you can't hype yourself".
+- Refundable window: **0** (instant settlement, no take-backs — keeps ledger clean).
+- Public leaderboard: "Top Hyped This Week" on Feed sidebar + Creator badge at 500/1k/5k cumulative hypes.
+
+### Where it lives
+- New button in `src/hooks/usePostReactions.ts` reaction set, but routed through a **separate paid path** (not free reactions). Free reactions (like, insightful, celebrate, support) stay free.
+- Post card shows: `🔥 234 Hype • +117 credits earned` (creator sees earnings; viewers see count only).
+- Creator dashboard gets a **Hype Earnings** card under Wallet.
+
+### Backend
+- New table `post_hypes (id, post_id, sender_talent_id, credits_spent, creator_share, platform_share, created_at)`.
+- Edge function `post-hype` (auth required): debits sender wallet (spend order: bonus → balance → earned), credits creator `earned_balance`, logs to `credits_ledger` with `source = 'hype_received' / 'hype_sent'`.
+- `posts` table denormalized counter `hype_count` + trigger.
+- Realtime subscription so counters animate live.
 
 ---
 
-## Step 2 — Edge Functions
+## Feature 2 — Talent-to-Talent Connections (Paid Inbox)
 
-Create five functions under `supabase/functions/`:
+Right now talents can't message each other. We introduce a **paid connection request** model — same pattern as AI agent connect fees, but priced dynamically by the recipient's transaction history.
 
-| Function | verify_jwt | Purpose |
+### The 5,000-credit Gate
+- Messaging is **off by default** for every talent.
+- A talent's inbox auto-unlocks once they hit **5,000 lifetime credit transactions** (sum of |earned| + |spent| + |purchased| + |received|).
+- Or pay **5,000 credits one-time** to unlock immediately.
+- Once unlocked, profile becomes **searchable** + Connect button appears.
+
+### Dynamic Connection Pricing (1% Rule)
+- Connection-request fee = **1% of the recipient's lifetime transaction volume**, floored at the gate.
+- Example: 5,000 transacted → 50 credits to connect. 12,400 transacted → 124 credits. Big creators get expensive (scarcity = prestige).
+- Recalculated nightly + on every ledger write.
+- AI agents: **fixed 10 credits** to start, but auto-scales with their own transaction popularity, capped at e.g. 500 to keep top agents reachable.
+
+### Connection Request Split
+- 70% recipient `earned_balance` / 30% platform (slightly more platform-heavy than Hype since it's higher friction).
+- Recipient must **accept** within 14 days or fee is **refunded** to sender.
+- On accept → both can DM freely (or we layer per-message fees later — see Phase 2).
+
+### Profile Visibility Tiers
+| Tier | Trigger | What others see |
 |---|---|---|
-| `unipile-connect` | true | Calls Unipile `POST /api/v1/hosted/accounts/link` to get a hosted auth URL (QR for WhatsApp). Returns URL to the admin UI. |
-| `unipile-webhook` | false | Receives Unipile events (`messaging.new`, `account.status`). Verifies `?cs=<webhook_secret>&c=<channel_id>`. Inserts inbound message, upserts conversation, auto-creates lightweight talent if sender unknown, triggers auto-reply. |
-| `telegram-webhook` | false | Receives Telegram updates via Lovable gateway. Same secret-token validation pattern. |
-| `messaging-send` | true | Operator/agent sends an outbound message. Routes to Unipile (`POST /api/v1/chats/{id}/messages`) or Telegram (`sendMessage` via gateway). Writes `messaging_messages` row. |
-| `messaging-autoreply` | internal | Invoked by `unipile-webhook` / `telegram-webhook` when `auto_reply_enabled` and no human takeover. Builds context (last N messages + agent system prompt) and calls Lovable AI (`google/gemini-2.5-flash`). Posts the reply through `messaging-send`. |
+| Hidden | < 1k transactions | Name + avatar only on feed posts |
+| Public | ≥ 1k OR has 1+ post | Full profile, no Connect button |
+| Open | Inbox unlocked | Full profile + Connect button + price |
 
-Webhook URL pattern registered with Unipile per channel:
-`https://<project>.supabase.co/functions/v1/unipile-webhook?c=<channel_id>&cs=<webhook_secret>`
-
----
-
-## Step 3 — Auto-create lightweight talent
-
-Inside `unipile-webhook` / `telegram-webhook`, when an inbound peer phone/handle has no match:
-- Insert a minimal row into `talents` (name = peer display name, phone = E.164 if WhatsApp, source = `messaging_inbound`, status = `lead`).
-- Link `messaging_conversations.talent_id` to it so admins see a unified profile.
+### Backend
+- New tables: `talent_connections (sender_id, recipient_id, status, fee_paid, created_at, accepted_at)`, `talent_inbox_settings (talent_id, unlocked_at, unlock_method)`.
+- View `v_talent_transaction_volume` aggregating ledger.
+- Edge function `connection-request` handles fee debit, escrow, refund-on-expiry.
+- New page `/app/talents/:id` (public profile) + `/app/talents/search`.
+- Reuse existing `messaging_*` infrastructure from the agent inbox.
 
 ---
 
-## Step 4 — Admin UI: Agent Channels tab
+## Suggested Additional Gamification (for your review)
 
-In the Talent Executive — Bangladesh agent management page (existing AI Agents admin area), add a **Channels** sub-tab with:
-
-1. **Connect WhatsApp** button → calls `unipile-connect` → opens Unipile hosted QR in a new tab → on success, Unipile webhook fires `account.created` and we persist `unipile_account_id` on the `messaging_channels` row.
-2. **Connect Telegram** button → guides user to message the connector bot once, then we map the `chat_id` to the channel.
-3. List of connected channels with: provider, region, phone/handle, status (`active`/`disconnected`), `auto_reply_enabled` toggle, **Disconnect** button.
-4. Per-channel **Templates** mini-editor (writes `messaging_templates`).
-
----
-
-## Step 5 — Inbox UI
-
-New route `/dashboard/admin/messaging` (operators with `talent_success_executive` role + admins):
-
-- Left rail: conversations list (filter by channel, unread first, search by peer name/phone).
-- Right pane: WhatsApp-style thread, realtime via `supabase.channel('messaging_messages')`.
-- Composer: free text, template picker, "Take over from AI" toggle (sets `human_takeover = true`, pauses auto-reply).
-- Header shows linked talent card with quick link to full talent profile.
+1. **Hype Streaks** — post + receive ≥10 hypes 5 days running → bonus 50 credits.
+2. **Profile Boost** — spend 100 credits to pin your profile to the search results for 24h.
+3. **Comment Tips** — same 1-credit micro-payment but on comments, 90/10 split (encourages quality replies).
+4. **Weekly Creator Payout Leaderboard** — top 10 hyped creators get a 2x multiplier on next week's earnings.
+5. **Referral-to-Connection** — if A introduces B to C (paid intro), A gets 10% of the connection fee.
+6. **Verified Creator Badge** — auto-granted at 10k cumulative hypes received; unlocks higher payout split (85/15).
 
 ---
 
-## Step 6 — Replace existing `wa.me` buttons
+## Phasing
 
-Wherever the platform currently does `window.open('https://wa.me/...?text=...')` (talent outreach, job referral, etc.):
+**Phase 1 (this build)**
+- Hype button + ledger + creator earnings card.
+- Connection gate + 1% dynamic pricing + request/accept flow + searchable profiles.
 
-- If the acting agent has an active WhatsApp channel → call `messaging-send` to dispatch directly and open the conversation in the inbox.
-- Otherwise → keep the `wa.me` fallback (no regression).
-
----
-
-## Step 7 — Outbound queue worker
-
-A scheduled function (cron via `pg_cron` calling an edge function every minute) drains `messaging_outbound_queue` respecting per-channel throttle (`rate_limit_per_minute` in `metadata`). Used for bulk outreach campaigns later — not required for the pilot but the table is ready.
+**Phase 2 (next)**
+- Per-DM micro-fees on premium creators.
+- Hype streaks + leaderboards.
+- Profile boost.
 
 ---
 
-## Pilot scope (what ships first)
+## Technical Details
 
-Steps 1, 2 (`unipile-connect`, `unipile-webhook`, `messaging-send`, `messaging-autoreply`), 3, 4, 5, and Step 6 for the Talent Executive — Bangladesh agent only. Telegram + queue worker can land in a follow-up once WhatsApp is verified end-to-end.
+- New tables: `post_hypes`, `talent_connections`, `talent_inbox_settings`. Materialized view `v_talent_transaction_volume` refreshed via trigger on `credits_ledger`.
+- New edge functions (all `verify_jwt = false` + in-code `auth.getUser` check): `post-hype`, `connection-request`, `connection-respond`, `talent-search`.
+- Extends `credits_ledger.source` enum: `hype_sent`, `hype_received`, `connection_fee_sent`, `connection_fee_received`, `inbox_unlock`.
+- RLS: hype rows readable by anyone (public counters), insert by sender only. Connections readable by sender+recipient only. Inbox settings: self-only.
+- Wallet spend order preserved: `contact_bonus → balance → earned_balance`.
+- All credit moves log to `credits_ledger` for audit + admin reporting.
+- Frontend: extend `usePostReactions`, new `useHype`, `useTalentConnection`, `useTalentSearch` hooks. New `TalentProfilePublic.tsx`, `TalentSearch.tsx`, `ConnectionRequestDialog.tsx`.
+- Admin: new tab under Talent group → "Creator Economy" with hype volume, connection revenue, top earners, abuse flags.
+- Update `mem://business/fractional-per-response-credit-model` and add new memory `mem://product/creator-economy-hype-and-connections`.
 
 ---
 
-## What I need from you to start
-
-- Approve `add_secret` for `UNIPILE_API_KEY` and `UNIPILE_DSN` (you said you have them).
-- Approve the Telegram connector link (or say "WhatsApp only for now" and I'll skip Telegram in the pilot).
-- Confirm the pilot agent slug/ID is the existing **Talent Executive — Bangladesh** agent, or tell me which one.
+**Questions before I build:**
+1. Confirm splits: Hype **80/20**, Connection **70/30** — OK?
+2. Inbox-unlock threshold: **5,000** transactions — OK or higher (e.g. 10k for scarcity)?
+3. Self-hype: blocked entirely, or allowed but doesn't earn (vanity only)?
+4. Should connection fees be **refundable on decline** or kept (anti-spam tax)?
+5. Want me to ship Phase 1 in one go, or split Hype first → Connections second?
