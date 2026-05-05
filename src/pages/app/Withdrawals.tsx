@@ -127,7 +127,10 @@ export default function Withdrawals() {
         </div>
       </header>
 
+      <InboxUnlockCard />
+
       <Card>
+
         <CardContent className="p-5 flex items-center gap-4">
           <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
             <Wallet className="h-6 w-6 text-primary" />
