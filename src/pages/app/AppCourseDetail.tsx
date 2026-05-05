@@ -116,9 +116,9 @@ export default function AppCourseDetail({ inlineSlug, onBack }: AppCourseDetailP
         )}
       </div>
 
-      {/* Live event registration */}
+      {/* Live event registration / join */}
       {(course.content_type === "live_webinar" || course.content_type === "batch_class") && (
-        <WebinarEnrollPanel course={course as any} />
+        <LiveSessionPanels course={course as any} />
       )}
 
       {/* Credential card */}
