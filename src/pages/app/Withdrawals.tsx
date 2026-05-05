@@ -131,6 +131,7 @@ export default function Withdrawals() {
 
       <HypeEarningsCard />
       <InboxUnlockCard />
+      <ReferralCard />
 
       <Card>
 
