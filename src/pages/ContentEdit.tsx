@@ -40,6 +40,9 @@ export default function ContentEdit() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [moduleStats, setModuleStats] = useState<ModuleStats | null>(null);
+  const [isReady, setIsReady] = useState<boolean | null>(null);
+  const [moduleAudit, setModuleAudit] = useState<Array<{ id: string; title: string; reason: string }>>([]);
 
   const [formData, setFormData] = useState({
     title: "",
