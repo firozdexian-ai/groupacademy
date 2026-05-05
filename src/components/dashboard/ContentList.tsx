@@ -57,6 +57,7 @@ interface Content {
   description: string | null;
   price: number;
   is_published: boolean;
+  is_ready: boolean | null;
   instructor_name: string | null;
   event_date: string | null;
   max_capacity: number | null;
