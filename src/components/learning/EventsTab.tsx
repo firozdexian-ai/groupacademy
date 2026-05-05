@@ -56,13 +56,17 @@ export function EventsTab({ onOpenCompetition }: EventsTabProps) {
   const { data: events = [], isLoading: eventsLoading } = useQuery({
     queryKey: ["app-events-inperson"],
     queryFn: async () => {
+      const cutoff = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
       const { data, error } = await supabase
         .from("content")
         .select(
           "id, title, description, content_type, event_date, event_timezone, event_duration_minutes, venue_name, venue_address, max_capacity, current_enrollment, cover_image_url, slug, whatsapp_group_link",
         )
         .eq("is_published", true)
+        .eq("is_ready", true)
         .eq("content_type", "offline_seminar")
+        .not("event_date", "is", null)
+        .gte("event_date", cutoff)
         .order("event_date", { ascending: true });
       if (error) throw error;
       return data || [];
