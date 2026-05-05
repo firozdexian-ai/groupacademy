@@ -116,11 +116,26 @@ export function CoursesTab({ onOpenCourse, onOpenCompetition }: CoursesTabProps)
     enabled: showCompete,
   });
 
-  const filteredCourses = courses.filter((c) => {
-    if (selectedType === "courses") return c.content_type === "recorded_course";
-    if (selectedType === "live") return c.content_type === "live_webinar" || c.content_type === "batch_class";
-    return true;
-  });
+  // Hide live programs whose event is more than 2 hours past
+  const liveCutoff = Date.now() - 2 * 60 * 60 * 1000;
+  const isLiveActive = (c: Course) => {
+    if (c.content_type !== "live_webinar" && c.content_type !== "batch_class") return true;
+    if (!c.event_date) return true;
+    return new Date(c.event_date).getTime() >= liveCutoff;
+  };
+
+  const filteredCourses = courses
+    .filter(isLiveActive)
+    .filter((c) => {
+      if (selectedType === "courses") return c.content_type === "recorded_course";
+      if (selectedType === "live") return c.content_type === "live_webinar" || c.content_type === "batch_class";
+      return true;
+    })
+    .sort((a, b) => {
+      const ad = a.event_date ? new Date(a.event_date).getTime() : Infinity;
+      const bd = b.event_date ? new Date(b.event_date).getTime() : Infinity;
+      return ad - bd;
+    });
 
   const todayEvents = events.filter((e) => e.event_date && isToday(new Date(e.event_date)));
   const upcomingEvents = events.filter((e) => e.event_date && isFuture(new Date(e.event_date)));
