@@ -24,7 +24,7 @@ interface Conversation {
 interface Message {
   id: string;
   direction: "in" | "out";
-  author: "user" | "human_operator" | "agent";
+  author: "user" | "human_operator" | "agent" | "system";
   body: string | null;
   created_at: string;
   status: string;
