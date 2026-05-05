@@ -87,7 +87,7 @@ export default function Connections() {
 
   const decline = async (id: string) => {
     setActing(id);
-    const { error } = await supabase.rpc("talent_connection_respond", { _connection_id: id, _action: "declined" });
+    const { error } = await supabase.rpc("talent_connection_respond", { _request: id, _accept: false });
     setActing(null);
     if (error) {
       toast({ title: "Couldn't decline", description: error.message, variant: "destructive" });
