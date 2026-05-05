@@ -267,14 +267,24 @@ const ContentList = ({ filter }: ContentListProps) => {
                     >
                       <Icon className={cn("h-6 w-6", config.color)} />
                     </div>
-                    <Badge
-                      className={cn(
-                        "rounded-lg font-black text-[8px] uppercase tracking-[0.2em] px-3 py-1 border-none",
-                        item.is_published ? "bg-emerald-500 text-white" : "bg-muted text-muted-foreground/60",
+                    <div className="flex items-center gap-1.5">
+                      <Badge
+                        className={cn(
+                          "rounded-lg font-black text-[8px] uppercase tracking-[0.2em] px-3 py-1 border-none",
+                          item.is_published ? "bg-emerald-500 text-white" : "bg-muted text-muted-foreground/60",
+                        )}
+                      >
+                        {item.is_published ? "PUBLISHED" : "DRAFT"}
+                      </Badge>
+                      {(item.content_type === "recorded_course" || item.content_type === "live_webinar" || item.content_type === "batch_class") && (
+                        <ContentReadinessBadge
+                          stats={moduleStatsMap[item.id]}
+                          isReady={item.is_ready ?? undefined}
+                          appliesPlayableRule={item.content_type === "recorded_course"}
+                          compact
+                        />
                       )}
-                    >
-                      {item.is_published ? "LIVE_NODE" : "IDLE_DRAFT"}
-                    </Badge>
+                    </div>
                   </div>
                   <CardTitle className="text-2xl font-black uppercase tracking-tighter italic leading-none group-hover:text-primary transition-colors line-clamp-2 min-h-[56px]">
                     {item.title}
@@ -284,7 +294,11 @@ const ContentList = ({ filter }: ContentListProps) => {
                 <CardContent className="p-8 pt-0 space-y-6 flex-1 flex flex-col justify-between">
                   <div className="space-y-4">
                     <div className="p-4 rounded-2xl bg-muted/10 border border-border/10">
-                      <ContentReadinessBadge stats={moduleStatsMap[item.id]} />
+                      <ContentReadinessBadge
+                        stats={moduleStatsMap[item.id]}
+                        isReady={item.is_ready ?? undefined}
+                        appliesPlayableRule={item.content_type === "recorded_course"}
+                      />
                     </div>
 
                     <div className="flex items-center justify-between">
