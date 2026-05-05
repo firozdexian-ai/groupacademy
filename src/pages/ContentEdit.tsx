@@ -89,6 +89,8 @@ export default function ContentEdit() {
         event_duration_minutes: data.event_duration_minutes?.toString() || "",
         max_capacity: data.max_capacity?.toString() || "",
       });
+      setIsReady(data.is_ready ?? null);
+      await loadModuleStats();
     } catch (error: any) {
       toast({ title: "Load Error", description: error.message, variant: "destructive" });
       navigate("/dashboard");
