@@ -12,6 +12,8 @@ import {
 import { format, isToday, isFuture } from "date-fns";
 import { getCourseCredits } from "@/lib/creditPricing";
 import { cn } from "@/lib/utils";
+import { formatEventTime, formatEventLocal, DEFAULT_EVENT_TZ } from "@/lib/eventTime";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type ContentType = "free_video" | "recorded_course" | "live_webinar" | "batch_class" | "offline_seminar";
 type FilterKey = "all" | "courses" | "live" | "events" | "compete";
@@ -26,6 +28,7 @@ interface Course {
   instructor_name: string;
   cover_image_url: string | null;
   event_date?: string | null;
+  event_timezone?: string | null;
   event_duration_minutes?: number | null;
   max_capacity?: number | null;
   current_enrollment?: number | null;
@@ -68,7 +71,7 @@ export function CoursesTab({ onOpenCourse, onOpenCompetition }: CoursesTabProps)
       const { data, error } = await supabase
         .from("content")
         .select(
-          "id, title, slug, description, content_type, price, instructor_name, cover_image_url, event_date, event_duration_minutes, max_capacity, current_enrollment",
+          "id, title, slug, description, content_type, price, instructor_name, cover_image_url, event_date, event_timezone, event_duration_minutes, max_capacity, current_enrollment",
         )
         .eq("is_published", true)
         .eq("is_private", false)
@@ -88,7 +91,7 @@ export function CoursesTab({ onOpenCourse, onOpenCompetition }: CoursesTabProps)
       const { data, error } = await supabase
         .from("content")
         .select(
-          "id, title, slug, description, content_type, cover_image_url, event_date, event_duration_minutes, max_capacity, current_enrollment, venue_name, whatsapp_group_link, price, instructor_name",
+          "id, title, slug, description, content_type, cover_image_url, event_date, event_timezone, event_duration_minutes, max_capacity, current_enrollment, venue_name, whatsapp_group_link, price, instructor_name",
         )
         .eq("is_published", true)
         .eq("content_type", "offline_seminar")
@@ -159,10 +162,19 @@ export function CoursesTab({ onOpenCourse, onOpenCompetition }: CoursesTabProps)
 
           {isLive && eventDate && (
             <div className="flex items-center gap-3 text-[10px] text-muted-foreground border-t border-border/40 pt-2">
-              <span className="flex items-center gap-1">
-                <Calendar className="h-3 w-3" />
-                {isBatch ? `Starts ${format(eventDate, "MMM d")}` : format(eventDate, "MMM d, p")}
-              </span>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="flex items-center gap-1 cursor-help">
+                      <Calendar className="h-3 w-3" />
+                      {isBatch
+                        ? `Starts ${formatEventTime(eventDate, course.event_timezone || DEFAULT_EVENT_TZ, "MMM d")}`
+                        : formatEventTime(eventDate, course.event_timezone || DEFAULT_EVENT_TZ)}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-xs">{formatEventLocal(eventDate)}</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               {spotsLeft !== null && (
                 <span className={cn("flex items-center gap-1", spotsLeft <= 5 && spotsLeft > 0 && "text-rose-600")}>
                   <Users className="h-3 w-3" />
