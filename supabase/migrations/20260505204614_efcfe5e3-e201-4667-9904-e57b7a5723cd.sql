@@ -1,0 +1,1 @@
+ALTER VIEW public.v_weekly_leaderboard SET (security_invoker = true);
