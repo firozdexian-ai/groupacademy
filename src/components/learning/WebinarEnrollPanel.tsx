@@ -1,17 +1,13 @@
 /**
  * Inline registration panel for live webinars / batch classes.
- * Spends credits via existing `deduct_credits` RPC and reveals the WhatsApp group.
+ * Delegates the entire reservation flow to `enroll_in_content` via useEnrollment.
  */
-import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useEnrollment } from "@/hooks/useEnrollment";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Clock, Users, Coins, MessageCircle, CheckCircle2, ArrowRight } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useTalent } from "@/hooks/useTalent";
-import { useCredits } from "@/hooks/useCredits";
-import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { formatEventTime, formatEventLocal, DEFAULT_EVENT_TZ } from "@/lib/eventTime";
 import { getCourseCredits } from "@/lib/creditPricing";
@@ -29,57 +25,26 @@ interface Props {
     current_enrollment: number | null;
     whatsapp_group_link: string | null;
     price: number | null;
+    credit_cost?: number | null;
   };
 }
 
 export function WebinarEnrollPanel({ course }: Props) {
   const { talent } = useTalent();
-  const { balance, deductCustomAmount, refresh } = useCredits() as any;
   const navigate = useNavigate();
-  const [busy, setBusy] = useState(false);
+  const { enrollment, isLoading, enroll, isEnrolling } = useEnrollment(course.id);
 
-  const creditCost = getCourseCredits(Number(course.price ?? 0));
+  const creditCost = getCourseCredits(Number(course.price ?? 0), course.credit_cost ?? null);
   const tz = course.event_timezone || DEFAULT_EVENT_TZ;
-  const seatsLeft = course.max_capacity
-    ? course.max_capacity - (course.current_enrollment || 0)
-    : null;
-
-  const { data: enrollment, isLoading: enrollmentLoading, invalidate } = useEnrollment(course.id);
-  const isEnrolled = !!enrollment;
+  const seatsLeft =
+    course.max_capacity != null ? course.max_capacity - (course.current_enrollment || 0) : null;
 
   const handleEnroll = async () => {
     if (!talent?.id) {
       navigate(`/auth?redirect=/app/learning/courses/${course.slug}`);
       return;
     }
-    if (creditCost > 0 && (balance ?? 0) < creditCost) {
-      toast.error(`You need ${creditCost} credits — top up to reserve.`);
-      navigate("/app/wallet");
-      return;
-    }
-    setBusy(true);
-    try {
-      if (creditCost > 0) {
-        const ok = await deductCustomAmount(creditCost, "webinar_enrollment", course.id, `Joined: ${course.title}`);
-        if (!ok) throw new Error("Could not deduct credits");
-      }
-      const { error } = await supabase.from("enrollments").insert({
-        talent_id: talent.id,
-        student_id: talent.id,
-        content_id: course.id,
-        status: "active" as const,
-        payment_amount: creditCost,
-      } as any);
-      if (error && !error.message.includes("duplicate")) throw error;
-      await (supabase.rpc as any)("increment_content_enrollment", { p_content_id: course.id });
-      toast.success("You're in! Check your email for details.");
-      if (typeof refresh === "function") await refresh();
-      invalidate();
-    } catch (e: any) {
-      toast.error(e?.message || "Reservation failed");
-    } finally {
-      setBusy(false);
-    }
+    await enroll();
   };
 
   return (
@@ -115,7 +80,7 @@ export function WebinarEnrollPanel({ course }: Props) {
           </span>
         </div>
 
-        {isEnrolled ? (
+        {enrollment ? (
           <div className="space-y-2 pt-1">
             <div className="flex items-center gap-2 text-sm text-emerald-600 font-medium">
               <CheckCircle2 className="h-4 w-4" /> You're registered
@@ -136,10 +101,10 @@ export function WebinarEnrollPanel({ course }: Props) {
           <Button
             className="w-full rounded-xl"
             onClick={handleEnroll}
-            disabled={busy || enrollmentLoading || (seatsLeft !== null && seatsLeft <= 0)}
+            disabled={isEnrolling || isLoading || (seatsLeft !== null && seatsLeft <= 0)}
           >
-            {busy ? "Reserving..." : `Reserve seat · ${creditCost} cr`}
-            {!busy && <ArrowRight className="h-4 w-4 ml-2" />}
+            {isEnrolling ? "Reserving..." : creditCost > 0 ? `Reserve seat · ${creditCost} cr` : "Reserve free seat"}
+            {!isEnrolling && <ArrowRight className="h-4 w-4 ml-2" />}
           </Button>
         )}
       </CardContent>
