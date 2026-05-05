@@ -180,3 +180,61 @@ export default function AppCourseDetail({ inlineSlug, onBack }: AppCourseDetailP
     </div>
   );
 }
+
+function RecordedEnrollCta({ course }: { course: any }) {
+  const navigate = useNavigate();
+  const { talent } = useTalent();
+  const { balance, deductCustomAmount, refresh } = useCredits() as any;
+  const { data: enrollment, invalidate } = useEnrollment(course.id);
+  const [busy, setBusy] = useState(false);
+  const cost = getCourseCredits(Number(course.price ?? 0));
+
+  if (enrollment) {
+    return (
+      <Button className="w-full h-10 rounded-xl text-sm" onClick={() => navigate(`/app/learn/${course.slug}`)}>
+        Continue learning
+      </Button>
+    );
+  }
+
+  const handleEnroll = async () => {
+    if (!talent?.id) {
+      navigate(`/auth?redirect=/app/learning/courses/${course.slug}`);
+      return;
+    }
+    if (cost > 0 && (balance ?? 0) < cost) {
+      toast.error(`You need ${cost} credits — top up to enroll.`);
+      navigate("/app/wallet");
+      return;
+    }
+    setBusy(true);
+    try {
+      if (cost > 0) {
+        const ok = await deductCustomAmount(cost, "course_enrollment", course.id, `Enrolled: ${course.title}`);
+        if (!ok) throw new Error("Could not deduct credits");
+      }
+      const { error } = await supabase.from("enrollments").insert({
+        talent_id: talent.id,
+        student_id: talent.id,
+        content_id: course.id,
+        status: "active" as const,
+        payment_amount: cost,
+      } as any);
+      if (error && !error.message.includes("duplicate")) throw error;
+      toast.success("You're enrolled!");
+      if (typeof refresh === "function") await refresh();
+      invalidate();
+      navigate(`/app/learn/${course.slug}`);
+    } catch (e: any) {
+      toast.error(e?.message || "Enrollment failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Button className="w-full h-10 rounded-xl text-sm" onClick={handleEnroll} disabled={busy}>
+      {busy ? "Enrolling..." : cost > 0 ? `Enroll · ${cost} cr` : "Enroll for free"}
+    </Button>
+  );
+}
