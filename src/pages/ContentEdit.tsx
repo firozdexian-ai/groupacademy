@@ -28,6 +28,8 @@ import { useToast } from "@/hooks/use-toast";
 import { ImageUpload } from "@/components/ImageUpload";
 import { youtubeUrlSchema, whatsappUrlSchema } from "@/lib/validations";
 import { cn } from "@/lib/utils";
+import { EventDateTimeField } from "@/components/admin/EventDateTimeField";
+import { DEFAULT_EVENT_TZ } from "@/lib/eventTime";
 
 export default function ContentEdit() {
   const { id } = useParams();
@@ -50,7 +52,8 @@ export default function ContentEdit() {
     instructor_name: "",
     venue_name: "",
     venue_address: "",
-    event_date: "",
+    event_date: "",                       // UTC ISO
+    event_timezone: DEFAULT_EVENT_TZ,
     event_duration_minutes: "",
     max_capacity: "",
     youtube_url: "",
@@ -76,7 +79,8 @@ export default function ContentEdit() {
         price: data.price?.toString() || "",
         duration_hours: data.duration_hours?.toString() || "",
         modules_count: data.modules_count?.toString() || "",
-        event_date: data.event_date ? new Date(data.event_date).toISOString().slice(0, 16) : "",
+        event_date: data.event_date || "",
+        event_timezone: data.event_timezone || DEFAULT_EVENT_TZ,
         event_duration_minutes: data.event_duration_minutes?.toString() || "",
         max_capacity: data.max_capacity?.toString() || "",
       });
@@ -248,15 +252,13 @@ export default function ContentEdit() {
                 <CardContent className="p-6 grid gap-6 pt-8">
                   {["live_webinar", "batch_class", "offline_seminar"].includes(formData.content_type) && (
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2 col-span-2">
-                        <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                          Event Schedule
-                        </Label>
-                        <Input
-                          type="datetime-local"
-                          value={formData.event_date}
-                          onChange={(e) => setFormData({ ...formData, event_date: e.target.value })}
-                          className="rounded-xl"
+                      <div className="col-span-2">
+                        <EventDateTimeField
+                          utcValue={formData.event_date}
+                          timezone={formData.event_timezone}
+                          onChange={({ utcValue, timezone }) =>
+                            setFormData({ ...formData, event_date: utcValue, event_timezone: timezone })
+                          }
                         />
                       </div>
                       <div className="space-y-2">
