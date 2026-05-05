@@ -215,6 +215,8 @@ export function PostCard({ post }: PostCardProps) {
         {totalReactions > 0 && (
           <p className="text-[10px] text-muted-foreground -mt-1">{totalReactions} reactions</p>
         )}
+
+        <CommentList postId={post.id} />
       </CardContent>
     </Card>
   );
