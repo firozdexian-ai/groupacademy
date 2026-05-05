@@ -244,6 +244,7 @@ export default function Feed() {
         <aside className="hidden lg:block lg:col-span-4">
           <div className="sticky top-24 space-y-6">
             <PersonalizedPromptCard />
+            <WeeklyLeaderboardWidget />
             <CareerInsightsStack insights={insights || []} />
           </div>
         </aside>
