@@ -68,6 +68,9 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
       default: m.TalentOutreachConsoleTab,
     })),
   ),
+  "talent-creator-economy": React.lazy(() =>
+    import("@/components/dashboard/talent/CreatorEconomyTab").then((m) => ({ default: m.CreatorEconomyTab })),
+  ),
   "lead-hunter": React.lazy(() =>
     import("@/components/dashboard/LeadHunterManager").then((m) => ({ default: m.LeadHunterManager })),
   ),

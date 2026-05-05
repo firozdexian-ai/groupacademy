@@ -444,6 +444,7 @@ export function AdminSidebar({ activeTab, onTabChange, userRole = "admin", admin
               { title: "Overview", value: "talent-overview", icon: LayoutDashboard },
               { title: "Talent Pool", value: "talent", icon: DatabaseIcon },
               { title: "Talent Upload", value: "talent-upload", icon: Upload },
+              { title: "Creator Economy", value: "talent-creator-economy", icon: Sparkles },
               { title: "Lead Hunter", value: "lead-hunter", icon: Target },
               { title: "Professions & Roles", value: "professions", icon: GraduationCap },
             ];
