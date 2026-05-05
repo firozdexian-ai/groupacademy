@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { format, isToday, isFuture } from "date-fns";
 import { StudyAbroadSection } from "./StudyAbroadSection";
 import { cn } from "@/lib/utils";
+import { formatEventTime, formatEventLocal, DEFAULT_EVENT_TZ } from "@/lib/eventTime";
 
 export interface EventsTabProps {
   onOpenCompetition?: (slug: string) => void;
@@ -58,7 +59,7 @@ export function EventsTab({ onOpenCompetition }: EventsTabProps) {
       const { data, error } = await supabase
         .from("content")
         .select(
-          "id, title, description, content_type, event_date, event_duration_minutes, venue_name, venue_address, max_capacity, current_enrollment, cover_image_url, slug, whatsapp_group_link",
+          "id, title, description, content_type, event_date, event_timezone, event_duration_minutes, venue_name, venue_address, max_capacity, current_enrollment, cover_image_url, slug, whatsapp_group_link",
         )
         .eq("is_published", true)
         .eq("content_type", "offline_seminar")
@@ -112,13 +113,8 @@ export function EventsTab({ onOpenCompetition }: EventsTabProps) {
 
           <div className="flex flex-wrap items-center gap-3 text-[10px] text-muted-foreground border-t border-border/40 pt-2">
             {eventDate && (
-              <span className="flex items-center gap-1">
-                <Calendar className="h-3 w-3" /> {format(eventDate, "MMM d")}
-              </span>
-            )}
-            {eventDate && (
-              <span className="flex items-center gap-1">
-                <Clock className="h-3 w-3" /> {format(eventDate, "p")}
+              <span className="flex items-center gap-1" title={formatEventLocal(eventDate)}>
+                <Calendar className="h-3 w-3" /> {formatEventTime(eventDate, event.event_timezone || DEFAULT_EVENT_TZ)}
               </span>
             )}
             {spotsLeft !== null && (
