@@ -9,6 +9,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/common/EmptyState";
 import { PAGE_SHELL, PAGE_TITLE, PAGE_SUBTITLE, SECTION_TITLE, META_TEXT, CARD } from "@/lib/uiTokens";
 import { WebinarEnrollPanel } from "@/components/learning/WebinarEnrollPanel";
+import { useEnrollment } from "@/hooks/useEnrollment";
+import { useTalent } from "@/hooks/useTalent";
+import { useCredits } from "@/hooks/useCredits";
+import { getCourseCredits } from "@/lib/creditPricing";
+import { toast } from "sonner";
+import { useState } from "react";
 
 interface AppCourseDetailProps {
   inlineSlug?: string;
