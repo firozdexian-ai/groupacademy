@@ -11,7 +11,7 @@ export default function AbroadOverviewTab() {
       // Execute parallel counts for performance
       const [programs, leads, resources] = await Promise.all([
         supabase.from("study_abroad_programs").select("id", { count: "exact", head: true }),
-        supabase.from("study_abroad_roadmap_leads").select("id", { count: "exact", head: true }),
+        supabase.from("study_abroad_roadmaps").select("id", { count: "exact", head: true }),
         supabase.from("ielts_resources").select("id", { count: "exact", head: true }),
       ]);
 
