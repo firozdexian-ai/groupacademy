@@ -1,7 +1,11 @@
 import { useState, useEffect } from "react";
-import { Coins, Sparkles, ChevronDown, ChevronUp, Zap, ShieldCheck, ArrowRight } from "lucide-react";
+import { Coins, Sparkles, ChevronDown, ChevronUp, Zap, ShieldCheck, ArrowRight, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+import { formatEventTime, DEFAULT_EVENT_TZ } from "@/lib/eventTime";
 
 interface WelcomeBonusProps {
   onContinue: () => void;
@@ -11,6 +15,29 @@ export function WelcomeBonus({ onContinue }: WelcomeBonusProps) {
   const [displayedCredits, setDisplayedCredits] = useState(0);
   const [showExplanation, setShowExplanation] = useState(false);
   const [animationComplete, setAnimationComplete] = useState(false);
+
+  const navigate = useNavigate();
+
+  // Featured upcoming live event (within next 14 days)
+  const { data: upcomingEvent } = useQuery({
+    queryKey: ["welcome-upcoming-event"],
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const inTwoWeeks = new Date(Date.now() + 14 * 86_400_000).toISOString();
+      const { data } = await supabase
+        .from("content")
+        .select("title, slug, event_date, event_timezone, price")
+        .in("content_type", ["live_webinar", "batch_class"])
+        .eq("is_published", true)
+        .eq("is_private", false)
+        .gte("event_date", new Date().toISOString())
+        .lte("event_date", inTwoWeeks)
+        .order("event_date", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      return data;
+    },
+  });
 
   useEffect(() => {
     const targetCredits = 250;
@@ -111,6 +138,35 @@ export function WelcomeBonus({ onContinue }: WelcomeBonusProps) {
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {animationComplete && upcomingEvent && (
+        <div className="w-full mb-6 animate-in slide-in-from-bottom-4 duration-500">
+          <div className="rounded-2xl border-2 border-primary/30 bg-gradient-to-br from-primary/5 to-emerald-500/5 p-5 text-left">
+            <div className="flex items-start gap-3">
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                <Calendar className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-primary mb-1">
+                  🎁 Your first event is on us
+                </p>
+                <h3 className="text-sm font-bold leading-tight mb-1.5 line-clamp-2">{upcomingEvent.title}</h3>
+                <p className="text-xs text-muted-foreground mb-3">
+                  {formatEventTime(upcomingEvent.event_date, upcomingEvent.event_timezone || DEFAULT_EVENT_TZ)}
+                </p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs rounded-lg w-full"
+                  onClick={() => navigate(`/app/learning/courses/${upcomingEvent.slug}`)}
+                >
+                  Reserve my seat (free with bonus) <ArrowRight className="h-3 w-3 ml-1" />
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
