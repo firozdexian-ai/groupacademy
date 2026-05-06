@@ -183,9 +183,24 @@ export default function Feed() {
                   <Inbox className="h-7 w-7 text-muted-foreground/40" />
                 </div>
                 <div className="space-y-1">
-                  <h3 className="text-lg font-bold">You're all caught up</h3>
-                  <p className="text-sm text-muted-foreground">Check back later for new posts and recommendations.</p>
+                  <h3 className="text-lg font-bold">
+                    {filters.scope !== "global" ? "Nothing here yet" : "You're all caught up"}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {filters.scope !== "global"
+                      ? "Be the first to post in this community."
+                      : "Check back later for new posts and recommendations."}
+                  </p>
                 </div>
+                {filters.scope !== "global" && (
+                  <Button
+                    variant="outline"
+                    onClick={() => setFilters({ ...filters, scope: "global", type: "all" })}
+                    className="rounded-xl h-9 px-5 text-sm font-semibold"
+                  >
+                    Switch to Global
+                  </Button>
+                )}
               </CardContent>
             </Card>
           ) : (
