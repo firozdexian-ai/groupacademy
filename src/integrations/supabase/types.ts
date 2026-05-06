@@ -11153,6 +11153,10 @@ export type Database = {
         }
         Returns: string
       }
+      fn_recompute_enrollment_progress: {
+        Args: { p_enrollment_id: string }
+        Returns: undefined
+      }
       generate_course_project: {
         Args: {
           p_completion_bonus?: number
