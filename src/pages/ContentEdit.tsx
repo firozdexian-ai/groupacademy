@@ -332,13 +332,15 @@ export default function ContentEdit() {
                   {["live_webinar", "batch_class", "offline_seminar"].includes(formData.content_type) && (
                     <div className="grid grid-cols-2 gap-4">
                       <div className="col-span-2">
-                        <div data-readiness-field="event_date"><EventDateTimeField
-                          utcValue={formData.event_date}
-                          timezone={formData.event_timezone}
-                          onChange={({ utcValue, timezone }) =>
-                            setFormData({ ...formData, event_date: utcValue, event_timezone: timezone })
-                          }
-                        />
+                        <div data-readiness-field="event_date">
+                          <EventDateTimeField
+                            utcValue={formData.event_date}
+                            timezone={formData.event_timezone}
+                            onChange={({ utcValue, timezone }) =>
+                              setFormData({ ...formData, event_date: utcValue, event_timezone: timezone })
+                            }
+                          />
+                        </div>
                       </div>
                       <div className="space-y-2">
                         <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
