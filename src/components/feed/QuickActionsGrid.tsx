@@ -1,20 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Bot, MessageCircle, MoreHorizontal, LucideIcon } from "lucide-react";
+import { Bot, LucideIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTalent } from "@/hooks/useTalent";
-import { useMessageThreads } from "@/hooks/useMessageThreads";
 import { Skeleton } from "@/components/ui/skeleton";
 import { iconMap } from "@/lib/iconMap";
-import { cn } from "@/lib/utils";
 import { QuickActionsSheet } from "./QuickActionsSheet";
-
-/**
- * Quick Actions — slim single-row launcher.
- * Horizontal scroll-snap with most-used personal agents first,
- * Messages pinned at the end, plus a "More" pill for the full sheet.
- */
 
 interface QuickAgent {
   agent_key: string;
@@ -30,11 +22,10 @@ const VISIBLE_LIMIT = 5;
 export function QuickActionsGrid() {
   const navigate = useNavigate();
   const { talent } = useTalent();
-  const { totalUnread } = useMessageThreads();
   const [sheetOpen, setSheetOpen] = useState(false);
 
   const { data: actions = [], isLoading } = useQuery({
-    queryKey: ["quick-actions-slim", talent?.id],
+    queryKey: ["quick-actions-top5", talent?.id],
     queryFn: async () => {
       let personalKeys: string[] = [];
       if (talent?.id) {
@@ -87,9 +78,9 @@ export function QuickActionsGrid() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center gap-3 overflow-hidden px-1">
-        {[...Array(6)].map((_, i) => (
-          <div key={i} className="flex flex-col items-center gap-1.5 shrink-0">
+      <div className="grid grid-cols-5 gap-2 px-1">
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="flex flex-col items-center gap-1.5">
             <Skeleton className="h-11 w-11 rounded-xl" />
             <Skeleton className="h-2 w-9" />
           </div>
@@ -100,8 +91,8 @@ export function QuickActionsGrid() {
 
   return (
     <>
-      <div className="-mx-1 px-1">
-        <div className="flex items-start gap-3 overflow-x-auto snap-x snap-mandatory no-scrollbar pb-1">
+      <div className="px-1">
+        <div className="grid grid-cols-5 gap-2">
           {actions.map((item) => {
             const ResolvedIcon = item.icon && iconMap[item.icon] ? (iconMap[item.icon] as LucideIcon) : Bot;
             return (
@@ -109,8 +100,7 @@ export function QuickActionsGrid() {
                 key={item.agent_key}
                 aria-label={item.name}
                 onClick={() => navigate(`/app/agents/${item.agent_key}`)}
-                className="flex flex-col items-center gap-1.5 shrink-0 snap-start active:scale-95 transition-transform outline-none"
-                style={{ width: 60 }}
+                className="flex flex-col items-center gap-1.5 min-w-0 active:scale-95 transition-transform outline-none"
               >
                 <div
                   className="h-11 w-11 rounded-xl flex items-center justify-center border border-border/40 bg-muted/40 overflow-hidden"
@@ -122,50 +112,19 @@ export function QuickActionsGrid() {
                     <ResolvedIcon className="h-5 w-5" style={{ color: item.color || undefined }} />
                   )}
                 </div>
-                <span className="text-[10px] font-medium text-center text-muted-foreground line-clamp-1 leading-tight w-full px-0.5">
+                <span className="text-[10px] font-medium text-center text-muted-foreground truncate leading-tight w-full px-0.5">
                   {item.name?.split(" ")[0] || "Agent"}
                 </span>
               </button>
             );
           })}
-
-          {/* Messages pinned */}
-          <button
-            onClick={() => navigate("/app/messages")}
-            aria-label="Messages"
-            className="flex flex-col items-center gap-1.5 shrink-0 snap-start active:scale-95 transition-transform outline-none"
-            style={{ width: 60 }}
-          >
-            <div className="relative h-11 w-11 rounded-xl flex items-center justify-center bg-primary text-primary-foreground border border-primary">
-              <MessageCircle className="h-5 w-5" />
-              {totalUnread > 0 && (
-                <span className="absolute -top-1 -right-1 h-4 min-w-4 px-1 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center">
-                  {totalUnread > 9 ? "9+" : totalUnread}
-                </span>
-              )}
-            </div>
-            <span className="text-[10px] font-medium text-center text-muted-foreground leading-tight w-full px-0.5">
-              Messages
-            </span>
-          </button>
-
-          {/* More */}
+        </div>
+        <div className="flex justify-end mt-1.5">
           <button
             onClick={() => setSheetOpen(true)}
-            aria-label="More agents"
-            className="flex flex-col items-center gap-1.5 shrink-0 snap-start active:scale-95 transition-transform outline-none"
-            style={{ width: 60 }}
+            className="text-[11px] text-muted-foreground hover:text-primary transition-colors"
           >
-            <div
-              className={cn(
-                "h-11 w-11 rounded-xl flex items-center justify-center border border-dashed border-border/60 bg-muted/30 text-muted-foreground",
-              )}
-            >
-              <MoreHorizontal className="h-5 w-5" />
-            </div>
-            <span className="text-[10px] font-medium text-center text-muted-foreground leading-tight w-full px-0.5">
-              More
-            </span>
+            View all agents →
           </button>
         </div>
       </div>
