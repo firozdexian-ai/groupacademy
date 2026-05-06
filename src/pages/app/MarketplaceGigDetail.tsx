@@ -376,7 +376,7 @@ export default function MarketplaceGigDetail() {
                   onAccept={(r) => setCoverLetter(r.text)}
                 />
 
-                {gig?.posted_by && talent?.user_id === gig.posted_by && (
+                {gig?.posted_by && talent?.userId === gig.posted_by && (
                   <div className="my-4">
                     <RecommendedBiddersPanel gigId={id!} gigKind="marketplace" />
                   </div>
