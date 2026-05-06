@@ -88,6 +88,7 @@ import AppInterviewSchedule from "./pages/app/AppInterviewSchedule";
 import AppOfferDecision from "./pages/app/AppOfferDecision";
 import SavedItems from "./pages/app/SavedItems";
 import Gigs from "./pages/app/Gigs";
+import NewGigWizard from "./pages/app/NewGigWizard";
 import MarketplaceGigDetail from "./pages/app/MarketplaceGigDetail";
 import Transactions from "./pages/app/Transactions";
 import Withdrawals from "./pages/app/Withdrawals";
