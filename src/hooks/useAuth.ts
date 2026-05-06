@@ -222,8 +222,8 @@ export const useAuth = (): AuthState => {
 };
 
 /**
- * Institutional Profile Handshake
- * CTO Reference: Corrected signature to resolve TS2554. Hydrates the talent registry.
+ * Helper for hydrating the talents table after a manual signup. Currently unused;
+ * kept for batch import paths. Will be revisited in 1.2.
  */
 export const createStudentProfile = async (
   userId: string,
@@ -248,7 +248,7 @@ export const createStudentProfile = async (
     if (error) throw error;
     return true;
   } catch (err) {
-    console.error("IDENTITY_HYDRATION_FAULT:", err);
+    console.error("Failed to create talent profile:", err);
     return false;
   }
 };
