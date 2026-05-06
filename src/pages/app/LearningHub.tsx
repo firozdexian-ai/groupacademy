@@ -8,6 +8,7 @@ import { CoursesTab } from "@/components/learning/CoursesTab";
 import { StudyAbroadSection } from "@/components/learning/StudyAbroadSection";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Learning Hub — compact mobile-first shell.
