@@ -2240,6 +2240,110 @@ export type Database = {
           },
         ]
       }
+      cohort_enrollments: {
+        Row: {
+          cohort_id: string
+          enrollment_id: string
+          id: string
+          joined_at: string
+          user_id: string
+        }
+        Insert: {
+          cohort_id: string
+          enrollment_id: string
+          id?: string
+          joined_at?: string
+          user_id: string
+        }
+        Update: {
+          cohort_id?: string
+          enrollment_id?: string
+          id?: string
+          joined_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cohort_enrollments_cohort_id_fkey"
+            columns: ["cohort_id"]
+            isOneToOne: false
+            referencedRelation: "cohorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cohort_enrollments_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "enrollments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cohorts: {
+        Row: {
+          attendance_threshold_pct: number
+          brief_id: string | null
+          capacity: number | null
+          code: string | null
+          content_id: string
+          created_at: string
+          created_by: string | null
+          ends_on: string | null
+          id: string
+          instructor_engagement_id: string | null
+          is_self_paced: boolean
+          name: string
+          starts_on: string | null
+          status: Database["public"]["Enums"]["cohort_status"]
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          attendance_threshold_pct?: number
+          brief_id?: string | null
+          capacity?: number | null
+          code?: string | null
+          content_id: string
+          created_at?: string
+          created_by?: string | null
+          ends_on?: string | null
+          id?: string
+          instructor_engagement_id?: string | null
+          is_self_paced?: boolean
+          name: string
+          starts_on?: string | null
+          status?: Database["public"]["Enums"]["cohort_status"]
+          timezone?: string
+          updated_at?: string
+        }
+        Update: {
+          attendance_threshold_pct?: number
+          brief_id?: string | null
+          capacity?: number | null
+          code?: string | null
+          content_id?: string
+          created_at?: string
+          created_by?: string | null
+          ends_on?: string | null
+          id?: string
+          instructor_engagement_id?: string | null
+          is_self_paced?: boolean
+          name?: string
+          starts_on?: string | null
+          status?: Database["public"]["Enums"]["cohort_status"]
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cohorts_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comment_tips: {
         Row: {
           amount: number
@@ -4446,48 +4550,76 @@ export type Database = {
       }
       course_sessions: {
         Row: {
+          attendance_threshold_pct: number | null
+          cohort_id: string | null
           content_id: string
           created_at: string
           description: string | null
           duration_minutes: number | null
+          event_timezone: string | null
           id: string
           instructor_id: string | null
+          is_mandatory: boolean
+          kind: Database["public"]["Enums"]["session_kind"]
           meeting_link: string | null
+          module_id: string | null
           recording_link: string | null
+          resources: Json
           scheduled_date: string
           status: Database["public"]["Enums"]["session_status"]
           title: string
           updated_at: string
         }
         Insert: {
+          attendance_threshold_pct?: number | null
+          cohort_id?: string | null
           content_id: string
           created_at?: string
           description?: string | null
           duration_minutes?: number | null
+          event_timezone?: string | null
           id?: string
           instructor_id?: string | null
+          is_mandatory?: boolean
+          kind?: Database["public"]["Enums"]["session_kind"]
           meeting_link?: string | null
+          module_id?: string | null
           recording_link?: string | null
+          resources?: Json
           scheduled_date: string
           status?: Database["public"]["Enums"]["session_status"]
           title: string
           updated_at?: string
         }
         Update: {
+          attendance_threshold_pct?: number | null
+          cohort_id?: string | null
           content_id?: string
           created_at?: string
           description?: string | null
           duration_minutes?: number | null
+          event_timezone?: string | null
           id?: string
           instructor_id?: string | null
+          is_mandatory?: boolean
+          kind?: Database["public"]["Enums"]["session_kind"]
           meeting_link?: string | null
+          module_id?: string | null
           recording_link?: string | null
+          resources?: Json
           scheduled_date?: string
           status?: Database["public"]["Enums"]["session_status"]
           title?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "course_sessions_cohort_id_fkey"
+            columns: ["cohort_id"]
+            isOneToOne: false
+            referencedRelation: "cohorts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "course_sessions_content_id_fkey"
             columns: ["content_id"]
@@ -9133,6 +9265,33 @@ export type Database = {
           },
         ]
       }
+      notification_dispatch: {
+        Row: {
+          dispatched_at: string
+          id: string
+          kind: string
+          payload: Json | null
+          scope: string
+          scope_id: string
+        }
+        Insert: {
+          dispatched_at?: string
+          id?: string
+          kind: string
+          payload?: Json | null
+          scope: string
+          scope_id: string
+        }
+        Update: {
+          dispatched_at?: string
+          id?: string
+          kind?: string
+          payload?: Json | null
+          scope?: string
+          scope_id?: string
+        }
+        Relationships: []
+      }
       notification_preferences: {
         Row: {
           channel: string
@@ -10873,6 +11032,59 @@ export type Database = {
           shared_by?: string | null
         }
         Relationships: []
+      }
+      session_attendance: {
+        Row: {
+          created_at: string
+          duration_seconds: number
+          id: string
+          joined_at: string | null
+          left_at: string | null
+          notes: string | null
+          recorded_by: string | null
+          session_id: string
+          source: Database["public"]["Enums"]["attendance_source"]
+          status: Database["public"]["Enums"]["attendance_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          duration_seconds?: number
+          id?: string
+          joined_at?: string | null
+          left_at?: string | null
+          notes?: string | null
+          recorded_by?: string | null
+          session_id: string
+          source?: Database["public"]["Enums"]["attendance_source"]
+          status?: Database["public"]["Enums"]["attendance_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          duration_seconds?: number
+          id?: string
+          joined_at?: string | null
+          left_at?: string | null
+          notes?: string | null
+          recorded_by?: string | null
+          session_id?: string
+          source?: Database["public"]["Enums"]["attendance_source"]
+          status?: Database["public"]["Enums"]["attendance_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_attendance_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "course_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       skill_credentials: {
         Row: {
@@ -12868,6 +13080,17 @@ export type Database = {
       }
       claim_course_project: { Args: { p_project_id: string }; Returns: Json }
       cleanup_rate_limits: { Args: never; Returns: undefined }
+      cohort_health: {
+        Args: { _cohort_id: string }
+        Returns: {
+          attendance_rate: number
+          capacity: number
+          cohort_id: string
+          enrollment_count: number
+          session_count: number
+          upcoming_sessions: number
+        }[]
+      }
       compute_company_profile_completion: {
         Args: { c: Database["public"]["Tables"]["companies"]["Row"] }
         Returns: number
@@ -13199,6 +13422,18 @@ export type Database = {
         Args: { p_content_id: string }
         Returns: number
       }
+      instructor_session_attendance: {
+        Args: { _session_id: string }
+        Returns: {
+          display_name: string
+          duration_seconds: number
+          email: string
+          joined_at: string
+          source: Database["public"]["Enums"]["attendance_source"]
+          status: Database["public"]["Enums"]["attendance_status"]
+          user_id: string
+        }[]
+      }
       interview_company_id: {
         Args: { p_interview_id: string }
         Returns: string
@@ -13252,6 +13487,10 @@ export type Database = {
       mark_payout_paid: {
         Args: { p_notes?: string; p_request_id: string }
         Returns: Json
+      }
+      mark_session_attendance: {
+        Args: { _session_id: string }
+        Returns: string
       }
       match_agent_knowledge: {
         Args: {
@@ -13387,6 +13626,21 @@ export type Database = {
         Returns: Json
       }
       unlock_talent_inbox: { Args: never; Returns: Json }
+      upcoming_sessions_for_user: {
+        Args: { _limit?: number; _user_id: string }
+        Returns: {
+          cohort_id: string
+          content_id: string
+          course_title: string
+          duration_minutes: number
+          kind: Database["public"]["Enums"]["session_kind"]
+          meeting_link: string
+          scheduled_date: string
+          session_id: string
+          status: Database["public"]["Enums"]["session_status"]
+          title: string
+        }[]
+      }
       upsert_direct_thread: {
         Args: { p_company_id: string; p_talent_id: string }
         Returns: string
@@ -13417,6 +13671,14 @@ export type Database = {
         | "withdrawn"
         | "hired"
       application_type: "email" | "link"
+      attendance_source: "auto" | "self" | "instructor" | "system"
+      attendance_status: "attended" | "partial" | "absent" | "excused"
+      cohort_status:
+        | "planning"
+        | "open"
+        | "in_progress"
+        | "completed"
+        | "archived"
       company_verification_tier: "unverified" | "self_completed" | "verified"
       content_type:
         | "free_video"
@@ -13532,6 +13794,13 @@ export type Database = {
         | "ai_scenario"
         | "quiz"
         | "report"
+      session_kind:
+        | "lecture"
+        | "office_hours"
+        | "review"
+        | "exam"
+        | "orientation"
+        | "workshop"
       session_status: "scheduled" | "ongoing" | "completed" | "cancelled"
       source_platform: "facebook" | "linkedin" | "bdjobs" | "website" | "other"
       student_status: "lead" | "free_learner" | "enrolled" | "graduated"
@@ -13714,6 +13983,15 @@ export const Constants = {
         "hired",
       ],
       application_type: ["email", "link"],
+      attendance_source: ["auto", "self", "instructor", "system"],
+      attendance_status: ["attended", "partial", "absent", "excused"],
+      cohort_status: [
+        "planning",
+        "open",
+        "in_progress",
+        "completed",
+        "archived",
+      ],
       company_verification_tier: ["unverified", "self_completed", "verified"],
       content_type: [
         "free_video",
@@ -13842,6 +14120,14 @@ export const Constants = {
         "ai_scenario",
         "quiz",
         "report",
+      ],
+      session_kind: [
+        "lecture",
+        "office_hours",
+        "review",
+        "exam",
+        "orientation",
+        "workshop",
       ],
       session_status: ["scheduled", "ongoing", "completed", "cancelled"],
       source_platform: ["facebook", "linkedin", "bdjobs", "website", "other"],
