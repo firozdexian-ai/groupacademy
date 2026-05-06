@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useTalent } from "@/hooks/useTalent";
 import { useCredits } from "@/hooks/useCredits";
+import { recordToolRun } from "@/hooks/useToolRuns";
 import { CREDIT_CONFIG } from "@/lib/creditPricing";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
