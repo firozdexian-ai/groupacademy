@@ -1,66 +1,109 @@
-## Phase 4.5a — Make Gro10x Web/Desktop Compatible
+## Phase 4.5 — Company Tracks & Branded Catalog
 
-### Why it looks broken on desktop today
+Bundle multiple courses into a sequenced **Track**, assign tracks to talents (B2C self-enroll or B2B sponsored), and surface a public **branded company learning page** at `/c/:slug/learn`. Tracks earn a unified completion certificate via the existing `/verify/...` flow.
 
-The Gro10x super-app was designed phone-first and is hard-locked to a mobile width:
+### Recommended decisions (from earlier 4.5 questions)
 
-- **Every page wraps content in `max-w-md mx-auto`** (~448px). On a 1280px+ screen the user sees a thin column floating in dark space. (34 occurrences across `src/gro10x/pages/*`.)
-- **`Gro10xBottomNav` is `fixed bottom-0` with `max-w-md`** — a tiny 5-icon bar pinned center-bottom that looks like a glitch on desktop and wastes the side rails where a real nav belongs.
-- **`Gro10xAppShell`** has no breakpoint awareness: same single-column flex on phone and 27" monitor.
-- **`Gro10xTopBar`** and chat composer assume the phone column width, so they look stranded.
+1. **Optional steps** — counted in progress %, but only required steps gate completion.
+2. **Sequential unlock** — opt-in `is_sequential` flag per track; default = all unlocked.
+3. **Template ownership** — platform admin only for 4.5; instructors propose via brief in a later phase.
+4. **Track certificate** — extend `certificates` with `kind` + `track_assignment_id` (no new table).
 
-Net effect: the platform is not "broken" — it's mobile-only by construction. We need a responsive shell, not a rewrite.
-
-### Goal
-
-Make `/gro10x/*` feel native on desktop without regressing the mobile experience. Same routes, same data, same components — just a real shell at `md:` and up.
+If any of these need to flip, say so before approval.
 
 ---
 
-### Plan
+### Data model
 
-1. **New responsive shell** (`Gro10xAppShell.tsx`)
-   - Mobile (`<md`): exactly today — top bar + content + fixed bottom nav.
-   - Desktop (`md` and up): a 2-column layout — left **sidebar nav** (fixed, ~240px) + main content area (fluid, capped at ~`max-w-5xl` for readability). Bottom nav hidden, top bar collapses to a thin header (search + avatar + notifications).
-   - Use Tailwind's `md:` / `lg:` breakpoints; no JS detection.
+**`learning_tracks`**
+- `id`, `slug` (unique, for `/c/:slug/learn` deep link), `title`, `summary`, `cover_url`
+- `owner_kind` (`platform` | `company`), `company_id` (nullable, FK), `created_by`
+- `is_sequential boolean default false`, `is_published boolean default false`
+- `enrollment_credits numeric(12,1) default 0` (B2C self-enroll price; B2B sponsored = sum of child courses)
+- `b2b_enabled boolean default true`
 
-2. **New `Gro10xSideNav` component** (desktop only)
-   - Same items as `Gro10xBottomNav`: Inbox · Activities · Learn · Feed · Company.
-   - Add secondary entries that exist on mobile but are buried (Agents Marketplace, CRM, Sourcing, Offerings, Billing, Learning Ops).
-   - Active state = Tech Blue accent bar; brand tokens only.
+**`learning_track_items`**
+- `track_id`, `course_id`, `position int`, `is_required boolean default true`
+- Unique `(track_id, course_id)`; `position` defines unlock order when `is_sequential`.
 
-3. **Drop the page-level width cap**
-   - Replace `max-w-md mx-auto` in each `src/gro10x/pages/*.tsx` with a responsive utility (e.g. `mx-auto w-full max-w-md md:max-w-3xl lg:max-w-5xl`) **only at the page root**. Inner cards/lists keep their current spacing — they just get more horizontal room on desktop and can flow into multi-column grids where it already makes sense (catalog, sourcing, learning ops tabs).
-   - Specific upgrades to multi-column on `md:`:
-     - `Gro10xLearn` assignments + catalog → `md:grid-cols-2`.
-     - `Gro10xLearnOps` Catalog/Team/Wallet panes → `md:grid-cols-2`.
-     - `Gro10xAgentMarketplace` → `md:grid-cols-2 lg:grid-cols-3`.
-     - `Gro10xWork`, `Gro10xCRM`, `Gro10xSourcing` lists → `md:grid-cols-2`.
-     - `Gro10xInbox` thread list → 2-pane on desktop (list left, current thread right) when a thread is open. Phase 4.5b can deepen this; 4.5a does the responsive split only.
+**`learning_track_assignments`**
+- `id`, `track_id`, `talent_id` (the recipient), `assigned_by` (user_id), `org_id` (nullable — set when sponsored from Learning Ops)
+- `status` (`invited` | `active` | `completed` | `overdue` | `cancelled`)
+- `due_at`, `started_at`, `completed_at`
+- Unique `(track_id, talent_id)` (re-assign reactivates).
 
-4. **Top bar adjustment** (`Gro10xTopBar.tsx`)
-   - On desktop, hide the mobile hamburger / center logo; show a left-aligned brand mark, center search field (where appropriate), right-aligned avatar + notifications.
-   - On mobile, unchanged.
+**`certificates`** — add columns
+- `kind text default 'course'` (`course` | `track` | `skill`)
+- `track_assignment_id uuid` (nullable, FK)
+- Existing `/verify/:code` page reads `kind` and renders the right template.
 
-5. **Hide bottom nav on `md:`**
-   - `Gro10xAppShell` renders `<Gro10xBottomNav className="md:hidden" />` and `<Gro10xSideNav className="hidden md:flex" />`.
-   - Remove the bottom-pad reservation (`pb-[64px+safe-area]`) on `md:` so desktop content doesn't have phantom whitespace.
+**RLS**
+- Tracks: `select` if `is_published` OR `created_by = auth.uid()` OR admin.
+- Track items: follow parent track.
+- Assignments: talent sees own; `org_id` controllers see their org's; admin sees all.
+- Certificates: same as today, with `kind='track'` rows visible to the talent + public verify by code.
 
-6. **Landing & Auth (`/gro10x`, `/gro10x/auth`)**
-   - These are marketing-style pages. Audit `Gro10xLanding`, `Gro10xAuth`, `Gro10xSignIn`, `Gro10xWelcome` for `max-w-md` and replace with marketing-page widths (`max-w-6xl` content, narrower form column).
+### RPCs / Edge functions
 
-7. **Smoke test on desktop**
-   - Navigate to `/gro10x`, `/gro10x/inbox`, `/gro10x/learn`, `/gro10x/learn/ops`, `/gro10x/work`, `/gro10x/page` at 1280×720; verify side nav, no fixed bottom strip, content uses width.
+- **`org_assign_track(track_id, talent_ids[], due_at)`** — atomically:
+  1. Insert/refresh `learning_track_assignments`.
+  2. For each required course in the track, call existing `org_assign_talents` to enroll + debit `org_wallet_ledger` (per-course pricing reuses 4.4 logic).
+  3. Optional courses are NOT pre-enrolled; talent can enroll on demand.
+- **`talent_enroll_track(track_id)`** — B2C self-enroll: debits learner credits by `enrollment_credits`, then enrolls them in the required courses (uses existing `enroll_in_course`).
+- **`get_track_progress(assignment_id)`** — returns `{ items: [{course_id, status, percent}], required_done, total_required, optional_done, is_complete }`. Marks `completed_at` and mints a track certificate when all required are done.
+- **`notify-track-event`** — `assigned`, `step_completed`, `track_completed`, `due_soon`, `overdue`. Routes through existing in-app + email dispatcher.
+- **`cron-track-sweeps`** (daily) — flips assignments to `overdue` past `due_at`, queues `due_soon` (T-72h, T-24h), nudges stalled (no progress in 7d).
+- **`get_company_branded_catalog(slug)`** — public RPC returning company branding (logo, banner, tagline) + published tracks + featured courses for `/c/:slug/learn`. No auth required; obeys `is_published`.
 
-### Out of scope for 4.5a
+### Surfaces
 
-- True 3-pane desktop layouts (e.g. inbox list + thread + profile) — handled in 4.5b.
-- Keyboard shortcuts, command palette.
-- Public marketing site redesign (only width fixes).
-- Any business logic / API change.
+**Talent (Gro10x)**
+- `/gro10x/learn` — new "Tracks" section above Catalog: each assigned track renders as a card with `TrackProgressRing`, next step, due date.
+- `/gro10x/learn/track/:id` — track detail: ordered course list with lock icons (sequential mode), per-step status, optional steps tagged, certificate banner once complete.
+
+**Public**
+- `/c/:slug/learn` — branded company page: logo + banner + tagline + grid of public tracks (CTA: Sign in to enroll / Sponsored by {company}). SEO-friendly with `<title>`, JSON-LD `Course` for each track.
+- `/verify/:code` — already exists; renders `kind='track'` template with track title, talent name, completed required courses list.
+
+**Gro10x Learning Ops (`/gro10x/learn/ops`)** — extend with two tabs:
+- **Tracks** — list company-owned tracks; "New track" composer (drag-and-drop course ordering, required toggle, sequential toggle, publish).
+- **Bulk-assign** — extend existing assignment sheet to accept either a single course or a track.
+
+**Admin (`/dashboard` Learn console)**
+- New **Tracks** tab — platform-template tracks (CRUD), publish/unpublish, see assignment counts, completion %.
+- Existing **B2B Engagements** tab — show track adoption alongside course adoption.
+
+### Components & files
+
+**New**
+- `src/hooks/useLearningTracks.ts` — list/create/update/publish, list assignments for current user.
+- `src/components/learning/TrackProgressRing.tsx`
+- `src/components/learning/TrackComposer.tsx` — drag-drop ordering using existing dnd primitives.
+- `src/components/learning/TrackStepList.tsx` — sequential lock UX.
+- `src/pages/app/AppTrackDetail.tsx` — `/gro10x/learn/track/:id`
+- `src/pages/public/CompanyBrandedCatalog.tsx` — `/c/:slug/learn`
+- `src/components/dashboard/learn/TracksTab.tsx` — admin platform templates.
+- `src/gro10x/components/learn/OpsTracksTab.tsx` — Learning Ops tab.
+- `supabase/functions/notify-track-event/index.ts`
+- `supabase/functions/cron-track-sweeps/index.ts`
+- One migration with all tables, RPCs, RLS, certificate column extension, `pg_cron` daily schedule.
+
+**Edited**
+- `src/App.tsx` — add `/c/:slug/learn`, `/gro10x/learn/track/:id` routes (already responsive after 4.5a).
+- `src/gro10x/pages/Gro10xLearn.tsx` — Tracks section above existing assignments.
+- `src/gro10x/pages/Gro10xLearnOps.tsx` — register Tracks + Bulk-assign extensions.
+- `src/components/dashboard/learn/*` — add TracksTab to Learn console.
+- `src/pages/Verify.tsx` (or current verify page) — branch on `kind`.
+
+### Out of scope
+
+- Adaptive sequencing (skip ahead based on mastery) — slated for 4.6.
+- Track-level pricing tiers / discounts vs sum-of-courses.
+- Instructor-proposed templates (admin-only for now).
+- Custom domains on `/c/:slug/learn` (uses path slug).
 
 ### Open questions
 
-1. **Sidebar default state** — always expanded on desktop (icon + label), or collapsible to icons only with a toggle? (Recommended: always expanded ≥ `lg`, icons-only at `md`–`lg`.)
-2. **Max content width** — `max-w-5xl` (1024px) for readability, or full-bleed (`max-w-7xl`) so dashboards and tables breathe? (Recommended: `max-w-5xl` default, `max-w-7xl` for grid-heavy pages like Learning Ops, Sourcing, Marketplace.)
-3. **Top-bar search** — wire it to a global search now (across companies/talents/courses) or leave as a visual placeholder until a search backend is ready? (Recommended: visual placeholder; wire in 4.5b when we add the command palette.)
+1. **Slug source** — reuse company `handle` if it exists, or add a dedicated `learning_slug` so marketing can pick a vanity path independent of the company handle? (Recommended: reuse `handle`; add `learning_slug` only when a company asks.)
+2. **Public catalog visibility default** — when a company creates a track, default to `is_published=false` (private to assignees), or `true` (publicly listed on `/c/:slug/learn`)? (Recommended: false; shipping a "Publish" toggle in the composer.)
+3. **Certificate template for tracks** — list every required course on the cert, or only the track title + completion date? (Recommended: track title + date on the cert, with the verify page expanding the full course list.)
