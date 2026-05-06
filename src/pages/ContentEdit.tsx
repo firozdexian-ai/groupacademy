@@ -50,6 +50,7 @@ export default function ContentEdit() {
   };
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
+  const [aiCoverOpen, setAiCoverOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [moduleStats, setModuleStats] = useState<ModuleStats | null>(null);
