@@ -48,6 +48,8 @@ import {
   Handshake,
   Upload,
   Wallet,
+  Mic,
+  Languages,
 } from "lucide-react";
 import {
   Sidebar,
