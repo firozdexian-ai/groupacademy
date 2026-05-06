@@ -63,6 +63,7 @@ import Organization from "./pages/Organization";
 // App/Dashboard Pages
 import Feed from "./pages/app/Feed";
 import PostDetail from "./pages/app/PostDetail";
+import CreatorAnalytics from "./pages/app/CreatorAnalytics";
 import LearningHub from "./pages/app/LearningHub";
 import LearningReview from "./pages/LearningReview";
 import ServicesHub from "./pages/app/ServicesHub";
@@ -434,6 +435,7 @@ export default function App() {
                     {/* Main Hubs */}
                     <Route path="feed" element={<Feed />} />
                     <Route path="feed/post/:id" element={<PostDetail />} />
+                    <Route path="creator/analytics" element={<CreatorAnalytics />} />
                     <Route path="jobs" element={<JobsHub />} />
                     <Route path="learning" element={<LearningHub />} />
                     <Route path="learning/review" element={<LearningReview />} />

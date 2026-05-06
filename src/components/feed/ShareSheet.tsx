@@ -3,6 +3,7 @@ import { Share2, Copy, Check, MessageCircle, Linkedin, Globe, Zap, ShieldCheck }
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
+import { recordShare } from "@/hooks/useCreatorAnalytics";
 import { cn } from "@/lib/utils";
 
 /**
@@ -14,9 +15,10 @@ interface ShareSheetProps {
   title: string;
   url: string;
   description?: string;
+  postId?: string;
 }
 
-export function ShareSheet({ title, url, description }: ShareSheetProps) {
+export function ShareSheet({ title, url, description, postId }: ShareSheetProps) {
   const [copied, setCopied] = useState(false);
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
@@ -28,6 +30,7 @@ export function ShareSheet({ title, url, description }: ShareSheetProps) {
     try {
       await navigator.clipboard.writeText(fullUrl);
       setCopied(true);
+      if (postId) recordShare(postId, "copy_link");
       toast({
         title: "LINK_SYNC_SUCCESS",
         description: "Node URL recorded to clipboard.",
@@ -48,6 +51,7 @@ export function ShareSheet({ title, url, description }: ShareSheetProps) {
       linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(fullUrl)}`,
     };
 
+    if (postId) recordShare(postId, platform);
     window.open(urls[platform], "_blank", "noopener,noreferrer");
     setOpen(false);
   };
@@ -60,6 +64,7 @@ export function ShareSheet({ title, url, description }: ShareSheetProps) {
         text: description,
         url: fullUrl,
       });
+      if (postId) recordShare(postId, "native");
       setOpen(false);
     } catch (err) {
       // Logic: User aborted transmission

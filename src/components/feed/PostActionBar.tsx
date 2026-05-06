@@ -10,6 +10,7 @@ import {
 import { useHype } from "@/hooks/useHype";
 import { CommentList } from "./CommentList";
 import { HypeBoostSheet } from "./HypeBoostSheet";
+import { recordShare } from "@/hooks/useCreatorAnalytics";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -90,9 +91,11 @@ export function PostActionBar({ postId, initialHypeCount = 0, postTitle, postUrl
     try {
       if (typeof navigator !== "undefined" && (navigator as any).share) {
         await (navigator as any).share(payload);
+        recordShare(postId, "native");
         return;
       }
       await navigator.clipboard.writeText(fullUrl);
+      recordShare(postId, "copy_link");
       toast.success("Link copied");
     } catch {
       try {
