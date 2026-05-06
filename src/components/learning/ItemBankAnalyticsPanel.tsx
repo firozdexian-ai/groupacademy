@@ -190,11 +190,12 @@ function FlagBadges({ flags }: { flags: string[] }) {
   );
 }
 
-function QuizRow({ q }: { q: QuizItemStat }) {
+function QuizRow({ q, onRewrite }: { q: QuizItemStat; onRewrite: () => void }) {
   const tone = q.p_value === null ? "text-muted-foreground"
     : q.p_value < 0.3 ? "text-destructive"
     : q.p_value > 0.9 ? "text-amber-500"
     : "text-foreground";
+  const flagged = q.needs_review.length > 0;
   return (
     <div className="rounded-lg border border-border/30 p-2.5 space-y-1.5">
       <p className="text-xs line-clamp-2">{q.question}</p>
@@ -212,17 +213,25 @@ function QuizRow({ q }: { q: QuizItemStat }) {
           <span className={cn("font-bold", tone)}>p {pct(q.p_value)}</span>
         </div>
       </div>
-      <FlagBadges flags={q.needs_review} />
+      <div className="flex items-center justify-between gap-2">
+        <FlagBadges flags={q.needs_review} />
+        {flagged && (
+          <Button size="sm" variant="outline" onClick={onRewrite} className="h-6 text-[10px] px-2">
+            <Sparkles className="h-3 w-3 mr-1" /> AI rewrite
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
 
-function ScenarioRow({ s }: { s: ScenarioItemStat }) {
+function ScenarioRow({ s, onRewrite }: { s: ScenarioItemStat; onRewrite: () => void }) {
   const rubricKeys = Object.keys(s.avg_per_rubric);
   const tone = s.avg_overall === null ? "text-muted-foreground"
     : s.avg_overall < 0.4 ? "text-destructive"
     : s.avg_overall < 0.7 ? "text-amber-500"
     : "text-success-green";
+  const flagged = s.needs_review.length > 0;
   return (
     <div className="rounded-lg border border-border/30 p-2.5 space-y-1.5">
       <div className="flex items-start justify-between gap-2">
@@ -254,7 +263,14 @@ function ScenarioRow({ s }: { s: ScenarioItemStat }) {
           ))}
         </div>
       )}
-      <FlagBadges flags={s.needs_review} />
+      <div className="flex items-center justify-between gap-2">
+        <FlagBadges flags={s.needs_review} />
+        {flagged && (
+          <Button size="sm" variant="outline" onClick={onRewrite} className="h-6 text-[10px] px-2">
+            <Sparkles className="h-3 w-3 mr-1" /> AI rewrite
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
