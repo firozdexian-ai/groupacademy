@@ -158,7 +158,7 @@ export function useAuthChat() {
           case "collect_email": {
             const email = trimmed.toLowerCase();
             if (!email.includes("@")) {
-              addMessage("assistant", "INVALID_FORMAT: Please provide a valid email artifact.");
+              addMessage("assistant", "That doesn't look like a valid email — try again?");
               return;
             }
             setCollectedData((prev) => ({ ...prev, email }));
