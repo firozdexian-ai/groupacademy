@@ -1,100 +1,103 @@
-## Phase 4.3 — Discussions, Q&A & Peer Review
+## Phase 4.4 — Gro10x Learning Ops (B2B)
 
-Turn the learning surface from solo consumption into a social classroom. Builds on cohorts (4.2) and the existing item bank / scenario / project primitives. Three connected systems:
-
-1. **Course discussions** — async threaded conversation per cohort (and optionally per module/lesson).
-2. **Lesson Q&A** — short-form question + accepted-answer attached to a specific lesson or item.
-3. **Peer review on submissions** — rubric-based review of learner project / scenario submissions by classmates and instructor.
+Turn the Learning system into a B2B workforce-upskilling product. Companies (Gro10x clients) can sponsor cohorts, assign learners, track team mastery, and pay through their org wallet. Builds on cohorts (4.2), discussions/peer review (4.3), Talent Mirror, and the existing `companies` / `talent_engagements` primitives.
 
 ---
 
 ### Goals
 
-- Every cohort has a single "Discussions" home; instructors can pin posts and broadcast.
-- Learners can ask a question on any lesson; instructor / peers reply; questions show as a small badge inside the player.
-- Project / scenario submissions can be reviewed by 2–3 peers using a rubric, with instructor as final arbiter; reviews count toward `peer_review` participation credential.
-- All surfaces are realtime, mobile-first, and respect existing notification preferences.
-- Admin gets moderation queue (reports, hidden, removed).
+- A company admin can assign one or more talents into a course/cohort in a few taps, with deadlines and budget.
+- Each org gets a Learning Ops dashboard: assignments, completion, attendance, mastery heatmap, peer-review activity, and credit burn.
+- Sponsored seats deduct credits from the org wallet (not the learner) and emit invoices.
+- Instructors see "Sponsored by {Company}" context on the cohort and roster.
+- Admin gets oversight of every B2B engagement and can intervene.
 
 ---
 
 ### Sub-deliverables
 
-1. **Schema** — `discussion_threads`, `discussion_posts`, `lesson_questions`, `lesson_answers`, `submissions`, `submission_reviews`, `review_assignments`, `content_reports`.
-2. **RPCs** — `accept_lesson_answer`, `assign_peer_reviewers(submission_id, n)`, `submit_peer_review`, `submission_score(submission_id)`.
-3. **Triggers** — auto-issue `peer_review` participation credential after N completed reviews; notify instructor when all peer reviews land; auto-close threads after 30 d inactivity (admin override).
-4. **Edge functions** — `notify-discussion-event` (mention/reply/answer/review-assigned/review-received), reuse `notify-learning-event` shape.
-5. **Talent UI**:
-   - `/app/cohorts/:id/discussions` (list + composer) and `/app/cohorts/:id/discussions/:threadId`.
-   - Q&A panel inside `ImmersiveCoursePlayer` lesson stage (replaces / augments current `DiscussStage`).
-   - `/app/submissions/:id` — view own submission, see rubric scores, peer feedback, instructor verdict.
-   - `/app/review-queue` (talent) — incoming peer-review assignments with one-tap rubric form.
-6. **Instructor UI** — `Discussions` and `Submissions` tabs inside `/app/instructor/course/:contentId`; pin/lock thread, override review, escalate to admin.
-7. **Admin UI** — Learn → "Moderation" tab listing reports + hidden/removed items, with restore action.
-8. **Gro10x employer surface** — show "open questions / unresolved reviews" count per assigned learner inside `Gro10xLearn` (read-only nudge).
+1. **Schema**
+   - `org_learning_assignments(id, company_id, assigner_id, talent_id, content_id, cohort_id NULL, due_at, budget_credits numeric(12,1), status enum('invited','active','completed','overdue','cancelled'), created_at)`.
+   - `org_learning_seats(id, company_id, content_id, cohort_id NULL, seats_total int, seats_used int, expires_at, source enum('purchase','grant'), created_at)`.
+   - `org_wallet_ledger(id, company_id, delta numeric(12,1), reason text, ref_table text, ref_id uuid, created_at)` — mirrors `credit_ledger` but org-scoped.
+   - `org_learning_invitations(id, company_id, email, content_id, cohort_id NULL, token, status, expires_at)` — for unregistered hires.
+   - Extend `cohorts` with `sponsor_company_id NULL`.
+   - Extend `course_enrollments` with `assignment_id NULL`, `sponsor_company_id NULL`.
+
+2. **RPCs**
+   - `org_assign_talents(company_id, content_id, cohort_id, talent_ids[], due_at, budget_per_seat)` — atomic: validates seats/credits, creates assignments + enrollments, deducts wallet, emits notifications.
+   - `org_team_mastery(company_id, content_id NULL)` — returns per-talent mastery rollup (reuse `learner-talent-mirror` payload, aggregated).
+   - `org_learning_health(company_id)` — KPIs: active assignments, on-track %, overdue, attendance %, avg mastery, credits burned MTD.
+   - `org_invite_external(company_id, email, content_id, cohort_id)` — issues token, sends email; on signup, auto-attaches assignment.
+
+3. **Triggers**
+   - On `org_learning_assignments` insert → create `course_enrollments` row, deduct seats/credits, dispatch `assignment_created` notification.
+   - On `course_enrollments.completed_at` set → mark assignment `completed`, refund unused budget if any, notify assigner.
+   - On `due_at` past + status='active' → mark `overdue` via cron.
+
+4. **Edge functions**
+   - `org-learning-checkout` — purchase seats / top up org wallet (Stripe via existing managed payments).
+   - `notify-org-learning` — `assignment_created`, `assignment_overdue`, `assignment_completed`, `seat_low`.
+   - `cron-org-learning-sweeps` — every hour: mark overdue, send `seat_low` when seats_used/seats_total ≥ 0.8.
+
+5. **Talent surface (lightweight)**
+   - On `/app/courses/:id` and `My Learning`, show "Sponsored by {Company}" pill and due date.
+   - Notifications about assignment, deadlines, completion.
+
+6. **Gro10x company surface** — new section `/app/gro10x/learn`:
+   - **Overview** — KPI cards (active learners, on-track %, overdue, credits MTD).
+   - **Assignments** — table with filters; bulk assign via talent picker.
+   - **Catalog** — browse courses, buy seats, launch a cohort branded for the company.
+   - **Team Mastery** — heatmap of topics × talents, drill into Talent Mirror.
+   - **Wallet & Invoices** — org credit balance, top-up, ledger, receipts.
+   - **Activity** — discussions / Q&A / reviews from sponsored cohorts (read-only nudge).
+
+7. **Instructor surface**
+   - Roster view (4.2) shows sponsor pill per learner; attendance/mastery filterable by company.
+
+8. **Admin surface**
+   - New tab in Learn console: **B2B Engagements** — list of org assignments, drill-in to company, manual seat grant, refund, override status.
+   - Companies console gets a **Learning** tab summarizing the same KPIs per company.
 
 ---
 
 ### Technical Details
 
-#### Database
+#### Database / RLS
+- All `org_*` tables RLS scoped via `is_company_member(company_id)` and `is_company_admin(company_id)` helpers (reuse if present, else add). Admin override via `has_role(auth.uid(),'admin')`.
+- Realtime on `org_learning_assignments` so company dashboards live-update.
+- Ledger writes always inside the RPC (never client) to keep wallet integrity.
+- Indexes: `(company_id, status)`, `(company_id, content_id)`, `(talent_id, status)`.
 
-- `discussion_threads(id, cohort_id, content_id NULL, module_id NULL, author_id, title, body, is_pinned, is_locked, last_post_at, post_count, created_at)`.
-- `discussion_posts(id, thread_id, author_id, body, parent_post_id NULL, is_solution, created_at)` — flat list with optional one-level nesting; enables "Marked as solution" (instructor-only).
-- `lesson_questions(id, content_id, module_id NULL, item_id NULL, author_id, body, is_resolved, accepted_answer_id NULL, upvote_count, created_at)`.
-- `lesson_answers(id, question_id, author_id, body, is_instructor, upvote_count, created_at)`.
-- `submissions(id, content_id, module_id NULL, project_id NULL, author_id, kind enum('project','scenario','assignment'), body jsonb, files jsonb, status enum('draft','submitted','under_review','reviewed','revisions_requested','approved'), submitted_at, score numeric, instructor_verdict text, created_at)`.
-- `review_assignments(id, submission_id, reviewer_id, due_at, status enum('pending','completed','skipped'), created_at)` — instructor or auto-generated by `assign_peer_reviewers`.
-- `submission_reviews(id, submission_id, reviewer_id, rubric jsonb, score numeric, comments text, is_instructor, created_at)`.
-- `content_reports(id, scope text, scope_id uuid, reporter_id, reason, status enum('open','reviewed','dismissed','removed'), created_at)`.
-- Realtime: enable on `discussion_posts`, `lesson_answers`, `submission_reviews`.
-- RLS:
-  - Threads/posts/Q&A visible to cohort members + instructors of that course + admins.
-  - Authors edit/delete their own posts within 15 minutes; instructors can hide; admins can remove.
-  - Submissions visible to author, assigned reviewers, instructor, admin.
-  - Reviews visible to author of submission + instructor + admin (other reviewers not visible to learner peers).
-- Indices on `(cohort_id, last_post_at desc)`, `(content_id, item_id)`, `(submission_id, reviewer_id)`.
-- Extend `talent_skill_profile` source enum with `peer_review` so completed reviews feed the credential pipeline.
-
-#### Notifications
-
-- New `notify-discussion-event` edge function: kinds `thread_reply`, `mention`, `q_answer`, `q_accepted`, `review_assigned`, `review_received`, `submission_decided`.
-- Idempotent via `notification_dispatch (scope='discussion'|'submission')`.
-- Honors existing user notification prefs.
+#### Wallet model
+- Org wallet uses `numeric(12,1)` like talent wallet (fractional credits memory rule).
+- 1 credit = 2 BDT pricing unchanged. Org top-ups via Stripe managed payments → `org_wallet_ledger` += amount.
+- Per-seat cost = course `enrollment_credits` (existing field) at assignment time, snapshotted on assignment row.
 
 #### Frontend
+- New hooks: `useOrgLearningOverview`, `useOrgAssignments`, `useOrgTeamMastery`, `useOrgWallet`, `useOrgSeats`.
+- New components under `src/components/gro10x/learn/`: `OverviewCards`, `AssignmentsTable`, `BulkAssignSheet`, `CatalogGrid`, `TeamMasteryHeatmap`, `WalletPanel`.
+- New routes: `/app/gro10x/learn` (tabs).
+- Admin: `src/components/dashboard/learn/B2BEngagementsTab.tsx`; companies admin gets `LearningTab.tsx`.
 
-- New hooks: `useDiscussionThreads`, `useThread`, `useLessonQuestions(contentId, moduleId, itemId)`, `useSubmission(id)`, `useReviewQueue`, `useSubmissionReviews(id)`.
-- Components:
-  - `discussions/ThreadList.tsx`, `discussions/ThreadView.tsx`, `discussions/Composer.tsx` (mentions via `@handle`).
-  - `qna/QuestionPanel.tsx` (drawer in player), `qna/QuestionThread.tsx`.
-  - `submissions/SubmissionCard.tsx`, `submissions/RubricForm.tsx` (1-5 with comments per criterion), `submissions/PeerReviewSheet.tsx`.
-  - admin: `dashboard/learn/ModerationTab.tsx`.
-- Routes (additions to `App.tsx`):
-  - `/app/cohorts/:cohortId/discussions`, `/app/cohorts/:cohortId/discussions/:threadId`.
-  - `/app/submissions/:submissionId`, `/app/review-queue`.
-- Player integration: a small "Q" pill above the player that opens `QuestionPanel` filtered to the current item.
-- `My Learning` rail update: surface "X reviews due" and "Y open questions" cards.
-
-#### UX rules
-
-- Mobile vertical only, compact spacing, brand tokens; rubric form uses Tech Blue accents and Success Green for accepted/approved states.
-- Reviewers are anonymized to the submitter (display name only after instructor approves the review and submission is closed).
-- Markdown-lite (no HTML); link autodetection; image upload reuses storage bucket pattern.
+#### UX
+- Mobile vertical only; brand tokens; Tech Blue for primary actions, Success Green for on-track, amber for overdue.
+- Bulk assign uses existing talent search (`search_public_talents` reused with company-scope filter for prior collaborators).
+- Heatmap: rows = talents, cols = topics, cell color via mastery semantic tokens.
 
 ---
 
-### Out of scope for 4.3
+### Out of scope for 4.4
 
-- Group breakouts / video discussions.
-- AI-graded peer reviews (4.6 polish — only AI suggestions for instructor will land later).
-- Public visibility of threads outside the cohort.
+- Custom branded course authoring per company (4.5).
+- AI auto-recommendation of who to assign to which course (4.6).
+- SCIM / SSO provisioning for external talents (handled in workforce phase).
 
 ---
 
 ### Open questions
 
-1. **Default reviewers per submission** — fixed at 2 peers + 1 instructor, or instructor-configurable per cohort? (Recommended: cohort-level default = 2 peers, instructor can override per submission.)
-2. **Anonymity model** — keep peer reviewer names hidden from submitter forever, only until instructor approves, or always visible? (Recommended: hidden until instructor approves the submission.)
-3. **Rubric source** — global per-content rubric, per-project rubric, or instructor-defined per submission? (Recommended: per-content rubric (jsonb on `content`), with per-submission override.)
-4. **Mentions scope** — limit `@` mentions to cohort members only, or whole platform? (Recommended: cohort + course instructors only for 4.3.)
+1. **Pricing for sponsored seats** — same per-course `enrollment_credits` as B2C, or apply a B2B multiplier (e.g. 1.2×) to fund instructor 60/40 + ops? (Recommended: same price, instructor split unchanged; B2B value comes from analytics + invoicing.)
+2. **External invitations** — should an invite consume a seat immediately (hold) or only on signup? (Recommended: hold seat on invite, release on expiry.)
+3. **Refund policy on cancel** — full credit refund if learner never started, prorated if in progress, none if >50% complete? (Recommended: full if 0% activity, none otherwise; admin override.)
+4. **Cohort branding** — allow a company to spin up a private cohort (sponsor-only roster) on any course, or only on courses marked `b2b_enabled`? (Recommended: opt-in flag per course set by instructor/admin.)
