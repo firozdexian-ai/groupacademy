@@ -401,15 +401,51 @@ export default function ModuleResourcesManager() {
                       ))}
                     </div>
                   </CardHeader>
-                  <CardContent className="p-6">
+                  <CardContent className="p-6 space-y-5">
+                    {moduleId && (
+                      <BulkResourceUpload
+                        moduleId={moduleId}
+                        stageNumber={stage.number}
+                        currentMaxOrder={stageResources.reduce(
+                          (m, r) => Math.max(m, r.display_order ?? 0),
+                          -1,
+                        )}
+                        onComplete={loadData}
+                      />
+                    )}
                     {stageResources.length === 0 ? (
-                      <div className="py-16 text-center border-2 border-dashed border-border/40 rounded-2xl bg-muted/10">
+                      <div className="py-12 text-center border-2 border-dashed border-border/40 rounded-2xl bg-muted/10">
                         <Zap className="h-10 w-10 mx-auto mb-3 text-muted-foreground/30" />
                         <p className="text-xs font-black uppercase tracking-widest text-muted-foreground/60">
-                          No resources yet — add one above.
+                          No resources yet — bulk-upload above or add one type at a time.
                         </p>
                       </div>
                     ) : (
+                      <DraggableList
+                        items={stageResources}
+                        getId={(r) => r._key!}
+                        onReorder={(newItems) => reorderStageResources(stage.number, newItems)}
+                        className="space-y-5"
+                        renderItem={(resource, _i, dragHandle) => {
+                          const key = resource._key!;
+                          const state = saveStates[key] || { status: "saved" };
+                          return (
+                            <Card key={key} className="rounded-2xl border-border/40 bg-background overflow-hidden">
+                              <CardHeader className="py-3 px-5 border-b border-border/20 flex flex-row items-center justify-between bg-muted/10">
+                                <div className="flex items-center gap-3 flex-wrap">
+                                  <div
+                                    {...dragHandle}
+                                    className={cn(dragHandle.className, "h-7 w-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-muted/50")}
+                                    title="Drag to reorder"
+                                  >
+                                    <GripVertical className="h-3.5 w-3.5" />
+                                  </div>
+                                  <Badge
+                                    variant="outline"
+                                    className="h-6 rounded-full border-primary/20 bg-primary/5 text-primary font-black text-[9px] uppercase"
+                                  >
+                                    {resource.resource_type.replace("_", " ")}
+                                  </Badge>
                       <div className="space-y-5">
                         {stageResources.map((resource) => {
                           const key = resource._key!;
