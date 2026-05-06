@@ -108,6 +108,8 @@ const ContentList = ({ filter }: ContentListProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearch = useDebounce(searchQuery, 500);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   const [filters, setFilters] = useState<ContentFilterValues>({
     programId: "all",
