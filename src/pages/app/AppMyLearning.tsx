@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, GraduationCap, Sparkles, Target, Zap } from "lucide-react";
 import { MyCoursesTab } from "@/components/learning/MyCoursesTab";
+import { UpcomingSessionsRail } from "@/components/learning/UpcomingSessionsRail";
 import { cn } from "@/lib/utils";
 
 /**
@@ -69,6 +70,10 @@ export default function AppMyLearning() {
             <h2 className="text-[11px] font-black uppercase tracking-[0.3em] text-primary">Artifact Discovery</h2>
           </div>
           <div className="h-[1px] flex-1 bg-gradient-to-r from-primary/20 to-transparent ml-6" />
+        </div>
+
+        <div className="mb-6">
+          <UpcomingSessionsRail />
         </div>
 
         <section className="relative z-10">
