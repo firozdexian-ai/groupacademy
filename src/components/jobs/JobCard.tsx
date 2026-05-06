@@ -52,6 +52,7 @@ interface JobCardProps {
   onClick: () => void;
   className?: string;
   matchInfo?: JobMatchInfo;
+  whyChip?: string;
 }
 
 export function JobCard({
@@ -62,6 +63,7 @@ export function JobCard({
   onClick,
   className,
   matchInfo,
+  whyChip,
 }: JobCardProps) {
   const isCompact = variant === "compact";
   const isClosed = isDeadlinePassed(job.deadline || null);
@@ -124,6 +126,9 @@ export function JobCard({
                 {job.title.replace(" ", "_")}
               </h3>
               <p className="text-[9px] font-bold text-muted-foreground/60 uppercase truncate">{job.company_name}</p>
+              {whyChip && (
+                <p className="text-[9px] text-primary/70 italic line-clamp-1 pt-0.5">"{whyChip}"</p>
+              )}
             </div>
 
             {matchInfo && (
