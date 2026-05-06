@@ -11489,6 +11489,10 @@ export type Database = {
         Returns: Json
       }
       school_id_for_content: { Args: { _content_id: string }; Returns: string }
+      score_talent_job_mastery: {
+        Args: { _job_id: string; _talent_id: string }
+        Returns: Json
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       sweep_expired_connections: { Args: never; Returns: number }
