@@ -4,7 +4,8 @@
  */
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { BarChart3, ListChecks, BookOpen, Users, Wallet, Plus, Building2 } from "lucide-react";
+import { BarChart3, ListChecks, BookOpen, Users, Wallet, Plus, Building2, Layers } from "lucide-react";
+import { OpsTracksTab } from "../components/learn/OpsTracksTab";
 import { GRO10X_PANEL, GRO10X_MUTED } from "../lib/tokens";
 import { useActiveCompany } from "../hooks/useActiveCompany";
 import {
@@ -18,7 +19,7 @@ import {
 import { useB2BCatalog } from "../hooks/useCourseAssignments";
 import { Button } from "@/components/ui/button";
 
-type Tab = "overview" | "assignments" | "catalog" | "team" | "wallet";
+type Tab = "overview" | "assignments" | "tracks" | "catalog" | "team" | "wallet";
 
 export default function Gro10xLearnOps() {
   const { companyId, role, isLoading } = useActiveCompany();
@@ -52,6 +53,7 @@ export default function Gro10xLearnOps() {
             [
               ["overview", "Overview", BarChart3],
               ["assignments", "Assignments", ListChecks],
+              ["tracks", "Tracks", Layers],
               ["catalog", "Catalog", BookOpen],
               ["team", "Team", Users],
               ["wallet", "Wallet", Wallet],
@@ -76,6 +78,7 @@ export default function Gro10xLearnOps() {
       <div className="px-4 pt-3">
         {tab === "overview" && <OverviewPane companyId={companyId} />}
         {tab === "assignments" && <AssignmentsPane companyId={companyId} canAssign={isAdmin} />}
+        {tab === "tracks" && <OpsTracksTab />}
         {tab === "catalog" && <CatalogPane companyId={companyId} canAssign={isAdmin} />}
         {tab === "team" && <TeamPane companyId={companyId} />}
         {tab === "wallet" && <WalletPane companyId={companyId} />}
