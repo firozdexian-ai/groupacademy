@@ -1,11 +1,13 @@
 import { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BadgeCheck, Award, Trophy, ExternalLink, Sparkles } from "lucide-react";
+import { BadgeCheck, Award, Trophy, ExternalLink, Sparkles, Share2, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSkillCredentials, useIssueSkillCredentials, type SkillCredential } from "@/hooks/useSkillCredentials";
 import { useTalent } from "@/hooks/useTalent";
+import { usePublicProfileSettings } from "@/hooks/usePublicProfileSettings";
 import { Link } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 const LEVEL_META: Record<SkillCredential["level"], { icon: any; label: string; tone: string }> = {
   foundational: { icon: BadgeCheck, label: "Foundational", tone: "text-primary bg-primary/10 border-primary/30" },
@@ -17,6 +19,8 @@ export function SkillCredentialsPanel({ compact = false, limit }: { compact?: bo
   const { talent } = useTalent();
   const { data, isLoading } = useSkillCredentials(talent?.id);
   const issue = useIssueSkillCredentials();
+  const { data: pub } = usePublicProfileSettings();
+  const { toast } = useToast();
 
   // Opportunistic mint once per session per talent — cheap, idempotent.
   useEffect(() => {
