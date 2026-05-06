@@ -212,6 +212,38 @@ export default function ImmersiveCoursePlayer() {
     else toast.error("Performance threshold not met. Review material.");
   };
 
+  // Persist current_module_id whenever it changes (debounced)
+  useEffect(() => {
+    if (!enrollment?.id || !currentModuleId) return;
+    const t = setTimeout(() => {
+      supabase
+        .from("enrollments")
+        .update({ current_module_id: currentModuleId, last_accessed_at: new Date().toISOString() })
+        .eq("id", enrollment.id)
+        .then(() => {});
+    }, 500);
+    return () => clearTimeout(t);
+  }, [currentModuleId, enrollment?.id]);
+
+  const handlePrevModule = () => {
+    if (currentModuleIndex > 0) {
+      const prev = modules[currentModuleIndex - 1];
+      resetForModule(prev.id);
+      setCurrentModuleId(prev.id);
+      setCurrentStage(1);
+    }
+  };
+
+  usePlayerHotkeys({
+    enabled: !!currentModuleId,
+    onPrevStage: () => currentStage > 1 && goToStage(currentStage - 1),
+    onNextStage: () => currentStage < 6 && goToStage(currentStage + 1),
+    onPrevModule: handlePrevModule,
+    onNextModule: () => hasNextModule && handleNextModule(),
+    onComplete: () => !completedStages.includes(currentStage) && handleStageComplete(currentStage),
+    onShowShortcuts: () => setShortcutsOpen(true),
+  });
+
   const handleNextModule = async () => {
     if (hasNextModule) {
       const nextModule = modules[currentModuleIndex + 1];
