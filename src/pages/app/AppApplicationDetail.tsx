@@ -29,8 +29,10 @@ import {
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, differenceInDays } from "date-fns";
 import { cn } from "@/lib/utils";
+import { ApplicationMessageThread } from "@/components/applications/ApplicationMessageThread";
+import { MessageCircle, RotateCcw } from "lucide-react";
 
 interface Detail {
   id: string;
@@ -139,6 +141,17 @@ export default function AppApplicationDetail() {
     if (error) return toast.error("Couldn't withdraw.");
     toast.success("Application withdrawn");
     setDetail({ ...detail, application_status: "withdrawn", withdrawn_at: new Date().toISOString() });
+  };
+
+  const handleRestore = async () => {
+    if (!detail) return;
+    const { error } = await (supabase as any)
+      .from("job_applications")
+      .update({ application_status: "submitted", withdrawn_at: null })
+      .eq("id", detail.id);
+    if (error) return toast.error("Couldn't restore.");
+    toast.success("Application restored");
+    setDetail({ ...detail, application_status: "submitted", withdrawn_at: null });
   };
 
   if (loading) {
@@ -294,6 +307,28 @@ export default function AppApplicationDetail() {
           )}
         </CardContent>
       </Card>
+
+      {/* Messages */}
+      {!isClosed && (
+        <Card>
+          <CardContent className="p-4 space-y-2">
+            <div className="flex items-center gap-2">
+              <MessageCircle className="h-4 w-4 text-primary" />
+              <p className="text-sm font-semibold">Messages with recruiter</p>
+            </div>
+            <ApplicationMessageThread applicationId={detail.id} actorRole="talent" />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Restore (within 7 days) */}
+      {detail.application_status === "withdrawn" &&
+        detail.withdrawn_at &&
+        differenceInDays(new Date(), new Date(detail.withdrawn_at)) < 7 && (
+          <Button variant="outline" size="sm" className="w-full" onClick={handleRestore}>
+            <RotateCcw className="h-4 w-4 mr-2" /> Restore application
+          </Button>
+        )}
 
       {/* Withdraw */}
       {!isClosed && (

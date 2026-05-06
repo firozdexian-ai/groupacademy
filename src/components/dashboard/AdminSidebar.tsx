@@ -196,6 +196,7 @@ const navGroups: NavGroup[] = [
       { title: "Jobs Upload & Approval", icon: Upload, value: "jobs-upload" },
       { title: "Jobs Manager", icon: Briefcase, value: "jobs-hub" },
       { title: "Applications", icon: Users, value: "applications" },
+      { title: "Pipeline (Kanban)", icon: Users, value: "applications-pipeline" },
       { title: "Jobs Assessments", icon: ClipboardList, value: "jobs-assessments" },
     ],
   },

@@ -1684,6 +1684,88 @@ export type Database = {
           },
         ]
       }
+      application_audit_log: {
+        Row: {
+          actor_id: string | null
+          actor_role: string
+          application_id: string
+          created_at: string
+          from_status: Database["public"]["Enums"]["application_status"] | null
+          id: string
+          reason: string | null
+          to_status: Database["public"]["Enums"]["application_status"]
+        }
+        Insert: {
+          actor_id?: string | null
+          actor_role: string
+          application_id: string
+          created_at?: string
+          from_status?: Database["public"]["Enums"]["application_status"] | null
+          id?: string
+          reason?: string | null
+          to_status: Database["public"]["Enums"]["application_status"]
+        }
+        Update: {
+          actor_id?: string | null
+          actor_role?: string
+          application_id?: string
+          created_at?: string
+          from_status?: Database["public"]["Enums"]["application_status"] | null
+          id?: string
+          reason?: string | null
+          to_status?: Database["public"]["Enums"]["application_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "application_audit_log_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "job_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      application_messages: {
+        Row: {
+          application_id: string
+          attachments: Json
+          body: string
+          created_at: string
+          id: string
+          read_at: string | null
+          sender_id: string
+          sender_role: string
+        }
+        Insert: {
+          application_id: string
+          attachments?: Json
+          body: string
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          sender_id: string
+          sender_role: string
+        }
+        Update: {
+          application_id?: string
+          attachments?: Json
+          body?: string
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          sender_id?: string
+          sender_role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "application_messages_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "job_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assessment_access_codes: {
         Row: {
           code: string
@@ -11768,6 +11850,14 @@ export type Database = {
         Args: { dimension: string; metric: string; n?: number; period?: Json }
         Returns: Json
       }
+      application_company_id: {
+        Args: { p_application_id: string }
+        Returns: string
+      }
+      application_talent_user_id: {
+        Args: { p_application_id: string }
+        Returns: string
+      }
       approve_content_gig:
         | { Args: { p_admin_notes?: string; p_gig_id: string }; Returns: Json }
         | {
@@ -11939,6 +12029,10 @@ export type Database = {
         Returns: Json
       }
       get_application_buckets: { Args: { p_user_id: string }; Returns: Json }
+      get_application_thread_summary: {
+        Args: { p_application_id: string }
+        Returns: Json
+      }
       get_authoring_review_digest: {
         Args: { _days?: number; _module_id: string }
         Returns: Json
@@ -11986,6 +12080,10 @@ export type Database = {
           share_count: number
           snippet: string
         }[]
+      }
+      get_employer_pipeline: {
+        Args: { p_company_id?: string; p_job_id?: string }
+        Returns: Json
       }
       get_jobs_in_field: {
         Args: { _limit?: number; _talent_id: string }

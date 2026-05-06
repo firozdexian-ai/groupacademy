@@ -12,6 +12,7 @@ import Gro10xMe from "./pages/Gro10xMe";
 import Gro10xAgentMarketplace from "./pages/Gro10xAgentMarketplace";
 import Gro10xWork from "./pages/Gro10xWork";
 import Gro10xJobApplicants from "./pages/work/Gro10xJobApplicants";
+import Gro10xApplications from "./pages/work/Gro10xApplications";
 import Gro10xBilling from "./pages/Gro10xBilling";
 import Gro10xLearn from "./pages/Gro10xLearn";
 import Gro10xCRM from "./pages/Gro10xCRM";
@@ -42,6 +43,7 @@ export function Gro10xRoutes() {
         <Route path="agents" element={<Gro10xAgentMarketplace />} />
         <Route path="work" element={<Gro10xWork />} />
         <Route path="work/jobs/:jobId/applicants" element={<Gro10xJobApplicants />} />
+        <Route path="work/applications" element={<Gro10xApplications />} />
         <Route path="billing" element={<Gro10xBilling />} />
         <Route path="learn" element={<Gro10xLearn />} />
         <Route path="crm" element={<Gro10xCRM />} />

@@ -1,151 +1,152 @@
-# Phase 3.4 — Job Details + Application Workflow
+# Phase 3.5 — Closing the Hiring Loop (Gro10x + Admin + Talent)
 
-The Tools tab is consolidated. Now the actual transaction — viewing a role and applying — needs the same overhaul. Today's `AppJobDetail` is dense, "executive logic" framing, three-column desktop layout that collapses awkwardly on the 390px mobile viewport users actually live on. `MyApplications` is a flat list. The apply flow is a separate 488-line page with its own CV/cover-letter logic.
+3.4 made the **talent-side** application a tracked pipeline. The other side of the loop is silent: the Gro10x employer portal already has `Gro10xJobsList` / `Gro10xJobApplicants` / `Gro10xShortlist` / `Gro10xInbox`, but they aren't wired into the new `application_status` model, status moves don't notify talent, and the public `/jobs/:id` page is still the old dense layout. 3.5 closes the loop end-to-end.
 
-3.4 turns the detail page into a single-screen decision surface and the application step into a confident 2-tap submit, with applications becoming a real **tracked pipeline** the user can revisit.
+CRM (`Gro10xCRM`) and the marketing of company contacts are **out of scope** — they get their own phase.
 
 ---
 
 ## Scope
 
-### A. Job Details redesign (`/app/jobs/:id`)
+### A. Gro10x employer pipeline (primary employer surface)
 
-Replace the current page top-to-bottom with a mobile-first stack:
+Upgrade `Gro10xJobApplicants.tsx` and `Gro10xShortlist.tsx` into a single **kanban pipeline** per job:
 
 ```text
-┌──────────────────────────────────────────┐
-│ Sticky header: ← Back   ♥ Save  Share    │
-├──────────────────────────────────────────┤
-│ Logo  Title                              │
-│       Company · Location · Remote chip   │
-│       Salary range · Job type · Level    │
-├──────────────────────────────────────────┤
-│ MATCH STRIP (auto-runs if free, else CTA)│
-│  87% match  ✓ skills · ✓ exp · ⚠ tools   │
-│  [Why you match ↓]  [Score me · 10 cr]   │
-├──────────────────────────────────────────┤
-│ About this role  (collapsible, 4 lines)  │
-├──────────────────────────────────────────┤
-│ Requirements & nice-to-haves  (chips)    │
-├──────────────────────────────────────────┤
-│ About the company  (logo + 1-line bio)   │
-├──────────────────────────────────────────┤
-│ Similar roles rail                       │
-├──────────────────────────────────────────┤
-│ Sticky bottom bar:                       │
-│  ⏰ Closes in 3 days     [Apply now →]   │
-└──────────────────────────────────────────┘
+New → Reviewing → Shortlisted → Interview → Offer → Hired
+                                               ↘ Rejected   ↘ Withdrawn
 ```
 
-Key behaviors:
-- **Match strip** — if user has a verified profile + CV, auto-fetches cached `match_score` (no credits, just read). If no cached score and user has saved/viewed signal, shows "Score me · 10 cr" inline; uses existing `score-job-match` edge + `recordToolRun({toolKey:"score"})`.
-- **Sticky apply bar** — always visible on mobile, swaps to "Closed", "Submitted ✓", or "Continue assessment →" based on state.
-- **One CTA** per state — kill the dual "Save big button + Initialize Application" duplication.
-- **Deadline urgency** — color shifts (neutral → amber ≤7d → red ≤2d).
-- Strip the italic "Operational Parameters / List Narrative" copy. Plain English: About this role, Requirements, About the company.
-- Verified company badge (uses existing `company_verification_tier`).
+- Drag (desktop) or tap-to-move (mobile) between lanes → updates `application_status`. The 3.4 trigger already stamps `last_status_at` and (new in 3.5) fires the talent notification.
+- Card: applicant name, headline, AI match score, applied X ago, CV download icon.
+- Click → side sheet with: full profile snapshot, submitted CV/cover letter (signed URL), AI rationale, **Messages tab** (reuses Gro10xInbox thread for that application), internal notes (private to recruiters).
+- Filters: by job, min match score, status, date range, has-assessment.
+- Bulk actions: shortlist, reject with templated reason, export CSV.
+- Mobile (≤md): kanban auto-collapses to a status-tab list — same card, same sheet.
+- Lives at `/gro10x/work/jobs/:jobId/applicants` (replaces current `Gro10xJobApplicants`) and a roll-up `/gro10x/work/applications`.
 
-### B. Application workflow (`/app/jobs/:id/apply`)
+### B. Admin oversight console (parallel /dashboard view)
 
-Today: 488-line page. Target: ~200 lines, 2-step sheet on mobile:
+Per the answer to "where does the pipeline live", build a parallel admin console at `/dashboard/admin/jobs/applications`:
 
-**Step 1 — Confirm package** (auto-prefilled from profile)
-- CV: latest profile CV with "Use this" / "Upload different" toggle
-- Cover letter: empty by default, with a **"Polish with AI"** chip → reuses `generate-application-answers` edge to draft a 4-paragraph letter from job + profile (10 cr, recorded as `tool_runs.toolKey='answers'`)
-- Application questions (if `application_type='internal'` and job has `assessment_config.questions`): show inline
+- Same kanban + side sheet components as A — exposed across **all** companies (admin scope), not just one company's jobs.
+- Adds an `Owner company` column/filter so platform admins can intervene on any pipeline.
+- Read-write (admins can move cards) but every move is logged in `application_audit_log` with `actor_role='admin'`.
+- Lives in the existing Admin → Jobs group (mem: Admin Groups 7-10).
+- Component reuse: A and B import the same `<ApplicationKanban>`, `<ApplicationDetailSheet>`, `<ApplicationFilters>` — only the data scope and filter defaults differ.
 
-**Step 2 — Confirm & submit**
-- Cost summary: "Application: 5 cr · Total: 5 cr"
-- Submit button → inserts `job_applications` row, fires `notify-employer-application` (existing or new), navigates to `/app/applications/:id` confirmation
-- If `ai_assessment_enabled` → branch to `/app/job-assessment/:assessmentId` instead of confirmation
+### C. Status-change notifications (talent-facing)
 
-### C. Applications tracker (`/app/applications`)
+Every status move triggers a notification to the talent:
 
-Today: status timeline exists but the page mixes everything. Reframe as 3 tabs:
+| Status change         | Channel                  | Copy                                      |
+|-----------------------|--------------------------|-------------------------------------------|
+| → Viewed              | In-app feed only         | "Your application was viewed by {co}"     |
+| → Shortlisted         | In-app + email           | "You're shortlisted for {role} at {co}"   |
+| → Interview requested | In-app + email + push    | "Interview request from {co}"             |
+| → Offer               | In-app + email + push    | "Offer from {co} — review by {date}"      |
+| → Rejected            | In-app + email (gentle)  | "Update on your {role} application"       |
+| → Hired               | In-app + email + push    | "🎉 You got hired at {co}"                 |
 
-- **Active** — submitted / sent / viewed / shortlisted (default tab)
-- **Action needed** — pending assessment, employer message reply, missing CV
-- **Closed** — rejected / withdrawn / hired
+- In-app: reuses agentic feed notifications infra (mem: Agentic Feed Notifications).
+- Email: reuses native queue at `notify.groupacademy.online` (mem: Native Email Flow + Email Strategy).
+- New trigger `trg_job_application_status_notify` fires after the existing `last_status_at` stamp; trigger calls a new dispatcher edge `notify-application-status` which fans out per the matrix above.
 
-Each row:
-- Logo + title + company + applied X ago
-- Status pill (Submitted · Viewed · Shortlisted · Rejected · Hired)
-- Right chevron → `/app/applications/:id` detail
-- For `Action needed`: amber chip with the action ("Start AI assessment", "Reply to recruiter")
+### D. Recruiter ↔ candidate messaging via Gro10xInbox
 
-### D. Application detail (`/app/applications/:id`) — new page
+Application threads become a new channel inside the existing inbox (one source of truth):
 
-Single screen showing:
-- Job snapshot (clickable → back to `/app/jobs/:id`)
-- Timeline (existing `ApplicationTimeline` component, extracted)
-- Submitted CV + cover letter (read-only, "View CV" opens signed URL)
-- AI match score & rationale (cached from `job_applications.ai_match_score` / `ai_match_rationale`)
-- AI assessment status if applicable, with deep link
-- "Withdraw application" destructive action
+- New table `application_messages` (`application_id`, `sender_id`, `sender_role` enum [`talent`|`recruiter`|`admin`], `body`, `attachments jsonb`, `read_at`, `created_at`).
+- **Recruiter view**: thread renders inside the Gro10x application side sheet AND surfaces in `Gro10xInbox` as an `Application: {Job} — {Candidate}` conversation.
+- **Talent view**: thread renders inside `AppApplicationDetail` (3.4 page) as a Messages section; also lands in the talent's existing messenger (mem: Messenger Inbox) as a conversation pinned with the job context.
+- Reuses existing `messaging-send` edge (just adds an `application_id` linkage so threads route to the right surface).
+- Realtime via `supabase_realtime` on `application_messages`.
+- Gating: respects the platform's existing inbox gating rules; **recruiters initiating a thread on their own posted role do not consume credits** (it's their pipeline) — talents initiating a thread to a recruiter still follows existing connection-fee rules (mem: Creator Economy).
+- New messages trigger the in-app notification + a 15-min email digest (instant email only on the first message of a thread).
 
-### E. AI assessment on job (no new functionality, integration polish)
+### E. Public job detail redesign (`/jobs/:id`)
 
-- The existing `/app/job-assessment/:id` flow already works. 3.4 just makes the hand-off seamless from B (apply) and C (action needed tab).
-- Add `tool_runs` write on assessment completion (`toolKey='assessment'`, `jobId`).
+The logged-out page is the SEO + share surface. Mirror the 3.4 mobile-first layout, **without** any tools that need credits:
+
+- Same hero, meta pills, About / Requirements / Company sections, similar-roles rail.
+- **No** match strip — replaced with a "Sign in to see your match" banner → routes to auth then back.
+- Sticky bottom bar: "Apply" → auth gate → `/app/jobs/:id/apply`.
+- Keeps existing JSON-LD `JobPosting` block (mem: SEO & Discovery).
+- Public-safe RPC for similar roles (no personalization).
+
+### F. Withdraw / re-open polish
+
+3.4 added soft `withdrawn`. Now:
+- 7-day undo window in `AppApplicationDetail` ("Restore application").
+- Withdrawn cards show in a greyed Withdrawn lane in both A and B kanbans (so recruiters see ghosts and can ignore them cleanly).
 
 ---
 
 ## Backend
 
-### Status enum extension
-Current `application_status` enum: `submitted | sent_to_employer | viewed | shortlisted | rejected`.
+### Schema changes
+- New table `application_messages` with RLS:
+  - Talent: read/write rows where they own the parent `job_applications.user_id`.
+  - Recruiter: read/write rows where the parent application's `job_id` belongs to a company they manage (uses existing company-membership check).
+  - Admin: read/write all (uses `has_role(auth.uid(), 'admin')`).
+- New table `application_audit_log` (`application_id`, `actor_id`, `actor_role`, `from_status`, `to_status`, `reason`, `created_at`).
+- `job_applications` UPDATE RLS extended: recruiters of the owning company may change `application_status`, `recruiter_notes`, `assessment_status` (currently admin-only).
 
-Add: `withdrawn`, `hired`. (Migration alters enum.)
+### Triggers / functions
+- `trg_job_application_status_notify` — after-update on status change, calls `notify-application-status` and writes to `application_audit_log`.
+- `notify-application-status` edge — single dispatcher, fans out to in-app feed + email queue per the matrix in C.
 
-### New columns on `job_applications`
-- `withdrawn_at timestamptz`
-- `last_status_at timestamptz` (auto-updated by trigger when `application_status` changes — drives sort order in the tracker)
-
-### New RPC: `get_application_buckets(p_user_id uuid) returns jsonb`
-Returns counts per bucket (active / action_needed / closed) so the tabs can show pill counts without a second query.
-
-### No new edge functions
-- Cover letter polish uses existing `generate-application-answers` (just a new prompt template variant — handled client-side by passing `mode:"cover_letter"` in body; if that mode doesn't exist yet, add it as a 10-line branch in the existing edge).
+### RPCs
+- `get_employer_pipeline(p_company_id uuid default null, p_job_id uuid default null) returns jsonb` — bucketed counts per lane for kanban headers. Admin scope passes `null` company.
+- `get_application_thread_summary(p_application_id uuid) returns jsonb` — last message preview + unread count, used by Gro10xInbox row.
 
 ---
 
 ## Frontend file plan
 
-### New
-- `src/components/jobs/JobMatchStrip.tsx` — match score + Why panel
-- `src/components/jobs/JobApplyBar.tsx` — sticky bottom CTA
-- `src/components/jobs/JobMetaPills.tsx` — salary/type/level/remote chips
-- `src/components/jobs/CompanyMiniCard.tsx`
-- `src/components/applications/ApplicationsTabs.tsx` — Active/Action/Closed
-- `src/components/applications/ApplicationActionChip.tsx`
-- `src/pages/app/AppApplicationDetail.tsx`
-- `src/hooks/useJobMatchCached.ts` (read-only fetch from `job_applications.ai_match_score`)
-- `src/hooks/useApplicationBuckets.ts`
+### New (shared)
+- `src/components/applications/ApplicationKanban.tsx` — used by both A and B
+- `src/components/applications/ApplicationKanbanCard.tsx`
+- `src/components/applications/ApplicationDetailSheet.tsx`
+- `src/components/applications/ApplicationFilters.tsx`
+- `src/components/applications/ApplicationMessageThread.tsx` — used in talent + recruiter surfaces
+- `src/components/applications/MessageComposer.tsx`
+- `src/hooks/useApplicationMessages.ts` (with realtime)
+- `src/hooks/useEmployerPipeline.ts`
+- `supabase/functions/notify-application-status/index.ts`
 
-### Replaced/rewritten
-- `src/pages/app/AppJobDetail.tsx` — full rewrite, mobile-first
-- `src/pages/app/AppJobApplication.tsx` — slim 2-step sheet
-- `src/pages/app/MyApplications.tsx` — tabs + counts
+### Gro10x (A)
+- `src/gro10x/pages/work/Gro10xJobApplicants.tsx` — rewritten as kanban shell
+- `src/gro10x/pages/work/Gro10xApplications.tsx` — new roll-up across all jobs in the company
+- `src/gro10x/pages/Gro10xInbox.tsx` — extended to render `Application: {Job} — {Candidate}` threads
 
-### Touched
-- `src/App.tsx` — add `/app/applications/:id` route
-- `src/components/jobs/AIJobInsights.tsx` — extract Why-you-match panel for reuse in JobMatchStrip
-- `src/lib/creditPricing.ts` — confirm `EXTERNAL_APPLICATION` and `JOB_APPLICATION` costs
+### Admin (B)
+- `src/pages/admin/jobs/AdminApplicationsPipeline.tsx` — admin scope shell
+
+### Talent (C, D, F)
+- `src/pages/app/AppApplicationDetail.tsx` — add Messages section + Restore button
+- Talent messenger entry list — add application threads
+
+### Public (E)
+- `src/pages/PublicJobDetail.tsx` — full rewrite mirroring the 3.4 layout
+- `src/App.tsx` — ensure public route uses new component (no other route changes since A and B use existing Gro10x and admin routes)
 
 ---
 
-## Out of scope (saved for 3.5)
-- Employer-side updates to applications (admin already has `JobApplicationsManager`)
-- Push/email notifications on status change
-- Talent-side messaging with recruiters
-- Public-facing job detail page (`PublicJobDetail.tsx`) — separate redesign
+## Out of scope (later phases)
+- **Gro10xCRM** — company contacts, lead pipeline, deal tracking — separate phase
+- Offer-letter generation
+- Calendar / interview scheduling
+- Multi-stage assessment workflow
+- Talent-initiated cold outreach to recruiters (current connection-fee model unchanged)
+- A `company_manager` role distinct from admin — recruiters acting on the pipeline use existing company-membership check; finer-grained roles come later
 
 ---
 
 ## Open questions
 
-1. **Cover letter polish cost** — keep at 10 credits (same as Application Answers), or bundle into the application fee?
-2. **Auto-score on view** — should the match strip auto-spend 10 credits the first time the user opens a job page, or always require explicit tap? (My recommendation: explicit tap — respects the credit economy and avoids surprise charges.)
-3. **Withdraw** — soft (marks `withdrawn`, recoverable) or hard (deletes row)? Recommendation: soft.
+1. **Audit log retention** — keep all status moves forever, or auto-archive after 12 months? Recommendation: keep forever (low row volume, high HR/legal value).
+2. **Email cadence for messages** — 15-min digest with instant-on-first-message (my recommendation), or always instant?
+3. **Withdrawn lane visibility** — show in employer kanban by default, or hidden behind a filter toggle? Recommendation: hidden by default, toggle to show.
 
-Approve to proceed.
+Approve to proceed, or tell me which of A–F to drop / reorder.

@@ -1,29 +1,14 @@
-import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
-import { ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { ApplicationKanban } from "@/components/applications/ApplicationKanban";
+import { useGro10xCompanyId } from "../../hooks/useGro10xCompanyId";
 import { GRO10X_MUTED } from "../../lib/tokens";
+import { useState } from "react";
 
-export default function Gro10xJobApplicants() {
-  const { jobId } = useParams();
+export default function Gro10xApplications() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const [jobTitle, setJobTitle] = useState("Job");
+  const { data: companyId, isLoading } = useGro10xCompanyId();
   const [showWithdrawn, setShowWithdrawn] = useState(false);
-
-  useEffect(() => {
-    if (!jobId) return;
-    void supabase
-      .from("jobs")
-      .select("title")
-      .eq("id", jobId)
-      .maybeSingle()
-      .then(({ data }) => data?.title && setJobTitle(data.title));
-  }, [jobId]);
-
-  if (!user) return null;
 
   return (
     <div className="max-w-6xl mx-auto pb-safe">
@@ -36,8 +21,10 @@ export default function Gro10xJobApplicants() {
           <ArrowLeft className="h-5 w-5" />
         </button>
         <div className="min-w-0 flex-1">
-          <p className="font-medium truncate">{jobTitle}</p>
-          <p className={`text-[11px] ${GRO10X_MUTED}`}>Application pipeline</p>
+          <p className="font-medium">All applications</p>
+          <p className={`text-[11px] ${GRO10X_MUTED}`}>
+            Across every role your company posted
+          </p>
         </div>
         <label className="flex items-center gap-1 text-[11px] text-muted-foreground">
           <input
@@ -50,7 +37,17 @@ export default function Gro10xJobApplicants() {
       </header>
 
       <div className="px-3 py-3">
-        <ApplicationKanban jobId={jobId} showWithdrawn={showWithdrawn} />
+        {isLoading ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : !companyId ? (
+          <p className="text-sm text-muted-foreground text-center py-12">
+            No active company workspace.
+          </p>
+        ) : (
+          <ApplicationKanban companyId={companyId} showWithdrawn={showWithdrawn} />
+        )}
       </div>
     </div>
   );
