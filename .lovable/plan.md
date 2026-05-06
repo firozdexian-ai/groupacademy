@@ -1,125 +1,136 @@
-# Phase 2 — Adaptive Learning Engine
+# Sub-phase 2.6 — Adaptive Learner Dashboard Widget
 
-## Progress so far
+## Goal
 
-| Sub-phase | Scope | Status |
-|---|---|---|
-| 2.1 | Item bank (`module_quiz_pool`, `module_scenario_pool`) | Done |
-| 2.2 | Adaptive sampling edge fn (`learner-adaptive-sample`) | Done |
-| 2.3 | Skill profile + EWMA mastery trigger | Done |
-| 2.4 | Spaced repetition (SM-2 schedule, review queue, hub badge, daily nudge) | Done (a–f) |
-| 2.5 | Scenario evaluation → skill signal | Done (a–e) |
-| 2.6 | Adaptive learner dashboard widget | Pending |
-| 2.7 | Instructor analytics for item bank | Pending |
-| 2.8 | Talent Mirror cross-course rollup | Pending |
+Make the adaptive engine *visible* to the learner. Today the EWMA mastery, SM-2 schedule, and scenario evaluations all run silently — the only surfaced signal is the small "X due" pill on Learning Hub. 2.6 adds a single compact widget on the **My Hub** tab (and a per-course variant inside the course player) that shows:
 
-**Phase 2 completion: ~62%** (5 of 8 sub-phases shipped — adaptive engine now ingests both quiz and scenario signals through a single SM-2 review queue; remaining work is surfacing dashboards + instructor analytics + cross-course rollup).
+- Average mastery (ring)
+- Topics due **now** + the next due-at
+- Top 3 weakest topics (with module title + a deep link to review)
+- Quiz vs Scenario signal split (last 30 days)
+- 7-day activity sparkline (attempts + scenarios per day)
+
+No new write paths — purely read aggregation over `talent_skill_profile`, `talent_quiz_attempt`, and `talent_scenario_run`.
 
 ---
 
-# Sub-phase 2.5 — Scenario Evaluation as Skill Signal
-
-Goal: extend the adaptive engine beyond multiple-choice. Today only quiz attempts feed `talent_skill_profile`. Scenario runs (open-ended chat against a scenario prompt) already exist in `talent_scenario_run` but their `evaluation` JSON is unstructured, so the EWMA + SM-2 chain ignores them. 2.5 makes scenario evaluations structured, scored per topic, and merged into the same skill profile the review queue reads from.
-
----
-
-## 2.5 mini sub-phases
+## 2.6 mini sub-phases
 
 | # | Sub-phase | Outcome |
 |---|---|---|
-| 2.5.a | Evaluator schema | Define a fixed JSON shape for `talent_scenario_run.evaluation` (per-topic scores 0..1 + rubric notes) |
-| 2.5.b | AI evaluator edge fn | `learner-scenario-evaluate` calls Lovable AI to score a finished `conversation` against the scenario rubric and writes back `evaluation` |
-| 2.5.c | Skill profile trigger | Mirror the quiz-attempt trigger: on `talent_scenario_run.evaluation` update, fold per-topic scores into `talent_skill_profile` (EWMA + SM-2 reschedule) |
-| 2.5.d | Runner integration | Update existing `ModuleScenarioRunner` to call the evaluator on completion and show topic-level feedback inline |
-| 2.5.e | Review-queue inclusion | Allow scenario topics to appear in `learner-review-queue`, with a `source: "quiz" \| "scenario"` discriminator so the UI can show the right prompt |
+| 2.6.a | Aggregation edge fn | `learner-mastery-summary` returns totals, weakest topics, signal split, 7d sparkline. Optional `module_id` filter for per-course view. |
+| 2.6.b | Hook + card component | `useMasterySummary` + `AdaptiveSnapshotCard` (mobile-compact: ring + chips + sparkline). |
+| 2.6.c | My Hub integration | Mount at the top of `MyCoursesTab`, above the active courses list. |
+| 2.6.d | Per-course variant | Mount inside the course player stage shell, filtered to that module's content_id. |
+| 2.6.e | Empty / cold-start state | Friendly nudge ("Take a quiz or scenario to start tracking mastery") when no `talent_skill_profile` rows exist yet. |
 
 ---
 
 ## Detailed plan
 
-### 2.5.a — Evaluation JSON shape
+### 2.6.a — `learner-mastery-summary` edge function
 
-`talent_scenario_run.evaluation` standardised to:
+`POST /functions/v1/learner-mastery-summary`
 
+Body (all optional):
+- `module_id?: string` — filter to a single module
+- `content_id?: string` — filter to a single course
+- `days?: number` (default 7, max 30) — sparkline window
+
+Response:
 ```json
 {
-  "version": 1,
-  "overall": 0.72,
-  "topics": [
-    { "tag": "negotiation_anchoring", "score": 0.8, "weight": 1.0, "notes": "Opened with a strong anchor." },
-    { "tag": "active_listening",     "score": 0.5, "weight": 1.0, "notes": "Missed two empathy cues." }
+  "totals": {
+    "tracked_topics": 14,
+    "avg_mastery": 0.62,
+    "due_now": 3,
+    "next_due_at": "2026-05-07T05:00:00Z"
+  },
+  "weakest": [
+    { "module_id": "...", "module_title": "Negotiation Basics", "topic_tag": "anchoring", "mastery": 0.18, "due_at": "..." }
   ],
-  "rubric_id": "default_v1",
-  "evaluated_at": "..."
+  "strongest": [ /* same shape, top 3 by mastery */ ],
+  "signal_split_30d": { "quiz": 22, "scenario": 5 },
+  "sparkline": [
+    { "date": "2026-04-30", "quiz": 0, "scenario": 1 },
+    { "date": "2026-05-01", "quiz": 4, "scenario": 0 }
+  ]
 }
 ```
 
-Validation enforced in the edge function (zod) and a permissive CHECK that only requires `version` + `topics[]` to keep historical rows compatible.
+Implementation:
+- Auth via `auth.getUser(token)` → resolve `talent_id` from `talents.user_id`.
+- Pull `talent_skill_profile` rows (filtered by module/content).
+- Pull `talent_quiz_attempt` and `talent_scenario_run` for the last `days` and group by date.
+- Module titles via single batched `course_modules` lookup.
 
-### 2.5.b — `learner-scenario-evaluate` edge function
+No DB schema changes — read-only.
 
-- Verifies JWT, loads the run, rejects if `evaluation` already set unless `force=true`.
-- Loads scenario rubric: `module_scenario_pool.topic_tags` + `module_scenario_pool.rubric` (existing column if present, else fall back to a generic rubric).
-- Calls Lovable AI (`google/gemini-2.5-flash`) with a fixed system prompt that returns the JSON shape above. Uses tool-call / JSON mode, parses, validates, retries once on parse error.
-- Writes `evaluation`, returns it to the client.
+### 2.6.b — `AdaptiveSnapshotCard`
 
-Cost-controlled: only one call per finished run; client cannot re-trigger without `force` (admin-only).
+`src/components/learning/AdaptiveSnapshotCard.tsx`. Mobile-first, single card, vertical layout:
 
-### 2.5.c — Skill profile trigger
+```
++--------------------------------------+
+|  [ring 62%]   14 topics tracked      |
+|               3 due now • next 5h    |
+|--------------------------------------|
+|  Weakest                             |
+|  • anchoring        18%  ↗ Review    |
+|  • active_listening 24%  ↗ Review    |
+|--------------------------------------|
+|  Activity (7d)   ▁▃▅▂▆▁▃            |
+|  22 quizzes · 5 scenarios            |
++--------------------------------------+
+```
 
-New trigger `trg_update_skill_mastery_from_scenario` on `talent_scenario_run` (AFTER UPDATE OF evaluation). Function `fn_update_skill_mastery_from_scenario`:
+- Uses brand tokens (`text-primary`, `bg-primary/10`, `Vibrant Cyan` for sparkline).
+- `due_now > 0` → primary CTA links to `/app/learning/review`.
+- Sparkline drawn with inline SVG (no chart lib) — keeps bundle small.
+- Skeleton state while loading; collapsed empty state when `tracked_topics === 0`.
 
-- For each `topics[]` entry, compute the same EWMA update as the quiz path, weighted by `weight`.
-- Run the same SM-2 reschedule (`interval_days`, `ease`, `due_at`).
-- Increment `attempts`, set `last_reviewed_at = now()`.
+Hook `src/hooks/useMasterySummary.ts` mirrors `useReviewQueue` (invoke + react state, with `moduleId` / `contentId` opts).
 
-Both trigger paths share a SECURITY DEFINER helper `fn_apply_topic_signal(talent_id, module_id, content_id, topic_tag, score, source)` so quiz + scenario stay in lock-step.
+### 2.6.c — My Hub integration
 
-### 2.5.d — Runner integration
+In `MyCoursesTab.tsx`, render `<AdaptiveSnapshotCard />` directly above the active courses section (only when the talent has at least one enrollment). Honors the existing 24-grid spacing (`space-y-5`).
 
-`ModuleScenarioRunner.tsx`:
+### 2.6.d — Per-course variant
 
-- On scenario "Finish" press → POST to `learner-scenario-evaluate`.
-- Render a small `EvaluationSummary` card: overall ring + per-topic bars + rubric notes.
-- If the run already has an `evaluation`, skip the call and render directly.
+Inside the course player shell (where `MasteryBars` already lives), mount `<AdaptiveSnapshotCard contentId={contentId} compact />` so learners see *that course's* mastery snapshot. `compact` mode hides the sparkline and signal split, keeping the card to ~120px tall.
 
-### 2.5.e — Review-queue inclusion
+### 2.6.e — Empty state
 
-- Extend `learner-review-queue` to also pull due rows whose last signal came from a scenario, exposed via a new `talent_skill_profile.last_source text` column (`'quiz' | 'scenario'`).
-- Response items get `source` so the Review UI can branch:
-  - `quiz` → existing inline question
-  - `scenario` → "Replay scenario" link to the scenario runner (re-run uses the existing module scenario pool).
-
-No schema change to the queue payload beyond the new field.
+If `tracked_topics === 0`:
+- Show a single-line nudge with an icon: "Complete a quiz or scenario to start tracking your mastery."
+- Subtle CTA → opens the My Hub active course or "Browse academy".
 
 ---
 
 ## Files
 
-**Migration**
-- ALTER `talent_skill_profile` ADD `last_source text DEFAULT 'quiz'`
-- CREATE `fn_apply_topic_signal` (extracted helper)
-- Refactor `fn_update_skill_mastery_from_attempt` to call the helper
-- CREATE `fn_update_skill_mastery_from_scenario` + trigger
-- Optional permissive CHECK on `talent_scenario_run.evaluation`
-
 **New**
-- `supabase/functions/learner-scenario-evaluate/index.ts`
-- `src/components/learning/EvaluationSummary.tsx`
+- `supabase/functions/learner-mastery-summary/index.ts`
+- `src/hooks/useMasterySummary.ts`
+- `src/components/learning/AdaptiveSnapshotCard.tsx`
 
 **Edited**
-- `src/components/learning/ModuleScenarioRunner.tsx`
-- `src/components/learning/ReviewQueueRunner.tsx` (branch on `source`)
-- `supabase/functions/learner-review-queue/index.ts` (return `source`, include scenario-sourced rows)
+- `src/components/learning/MyCoursesTab.tsx` — mount card above active list
+- `src/components/player/stages/MasteryBars.tsx` (or its parent shell) — mount per-course variant
+
+**No migrations.**
 
 ---
 
-## Out of scope
+## Out of scope (deferred)
 
-- Multi-rater evaluator ensembling (single-pass Gemini 2.5 Flash is enough for v1).
-- Voice / video scenario inputs.
-- Per-rubric custom weights in the UI (admin-only via SQL until 2.7 instructor analytics).
+- Per-rubric drill-downs (2.7 instructor analytics).
+- Cross-course Talent Mirror rollup (2.8).
+- Forecasted "next breakthrough" projections.
+- Push notifications (already covered by `notify-review-due` from 2.4.f).
 
 ---
 
-Reply **continue with 2.5.a** to start with the schema + helper trigger refactor, or **continue 2.5 a–c** to ship schema, evaluator, and trigger in one batch (recommended).
+## Suggested execution order
+
+Reply **continue with 2.6.a** to ship the aggregation edge function first, then **2.6.b–c** as one batch (hook + card + My Hub mount), and **2.6.d–e** to round it off. Or **continue 2.6 a–c** to ship the visible learner-facing slice in one go (recommended).
