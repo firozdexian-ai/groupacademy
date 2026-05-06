@@ -20,7 +20,25 @@ export interface ContentFilterValues {
   levelId: string;
   readiness: string;
   sortBy: string;
+  typeSegment?: "all" | "recorded" | "live" | "offline" | "free";
+  dateWindow?: "all" | "upcoming" | "this_week" | "past" | "undated";
 }
+
+const TYPE_SEGMENTS: { value: NonNullable<ContentFilterValues["typeSegment"]>; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "recorded", label: "Recorded" },
+  { value: "live", label: "Live & Webinars" },
+  { value: "offline", label: "Offline" },
+  { value: "free", label: "Free" },
+];
+
+const DATE_WINDOWS: { value: NonNullable<ContentFilterValues["dateWindow"]>; label: string }[] = [
+  { value: "all", label: "Any date" },
+  { value: "upcoming", label: "Upcoming" },
+  { value: "this_week", label: "This week" },
+  { value: "past", label: "Past" },
+  { value: "undated", label: "Undated" },
+];
 
 interface ContentFiltersProps {
   values: ContentFilterValues;
