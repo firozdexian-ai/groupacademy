@@ -400,6 +400,15 @@ const ContentList = ({ filter }: ContentListProps) => {
           {content.map((item) => {
             const config = TYPE_CONFIG[item.content_type] || TYPE_CONFIG.free_video;
             const Icon = config.icon;
+            const isLiveType = ["live_webinar", "batch_class", "offline_seminar"].includes(item.content_type);
+            const eventTs = item.event_date ? new Date(item.event_date).getTime() : null;
+            const now = Date.now();
+            const dur = (item.event_duration_minutes || 60) * 60_000;
+            const liveNow = !!eventTs && now >= eventTs && now <= eventTs + dur;
+            const isPast = !!eventTs && now > eventTs + dur;
+            const sessionCount = sessionCounts[item.id] || 0;
+            const capacityPct = item.max_capacity && item.max_capacity > 0
+              ? Math.min(100, Math.round((item.current_enrollment / item.max_capacity) * 100)) : null;
 
             return (
               <Card
