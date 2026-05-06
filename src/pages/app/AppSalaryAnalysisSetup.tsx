@@ -25,6 +25,7 @@ import {
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { useTalent } from "@/hooks/useTalent";
 import { useCredits } from "@/hooks/useCredits";
+import { recordToolRun } from "@/hooks/useToolRuns";
 import { ExistingCVCard } from "@/components/cv/ExistingCVCard";
 import { ProfileCompletionPrompt } from "@/components/profile/ProfileCompletionPrompt";
 import { CreditGateModal } from "@/components/credits/CreditGateModal";
@@ -180,6 +181,7 @@ export default function AppSalaryAnalysisSetup() {
       if (talent?.id) await addServiceUsed("salary_analysis");
 
       toast({ title: "Diagnostic Initiated" });
+      recordToolRun({ toolKey: "salary", costCredits: 50, payload: { analysis_id: tempAnalysisId, job_title: jobTitle } });
       navigate(`/salary-analysis/processing/${tempAnalysisId}`);
     } catch (error) {
       toast({ title: "Failed", description: "Logic sync interrupted.", variant: "destructive" });
