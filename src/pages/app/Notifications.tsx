@@ -207,6 +207,10 @@ export default function Notifications() {
           ))}
         </div>
       </footer>
+
+      <div className="px-4 pb-8 max-w-3xl mx-auto">
+        <NotificationChannels />
+      </div>
     </div>
   );
 }
