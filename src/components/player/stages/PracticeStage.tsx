@@ -80,12 +80,12 @@ export function PracticeStage({ resources, onComplete, isCompleted, professionLi
   const hasFlashcards = flashcards.length > 0;
   const hasAuthoredScenario = !!scenario;
   const hasPoolScenario = !!scenarioResource && !hasAuthoredScenario && !!moduleId;
-  const hasScenarioTabTab = hasAuthoredScenario || hasPoolScenario;
+  const hasScenarioTab = hasAuthoredScenario || hasPoolScenario;
   const hasQuiz = !!quizResource && !!moduleId;
 
   const canComplete =
     flashcardsCompleted || scenarioCompleted || quizCompleted ||
-    (!hasFlashcards && !hasScenarioTabTab && !hasQuiz);
+    (!hasFlashcards && !hasScenarioTab && !hasQuiz);
 
   const handleScenarioSync = (score: number) => {
     if (score >= 5) setScenarioCompleted(true);
@@ -111,7 +111,7 @@ export function PracticeStage({ resources, onComplete, isCompleted, professionLi
         )}
       </div>
 
-      {!hasFlashcards && !hasScenarioTabTab && !hasQuiz ? (
+      {!hasFlashcards && !hasScenarioTab && !hasQuiz ? (
         <Card className="border-2 border-dashed border-border/40 bg-muted/5 rounded-[40px] p-24 text-center">
           <div className="flex flex-col items-center gap-6">
             <Zap className="h-12 w-12 text-muted-foreground/20 animate-pulse" />
@@ -141,7 +141,7 @@ export function PracticeStage({ resources, onComplete, isCompleted, professionLi
                 {quizCompleted && <CheckCircle className="h-3 w-3 text-emerald-500" />}
               </TabsTrigger>
             )}
-            {hasScenarioTabTab && (
+            {hasScenarioTab && (
               <TabsTrigger value="scenario" className="rounded-2xl font-black uppercase italic text-[10px] tracking-[0.2em] py-3 data-[state=active]:bg-background data-[state=active]:shadow-lg flex items-center gap-2">
                 <Target className="h-3.5 w-3.5" /> SIMULATE
                 {scenarioCompleted && <CheckCircle className="h-3 w-3 text-emerald-500" />}
