@@ -1,15 +1,13 @@
 import {
-  Bell,
-  CheckCircle,
-  Briefcase,
-  GraduationCap,
-  Coins,
-  Megaphone,
-  Sparkles,
+  Bell, CheckCircle, Briefcase, GraduationCap, Coins, Megaphone, Sparkles,
+  Flame, MessageSquare, AtSign, Reply,
   type LucideIcon
 } from 'lucide-react';
 
-export type NotificationType = 'system' | 'service' | 'job_match' | 'course' | 'credit' | 'announcement';
+export type NotificationType =
+  | 'system' | 'service' | 'job_match' | 'course' | 'credit' | 'announcement'
+  | 'feed_hype' | 'feed_comment' | 'feed_reply' | 'feed_mention'
+  | string;
 
 export interface Notification {
   id: string;
@@ -25,32 +23,28 @@ export interface Notification {
 }
 
 const iconMap: Record<string, LucideIcon> = {
-  bell: Bell,
-  'check-circle': CheckCircle,
-  briefcase: Briefcase,
-  'graduation-cap': GraduationCap,
-  coins: Coins,
-  megaphone: Megaphone,
-  sparkles: Sparkles,
+  bell: Bell, 'check-circle': CheckCircle, briefcase: Briefcase,
+  'graduation-cap': GraduationCap, coins: Coins, megaphone: Megaphone, sparkles: Sparkles,
+  flame: Flame, 'message-square': MessageSquare, 'at-sign': AtSign, reply: Reply,
 };
 
-const typeIconMap: Record<NotificationType, LucideIcon> = {
-  system: Bell,
-  service: CheckCircle,
-  job_match: Briefcase,
-  course: GraduationCap,
-  credit: Coins,
-  announcement: Megaphone,
+const typeIconMap: Record<string, LucideIcon> = {
+  system: Bell, service: CheckCircle, job_match: Briefcase,
+  course: GraduationCap, credit: Coins, announcement: Megaphone,
+  feed_hype: Flame, feed_comment: MessageSquare, feed_reply: Reply, feed_mention: AtSign,
 };
 
-const typeColorMap: Record<NotificationType, string> = {
-  system: 'text-blue-500',
-  service: 'text-green-500',
-  job_match: 'text-purple-500',
-  course: 'text-orange-500',
-  credit: 'text-yellow-500',
-  announcement: 'text-red-500',
+const typeColorMap: Record<string, string> = {
+  system: 'text-blue-500', service: 'text-green-500', job_match: 'text-purple-500',
+  course: 'text-orange-500', credit: 'text-yellow-500', announcement: 'text-red-500',
+  feed_hype: 'text-orange-500', feed_comment: 'text-primary',
+  feed_reply: 'text-primary', feed_mention: 'text-cyan-500',
 };
+
+export const FEED_NOTIFICATION_TYPES = ['feed_hype', 'feed_comment', 'feed_reply', 'feed_mention'];
+export function isAgenticNotification(type: string): boolean {
+  return FEED_NOTIFICATION_TYPES.includes(type) || type === 'system' || type === 'announcement';
+}
 
 export function getNotificationIcon(iconName: string, type: NotificationType): LucideIcon {
   // First try to get icon by name
