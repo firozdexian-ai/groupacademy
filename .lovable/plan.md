@@ -1,28 +1,37 @@
-## Phase 4.2 — Cohorts, Live Classes & Attendance
+## Phase 4.3 — Discussions, Q&A & Peer Review
 
-Builds on the closed-loop instructor model (4.1) and the live-event primitives already in `course_sessions`, `JoinLivePanel`, and `WebinarLanding`. Goal: turn the platform from "schedule a single live event" into a real cohort-based learning surface — with sessions, attendance, recordings, and reminders shared across talent, instructor, employer (Gro10x), and admin.
+Turn the learning surface from solo consumption into a social classroom. Builds on cohorts (4.2) and the existing item bank / scenario / project primitives. Three connected systems:
+
+1. **Course discussions** — async threaded conversation per cohort (and optionally per module/lesson).
+2. **Lesson Q&A** — short-form question + accepted-answer attached to a specific lesson or item.
+3. **Peer review on submissions** — rubric-based review of learner project / scenario submissions by classmates and instructor.
+
+---
 
 ### Goals
 
-- First-class cohorts with start/end dates, capacity, and per-cohort enrollments.
-- A real session calendar per course (lectures, office hours, reviews) — not just one `event_date`.
-- Automated attendance tracking with green-room CTA, manual instructor override, and exports.
-- One join-flow that works on web, mobile PWA, and Gro10x for employer-assigned learners.
-- Admin/instructor visibility into cohort health (enrollment, attendance, completion).
+- Every cohort has a single "Discussions" home; instructors can pin posts and broadcast.
+- Learners can ask a question on any lesson; instructor / peers reply; questions show as a small badge inside the player.
+- Project / scenario submissions can be reviewed by 2–3 peers using a rubric, with instructor as final arbiter; reviews count toward `peer_review` participation credential.
+- All surfaces are realtime, mobile-first, and respect existing notification preferences.
+- Admin gets moderation queue (reports, hidden, removed).
 
 ---
 
 ### Sub-deliverables
 
-1. **Cohort model** — make a course optionally cohort-driven and let many cohorts share the same content.
-2. **Session calendar** — extend `course_sessions` (already exists, single-table) into a usable schedule per cohort with timezone, duration, recording, resources.
-3. **Green-room & join flow** — generalize `JoinLivePanel` to a session-level component with countdown, "in waiting room" state, and post-session recording.
-4. **Attendance engine** — auto-mark on join, manual override by instructor, plus a fallback "I attended" self-report.
-5. **Reminders & comms** — email + in-app notifications at T-24h, T-1h, T-5min, plus "session is live" + "recording ready".
-6. **Instructor cockpit** — `Sessions` tab inside `/app/instructor/courses/:id` for CRUD, attendance grid, broadcast message.
-7. **Talent surface** — `My Cohort` panel on `AppCourseDetail`, plus an "Upcoming sessions" rail on `AppMyLearning` and `LearningHub`.
-8. **Gro10x employer surface** — show cohort progress per assigned learner inside `Gro10xLearn` (uses existing assignments).
-9. **Admin Learn console** — new "Cohorts" tab listing all cohorts, capacity utilization, attendance rate, and a "force-close" action.
+1. **Schema** — `discussion_threads`, `discussion_posts`, `lesson_questions`, `lesson_answers`, `submissions`, `submission_reviews`, `review_assignments`, `content_reports`.
+2. **RPCs** — `accept_lesson_answer`, `assign_peer_reviewers(submission_id, n)`, `submit_peer_review`, `submission_score(submission_id)`.
+3. **Triggers** — auto-issue `peer_review` participation credential after N completed reviews; notify instructor when all peer reviews land; auto-close threads after 30 d inactivity (admin override).
+4. **Edge functions** — `notify-discussion-event` (mention/reply/answer/review-assigned/review-received), reuse `notify-learning-event` shape.
+5. **Talent UI**:
+   - `/app/cohorts/:id/discussions` (list + composer) and `/app/cohorts/:id/discussions/:threadId`.
+   - Q&A panel inside `ImmersiveCoursePlayer` lesson stage (replaces / augments current `DiscussStage`).
+   - `/app/submissions/:id` — view own submission, see rubric scores, peer feedback, instructor verdict.
+   - `/app/review-queue` (talent) — incoming peer-review assignments with one-tap rubric form.
+6. **Instructor UI** — `Discussions` and `Submissions` tabs inside `/app/instructor/course/:contentId`; pin/lock thread, override review, escalate to admin.
+7. **Admin UI** — Learn → "Moderation" tab listing reports + hidden/removed items, with restore action.
+8. **Gro10x employer surface** — show "open questions / unresolved reviews" count per assigned learner inside `Gro10xLearn` (read-only nudge).
 
 ---
 
@@ -30,61 +39,62 @@ Builds on the closed-loop instructor model (4.1) and the live-event primitives a
 
 #### Database
 
-- `cohorts`: `id, content_id, code, name, starts_on, ends_on, timezone, capacity, status (planning/open/in_progress/completed/archived), instructor_engagement_id, brief_id, created_at`.
-- `cohort_enrollments`: links `enrollments.id ↔ cohort_id`. Backfill existing enrollments into a synthetic "self-paced" cohort per content (so the cohort table is the new join point).
-- Extend `course_sessions`:
-  - add `cohort_id uuid` (nullable for legacy), `event_timezone`, `kind` (`lecture/office_hours/review/exam/orientation`), `module_id` (optional anchor), `is_mandatory`, `resources jsonb`.
-  - keep existing single-event behavior for legacy courses.
-- `session_attendance`: `session_id, user_id, status (attended/partial/absent/excused), joined_at, left_at, source (auto/self/instructor), duration_seconds`. Unique on `(session_id, user_id)`.
-- `session_messages` (lightweight broadcast log per session, optional but used by reminders).
-- Helper RPCs:
-  - `cohort_health(cohort_id)` → enrollment count, attendance %, avg progress, dropoff.
-  - `mark_session_attendance(session_id)` → idempotent self-mark with auth check.
-  - `instructor_session_attendance(session_id)` → grid of enrolled learners + status (instructor only).
-- Trigger: when `course_sessions.status` flips to `completed` and `recording_link` is set, fire `notify-learning-event` ("recording ready").
+- `discussion_threads(id, cohort_id, content_id NULL, module_id NULL, author_id, title, body, is_pinned, is_locked, last_post_at, post_count, created_at)`.
+- `discussion_posts(id, thread_id, author_id, body, parent_post_id NULL, is_solution, created_at)` — flat list with optional one-level nesting; enables "Marked as solution" (instructor-only).
+- `lesson_questions(id, content_id, module_id NULL, item_id NULL, author_id, body, is_resolved, accepted_answer_id NULL, upvote_count, created_at)`.
+- `lesson_answers(id, question_id, author_id, body, is_instructor, upvote_count, created_at)`.
+- `submissions(id, content_id, module_id NULL, project_id NULL, author_id, kind enum('project','scenario','assignment'), body jsonb, files jsonb, status enum('draft','submitted','under_review','reviewed','revisions_requested','approved'), submitted_at, score numeric, instructor_verdict text, created_at)`.
+- `review_assignments(id, submission_id, reviewer_id, due_at, status enum('pending','completed','skipped'), created_at)` — instructor or auto-generated by `assign_peer_reviewers`.
+- `submission_reviews(id, submission_id, reviewer_id, rubric jsonb, score numeric, comments text, is_instructor, created_at)`.
+- `content_reports(id, scope text, scope_id uuid, reporter_id, reason, status enum('open','reviewed','dismissed','removed'), created_at)`.
+- Realtime: enable on `discussion_posts`, `lesson_answers`, `submission_reviews`.
+- RLS:
+  - Threads/posts/Q&A visible to cohort members + instructors of that course + admins.
+  - Authors edit/delete their own posts within 15 minutes; instructors can hide; admins can remove.
+  - Submissions visible to author, assigned reviewers, instructor, admin.
+  - Reviews visible to author of submission + instructor + admin (other reviewers not visible to learner peers).
+- Indices on `(cohort_id, last_post_at desc)`, `(content_id, item_id)`, `(submission_id, reviewer_id)`.
+- Extend `talent_skill_profile` source enum with `peer_review` so completed reviews feed the credential pipeline.
 
-#### Edge functions
+#### Notifications
 
-- `notify-learning-event` (new) — single function with `kind` discriminator: `session_reminder | session_live | recording_ready | cohort_started | cohort_completed`. Fans out to in-app + email via existing `notify.groupacademy.online` queue.
-- `cron-session-reminders` (scheduled) — runs every 5 min, finds sessions in T-24h/T-1h/T-5min windows and queues notifications. Idempotent via a `notification_dispatch` ledger row keyed `(session_id, kind, window)`.
-- Reuse `ai-item-generate` instructor credit pool — no new credit type.
+- New `notify-discussion-event` edge function: kinds `thread_reply`, `mention`, `q_answer`, `q_accepted`, `review_assigned`, `review_received`, `submission_decided`.
+- Idempotent via `notification_dispatch (scope='discussion'|'submission')`.
+- Honors existing user notification prefs.
 
 #### Frontend
 
-- New hooks: `useCohorts`, `useCohort(cohortId)`, `useCohortSessions`, `useSessionAttendance`, `useUpcomingSessions(userId)`.
-- Generalize `JoinLivePanel.tsx` → accept a `session` prop; existing `course.event_date` path becomes a thin adapter (keeps WebinarLanding working).
-- New components:
-  - `cohorts/CohortHeader.tsx` (talent-facing)
-  - `cohorts/SessionList.tsx`, `cohorts/SessionCard.tsx`
-  - `instructor/SessionsTab.tsx`, `instructor/AttendanceGrid.tsx`, `instructor/SessionComposer.tsx`
-  - `learning/UpcomingSessionsRail.tsx` (used in `AppMyLearning` + `LearningHub`)
-  - admin: `dashboard/learn/CohortsTab.tsx` plus a session-detail drawer.
-- Routes:
-  - `/app/instructor/courses/:contentId/cohorts/:cohortId` (cockpit)
-  - `/app/cohorts/:cohortId` (talent cohort home)
-  - `/app/sessions/:sessionId/join` (auth-gated redirect that records attendance + opens meeting link in new tab).
-- Gro10x: `Gro10xLearn` learner row gets a "next session" chip and per-cohort attendance %.
+- New hooks: `useDiscussionThreads`, `useThread`, `useLessonQuestions(contentId, moduleId, itemId)`, `useSubmission(id)`, `useReviewQueue`, `useSubmissionReviews(id)`.
+- Components:
+  - `discussions/ThreadList.tsx`, `discussions/ThreadView.tsx`, `discussions/Composer.tsx` (mentions via `@handle`).
+  - `qna/QuestionPanel.tsx` (drawer in player), `qna/QuestionThread.tsx`.
+  - `submissions/SubmissionCard.tsx`, `submissions/RubricForm.tsx` (1-5 with comments per criterion), `submissions/PeerReviewSheet.tsx`.
+  - admin: `dashboard/learn/ModerationTab.tsx`.
+- Routes (additions to `App.tsx`):
+  - `/app/cohorts/:cohortId/discussions`, `/app/cohorts/:cohortId/discussions/:threadId`.
+  - `/app/submissions/:submissionId`, `/app/review-queue`.
+- Player integration: a small "Q" pill above the player that opens `QuestionPanel` filtered to the current item.
+- `My Learning` rail update: surface "X reviews due" and "Y open questions" cards.
 
 #### UX rules
 
-- Mobile-first, vertical only. Compact spacing (`py-2 space-y-2`).
-- Use existing brand tokens (Tech Blue / Cyan / Success Green) and `eventTime` helpers (UTC stored, BDT-default rendering).
-- Auth-gated: `/sessions/:id/join` requires login; unauthed users are sent to AuthChat with redirect back.
-- Notifications respect existing user prefs (reuse `notification_preferences`).
+- Mobile vertical only, compact spacing, brand tokens; rubric form uses Tech Blue accents and Success Green for accepted/approved states.
+- Reviewers are anonymized to the submitter (display name only after instructor approves the review and submission is closed).
+- Markdown-lite (no HTML); link autodetection; image upload reuses storage bucket pattern.
 
 ---
 
-### Out of scope for 4.2 (handled later)
+### Out of scope for 4.3
 
-- Embedded video provider (Daily.co / LiveKit) — sticks with paste-your-own meeting link until 4.4 cohort polish.
-- Paid cohort pricing tiers — handled in 5.x monetization.
-- Peer-to-peer breakout rooms.
+- Group breakouts / video discussions.
+- AI-graded peer reviews (4.6 polish — only AI suggestions for instructor will land later).
+- Public visibility of threads outside the cohort.
 
 ---
 
 ### Open questions
 
-1. Should every existing course be force-migrated into a synthetic "self-paced cohort", or only courses flagged `live_cohort`/`hybrid`? (Recommended: yes — single join model is simpler.)
-2. Attendance threshold for "attended" — minutes-based (e.g. ≥ 50% of session) or instructor-defined per session? (Recommended: 50% default, instructor override per session.)
-3. Should cohort capacity hard-block enrollment or just warn admins? (Recommended: hard-block past 100%, allow waitlist via existing saved-items pattern.)
-4. Reminder channels — email + in-app only, or also WhatsApp link push? (Recommended: email + in-app for 4.2; WhatsApp deferred.)
+1. **Default reviewers per submission** — fixed at 2 peers + 1 instructor, or instructor-configurable per cohort? (Recommended: cohort-level default = 2 peers, instructor can override per submission.)
+2. **Anonymity model** — keep peer reviewer names hidden from submitter forever, only until instructor approves, or always visible? (Recommended: hidden until instructor approves the submission.)
+3. **Rubric source** — global per-content rubric, per-project rubric, or instructor-defined per submission? (Recommended: per-content rubric (jsonb on `content`), with per-submission override.)
+4. **Mentions scope** — limit `@` mentions to cohort members only, or whole platform? (Recommended: cohort + course instructors only for 4.3.)

@@ -1,6 +1,7 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useMemo } from "react";
 import {
+  Flag,
   LayoutDashboard,
   BookOpen,
   Video,
@@ -220,6 +221,7 @@ const navGroups: NavGroup[] = [
       { title: "B2B Courses", icon: Building2, value: "b2b-courses" },
       { title: "Course Briefs", icon: Sparkles, value: "course-briefs" },
       { title: "Cohorts", icon: Users, value: "cohorts" },
+      { title: "Moderation", icon: Flag, value: "moderation" },
     ],
   },
   {

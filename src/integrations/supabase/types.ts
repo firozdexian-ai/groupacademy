@@ -4005,6 +4005,45 @@ export type Database = {
           },
         ]
       }
+      content_reports: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          reason: string
+          reporter_id: string
+          resolved_at: string | null
+          resolved_by: string | null
+          scope: string
+          scope_id: string
+          status: Database["public"]["Enums"]["report_status"]
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          reason: string
+          reporter_id: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          scope: string
+          scope_id: string
+          status?: Database["public"]["Enums"]["report_status"]
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          reason?: string
+          reporter_id?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          scope?: string
+          scope_id?: string
+          status?: Database["public"]["Enums"]["report_status"]
+        }
+        Relationships: []
+      }
       content_share_logs: {
         Row: {
           channel: string
@@ -4978,6 +5017,123 @@ export type Database = {
             columns: ["thread_id"]
             isOneToOne: false
             referencedRelation: "direct_message_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      discussion_posts: {
+        Row: {
+          author_id: string
+          body: string
+          created_at: string
+          id: string
+          is_hidden: boolean
+          is_solution: boolean
+          parent_post_id: string | null
+          thread_id: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          body: string
+          created_at?: string
+          id?: string
+          is_hidden?: boolean
+          is_solution?: boolean
+          parent_post_id?: string | null
+          thread_id: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          created_at?: string
+          id?: string
+          is_hidden?: boolean
+          is_solution?: boolean
+          parent_post_id?: string | null
+          thread_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discussion_posts_parent_post_id_fkey"
+            columns: ["parent_post_id"]
+            isOneToOne: false
+            referencedRelation: "discussion_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discussion_posts_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "discussion_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      discussion_threads: {
+        Row: {
+          author_id: string
+          body: string | null
+          cohort_id: string
+          content_id: string | null
+          created_at: string
+          id: string
+          is_hidden: boolean
+          is_locked: boolean
+          is_pinned: boolean
+          last_post_at: string
+          module_id: string | null
+          post_count: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          body?: string | null
+          cohort_id: string
+          content_id?: string | null
+          created_at?: string
+          id?: string
+          is_hidden?: boolean
+          is_locked?: boolean
+          is_pinned?: boolean
+          last_post_at?: string
+          module_id?: string | null
+          post_count?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          body?: string | null
+          cohort_id?: string
+          content_id?: string | null
+          created_at?: string
+          id?: string
+          is_hidden?: boolean
+          is_locked?: boolean
+          is_pinned?: boolean
+          last_post_at?: string
+          module_id?: string | null
+          post_count?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discussion_threads_cohort_id_fkey"
+            columns: ["cohort_id"]
+            isOneToOne: false
+            referencedRelation: "cohorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "discussion_threads_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content"
             referencedColumns: ["id"]
           },
         ]
@@ -8100,6 +8256,113 @@ export type Database = {
           },
         ]
       }
+      lesson_answers: {
+        Row: {
+          author_id: string
+          body: string
+          created_at: string
+          id: string
+          is_hidden: boolean
+          is_instructor: boolean
+          question_id: string
+          updated_at: string
+          upvote_count: number
+        }
+        Insert: {
+          author_id: string
+          body: string
+          created_at?: string
+          id?: string
+          is_hidden?: boolean
+          is_instructor?: boolean
+          question_id: string
+          updated_at?: string
+          upvote_count?: number
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          created_at?: string
+          id?: string
+          is_hidden?: boolean
+          is_instructor?: boolean
+          question_id?: string
+          updated_at?: string
+          upvote_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lesson_answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "lesson_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lesson_questions: {
+        Row: {
+          accepted_answer_id: string | null
+          author_id: string
+          body: string
+          cohort_id: string | null
+          content_id: string
+          created_at: string
+          id: string
+          is_hidden: boolean
+          is_resolved: boolean
+          item_id: string | null
+          module_id: string | null
+          updated_at: string
+          upvote_count: number
+        }
+        Insert: {
+          accepted_answer_id?: string | null
+          author_id: string
+          body: string
+          cohort_id?: string | null
+          content_id: string
+          created_at?: string
+          id?: string
+          is_hidden?: boolean
+          is_resolved?: boolean
+          item_id?: string | null
+          module_id?: string | null
+          updated_at?: string
+          upvote_count?: number
+        }
+        Update: {
+          accepted_answer_id?: string | null
+          author_id?: string
+          body?: string
+          cohort_id?: string | null
+          content_id?: string
+          created_at?: string
+          id?: string
+          is_hidden?: boolean
+          is_resolved?: boolean
+          item_id?: string | null
+          module_id?: string | null
+          updated_at?: string
+          upvote_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lesson_questions_cohort_id_fkey"
+            columns: ["cohort_id"]
+            isOneToOne: false
+            referencedRelation: "cohorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lesson_questions_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketplace_bids: {
         Row: {
           bid_amount: number
@@ -10674,6 +10937,47 @@ export type Database = {
         }
         Relationships: []
       }
+      review_assignments: {
+        Row: {
+          created_at: string
+          due_at: string | null
+          id: string
+          is_instructor: boolean
+          reviewer_id: string
+          status: Database["public"]["Enums"]["review_assignment_status"]
+          submission_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          due_at?: string | null
+          id?: string
+          is_instructor?: boolean
+          reviewer_id: string
+          status?: Database["public"]["Enums"]["review_assignment_status"]
+          submission_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          due_at?: string | null
+          id?: string
+          is_instructor?: boolean
+          reviewer_id?: string
+          status?: Database["public"]["Enums"]["review_assignment_status"]
+          submission_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_assignments_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       riya_conversations: {
         Row: {
           completed_at: string | null
@@ -11468,6 +11772,125 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_weekly_leaderboard"
             referencedColumns: ["talent_id"]
+          },
+        ]
+      }
+      submission_reviews: {
+        Row: {
+          comments: string | null
+          created_at: string
+          id: string
+          is_instructor: boolean
+          reviewer_id: string
+          rubric: Json
+          score: number | null
+          submission_id: string
+          updated_at: string
+        }
+        Insert: {
+          comments?: string | null
+          created_at?: string
+          id?: string
+          is_instructor?: boolean
+          reviewer_id: string
+          rubric?: Json
+          score?: number | null
+          submission_id: string
+          updated_at?: string
+        }
+        Update: {
+          comments?: string | null
+          created_at?: string
+          id?: string
+          is_instructor?: boolean
+          reviewer_id?: string
+          rubric?: Json
+          score?: number | null
+          submission_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submission_reviews_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      submissions: {
+        Row: {
+          author_id: string
+          body: Json
+          cohort_id: string | null
+          content_id: string
+          created_at: string
+          files: Json
+          id: string
+          instructor_verdict: string | null
+          is_anonymized: boolean
+          kind: Database["public"]["Enums"]["submission_kind"]
+          module_id: string | null
+          project_id: string | null
+          score: number | null
+          status: Database["public"]["Enums"]["submission_status"]
+          submitted_at: string | null
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          body?: Json
+          cohort_id?: string | null
+          content_id: string
+          created_at?: string
+          files?: Json
+          id?: string
+          instructor_verdict?: string | null
+          is_anonymized?: boolean
+          kind?: Database["public"]["Enums"]["submission_kind"]
+          module_id?: string | null
+          project_id?: string | null
+          score?: number | null
+          status?: Database["public"]["Enums"]["submission_status"]
+          submitted_at?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          body?: Json
+          cohort_id?: string | null
+          content_id?: string
+          created_at?: string
+          files?: Json
+          id?: string
+          instructor_verdict?: string | null
+          is_anonymized?: boolean
+          kind?: Database["public"]["Enums"]["submission_kind"]
+          module_id?: string | null
+          project_id?: string | null
+          score?: number | null
+          status?: Database["public"]["Enums"]["submission_status"]
+          submitted_at?: string | null
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submissions_cohort_id_fkey"
+            columns: ["cohort_id"]
+            isOneToOne: false
+            referencedRelation: "cohorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submissions_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -12967,6 +13390,10 @@ export type Database = {
       }
     }
     Functions: {
+      accept_lesson_answer: {
+        Args: { _answer_id: string; _question_id: string }
+        Returns: undefined
+      }
       accept_offer: {
         Args: { p_offer_id: string; p_signed_name: string }
         Returns: Json
@@ -13026,6 +13453,10 @@ export type Database = {
         Returns: Json
       }
       assign_career_coach: { Args: { _talent_id: string }; Returns: string }
+      assign_peer_reviewers: {
+        Args: { _n?: number; _submission_id: string }
+        Returns: number
+      }
       auto_deactivate_expired_jobs: { Args: never; Returns: number }
       auto_finalize_gig_submission: {
         Args: {
@@ -13443,6 +13874,10 @@ export type Database = {
         Args: { _agent_key: string; _talent_id: string }
         Returns: boolean
       }
+      is_cohort_member: {
+        Args: { _cohort_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_company_admin: {
         Args: { _company_id: string; _user_id: string }
         Returns: boolean
@@ -13453,6 +13888,10 @@ export type Database = {
       }
       is_content_lead_for_school: {
         Args: { _school_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_content_learner: {
+        Args: { _content_id: string; _user_id: string }
         Returns: boolean
       }
       is_course_instructor: {
@@ -13784,6 +14223,7 @@ export type Database = {
         | "competent"
         | "proficient"
         | "expert"
+      report_status: "open" | "reviewed" | "dismissed" | "removed"
       resource_type:
         | "video"
         | "slides"
@@ -13794,6 +14234,7 @@ export type Database = {
         | "ai_scenario"
         | "quiz"
         | "report"
+      review_assignment_status: "pending" | "completed" | "skipped" | "expired"
       session_kind:
         | "lecture"
         | "office_hours"
@@ -13804,6 +14245,14 @@ export type Database = {
       session_status: "scheduled" | "ongoing" | "completed" | "cancelled"
       source_platform: "facebook" | "linkedin" | "bdjobs" | "website" | "other"
       student_status: "lead" | "free_learner" | "enrolled" | "graduated"
+      submission_kind: "project" | "scenario" | "assignment"
+      submission_status:
+        | "draft"
+        | "submitted"
+        | "under_review"
+        | "reviewed"
+        | "revisions_requested"
+        | "approved"
       talent_activity_kind:
         | "note"
         | "message"
@@ -14110,6 +14559,7 @@ export const Constants = {
         "proficient",
         "expert",
       ],
+      report_status: ["open", "reviewed", "dismissed", "removed"],
       resource_type: [
         "video",
         "slides",
@@ -14121,6 +14571,7 @@ export const Constants = {
         "quiz",
         "report",
       ],
+      review_assignment_status: ["pending", "completed", "skipped", "expired"],
       session_kind: [
         "lecture",
         "office_hours",
@@ -14132,6 +14583,15 @@ export const Constants = {
       session_status: ["scheduled", "ongoing", "completed", "cancelled"],
       source_platform: ["facebook", "linkedin", "bdjobs", "website", "other"],
       student_status: ["lead", "free_learner", "enrolled", "graduated"],
+      submission_kind: ["project", "scenario", "assignment"],
+      submission_status: [
+        "draft",
+        "submitted",
+        "under_review",
+        "reviewed",
+        "revisions_requested",
+        "approved",
+      ],
       talent_activity_kind: [
         "note",
         "message",
