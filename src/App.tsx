@@ -172,20 +172,26 @@ const JobApplyRedirect = () => {
 
 // Inline Guard Component to Force Onboarding
 const OnboardingGuard = ({ children }: { children: React.ReactNode }) => {
-  const { talent, refreshTalent } = useTalent();
+  const { talent, isTalentLoading, refreshTalent } = useTalent();
   const [showWizard, setShowWizard] = useState(false);
   const location = useLocation();
 
   useEffect(() => {
+    if (isTalentLoading) return;
     if (talent && !talent.onboardingCompletedAt) {
       setShowWizard(true);
+    } else if (talent?.onboardingCompletedAt) {
+      setShowWizard(false);
     }
-  }, [talent, location.pathname]);
+  }, [talent, isTalentLoading, location.pathname]);
 
   const handleComplete = async () => {
     await refreshTalent();
     setShowWizard(false);
   };
+
+  // Avoid flicker until talent context hydrates
+  if (isTalentLoading && !talent) return <>{children}</>;
 
   if (showWizard) {
     return (
