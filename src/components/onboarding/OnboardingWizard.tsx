@@ -24,7 +24,7 @@ export function OnboardingWizard({ onComplete }: { onComplete: () => void }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [hasInitialized, setHasInitialized] = useState(false);
 
-  // PROTOCOL: State Synchronization & Regression Prevention
+  // Sync local step with persisted step, only allowing forward jumps
   useEffect(() => {
     if (savedStep !== undefined) {
       const validStep = Math.min(Math.max(0, savedStep), ONBOARDING_NODES.length - 1);
@@ -32,7 +32,6 @@ export function OnboardingWizard({ onComplete }: { onComplete: () => void }) {
         setCurrentStep(validStep);
         setHasInitialized(true);
       } else if (validStep > currentStep) {
-        // Only permit forward trajectory sync from external state
         setCurrentStep(validStep);
       }
     }
@@ -40,27 +39,27 @@ export function OnboardingWizard({ onComplete }: { onComplete: () => void }) {
 
   const yieldProgress = ((currentStep + 1) / ONBOARDING_NODES.length) * 100;
 
-  const executeTrajectoryAdvance = async () => {
+  const goToNextStep = async () => {
     if (currentStep < ONBOARDING_NODES.length - 1) {
       const nextStep = currentStep + 1;
-      setCurrentStep(nextStep); // Optimistic UI Sync
+      setCurrentStep(nextStep);
       await updateStep(nextStep);
     }
   };
 
-  const executeEmergencySkip = async () => {
+  const handleSkip = async () => {
     const success = await skipOnboarding();
     if (success) {
-      toast.success("Access Granted", { description: "Initialization bypassed. Redirecting to hub." });
+      toast.success("Skipped for now", { description: "You can finish your profile anytime from your dashboard." });
       onComplete();
     }
   };
 
-  const finalizeOnboarding = async () => {
+  const finishOnboarding = async () => {
     const success = await completeOnboarding();
     if (success) {
-      toast.success("Profile Verified", {
-        description: "250 Welcome Credits have been added to your wallet.",
+      toast.success("All set!", {
+        description: "250 welcome credits are in your wallet.",
         icon: <Zap className="h-4 w-4 text-emerald-500 fill-current" />,
       });
       onComplete();
