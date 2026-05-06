@@ -13,6 +13,7 @@ import { PollWidget } from "./PollWidget";
 import { PostActionBar } from "./PostActionBar";
 import { usePollVoting } from "@/hooks/usePollVoting";
 import { useSavedItems } from "@/hooks/useSavedItems";
+import { useImpressionTracker } from "@/hooks/useCreatorAnalytics";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -82,7 +83,10 @@ export function PostCard({ post }: PostCardProps) {
     }
   };
 
+  const trackerRef = useImpressionTracker(post.id, "feed");
+
   return (
+    <div ref={trackerRef}>
     <Card className="overflow-hidden border border-border/40 hover:border-primary/40 bg-card rounded-2xl transition-colors">
       {post.isPinned && (
         <div className="bg-primary/5 px-3 py-1.5 flex items-center gap-1.5 text-[10px] font-medium text-primary border-b border-primary/10">
@@ -214,5 +218,6 @@ export function PostCard({ post }: PostCardProps) {
         />
       </CardContent>
     </Card>
+    </div>
   );
 }
