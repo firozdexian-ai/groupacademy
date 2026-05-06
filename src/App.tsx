@@ -19,6 +19,7 @@ import { TalentAppShell } from "./layouts/TalentAppShell";
 import Index from "./pages/Index";
 import AuthChat from "./pages/AuthChat";
 import AuthClassic from "./pages/AuthClassic";
+import AuthCallback from "./pages/AuthCallback";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import PublicJobDetail from "./pages/PublicJobDetail";
@@ -217,6 +218,7 @@ export default function App() {
                   <Route path="/" element={IS_GRO10X ? <Navigate to="/gro10x" replace /> : <Index />} />
                   <Route path="/auth" element={<AuthChat />} />
                   <Route path="/auth/classic" element={<AuthClassic />} />
+                  <Route path="/auth/callback" element={<AuthCallback />} />
                   <Route path="/reset-password" element={<ResetPassword />} />
 
                   {/* Public Job View */}

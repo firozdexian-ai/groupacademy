@@ -1,11 +1,12 @@
-import { useState, useCallback, useRef } from "react";
+import { useReducer, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { toast } from "sonner";
 import { COUNTRIES_WITH_PHONE } from "@/lib/constants/countries";
+import { AuthAgentReplySchema, AuthActionSchema } from "@/lib/schemas/authAgent";
 
 /**
  * Conversational auth flow controller for Aisha (sign-in / sign-up assistant).
+ * Implemented as a reducer-driven state machine so transitions are deterministic.
  */
 
 export type AuthAction =
@@ -41,8 +42,6 @@ interface CollectedData {
   countryCode: string;
   country: string;
 }
-
-// Interface for RPC response typing
 interface EmailCheckResponse {
   exists: boolean;
   hasUserId: boolean;
@@ -51,36 +50,107 @@ interface EmailCheckResponse {
 
 const FALLBACK_HUMAN_CHECK: QuizData = { answer: "cold" };
 
+interface AuthChatState {
+  messages: ChatMessage[];
+  currentAction: AuthAction;
+  flow: AuthFlow;
+  isLoading: boolean;
+  isComplete: boolean;
+  collected: CollectedData;
+  quiz: QuizData | null;
+  error: string | null;
+}
+
+type Action =
+  | { type: "RESET" }
+  | { type: "ADD_MESSAGE"; role: "user" | "assistant"; content: string }
+  | { type: "SET_LOADING"; value: boolean }
+  | { type: "SET_ACTION"; value: AuthAction }
+  | { type: "SET_FLOW"; value: AuthFlow }
+  | { type: "PATCH_COLLECTED"; value: Partial<CollectedData> }
+  | { type: "SET_QUIZ"; value: QuizData | null }
+  | { type: "SET_ERROR"; value: string | null }
+  | { type: "COMPLETE" };
+
+const genId = () =>
+  typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `m_${Date.now()}_${Math.random()}`;
+
+const initialState: AuthChatState = {
+  messages: [],
+  currentAction: "welcome",
+  flow: null,
+  isLoading: false,
+  isComplete: false,
+  collected: { email: "", name: "", phone: "", countryCode: "+880", country: "Bangladesh" },
+  quiz: null,
+  error: null,
+};
+
+function reducer(state: AuthChatState, action: Action): AuthChatState {
+  switch (action.type) {
+    case "RESET":
+      return initialState;
+    case "ADD_MESSAGE":
+      return {
+        ...state,
+        messages: [
+          ...state.messages,
+          { id: genId(), role: action.role, content: action.content, timestamp: new Date() },
+        ],
+      };
+    case "SET_LOADING":
+      return { ...state, isLoading: action.value };
+    case "SET_ACTION":
+      return { ...state, currentAction: action.value };
+    case "SET_FLOW":
+      return { ...state, flow: action.value };
+    case "PATCH_COLLECTED":
+      return { ...state, collected: { ...state.collected, ...action.value } };
+    case "SET_QUIZ":
+      return { ...state, quiz: action.value };
+    case "SET_ERROR":
+      return { ...state, error: action.value };
+    case "COMPLETE":
+      return { ...state, isComplete: true };
+    default:
+      return state;
+  }
+}
+
+function getFallbackProtocol(
+  context: Record<string, unknown>,
+): { reply: string; action: AuthAction; quiz: QuizData | null } {
+  const step = context.step as string;
+  const protocols: Record<string, { reply: string; action: AuthAction; quiz?: QuizData }> = {
+    welcome: { reply: "Hi, I'm Aisha 👋 What email should I use to set you up?", action: "collect_email" },
+    email_found: { reply: "Welcome back! Enter your password to continue.", action: "collect_password" },
+    email_not_found: { reply: "Looks like you're new here. What's your full name?", action: "collect_name" },
+    phone_collected: {
+      reply: "Quick check to make sure you're human.\n\nQuestion: What is the opposite of hot?",
+      action: "verify_human",
+      quiz: FALLBACK_HUMAN_CHECK,
+    },
+    quiz_passed: { reply: "Great. Now create a password (at least 8 characters).", action: "set_password" },
+    signup_success: {
+      reply: "You're in 🎉 Welcome to GroUp Academy. We've added 250 welcome credits to your wallet.",
+      action: "complete",
+    },
+  };
+  const p = protocols[step] || protocols.welcome;
+  return { reply: p.reply, action: p.action, quiz: p.quiz ?? null };
+}
+
 export function useAuthChat() {
   const { signIn, signUp, resetPassword } = useAuth();
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [currentAction, setCurrentAction] = useState<AuthAction>("welcome");
-  const [flow, setFlow] = useState<AuthFlow>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isComplete, setIsComplete] = useState(false);
-  const [collectedData, setCollectedData] = useState<CollectedData>({
-    email: "",
-    name: "",
-    phone: "",
-    countryCode: "+880",
-    country: "Bangladesh",
-  });
-  const [quiz, setQuiz] = useState<QuizData | null>(null);
-  const messageIdCounter = useRef(0);
-
-  const genId = () => {
-    messageIdCounter.current += 1;
-    return `MSG_ARTIFACT_${messageIdCounter.current}_${Date.now()}`;
-  };
-
-  const addMessage = useCallback((role: "user" | "assistant", content: string) => {
-    const msg: ChatMessage = { id: genId(), role, content, timestamp: new Date() };
-    setMessages((prev) => [...prev, msg]);
-    return msg;
-  }, []);
+  const [state, dispatch] = useReducer(reducer, initialState);
+  const stateRef = useRef(state);
+  stateRef.current = state;
 
   const callAgent = useCallback(
-    async (context: Record<string, unknown>, conversationHistory?: Array<{ role: string; content: string }>) => {
+    async (
+      context: Record<string, unknown>,
+      conversationHistory?: Array<{ role: string; content: string }>,
+    ) => {
       try {
         const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-auth-agent`, {
           method: "POST",
@@ -90,8 +160,16 @@ export function useAuthChat() {
           },
           body: JSON.stringify({ context, messages: conversationHistory || [] }),
         });
-        if (!res.ok) throw new Error("NEURAL_SERVICE_FAULT");
-        return (await res.json()) as { reply: string; action: AuthAction; quiz: QuizData | null };
+        if (!res.ok) throw new Error("agent_unreachable");
+        const json = await res.json();
+        const parsed = AuthAgentReplySchema.safeParse(json);
+        if (!parsed.success) {
+          console.warn("[Aisha] Agent reply failed validation, using fallback.", parsed.error.flatten());
+          return getFallbackProtocol(context);
+        }
+          const safeQuiz: QuizData | null =
+            parsed.data.quiz && parsed.data.quiz.answer ? { answer: parsed.data.quiz.answer } : null;
+          return { reply: parsed.data.reply, action: parsed.data.action, quiz: safeQuiz };
       } catch {
         return getFallbackProtocol(context);
       }
@@ -99,209 +177,228 @@ export function useAuthChat() {
     [],
   );
 
-  const getFallbackProtocol = (
-    context: Record<string, unknown>,
-  ): { reply: string; action: AuthAction; quiz: QuizData | null } => {
-    const step = context.step as string;
-    const protocols: Record<string, any> = {
-      welcome: {
-        reply: "Hi, I'm Aisha 👋 What email should I use to set you up?",
-        action: "collect_email",
-      },
-      email_found: {
-        reply: "Welcome back! Enter your password to continue.",
-        action: "collect_password",
-      },
-      email_not_found: {
-        reply: "Looks like you're new here. What's your full name?",
-        action: "collect_name",
-      },
-      phone_collected: {
-        reply: "Quick check to make sure you're human.\n\nQuestion: What is the opposite of hot?",
-        action: "verify_human",
-        quiz: FALLBACK_HUMAN_CHECK,
-      },
-      quiz_passed: {
-        reply: "Great. Now create a password (at least 8 characters).",
-        action: "set_password",
-      },
-      signup_success: {
-        reply: "You're in 🎉 Welcome to GroUp Academy. We've added 250 welcome credits to your wallet.",
-        action: "complete",
-      },
-    };
-    return protocols[step] || protocols.welcome;
-  };
-
   const initialize = useCallback(async () => {
-    setIsLoading(true);
+    dispatch({ type: "SET_LOADING", value: true });
     try {
       const response = await callAgent({ step: "welcome", flow: null });
-      addMessage("assistant", response.reply);
-      setCurrentAction(response.action === "welcome" ? "collect_email" : response.action);
+      dispatch({ type: "ADD_MESSAGE", role: "assistant", content: response.reply });
+      dispatch({
+        type: "SET_ACTION",
+        value: response.action === "welcome" ? "collect_email" : response.action,
+      });
     } finally {
-      setIsLoading(false);
+      dispatch({ type: "SET_LOADING", value: false });
     }
-  }, [callAgent, addMessage]);
+  }, [callAgent]);
 
   const handleUserInput = useCallback(
     async (input: string) => {
-      if (isLoading || isComplete) return;
+      const s = stateRef.current;
+      if (s.isLoading || s.isComplete) return;
       const trimmed = input.trim();
       if (!trimmed) return;
 
-      addMessage("user", trimmed);
-      setIsLoading(true);
+      dispatch({ type: "ADD_MESSAGE", role: "user", content: trimmed });
+      dispatch({ type: "SET_LOADING", value: true });
 
       try {
-        switch (currentAction) {
+        switch (s.currentAction) {
           case "collect_email": {
             const email = trimmed.toLowerCase();
             if (!email.includes("@")) {
-              addMessage("assistant", "That doesn't look like a valid email — try again?");
+              dispatch({
+                type: "ADD_MESSAGE",
+                role: "assistant",
+                content: "That doesn't look like a valid email — try again?",
+              });
               return;
             }
-            setCollectedData((prev) => ({ ...prev, email }));
-
+            dispatch({ type: "PATCH_COLLECTED", value: { email } });
             const { data } = await supabase.rpc("check_auth_email", { lookup_email: email });
-
-            // REINFORCED: Double-assertion to resolve TS2352 overlap error
             const emailResult = data as unknown as EmailCheckResponse;
 
             if (emailResult?.exists && emailResult?.hasUserId) {
-              setFlow("login");
+              dispatch({ type: "SET_FLOW", value: "login" });
               const res = await callAgent({ step: "email_found", email });
-              addMessage("assistant", res.reply);
-              setCurrentAction("collect_password");
+              dispatch({ type: "ADD_MESSAGE", role: "assistant", content: res.reply });
+              dispatch({ type: "SET_ACTION", value: "collect_password" });
             } else {
-              setFlow("signup");
+              dispatch({ type: "SET_FLOW", value: "signup" });
               const res = await callAgent({ step: "email_not_found", email });
-              addMessage("assistant", res.reply);
-              setCurrentAction("collect_name");
+              dispatch({ type: "ADD_MESSAGE", role: "assistant", content: res.reply });
+              dispatch({ type: "SET_ACTION", value: "collect_name" });
             }
             break;
           }
 
           case "collect_name":
-            setCollectedData((prev) => ({ ...prev, name: trimmed }));
-            addMessage("assistant", `Nice to meet you, ${trimmed}. Which country are you in?`);
-            setCurrentAction("collect_country");
+            dispatch({ type: "PATCH_COLLECTED", value: { name: trimmed } });
+            dispatch({
+              type: "ADD_MESSAGE",
+              role: "assistant",
+              content: `Nice to meet you, ${trimmed}. Which country are you in?`,
+            });
+            dispatch({ type: "SET_ACTION", value: "collect_country" });
             break;
 
           case "collect_country": {
             const matched = COUNTRIES_WITH_PHONE.find(
-              (c) => trimmed.toLowerCase().includes(c.name.toLowerCase()) || trimmed.toUpperCase() === c.code,
+              (c) =>
+                trimmed.toLowerCase().includes(c.name.toLowerCase()) || trimmed.toUpperCase() === c.code,
             );
             if (!matched) {
-              addMessage(
-                "assistant",
-                "I didn't recognise that country — could you type it again? (e.g. United States, India, Bangladesh)",
-              );
+              dispatch({
+                type: "ADD_MESSAGE",
+                role: "assistant",
+                content:
+                  "I didn't recognise that country — could you type it again? (e.g. United States, India, Bangladesh)",
+              });
               return;
             }
-            setCollectedData((prev) => ({ ...prev, country: matched.name, countryCode: matched.phoneCode }));
-            addMessage(
-              "assistant",
-              `Got it. What's your mobile number? (e.g. ${matched.phoneCode}…)`,
-            );
-            setCurrentAction("collect_phone");
+            dispatch({
+              type: "PATCH_COLLECTED",
+              value: { country: matched.name, countryCode: matched.phoneCode },
+            });
+            dispatch({
+              type: "ADD_MESSAGE",
+              role: "assistant",
+              content: `Got it. What's your mobile number? (e.g. ${matched.phoneCode}…)`,
+            });
+            dispatch({ type: "SET_ACTION", value: "collect_phone" });
             break;
           }
 
           case "collect_phone": {
             const digits = trimmed.replace(/\D/g, "");
             if (digits.length < 7) {
-              addMessage("assistant", "That phone number looks short — please enter the full number.");
+              dispatch({
+                type: "ADD_MESSAGE",
+                role: "assistant",
+                content: "That phone number looks short — please enter the full number.",
+              });
               return;
             }
-            setCollectedData((prev) => ({ ...prev, phone: trimmed }));
-            const res = await callAgent({ step: "phone_collected", flow });
-            addMessage("assistant", res.reply);
-            setCurrentAction(res.action);
-            if (res.quiz) setQuiz(res.quiz);
+            dispatch({ type: "PATCH_COLLECTED", value: { phone: trimmed } });
+            const res = await callAgent({ step: "phone_collected", flow: s.flow });
+            dispatch({ type: "ADD_MESSAGE", role: "assistant", content: res.reply });
+            dispatch({ type: "SET_ACTION", value: res.action });
+            if (res.quiz) dispatch({ type: "SET_QUIZ", value: res.quiz });
             break;
           }
 
           case "verify_human": {
             const userAns = trimmed.toLowerCase().replace(/[^a-z0-9]/g, "");
-            const correctAns = quiz?.answer?.toLowerCase().replace(/[^a-z0-9]/g, "");
+            const correctAns = s.quiz?.answer?.toLowerCase().replace(/[^a-z0-9]/g, "");
             if (userAns === correctAns) {
-              const res = await callAgent({ step: "quiz_passed", flow });
-              addMessage("assistant", res.reply);
-              setCurrentAction("set_password");
+              const res = await callAgent({ step: "quiz_passed", flow: s.flow });
+              dispatch({ type: "ADD_MESSAGE", role: "assistant", content: res.reply });
+              dispatch({ type: "SET_ACTION", value: "set_password" });
             } else {
-              addMessage("assistant", "Not quite — what's the opposite of 'hot'?");
-              setQuiz({ answer: "cold" });
+              dispatch({
+                type: "ADD_MESSAGE",
+                role: "assistant",
+                content: "Not quite — what's the opposite of 'hot'?",
+              });
+              dispatch({ type: "SET_QUIZ", value: { answer: "cold" } });
             }
             break;
           }
         }
       } finally {
-        setIsLoading(false);
+        dispatch({ type: "SET_LOADING", value: false });
       }
     },
-    [currentAction, isLoading, isComplete, flow, quiz, collectedData, callAgent, addMessage],
+    [callAgent],
   );
 
   const handlePasswordSubmit = useCallback(
     async (password: string) => {
-      if (isLoading) return;
-      setIsLoading(true);
-      addMessage("user", "••••••••");
+      const s = stateRef.current;
+      if (s.isLoading) return;
+      dispatch({ type: "SET_LOADING", value: true });
+      dispatch({ type: "ADD_MESSAGE", role: "user", content: "••••••••" });
+
       try {
-        if (flow === "login") {
-          await signIn(collectedData.email, password);
-          addMessage("assistant", "Signed in. Taking you to your dashboard…");
-          setIsComplete(true);
+        if (s.flow === "login") {
+          await signIn(s.collected.email, password);
+          dispatch({
+            type: "ADD_MESSAGE",
+            role: "assistant",
+            content: "Signed in. Taking you to your dashboard…",
+          });
+          dispatch({ type: "COMPLETE" });
         } else {
-          const finalPhone = collectedData.phone.startsWith("+")
-            ? collectedData.phone
-            : `${collectedData.countryCode}${collectedData.phone.replace(/\D/g, "")}`;
+          const finalPhone = s.collected.phone.startsWith("+")
+            ? s.collected.phone
+            : `${s.collected.countryCode}${s.collected.phone.replace(/\D/g, "")}`;
           const success = await signUp(
-            collectedData.name,
-            collectedData.email,
+            s.collected.name,
+            s.collected.email,
             password,
             finalPhone,
-            collectedData.country,
-            collectedData.countryCode,
+            s.collected.country,
+            s.collected.countryCode,
           );
           if (success) {
             const res = await callAgent({ step: "signup_success" });
-            addMessage("assistant", res.reply);
-            setIsComplete(true);
+            dispatch({ type: "ADD_MESSAGE", role: "assistant", content: res.reply });
+            dispatch({ type: "COMPLETE" });
           } else {
-            addMessage("assistant", "Almost there — please check your inbox to confirm your email, then come back to sign in.");
-            setFlow("login");
-            setCurrentAction("collect_email");
+            dispatch({
+              type: "ADD_MESSAGE",
+              role: "assistant",
+              content: "Something went wrong creating your account. Let's try again.",
+            });
+            dispatch({ type: "SET_FLOW", value: "login" });
+            dispatch({ type: "SET_ACTION", value: "collect_email" });
           }
         }
       } catch (err: any) {
-        toast.error(err.message);
-        addMessage("assistant", err.message ? `${err.message} — please try again.` : "Something went wrong. Please try again.");
+        const msg = err?.message
+          ? `${err.message} — please try again.`
+          : "Something went wrong. Please try again.";
+        dispatch({ type: "ADD_MESSAGE", role: "assistant", content: msg });
+        dispatch({ type: "SET_ERROR", value: err?.message ?? "unknown" });
       } finally {
-        setIsLoading(false);
+        dispatch({ type: "SET_LOADING", value: false });
       }
     },
-    [flow, collectedData, isLoading, signIn, signUp, callAgent, addMessage],
+    [signIn, signUp, callAgent],
   );
 
+  const handleForgotPassword = useCallback(async () => {
+    const s = stateRef.current;
+    if (!s.collected.email) {
+      dispatch({
+        type: "ADD_MESSAGE",
+        role: "assistant",
+        content: "Please share your email first so I can send the reset link.",
+      });
+      return;
+    }
+    await resetPassword(s.collected.email);
+    dispatch({ type: "ADD_MESSAGE", role: "assistant", content: "Reset link sent — check your inbox." });
+  }, [resetPassword]);
+
+  const updatePhoneData = useCallback((phone: string, countryCode: string, country: string) => {
+    dispatch({ type: "PATCH_COLLECTED", value: { phone, countryCode, country } });
+  }, []);
+
   return {
-    messages,
-    currentAction,
-    flow,
-    isLoading,
-    isComplete,
-    collectedData,
+    messages: state.messages,
+    currentAction: state.currentAction,
+    flow: state.flow,
+    isLoading: state.isLoading,
+    isComplete: state.isComplete,
+    collectedData: state.collected,
+    error: state.error,
     initialize,
     handleUserInput,
     handlePasswordSubmit,
-    handleForgotPassword: async () => {
-      if (!collectedData.email) return addMessage("assistant", "Please share your email first so I can send the reset link.");
-      await resetPassword(collectedData.email);
-      addMessage("assistant", "Reset link sent — check your inbox.");
-    },
-    updatePhoneData: (phone: string, countryCode: string, country: string) =>
-      setCollectedData((prev) => ({ ...prev, phone, countryCode, country })),
+    handleForgotPassword,
+    updatePhoneData,
     agentName: "Aisha",
+    // Re-export schema enum for callers that want to assert action types.
+    AuthActionSchema,
   };
 }

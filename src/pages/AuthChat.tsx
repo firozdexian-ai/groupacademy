@@ -13,6 +13,7 @@ import { Eye, EyeOff, Loader2, Send, ArrowRight, Sparkles, ShieldCheck } from "l
 import logoLight from "@/assets/logo-horizontal-light.png";
 import logoDark from "@/assets/logo-horizontal-dark.png";
 import { cn } from "@/lib/utils";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 
 const AuthChat = () => {
   const navigate = useNavigate();
@@ -139,6 +140,18 @@ const AuthChat = () => {
         <div>
           <p className="text-lg font-bold tracking-tight text-slate-900">{agentName}</p>
           <p className="text-xs text-slate-500">Your sign-in assistant</p>
+        </div>
+      </div>
+
+      {/* Google sign-in shortcut */}
+      <div className="px-4 md:px-6 pt-4">
+        <div className="max-w-3xl mx-auto">
+          <GoogleSignInButton />
+          <div className="flex items-center gap-3 my-4">
+            <div className="flex-1 h-px bg-slate-200" />
+            <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">or chat with Aisha</span>
+            <div className="flex-1 h-px bg-slate-200" />
+          </div>
         </div>
       </div>
 

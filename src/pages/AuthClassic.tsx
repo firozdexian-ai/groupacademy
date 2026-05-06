@@ -28,6 +28,7 @@ import { PhoneInput } from "@/components/ui/phone-input";
 import logoLight from "@/assets/logo-horizontal-light.png";
 import logoDark from "@/assets/logo-horizontal-dark.png";
 import { cn } from "@/lib/utils";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -232,6 +233,12 @@ const Auth = () => {
                   <CardDescription className="text-sm">Sign in to continue</CardDescription>
                 </CardHeader>
                 <CardContent>
+                  <GoogleSignInButton className="mb-4" />
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="flex-1 h-px bg-border" />
+                    <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">or</span>
+                    <div className="flex-1 h-px bg-border" />
+                  </div>
                   <form onSubmit={handleLogin} className="space-y-5">
                     <div className="space-y-1.5">
                       <Label className="text-xs font-medium text-muted-foreground ml-1">
@@ -296,6 +303,12 @@ const Auth = () => {
                   <CardDescription className="text-sm">Get 250 bonus credits to start</CardDescription>
                 </CardHeader>
                 <CardContent>
+                  <GoogleSignInButton className="mb-4" label="Sign up with Google" />
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="flex-1 h-px bg-border" />
+                    <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">or</span>
+                    <div className="flex-1 h-px bg-border" />
+                  </div>
                   <form onSubmit={handleSignup} className="space-y-4">
                     <div className="space-y-1.5">
                       <Label className="text-xs font-medium text-muted-foreground ml-1">
