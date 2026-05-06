@@ -80,12 +80,12 @@ export function PracticeStage({ resources, onComplete, isCompleted, professionLi
   const hasFlashcards = flashcards.length > 0;
   const hasAuthoredScenario = !!scenario;
   const hasPoolScenario = !!scenarioResource && !hasAuthoredScenario && !!moduleId;
-  const hasScenarioTab = hasAuthoredScenario || hasPoolScenario;
+  const hasScenarioTabTab = hasAuthoredScenario || hasPoolScenario;
   const hasQuiz = !!quizResource && !!moduleId;
 
   const canComplete =
     flashcardsCompleted || scenarioCompleted || quizCompleted ||
-    (!hasFlashcards && !hasScenarioTab && !hasQuiz);
+    (!hasFlashcards && !hasScenarioTabTab && !hasQuiz);
 
   const handleScenarioSync = (score: number) => {
     if (score >= 5) setScenarioCompleted(true);
@@ -111,7 +111,7 @@ export function PracticeStage({ resources, onComplete, isCompleted, professionLi
         )}
       </div>
 
-      {!hasFlashcards && !hasScenarioTab && !hasQuiz ? (
+      {!hasFlashcards && !hasScenarioTabTab && !hasQuiz ? (
         <Card className="border-2 border-dashed border-border/40 bg-muted/5 rounded-[40px] p-24 text-center">
           <div className="flex flex-col items-center gap-6">
             <Zap className="h-12 w-12 text-muted-foreground/20 animate-pulse" />
@@ -141,7 +141,7 @@ export function PracticeStage({ resources, onComplete, isCompleted, professionLi
                 {quizCompleted && <CheckCircle className="h-3 w-3 text-emerald-500" />}
               </TabsTrigger>
             )}
-            {hasScenarioTab && (
+            {hasScenarioTabTab && (
               <TabsTrigger value="scenario" className="rounded-2xl font-black uppercase italic text-[10px] tracking-[0.2em] py-3 data-[state=active]:bg-background data-[state=active]:shadow-lg flex items-center gap-2">
                 <Target className="h-3.5 w-3.5" /> SIMULATE
                 {scenarioCompleted && <CheckCircle className="h-3 w-3 text-emerald-500" />}
@@ -185,7 +185,7 @@ export function PracticeStage({ resources, onComplete, isCompleted, professionLi
       )}
 
       {/* FOOTER: TELEMETRY_SUMMARY */}
-      {(hasFlashcards || hasScenario) && (
+      {(hasFlashcards || hasScenarioTab) && (
         <Card className="rounded-[24px] border-2 border-primary/20 bg-primary/5 shadow-inner">
           <CardContent className="p-5">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -212,7 +212,7 @@ export function PracticeStage({ resources, onComplete, isCompleted, professionLi
                     RECALL_SYNC
                   </div>
                 )}
-                {hasScenario && (
+                {hasScenarioTab && (
                   <div
                     className={cn(
                       "flex items-center gap-2 text-[9px] font-black uppercase italic tracking-tighter transition-colors",
@@ -237,7 +237,7 @@ export function PracticeStage({ resources, onComplete, isCompleted, professionLi
       )}
 
       {/* FOOTER: ACTION_INGRESS */}
-      {!isCompleted && (hasFlashcards || hasScenario) && (
+      {!isCompleted && (hasFlashcards || hasScenarioTab) && (
         <div className="flex justify-end pt-4 border-t-2 border-border/10">
           <Button
             onClick={onComplete}
