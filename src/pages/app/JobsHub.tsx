@@ -95,6 +95,16 @@ const AGENT_PURPOSE: Record<string, string> = {
   "career-abroad": "Explore careers overseas",
 };
 
+const TOOL_META: Record<ToolKey, { title: string; href: string; icon: any }> = {
+  cv: { title: "ATS-friendly CV", href: "/app/tools/cv-maker", icon: FileText },
+  assessment: { title: "Career Assessment", href: "/app/services/assessment", icon: ClipboardCheck },
+  salary: { title: "Salary Insight", href: "/app/services/salary-analysis", icon: DollarSign },
+  portfolio: { title: "Portfolio Service", href: "/app/services/portfolio", icon: Palette },
+  score: { title: "Score me vs job", href: "/app/jobs/all", icon: Target },
+  answers: { title: "Application answers", href: "/app/tools/application-helper", icon: MessageSquare },
+  interview: { title: "Mock Interview", href: "/app/services/mock-interview", icon: Mic },
+};
+
 export default function JobsHub() {
   const navigate = useNavigate();
   const { talent } = useTalent();
