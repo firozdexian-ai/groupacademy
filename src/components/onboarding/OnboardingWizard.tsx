@@ -54,9 +54,10 @@ export function OnboardingWizard({ onComplete }: { onComplete: () => void }) {
   };
 
   const handleSkip = async () => {
-    const success = await skipOnboarding();
-    if (success) {
+    const result = await skipOnboarding();
+    if (result?.success) {
       toast.success("Skipped for now", { description: "You can finish your profile anytime from your dashboard." });
+      trackOnboardingStep(ONBOARDING_NODES[currentStep]?.id ?? "unknown", "skip");
       onComplete();
     }
   };
