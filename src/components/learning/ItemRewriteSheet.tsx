@@ -158,9 +158,76 @@ export function ItemRewriteSheet({ open, onOpenChange, kind, itemId, flags, onAp
               </CardContent>
             </Card>
           )}
-        </div>
+          </TabsContent>
+
+          <TabsContent value="translate" className="py-3">
+            <TranslatePanel kind={kind} itemId={itemId} />
+          </TabsContent>
+        </Tabs>
       </SheetContent>
     </Sheet>
+  );
+}
+
+function TranslatePanel({ kind, itemId }: { kind: "quiz" | "scenario"; itemId: string | null }) {
+  const { loading, applying, draft, setDraft, generate, apply } = useItemTranslate();
+  const [lang, setLang] = useState<string>("bn");
+  const [edited, setEdited] = useState<any>(null);
+
+  useEffect(() => { setEdited(draft?.translated ?? null); }, [draft]);
+
+  if (!itemId) return null;
+
+  return (
+    <div className="space-y-3">
+      <div className="flex gap-2 items-end">
+        <div className="flex-1">
+          <Label className="text-[11px] uppercase tracking-widest">Target language</Label>
+          <Select value={lang} onValueChange={setLang}>
+            <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {SUPPORTED_TRANSLATION_LANGS.map(l => (
+                <SelectItem key={l.code} value={l.code} className="text-xs">{l.name} ({l.code})</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <Button size="sm" disabled={loading} onClick={() => generate(itemId, kind, lang)}>
+          {loading ? "Generating…" : draft ? "Regenerate" : "Generate"}
+        </Button>
+      </div>
+
+      {loading && <Skeleton className="h-32 w-full rounded-xl" />}
+
+      {draft && edited && (
+        <div className="space-y-3">
+          <Card><CardContent className="py-3 space-y-2">
+            <p className="text-[11px] uppercase tracking-widest text-muted-foreground">Original</p>
+            <pre className="text-xs whitespace-pre-wrap bg-muted/50 p-2 rounded">{JSON.stringify(draft.source, null, 2)}</pre>
+          </CardContent></Card>
+
+          <Card className="border-primary/30"><CardContent className="py-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] uppercase tracking-widest text-primary">Translation ({draft.language_name})</p>
+              <Badge variant="outline" className="text-[10px]">editable</Badge>
+            </div>
+            <Textarea
+              value={JSON.stringify(edited, null, 2)}
+              onChange={e => {
+                try { setEdited(JSON.parse(e.target.value)); } catch { /* ignore parse-in-progress */ }
+              }}
+              className="text-xs font-mono min-h-[180px]"
+            />
+            <div className="flex justify-end pt-2 border-t border-border/40">
+              <Button size="sm" disabled={applying} onClick={() => apply(itemId, kind, draft.language_code, edited, "ai")}>
+                <Check className="h-3.5 w-3.5 mr-1.5" />
+                {applying ? "Saving…" : `Save ${draft.language_code} translation`}
+              </Button>
+            </div>
+          </CardContent></Card>
+        </div>
+      )}
+    </div>
   );
 }
 
