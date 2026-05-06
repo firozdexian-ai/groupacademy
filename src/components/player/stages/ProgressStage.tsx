@@ -2,8 +2,10 @@ import { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Award, CheckCircle, ArrowRight, Download, Trophy, Target, Clock, Brain, Zap, ShieldCheck, AlertCircle } from "lucide-react";
+import { MasteryBars } from "./MasteryBars";
 
 interface ProgressStageProps {
+  moduleId?: string;
   moduleName: string;
   moduleIndex: number;
   totalModules: number;
