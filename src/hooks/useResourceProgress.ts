@@ -51,7 +51,7 @@ export function useResourceProgress({ enrollmentId, moduleId }: UseResourceProgr
     pendingRef.current = {};
     await supabase
       .from("enrollment_stage_progress")
-      .update({ resource_state: merged })
+      .update({ resource_state: merged as any })
       .eq("enrollment_id", enrollmentId)
       .eq("module_id", moduleId);
   };
