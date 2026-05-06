@@ -100,17 +100,26 @@ export function PostCard({ post }: PostCardProps) {
             avatar={post.authorAvatar}
             createdAt={post.createdAt}
           />
-          <button className="text-muted-foreground/50 hover:text-foreground transition-colors p-1 rounded-md hover:bg-muted/40">
-            <MoreHorizontal className="h-4 w-4" />
-          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className="text-muted-foreground/60 hover:text-foreground transition-colors p-1 rounded-md hover:bg-muted/40"
+                aria-label="More"
+              >
+                <MoreHorizontal className="h-4 w-4" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44">
+              <DropdownMenuItem onClick={handleSaveToggle}>
+                {saved ? <BookmarkCheck className="h-4 w-4 mr-2" /> : <Bookmark className="h-4 w-4 mr-2" />}
+                {saved ? "Saved" : "Save"}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => toast.info("Reported. Thanks.")}>
+                <Flag className="h-4 w-4 mr-2" /> Report
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
-
-        {/* Type chip */}
-        {typeMeta && (
-          <Badge variant="outline" className={cn("text-[10px] font-medium px-2 py-0 rounded-full border", typeMeta.className)}>
-            {typeMeta.label}
-          </Badge>
-        )}
 
         {/* Body */}
         <div className="text-left">
