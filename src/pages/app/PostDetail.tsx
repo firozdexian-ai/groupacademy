@@ -163,6 +163,12 @@ export default function PostDetail() {
         )}
 
         {post && (
+          <Card className="rounded-2xl border border-border/40">
+            <CardContent className="p-3">
+              <CommentList postId={post.id} />
+            </CardContent>
+          </Card>
+        )}
 
         {related && related.length > 0 && (
           <div className="space-y-2">
