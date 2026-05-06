@@ -2817,15 +2817,19 @@ export type Database = {
           created_by: string | null
           email: string | null
           id: string
+          last_contacted_at: string | null
+          linkedin_url: string | null
           name: string
           next_action_at: string | null
           next_step: string | null
           notes: string | null
           offering_id: string | null
+          owner_id: string | null
           owner_user_id: string | null
           phone: string | null
           source: string | null
           stage: Database["public"]["Enums"]["crm_lead_stage"]
+          tags: string[]
           title: string | null
           updated_at: string
           value_usd: number | null
@@ -2837,15 +2841,19 @@ export type Database = {
           created_by?: string | null
           email?: string | null
           id?: string
+          last_contacted_at?: string | null
+          linkedin_url?: string | null
           name: string
           next_action_at?: string | null
           next_step?: string | null
           notes?: string | null
           offering_id?: string | null
+          owner_id?: string | null
           owner_user_id?: string | null
           phone?: string | null
           source?: string | null
           stage?: Database["public"]["Enums"]["crm_lead_stage"]
+          tags?: string[]
           title?: string | null
           updated_at?: string
           value_usd?: number | null
@@ -2857,15 +2865,19 @@ export type Database = {
           created_by?: string | null
           email?: string | null
           id?: string
+          last_contacted_at?: string | null
+          linkedin_url?: string | null
           name?: string
           next_action_at?: string | null
           next_step?: string | null
           notes?: string | null
           offering_id?: string | null
+          owner_id?: string | null
           owner_user_id?: string | null
           phone?: string | null
           source?: string | null
           stage?: Database["public"]["Enums"]["crm_lead_stage"]
+          tags?: string[]
           title?: string | null
           updated_at?: string
           value_usd?: number | null
@@ -4455,6 +4467,42 @@ export type Database = {
             referencedColumns: ["talent_id"]
           },
         ]
+      }
+      crm_audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          actor_role: string | null
+          company_id: string | null
+          created_at: string
+          diff: Json | null
+          entity_id: string
+          entity_type: string
+          id: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          actor_role?: string | null
+          company_id?: string | null
+          created_at?: string
+          diff?: Json | null
+          entity_id: string
+          entity_type: string
+          id?: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          actor_role?: string | null
+          company_id?: string | null
+          created_at?: string
+          diff?: Json | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+        }
+        Relationships: []
       }
       currency_rates: {
         Row: {
@@ -6593,6 +6641,8 @@ export type Database = {
           last_status_at: string | null
           professional_id: string | null
           source: string
+          sourced: boolean
+          sourced_relationship_id: string | null
           talent_id: string | null
           withdrawn_at: string | null
         }
@@ -6619,6 +6669,8 @@ export type Database = {
           last_status_at?: string | null
           professional_id?: string | null
           source?: string
+          sourced?: boolean
+          sourced_relationship_id?: string | null
           talent_id?: string | null
           withdrawn_at?: string | null
         }
@@ -6645,6 +6697,8 @@ export type Database = {
           last_status_at?: string | null
           professional_id?: string | null
           source?: string
+          sourced?: boolean
+          sourced_relationship_id?: string | null
           talent_id?: string | null
           withdrawn_at?: string | null
         }
@@ -6661,6 +6715,13 @@ export type Database = {
             columns: ["professional_id"]
             isOneToOne: false
             referencedRelation: "professionals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_applications_sourced_relationship_id_fkey"
+            columns: ["sourced_relationship_id"]
+            isOneToOne: false
+            referencedRelation: "talent_relationships"
             referencedColumns: ["id"]
           },
           {
@@ -10910,6 +10971,100 @@ export type Database = {
           },
         ]
       }
+      talent_list_members: {
+        Row: {
+          added_at: string
+          added_by: string
+          id: string
+          list_id: string
+          note: string | null
+          talent_id: string
+        }
+        Insert: {
+          added_at?: string
+          added_by: string
+          id?: string
+          list_id: string
+          note?: string | null
+          talent_id: string
+        }
+        Update: {
+          added_at?: string
+          added_by?: string
+          id?: string
+          list_id?: string
+          note?: string | null
+          talent_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_list_members_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "talent_lists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "talent_list_members_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "talent_list_members_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
+          {
+            foreignKeyName: "talent_list_members_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_weekly_leaderboard"
+            referencedColumns: ["talent_id"]
+          },
+        ]
+      }
+      talent_lists: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_lists_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       talent_outreach_log: {
         Row: {
           channel: string
@@ -11073,6 +11228,115 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "course_modules"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      talent_relationship_activities: {
+        Row: {
+          actor_id: string | null
+          actor_role: string | null
+          body: Json
+          created_at: string
+          id: string
+          kind: Database["public"]["Enums"]["talent_activity_kind"]
+          relationship_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          actor_role?: string | null
+          body?: Json
+          created_at?: string
+          id?: string
+          kind: Database["public"]["Enums"]["talent_activity_kind"]
+          relationship_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          actor_role?: string | null
+          body?: Json
+          created_at?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["talent_activity_kind"]
+          relationship_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_relationship_activities_relationship_id_fkey"
+            columns: ["relationship_id"]
+            isOneToOne: false
+            referencedRelation: "talent_relationships"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      talent_relationships: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          next_step: string | null
+          next_step_at: string | null
+          notes: string | null
+          owner_id: string | null
+          source: string | null
+          stage: Database["public"]["Enums"]["talent_relationship_stage"]
+          talent_id: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          next_step?: string | null
+          next_step_at?: string | null
+          notes?: string | null
+          owner_id?: string | null
+          source?: string | null
+          stage?: Database["public"]["Enums"]["talent_relationship_stage"]
+          talent_id: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          next_step?: string | null
+          next_step_at?: string | null
+          notes?: string | null
+          owner_id?: string | null
+          source?: string | null
+          stage?: Database["public"]["Enums"]["talent_relationship_stage"]
+          talent_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_relationships_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "talent_relationships_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "talent_relationships_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
+          {
+            foreignKeyName: "talent_relationships_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_weekly_leaderboard"
+            referencedColumns: ["talent_id"]
           },
         ]
       }
@@ -12140,6 +12404,10 @@ export type Database = {
       get_post_insights: { Args: { _post_id: string }; Returns: Json }
       get_public_talent_profile: { Args: { _handle: string }; Returns: Json }
       get_remote_friendly_summary: { Args: never; Returns: Json }
+      get_sourcing_stats: {
+        Args: { p_company_id: string; p_window_days?: number }
+        Returns: Json
+      }
       get_talent_connection_price: {
         Args: { _recipient: string }
         Returns: number
@@ -12356,6 +12624,10 @@ export type Database = {
         Args: { _job_id: string; _talent_id: string }
         Returns: Json
       }
+      search_public_talents: {
+        Args: { p_filters?: Json; p_limit?: number; p_offset?: number }
+        Returns: Json
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       sweep_expired_connections: { Args: never; Returns: number }
@@ -12368,7 +12640,9 @@ export type Database = {
         Args: { _accept: boolean; _request: string }
         Returns: Json
       }
+      talent_list_company_id: { Args: { _list_id: string }; Returns: string }
       talent_marketplace_summary: { Args: never; Returns: Json }
+      talent_rel_company_id: { Args: { _rel_id: string }; Returns: string }
       tip_comment: {
         Args: { _amount: number; _comment_id: string }
         Returns: Json
@@ -12519,6 +12793,24 @@ export type Database = {
       session_status: "scheduled" | "ongoing" | "completed" | "cancelled"
       source_platform: "facebook" | "linkedin" | "bdjobs" | "website" | "other"
       student_status: "lead" | "free_learner" | "enrolled" | "graduated"
+      talent_activity_kind:
+        | "note"
+        | "message"
+        | "status_change"
+        | "call"
+        | "email"
+        | "task"
+        | "list_added"
+        | "invited"
+      talent_relationship_stage:
+        | "prospect"
+        | "contacted"
+        | "engaged"
+        | "interviewing"
+        | "offered"
+        | "hired"
+        | "passed"
+        | "nurture"
       workforce_role_type:
         | "country_director"
         | "head_of_ta"
@@ -12786,6 +13078,26 @@ export const Constants = {
       session_status: ["scheduled", "ongoing", "completed", "cancelled"],
       source_platform: ["facebook", "linkedin", "bdjobs", "website", "other"],
       student_status: ["lead", "free_learner", "enrolled", "graduated"],
+      talent_activity_kind: [
+        "note",
+        "message",
+        "status_change",
+        "call",
+        "email",
+        "task",
+        "list_added",
+        "invited",
+      ],
+      talent_relationship_stage: [
+        "prospect",
+        "contacted",
+        "engaged",
+        "interviewing",
+        "offered",
+        "hired",
+        "passed",
+        "nurture",
+      ],
       workforce_role_type: [
         "country_director",
         "head_of_ta",
