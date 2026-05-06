@@ -105,28 +105,28 @@ export function useAuthChat() {
     const step = context.step as string;
     const protocols: Record<string, any> = {
       welcome: {
-        reply: "Welcome to GroUp Academy! 😊 I'm Aisha. To initialize your trajectory, what's your email?",
+        reply: "Hi, I'm Aisha 👋 What email should I use to set you up?",
         action: "collect_email",
       },
       email_found: {
-        reply: "Registry match confirmed! 🎉 Please enter your password to continue.",
+        reply: "Welcome back! Enter your password to continue.",
         action: "collect_password",
       },
       email_not_found: {
-        reply: "New talent node detected! Let's create your account. What's your full name?",
+        reply: "Looks like you're new here. What's your full name?",
         action: "collect_name",
       },
       phone_collected: {
-        reply: "Initializing human-validation check!\n\nQuestion: What is the opposite of hot?",
+        reply: "Quick check to make sure you're human.\n\nQuestion: What is the opposite of hot?",
         action: "verify_human",
         quiz: FALLBACK_HUMAN_CHECK,
       },
       quiz_passed: {
-        reply: "Verification successful. Create a secure password (min 8 characters).",
+        reply: "Great. Now create a password (at least 8 characters).",
         action: "set_password",
       },
       signup_success: {
-        reply: "🎉 Trajectory synchronized! Welcome to the Academy. You've been granted 250 bonus credits.",
+        reply: "You're in 🎉 Welcome to GroUp Academy. We've added 250 welcome credits to your wallet.",
         action: "complete",
       },
     };
