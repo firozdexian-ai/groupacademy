@@ -110,6 +110,7 @@ import AppMyLearning from "./pages/app/AppMyLearning";
 import TalentMirror from "./pages/app/TalentMirror";
 import InstructorReviewQueue from "./pages/app/InstructorReviewQueue";
 import InstructorInsights from "./pages/app/InstructorInsights";
+import InstructorShell from "./pages/app/instructor/InstructorShell";
 import AppProfessions from "./pages/app/AppProfessions";
 import AppProfessionDetail from "./pages/app/AppProfessionDetail";
 import SchoolDetail from "./pages/app/SchoolDetail";
@@ -477,6 +478,7 @@ export default function App() {
                     <Route path="learning/courses/:slug" element={<AppCourseDetail />} />
                     <Route path="learning/my-courses" element={<AppMyLearning />} />
                     <Route path="talent-mirror" element={<TalentMirror />} />
+                    <Route path="instructor" element={<InstructorShell />} />
                     <Route path="instructor/review-queue" element={<InstructorReviewQueue />} />
                     <Route path="instructor/insights" element={<InstructorInsights />} />
                     <Route path="learning/events" element={<AppEvents />} />

@@ -1,141 +1,171 @@
-# Phase 3.7 — Interview Scheduling & Offers (+ 3.6 polish)
 
-Closes the end-to-end hire flow. After 3.5 (inbound pipeline + messaging) and 3.6 (outbound CRM + sourcing), the kanban can move a card all the way to "Offer" but there is no offer artifact and no way to schedule an interview. 3.7 fills that gap and absorbs the small leftovers from 3.6.
+# Phase 4.1 — Instructor Workspace & Authoring v2
 
----
+Closed-loop instructor model. We never open public "anyone can author" sign-up. Instead, **every course slot is a job**: admin/curriculum lead defines the course brief → platform auto-creates an `instructor_job` post → candidates apply through the existing Jobs pipeline → one is hired and unlocked as Instructor for that specific course.
 
-## Scope
-
-### A. Interview Scheduling
-Lightweight, in-platform first — no external calendar OAuth in 3.7.
-
-- **Recruiter side (Gro10x + Admin)**: from any application card, "Schedule interview" opens a sheet. Recruiter picks 1–5 candidate slots (date + time + duration + mode: video / phone / on-site + location/link + note).
-- **Talent side**: in-app + email notification with a deep link to `/app/applications/:id/interview/:token`. Talent picks one slot or proposes alternatives.
-- **Status machine**: `proposed → confirmed → rescheduled → completed → no_show → cancelled`. Confirming an interview auto-moves the application to the `interview` stage on the kanban (if not already past it).
-- **Reminders**: 24h + 1h reminder via the existing email queue + in-app notifications.
-- **Mode**: stores a meeting link (recruiter pastes their own Meet/Zoom URL) — no calendar provider integration in 3.7.
-- **Side panel** on application detail shows upcoming interviews, status, and history.
-
-### B. Offers
-- **Generate offer** action appears once application reaches `offer` stage (or anytime via override).
-- Form: title, start date, base compensation + currency, variable / equity (optional), benefits (free text), expiry date, custom note.
-- Renders a branded offer letter (HTML → PDF via existing `pdfGenerator` pattern, similar to certificates).
-- Talent sees offer at `/app/applications/:id/offer/:token` with **Accept / Decline / Request changes**.
-- Accept → application stage auto-moves to `hired`, talent + recruiter get confirmation, offer PDF stored in storage and downloadable from both sides.
-- E-signature is text-based "type your full name to accept" in 3.7 (full e-sign deferred).
-- Counter-offer flow: talent can post a comment + the recruiter regenerates a v2.
-
-### C. Direct Messaging for CRM talents (3.6 leftover)
-- New `direct_message_threads` (`company_id`, `talent_id`, `relationship_id?`) + `direct_messages` (mirrors `application_messages` shape).
-- Reuses `ApplicationMessageThread` UI, parameterized by `threadType: "application" | "direct"`.
-- Entry points: CRM talent side sheet, sourcing result card "Message".
-- Subject to existing connection-credit gating (mem: Creator Economy + Messenger Inbox).
-- When the same talent later applies to a job, the thread is shown as **linked context** under the application thread.
-
-### D. Invite to Apply (3.6 leftover)
-- "Invite to apply" action from sourcing card, talent profile, or CRM relationship side sheet.
-- Picks one of the company's open jobs → creates a `job_invitations` row (`job_id`, `talent_id`, `invited_by`, `expires_at`, `note`).
-- New edge function `notify-job-invitation` sends in-app + email + push with deep link to apply.
-- Apply landing shows an "Invited by {Company}" banner; invitation auto-marked `accepted` on submit and the resulting application is flagged `sourced=true` (reusing the 3.6 trigger by also matching against `job_invitations`).
-
-### E. Admin oversight
-- `/dashboard/admin/jobs/interviews` — read-only roll-up of interviews across all companies (filters by status, date range, company, job).
-- `/dashboard/admin/jobs/offers` — same for offers (with offer value totals as a small KPI strip).
-- All offer + interview state changes audited via existing audit pattern.
-
-### F. Analytics widget update (Gro10x Work home)
-Extend the existing "Sourcing this week" card pattern with a sibling **"Hiring this week"** card:
-- Interviews scheduled / completed / no-show
-- Offers sent / accepted / declined
-- Avg time-to-offer (offer_sent_at − applied_at)
+Reuses Phase 3.5–3.7 infra (jobs, kanban, interviews, offers) so we don't rebuild hiring.
 
 ---
 
-## Backend
+## A. Instructor recruitment (closed loop)
 
-### New tables (all RLS company-scoped via `is_company_member`, talent-scoped for talent access)
-- `interview_slots` — one row per proposed slot tied to an `interview`.
-- `interviews` (`application_id`, `company_id`, `talent_id`, `mode`, `meeting_link`, `location`, `status`, `selected_slot_id`, `note`, timestamps, `created_by`).
-- `offers` (`application_id`, `company_id`, `talent_id`, `title`, `start_date`, `currency`, `base_amount numeric(14,2)`, `variable_amount`, `equity_note`, `benefits`, `expires_at`, `pdf_path`, `status` enum [`draft`|`sent`|`accepted`|`declined`|`countered`|`expired`|`withdrawn`], `signed_name`, `signed_at`, timestamps).
-- `offer_versions` — append-only history of offer payloads for counter-offer trail.
-- `direct_message_threads`, `direct_messages` (mirrors `application_messages` schema).
-- `job_invitations` (`job_id`, `talent_id`, `invited_by`, `expires_at`, `status` enum [`pending`|`accepted`|`declined`|`expired`], `note`).
+### Course Brief → Auto Job Post
+- New admin entry point: **Learn → Course Briefs** (`/dashboard/learn/briefs`).
+- A brief captures: working title, target audience, syllabus outline, expected modules/items, delivery mode (recorded / live cohort / hybrid), language(s), expected duration, target launch date, **instructor budget** (flat fee + revenue share override if any), and required credentials/skills.
+- On `Publish brief`, a hidden-but-discoverable **`instructor_job`** is auto-created in the Jobs system:
+  - Posted under the **Group Academy** company.
+  - Tagged `job_kind = 'instructor'`, linked via `course_brief_id`.
+  - Application form auto-includes: sample lesson upload, 2-min teaching video link, portfolio of past courses, expected revenue split.
+- Fully reuses the 3.5 kanban + 3.7 interviews + offers. The "Offer" letter is templated as an **Instructor Engagement Agreement** (60/40 default, brief overrides allowed).
+- Acceptance trigger: when the offer is `accepted`, a row is written into `course_instructors (course_id, user_id, role, revenue_share_pct, ai_credit_cap, status='active')` and the talent's `user_role` gains the new `instructor` role scoped to that course only.
 
-### Storage
-- New private bucket `offer-letters` (signed URLs, recruiter + talent + admin only).
+### Why job-system reuse
+- No parallel application UI to maintain.
+- Interview/offer/notification flows already work.
+- Admin oversight (Phase 3.5 admin kanban) shows instructor pipelines next to regular jobs, filterable by `job_kind`.
 
-### RPCs
-- `get_application_hire_state(p_application_id)` → returns latest interview + offer for the side panel in one round-trip.
-- `get_hiring_stats(p_company_id, p_window_days)` → powers the Gro10x Work card.
-- `confirm_interview_slot(p_interview_id, p_slot_id)` — atomic state transition + auto-stage update.
-- `accept_offer(p_offer_id, p_signed_name)` — atomic stage transition to `hired`, marks offer accepted, fires notifications.
-
-### Triggers
-- `trg_interview_status_sync` — when interview confirmed, ensure `job_applications.stage >= 'interview'`.
-- `trg_offer_accepted_to_hired` — when offer accepted, move application to `hired` stage and append to `application_history`.
-- `trg_job_invitation_accept` — when an application is created and a matching pending `job_invitations` row exists, mark invitation accepted and set `application.sourced=true` (extends the 3.6 sourced flag logic).
-
-### Edge functions
-- `notify-interview-proposed` / `notify-interview-confirmed` / `notify-interview-reminder` (cron-driven via existing pg_cron pattern at 24h + 1h horizons).
-- `generate-offer-pdf` — server-side render of offer letter PDF, stores in `offer-letters` bucket.
-- `notify-offer-sent` / `notify-offer-decision`.
-- `notify-job-invitation`.
+### Limits
+- A course brief can only have **one** active instructor (co-instructors as a stretch goal in 4.2).
+- Closing or filling the brief auto-archives the underlying instructor job.
+- Talent cannot self-apply to be a generic instructor; they only apply against an open brief — keeps the loop closed.
 
 ---
 
-## Frontend file plan
+## B. Instructor Workspace (`/app/instructor`)
 
-### Interviews
-- `src/components/interviews/ScheduleInterviewSheet.tsx`
-- `src/components/interviews/InterviewSlotPicker.tsx` (talent side)
-- `src/components/interviews/InterviewPanel.tsx` (side panel block)
-- `src/pages/app/AppInterviewSchedule.tsx` (talent confirm/reschedule page)
-- `src/hooks/useInterviews.ts`
+A single shell visible only when `course_instructors.status='active'` exists for the user. Tabs:
 
-### Offers
-- `src/components/offers/OfferComposer.tsx` (recruiter)
-- `src/components/offers/OfferLetterTemplate.tsx` (PDF + on-screen)
-- `src/components/offers/OfferDecisionPanel.tsx` (talent accept/decline)
-- `src/pages/app/AppOfferDecision.tsx`
-- `src/lib/offerPdfGenerator.ts`
-- `src/hooks/useOffers.ts`
+1. **My Courses** — courses the user is contracted to author/teach. Status pill: `drafting → in_review → published → live → archived`.
+2. **Modules & Lessons** — drag-and-drop builder over `course_modules`. Lesson types: video, article, quiz, scenario, project, live session.
+3. **Item Bank** — composer for MCQ / MRQ / scenario / rubric. Inline AI assist (existing `ai-item-rewrite`, `ai-item-translate`) plus new `ai-item-generate` (from transcript or PDF). Every AI call debits **instructor credits** (see Section D).
+4. **Review Queue** — reuses existing `InstructorReviewQueue` page; nudges from `get_authoring_review_digest`.
+5. **Insights** — reuses `InstructorInsights` (p-values, mastery rollup, authoring trends).
+6. **Translations** — sidecar UI for `module_item_translations` (10 langs) with bulk AI translate.
+7. **Earnings** — gross sales, platform 40%, instructor 60%, pending payout, last withdrawal. Reuses existing wallet/withdrawals infra.
+8. **AI Credits** — current balance, monthly grant, top-up via personal credits at 1cr=2 BDT.
 
-### Direct messaging (CRM)
-- Extend `src/components/applications/ApplicationMessageThread.tsx` to accept `threadType` + `threadId` + new hook.
-- `src/hooks/useDirectMessages.ts`
-- Wire into `TalentPipelinePanel.tsx` and sourcing result card.
-
-### Invite to apply
-- `src/components/sourcing/InviteToApplyDialog.tsx`
-- Banner block on `PublicJobDetail.tsx` + `AppApplicationDetail.tsx` apply flow.
-
-### Admin
-- `src/pages/admin/jobs/AdminInterviews.tsx`
-- `src/pages/admin/jobs/AdminOffers.tsx`
-- Register under Admin → Jobs group (mem: Admin Groups 7-10).
-
-### Touchpoints
-- `src/components/applications/ApplicationKanbanCard.tsx` — show interview + offer chips.
-- `src/components/applications/ApplicationDetailSheet.tsx` — mount `InterviewPanel` + offer block.
-- `src/gro10x/pages/Gro10xWork.tsx` — add "Hiring this week" card.
-- `src/gro10x/Gro10xRoutes.tsx` — no new routes (sheets only inside Work).
+### Publishing workflow (gated)
+`draft → submit_for_review → admin_review → published`
+- Admin queue lives in **Learn → Course Approvals** (Group #11 area).
+- First publish on any course always requires admin approval. After 2 approved publishes, future minor edits auto-publish but **major edits** (new module, syllabus change, price change) re-trigger review.
 
 ---
 
-## Out of scope (later phases)
-- Google/Outlook calendar OAuth + auto-create events
-- Real e-signature (DocuSign / HelloSign)
-- Background-check integrations
-- Multi-round interview kits / scorecards (queued for Assessments subphase)
-- Talent-side saved searches / job alerts (still deferred per earlier decision)
-- Self-serve job posting & employer billing (separate subphase)
+## C. Revenue model (60/40)
+
+- Default split: **60% instructor / 40% platform** on net revenue (after gateway fees and refunds), recorded per sale.
+- Brief can override (e.g., 70/30 for a marquee instructor) — captured in `course_instructors.revenue_share_pct`.
+- Sale ledger: extend existing transactions with `course_revenue_splits (sale_id, course_id, instructor_id, gross, fees, net, instructor_amount, platform_amount, status)`.
+- **Cohort-based revenue** for live cohorts: split applied per enrollment at end of cohort; refunds reverse the split.
+- Instructor sees ledger in **Earnings**; admin sees aggregated payout queue in **Learn → Payouts**.
+- Withdrawal reuses `withdrawals` (existing): instructors withdraw earnings the same way creators withdraw Hype earnings.
 
 ---
 
-## Open questions
+## D. AI authoring as **instructor credits**
 
-1. **Offer PDF branding** — use the company's logo/name only, or co-brand with Group Academy footer? Recommendation: company-branded with a small "Powered by Group Academy" footer, matching certificate pattern.
-2. **Counter-offer credit cost** — should talent counter-offers cost credits (to deter spam) or be free? Recommendation: free for the first counter, credits only if they request a third revision.
-3. **Interview reminder channels** — email + in-app by default; should we also push via SMS for confirmed interviews (uses Twilio connector, costs money)? Recommendation: in-app + email only in 3.7; add SMS as an opt-in toggle later.
+We don't make AI free (cost control) and we don't bill from talent's personal wallet (mixes purposes). We add a dedicated **instructor credit pool**.
 
-Approve to implement, or tell me which of A–F to drop / reorder.
+### Model
+- New table `instructor_credit_balances (user_id, course_id, balance numeric(12,1), monthly_grant numeric(12,1), updated_at)`.
+- New table `instructor_credit_ledger (id, user_id, course_id, delta numeric(12,1), reason, ref_id, created_at)`.
+- **Grant rules** (simple, tunable later):
+  - On instructor onboarding for a course: **+50 credits** seed grant.
+  - Monthly auto-grant while course is in `drafting` or `in_review`: **+30 credits**.
+  - +1 credit per **5** approved item edits shipped (small productivity bonus).
+- **Cost rules** (per AI call, fractional, mem: Fractional Credits):
+  - `ai-item-generate` (single item from prompt): 0.5 credit
+  - `ai-item-generate` (bulk from transcript/PDF, per item produced): 0.3 credit
+  - `ai-item-rewrite`: 0.2 credit
+  - `ai-item-translate` (per language per item): 0.1 credit
+  - Scenario auto-grading test runs: 0.2 credit
+- **Top-up**: instructor can convert **personal credits → instructor credits** at parity (1:1) inside the same course. Locked to that course to prevent farming.
+- **Insufficient balance**: AI buttons disable with a "Top up" CTA; manual authoring always remains free.
+
+### Why credits, not free
+- AI cost is real and concentrated on heavy authors.
+- Forces instructors to value the tool and prevents "regenerate 50 times" loops.
+- Gives a clean lever to reward productive authors via grants tied to approved output.
+
+---
+
+## E. Talent-side touchpoints
+
+- New job type filter on `/app/jobs`: **"Teach with us"** chip surfacing all open instructor briefs (still uses normal jobs UI; just a saved filter).
+- Course detail page shows instructor card with verified credentials (ties to Skill Credentials).
+- "Become an instructor" CTA in profile menu deep-links to the Teach-with-us filter — **never** to a self-serve form.
+
+---
+
+## F. Admin surfaces (`/dashboard/learn/...`)
+
+- **Course Briefs** — create/edit briefs, view linked instructor job pipeline inline.
+- **Course Approvals** — review queue for `submit_for_review` courses + major edits; approve / request changes / reject with note.
+- **Instructor Roster** — table of active instructors, courses, revenue YTD, AI credit usage, NPS.
+- **Payouts** — instructor split queue, mark paid, export CSV (mem: Workforce Commissions pattern).
+- Lives under existing **Group #11 Learn** (mem: Admin Groups 11-16).
+
+---
+
+## G. Database delta (migrations)
+
+- `course_briefs (id, title, summary, syllabus jsonb, mode, language, duration_weeks, target_launch, budget_amount, revenue_share_pct, status, created_by, created_at, instructor_job_id, instructor_user_id)`.
+- Extend `jobs`: nullable `job_kind text default 'employer'` + `course_brief_id uuid`.
+- `course_instructors (id, course_id, user_id, role, revenue_share_pct, ai_credit_cap, status, hired_via_application_id, started_at, ended_at)`.
+- `course_revenue_splits` (above).
+- `instructor_credit_balances`, `instructor_credit_ledger` (above).
+- New `app_role` value: `'instructor'`. Granted only via `course_instructors` activation; revoked when no active courses remain. RLS: instructors can only edit content of courses they're active on (via `is_course_instructor(course_id, auth.uid())`).
+- Trigger `trg_offer_accepted_instructor`: when an `offers` row tied to an `instructor_job` is accepted, insert into `course_instructors` and grant role.
+- Trigger `trg_grant_instructor_seed_credits`: on `course_instructors` insert.
+- All functions use `set search_path = public` (mem: Security).
+
+---
+
+## H. Edge functions / RPCs
+
+- `create-instructor-job-from-brief` (admin) — atomic brief publish → job creation.
+- `submit-course-for-review` (instructor).
+- `approve-course-publish` (admin) — moves to `published`, emits notifications.
+- `instructor-credit-debit` — wraps any AI authoring call; checks balance, deducts, logs.
+- `compute-course-revenue-split` — runs on `transactions.completed` for course sales.
+- `ai-item-generate` (new) — uses Lovable AI Gateway (`google/gemini-2.5-flash` default for cost; `gpt-5-mini` for nuanced rewrites).
+- All edges verify `auth.getUser(token)` and instructor RBAC (mem: Edge Function Security).
+
+---
+
+## I. Frontend file plan
+
+- `src/pages/app/instructor/InstructorShell.tsx` (tabs)
+- `src/pages/app/instructor/MyCoursesTab.tsx`
+- `src/pages/app/instructor/ModulesBuilder.tsx`
+- `src/pages/app/instructor/ItemBankComposer.tsx`
+- `src/pages/app/instructor/EarningsTab.tsx`
+- `src/pages/app/instructor/AiCreditsTab.tsx`
+- `src/components/instructor/AiGenerateDialog.tsx`
+- `src/components/instructor/CreditMeter.tsx`
+- `src/components/instructor/PublishGate.tsx`
+- `src/hooks/useInstructorCourses.ts`, `useInstructorCredits.ts`, `useInstructorEarnings.ts`
+- Admin: `src/components/dashboard/learn/CourseBriefsTab.tsx`, `CourseApprovalsTab.tsx`, `InstructorRosterTab.tsx`, `InstructorPayoutsTab.tsx`.
+- Admin sidebar: add 4 entries under Learn group.
+- Routes: register `/app/instructor` in `App.tsx`; admin tabs added to `Dashboard.tsx` lazy map.
+
+---
+
+## J. Out of scope for 4.1 (parked for later sub-phases)
+
+- Co-instructors / TAs (4.2 cohorts).
+- Live class delivery (4.2).
+- Discussions/Q&A (4.3).
+- Self-serve instructor sign-up — **explicitly never**.
+- Tax invoicing for instructor payouts beyond CSV export.
+
+---
+
+## K. Open questions
+
+1. **Brief budget structure** — flat fee on hire + revenue share, or revenue share only? Recommendation: small flat fee (covers authoring time) + 60/40 on sales after launch.
+2. **Monthly AI credit grant size** — start at 30/month per active drafting course or smaller (e.g., 20)? Recommendation: 30 to encourage authoring; tune with telemetry.
+3. **First-time instructor escrow** — hold first month's payout for 30 days as quality buffer (refund risk)? Recommendation: yes for first course only.
+4. **Major-edit definition** — auto-detect (new module / >20% item churn / price change) or instructor-flagged? Recommendation: auto-detect via diff service to keep workflow honest.
+
+Approve to start implementing 4.1, or tell me which of A–F to drop / reorder.

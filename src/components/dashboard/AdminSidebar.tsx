@@ -218,6 +218,7 @@ const navGroups: NavGroup[] = [
       { title: "Learner Progress", icon: BarChart, value: "learner-progress" },
       { title: "Graduates", icon: Trophy, value: "graduates" },
       { title: "B2B Courses", icon: Building2, value: "b2b-courses" },
+      { title: "Course Briefs", icon: Sparkles, value: "course-briefs" },
     ],
   },
   {
