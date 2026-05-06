@@ -47,6 +47,7 @@ import {
   School,
   Handshake,
   Upload,
+  Wallet,
 } from "lucide-react";
 import {
   Sidebar,
