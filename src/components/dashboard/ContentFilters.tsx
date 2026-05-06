@@ -129,16 +129,19 @@ const ContentFilters = ({ values, onChange, className }: ContentFiltersProps) =>
         </SelectTrigger>
         <SelectContent className="rounded-xl border-2 shadow-2xl">
           <SelectItem value="newest" className="font-bold uppercase text-[9px]">
-            Temporal: Newest
+            Newest
           </SelectItem>
           <SelectItem value="oldest" className="font-bold uppercase text-[9px]">
-            Temporal: Oldest
+            Oldest
           </SelectItem>
           <SelectItem value="title_asc" className="font-bold uppercase text-[9px]">
-            Alpha: A-Z
+            Title A-Z
           </SelectItem>
           <SelectItem value="title_desc" className="font-bold uppercase text-[9px]">
-            Alpha: Z-A
+            Title Z-A
+          </SelectItem>
+          <SelectItem value="enrollment_desc" className="font-bold uppercase text-[9px]">
+            Top Enrolled
           </SelectItem>
         </SelectContent>
       </Select>
