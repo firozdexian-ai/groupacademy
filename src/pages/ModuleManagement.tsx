@@ -538,8 +538,9 @@ export default function ModuleManagement(props: ModuleManagementProps = {}) {
                   </div>
                 </CardContent>
               </Card>
-            );
-          })
+              );
+            }}
+          />
         )}
       </main>
 
