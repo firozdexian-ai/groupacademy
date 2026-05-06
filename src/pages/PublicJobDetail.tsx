@@ -333,7 +333,7 @@ export default function PublicJobDetail() {
         </Card>
 
         {/* Similar roles */}
-        <RelatedJobs currentJobId={job.id} />
+        <RelatedJobs currentJobId={job.id} companyName={job.company_name} location={job.location ?? ""} linkPrefix="/jobs" />
       </main>
 
       {/* Sticky apply bar */}
