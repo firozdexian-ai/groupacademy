@@ -66,20 +66,33 @@ export default function LearningHub() {
     <div className="max-w-4xl mx-auto px-3 py-3 pb-28 space-y-4 animate-in fade-in duration-300">
       {!detailView && (
         <>
-          <header className="px-1">
-            <h1 className="text-xl font-bold leading-tight">Learn</h1>
-            <p className="text-xs text-muted-foreground">Courses, career paths and study abroad.</p>
+          <header className="px-1 flex items-start justify-between gap-2">
+            <div>
+              <h1 className="text-xl font-bold leading-tight">Learn</h1>
+              <p className="text-xs text-muted-foreground">Courses, career paths and study abroad.</p>
+            </div>
+            {dueCount > 0 && (
+              <Link
+                to="/app/learning/review"
+                className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 border border-primary/30 px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary/15 transition-colors"
+                aria-label={`${dueCount} reviews due`}
+              >
+                <Bell className="h-3.5 w-3.5" />
+                <span>{dueCount} due</span>
+              </Link>
+            )}
           </header>
 
           <nav className="flex p-1 h-12 bg-muted/50 rounded-xl border border-border/50 sticky top-14 z-30">
             {tabs.map((tab) => {
               const isActive = activeTab === tab.key;
+              const showBadge = tab.key === "my-courses" && dueCount > 0;
               return (
                 <button
                   key={tab.key}
                   onClick={() => handleTabChange(tab.key)}
                   className={cn(
-                    "flex-1 flex items-center justify-center gap-1.5 rounded-lg text-xs font-medium transition-all",
+                    "relative flex-1 flex items-center justify-center gap-1.5 rounded-lg text-xs font-medium transition-all",
                     isActive
                       ? "bg-background shadow-sm text-foreground"
                       : "text-muted-foreground hover:text-foreground",
@@ -87,6 +100,11 @@ export default function LearningHub() {
                 >
                   <tab.icon className="h-4 w-4" />
                   <span>{tab.label}</span>
+                  {showBadge && (
+                    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center shadow">
+                      {dueCount > 9 ? "9+" : dueCount}
+                    </span>
+                  )}
                 </button>
               );
             })}
