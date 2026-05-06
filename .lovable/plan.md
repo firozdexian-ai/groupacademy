@@ -90,3 +90,13 @@ AIChatPanel ──(talentId, moduleId, contentId, messages)──► ai-instruct
 ### Approval options
 - **continue with 3.5** — ship a–e together (recommended).
 - **continue with 3.5.a+b** — backend only (RPC + edge function), starter chips in a follow-up.
+---
+
+## 3.5 ship notes
+
+- DB: `get_tutor_mastery_context(_talent_id, _module_id, _content_id)` returns weak/strong topics, due-for-review count, credentials, last scenario.
+- Edge `ai-instructor-chat` resolves talentId from auth and appends a LEARNER MASTERY SNAPSHOT block to the system prompt with a "coach to weakest topic, reference wins, link /app/talent-mirror" directive.
+- `<AIChatPanel>` adds optional `moduleId`/`contentId` props (auto-derived from contextType/contextId), renders dynamic starter chips and a one-time hint on empty state via new `useTutorMasteryContext` hook.
+- Phase 3 progress: ~62% (5 of 8).
+
+**Up next:** 3.6 Authoring Feedback Loop. Reply **continue with 3.6**.
