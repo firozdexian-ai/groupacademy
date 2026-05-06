@@ -80,6 +80,12 @@ export function ProfessionStep({ onContinue }: ProfessionStepProps) {
         : { professionCategoryId: selectedCat, professionalRoleId: selectedRole, customProfession: null };
       const ok = await updateTalent(payload);
       if (!ok) throw new Error("save failed");
+      // Bind a Career Coach as soon as the profession is known
+      if (talent?.id && !showCustom && selectedCat) {
+        try {
+          await supabase.rpc("assign_career_coach" as any, { _talent_id: talent.id });
+        } catch (e) { console.warn("assign_career_coach skipped:", e); }
+      }
       trackOnboardingStep("profession", "next", { custom: showCustom });
       onContinue();
     } catch {
