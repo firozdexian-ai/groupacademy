@@ -59,8 +59,8 @@ const TYPE_META: Record<string, { label: string; className: string } | null> = {
 
 export function PostCard({ post }: PostCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const { isItemSaved, saveItem, unsaveItem } = useSavedItems();
-  const saved = isItemSaved(post.id, "post" as any);
+  const { isSaved, toggleSave } = useSavedItems();
+  const saved = isSaved(post.id, "post" as any);
 
   const pollOptions = post.pollOptions || [];
   const { hasVoted, userVote, results, totalVotes, castVote, isLoading: pollLoading } = usePollVoting(
@@ -73,15 +73,10 @@ export function PostCard({ post }: PostCardProps) {
   const typeMeta = TYPE_META[post.contentType] ?? null;
   const isVideo = post.mediaUrl?.match(/(youtube\.com|youtu\.be)/);
 
-  const toggleSave = async () => {
+  const handleSaveToggle = async () => {
     try {
-      if (saved) {
-        await unsaveItem(post.id, "post" as any);
-        toast.success("Removed from saved");
-      } else {
-        await saveItem(post.id, "post" as any);
-        toast.success("Saved");
-      }
+      await toggleSave(post.id, "post" as any);
+      toast.success(saved ? "Removed from saved" : "Saved");
     } catch {
       toast.error("Couldn't update saved");
     }
