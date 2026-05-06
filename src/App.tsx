@@ -489,6 +489,7 @@ export default function App() {
                     <Route path="agents/:agentKey/profile" element={<AgentProfile />} />
                     <Route path="agents/:agentKey" element={<AgentChat />} />
                     <Route path="ai-general" element={<AIGeneral />} />
+                    <Route path="career-coach" element={<CareerCoach />} />
                     <Route path="transactions" element={<Transactions />} />
                     <Route path="withdrawals" element={<Withdrawals />} />
                     <Route path="profile/verify" element={<ProfileVerify />} />
