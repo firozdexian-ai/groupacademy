@@ -220,6 +220,9 @@ export function useFeedRecommendations() {
     }
   }, [fetchFeed]);
 
+  const talentCountry = talent?.country;
+  const talentProfession = (talent as any)?.customProfession || (talent as any)?.custom_profession;
+
   return {
     items: allItems
       .filter((i) => !dismissedIds.has(i.id))
@@ -227,6 +230,18 @@ export function useFeedRecommendations() {
         if (filters.type === "all") return true;
         if (filters.type === "poll") return i.type === "post" && i.contentType === "poll";
         return i.type === filters.type;
+      })
+      .filter((i) => {
+        if (filters.scope === "global") return true;
+        // Country/Profession scopes only include posts (community), not catalog content.
+        if (i.type !== "post") return false;
+        if (filters.scope === "country") {
+          return !!talentCountry && i.authorCountry === talentCountry;
+        }
+        if (filters.scope === "profession") {
+          return !!talentProfession && i.authorProfession === talentProfession;
+        }
+        return true;
       }),
     insights: useMemo(() => [...STATIC_INSIGHTS].sort(() => 0.5 - Math.random()).slice(0, 3), []),
     isLoading,
