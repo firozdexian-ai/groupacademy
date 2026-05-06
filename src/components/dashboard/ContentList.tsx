@@ -172,6 +172,28 @@ const ContentList = ({ filter }: ContentListProps) => {
 
       if (filter) query = query.eq("content_type", filter as ContentType);
 
+      // Type segment filter
+      const seg = filters.typeSegment || "all";
+      if (!filter) {
+        if (seg === "recorded") query = query.in("content_type", ["recorded_course"]);
+        else if (seg === "live") query = query.in("content_type", ["live_webinar", "batch_class"]);
+        else if (seg === "offline") query = query.eq("content_type", "offline_seminar");
+        else if (seg === "free") query = query.eq("content_type", "free_video");
+      }
+
+      // Date window filter (live + offline only)
+      const dw = filters.dateWindow || "all";
+      if ((seg === "live" || seg === "offline") && dw !== "all") {
+        const now = new Date().toISOString();
+        if (dw === "upcoming") query = query.gte("event_date", now);
+        else if (dw === "past") query = query.lt("event_date", now);
+        else if (dw === "undated") query = query.is("event_date", null);
+        else if (dw === "this_week") {
+          const wk = new Date(); wk.setDate(wk.getDate() + 7);
+          query = query.gte("event_date", now).lte("event_date", wk.toISOString());
+        }
+      }
+
       if (filters.programId !== "all") query = query.eq("profession_line_id", filters.programId);
       if (filters.levelId !== "all") query = query.eq("profession_level_id", filters.levelId);
 
