@@ -1,93 +1,123 @@
-# Sub-phase 3.7 — AI Rewrite Suggestions for Flagged Items
+# Sub-phase 3.8 — Multilingual Rewrite Support & Cross-Course Authoring Insights
 
-3.6 surfaces *which* items are broken. 3.7 makes the fix one click. When an author opens a flagged quiz question or scenario inside `<ItemBankAnalyticsPanel>`, an "AI rewrite" button calls Lovable AI and returns 1–3 concrete revisions (rewritten stem/options/rubric) with reasoning tied to the flag (`low_p_value`, `trivial`, `miscalibrated`, `low_rubric`, `stale`). Author reviews a diff, edits if desired, and applies — writing back to `module_quiz_pool` / `module_scenario_pool` and clearing serve counters so the new version is re-measured fairly.
+3.7 made single-item AI fixes one click. 3.8 finishes Phase 3 by (a) letting authors generate **localized** versions of an item in any target language without losing the original, and (b) giving instructors and admins a **portfolio-level view** of where their content quality is trending — across every course they own, not just one module.
 
-## Goal
+This closes the loop: 3.6 surfaces flags → 3.7 fixes the item → 3.8 translates the fix and shows trends so authors know whether their fixes are actually working over time.
 
-Close the loop: flagged item → AI suggestion → 1-click apply → fresh measurement.
+---
 
-## Scope
+## Part A — Multilingual Rewrites (item-level translation)
 
-### a. Edge function `ai-item-rewrite`
-- Auth-gated (admin role).
-- Input: `{ kind: "quiz" | "scenario", item_id, flags: string[], notes?: string }`.
-- Loads the item from the right pool, plus aggregate stats (p-value, distractor distribution, avg rubric scores) using the same SQL aggregator as `instructor-item-analytics`.
-- Builds a structured Lovable AI call (`google/gemini-3-flash-preview`, **tool-calling** for structured JSON — never free-form JSON in the prompt) returning:
-  - For quiz: `{ suggestions: [{ label, question, options[4], correct_index, rationale, change_summary }] }`.
-  - For scenario: `{ suggestions: [{ label, title, prompt, rubric[] (criterion, weight, description), rationale, change_summary }] }`.
-- Each suggestion is tagged with the flag it addresses (e.g., for `trivial` it must increase difficulty; for `miscalibrated` it must adjust the difficulty label or distractors).
-- Returns 1–3 suggestions; never persists. Logs token usage to existing analytics for 3.8.
+### Data model
+New sidecar table `module_item_translations` (does not mutate quiz/scenario pools — preserves analytics on canonical English items):
 
-### b. Edge function `ai-item-apply`
-- Auth-gated (admin role).
-- Input: `{ kind, item_id, patch }` where `patch` is a sanitized subset of fields.
-- Validates: required fields present, correct_index 0–3, rubric criteria sum > 0, length caps (question ≤ 600 chars, options ≤ 200, scenario prompt ≤ 2000).
-- Updates the row, **resets `times_served`/`times_correct` to 0**, sets `quality_score = NULL`, and inserts a row into a new `module_item_revision_log` table (audit trail).
-- Returns `{ ok: true, item_id, revision_id }`.
-
-### c. Database
-- `module_item_revision_log` (item_id, kind, before jsonb, after jsonb, flags_addressed text[], applied_by uuid, applied_at). Admin-only RLS.
-
-### d. UI inside `<ItemBankAnalyticsPanel>`
-- New "AI rewrite" button next to the existing flag badges on each flagged row.
-- Opens a `<Sheet>` (`<ItemRewriteSheet>`) showing:
-  - Current item (read-only).
-  - Loading skeleton while `ai-item-rewrite` runs.
-  - 1–3 suggestion cards, each with: label, change summary, full preview, "Use this" button.
-  - On "Use this" → optional inline tweak in a textarea, then "Apply" → calls `ai-item-apply`, refreshes analytics, toasts.
-- Empty/error state with retry.
-
-### e. Bulk path on `/app/instructor/review-queue`
-- Per-module card gets a "Generate fixes for all flagged" button (admin-only) that fans out one `ai-item-rewrite` call per flagged item (capped at 10 per click) and stores results in component state for review — no auto-apply. Author still confirms each.
-
-### f. Telemetry
-- Log `ai_rewrite_generated` (per item, with flags), `ai_rewrite_applied` (with revision_id), and `ai_rewrite_dismissed` for 3.8 trends.
-
-## Out of scope
-- Multi-language rewrites (Phase 3.8).
-- Auto-apply / scheduled regeneration — every change requires explicit author confirmation.
-- Versioned rollback UI (audit row exists; surface in admin tools later).
-- Image/diagram regeneration in scenarios.
-
-## Data flow
-
-```text
-ItemBankAnalyticsPanel ──► "AI rewrite" ──► ai-item-rewrite (Lovable AI, tool call)
-                                                      │
-                                          1–3 structured suggestions
-                                                      │
-                                  Author reviews → tweaks → "Apply"
-                                                      │
-                                            ai-item-apply (validate + write)
-                                                      │
-                       module_quiz_pool / module_scenario_pool updated,
-                       serve counters reset, module_item_revision_log row inserted
-                                                      │
-                                          panel re-fetches analytics
+```
+module_item_translations
+  id uuid pk
+  item_id uuid not null
+  item_type text check in ('quiz','scenario')
+  language_code text  -- 'bn', 'es', 'fr', 'ar', 'hi', etc. (ISO 639-1)
+  payload jsonb       -- {question, options[], explanation} or {prompt, rubric[]}
+  source 'ai' | 'human'
+  reviewed_by uuid null
+  reviewed_at timestamptz null
+  created_at timestamptz default now()
+  unique (item_id, item_type, language_code)
 ```
 
-## Files to create / edit
+RLS: Admins manage; enrolled users can SELECT translations for items in modules they're enrolled in (mirrors pool policy).
 
-**New**
-- `supabase/functions/ai-item-rewrite/index.ts`
-- `supabase/functions/ai-item-apply/index.ts`
-- `src/components/learning/ItemRewriteSheet.tsx`
-- `src/hooks/useItemRewrite.ts`
-- `supabase/migrations/...` — `module_item_revision_log` + RLS.
-- `mem://product/ai-item-rewrite-suggestions`
+### Edge function `ai-item-translate`
+- Admin-gated (`has_role admin` check via auth header).
+- Input: `{ item_id, item_type, target_language }`.
+- Loads canonical item from `module_quiz_pool` / `module_scenario_pool`.
+- Calls Lovable AI (`google/gemini-3-flash-preview`) with structured tool-calling — same shape as 3.7 but constrained to translation: preserve correct_index, preserve rubric weights, only translate prose.
+- Returns suggestion (does NOT auto-persist).
 
-**Edit**
-- `src/components/learning/ItemBankAnalyticsPanel.tsx` — per-row "AI rewrite" button + sheet wiring.
-- `src/pages/app/InstructorReviewQueue.tsx` — "Generate fixes for all flagged" bulk action.
+### Edge function `ai-item-translate-apply`
+- Validates payload shape matches canonical item structure (option count, rubric count).
+- Upserts into `module_item_translations`.
+- Logs into `module_item_revision_log` with `change_type='translation'` for audit continuity.
+
+### UI
+- Extend `ItemRewriteSheet.tsx` with a **"Translate"** tab next to "Rewrite":
+  - Language picker (preset list: Bengali, Spanish, French, Arabic, Hindi, Indonesian, Portuguese — driven by config not hardcoded in component).
+  - Side-by-side: canonical (left, read-only) vs AI translation (right, editable).
+  - Apply button writes to `module_item_translations`.
+- Badge in `ItemBankAnalyticsPanel` row showing translation count: e.g. `🌐 3 langs`.
+
+### Learner runtime
+- Out of scope for this phase (no learner-facing language switch yet). Translations sit in DB ready for Phase 4 i18n. This is intentional — ship author tooling first, validate quality, then expose.
+
+---
+
+## Part B — Cross-Course Authoring Insights
+
+### RPC `get_authoring_trends(_instructor_id uuid, _days int default 30)`
+SECURITY DEFINER, admin or self-instructor only. Returns aggregate across **all** modules the instructor authors:
+
+```
+{
+  totals: { courses, modules, items, flagged_items, translated_items },
+  flag_breakdown: { low_p_value, miscalibrated, low_rubric, stale, trivial },
+  trend_7d_vs_prev_7d: { flagged_delta_pct, mastery_delta_pct },
+  ai_assist: { rewrites_generated, rewrites_applied, translations_applied },
+  hotspots: [ { course_id, course_title, flagged_count, top_flag } ],  -- top 5 worst courses
+  wins: [ { course_id, course_title, flagged_resolved_30d } ]          -- top 3 most improved
+}
+```
+
+Built from existing tables: `module_quiz_pool`, `module_scenario_pool`, `module_item_revision_log`, `authoring_digest_log`, `module_item_translations`.
+
+### UI — `/app/instructor/insights`
+New page (also linked from `InstructorReviewQueue` header as "Trends"):
+
+```
+┌──────────────────────────────────────────────────┐
+│ Authoring Insights — last 30 days                │
+├──────────────────────────────────────────────────┤
+│ [Items: 412]  [Flagged: 23 ↓4]  [Mastery: 71% ↑] │
+│ [AI rewrites applied: 18]  [Translations: 9]     │
+├──────────────────────────────────────────────────┤
+│ Flag breakdown (donut)   |  7-day trend (sparkline)│
+├──────────────────────────────────────────────────┤
+│ ⚠ Hotspot courses        |  ✅ Most improved      │
+│ • Sales 101 (8 flags)    |  • Excel Basics (-6)   │
+│ • Pitch Deck (5)         |  • SQL Intro (-3)      │
+└──────────────────────────────────────────────────┘
+```
+
+- Recharts donut + sparkline (already in deps).
+- Click a hotspot → deep link to that course's `InstructorReviewQueue` filtered view.
+- Admin viewing `?instructor=<uuid>` sees any instructor's panel; instructors only see their own (RPC enforces).
+
+### Weekly digest enhancement
+Extend existing `authoring-review-digest` weekly mode to embed a "Your week in numbers" block at the top of each instructor email (uses same RPC). No new email template — just an extra section in the existing one.
+
+---
+
+## Files to create
+- `supabase/migrations/<ts>_item_translations_and_trends.sql` — table + RLS + `get_authoring_trends` RPC
+- `supabase/functions/ai-item-translate/index.ts`
+- `supabase/functions/ai-item-translate-apply/index.ts`
+- `src/hooks/useItemTranslate.ts`
+- `src/hooks/useAuthoringTrends.ts`
+- `src/pages/app/InstructorInsights.tsx`
+- `mem://product/multilingual-items-and-authoring-trends`
+
+## Files to edit
+- `src/components/learning/ItemRewriteSheet.tsx` — add Translate tab + language picker
+- `src/components/learning/ItemBankAnalyticsPanel.tsx` — show translation count badge
+- `src/pages/app/InstructorReviewQueue.tsx` — add "View Trends" link in header
+- `supabase/functions/authoring-review-digest/index.ts` — embed weekly numbers block
+- `supabase/functions/_shared/transactional-email-templates/authoring-review-digest.tsx` — render new block
+- `src/App.tsx` — register `/app/instructor/insights`
 - `.lovable/plan.md`, `mem://index.md`
 
-## 3.7 ship notes
+---
 
-- DB: `module_item_revision_log` audit table (admin-only RLS).
-- Edge `ai-item-rewrite` (admin) — Lovable AI Gateway with tool-calling schemas, 1–3 structured suggestions targeting the supplied flags. Surfaces 429/402.
-- Edge `ai-item-apply` (admin) — validates patch, updates pool, **resets serve counters**, inserts revision log row.
-- UI: `ItemRewriteSheet` (preview → editable draft → Apply), wired from "AI rewrite" pill on every flagged row inside `ItemBankAnalyticsPanel`.
-- Deferred (3.7.e bulk path on review-queue): not shipped — single-item flow handles 95% of cases without orphaning AI generations.
-- Phase 3 progress: ~88% (7 of 8).
+## Approval options
 
-**Up next:** 3.8 (multilingual rewrite + cross-course trend insights). Reply **continue with 3.8**.
+- **"continue with 3.8"** — ship both A (multilingual) and B (trends). Recommended: completes Phase 3.
+- **"continue with 3.8.A"** — multilingual only.
+- **"continue with 3.8.B"** — trends only.

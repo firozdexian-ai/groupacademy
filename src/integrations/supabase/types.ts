@@ -8012,6 +8012,48 @@ export type Database = {
         }
         Relationships: []
       }
+      module_item_translations: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          item_id: string
+          item_type: string
+          language_code: string
+          payload: Json
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          item_id: string
+          item_type: string
+          language_code: string
+          payload: Json
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          item_id?: string
+          item_type?: string
+          language_code?: string
+          payload?: Json
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       module_progress: {
         Row: {
           completed_at: string | null
@@ -11425,6 +11467,10 @@ export type Database = {
       }
       get_authoring_review_digest: {
         Args: { _days?: number; _module_id: string }
+        Returns: Json
+      }
+      get_authoring_trends: {
+        Args: { _days?: number; _instructor_id: string }
         Returns: Json
       }
       get_or_create_talent: {
