@@ -7922,6 +7922,65 @@ export type Database = {
           },
         ]
       }
+      module_quiz_pool: {
+        Row: {
+          correct_index: number
+          created_at: string
+          created_by_talent_id: string | null
+          difficulty: string | null
+          explanation: string | null
+          generated_by: string
+          id: string
+          module_id: string
+          options: Json
+          quality_score: number | null
+          question: string
+          times_correct: number | null
+          times_served: number | null
+          topic_tags: string[] | null
+        }
+        Insert: {
+          correct_index: number
+          created_at?: string
+          created_by_talent_id?: string | null
+          difficulty?: string | null
+          explanation?: string | null
+          generated_by?: string
+          id?: string
+          module_id: string
+          options: Json
+          quality_score?: number | null
+          question: string
+          times_correct?: number | null
+          times_served?: number | null
+          topic_tags?: string[] | null
+        }
+        Update: {
+          correct_index?: number
+          created_at?: string
+          created_by_talent_id?: string | null
+          difficulty?: string | null
+          explanation?: string | null
+          generated_by?: string
+          id?: string
+          module_id?: string
+          options?: Json
+          quality_score?: number | null
+          question?: string
+          times_correct?: number | null
+          times_served?: number | null
+          topic_tags?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_quiz_pool_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "course_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       module_resources: {
         Row: {
           created_at: string | null
@@ -7968,6 +8027,59 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "module_resources_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "course_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      module_scenario_pool: {
+        Row: {
+          created_at: string
+          created_by_talent_id: string | null
+          difficulty: string | null
+          generated_by: string
+          id: string
+          module_id: string
+          quality_score: number | null
+          rubric: Json
+          scenario_prompt: string
+          times_served: number | null
+          title: string
+          topic_tags: string[] | null
+        }
+        Insert: {
+          created_at?: string
+          created_by_talent_id?: string | null
+          difficulty?: string | null
+          generated_by?: string
+          id?: string
+          module_id: string
+          quality_score?: number | null
+          rubric?: Json
+          scenario_prompt: string
+          times_served?: number | null
+          title: string
+          topic_tags?: string[] | null
+        }
+        Update: {
+          created_at?: string
+          created_by_talent_id?: string | null
+          difficulty?: string | null
+          generated_by?: string
+          id?: string
+          module_id?: string
+          quality_score?: number | null
+          rubric?: Json
+          scenario_prompt?: string
+          times_served?: number | null
+          title?: string
+          topic_tags?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_scenario_pool_module_id_fkey"
             columns: ["module_id"]
             isOneToOne: false
             referencedRelation: "course_modules"
@@ -10194,6 +10306,92 @@ export type Database = {
           },
         ]
       }
+      talent_quiz_attempt: {
+        Row: {
+          answers: Json
+          attempt_no: number | null
+          created_at: string
+          id: string
+          item_ids: string[]
+          module_id: string
+          score: number | null
+          talent_id: string
+        }
+        Insert: {
+          answers?: Json
+          attempt_no?: number | null
+          created_at?: string
+          id?: string
+          item_ids: string[]
+          module_id: string
+          score?: number | null
+          talent_id: string
+        }
+        Update: {
+          answers?: Json
+          attempt_no?: number | null
+          created_at?: string
+          id?: string
+          item_ids?: string[]
+          module_id?: string
+          score?: number | null
+          talent_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_quiz_attempt_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "course_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      talent_scenario_run: {
+        Row: {
+          conversation: Json
+          created_at: string
+          evaluation: Json | null
+          id: string
+          module_id: string
+          scenario_id: string | null
+          talent_id: string
+        }
+        Insert: {
+          conversation?: Json
+          created_at?: string
+          evaluation?: Json | null
+          id?: string
+          module_id: string
+          scenario_id?: string | null
+          talent_id: string
+        }
+        Update: {
+          conversation?: Json
+          created_at?: string
+          evaluation?: Json | null
+          id?: string
+          module_id?: string
+          scenario_id?: string | null
+          talent_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_scenario_run_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "course_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "talent_scenario_run_scenario_id_fkey"
+            columns: ["scenario_id"]
+            isOneToOne: false
+            referencedRelation: "module_scenario_pool"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       talents: {
         Row: {
           achievements: Json | null
@@ -10968,6 +11166,7 @@ export type Database = {
         Args: { _school_id: string; _user_id: string }
         Returns: boolean
       }
+      is_enrolled_in_module: { Args: { _module_id: string }; Returns: boolean }
       mark_payout_paid: {
         Args: { p_notes?: string; p_request_id: string }
         Returns: Json
