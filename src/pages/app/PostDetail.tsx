@@ -159,7 +159,7 @@ export default function PostDetail() {
         {post && <PostCard post={mapRowToPost(post)} />}
 
         {post && talent?.id && (post as any).author_user_id === talent.userId && (
-          <PostInsightsAccordion postId={post.id} />
+          <PostInsightsAccordion postId={post.id} isAuthor />
         )}
 
         {post && (
