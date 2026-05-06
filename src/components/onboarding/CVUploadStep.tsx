@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useTalent } from "@/hooks/useTalent";
+import { computeCVFingerprint } from "@/lib/onboarding/cvFingerprint";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -76,7 +77,7 @@ export function CVUploadStep({ onContinue, onSkip }: CVUploadStepProps) {
     }, 1200);
   };
 
-  async function handleExecutiveUpload(file: File) {
+  async function handleCVUpload(file: File) {
     if (!talent?.id) return;
 
     const validTypes = [
@@ -128,14 +129,44 @@ export function CVUploadStep({ onContinue, onSkip }: CVUploadStepProps) {
       setParsedData(parsed);
       setParseProgress(100);
 
-      // REGISTRY_SYNC: Intelligent Data Merging
-      const updatePayload: Record<string, any> = { cvUrl: publicUrl, cvParsedAt: new Date().toISOString() };
+      // Merge parsed fields into the talent profile (don't overwrite user-edited values)
+      const updatePayload: Record<string, any> = {
+        cvUrl: publicUrl,
+        cvParsedAt: new Date().toISOString(),
+      };
 
       const currentName = talent.fullName ? String(talent.fullName) : "";
-      const emailPrefix = talent.email ? String(talent.email).split("@") : "";
+      const emailPrefix = talent.email ? String(talent.email).split("@")[0] : "";
 
       if (parsed.full_name && (!currentName || currentName === emailPrefix)) {
         updatePayload.fullName = parsed.full_name;
+      }
+      if (parsed.skills?.length && (!talent.skills || talent.skills.length === 0)) {
+        updatePayload.skills = parsed.skills;
+      }
+      if (parsed.experience?.length && (!talent.experience || talent.experience.length === 0)) {
+        updatePayload.experience = parsed.experience;
+      }
+      if (parsed.education?.length && (!talent.education || talent.education.length === 0)) {
+        updatePayload.education = parsed.education;
+      }
+
+      // Compute fingerprint and check for duplicates server-side
+      try {
+        const fingerprint = await computeCVFingerprint(parsed);
+        if (fingerprint) {
+          updatePayload.cvFingerprint = fingerprint;
+          const { data: dupResult } = await supabase.rpc("check_cv_duplicate", {
+            _fingerprint: fingerprint,
+            _self_user_id: talent.userId,
+          });
+          const dup = Array.isArray(dupResult) ? dupResult[0] : dupResult;
+          if (dup?.duplicate) {
+            updatePayload.isSuspectedDuplicate = true;
+          }
+        }
+      } catch (e) {
+        console.warn("[CVUpload] fingerprint check failed", e);
       }
 
       await updateTalent(updatePayload);
@@ -151,7 +182,7 @@ export function CVUploadStep({ onContinue, onSkip }: CVUploadStepProps) {
     }
   }
 
-  const renderArtifactAudit = () => {
+  const renderParseSummary = () => {
     if (!parsedData && !parseComplete) return null;
 
     if (parseError) {
@@ -201,17 +232,17 @@ export function CVUploadStep({ onContinue, onSkip }: CVUploadStepProps) {
   };
 
   return (
-    <div className="flex flex-col items-center px-4 py-8 max-w-xl mx-auto text-left w-full">
-      <div className="mb-12 space-y-3 text-center">
-        <h2 className="text-4xl md:text-5xl font-black tracking-tighter text-slate-900 leading-tight">
-          Build your profile
+    <div className="flex flex-col items-center px-4 py-6 max-w-xl mx-auto text-left w-full">
+      <div className="mb-6 space-y-2 text-center">
+        <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">
+          Add your resume
         </h2>
-        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-          Upload your resume so we can pre-fill your profile.
+        <p className="text-sm text-slate-500">
+          Upload your CV so we can pre-fill your profile. You can skip and add it later.
         </p>
       </div>
 
-      {/* COMPONENT: DROPSHIP_ZONE */}
+      {/* Drop zone */}
       <div
         className={cn(
           "relative w-full border-2 border-dashed rounded-[32px] p-12 text-center transition-all duration-500",
@@ -233,7 +264,7 @@ export function CVUploadStep({ onContinue, onSkip }: CVUploadStepProps) {
           if (dt && dt.files && dt.files.length > 0) {
             const file = dt.files.item(0);
             if (file) {
-              handleExecutiveUpload(file);
+              handleCVUpload(file);
             }
           }
         }}
@@ -247,7 +278,7 @@ export function CVUploadStep({ onContinue, onSkip }: CVUploadStepProps) {
             if (target && target.files && target.files.length > 0) {
               const file = target.files.item(0);
               if (file) {
-                handleExecutiveUpload(file);
+                handleCVUpload(file);
               }
             }
           }}
@@ -294,7 +325,7 @@ export function CVUploadStep({ onContinue, onSkip }: CVUploadStepProps) {
         )}
       </div>
 
-      {renderArtifactAudit()}
+      {renderParseSummary()}
 
       {/* HUD: CATEGORY_LEDGER */}
       <div className="w-full mt-8 p-8 bg-white border border-slate-100 rounded-[32px] shadow-sm">

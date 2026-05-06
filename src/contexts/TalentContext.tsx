@@ -19,10 +19,14 @@ export interface TalentProfile {
   cvText: string | null;
   cvParsedAt: string | null;
   professionCategoryId: string | null;
+  professionalRoleId: string | null;
   customProfession: string | null;
   profession: string | null; // CTO FIX: Explicitly added for AI context
   experience_years: number | null; // CTO FIX: Explicitly added for AI context
   currentStatus: string | null;
+  primaryGoal: string | null;
+  cvFingerprint: string | null;
+  isSuspectedDuplicate: boolean;
   fieldOfStudy: string | null;
   institution: string | null;
   education: Education[];
@@ -83,10 +87,14 @@ function mapRowToTalent(row: any): TalentProfile {
     cvText: row.cv_text,
     cvParsedAt: row.cv_parsed_at,
     professionCategoryId: row.profession_category_id,
+    professionalRoleId: row.professional_role_id,
     customProfession: row.custom_profession,
     profession: row.profession || row.custom_profession || null, // CTO FIX: Mapping explicit profession
     experience_years: row.experience_years || 0, // CTO FIX: Mapping explicit experience
     currentStatus: row.current_status,
+    primaryGoal: row.primary_goal || null,
+    cvFingerprint: row.cv_fingerprint || null,
+    isSuspectedDuplicate: row.is_suspected_duplicate || false,
     fieldOfStudy: row.field_of_study,
     institution: row.institution,
     education: Array.isArray(row.education) ? row.education : [],
@@ -175,7 +183,11 @@ export function TalentProvider({ children }: { children: React.ReactNode }) {
           cvText: "cv_text",
           cvParsedAt: "cv_parsed_at",
           professionCategoryId: "profession_category_id",
+          professionalRoleId: "professional_role_id",
           customProfession: "custom_profession",
+          primaryGoal: "primary_goal",
+          cvFingerprint: "cv_fingerprint",
+          isSuspectedDuplicate: "is_suspected_duplicate",
           profession: "profession", // CTO FIX: Added to update payload
           experience_years: "experience_years", // CTO FIX: Added to update payload
           currentStatus: "current_status",

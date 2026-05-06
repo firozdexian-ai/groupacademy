@@ -47,45 +47,50 @@ export function useOnboarding() {
 
   
   const completeOnboarding = useCallback(async () => {
-    if (!talent?.id) return false;
+    if (!talent?.id) return { success: false, creditsAwarded: false };
 
     setIsUpdating(true);
     try {
-      
       const { data: existingCredits } = await supabase
         .from("talent_credits")
         .select("id")
         .eq("talent_id", talent.id)
         .maybeSingle();
 
-      // Award welcome credits (idempotent — only if no row exists yet)
-      if (!existingCredits) {
+      // Refetch latest duplicate flag (CV step may have set it after Talent context cached)
+      const { data: fresh } = await supabase
+        .from("talents")
+        .select("is_suspected_duplicate")
+        .eq("id", talent.id)
+        .maybeSingle();
+
+      const isDuplicate = !!fresh?.is_suspected_duplicate;
+      let creditsAwarded = false;
+
+      if (!existingCredits && !isDuplicate) {
         await addCredits(250, "welcome_bonus", "Welcome bonus");
+        creditsAwarded = true;
       }
 
-      
       const { error: syncError } = await supabase
         .from("talents")
         .update({
           onboarding_completed_at: new Date().toISOString(),
-          onboarding_step: 2,
+          onboarding_step: 4,
         })
         .eq("id", talent.id);
 
       if (syncError) throw syncError;
 
-      
       // Clear stale recommendations so they re-rank with the new profile
       await supabase.from("ai_recommendations").delete().eq("talent_id", talent.id);
-
-      // Invalidate global content caches
       queryClient.invalidateQueries({ queryKey: ["feed-recommendations"] });
 
       await refreshTalent();
-      return true;
+      return { success: true, creditsAwarded };
     } catch (err) {
       console.error("Onboarding completion failed:", err);
-      return false;
+      return { success: false, creditsAwarded: false };
     } finally {
       setIsUpdating(false);
     }

@@ -10757,6 +10757,7 @@ export type Database = {
           id: string
           institution: string | null
           is_featured: boolean | null
+          is_suspected_duplicate: boolean
           job_preferences: Json | null
           last_post_date: string | null
           learner_status: string | null
@@ -10766,6 +10767,7 @@ export type Database = {
           onboarding_step: number | null
           phone: string | null
           portfolio_url: string | null
+          primary_goal: string | null
           profession_category_id: string | null
           professional_role_id: string | null
           profile_photo_url: string | null
@@ -10809,6 +10811,7 @@ export type Database = {
           id?: string
           institution?: string | null
           is_featured?: boolean | null
+          is_suspected_duplicate?: boolean
           job_preferences?: Json | null
           last_post_date?: string | null
           learner_status?: string | null
@@ -10818,6 +10821,7 @@ export type Database = {
           onboarding_step?: number | null
           phone?: string | null
           portfolio_url?: string | null
+          primary_goal?: string | null
           profession_category_id?: string | null
           professional_role_id?: string | null
           profile_photo_url?: string | null
@@ -10861,6 +10865,7 @@ export type Database = {
           id?: string
           institution?: string | null
           is_featured?: boolean | null
+          is_suspected_duplicate?: boolean
           job_preferences?: Json | null
           last_post_date?: string | null
           learner_status?: string | null
@@ -10870,6 +10875,7 @@ export type Database = {
           onboarding_step?: number | null
           phone?: string | null
           portfolio_url?: string | null
+          primary_goal?: string | null
           profession_category_id?: string | null
           professional_role_id?: string | null
           profile_photo_url?: string | null
@@ -11369,6 +11375,13 @@ export type Database = {
         Returns: Json
       }
       check_auth_email: { Args: { lookup_email: string }; Returns: Json }
+      check_cv_duplicate: {
+        Args: { _fingerprint: string; _self_user_id: string }
+        Returns: {
+          duplicate: boolean
+          other_count: number
+        }[]
+      }
       check_rate_limit: {
         Args: {
           p_endpoint: string

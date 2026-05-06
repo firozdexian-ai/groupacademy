@@ -1,90 +1,109 @@
-# Phase 1.2 — Talent Auth Hardening (Revised)
+# Phase 1.3 — Onboarding Restructure (Talent Side)
 
-Goal: make the talent auth flow (Aisha + classic) deterministic, resilient, and observable. Add Google sign-in. Defer email/phone *verification* to the later profile-verification phase — sign-up itself stays one-shot.
+Goal: turn the current 3-step "robotic" wizard into a tight, human, mobile-first flow that captures the **infrastructural pillars** (profession category → professional role → current status → goal) and uses the freshly-added `cv_fingerprint` to block obvious duplicate-account abuse. No Career Coach yet (that's 1.4).
 
-## Decisions captured from this round
+## Findings from current code
 
-- **Auto-confirm email = ON.** Users land in the app immediately after signup. Email verification will be enforced later as part of *profile verification* (gates trust badges / payouts / etc., not access).
-- **Anti-abuse via duplicate-profile heuristic** during CV parse in onboarding (1.3). Scope here in 1.2 = enable auto-confirm + add a stub `cv_fingerprint` column we can populate in 1.3. No detection logic in 1.2.
-- **Google sign-in** = "Continue with Google" button at the top of the Aisha screen (and on Classic), shown before/with the input — not a tiny link.
-- **Phone OTP sign-in = out of scope.** Phone will be verified later via a WhatsApp-based mechanism designed in the verification phase.
-
-## Findings from current code (unchanged)
-
-1. `useAuthChat.ts` is an ad-hoc `switch` with closure drift on `collectedData` and no explicit error / awaiting states.
-2. `useAuth.signUp` uses `setTimeout(1500)` + a 3×500 ms `getSession()` poll to guess whether confirmations are on. With auto-confirm ON this poll is pure latency.
-3. `callAgent` swallows errors and never validates the agent reply shape (`res.action` could be `undefined`).
-4. No Google sign-in anywhere.
-5. `onAuthStateChange` listener and `getSession()` audit run in parallel — minor race that can flash unauthenticated UI.
-6. Dead code / leftover strings: `createStudentProfile` helper, `MSG_ARTIFACT_` id prefix, `NEURAL_SERVICE_FAULT`, `// HUD: IDENTITY_STATE_LISTENER`.
+1. **Wizard** (`OnboardingWizard.tsx`) has 3 nodes: `welcome` → `profile` (CV upload) → `explore` (services tour). The `profile` step is **only** CV upload; profession/role/goal capture is missing entirely. `ProfileQuickSetup.tsx` exists but is **orphan code** — never rendered.
+2. **CV step** (`CVUploadStep.tsx`) still carries leftover sci-fi terms (`REGISTRY_SYNC`, `DROPSHIP_ZONE`, `ARTIFACT_AUDIT`, `handleExecutiveUpload`) and uppercase headings like "PROFILE UPDATED". Cleanup left over from 1.1.
+3. **CV parse** writes only `full_name` back to `talents`; `experience`, `education`, `skills` are extracted but **discarded**. They live in `talents.experience/education/skills` JSONB columns — there's no merge.
+4. **No fingerprint computation** during parse, so the 1.2 `cv_fingerprint` column stays empty. We need to compute and persist it, then check duplicates before awarding the 250-credit welcome bonus.
+5. **Welcome credits** are awarded inside `useOnboarding.completeOnboarding` purely on row-presence in `talent_credits`. That makes credit farming trivial right now (delete account, sign up again with a different email + same CV).
+6. **Profession infrastructure ready**: `profession_categories` (83 active), `professional_roles` (829 rows, FK to category). `talents.profession_category_id` and `talents.professional_role_id` columns already exist.
+7. **No goal capture** anywhere. Downstream features (jobs match, AI concierge, agents hub) all want it.
+8. **Mobile**: current wizard pages render fine but with desktop-tier headings (`text-4xl md:text-5xl font-black`). Per memory rules they need compact spacing and notched safe-bottom.
 
 ## Plan
 
-### 1.2.a — Turn on auto-confirm email
-- Call `configure_auth` with `auto_confirm_email: true` (other flags unchanged).
-- Update `useAuth.signUp` accordingly: after `supabase.auth.signUp` we expect `authData.session` to be present; treat its absence as a real error, not as "check your inbox".
-- Drop the `setTimeout(1500)` and the 3-iteration `getSession()` poll entirely.
+### 1.3.a — Restructure wizard to 5 steps
 
-### 1.2.b — Deterministic state machine for `useAuthChat`
-- Replace the `switch` with a typed reducer (`authChatReducer`) over `{ step, flow, collected, quiz, error }`. All transitions go through `dispatch({ type, payload })`.
-- New explicit terminal states: `error_recoverable` (bad creds, network) and `error_fatal` (account locked / signup blocked) rendered as in-thread cards instead of toasts.
-- Remove `collectedData` from `useCallback` deps — reducer state is read fresh inside the dispatch.
-- Keep all current copy (already cleaned in 1.1) — only the wiring changes.
+```text
+1. Welcome           → keep; tighten copy; reuse WelcomeBonus
+2. CV (optional)     → CVUploadStep, refactored
+3. Profession + Role → NEW: ProfessionStep
+4. Status + Goal     → NEW: GoalStep
+5. Quick tour        → keep; ServicesTour (slim)
+```
 
-### 1.2.c — Validate AI agent responses with Zod
-- Add `src/lib/schemas/authAgent.ts` exporting `AuthAgentReplySchema` (`reply: string`, `action: AuthAction enum`, `quiz: { answer: string } | null`).
-- In `callAgent`, parse the JSON through the schema. On parse failure, log once and fall through to `getFallbackProtocol` (same behavior as a network error — now safe).
-- Tighten `AuthAction` to a `z.enum` so the reducer's exhaustiveness check catches drift.
+- `ONBOARDING_NODES` updated; `useOnboarding.updateStep` already persists step index.
+- CV step gets a clear **Skip for now** (already exists; relabel to "I'll add it later"). If CV is uploaded successfully, **prefill** profession step from extracted titles via a tiny RPC.
+- Mobile: replace `text-4xl md:text-5xl font-black` with `text-2xl md:text-3xl font-bold`, drop wide paddings, add `pb-[env(safe-area-inset-bottom)]` on action bars.
 
-### 1.2.d — Google sign-in (managed, talent only)
-- Run `configure_social_auth({ providers: ["google"] })` to enable the Lovable-managed Google provider.
-- Add `signInWithGoogle()` to `useAuth` using the Lovable module:
-  ```ts
-  import { lovable } from "@/integrations/lovable";
-  await lovable.auth.signInWithOAuth("google", {
-    redirect_uri: `${window.location.origin}/auth/callback`,
-    extraParams: { prompt: "select_account" },
-  });
-  ```
-- Add a prominent **"Continue with Google"** button at the top of `AuthChat.tsx` (above the chat thread / always visible) and `AuthClassic.tsx`.
-- Add a thin `/auth/callback` page that waits for `onAuthStateChange`, then redirects via `resolvePostAuthRoute` (uses existing `useAccountType` so OAuth users land in the right portal).
-- Verify the existing `handle_new_user` trigger handles OAuth metadata gracefully (no `phone`, no `country`). If gaps, add a tiny migration with safe defaults so the `talents` row is always created.
+### 1.3.b — ProfessionStep (NEW)
 
-### 1.2.e — Race-free session bootstrap in `useAuth`
-- Run `getSession()` first, set state, then attach `onAuthStateChange` — eliminates the dual-source race.
-- Stop calling `supabase.auth.signOut()` inside the `TOKEN_REFRESHED && !session` branch (session is already gone).
+- Two cascaded selects:
+  - **Profession Category** (search-as-you-type combobox over the 83 active categories)
+  - **Professional Role** (combobox over `professional_roles WHERE profession_category_id = $cat`, 829 rows)
+- Both are required to advance; "Other / not listed" option writes to existing `talents.custom_profession` (no schema change).
+- Saves `profession_category_id`, `professional_role_id`, optional `custom_profession`.
+- Powers the Career Coach selection in 1.4.
 
-### 1.2.f — Anti-abuse stub (foundation only)
-- Migration: add nullable `cv_fingerprint TEXT` column + index on `talents`. No logic yet.
-- 1.3 will populate it during CV parse and run a duplicate check across active talents to block credit farming.
+### 1.3.c — GoalStep (NEW)
 
-### 1.2.g — Cleanup
-- Delete unused `createStudentProfile` from `useAuth.ts`.
-- Replace `MSG_ARTIFACT_` ids with `crypto.randomUUID()`.
-- Remove `NEURAL_SERVICE_FAULT` literal — throw a plain `Error("agent_unreachable")` the reducer handles.
-- Strip `// HUD: IDENTITY_STATE_LISTENER` and similar leftover comments.
+- **Current status** (radio): student / fresh graduate / actively looking / employed / freelancer / career changer. Maps to existing `talents.current_status` (text — no schema change).
+- **Primary goal** (single-select chips): land first job / switch role / get promoted / freelance & earn / learn a new skill / study abroad / build my own thing.
+- Goal needs a column. **Migration**: add `talents.primary_goal TEXT` + check on a fixed enum-like list enforced by a validation **trigger** (per platform memory — never CHECK constraints with mutable logic; here the list is static, but we use a trigger to remain consistent with existing convention).
+- Both are persisted; goal becomes the seed for AI concierge dynamic chips and for the Career Coach intro in 1.4.
+
+### 1.3.d — CV parse → write everything back, compute fingerprint
+
+- In `CVUploadStep.handleExecutiveUpload` (renamed `handleCVUpload`) merge parsed fields into `talents`:
+  - `experience`, `education`, `skills` JSONB → only when current value is empty / null (don't overwrite user-edited data).
+  - `linkedin_url`, `portfolio_url` if extracted.
+- Compute `cv_fingerprint` client-side from `parseResult.parsed`:
+  - Normalised string of `[skills sorted | experience.company+title sorted | education.institution+degree sorted]`
+  - SHA-256 (Web Crypto), hex string.
+- Persist on `talents.cv_fingerprint`.
+- **Duplicate check**: edge function `check-cv-duplicate` (server-side, security definer RPC) returns `{ duplicate: boolean, otherTalentCount: number }`. If `duplicate && otherTalentCount > 0`, set a flag on the talent (`is_suspected_duplicate boolean`, new column) and **suppress the welcome credit award** in `completeOnboarding`. User can still finish onboarding and use the platform; admins see the flag in Talent admin (already a known surface in admin memory).
+- This is the **anti-abuse mechanism** the user asked for. No blocking, no friction for legit users — just no free credits for repeats.
+
+### 1.3.e — Welcome credits gating
+
+- Update `useOnboarding.completeOnboarding`:
+  - Read `talent.is_suspected_duplicate` (and existing `talent_credits` row).
+  - Only call `addCredits(250, "welcome_bonus", …)` if neither is true.
+  - Otherwise show a softer success toast: "You're all set — explore the platform!" (no credit mention).
+
+### 1.3.f — Copy & UX polish (carries on 1.1)
+
+- Remove residual `REGISTRY_SYNC`, `DROPSHIP_ZONE`, `ARTIFACT_AUDIT`, `VISUAL_ID_HANGER`, `handle*Ingress` names.
+- Replace ALL-CAPS micro-labels (`PROFILE UPDATED`, `SKILLS FOUND`, etc.) with sentence case.
+- Header in `OnboardingWizard.tsx` already simplified; ensure `Skip for now` is a low-emphasis text button (per UX rules — it's currently fine, just verify mobile spacing).
+
+### 1.3.g — Telemetry hook (light)
+
+- Add a thin `trackOnboardingStep(step, action)` helper writing to `console.debug` for now (proper `talent_funnel_events` table comes in 1.5). Wire it on each step's `next` and on `skipOnboarding`. **No DB writes in 1.3.**
 
 ## Files changed (planned)
 
-- `src/hooks/useAuthChat.ts` — refactor to reducer
-- `src/hooks/useAuth.ts` — drop polling, add `signInWithGoogle`, fix race, cleanup
-- `src/pages/AuthChat.tsx` — add Google button, error-state cards
-- `src/pages/AuthClassic.tsx` — add Google button
-- `src/pages/AuthCallback.tsx` — **new**, OAuth landing
-- `src/lib/schemas/authAgent.ts` — **new**, Zod schema
-- `src/App.tsx` — register `/auth/callback`
-- `src/integrations/lovable/*` — generated by `configure_social_auth` (do not edit)
-- DB migration: `talents.cv_fingerprint` column + index; possibly small `handle_new_user` patch for OAuth users
+- `src/components/onboarding/OnboardingWizard.tsx` — 5-step `ONBOARDING_NODES`, mobile spacing
+- `src/components/onboarding/CVUploadStep.tsx` — merge parsed fields, compute & persist fingerprint, copy cleanup
+- `src/components/onboarding/ProfileQuickSetup.tsx` — **delete** (orphan; replaced by ProfessionStep + GoalStep)
+- `src/components/onboarding/ProfessionStep.tsx` — **new** (cascaded comboboxes)
+- `src/components/onboarding/GoalStep.tsx` — **new** (status + goal chips)
+- `src/components/onboarding/WelcomeBonus.tsx` — copy tighten only
+- `src/components/onboarding/ServicesTour.tsx` — copy tighten + mobile spacing
+- `src/hooks/useOnboarding.ts` — gate welcome credits on `is_suspected_duplicate`
+- `src/lib/onboarding/cvFingerprint.ts` — **new** SHA-256 helper
+- `src/lib/onboarding/telemetry.ts` — **new** thin tracker stub
+- `supabase/functions/check-cv-duplicate/` — **new** edge function
+- DB migration:
+  - `ALTER TABLE talents ADD COLUMN primary_goal TEXT`
+  - `ALTER TABLE talents ADD COLUMN is_suspected_duplicate BOOLEAN DEFAULT false`
+  - `CREATE INDEX idx_talents_is_suspected_duplicate WHERE is_suspected_duplicate = true`
+  - Validation trigger for `primary_goal` (allowed list)
+  - Server-side RPC `check_cv_duplicate(_fingerprint TEXT, _self_user_id UUID) RETURNS TABLE(duplicate boolean, other_count int)` (SECURITY DEFINER, `search_path = public`)
 
 ## Out of scope (deferred)
 
-- Profession / seniority / goal capture → 1.3
-- CV-fingerprint duplicate detection logic → 1.3
-- Career Coach agent → 1.4
-- Telemetry table → 1.5
-- Email + phone verification (and WhatsApp connection mechanism) → later "Profile Verification" phase
-- Phone-based OTP sign-in — explicitly dropped
+- Career Coach persona / `ai-career-coach` edge function → 1.4
+- Profile groomer chat / per-profession agent → 1.4
+- `talent_funnel_events` analytics table → 1.5
+- WhatsApp connect, email verification, phone verification → "Profile Verification" phase
+- Admin UI surface for `is_suspected_duplicate` flag (the column ships now; admin filter chip is a tiny later add — not blocking)
 
 ## Open questions
 
-None — both prior questions answered. Ready to implement on approval.
+1. **Goal options** — happy with the seven I listed (first job / switch / promoted / freelance / learn / study abroad / own thing), or do you want a different set / wording?
+2. **Duplicate handling stance** — soft (current proposal: no welcome credits, flag the row, full access) or harder (also block welcome credits + put account in `verification_status='pending_review'` until admin clears)?
+3. **CV is currently optional and skippable** — keep it optional, or make it required-but-skippable-with-friction (e.g., a confirmation modal "Skipping means you'll fill these in manually later")?

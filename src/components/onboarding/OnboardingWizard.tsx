@@ -4,19 +4,25 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { WelcomeBonus } from "./WelcomeBonus";
 import { CVUploadStep } from "./CVUploadStep";
+import { ProfessionStep } from "./ProfessionStep";
+import { GoalStep } from "./GoalStep";
 import { ServicesTour } from "./ServicesTour";
 import { useOnboarding } from "@/hooks/useOnboarding";
+import { trackOnboardingStep } from "@/lib/onboarding/telemetry";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 /**
- * Onboarding wizard — 3 steps: welcome bonus, profile setup, quick tour.
+ * Onboarding wizard — 5 steps:
+ * welcome → CV (optional) → profession+role → status+goal → quick tour.
  */
 
 const ONBOARDING_NODES = [
   { id: "welcome", label: "Welcome" },
-  { id: "profile", label: "Your profile" },
-  { id: "explore", label: "Quick tour" },
+  { id: "cv", label: "Resume" },
+  { id: "profession", label: "Profession" },
+  { id: "goal", label: "Goal" },
+  { id: "explore", label: "Tour" },
 ];
 
 export function OnboardingWizard({ onComplete }: { onComplete: () => void }) {
@@ -48,20 +54,26 @@ export function OnboardingWizard({ onComplete }: { onComplete: () => void }) {
   };
 
   const handleSkip = async () => {
-    const success = await skipOnboarding();
-    if (success) {
+    const result = await skipOnboarding();
+    if (result?.success) {
       toast.success("Skipped for now", { description: "You can finish your profile anytime from your dashboard." });
+      trackOnboardingStep(ONBOARDING_NODES[currentStep]?.id ?? "unknown", "skip");
       onComplete();
     }
   };
 
   const finishOnboarding = async () => {
-    const success = await completeOnboarding();
-    if (success) {
-      toast.success("All set!", {
-        description: "250 welcome credits are in your wallet.",
-        icon: <Zap className="h-4 w-4 text-emerald-500 fill-current" />,
-      });
+    const result = await completeOnboarding();
+    if (result?.success) {
+      if (result.creditsAwarded) {
+        toast.success("All set!", {
+          description: "250 welcome credits are in your wallet.",
+          icon: <Zap className="h-4 w-4 text-emerald-500 fill-current" />,
+        });
+      } else {
+        toast.success("You're all set!", { description: "Explore the platform anytime." });
+      }
+      trackOnboardingStep("explore", "complete");
       onComplete();
     }
   };
@@ -70,8 +82,12 @@ export function OnboardingWizard({ onComplete }: { onComplete: () => void }) {
     switch (ONBOARDING_NODES[currentStep].id) {
       case "welcome":
         return <WelcomeBonus onContinue={goToNextStep} />;
-      case "profile":
+      case "cv":
         return <CVUploadStep onContinue={goToNextStep} onSkip={goToNextStep} />;
+      case "profession":
+        return <ProfessionStep onContinue={goToNextStep} />;
+      case "goal":
+        return <GoalStep onContinue={goToNextStep} />;
       case "explore":
         return <ServicesTour onComplete={finishOnboarding} />;
       default:
