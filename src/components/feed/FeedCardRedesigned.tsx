@@ -178,6 +178,9 @@ export function FeedCardRedesigned({ item, onInterested }: FeedCardRedesignedPro
             {config.cta}
             <ArrowRight className="h-3.5 w-3.5" />
           </Button>
+          {(["course", "video", "blog"] as const).includes(item.type as any) && (
+            <HypeButton contentType={item.type as HypeContentType} contentId={item.id} variant="compact" />
+          )}
           <ShareSheet title={item.title} url={shareUrl} description={item.matchReason} />
         </div>
       </CardContent>
