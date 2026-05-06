@@ -138,42 +138,10 @@ export default function JobsHub() {
   const { data: jobsInField = [] } = useJobsInField(talent?.id, 5);
   const { data: jobTypeCounts = {} } = useJobTypeCounts(talent?.country);
 
-  const { data: locations = [] } = useQuery({
-    queryKey: ["all-job-locations"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("jobs").select("location").eq("is_active", true);
-      if (error) throw error;
-      const map = new Map<string, number>();
-      data.forEach((row) => {
-        if (row.location) map.set(row.location, (map.get(row.location) || 0) + 1);
-      });
-      return Array.from(map.entries()).map(([location, count]) => ({ location, count }));
-    },
-    staleTime: 5 * 60 * 1000,
-  });
-
-  const { data: allCompanies = [] } = useQuery({
-    queryKey: ["all-job-companies"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("jobs")
-        .select("company_name, company_logo_url")
-        .eq("is_active", true);
-      if (error) throw error;
-      const map = new Map<string, { logo: string | null; count: number }>();
-      data.forEach((j) => {
-        if (!j.company_name) return;
-        const ex = map.get(j.company_name);
-        map.set(j.company_name, { logo: j.company_logo_url || ex?.logo || null, count: (ex?.count || 0) + 1 });
-      });
-      return Array.from(map.entries()).map(([name, info]) => ({
-        name,
-        logo_url: info.logo,
-        count: info.count,
-      }));
-    },
-    staleTime: 5 * 60 * 1000,
-  });
+  const { data: companiesSignal = [] } = useCompaniesWithSignal(null, 100);
+  const { followed, isFollowing, toggle: toggleFollow } = useFollowedCompanies();
+  const { data: countriesSignal = [], isLoading: loadingCountries } = useCountriesWithSignal(50);
+  const { data: remoteSummary } = useRemoteFriendly();
 
   const { data: collectionData, isLoading: loadingCollection } = useQuery({
     queryKey: ["jobs-collection"],
