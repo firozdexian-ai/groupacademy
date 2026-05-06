@@ -1,24 +1,38 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { X, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { WelcomeBonus } from "./WelcomeBonus";
 import { CVUploadStep } from "./CVUploadStep";
 import { ProfessionStep } from "./ProfessionStep";
 import { GoalStep } from "./GoalStep";
 import { ServicesTour } from "./ServicesTour";
+import { PhoneCaptureStep } from "./PhoneCaptureStep";
 import { useOnboarding } from "@/hooks/useOnboarding";
-import { trackOnboardingStep } from "@/lib/onboarding/telemetry";
+import { useTalent } from "@/hooks/useTalent";
+import { trackOnboardingStep, trackOnboardingSkipped } from "@/lib/onboarding/telemetry";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 /**
- * Onboarding wizard — 5 steps:
- * welcome → CV (optional) → profession+role → status+goal → quick tour.
+ * Onboarding wizard. Steps: welcome → phone (if missing) → cv → profession → goal → tour.
  */
 
-const ONBOARDING_NODES = [
+type StepId = "welcome" | "phone" | "cv" | "profession" | "goal" | "explore";
+
+const ALL_NODES: Array<{ id: StepId; label: string }> = [
   { id: "welcome", label: "Welcome" },
+  { id: "phone", label: "Phone" },
   { id: "cv", label: "Resume" },
   { id: "profession", label: "Profession" },
   { id: "goal", label: "Goal" },
@@ -26,14 +40,20 @@ const ONBOARDING_NODES = [
 ];
 
 export function OnboardingWizard({ onComplete }: { onComplete: () => void }) {
+  const { talent } = useTalent();
   const { completeOnboarding, skipOnboarding, updateStep, currentStep: savedStep } = useOnboarding();
   const [currentStep, setCurrentStep] = useState(0);
   const [hasInitialized, setHasInitialized] = useState(false);
+  const [showSkipDialog, setShowSkipDialog] = useState(false);
 
-  // Sync local step with persisted step, only allowing forward jumps
+  const nodes = useMemo(
+    () => ALL_NODES.filter((n) => (n.id === "phone" ? !talent?.phone : true)),
+    [talent?.phone],
+  );
+
   useEffect(() => {
     if (savedStep !== undefined) {
-      const validStep = Math.min(Math.max(0, savedStep), ONBOARDING_NODES.length - 1);
+      const validStep = Math.min(Math.max(0, savedStep), nodes.length - 1);
       if (!hasInitialized) {
         setCurrentStep(validStep);
         setHasInitialized(true);
@@ -41,23 +61,28 @@ export function OnboardingWizard({ onComplete }: { onComplete: () => void }) {
         setCurrentStep(validStep);
       }
     }
-  }, [savedStep, hasInitialized, currentStep]);
+  }, [savedStep, hasInitialized, currentStep, nodes.length]);
 
-  const yieldProgress = ((currentStep + 1) / ONBOARDING_NODES.length) * 100;
+  const yieldProgress = ((currentStep + 1) / nodes.length) * 100;
 
   const goToNextStep = async () => {
-    if (currentStep < ONBOARDING_NODES.length - 1) {
+    if (currentStep < nodes.length - 1) {
       const nextStep = currentStep + 1;
       setCurrentStep(nextStep);
       await updateStep(nextStep);
     }
   };
 
-  const handleSkip = async () => {
+  const handleSkipConfirmed = async () => {
+    setShowSkipDialog(false);
+    const stepId = nodes[currentStep]?.id ?? "unknown";
+    trackOnboardingSkipped(stepId, talent?.id);
     const result = await skipOnboarding();
     if (result?.success) {
-      toast.success("Skipped for now", { description: "You can finish your profile anytime from your dashboard." });
-      trackOnboardingStep(ONBOARDING_NODES[currentStep]?.id ?? "unknown", "skip");
+      toast.success("Skipped for now", {
+        description: "You can finish your profile anytime from your dashboard.",
+      });
+      trackOnboardingStep(stepId, "skip", { talentId: talent?.id });
       onComplete();
     }
   };
@@ -70,18 +95,25 @@ export function OnboardingWizard({ onComplete }: { onComplete: () => void }) {
           description: "250 welcome credits are in your wallet.",
           icon: <Zap className="h-4 w-4 text-emerald-500 fill-current" />,
         });
+      } else if (result.duplicate) {
+        toast.success("Welcome back", {
+          description:
+            "Looks like you've used GroUp before. If you have an old account, contact support to recover it.",
+        });
       } else {
         toast.success("You're all set!", { description: "Explore the platform anytime." });
       }
-      trackOnboardingStep("explore", "complete");
+      trackOnboardingStep("explore", "complete", { talentId: talent?.id });
       onComplete();
     }
   };
 
   const renderActiveNode = () => {
-    switch (ONBOARDING_NODES[currentStep].id) {
+    switch (nodes[currentStep]?.id) {
       case "welcome":
         return <WelcomeBonus onContinue={goToNextStep} />;
+      case "phone":
+        return <PhoneCaptureStep onContinue={goToNextStep} />;
       case "cv":
         return <CVUploadStep onContinue={goToNextStep} onSkip={goToNextStep} />;
       case "profession":
@@ -95,6 +127,9 @@ export function OnboardingWizard({ onComplete }: { onComplete: () => void }) {
     }
   };
 
+  // Phone step is mandatory — disable skip there
+  const isPhoneStep = nodes[currentStep]?.id === "phone";
+
   return (
     <div className="fixed inset-0 z-50 bg-slate-50 flex flex-col font-sans animate-in fade-in duration-700">
       <header className="border-b border-slate-200 bg-white/90 backdrop-blur-xl">
@@ -105,7 +140,7 @@ export function OnboardingWizard({ onComplete }: { onComplete: () => void }) {
             </div>
             <div className="hidden sm:flex flex-col">
               <span className="text-sm font-bold text-slate-900">Set up your account</span>
-              <span className="text-xs text-slate-400">{ONBOARDING_NODES[currentStep].label}</span>
+              <span className="text-xs text-slate-400">{nodes[currentStep]?.label}</span>
             </div>
           </div>
 
@@ -113,18 +148,20 @@ export function OnboardingWizard({ onComplete }: { onComplete: () => void }) {
             <Progress value={yieldProgress} className="h-2 bg-slate-100" />
           </div>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleSkip}
-            className="rounded-full h-10 px-5 text-sm font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-all gap-2"
-          >
-            <X className="h-4 w-4" /> Skip for now
-          </Button>
+          {!isPhoneStep && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowSkipDialog(true)}
+              className="rounded-full h-10 px-5 text-sm font-medium text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-all gap-2"
+            >
+              <X className="h-4 w-4" /> Skip for now
+            </Button>
+          )}
         </div>
 
         <div className="flex items-center justify-center gap-6 pb-5 pt-2">
-          {ONBOARDING_NODES.map((step, index) => (
+          {nodes.map((step, index) => (
             <div
               key={step.id}
               className={cn(
@@ -150,7 +187,7 @@ export function OnboardingWizard({ onComplete }: { onComplete: () => void }) {
               >
                 {step.label}
               </span>
-              {index < ONBOARDING_NODES.length - 1 && <div className="ml-3 h-[2px] w-6 bg-slate-100" />}
+              {index < nodes.length - 1 && <div className="ml-3 h-[2px] w-6 bg-slate-100" />}
             </div>
           ))}
         </div>
@@ -161,6 +198,21 @@ export function OnboardingWizard({ onComplete }: { onComplete: () => void }) {
           {renderActiveNode()}
         </div>
       </main>
+
+      <AlertDialog open={showSkipDialog} onOpenChange={setShowSkipDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Skip setup?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You'll miss your AI Career Coach and personalised job matches. You can finish anytime from your profile.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep going</AlertDialogCancel>
+            <AlertDialogAction onClick={handleSkipConfirmed}>Finish later</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
