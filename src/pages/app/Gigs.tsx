@@ -27,6 +27,7 @@ import {
   
   BookOpen,
   Zap,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -248,6 +249,11 @@ export default function Gigs() {
         </button>
       </header>
 
+      <div className="px-3 pt-2">
+        <Button size="sm" className="w-full" onClick={() => navigate("/app/gigs/new")}>
+          <Sparkles className="h-4 w-4 mr-1" /> Post a gig with AI
+        </Button>
+      </div>
 
 
       {/* 4-tab strip */}
