@@ -97,7 +97,7 @@ export const useAuth = (): AuthState => {
       .limit(2);
 
     if (error || !data || data.length === 0) return null;
-    if (data.length > 1) throw new Error("IDENTITY_COLLISION: Multiple accounts detected. Use email ingress.");
+    if (data.length > 1) throw new Error("Multiple accounts use this phone. Please sign in with email instead.");
 
     return data[0].email;
   };
