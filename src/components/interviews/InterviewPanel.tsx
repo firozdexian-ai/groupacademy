@@ -120,3 +120,6 @@ export function InterviewPanel({ applicationId, companyId, talentId, actorRole }
           onCreated={reload}
         />
       )}
+    </div>
+  );
+}
