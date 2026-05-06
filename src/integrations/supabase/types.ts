@@ -9558,6 +9558,90 @@ export type Database = {
         }
         Relationships: []
       }
+      skill_credentials: {
+        Row: {
+          attempts_at_issue: number
+          content_id: string | null
+          created_at: string
+          evidence: Json
+          id: string
+          issued_at: string
+          level: string
+          mastery_at_issue: number
+          module_id: string | null
+          revoked_at: string | null
+          talent_id: string
+          topic_tag: string
+          verify_code: string
+        }
+        Insert: {
+          attempts_at_issue: number
+          content_id?: string | null
+          created_at?: string
+          evidence?: Json
+          id?: string
+          issued_at?: string
+          level: string
+          mastery_at_issue: number
+          module_id?: string | null
+          revoked_at?: string | null
+          talent_id: string
+          topic_tag: string
+          verify_code?: string
+        }
+        Update: {
+          attempts_at_issue?: number
+          content_id?: string | null
+          created_at?: string
+          evidence?: Json
+          id?: string
+          issued_at?: string
+          level?: string
+          mastery_at_issue?: number
+          module_id?: string | null
+          revoked_at?: string | null
+          talent_id?: string
+          topic_tag?: string
+          verify_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "skill_credentials_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "skill_credentials_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "course_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "skill_credentials_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "skill_credentials_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
+          {
+            foreignKeyName: "skill_credentials_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_weekly_leaderboard"
+            referencedColumns: ["talent_id"]
+          },
+        ]
+      }
       student_progress: {
         Row: {
           completed_at: string | null
@@ -11300,6 +11384,30 @@ export type Database = {
         Returns: boolean
       }
       is_enrolled_in_module: { Args: { _module_id: string }; Returns: boolean }
+      issue_skill_credential: {
+        Args: { _module_id: string; _talent_id: string; _topic_tag: string }
+        Returns: {
+          attempts_at_issue: number
+          content_id: string | null
+          created_at: string
+          evidence: Json
+          id: string
+          issued_at: string
+          level: string
+          mastery_at_issue: number
+          module_id: string | null
+          revoked_at: string | null
+          talent_id: string
+          topic_tag: string
+          verify_code: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "skill_credentials"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       mark_payout_paid: {
         Args: { p_notes?: string; p_request_id: string }
         Returns: Json

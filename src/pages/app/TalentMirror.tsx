@@ -2,6 +2,7 @@ import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { TalentMirrorPanel } from "@/components/learning/TalentMirrorPanel";
+import { SkillCredentialsPanel } from "@/components/learning/SkillCredentialsPanel";
 
 export default function TalentMirror() {
   const navigate = useNavigate();
@@ -16,7 +17,8 @@ export default function TalentMirror() {
           <p className="text-[11px] text-muted-foreground">Your mastery across every program.</p>
         </div>
       </header>
-      <div className="p-4 max-w-2xl mx-auto">
+      <div className="p-4 max-w-2xl mx-auto space-y-4">
+        <SkillCredentialsPanel />
         <TalentMirrorPanel />
       </div>
     </div>

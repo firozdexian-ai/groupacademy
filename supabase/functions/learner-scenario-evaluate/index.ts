@@ -316,5 +316,23 @@ Deno.serve(async (req) => {
     return json(500, { error: updateErr.message });
   }
 
+  // Auto-issue skill credentials for any topics that just crossed thresholds.
+  // Fire-and-forget; errors are logged but never fail the evaluation response.
+  try {
+    for (const t of finalTopics) {
+      admin
+        .rpc("issue_skill_credential", {
+          _talent_id: run.talent_id,
+          _module_id: run.module_id,
+          _topic_tag: t.tag,
+        })
+        .then(({ error }: any) => {
+          if (error) console.error("issue_skill_credential failed", t.tag, error);
+        });
+    }
+  } catch (e) {
+    console.error("credential mint loop failed", e);
+  }
+
   return json(200, { evaluation, cached: false });
 });
