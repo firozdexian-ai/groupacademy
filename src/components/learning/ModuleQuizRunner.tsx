@@ -16,9 +16,37 @@ export function ModuleQuizRunner({ moduleId, onComplete }: { moduleId: string; o
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [results, setResults] = useState<{ score: number; results: Result[] } | null>(null);
+  const [adaptiveMix, setAdaptiveMix] = useState<{ avg_mastery: number; mix: { easy: number; medium: number; hard: number } } | null>(null);
+
+  const normalizeOptions = (raw: unknown): string[] => {
+    if (Array.isArray(raw)) return raw.map((o) => String(o));
+    if (raw && typeof raw === "object") return Object.values(raw as Record<string, unknown>).map((o) => String(o));
+    return [];
+  };
 
   const draw = async () => {
-    setLoading(true); setResults(null); setAnswers({});
+    setLoading(true); setResults(null); setAnswers({}); setAdaptiveMix(null);
+
+    // 1) Try adaptive sampler first (skill-aware)
+    const adaptive = await supabase.functions.invoke("learner-adaptive-sample", {
+      body: { module_id: moduleId, count: 10 },
+    });
+    if (!adaptive.error && (adaptive.data as any)?.items?.length) {
+      const d = adaptive.data as any;
+      setItems(
+        d.items.map((it: any) => ({
+          id: it.id,
+          question: it.question,
+          options: normalizeOptions(it.options),
+          difficulty: it.difficulty ?? undefined,
+        })),
+      );
+      setAdaptiveMix({ avg_mastery: d.avg_mastery, mix: d.mix });
+      setLoading(false);
+      return;
+    }
+
+    // 2) Fallback to legacy random pool draw
     const { data, error } = await supabase.functions.invoke("learner-quiz-pool", {
       body: { mode: "draw", module_id: moduleId },
     });
@@ -82,7 +110,16 @@ export function ModuleQuizRunner({ moduleId, onComplete }: { moduleId: string; o
 
   return (
     <Card className="rounded-3xl">
-      <CardHeader><CardTitle className="flex items-center gap-2"><Brain className="h-5 w-5 text-primary" /> Quiz</CardTitle></CardHeader>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Brain className="h-5 w-5 text-primary" /> Quiz
+          {adaptiveMix && (
+            <span className="ml-auto text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Adaptive · Mastery {Math.round(adaptiveMix.avg_mastery * 100)}%
+            </span>
+          )}
+        </CardTitle>
+      </CardHeader>
       <CardContent className="space-y-5">
         {items.map((it, idx) => (
           <div key={it.id} className="space-y-2">

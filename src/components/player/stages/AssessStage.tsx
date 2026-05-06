@@ -51,15 +51,53 @@ export function AssessStage({
   const [score, setScore] = useState(0);
   const [showExplanations, setShowExplanations] = useState(false);
 
-  // REGISTRY_SYNC: Fetch curated quiz artifacts
+  // REGISTRY_SYNC: Adaptive sampler first; fall back to curated quiz_questions
   const {
     data: questions = [],
     isLoading,
     error: loadError,
     refetch,
   } = useQueryWithTimeout({
-    queryKey: ["quiz-questions", moduleId, contentId],
+    queryKey: ["quiz-questions-adaptive", moduleId, contentId],
     queryFn: async () => {
+      // 1) Try adaptive sampler (skill-aware)
+      try {
+        const { data: adaptive, error: adaptiveErr } = await supabase.functions.invoke(
+          "learner-adaptive-sample",
+          { body: { module_id: moduleId, count: 10 } },
+        );
+        if (!adaptiveErr && (adaptive as any)?.items?.length) {
+          const letters = ["A", "B", "C", "D"] as const;
+          return ((adaptive as any).items as Array<{
+            id: string;
+            question: string;
+            options: unknown;
+            correct_index: number;
+            explanation: string | null;
+          }>).map((it) => {
+            const opts = Array.isArray(it.options)
+              ? it.options
+              : it.options && typeof it.options === "object"
+                ? Object.values(it.options as Record<string, unknown>)
+                : [];
+            const padded = [...opts, "", "", "", ""].slice(0, 4).map((o) => String(o));
+            return {
+              id: it.id,
+              question_text: it.question,
+              option_a: padded[0],
+              option_b: padded[1],
+              option_c: padded[2],
+              option_d: padded[3],
+              correct_answer: letters[Math.max(0, Math.min(3, it.correct_index))],
+              explanation: it.explanation,
+            } satisfies QuizQuestion;
+          });
+        }
+      } catch (e) {
+        console.warn("[AssessStage] adaptive sampler failed, falling back", e);
+      }
+
+      // 2) Fallback to curated quiz_questions (module → content)
       let { data, error } = await supabase
         .from("quiz_questions")
         .select("*")
