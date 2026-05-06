@@ -1,107 +1,107 @@
-# Sub-phase 2.4 — Post detail + carryover fixes
+# Sub-phase 2.5 — Hype verification + agentic feed notifications
 
-Three things in this turn: two carryover fixes you just flagged, then the main 2.4 work (post detail view & deep linking). Hype goes universal as part of 2.4 since the detail view is the natural place to consume it.
+Two things this turn:
+1. **Confirm and surface** that the Hype credit economy actually moves credits, end-to-end, with a visible Transactions entry.
+2. **Realtime feed notifications** delivered by **AI General** into the existing notification center (NOT a Messenger-style rewrite).
 
-## Part A — Carryover fixes (small)
+---
 
-### A1. Animated profile-card backdrop is missing
-The backdrop component is wired up correctly — it just queries `profile_card_themes` and there are **zero rows in the table** right now (confirmed via DB). So nothing renders, by design.
+## Part A — Hype economy verification & visibility
 
-Two parts to the fix:
-- **Seed one default theme** (a soft Tech Blue → Cyan gradient) marked `is_active=true`, `priority=0`, no start/end date. This gives every user a baseline animated/gradient backdrop out of the box.
-- **In the admin Profile Card Theme Manager**, when the table is empty show a one-click "Create default theme" CTA so you don't have to fill the form manually next time.
+### What's already correct (verified in DB)
+- `hype_post(post_id)` and `hype_content(type, id)` both:
+  - Debit 1 credit from sender (priority: bonus → free balance → earned).
+  - For posts: credit 0.8 to creator's `earned_balance`; remaining 0.2 stays as platform margin.
+  - For courses/videos/blogs: full 1 credit to platform (no creator yet — by design until creator payouts go live).
+  - Insert two `credit_transactions` rows (`service_type='hype'`, `source='hype_sent'` / `'hype_received'`).
+  - Insert into `post_hypes` / `content_hypes` and bump the `hype_count`.
 
-You won't need to touch the admin panel — the seed will populate immediately. After that, any theme you create with higher priority will take over.
+So the backend is fine. What's missing is **proof to the user**.
 
-### A2. Compose Post overflows when expanded
-At 390px the expanded composer footer breaks out of the card because the icon row + counter + Post button don't wrap and the textarea has no horizontal padding offset. Fix in `ComposePost.tsx` only:
-- Wrap the bottom row with `flex-wrap gap-y-2`, give the action icons a min-width-0 container, push counter + Post button to the right with `ml-auto`.
-- Constrain the tag input row to `max-w-full overflow-hidden` and shrink the textarea to `w-full` (currently inherits implicit width from absent box-sizing on the parent).
-- Remove the lingering empty `<div>` after the icons that creates the overflow.
+### What we add
+1. **Transactions page entry**
+   - Open `src/pages/app/Transactions.tsx` (bKash-style ledger). Confirm `hype_sent` and `hype_received` rows render with proper labels, icons (▲ Hype) and -1 / +0.8 badges. If the page filters by `service_type` whitelist, add `'hype'`. Group "Hype sent / Hype received" under the existing "Engagement" or add an "Engagement" section.
+2. **Wallet drawer micro-toast**
+   - When `useHype` / `useContentHype` succeed, the toast says "▲ Hype sent · -1 credit · New balance: X.X" so the debit is unmissable. Pull fresh balance from `talent_credits` after the RPC.
+3. **Recipient earning toast (only for post hype)**
+   - For the recipient, the realtime notification (Part B) carries `+0.8 earned`. Tap goes to Transactions.
+4. **One-time backfill check**
+   - Run a read-only audit query in the migration that asserts every `post_hypes` row has matching `credit_transactions(source='hype_sent')` and `(source='hype_received')`. If any mismatch, log it. (Today: 0 rows so it passes trivially — but locks the invariant for the future.)
+5. **Self-hype guard surfaced**
+   - `CANNOT_HYPE_SELF` already raises in `hype_post`. Add the same guard for `hype_content` post path (already routes through `hype_post`, so covered) and for the future when creator IDs are added to courses/videos/blogs.
+6. **Idempotency / spam control**
+   - Add a partial unique index `(sender_talent_id, content_id, content_type)` on `post_hypes` and `content_hypes` to **prevent the same user hyping the same item twice within 24h** (cheap dedup using a check column `created_at::date`). Today the UI already disables the button after one hype but we want a DB guarantee. *(Open question — could be relaxed if you want repeat hype as a "stack" mechanic; flag noted in plan, default = one hype per item per user.)*
 
-No behavior change, purely layout.
+### Acceptance for Part A
+- Hyping a friend's post: my balance drops by 1, their `earned_balance` rises by 0.8, both rows show in Transactions, my toast confirms the debit.
+- Trying to hype my own post → blocked with a friendly toast.
+- Trying to hype the same post twice → toast "Already hyped" (no double debit).
+- Transactions page lists all `service_type='hype'` rows under a clear "Hype" section.
 
-## Part B — Universal Hype
+---
 
-Today `HypeButton` and the underlying `hype_post` RPC only target `feed_posts`. We expand it to cover **courses, videos, articles (blogs), and any future feed item**.
+## Part B — Realtime feed notifications (agentic, NOT Messenger)
 
-### Approach
-Add a polymorphic table + RPC, identical economics (1 credit, 80/20 split):
+**Direction confirmed**: notifications stay as **AI General messages** dropped into the existing notification center. We are NOT turning this into a chat surface and NOT touching the Messenger inbox (which remains for talent-to-talent + agent marketplace).
 
-```sql
-create table public.content_hypes (
-  id uuid primary key default gen_random_uuid(),
-  talent_id uuid not null references talents(id) on delete cascade,
-  content_type text not null check (content_type in ('post','course','video','blog')),
-  content_id uuid not null,
-  credits numeric(12,1) not null default 1,
-  created_at timestamptz default now()
-);
-create index on content_hypes (content_type, content_id);
-```
+### What changes
+- New server-side triggers create `notifications` rows when feed engagement happens.
+- Every row is **branded as from AI General**: standardized `icon`, an `agent='ai_general'` flag (new column or stored in an `extras jsonb`) so the dropdown can render the AI General avatar + name on the message.
+- Realtime stream into the bell badge is already live via `useNotifications` — we just need the new rows to flow.
 
-A new RPC `hype_content(_type, _id)`:
-- Resolves the creator (`talents.user_id` for posts; `content.created_by` for courses/videos; `blog_posts.author_id` for blogs).
-- Deducts 1 credit from caller (free → earned), credits 0.8 to creator's earned wallet, 0.2 to platform — same logic as `hype_post`.
-- Inserts a row in `content_hypes`.
-- Increments a denormalized `hype_count` per content type (add `hype_count int default 0` to `content` and `blog_posts`; `feed_posts` already has it — keep both RPCs, the new one is the only one new code calls).
+### Trigger surface
+- `AFTER INSERT ON post_hypes` → notify post author. Title from AI General: "{sender_name} hyped your post · +0.8 credits". Link → `/app/feed/post/{post_id}`.
+- `AFTER INSERT ON content_hypes` (course/video/blog) → notify creator if known; otherwise skip (platform-only hype, no recipient).
+- `AFTER INSERT ON post_comments` → notify post author. If `parent_comment_id` set, also notify parent commenter (`feed_reply`).
+- Mention parser on `feed_posts` and `post_comments` insert → resolve `@handle` → notify mentioned talents (cap 5 per body, dedupe vs author/parent).
 
-`feed_posts` keeps its existing column. Posts route through `hype_content('post', id)` going forward; the old `hype_post` stays for back-compat.
+### Helper
+`SECURITY DEFINER` function `notify_talent_from_ai_general(_talent_id, _type, _title, _message, _link)` that:
+- Checks recipient's `notification_preferences` and skips if disabled.
+- Dedups: if an unread row of same `(type, link)` exists from the last 60s, update its `message`/`created_at` instead of inserting a duplicate.
+- Sets the icon/persona so the UI knows it came from AI General.
 
-A new `useUniversalHype(contentType, contentId, initialCount)` hook mirrors `useHype` but takes a content type. `HypeButton` accepts `contentType?: 'post'|'course'|'video'|'blog'` (defaults to `'post'`).
+### UI updates (light)
+- `NotificationDropdown.tsx`: render the AI General avatar + name on each row's left edge so the agentic framing is obvious. Unread badge count on the bell.
+- Bottom-nav Feed icon shows a small dot when there are unread `feed_*` notifications and you're not on `/app/feed`.
+- `/app/feed`: floating "New posts ↑" pill subscribes to `feed_posts` inserts; tap re-runs the recommendations query. (Doesn't insert into the visible list to avoid scroll thrash.)
+- `/app/feed/post/:id`: subscribes to `post_comments` for that post and appends in place.
 
-### Where it appears
-- `PostCard` → unchanged usage (still posts).
-- `FeedCardRedesigned` (courses/videos/blogs) → add the same Hype button to its action row, alongside Save and Share.
-- Course detail page, blog post detail page → same button in the header actions.
+### Light preferences
+New table `notification_preferences (talent_id, channel text, enabled bool)` with channels `feed_hype`, `feed_comment`, `feed_reply`, `feed_mention`. Default = enabled. A small section in Settings with four toggles. `notify_talent_from_ai_general` consults this before inserting.
 
-Self-hype is blocked (mirrors `CANNOT_HYPE_SELF`).
+### Acceptance for Part B
+- Hype, comment, reply, or `@mention` produce a notification authored visually by AI General within ~1s, no refresh.
+- Bell badge updates live; bottom-nav dot appears for unread feed events when off the feed.
+- "New posts ↑" pill appears on the feed when new posts arrive.
+- Comments on the open post detail appear without refresh.
+- Disabling a channel in Settings stops new rows of that type immediately.
+- Notifications page still looks like the agentic feed it is today — no Messenger UI changes.
 
-## Part C — Post detail view & deep linking (the actual 2.4)
+---
 
-### Route
-```
-/app/feed/post/:id
-```
+## Technical details
 
-Renders a single `feed_posts` row in a focused, full-width view (still mobile-vertical). Used by:
-- The Share button (already links to `?post=`; switch to the proper URL).
-- Notifications.
-- External previews (OpenGraph).
+### New / modified files
+- `supabase/migrations/<ts>_hype_dedup_and_feed_notifs.sql`
+  - Unique-ish index on hype tables.
+  - Triggers + `notify_talent_from_ai_general` helper.
+  - `notification_preferences` table + RLS.
+  - Add publication entries for `feed_posts` and `post_comments` realtime.
+- `src/hooks/useUnreadCount.ts` (derived from `useNotifications`).
+- `src/hooks/useFeedRealtimeIndicator.ts`.
+- `src/components/feed/NewPostsPill.tsx`.
+- `src/components/notifications/NotificationDropdown.tsx` — AI General avatar + badge.
+- `src/pages/app/Notifications.tsx` — group by day, AI General persona row, mark-as-read on open.
+- `src/pages/app/Transactions.tsx` — ensure `service_type='hype'` rows render under an Engagement / Hype section.
+- `src/hooks/useHype.ts`, `src/hooks/useContentHype.ts` — toast with "-1 credit · new balance".
+- `src/components/settings/NotificationChannels.tsx` — four toggles.
 
-### Components
-- `src/pages/app/PostDetail.tsx` — fetches the post by id, renders `<PostCard>` at the top, then a full `<CommentList>` (not in a sheet — inline, expanded).
-- `<RelatedPosts>` — same author or shared tags, 3–5 cards below comments.
-- Back button in the header → `navigate(-1)` with fallback to `/app/feed`.
+### Out of scope
+- Push notifications (web push / FCM).
+- Email digests of feed activity.
+- Repeat-hype stacking mechanic (default = one per user per item).
+- Any change to the Messenger inbox surface.
+- Creator payouts on course/video/blog hype (whole credit stays with platform until that lands).
 
-### Deep-linking
-- `PostActionBar`'s share URL becomes `/app/feed/post/${id}` instead of `?post=`.
-- `Feed.tsx`: if `?post=<id>` is still on the URL (legacy notifications), redirect to the new route.
-
-### SEO / sharing
-- `PostDetail` sets `<title>` to the first 60 chars of `text_content` and a meta description from the next 160 chars.
-- JSON-LD `SocialMediaPosting` block with author, datePublished, articleBody.
-- OpenGraph image: post media if present, else a generated default.
-
-### Empty / error states
-- Loading: skeleton card.
-- Not found / unpublished: "This post isn't available." with a button back to the feed.
-
-## Acceptance checklist
-
-- Profile card shows a gradient/animated backdrop on a fresh load with no admin setup needed.
-- Empty Theme Manager shows a "Create default theme" CTA.
-- Compose Post: at 390px, expanded composer fits inside the card; counter + Post button never overflow.
-- Hype button appears on courses, videos, and articles in the feed and on their detail pages.
-- Hype across all content types deducts 1 credit, splits 80/20, blocks self-hype, and shows the right toasts.
-- `/app/feed/post/:id` renders the post, full comment thread, and related posts.
-- Share from `PostActionBar` produces a URL that opens the detail view directly.
-- Detail view has a proper title, meta description, and JSON-LD.
-
-## Out of scope
-
-- Comment threading depth > 1 (already simple list).
-- Realtime comment updates (poll on focus is enough for now).
-- Hype leaderboards across content types — later phase.
-
-After 2.4 ships → **2.5: Notifications & realtime hype/comments badges.**
+After 2.5 ships → **2.6: Creator analytics dashboard (per-post reach, hype, comment, save, share funnels).**
