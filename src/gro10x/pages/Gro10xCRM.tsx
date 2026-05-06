@@ -13,6 +13,9 @@ import { useCompanyOfferings } from "../hooks/useCompanyOfferings";
 import { GRO10X_MUTED } from "../lib/tokens";
 import { Plus, X, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
+import { TalentPipelinePanel } from "../components/TalentPipelinePanel";
+
+type CrmTab = "sales" | "talent";
 
 type Stage = "new" | "contacted" | "qualified" | "proposal" | "won" | "lost";
 
