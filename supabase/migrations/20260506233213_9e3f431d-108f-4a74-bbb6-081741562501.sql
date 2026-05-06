@@ -1,0 +1,1 @@
+ALTER VIEW public.gig_verifier_override_rollup SET (security_invoker = true);

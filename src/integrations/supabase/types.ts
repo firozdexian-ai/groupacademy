@@ -6216,6 +6216,63 @@ export type Database = {
         }
         Relationships: []
       }
+      gig_disputes: {
+        Row: {
+          created_at: string
+          evidence: Json
+          final_verdict: string | null
+          gig_id: string
+          id: string
+          narrative: string
+          opened_by: string
+          opened_by_role: string
+          reason_code: string
+          resolution_notes: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          submission_id: string | null
+          updated_at: string
+          verification_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          evidence?: Json
+          final_verdict?: string | null
+          gig_id: string
+          id?: string
+          narrative: string
+          opened_by: string
+          opened_by_role: string
+          reason_code: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          submission_id?: string | null
+          updated_at?: string
+          verification_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          evidence?: Json
+          final_verdict?: string | null
+          gig_id?: string
+          id?: string
+          narrative?: string
+          opened_by?: string
+          opened_by_role?: string
+          reason_code?: string
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          submission_id?: string | null
+          updated_at?: string
+          verification_id?: string | null
+        }
+        Relationships: []
+      }
       gig_match_digests: {
         Row: {
           channel: string
@@ -6337,6 +6394,72 @@ export type Database = {
             referencedColumns: ["talent_id"]
           },
         ]
+      }
+      gig_review_assignments: {
+        Row: {
+          claimed_at: string | null
+          confidence: number | null
+          created_at: string
+          due_at: string
+          gig_id: string | null
+          id: string
+          kind: string
+          offered_at: string
+          payout_credits: number
+          rationale: string | null
+          reviewer_id: string
+          source_id: string
+          status: string
+          submission_id: string | null
+          submitted_at: string | null
+          time_spent_s: number | null
+          updated_at: string
+          verdict: string | null
+          verdict_payload: Json | null
+        }
+        Insert: {
+          claimed_at?: string | null
+          confidence?: number | null
+          created_at?: string
+          due_at?: string
+          gig_id?: string | null
+          id?: string
+          kind: string
+          offered_at?: string
+          payout_credits?: number
+          rationale?: string | null
+          reviewer_id: string
+          source_id: string
+          status?: string
+          submission_id?: string | null
+          submitted_at?: string | null
+          time_spent_s?: number | null
+          updated_at?: string
+          verdict?: string | null
+          verdict_payload?: Json | null
+        }
+        Update: {
+          claimed_at?: string | null
+          confidence?: number | null
+          created_at?: string
+          due_at?: string
+          gig_id?: string | null
+          id?: string
+          kind?: string
+          offered_at?: string
+          payout_credits?: number
+          rationale?: string | null
+          reviewer_id?: string
+          source_id?: string
+          status?: string
+          submission_id?: string | null
+          submitted_at?: string | null
+          time_spent_s?: number | null
+          updated_at?: string
+          verdict?: string | null
+          verdict_payload?: Json | null
+        }
+        Relationships: []
       }
       gig_revision_requests: {
         Row: {
@@ -12649,6 +12772,146 @@ export type Database = {
           },
         ]
       }
+      reviewer_calibration_attempts: {
+        Row: {
+          answers: Json
+          attempted_at: string
+          id: string
+          passed: boolean
+          score: number
+          talent_id: string
+        }
+        Insert: {
+          answers?: Json
+          attempted_at?: string
+          id?: string
+          passed?: boolean
+          score?: number
+          talent_id: string
+        }
+        Update: {
+          answers?: Json
+          attempted_at?: string
+          id?: string
+          passed?: boolean
+          score?: number
+          talent_id?: string
+        }
+        Relationships: []
+      }
+      reviewer_credit_ledger: {
+        Row: {
+          assignment_id: string | null
+          created_at: string
+          delta: number
+          id: string
+          paid_at: string | null
+          reason: string
+          talent_id: string
+        }
+        Insert: {
+          assignment_id?: string | null
+          created_at?: string
+          delta: number
+          id?: string
+          paid_at?: string | null
+          reason: string
+          talent_id: string
+        }
+        Update: {
+          assignment_id?: string | null
+          created_at?: string
+          delta?: number
+          id?: string
+          paid_at?: string | null
+          reason?: string
+          talent_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviewer_credit_ledger_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "gig_review_assignments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reviewer_profiles: {
+        Row: {
+          accuracy: number
+          categories: string[]
+          created_at: string
+          id: string
+          items_resolved: number
+          joined_at: string
+          last_active_at: string
+          notes: string | null
+          status: string
+          talent_id: string
+          tier: string
+          updated_at: string
+        }
+        Insert: {
+          accuracy?: number
+          categories?: string[]
+          created_at?: string
+          id?: string
+          items_resolved?: number
+          joined_at?: string
+          last_active_at?: string
+          notes?: string | null
+          status?: string
+          talent_id: string
+          tier?: string
+          updated_at?: string
+        }
+        Update: {
+          accuracy?: number
+          categories?: string[]
+          created_at?: string
+          id?: string
+          items_resolved?: number
+          joined_at?: string
+          last_active_at?: string
+          notes?: string | null
+          status?: string
+          talent_id?: string
+          tier?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      reviewer_reputation_events: {
+        Row: {
+          assignment_id: string | null
+          created_at: string
+          event: string
+          id: string
+          metadata: Json
+          talent_id: string
+          weight: number
+        }
+        Insert: {
+          assignment_id?: string | null
+          created_at?: string
+          event: string
+          id?: string
+          metadata?: Json
+          talent_id: string
+          weight?: number
+        }
+        Update: {
+          assignment_id?: string | null
+          created_at?: string
+          event?: string
+          id?: string
+          metadata?: Json
+          talent_id?: string
+          weight?: number
+        }
+        Relationships: []
+      }
       riya_conversations: {
         Row: {
           completed_at: string | null
@@ -15160,6 +15423,17 @@ export type Database = {
         }
         Relationships: []
       }
+      gig_verifier_override_rollup: {
+        Row: {
+          auto_approved: number | null
+          day: string | null
+          false_positive_rate: number | null
+          gig_kind: string | null
+          overridden_rejects: number | null
+          total_verdicts: number | null
+        }
+        Relationships: []
+      }
       gigs_unified_view: {
         Row: {
           acceptance_criteria: Json | null
@@ -15375,6 +15649,7 @@ export type Database = {
         Args: { p_application_id: string }
         Returns: string
       }
+      apply_for_reviewer: { Args: { _categories: string[] }; Returns: string }
       apply_verification_verdict: {
         Args: { _verification_id: string }
         Returns: undefined
@@ -15461,6 +15736,10 @@ export type Database = {
         Returns: boolean
       }
       claim_course_project: { Args: { p_project_id: string }; Returns: Json }
+      claim_review_assignment: {
+        Args: { _assignment_id: string }
+        Returns: Json
+      }
       cleanup_rate_limits: { Args: never; Returns: undefined }
       cohort_health: {
         Args: { _cohort_id: string }
@@ -15958,6 +16237,18 @@ export type Database = {
       }
       offer_company_id: { Args: { p_offer_id: string }; Returns: string }
       offer_talent_id: { Args: { p_offer_id: string }; Returns: string }
+      open_gig_dispute: {
+        Args: {
+          _evidence?: Json
+          _gig_id: string
+          _narrative: string
+          _opened_by_role: string
+          _reason_code: string
+          _submission_id: string
+          _verification_id: string
+        }
+        Returns: string
+      }
       open_verification_appeal: {
         Args: { _evidence?: Json; _reason: string; _verification_id: string }
         Returns: string
@@ -16014,12 +16305,17 @@ export type Database = {
           read_ct: number
         }[]
       }
+      recompute_all_trust_scores: { Args: never; Returns: number }
       recompute_content_readiness: {
         Args: { _content_id: string }
         Returns: undefined
       }
       recompute_course_project_progress: {
         Args: { p_project_id: string }
+        Returns: undefined
+      }
+      recompute_reviewer_reputation: {
+        Args: { _talent_id: string }
         Returns: undefined
       }
       recompute_school_readiness: {
@@ -16070,6 +16366,10 @@ export type Database = {
         Args: { _amount: number; _details?: Json; _method: string }
         Returns: string
       }
+      resolve_dispute: {
+        Args: { _dispute_id: string; _notes: string; _verdict: string }
+        Returns: undefined
+      }
       resolve_verification_appeal: {
         Args: { _appeal_id: string; _decision: string; _notes?: string }
         Returns: undefined
@@ -16083,9 +16383,28 @@ export type Database = {
         Args: { p_filters?: Json; p_limit?: number; p_offset?: number }
         Returns: Json
       }
+      settle_review_panel: {
+        Args: { _kind: string; _source_id: string }
+        Returns: Json
+      }
       shortlist_match: { Args: { _match_id: string }; Returns: undefined }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      submit_calibration_attempt: {
+        Args: { _answers: Json; _score: number }
+        Returns: Json
+      }
+      submit_review_verdict: {
+        Args: {
+          _assignment_id: string
+          _confidence?: number
+          _payload?: Json
+          _rationale?: string
+          _time_spent_s?: number
+          _verdict: string
+        }
+        Returns: Json
+      }
       submit_revision: {
         Args: { _payload: Json; _revision_id: string }
         Returns: string

@@ -1,109 +1,171 @@
-# Phase 5.3 — AI Verification Automation & Trust Engine
+# Phase 5.4 — Community Reviewer Tier & Disputes
 
 ## Goal
-Remove humans from the gig submission → approval loop wherever safely possible. Every gig submission is auto-evaluated against its `acceptance_criteria` (set in 5.1), scored, and routed: auto-approve, auto-revise (request fix), or escalate to a human reviewer. Talent trust score becomes a real signal (already seeded in 5.2).
+Phase 5.3 closed the AI verification loop but kept admins as the only fallback for `escalated` verdicts and appeals. At marketplace scale that doesn't hold. Phase 5.4 introduces a **trusted community reviewer tier** — vetted talent who earn credits to resolve escalations, two-sided disputes between poster and talent, and a transparent reputation layer that feeds back into trust + matchmaker.
 
-This closes the loop opened by 5.1 (scoper → criteria) and 5.2 (matchmaker → bid) so the marketplace can run end-to-end without admin babysitting.
+This is the human layer that makes 5.3's automation safe to scale, and the reputation layer that makes 5.2's matchmaker fair.
 
-## Part A — 5.2 cleanup (close before opening 5.3)
+---
 
-Three small gaps from 5.2 that 5.3 depends on:
+## Part A — Cleanup carried over from 5.1 → 5.3
 
-1. **`notify-gig-match` edge function** — referenced in 5.2 plan but not deployed. Single transactional email + in-app notif for hot matches (score ≥ 0.85). 5.3 reuses the same notif rail for verification outcomes.
-2. **Bid-coach acceptance telemetry** — `marketplace_bids.coached_version_id` exists but no event log. Add `gig_bid_events` (bid_id, event, payload) so admin Matchmaker subtab can show real coach acceptance rate, and 5.3 can correlate coached bids ↔ verification pass-rate.
-3. **`gig_submissions` parity across all three gig kinds** — quick gigs and content gigs currently submit through different tables. Add a thin `gig_submissions_unified_view` (mirrors `gigs_unified_view` from 5.1) so the verifier has one input surface.
+Six small gaps surfaced during 5.1–5.3 that 5.4 either depends on or should close in the same pass:
 
-## Part B — Phase 5.3 — Verification Automation
+1. **`ai-content-originality`** — listed in 5.3 plan but not deployed. Needed before reviewers can adjudicate "AI-generated" risk flags meaningfully. Ship as a real edge function (heuristic n-gram + Gemini classifier).
+2. **`ai-deliverable-fetch`** — same status. Without it, both verifier and reviewer see URLs not content for figma/github/gdrive submissions.
+3. **`gig_bid_events` analytics surface** — table was created in 5.2 cleanup but admin Matchmaker subtab never wired the coach-acceptance chart. Quick win.
+4. **`talent_trust_score` decay job** — recompute trigger exists, but the 90-day decay only applies on new event insert. Add a `cron-trust-decay` (daily) so dormant talent decay correctly even with no new events.
+5. **Poster-side verification "Override → Reject" telemetry** — clicks are logged but no aggregation for the Verifier Insights chart (false-positive rate). Backfill the rollup view.
+6. **Marketplace gig detail** — verdict chips render for poster, but talent's own submission card on `/app/gigs/mine` (or equivalent) still shows the legacy status, not the 5.3 verdict. Unify.
+
+These ride on the 5.4 migration to avoid a separate cleanup release.
+
+---
+
+## Part B — Phase 5.4 — Reviewer Tier & Disputes
+
+### Core concepts
+
+- **Reviewer** = a talent who has opted in, passed a calibration test, and maintains a quality score. Earns credits per resolved item.
+- **Escalation pool** = items 5.3 marked `escalated` are first offered to qualified reviewers (3 reviewers per item, majority verdict). Admin only sees items where reviewers disagree or no reviewer claims within SLA.
+- **Dispute** = either party (poster or talent) can open a dispute on a completed/rejected gig within 7 days. Disputes always go through reviewer panel → admin appeal as last resort.
+- **Reputation** = reviewer accuracy is measured against the eventual settled verdict; bad reviewers lose tier; good reviewers earn higher per-item credits and unlock dispute-tier items.
 
 ### Schema
 
 | Object | Purpose |
 |---|---|
-| `gig_verifications` | One row per submission. Cols: `submission_id`, `gig_kind`, `verdict` (`auto_approved` / `auto_revise` / `escalated` / `human_approved` / `human_rejected`), `score numeric(5,2)`, `criteria_results jsonb` (per-criterion pass/fail/score + evidence), `risk_flags jsonb` (plagiarism, AI-generated, brand-safety, scope-mismatch, low-effort), `model`, `tokens_used`, `latency_ms`, `reviewed_by`, `reviewed_at`. |
-| `gig_revision_requests` | Talent-facing revision asks. Cols: `verification_id`, `summary`, `required_changes jsonb`, `attempts_remaining`, `due_at`, `status`. Default 2 attempts before escalation. |
-| `gig_verification_appeals` | Talent appeal flow. Cols: `verification_id`, `reason`, `evidence_links`, `status`, `resolved_by`. |
-| `verification_rules` | Admin-tunable thresholds per gig kind/category: auto-approve floor (default 0.85), escalate floor (default 0.55), risk-flag overrides. |
-| `talent_trust_events` | Append-only ledger feeding `talent_trust_score` (already exists from 5.2): `event` (`verification_pass`, `verification_fail`, `revision_accepted`, `appeal_won`, `dispute_lost`), `weight`, `gig_kind`. |
+| `reviewer_profiles` | `talent_id`, `tier` (`apprentice` / `reviewer` / `senior` / `master`), `categories text[]`, `status` (`active` / `paused` / `suspended`), `accuracy numeric`, `items_resolved`, `joined_at`, `last_active_at` |
+| `reviewer_calibration_attempts` | Onboarding test results: `talent_id`, `score`, `passed`, `answers jsonb`, `attempted_at`. 3-attempt cap / 30 days. |
+| `review_assignments` | One row per (item, reviewer). `kind` (`escalation` / `dispute`), `source_id` (verification_id or dispute_id), `status` (`offered` / `claimed` / `submitted` / `expired` / `recused`), `claimed_at`, `due_at`, `verdict`, `verdict_payload jsonb`, `confidence numeric`, `time_spent_s` |
+| `gig_disputes` | `gig_id`, `submission_id`, `opened_by` (`poster` / `talent`), `reason_code`, `narrative`, `evidence jsonb`, `status` (`open` / `panel` / `admin` / `resolved` / `withdrawn`), `final_verdict`, `resolved_by`, `resolved_at` |
+| `reviewer_credit_ledger` | `talent_id`, `assignment_id`, `delta numeric(12,1)`, `reason`, `paid_at` — flows through existing fractional credits wallet (per `mem://business/fractional-per-response-credit-model`) |
+| `reviewer_reputation_events` | append-only: `talent_id`, `event` (`assignment_correct` / `assignment_incorrect` / `assignment_expired` / `recused` / `tier_promoted` / `tier_demoted`), `weight`, `assignment_id` |
 
-RLS: talent sees own verifications + revision requests + appeals; poster sees verification verdict + score + risk_flags (not raw rationale) for their gig; admin full.
+RLS: reviewer sees only their own assignments + own ledger; parties to a dispute see only their dispute; admin full. Reviewer identities are anonymized to disputants ("Reviewer A/B/C").
 
 ### RPCs
 
-- `request_gig_verification(_submission_id uuid)` — idempotent; enqueues if not already pending; returns verification_id.
-- `apply_verification_verdict(_verification_id uuid)` — server-side application: flips submission status, releases or holds escrow, fires notifications, writes `talent_trust_events`, recomputes `talent_trust_score`.
-- `submit_revision(_revision_id uuid, _payload jsonb)` — talent re-submits; decrements attempts; re-queues verifier.
-- `open_verification_appeal(_verification_id uuid, _reason text, _evidence jsonb)` — talent appeal; routes to admin queue.
-- `resolve_verification_appeal(_appeal_id uuid, _decision text, _notes text)` — admin only; overrides verdict, logs trust event.
+- `apply_for_reviewer(_categories text[])` — opens calibration attempt; idempotent.
+- `submit_calibration_attempt(_payload jsonb)` — scores, promotes to `apprentice` if pass.
+- `claim_review_assignment(_assignment_id uuid)` — atomic claim; rejects if already claimed/expired or reviewer is party to gig.
+- `submit_review_verdict(_assignment_id uuid, _verdict text, _payload jsonb, _confidence numeric)` — writes verdict; if 3 verdicts in → calls `settle_review_panel`.
+- `settle_review_panel(_source_id uuid, _kind text)` — majority logic; ties → admin queue; writes settled verdict, fires `apply_verification_verdict` (5.3) or `resolve_dispute`.
+- `open_gig_dispute(_submission_id uuid, _reason_code text, _narrative text, _evidence jsonb)` — either party; routes to reviewer panel.
+- `resolve_dispute(_dispute_id uuid, _verdict text, _notes text)` — invoked by panel settlement or admin override.
+- `recompute_reviewer_reputation(_talent_id uuid)` — invoked on every settlement; updates accuracy, triggers tier change if thresholds crossed.
 
 ### Edge functions
 
-- `ai-gig-verifier` — the core. Input: `submission_id`. Pulls the gig + `acceptance_criteria` + submission artifacts (text, links, attachments via signed URLs from `gig-submissions` storage). Runs structured tool-call against Gemini (`google/gemini-2.5-pro` for primary; `google/gemini-3-flash-preview` for low-risk quick gigs) returning `{score, per_criterion[], risk_flags[], rationale, suggested_revisions[]}`. Writes `gig_verifications`, then calls `apply_verification_verdict`.
-- `ai-content-originality` — sub-tool for content gigs: AI-generated detection + light plagiarism heuristic (n-gram overlap against prior submissions in same category). Called by verifier when `kind='content'`.
-- `ai-deliverable-fetch` — fetches & summarizes external deliverables (figma/github/gdrive/url) before passing to verifier so the model sees content, not just URLs.
-- `cron-verification-sweeper` — every 5 min: picks up new `gig_submissions` lacking a verification row → calls `ai-gig-verifier`. Caps concurrency.
-- `cron-revision-expiry` — daily: revision requests past `due_at` → auto-fail + trust event.
-- `notify-verification-outcome` — single channel for `auto_approved` / `auto_revise` / `escalated` / `appeal_resolved` notifications (in-app + native email queue).
+- `ai-reviewer-brief` — pre-digests an escalated item for a claiming reviewer: gig brief, acceptance criteria, AI verdict + rationale, prior submissions/revisions, surfaced risk flags. Cuts review time. (Gemini 2.5-flash.)
+- `ai-dispute-summarizer` — same idea but two-sided: synthesizes both narratives + evidence into a neutral fact sheet for the panel.
+- `ai-reviewer-quality-check` — periodic spot-check that re-scores a random 5% of reviewer verdicts with the verifier model; flags consistent disagreement → reputation event.
+- `cron-review-assignment-sweeper` (every 2 min) — picks up new escalations + disputes → offers to top-N matched reviewers (by tier + category + load) using a small fan-out.
+- `cron-review-assignment-expiry` (every 10 min) — `offered` past TTL → re-offer; `claimed` past `due_at` → expire + reputation hit.
+- `cron-reviewer-payouts` (daily) — settles `reviewer_credit_ledger` into wallet; emits statement.
+- `notify-review-assignment` — single rail for offer/claim-confirmed/verdict-due-soon/settled (in-app + native email queue).
+- `notify-dispute-update` — for both parties.
 
-### Talent surfaces
+### Reviewer cockpit (`/app/reviewer`)
 
-- **Submission detail (`/app/gig-submissions/:id` or in marketplace gig modal)** — verdict card with score, per-criterion checklist (✓/✗ + one-line reason), suggested revisions if `auto_revise`, "Submit revision" CTA, "Appeal" link.
-- **Revision composer** — modal listing `required_changes`; talent uploads/edits → `submit_revision`.
-- **Appeals page** (`/app/gigs/appeals`) — list of own appeals + status.
-- **Trust score widget** on profile sidebar — current score, last 5 events, "How to improve" tooltip.
+- **Dashboard** — current tier, accuracy, items-this-week, credits earned, eligibility.
+- **Inbox** — `Offered` / `Claimed` / `History`. Each row: gig title (anonymized poster), kind, payout, time-left.
+- **Adjudication view** — ai-reviewer-brief panel + criteria checklist (✓/✗/partial) + risk-flag toggles + verdict + confidence slider + free-text rationale. Mandatory recuse button if conflict-of-interest.
+- **Reputation panel** — last 20 settlements (Correct / Incorrect / Tied), trend, tier requirements.
+- **Calibration & onboarding** — 5–10 sample items + rubric tutorial; instant scoring.
+
+### Talent (disputant) surfaces
+
+- On `auto_revise` / `human_rejected` / `escalated` verdict: **"Open dispute"** CTA visible for 7 days.
+- `/app/gigs/disputes` — own disputes, status, reviewer panel progress (anonymized), final verdict.
+- Dispute composer — reason code dropdown, narrative, evidence upload (reuses `gig-submissions` storage with signed URLs).
 
 ### Poster surfaces
 
-- On gig detail (poster view): submission row shows `Auto-approved ✓ (0.91)` / `Revision requested (1/2)` / `Escalated to review` chips, with risk_flags badges. One-click **Override → Approve** or **Override → Reject** (logs as poster decision, weighs into trust separately).
-- New "Verifications" tab on `/app/employer/gigs/:id` showing the funnel (submitted → verified → revised → approved → paid).
+- On `auto_approved` / `human_approved`: same "Open dispute" CTA for 7 days post-approval.
+- On gig detail: dispute chip + panel status.
+- "Disputes" subtab on `/app/employer/gigs/:id`.
 
 ### Admin surfaces
 
-- **Gig Ops → Verification Queue** (new subtab): filter by `escalated`, `appealed`, `low-confidence`, `risk-flagged`. Inline view of submission + AI rationale + per-criterion results. Buttons: Approve / Reject / Send back for revision / Resolve appeal. SLA timer per item.
-- **Gig Ops → Verification Insights**: auto-approve rate per kind/category, false-positive rate (overrides ÷ auto-approves), avg latency, model cost per verdict, top failing criteria (feeds Scoper improvements).
-- **Verification Rules editor**: adjust thresholds + risk-flag policies per gig kind without code changes.
+- **Gig Ops → Reviewer Program** (new subtab):
+  - Applications & calibration queue
+  - Active reviewers table (tier, accuracy, items, last active, suspend/promote/demote)
+  - Calibration item bank editor
+  - Reviewer payout statements
+- **Gig Ops → Disputes**: open / panel / admin queues, ai-dispute-summarizer surfaced, override + final-verdict actions.
+- **Gig Ops → Verification Queue** (existing from 5.3): now shows reviewer-panel status inline; admin only sees items where panel deadlocked or no reviewers available within SLA.
+- **Reviewer Insights**: program health — supply/demand per category, median time-to-resolve, panel agreement rate, AI-vs-panel agreement rate, cost per resolved item.
 
-### Trust score wiring
+### Trust + matchmaker wiring
 
-- `talent_trust_score` (already exists from 5.2) is now driven mainly by `talent_trust_events`. Recompute on every event insert via trigger; capped 0–100; decay older events 90+ days old at 0.5x weight.
-- Matchmaker (5.2) automatically benefits — no code change needed there.
+- `talent_trust_events` (5.3) gains new event types: `dispute_won`, `dispute_lost`, `reviewer_correct`, `reviewer_incorrect`. Weights tunable in `verification_rules`.
+- Matchmaker (5.2) automatically picks up changes via `talent_trust_score`. No code change in matchmaker.
+- Reviewers' reputation does **not** influence their own talent trust score — kept separate to prevent feedback loops.
 
 ### Notifications
 
-- Templates (native email queue): `gig_verification_approved`, `gig_verification_revision_requested`, `gig_verification_escalated`, `gig_verification_appeal_resolved`, `gig_poster_override_logged`. All include deep links + unsubscribe.
+Templates (native email queue): `reviewer_application_received`, `reviewer_calibration_passed`, `reviewer_calibration_failed`, `review_assignment_offered`, `review_assignment_claim_confirmed`, `review_assignment_due_soon`, `review_assignment_settled`, `dispute_opened`, `dispute_panel_assembled`, `dispute_resolved`, `reviewer_tier_promoted`, `reviewer_tier_demoted`, `reviewer_payout_statement`.
 
 ### Cross-cutting
 
-- Memory entry: `mem://product/gig-verification-automation` — verdict states, thresholds, escalation rules, trust event weights, model selection per kind.
-- No payout/escrow logic changes here — verdict only flips submission status; payout still lands in 5.7. But schema leaves room for `payout_released_at` so 5.7 plugs in cleanly.
-- Reuses `auto-review-gig-submission` if present (`src/lib/gigAutoReview.ts`) — extend rather than duplicate.
+- Memory entry: `mem://product/community-reviewer-and-disputes` — tiers, thresholds, payout rates, panel rules, dispute window, anonymity rules.
+- Reuses fractional credit wallet, native email queue, signed-URL storage, existing `auto-review-gig-submission` extension point.
+- All reviewer earnings flow through the same earnings/payout pipeline as instructor payouts (`mem://product/instructor-monetization-payouts`) — minimum payout threshold reuses 500cr.
+
+---
 
 ## Technical sequencing (Phase 4 SOP)
 
 ```text
-Step 1 → 5.2 cleanup migration: notify-gig-match edge, gig_bid_events, gig_submissions_unified_view
-Step 2 → 5.3 schema migration: gig_verifications, gig_revision_requests, gig_verification_appeals,
-         verification_rules, talent_trust_events + trigger to recompute trust + RLS
-Step 3 → RPCs: request_gig_verification, apply_verification_verdict, submit_revision,
-         open_verification_appeal, resolve_verification_appeal
-Step 4 → Edge functions: ai-gig-verifier, ai-content-originality, ai-deliverable-fetch,
-         cron-verification-sweeper (5min), cron-revision-expiry (daily),
-         notify-verification-outcome
-Step 5 → Talent UI: submission verdict card, revision composer, appeals page, trust widget
-Step 6 → Poster UI: verdict chips + Verifications tab + override actions
-Step 7 → Admin UI: Gig Ops → Verification Queue + Insights + Rules editor
-Step 8 → Memory entry + Phase 5.3 checkpoint in .lovable/plan.md
+Step 1 → Cleanup migration: ai-content-originality + ai-deliverable-fetch deployed,
+         gig_bid_events analytics view, cron-trust-decay, verifier-override rollup,
+         talent submission card unification
+Step 2 → 5.4 schema migration: reviewer_profiles, reviewer_calibration_attempts,
+         review_assignments, gig_disputes, reviewer_credit_ledger,
+         reviewer_reputation_events + RLS + triggers
+Step 3 → RPCs: apply_for_reviewer, submit_calibration_attempt, claim_review_assignment,
+         submit_review_verdict, settle_review_panel, open_gig_dispute,
+         resolve_dispute, recompute_reviewer_reputation
+Step 4 → Edge functions: ai-reviewer-brief, ai-dispute-summarizer,
+         ai-reviewer-quality-check, cron-review-assignment-sweeper,
+         cron-review-assignment-expiry, cron-reviewer-payouts,
+         notify-review-assignment, notify-dispute-update
+Step 5 → Reviewer cockpit (/app/reviewer): dashboard, inbox, adjudication, reputation, calibration
+Step 6 → Disputant UI: open-dispute CTA on verdicts, /app/gigs/disputes, composer
+Step 7 → Poster UI: dispute chip + Disputes subtab on employer gig page
+Step 8 → Admin UI: Gig Ops → Reviewer Program + Disputes + Reviewer Insights;
+         extend Verification Queue with panel status
+Step 9 → Memory entry + Phase 5.4 checkpoint in .lovable/plan.md
 ```
 
+---
+
 ## Out of scope (later phases)
-- Reviewer tier / disputes (5.4) — appeals here are admin-resolved; community reviewers come in 5.4
-- B2B managed projects (5.5)
-- Payout & escrow release (5.7)
-- Public `/gigs` SEO (5.8)
+
+- B2B managed projects (5.5) — disputes there will have an SLA layer on top of this
+- Public reviewer profiles / leaderboards (5.6 ideas)
+- Payout & escrow release (5.7) — disputes still flip status only here
+- Public `/gigs` SEO + reviewer transparency page (5.8)
+
+---
 
 ## Open questions
 
-1. **Auto-approve floor** — default 0.85 OK, or stricter (0.90) at launch and loosen with data?
-2. **Revision attempts** — default 2 before escalation. OK or 1?
-3. **Poster override weight** — should a poster's manual reject after auto-approve count against talent trust, or only flag the verifier for tuning? (My recommendation: only flag the verifier; trust hits only on admin or appeal-lost outcomes.)
-4. **Originality check on content gigs** — start with heuristic + AI-generated detector, or also wire an external plagiarism API later?
-5. **Escalation SLA** — show admins a 24h SLA timer per escalated item, with auto-nudge after 18h. Acceptable?
+1. **Panel size** — 3 reviewers majority, OR 2-of-2 with admin tiebreak? (Default proposal: 3.)
+2. **Dispute window** — 7 days post-verdict for both sides. OK, or 5/10?
+3. **Reviewer payout rate** — flat per-item by tier (e.g. 5cr / 10cr / 20cr / 40cr) OR % of gig value (e.g. 2%)? (Default: flat by tier — predictable for reviewer, decoupled from gig price gaming.)
+4. **Anonymity** — reviewers fully anonymized to disputants; disputants identifiable to reviewers (needed to judge prior work/context). OK?
+5. **Calibration cadence** — re-calibrate every 90 days OR only on accuracy drop below threshold? (Default: only on drop, plus quarterly random spot-check via `ai-reviewer-quality-check`.)
+6. **Conflict of interest** — auto-block reviewer if same company/poster/category-recent-collab, OR rely on manual recuse? (Default: auto-block + manual recuse fallback.)
+
+---
+
+## Phase 5.4 — SHIPPED ✅
+- Schema: reviewer_profiles, reviewer_calibration_attempts, gig_review_assignments, gig_disputes, reviewer_credit_ledger, reviewer_reputation_events
+- Triggers: tg_reviewer_rep_recompute (auto-promotes tier on accuracy)
+- RPCs: apply_for_reviewer, submit_calibration_attempt, claim_review_assignment, submit_review_verdict, settle_review_panel, open_gig_dispute, resolve_dispute
+- Edges: ai-reviewer-brief, ai-dispute-summarizer, ai-reviewer-quality-check, cron-review-assignment-sweeper (2m), cron-review-assignment-expiry (10m), cron-trust-decay (daily), cron-reviewer-payouts (daily), notify-review-assignment, notify-dispute-update
+- Cleanup edges from 5.1-5.3: ai-content-originality, ai-deliverable-fetch, gig_verifier_override_rollup view, recompute_all_trust_scores
+- UI: /app/reviewer (cockpit), /app/gigs/disputes, OpenDisputeButton, admin Gig Ops → Reviewer Program tab
+- Memory: mem://product/community-reviewer-and-disputes
