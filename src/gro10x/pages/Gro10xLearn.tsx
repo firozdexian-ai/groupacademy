@@ -20,14 +20,22 @@ export default function Gro10xLearn() {
 
   return (
     <div className="max-w-md mx-auto pb-24">
-      <header className="px-4 pt-4 pb-2">
-        <div className="flex items-center gap-2">
-          <GraduationCap className="h-5 w-5 text-[#33E1E4]" />
-          <h1 className="text-xl font-semibold tracking-tight">Learn</h1>
+      <header className="px-4 pt-4 pb-2 flex items-start justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <GraduationCap className="h-5 w-5 text-[#33E1E4]" />
+            <h1 className="text-xl font-semibold tracking-tight">Learn</h1>
+          </div>
+          <p className={`text-xs ${GRO10X_MUTED} mt-0.5`}>
+            B2B courses for your team. Sponsored or free, all in one place.
+          </p>
         </div>
-        <p className={`text-xs ${GRO10X_MUTED} mt-0.5`}>
-          B2B courses for your team. Sponsored or free, all in one place.
-        </p>
+        <Link
+          to="/gro10x/learn/ops"
+          className="text-[10px] px-2 py-1 rounded-full bg-[#33E1E4]/15 text-[#33E1E4] border border-[#33E1E4]/30"
+        >
+          Learning Ops
+        </Link>
       </header>
 
       {/* Assigned to me */}
