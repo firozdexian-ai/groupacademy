@@ -10,6 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { BookOpen, MessageCircle, Award, PlayCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AdaptiveSnapshotCard } from "@/components/learning/AdaptiveSnapshotCard";
+import { NextActionsCard } from "@/components/learning/NextActionsCard";
 
 interface MyCoursesTabProps {
   onBrowseCatalog?: () => void;
@@ -197,6 +198,7 @@ export function MyCoursesTab({ onBrowseCatalog }: MyCoursesTabProps) {
         </Card>
       ) : (
         <>
+          <NextActionsCard />
           <AdaptiveSnapshotCard />
           <button
             type="button"
