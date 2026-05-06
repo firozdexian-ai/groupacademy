@@ -4424,6 +4424,7 @@ export type Database = {
           enrollment_id: string
           id: string
           module_id: string
+          resource_state: Json
           resource_view_states: Json | null
           updated_at: string | null
         }
@@ -4434,6 +4435,7 @@ export type Database = {
           enrollment_id: string
           id?: string
           module_id: string
+          resource_state?: Json
           resource_view_states?: Json | null
           updated_at?: string | null
         }
@@ -4444,6 +4446,7 @@ export type Database = {
           enrollment_id?: string
           id?: string
           module_id?: string
+          resource_state?: Json
           resource_view_states?: Json | null
           updated_at?: string | null
         }

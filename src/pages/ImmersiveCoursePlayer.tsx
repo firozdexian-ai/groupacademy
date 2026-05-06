@@ -27,8 +27,11 @@ import { DiscussStage } from "@/components/player/stages/DiscussStage";
 import { PracticeStage } from "@/components/player/stages/PracticeStage";
 import { AssessStage } from "@/components/player/stages/AssessStage";
 import { ProgressStage } from "@/components/player/stages/ProgressStage";
+import StageShell from "@/components/player/StageShell";
+import ShortcutsDialog from "@/components/player/ShortcutsDialog";
 import { useModuleResourcesByStage } from "@/hooks/useModuleResources";
 import { useStageProgress } from "@/hooks/useStageProgress";
+import { usePlayerHotkeys } from "@/hooks/usePlayerHotkeys";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -43,6 +46,8 @@ export default function ImmersiveCoursePlayer() {
   const { user } = useAuth();
   const [currentModuleId, setCurrentModuleId] = useState<string | undefined>();
   const [moduleProgress, setModuleProgress] = useState<Record<string, ModuleProgressState>>({});
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [resumed, setResumed] = useState(false);
 
   // 1. Data Ingestion
   const {
@@ -153,10 +158,26 @@ export default function ImmersiveCoursePlayer() {
     timeout: TIMEOUTS.DEFAULT,
   });
 
-  // Lifecycle Sync
+  // Resume-where-you-left-off (runs once after enrollment + modules + progress hydrate)
   useEffect(() => {
-    if (modules.length > 0 && !currentModuleId) setCurrentModuleId(modules[0].id);
-  }, [modules, currentModuleId]);
+    if (resumed || modules.length === 0) return;
+    // Wait for progress data when an enrollment exists
+    if (enrollment?.id && allModuleProgress === undefined) return;
+
+    let resumeModuleId: string | undefined = enrollment?.current_module_id ?? undefined;
+    if (!resumeModuleId && allModuleProgress?.length) {
+      // pick module with most completed stages
+      const ranked = [...allModuleProgress].sort(
+        (a, b) =>
+          ((b.completed_stages as number[])?.length ?? 0) -
+          ((a.completed_stages as number[])?.length ?? 0),
+      );
+      resumeModuleId = ranked[0]?.module_id ?? undefined;
+    }
+    if (!resumeModuleId) resumeModuleId = modules[0].id;
+    setCurrentModuleId(resumeModuleId);
+    setResumed(true);
+  }, [modules, enrollment, allModuleProgress, resumed]);
 
   const { data: stageResources = [] } = useModuleResourcesByStage(currentModuleId);
 
@@ -190,6 +211,38 @@ export default function ImmersiveCoursePlayer() {
     if (passed) handleStageComplete(5);
     else toast.error("Performance threshold not met. Review material.");
   };
+
+  // Persist current_module_id whenever it changes (debounced)
+  useEffect(() => {
+    if (!enrollment?.id || !currentModuleId) return;
+    const t = setTimeout(() => {
+      supabase
+        .from("enrollments")
+        .update({ current_module_id: currentModuleId, last_accessed_at: new Date().toISOString() })
+        .eq("id", enrollment.id)
+        .then(() => {});
+    }, 500);
+    return () => clearTimeout(t);
+  }, [currentModuleId, enrollment?.id]);
+
+  const handlePrevModule = () => {
+    if (currentModuleIndex > 0) {
+      const prev = modules[currentModuleIndex - 1];
+      resetForModule(prev.id);
+      setCurrentModuleId(prev.id);
+      setCurrentStage(1);
+    }
+  };
+
+  usePlayerHotkeys({
+    enabled: !!currentModuleId,
+    onPrevStage: () => currentStage > 1 && goToStage(currentStage - 1),
+    onNextStage: () => currentStage < 6 && goToStage(currentStage + 1),
+    onPrevModule: handlePrevModule,
+    onNextModule: () => hasNextModule && handleNextModule(),
+    onComplete: () => !completedStages.includes(currentStage) && handleStageComplete(currentStage),
+    onShowShortcuts: () => setShortcutsOpen(true),
+  });
 
   const handleNextModule = async () => {
     if (hasNextModule) {
@@ -308,33 +361,53 @@ export default function ImmersiveCoursePlayer() {
             </CollapsibleContent>
           </Collapsible>
 
-          <StageNavigation
-            currentStage={currentStage}
-            completedStages={completedStages}
-            onStageSelect={goToStage}
-            className="mb-10"
-          />
+          <div className="sticky top-[68px] z-30 -mx-6 px-6 py-3 bg-background/85 backdrop-blur-xl border-b border-border/30">
+            <StageNavigation
+              currentStage={currentStage}
+              completedStages={completedStages}
+              onStageSelect={goToStage}
+            />
+            <div className="mt-2 grid grid-cols-6 gap-1">
+              {[1, 2, 3, 4, 5, 6].map((s) => (
+                <div
+                  key={s}
+                  className={cn(
+                    "h-1 rounded-full transition-all",
+                    completedStages.includes(s)
+                      ? "bg-emerald-500"
+                      : s === currentStage
+                        ? "bg-primary animate-pulse"
+                        : "bg-muted",
+                  )}
+                />
+              ))}
+            </div>
+          </div>
 
           <div className="min-h-[500px] relative">
-            <StageContentRouter
-              stage={currentStage}
-              content={content}
-              currentModule={currentModule}
-              resources={stageResources.find((s) => s.stage === currentStage)?.resources || []}
-              completedStages={completedStages}
-              onComplete={handleStageComplete}
-              onQuizComplete={handleQuizComplete}
-              onNextModule={handleNextModule}
-              aiInstructor={aiInstructor}
-              studentId={student?.id}
-              enrollmentId={enrollment.id}
-              hasNextModule={hasNextModule}
-              moduleIndex={currentModuleIndex}
-              totalModules={modules.length}
-            />
+            <StageShell stageKey={`${currentModuleId}-${currentStage}`}>
+              <StageContentRouter
+                stage={currentStage}
+                content={content}
+                currentModule={currentModule}
+                resources={stageResources.find((s) => s.stage === currentStage)?.resources || []}
+                completedStages={completedStages}
+                onComplete={handleStageComplete}
+                onQuizComplete={handleQuizComplete}
+                onNextModule={handleNextModule}
+                aiInstructor={aiInstructor}
+                studentId={student?.id}
+                enrollmentId={enrollment.id}
+                hasNextModule={hasNextModule}
+                moduleIndex={currentModuleIndex}
+                totalModules={modules.length}
+              />
+            </StageShell>
           </div>
         </div>
       </main>
+
+      <ShortcutsDialog open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
     </div>
   );
 }

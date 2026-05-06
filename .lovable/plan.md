@@ -1,93 +1,96 @@
-## Sub-phase 1.6 — Course Performance Dashboard
+## Sub-phase 2.1 — Immersive Course Player Polish
 
-A new **Performance** tab inside `ContentEdit` giving admins per-course analytics: enrollment funnel, completion stats, quiz/scenario pool health, and per-module drop-off. Read-only, fully client-aggregated from existing tables — no schema changes.
+Tighten the existing 6-stage player so it feels deliberate, persistent, and keyboard-friendly. No new tables — reuses `enrollment_stage_progress` + `enrollments`.
 
 ---
 
-### 1. New tab in ContentEdit
+### 1. Resume-where-you-left-off
 
-`src/pages/ContentEdit.tsx`
-- Add `<TabsTrigger value="performance">Performance</TabsTrigger>` next to Schema/Sessions.
-- Add `<TabsContent value="performance">` rendering the new component:
-  ```tsx
-  {id && <CoursePerformanceDashboard contentId={id} contentTitle={formData.title} />}
-  ```
+`src/pages/ImmersiveCoursePlayer.tsx`
+- On enrollment load, compute `lastModuleId` = `enrollment.current_module_id` (fallback: most recently progressed module from `enrollment_stage_progress`, fallback: first module).
+- Compute `lastStage` = first incomplete stage (1–6) for that module; default to 1 if all complete or none started.
+- Replace current `setCurrentModuleId(modules[0].id)` initializer with `setCurrentModuleId(lastModuleId)` and `setCurrentStage(lastStage)`.
+- Fire `enrollments.update({ current_module_id, last_accessed_at: now() })` whenever module changes (debounced 500ms).
 
-### 2. New component — `src/components/dashboard/CoursePerformanceDashboard.tsx`
+### 2. Stage transitions (visual polish)
 
-Composed of 5 cards in a responsive grid (matches existing rounded-3xl / muted header style):
+`src/components/player/stages/StageShell.tsx` (new wrapper)
+- Wrap each stage's content with framer-motion `<AnimatePresence mode="wait">` keyed by `stage`.
+- Slide-fade transition (x: 24 → 0, opacity 0 → 1, 220ms).
+- Reduced-motion respected via `useReducedMotion()`.
 
-1. **KPI strip** — 4 stat tiles
-   - Enrollments (total)
-   - Active learners (last 7d via `enrollments.last_accessed_at`)
-   - Completion rate (`status = 'completed' / total`)
-   - Avg progress (`avg(progress)`)
+Apply by rendering `<StageShell stageKey={currentStage}>{stageNode}</StageShell>` in `ImmersiveCoursePlayer`.
 
-2. **Enrollment funnel** — horizontal bars
-   - Enrolled → Started (`progress > 0`) → Mid (`>= 50`) → Completed (`status='completed'`)
+### 3. Sticky stage header + progress rail
 
-3. **Per-module drop-off** — table of `course_modules` (ordered by `display_order`) with:
-   - Learners who reached this module (count where `enrollments.current_module_id = m.id` OR passed it)
-   - Quiz attempts (`talent_quiz_attempt` count + avg score)
-   - Scenario runs (`talent_scenario_run` count + avg `evaluation->>score`)
-   - Drop-off %
+`src/components/player/StageNavigation.tsx` (edit existing)
+- Make the stage chip strip `sticky top-0 z-30` with a subtle backdrop-blur.
+- Show **module N / total** + **stage label** + a slim 6-segment progress bar (filled = completed, glowing = current).
+- Add prev/next stage chevrons inline.
 
-4. **Pool health** — for each module, two compact rows:
-   - Quiz pool: size, avg `quality_score`, total `times_served`, low-quality count (`quality_score < 0`)
-   - Scenario pool: same metrics
-   - Color chip: green (≥20 quiz / ≥10 scenarios), amber, red.
+### 4. Keyboard navigation
 
-5. **Recent activity** — last 10 rows across `enrollments`, `talent_quiz_attempt`, `talent_scenario_run` with timestamp + talent name.
+`src/hooks/usePlayerHotkeys.ts` (new)
+- `←` / `→` → previous / next stage (no-op if at boundary).
+- `[` / `]` → previous / next module.
+- `Enter` (when a "Mark complete" CTA is focusable) → triggers `handleStageComplete(currentStage)`.
+- `?` → opens a small `ShortcutsDialog` listing keys.
+- Disabled when `document.activeElement` is an input/textarea/contenteditable.
 
-### 3. Data layer — `src/lib/coursePerformance.ts`
+Wired into `ImmersiveCoursePlayer` via `usePlayerHotkeys({ onPrevStage, onNextStage, onPrevModule, onNextModule, onComplete })`.
 
-Single hook `useCoursePerformance(contentId)` that fires parallel queries:
+### 5. Per-resource progress persistence
 
-```ts
-const [enrollments, modules, quizAttempts, scenarioRuns, quizPool, scenarioPool]
-  = await Promise.all([
-    supabase.from("enrollments").select("id,status,progress,current_module_id,last_accessed_at,enrolled_at,talent_id").eq("content_id", contentId),
-    supabase.from("course_modules").select("id,title,display_order").eq("content_id", contentId).order("display_order"),
-    supabase.from("talent_quiz_attempt").select("id,module_id,score,created_at,talent_id").in("module_id", moduleIds),
-    supabase.from("talent_scenario_run").select("id,module_id,evaluation,created_at,talent_id").in("module_id", moduleIds),
-    supabase.from("module_quiz_pool").select("module_id,quality_score,times_served").in("module_id", moduleIds),
-    supabase.from("module_scenario_pool").select("module_id,quality_score,times_served").in("module_id", moduleIds),
-  ]);
+`src/hooks/useResourceProgress.ts` (new)
+- Persists per `(enrollment_id, resource_id)` watch position (videos) + read state (links/files) using a single JSONB column `enrollment_stage_progress.resource_state` (added via migration — see §7).
+- `VideoPlayer.tsx`: emit `onTimeUpdate` (throttled 5s) + `onEnded` → `useResourceProgress.update(resourceId, { sec, done })`.
+- `ResourceViewer.tsx`: mark link/file resources as `done=true` after 3s focus or explicit "Mark done" click.
+- LearnStage shows ✓ badge on completed resources and **resumes video at saved time**.
+
+### 6. Auto-advance + smarter stage gating
+
+`src/hooks/useStageProgress.ts` (edit)
+- Once **all** resources in a stage are `done`, auto-trigger `handleStageComplete(stage)` (still requires confirm toast for Practice/Assess).
+- Lock future stages behind incomplete prior stages — clicking a locked chip shows an inline tooltip "Complete Stage N first".
+
+### 7. Tiny migration
+
+```sql
+ALTER TABLE public.enrollment_stage_progress
+  ADD COLUMN IF NOT EXISTS resource_state jsonb NOT NULL DEFAULT '{}'::jsonb;
 ```
+No new RLS — inherits existing policies.
 
-Aggregations done in-memory (volumes are small per course). Returns a typed `CoursePerformance` object consumed by the dashboard.
+### 8. Exit & resume UX
 
-### 4. Export
-
-A "Download CSV" button in the dashboard header that flattens the per-module table via `papaparse` (already in deps — fallback to manual CSV string if not) and triggers a Blob download.
-
-### 5. Empty / loading states
-
-- Skeleton cards while loading.
-- Empty state: "No enrollments yet" with a link to share the course.
-
-### 6. Permissions
-
-- Tab only mounts; data queries already protected by existing RLS (admin role can read these tables). No new policies needed.
+- "X" close button in player header → updates `current_module_id` + `last_accessed_at` then `navigate(-1)`.
+- On `/dashboard` learning rail (existing): course cards already exist; ensure the "Continue" CTA links to `/courses/:slug` which the player already handles — **no new dashboard work**, just verify.
 
 ---
 
 ### Files
 
 **New**
-- `src/components/dashboard/CoursePerformanceDashboard.tsx`
-- `src/components/dashboard/performance/KPIStrip.tsx`
-- `src/components/dashboard/performance/EnrollmentFunnel.tsx`
-- `src/components/dashboard/performance/ModuleDropoffTable.tsx`
-- `src/components/dashboard/performance/PoolHealthCard.tsx`
-- `src/components/dashboard/performance/RecentActivityList.tsx`
-- `src/lib/coursePerformance.ts`
+- `src/components/player/StageShell.tsx`
+- `src/hooks/usePlayerHotkeys.ts`
+- `src/hooks/useResourceProgress.ts`
+- `src/components/player/ShortcutsDialog.tsx`
 
 **Edited**
-- `src/pages/ContentEdit.tsx` — add Performance tab.
+- `src/pages/ImmersiveCoursePlayer.tsx` — resume logic, hotkeys, debounced enrollment updates, StageShell wrapper.
+- `src/components/player/StageNavigation.tsx` — sticky header + progress rail.
+- `src/components/player/VideoPlayer.tsx` — resume + persist watch time.
+- `src/components/player/ResourceViewer.tsx` — done-marking.
+- `src/hooks/useStageProgress.ts` — auto-advance + gating.
 
-### Out of scope (later phases)
-- Time-series charts (weekly enrollments, retention curves).
-- Cohort analysis / per-traffic-source breakdown.
-- Per-talent drill-down view.
-- Server-side materialized views (only needed once per-course volume > 10k rows).
+**Migration**
+- Add `resource_state jsonb` to `enrollment_stage_progress`.
+
+---
+
+### Out of scope (deferred to 2.2)
+- `module_progress` table + auto-recompute of `enrollments.progress` (whole next sub-phase).
+- Adaptive difficulty (2.3).
+- Certificates on completion (2.4).
+
+Reply **continue** to implement (migration first, then hooks, then UI wiring).
