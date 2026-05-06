@@ -229,6 +229,13 @@ export function JobCard({
           </div>
         )}
 
+        {matchInfo?.match_reason === "verified_skill" && (
+          <VerifiedMatchBadge
+            credentials={matchInfo.verified_match?.verified_credentials}
+            masteryScore={matchInfo.verified_match?.mastery_score}
+          />
+        )}
+
         {/* HUD: METADATA_STACK */}
         <div className="flex flex-wrap gap-2 pt-2">
           <Badge
