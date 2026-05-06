@@ -4927,6 +4927,27 @@ export type Database = {
         }
         Relationships: []
       }
+      followed_companies: {
+        Row: {
+          company_name: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          company_name: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          company_name?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       gig_share_logs: {
         Row: {
           channel: string
@@ -11889,6 +11910,28 @@ export type Database = {
         Args: { _days?: number; _instructor_id: string }
         Returns: Json
       }
+      get_companies_with_signal: {
+        Args: { p_country?: string; p_limit?: number }
+        Returns: {
+          active_jobs: number
+          company_name: string
+          jobs_last_14d: number
+          logo_url: string
+          top_location: string
+          top_type: string
+        }[]
+      }
+      get_company_detail: { Args: { p_company_name: string }; Returns: Json }
+      get_countries_with_signal: {
+        Args: { p_limit?: number }
+        Returns: {
+          active_jobs: number
+          country: string
+          jobs_last_14d: number
+          top_cities: Json
+          top_companies: Json
+        }[]
+      }
       get_creator_scorecard: {
         Args: { _days?: number; _talent_id: string }
         Returns: Json
@@ -11960,6 +12003,7 @@ export type Database = {
       }
       get_post_insights: { Args: { _post_id: string }; Returns: Json }
       get_public_talent_profile: { Args: { _handle: string }; Returns: Json }
+      get_remote_friendly_summary: { Args: never; Returns: Json }
       get_talent_connection_price: {
         Args: { _recipient: string }
         Returns: number
