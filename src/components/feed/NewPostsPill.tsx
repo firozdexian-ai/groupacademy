@@ -27,7 +27,7 @@ export function NewPostsPill({ onTap }: NewPostsPillProps) {
         (payload) => {
           const row: any = payload.new;
           // Skip the user's own posts (already optimistic in UI)
-          if (talent?.user_id && row.author_user_id === talent.user_id) return;
+          if (talent?.userId && row.author_user_id === talent.userId) return;
           if (row.status && row.status !== "published") return;
           if (row.created_at && row.created_at < mountedAt.current) return;
           setCount((c) => c + 1);
@@ -37,7 +37,7 @@ export function NewPostsPill({ onTap }: NewPostsPillProps) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [talent?.user_id]);
+  }, [talent?.userId]);
 
   if (count === 0) return null;
 
