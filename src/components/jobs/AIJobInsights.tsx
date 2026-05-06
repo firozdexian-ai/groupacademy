@@ -21,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCredits } from "@/hooks/useCredits";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { recordToolRun } from "@/hooks/useToolRuns";
 import { WhyYouMatchPanel } from "@/components/jobs/WhyYouMatchPanel";
 
 /**
@@ -71,6 +72,7 @@ export function AIJobInsights({ jobId, talentId }: AIJobInsightsProps) {
       if (error) throw error;
       setMatchResult(data);
       setMatchOpen(true);
+      recordToolRun({ toolKey: "score", costCredits: 10, jobId, payload: { score: data?.match_score } });
       toast.success("IDENTITY_MAPPING_COMPLETE");
     } catch (error) {
       toast.error("NEURAL_SYNC_FAULT");
