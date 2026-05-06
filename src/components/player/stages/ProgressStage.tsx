@@ -219,6 +219,9 @@ export function ProgressStage({
             </CardContent>
           </Card>
 
+          {/* COMPONENT: ADAPTIVE_SNAPSHOT (per-module mastery + due) */}
+          {moduleId && <AdaptiveSnapshotCard moduleId={moduleId} compact />}
+
           {/* COMPONENT: TOPIC_MASTERY_BARS */}
           <MasteryBars moduleId={moduleId} topN={5} />
 
