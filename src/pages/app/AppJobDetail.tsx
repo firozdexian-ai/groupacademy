@@ -119,6 +119,12 @@ export default function AppJobDetail() {
     loadData();
   }, [loadData]);
 
+  // Track view for trending signal (fire-and-forget)
+  useEffect(() => {
+    if (!id || !talent?.id) return;
+    supabase.from("job_views").insert({ job_id: id, talent_id: talent.id }).then(() => {});
+  }, [id, talent?.id]);
+
   const handleApply = () => {
     if (job?.application_type === "link") {
       const cost = CREDIT_CONFIG.SERVICES.EXTERNAL_APPLICATION.cost;
