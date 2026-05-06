@@ -35,9 +35,10 @@ export default function IELTSPromptsTab() {
     mutationFn: async (row: any) => {
       const payload = {
         section: row.section,
-        title: row.title,
+        task_type: row.task_type ?? "general",
+        difficulty: row.difficulty ?? "medium",
         prompt_text: row.prompt_text,
-        target_band: row.target_band ?? null,
+        band_target: row.band_target ?? null,
         is_active: row.is_active ?? true,
       };
       if (row.id) {
@@ -92,14 +93,14 @@ export default function IELTSPromptsTab() {
             <Card key={p.id} className="p-3 space-y-2">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="font-semibold text-sm">{p.title}</div>
+                  <div className="font-semibold text-sm capitalize">{p.task_type} · {p.difficulty}</div>
                   <div className="text-xs text-muted-foreground line-clamp-2">{p.prompt_text}</div>
                 </div>
                 <Switch checked={p.is_active} onCheckedChange={(v) => toggle.mutate({ id: p.id, active: v })} />
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 <Badge variant="outline" className="capitalize">{p.section}</Badge>
-                {p.target_band && <Badge variant="outline">Band {p.target_band}+</Badge>}
+                {p.band_target && <Badge variant="outline">Band {p.band_target}+</Badge>}
                 <Button size="sm" variant="ghost" className="h-7" onClick={() => setEditing(p)}>Edit</Button>
               </div>
             </Card>
@@ -120,9 +121,12 @@ export default function IELTSPromptsTab() {
                     <SelectContent>{SECTIONS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
-                <div><Label>Title</Label><Input value={editing.title ?? ""} onChange={(e) => setEditing({ ...editing, title: e.target.value })} /></div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div><Label>Task type</Label><Input value={editing.task_type ?? "general"} onChange={(e) => setEditing({ ...editing, task_type: e.target.value })} /></div>
+                  <div><Label>Difficulty</Label><Input value={editing.difficulty ?? "medium"} onChange={(e) => setEditing({ ...editing, difficulty: e.target.value })} /></div>
+                </div>
                 <div><Label>Prompt text</Label><Textarea rows={8} value={editing.prompt_text ?? ""} onChange={(e) => setEditing({ ...editing, prompt_text: e.target.value })} /></div>
-                <div><Label>Target band (optional)</Label><Input type="number" step="0.5" value={editing.target_band ?? ""} onChange={(e) => setEditing({ ...editing, target_band: parseFloat(e.target.value) || null })} /></div>
+                <div><Label>Target band (optional)</Label><Input type="number" step="0.5" value={editing.band_target ?? ""} onChange={(e) => setEditing({ ...editing, band_target: parseFloat(e.target.value) || null })} /></div>
                 <Button className="w-full" disabled={upsert.isPending} onClick={() => upsert.mutate(editing)}>Save</Button>
               </div>
             </>

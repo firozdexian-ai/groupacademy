@@ -55,7 +55,7 @@ export default function LanguageLabTab() {
                 <Card key={lng.code} className="p-3 flex items-center gap-2">
                   <div className="text-2xl">{lng.flag_emoji ?? "🌐"}</div>
                   <div className="min-w-0">
-                    <div className="font-semibold truncate">{lng.display_name}</div>
+                    <div className="font-semibold truncate">{lng.name}</div>
                     <div className="text-xs text-muted-foreground">{lng.code}</div>
                   </div>
                 </Card>
@@ -72,7 +72,7 @@ export default function LanguageLabTab() {
                 <Card key={i.id} className="p-3 flex items-center justify-between">
                   <div className="min-w-0">
                     <div className="font-semibold text-sm truncate">{i.display_name ?? i.user_id?.slice(0,8)}</div>
-                    <div className="text-xs text-muted-foreground">{(i.languages ?? []).join(", ")}</div>
+                    <div className="text-xs text-muted-foreground">{(i.teaches_languages ?? []).join(", ")}</div>
                   </div>
                   <Badge variant={i.is_verified ? "default" : "outline"}>{i.is_verified ? "Verified" : "Pending"}</Badge>
                 </Card>
@@ -88,7 +88,7 @@ export default function LanguageLabTab() {
               {bookings?.map((b) => (
                 <Card key={b.id} className="p-3 flex items-center justify-between gap-2">
                   <div className="min-w-0">
-                    <div className="font-semibold text-sm">{b.language_code?.toUpperCase()} · {b.cefr_level ?? "—"}</div>
+                    <div className="font-semibold text-sm">{b.language_code?.toUpperCase()} · {b.duration_mins ?? "—"}m</div>
                     <div className="text-xs text-muted-foreground">{b.scheduled_at ? new Date(b.scheduled_at).toLocaleString() : "Unscheduled"}</div>
                   </div>
                   <Badge variant="outline" className="capitalize">{b.status ?? "pending"}</Badge>
