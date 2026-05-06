@@ -19,6 +19,7 @@ import { BannerCarousel } from "@/components/BannerCarousel";
 import { QuickActionsGrid } from "@/components/feed/QuickActionsGrid";
 import { ComposePost } from "@/components/feed/ComposePost";
 import { WeeklyLeaderboardWidget } from "@/components/feed/WeeklyLeaderboardWidget";
+import { NewPostsPill } from "@/components/feed/NewPostsPill";
 import { cn } from "@/lib/utils";
 
 /**
