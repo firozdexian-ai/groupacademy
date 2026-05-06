@@ -83,6 +83,7 @@ import MessageThread from "./pages/app/MessageThread";
 import AgentProfile from "./pages/app/AgentProfile";
 import MyResults from "./pages/app/MyResults";
 import MyApplications from "./pages/app/MyApplications";
+import AppApplicationDetail from "./pages/app/AppApplicationDetail";
 import SavedItems from "./pages/app/SavedItems";
 import Gigs from "./pages/app/Gigs";
 import MarketplaceGigDetail from "./pages/app/MarketplaceGigDetail";
@@ -460,6 +461,7 @@ export default function App() {
                     <Route path="job-assessment/:assessmentId" element={<JobAssessment />} />
                     <Route path="job-assessment/:assessmentId/results" element={<JobAssessmentResults />} />
                     <Route path="applications" element={<MyApplications />} />
+                    <Route path="applications/:id" element={<AppApplicationDetail />} />
                     <Route path="saved" element={<SavedItems />} />
                     <Route path="course-project/:projectId" element={<CourseProjectDetail />} />
 
