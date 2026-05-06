@@ -32,7 +32,14 @@ import {
   ShieldCheck,
   Layers,
   Zap,
+  Eye,
+  Copy,
+  CheckSquare,
+  Square,
+  Power,
+  PowerOff,
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
