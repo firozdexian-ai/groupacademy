@@ -124,7 +124,8 @@ export default function JobsHub() {
   const [preferencesOpen, setPreferencesOpen] = useState(false);
   const [loadingAI, setLoadingAI] = useState(false);
   const [companySearch, setCompanySearch] = useState("");
-  const [expandedCountry, setExpandedCountry] = useState<string | null>(null);
+  const [hiringNowOnly, setHiringNowOnly] = useState(false);
+  const [activeCompany, setActiveCompany] = useState<string | null>(null);
 
   const [showMore, setShowMore] = useState({
     recommended: false,
