@@ -1,9 +1,9 @@
 import { useRef, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Upload, X, Loader2, FileText, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { uploadModuleResourceFile, MAX_RESOURCE_MB } from "@/lib/moduleResourceUpload";
 
 /**
  * Direct file upload for module resources.
@@ -18,31 +18,17 @@ interface Props {
   className?: string;
 }
 
-const BUCKET = "course-content";
-const MAX_MB = 50;
+const MAX_MB = MAX_RESOURCE_MB;
 
 export function ModuleResourceFileUpload({ value, onChange, accept, resourceId, className }: Props) {
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = async (file: File) => {
-    if (file.size > MAX_MB * 1024 * 1024) {
-      toast.error(`File too large (max ${MAX_MB}MB).`);
-      return;
-    }
     setUploading(true);
     try {
-      const ext = file.name.split(".").pop() || "bin";
-      const path = `module-resources/${resourceId || "new"}/${Date.now()}-${Math.random()
-        .toString(36)
-        .slice(2, 8)}.${ext}`;
-      const { error } = await supabase.storage.from(BUCKET).upload(path, file, {
-        upsert: false,
-        contentType: file.type || undefined,
-      });
-      if (error) throw error;
-      const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
-      onChange(data.publicUrl);
+      const { url } = await uploadModuleResourceFile(file, resourceId || "new");
+      onChange(url);
       toast.success("File uploaded.");
     } catch (e: any) {
       toast.error(`Upload failed: ${e.message}`);
