@@ -153,6 +153,7 @@ import IELTSPrep from "./pages/app/IELTSPrep";
 import AbroadHub from "./pages/app/AbroadHub";
 import DestinationAgentPage from "./pages/app/DestinationAgentPage";
 import AbroadApplications from "./pages/app/AbroadApplications";
+import AbroadCounsellor from "./pages/app/AbroadCounsellor";
 import IELTSCoach from "./pages/app/IELTSCoach";
 import IELTSMockRunner from "./pages/app/IELTSMockRunner";
 import IELTSResults from "./pages/app/IELTSResults";
@@ -464,6 +465,7 @@ export default function App() {
                     <Route path="abroad" element={<AbroadHub />} />
                     <Route path="abroad/destinations/:country" element={<DestinationAgentPage />} />
                     <Route path="abroad/applications" element={<AbroadApplications />} />
+                    <Route path="counsellor" element={<AbroadCounsellor />} />
                     <Route path="abroad/ielts" element={<IELTSCoach />} />
                     <Route path="abroad/ielts/mock/:section" element={<IELTSMockRunner />} />
                     <Route path="abroad/ielts/results/:id" element={<IELTSResults />} />

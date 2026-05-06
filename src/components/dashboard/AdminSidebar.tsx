@@ -48,6 +48,8 @@ import {
   Handshake,
   Upload,
   Wallet,
+  Mic,
+  Languages,
 } from "lucide-react";
 import {
   Sidebar,
@@ -246,8 +248,12 @@ const navGroups: NavGroup[] = [
     roles: ["admin"],
     items: [
       { title: "Dashboard", icon: LayoutDashboard, value: "abroad-overview" },
+      { title: "Destination Agents", icon: Globe, value: "abroad-destinations" },
+      { title: "Applications", icon: ClipboardList, value: "abroad-applications" },
       { title: "University Programs", icon: GraduationCap, value: "study-abroad" },
+      { title: "IELTS Prompt Bank", icon: Mic, value: "ielts-prompts" },
       { title: "IELTS Resources", icon: BookOpen, value: "ielts" },
+      { title: "Language Lab", icon: Languages, value: "language-lab" },
       { title: "Roadmap Leads", icon: Map, value: "roadmap-leads" },
     ],
   },
