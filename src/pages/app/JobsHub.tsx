@@ -54,6 +54,10 @@ import { useCountriesWithSignal } from "@/hooks/useCountriesWithSignal";
 import { useRemoteFriendly } from "@/hooks/useRemoteFriendly";
 import { JOB_COLLECTIONS } from "@/lib/constants/jobTypes";
 import { toast } from "sonner";
+import { useNextBestTool } from "@/hooks/useNextBestTool";
+import { useToolRuns, type ToolKey } from "@/hooks/useToolRuns";
+import { ScoreMeJobPicker } from "@/components/jobs/ScoreMeJobPicker";
+import { formatDistanceToNow } from "date-fns";
 
 import { ProcessingCard, type ProcessingStage } from "@/components/ui/processing-card";
 import { AgentAvatar } from "@/components/ai-agents/AgentAvatar";
