@@ -4787,10 +4787,12 @@ export type Database = {
           author_title: string | null
           author_type: string
           author_user_id: string | null
+          comment_count: number
           content_type: Database["public"]["Enums"]["post_content_type"]
           created_at: string | null
           hype_count: number
           id: string
+          impression_count: number
           is_active: boolean | null
           is_pinned: boolean | null
           link_preview: Json | null
@@ -4798,6 +4800,8 @@ export type Database = {
           media_url: string | null
           poll_ends_at: string | null
           poll_options: Json | null
+          save_count: number
+          share_count: number
           status: string
           tags: string[] | null
           talent_id: string | null
@@ -4812,10 +4816,12 @@ export type Database = {
           author_title?: string | null
           author_type?: string
           author_user_id?: string | null
+          comment_count?: number
           content_type?: Database["public"]["Enums"]["post_content_type"]
           created_at?: string | null
           hype_count?: number
           id?: string
+          impression_count?: number
           is_active?: boolean | null
           is_pinned?: boolean | null
           link_preview?: Json | null
@@ -4823,6 +4829,8 @@ export type Database = {
           media_url?: string | null
           poll_ends_at?: string | null
           poll_options?: Json | null
+          save_count?: number
+          share_count?: number
           status?: string
           tags?: string[] | null
           talent_id?: string | null
@@ -4837,10 +4845,12 @@ export type Database = {
           author_title?: string | null
           author_type?: string
           author_user_id?: string | null
+          comment_count?: number
           content_type?: Database["public"]["Enums"]["post_content_type"]
           created_at?: string | null
           hype_count?: number
           id?: string
+          impression_count?: number
           is_active?: boolean | null
           is_pinned?: boolean | null
           link_preview?: Json | null
@@ -4848,6 +4858,8 @@ export type Database = {
           media_url?: string | null
           poll_ends_at?: string | null
           poll_options?: Json | null
+          save_count?: number
+          share_count?: number
           status?: string
           tags?: string[] | null
           talent_id?: string | null
@@ -8990,6 +9002,62 @@ export type Database = {
           },
         ]
       }
+      post_impressions: {
+        Row: {
+          created_at: string
+          day_bucket: string | null
+          id: string
+          post_id: string
+          surface: string
+          viewer_talent_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          day_bucket?: string | null
+          id?: string
+          post_id: string
+          surface?: string
+          viewer_talent_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          day_bucket?: string | null
+          id?: string
+          post_id?: string
+          surface?: string
+          viewer_talent_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_impressions_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "feed_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_impressions_viewer_talent_id_fkey"
+            columns: ["viewer_talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_impressions_viewer_talent_id_fkey"
+            columns: ["viewer_talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
+          {
+            foreignKeyName: "post_impressions_viewer_talent_id_fkey"
+            columns: ["viewer_talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_weekly_leaderboard"
+            referencedColumns: ["talent_id"]
+          },
+        ]
+      }
       post_reactions: {
         Row: {
           created_at: string | null
@@ -9037,6 +9105,59 @@ export type Database = {
           {
             foreignKeyName: "post_reactions_talent_id_fkey"
             columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_weekly_leaderboard"
+            referencedColumns: ["talent_id"]
+          },
+        ]
+      }
+      post_shares: {
+        Row: {
+          channel: string
+          created_at: string
+          id: string
+          post_id: string
+          sharer_talent_id: string | null
+        }
+        Insert: {
+          channel?: string
+          created_at?: string
+          id?: string
+          post_id: string
+          sharer_talent_id?: string | null
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          id?: string
+          post_id?: string
+          sharer_talent_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_shares_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "feed_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_shares_sharer_talent_id_fkey"
+            columns: ["sharer_talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "post_shares_sharer_talent_id_fkey"
+            columns: ["sharer_talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
+          {
+            foreignKeyName: "post_shares_sharer_talent_id_fkey"
+            columns: ["sharer_talent_id"]
             isOneToOne: false
             referencedRelation: "v_weekly_leaderboard"
             referencedColumns: ["talent_id"]
@@ -11711,6 +11832,24 @@ export type Database = {
         Args: { _days?: number; _instructor_id: string }
         Returns: Json
       }
+      get_creator_scorecard: {
+        Args: { _days?: number; _talent_id: string }
+        Returns: Json
+      }
+      get_creator_top_posts: {
+        Args: { _days?: number; _limit?: number; _talent_id: string }
+        Returns: {
+          comment_count: number
+          created_at: string
+          credits_earned: number
+          hype_count: number
+          id: string
+          impression_count: number
+          save_count: number
+          share_count: number
+          snippet: string
+        }[]
+      }
       get_or_create_talent: {
         Args: {
           p_email: string
@@ -11720,6 +11859,7 @@ export type Database = {
         }
         Returns: string
       }
+      get_post_insights: { Args: { _post_id: string }; Returns: Json }
       get_public_talent_profile: { Args: { _handle: string }; Returns: Json }
       get_talent_connection_price: {
         Args: { _recipient: string }
@@ -11873,6 +12013,14 @@ export type Database = {
       recompute_talent_verification: {
         Args: { p_talent_id: string }
         Returns: string
+      }
+      record_impression: {
+        Args: { _post_id: string; _surface?: string }
+        Returns: undefined
+      }
+      record_share: {
+        Args: { _channel?: string; _post_id: string }
+        Returns: undefined
       }
       reject_content_gig: {
         Args: { p_admin_notes?: string; p_gig_id: string }
