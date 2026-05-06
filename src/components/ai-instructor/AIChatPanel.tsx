@@ -54,6 +54,30 @@ export function AIChatPanel({
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  const { data: masteryCtx } = useTutorMasteryContext({
+    moduleId: moduleId || (contextType === "module" ? contextId : undefined),
+    contentId: contentId || (contextType === "course" ? contextId : undefined),
+  });
+
+  const starterPrompts = useMemo(() => {
+    const out: { label: string; prompt: string }[] = [];
+    if (!masteryCtx) return out;
+    const weakest = masteryCtx.weak_topics?.[0];
+    if (weakest) {
+      out.push({
+        label: `Help me with: ${weakest.tag}`,
+        prompt: `Help me improve at "${weakest.tag}". Explain it simply and give me one practice question.`,
+      });
+    }
+    if ((masteryCtx.due_for_review_count || 0) > 0) {
+      out.push({
+        label: `Quick review: ${masteryCtx.due_for_review_count} items`,
+        prompt: `I have ${masteryCtx.due_for_review_count} items due for review. Quiz me on the most important one first.`,
+      });
+    }
+    return out;
+  }, [masteryCtx]);
+
   // PROTOCOL: Viewport Auto-Sync
   useEffect(() => {
     if (scrollRef.current) {
@@ -87,6 +111,8 @@ export function AIChatPanel({
           professionLineId,
           contextType,
           contextId,
+          moduleId: moduleId || (contextType === "module" ? contextId : undefined),
+          contentId: contentId || (contextType === "course" ? contextId : undefined),
         }),
         signal: abortControllerRef.current.signal,
       });
