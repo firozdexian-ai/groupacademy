@@ -2293,6 +2293,7 @@ export type Database = {
           instructor_engagement_id: string | null
           is_self_paced: boolean
           name: string
+          sponsor_company_id: string | null
           starts_on: string | null
           status: Database["public"]["Enums"]["cohort_status"]
           timezone: string
@@ -2311,6 +2312,7 @@ export type Database = {
           instructor_engagement_id?: string | null
           is_self_paced?: boolean
           name: string
+          sponsor_company_id?: string | null
           starts_on?: string | null
           status?: Database["public"]["Enums"]["cohort_status"]
           timezone?: string
@@ -2329,6 +2331,7 @@ export type Database = {
           instructor_engagement_id?: string | null
           is_self_paced?: boolean
           name?: string
+          sponsor_company_id?: string | null
           starts_on?: string | null
           status?: Database["public"]["Enums"]["cohort_status"]
           timezone?: string
@@ -2340,6 +2343,13 @@ export type Database = {
             columns: ["content_id"]
             isOneToOne: false
             referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cohorts_sponsor_company_id_fkey"
+            columns: ["sponsor_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
@@ -2680,44 +2690,72 @@ export type Database = {
       company_course_assignments: {
         Row: {
           assigned_to: string | null
+          budget_credits: number
+          cohort_id: string | null
           company_id: string
+          completed_at: string | null
           content_id: string
           created_at: string
           created_by: string
           credit_cost: number
           due_at: string | null
+          enrollment_id: string | null
           id: string
           note: string | null
+          overdue_at: string | null
           sponsorship_mode: string
+          status: Database["public"]["Enums"]["org_assignment_status"]
+          talent_id: string | null
           updated_at: string
         }
         Insert: {
           assigned_to?: string | null
+          budget_credits?: number
+          cohort_id?: string | null
           company_id: string
+          completed_at?: string | null
           content_id: string
           created_at?: string
           created_by: string
           credit_cost?: number
           due_at?: string | null
+          enrollment_id?: string | null
           id?: string
           note?: string | null
+          overdue_at?: string | null
           sponsorship_mode: string
+          status?: Database["public"]["Enums"]["org_assignment_status"]
+          talent_id?: string | null
           updated_at?: string
         }
         Update: {
           assigned_to?: string | null
+          budget_credits?: number
+          cohort_id?: string | null
           company_id?: string
+          completed_at?: string | null
           content_id?: string
           created_at?: string
           created_by?: string
           credit_cost?: number
           due_at?: string | null
+          enrollment_id?: string | null
           id?: string
           note?: string | null
+          overdue_at?: string | null
           sponsorship_mode?: string
+          status?: Database["public"]["Enums"]["org_assignment_status"]
+          talent_id?: string | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "company_course_assignments_cohort_id_fkey"
+            columns: ["cohort_id"]
+            isOneToOne: false
+            referencedRelation: "cohorts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "company_course_assignments_company_id_fkey"
             columns: ["company_id"]
@@ -2730,6 +2768,13 @@ export type Database = {
             columns: ["content_id"]
             isOneToOne: false
             referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_course_assignments_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "enrollments"
             referencedColumns: ["id"]
           },
         ]
@@ -3007,6 +3052,67 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_company_sales_context"
             referencedColumns: ["offering_id"]
+          },
+        ]
+      }
+      company_learning_seats: {
+        Row: {
+          cohort_id: string | null
+          company_id: string
+          content_id: string | null
+          created_at: string
+          expires_at: string | null
+          id: string
+          seats_total: number
+          seats_used: number
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          cohort_id?: string | null
+          company_id: string
+          content_id?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          seats_total?: number
+          seats_used?: number
+          source?: string
+          updated_at?: string
+        }
+        Update: {
+          cohort_id?: string | null
+          company_id?: string
+          content_id?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          seats_total?: number
+          seats_used?: number
+          source?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_learning_seats_cohort_id_fkey"
+            columns: ["cohort_id"]
+            isOneToOne: false
+            referencedRelation: "cohorts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_learning_seats_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_learning_seats_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -5336,6 +5442,7 @@ export type Database = {
       }
       enrollments: {
         Row: {
+          assignment_id: string | null
           completed_at: string | null
           content_id: string
           created_at: string | null
@@ -5346,12 +5453,14 @@ export type Database = {
           notes: string | null
           payment_amount: number | null
           progress: number | null
+          sponsor_company_id: string | null
           status: Database["public"]["Enums"]["enrollment_status"] | null
           student_id: string
           talent_id: string | null
           updated_at: string | null
         }
         Insert: {
+          assignment_id?: string | null
           completed_at?: string | null
           content_id: string
           created_at?: string | null
@@ -5362,12 +5471,14 @@ export type Database = {
           notes?: string | null
           payment_amount?: number | null
           progress?: number | null
+          sponsor_company_id?: string | null
           status?: Database["public"]["Enums"]["enrollment_status"] | null
           student_id: string
           talent_id?: string | null
           updated_at?: string | null
         }
         Update: {
+          assignment_id?: string | null
           completed_at?: string | null
           content_id?: string
           created_at?: string | null
@@ -5378,12 +5489,20 @@ export type Database = {
           notes?: string | null
           payment_amount?: number | null
           progress?: number | null
+          sponsor_company_id?: string | null
           status?: Database["public"]["Enums"]["enrollment_status"] | null
           student_id?: string
           talent_id?: string | null
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "enrollments_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "company_course_assignments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "enrollments_content_id_fkey"
             columns: ["content_id"]
@@ -5396,6 +5515,13 @@ export type Database = {
             columns: ["current_module_id"]
             isOneToOne: false
             referencedRelation: "course_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enrollments_sponsor_company_id_fkey"
+            columns: ["sponsor_company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
           {
@@ -13972,6 +14098,28 @@ export type Database = {
       }
       offer_company_id: { Args: { p_offer_id: string }; Returns: string }
       offer_talent_id: { Args: { p_offer_id: string }; Returns: string }
+      org_assign_talents: {
+        Args: {
+          p_budget_per_seat?: number
+          p_cohort_id: string
+          p_company_id: string
+          p_content_id: string
+          p_due_at: string
+          p_note?: string
+          p_user_ids: string[]
+        }
+        Returns: {
+          assignment_id: string
+          enrollment_id: string
+          user_id: string
+        }[]
+      }
+      org_learning_health: { Args: { p_company_id: string }; Returns: Json }
+      org_mark_overdue: { Args: never; Returns: number }
+      org_team_mastery: {
+        Args: { p_company_id: string; p_content_id?: string }
+        Returns: Json
+      }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
@@ -14201,6 +14349,12 @@ export type Database = {
         | "countered"
         | "expired"
         | "withdrawn"
+      org_assignment_status:
+        | "invited"
+        | "active"
+        | "completed"
+        | "overdue"
+        | "cancelled"
       portfolio_status:
         | "pending"
         | "contacted"
@@ -14533,6 +14687,13 @@ export const Constants = {
         "countered",
         "expired",
         "withdrawn",
+      ],
+      org_assignment_status: [
+        "invited",
+        "active",
+        "completed",
+        "overdue",
+        "cancelled",
       ],
       portfolio_status: [
         "pending",
