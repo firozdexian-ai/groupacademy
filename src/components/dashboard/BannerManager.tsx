@@ -23,6 +23,9 @@ import { cn } from "@/lib/utils";
 
 type PlacementType = "carousel" | "hero" | "learning";
 
+type MediaType = "image" | "gif" | "video";
+type FocalPoint = "center" | "top" | "bottom" | "left" | "right";
+
 interface Banner {
   id: string;
   image_url: string;
@@ -30,6 +33,14 @@ interface Banner {
   display_order: number;
   is_active: boolean;
   placement: PlacementType;
+  media_type: MediaType | null;
+  media_url: string | null;
+  poster_url: string | null;
+  link_url: string | null;
+  cta_label: string | null;
+  focal_point: FocalPoint | null;
+  start_at: string | null;
+  end_at: string | null;
   content?: {
     id: string;
     title: string;
@@ -51,6 +62,14 @@ export const BannerManager = () => {
     link_content_id: "none",
     display_order: 0,
     placement: "carousel" as PlacementType,
+    media_type: "image" as MediaType,
+    media_url: "",
+    poster_url: "",
+    link_url: "",
+    cta_label: "",
+    focal_point: "center" as FocalPoint,
+    start_at: "",
+    end_at: "",
   });
 
   useEffect(() => {
@@ -116,6 +135,14 @@ export const BannerManager = () => {
               link_content_id: newBanner.link_content_id === "none" ? null : newBanner.link_content_id,
               display_order: newBanner.display_order,
               placement: newBanner.placement,
+              media_type: newBanner.media_type,
+              media_url: newBanner.media_url || null,
+              poster_url: newBanner.poster_url || null,
+              link_url: newBanner.link_url || null,
+              cta_label: newBanner.cta_label || null,
+              focal_point: newBanner.focal_point,
+              start_at: newBanner.start_at ? new Date(newBanner.start_at).toISOString() : null,
+              end_at: newBanner.end_at ? new Date(newBanner.end_at).toISOString() : null,
               created_by: user.id,
             },
           ]),
@@ -126,7 +153,20 @@ export const BannerManager = () => {
 
       if (error) throw error;
       toast.success("Artifact Deployed: Banner successfully registered.");
-      setNewBanner({ image_url: "", link_content_id: "none", display_order: 0, placement: "carousel" });
+      setNewBanner({
+        image_url: "",
+        link_content_id: "none",
+        display_order: 0,
+        placement: "carousel",
+        media_type: "image",
+        media_url: "",
+        poster_url: "",
+        link_url: "",
+        cta_label: "",
+        focal_point: "center",
+        start_at: "",
+        end_at: "",
+      });
       loadRegistryData();
     } catch (error: any) {
       toast.error(error.message || "Protocol Error: Deployment failed");
@@ -273,6 +313,128 @@ export const BannerManager = () => {
                       value={newBanner.display_order}
                       onChange={(e) => setNewBanner({ ...newBanner, display_order: parseInt(e.target.value) || 0 })}
                       className="h-14 rounded-2xl border-2 font-bold bg-background/50"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-3">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                      Media Type
+                    </Label>
+                    <Select
+                      value={newBanner.media_type}
+                      onValueChange={(v: MediaType) => setNewBanner({ ...newBanner, media_type: v })}
+                    >
+                      <SelectTrigger className="h-12 rounded-2xl border-2 font-bold bg-background/50">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-2xl border-2">
+                        <SelectItem value="image">Image (JPG/PNG)</SelectItem>
+                        <SelectItem value="gif">Animated GIF</SelectItem>
+                        <SelectItem value="video">Video (MP4)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-3">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                      Focal Point
+                    </Label>
+                    <Select
+                      value={newBanner.focal_point}
+                      onValueChange={(v: FocalPoint) => setNewBanner({ ...newBanner, focal_point: v })}
+                    >
+                      <SelectTrigger className="h-12 rounded-2xl border-2 font-bold bg-background/50">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-2xl border-2">
+                        <SelectItem value="center">Center</SelectItem>
+                        <SelectItem value="top">Top</SelectItem>
+                        <SelectItem value="bottom">Bottom</SelectItem>
+                        <SelectItem value="left">Left</SelectItem>
+                        <SelectItem value="right">Right</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {(newBanner.media_type === "video" || newBanner.media_type === "gif") && (
+                  <div className="space-y-3">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                      {newBanner.media_type === "video" ? "Video URL (MP4)" : "GIF URL"}
+                    </Label>
+                    <Input
+                      placeholder="https://…"
+                      value={newBanner.media_url}
+                      onChange={(e) => setNewBanner({ ...newBanner, media_url: e.target.value })}
+                      className="h-12 rounded-2xl border-2 bg-background/50"
+                    />
+                    <p className="text-[10px] text-muted-foreground">
+                      The image above is used as a fallback / poster frame.
+                    </p>
+                  </div>
+                )}
+
+                {newBanner.media_type === "video" && (
+                  <div className="space-y-3">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                      Poster Frame URL (optional)
+                    </Label>
+                    <Input
+                      placeholder="https://…"
+                      value={newBanner.poster_url}
+                      onChange={(e) => setNewBanner({ ...newBanner, poster_url: e.target.value })}
+                      className="h-12 rounded-2xl border-2 bg-background/50"
+                    />
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 gap-6">
+                  <div className="space-y-3">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                      External Link URL (optional)
+                    </Label>
+                    <Input
+                      placeholder="https://…"
+                      value={newBanner.link_url}
+                      onChange={(e) => setNewBanner({ ...newBanner, link_url: e.target.value })}
+                      className="h-12 rounded-2xl border-2 bg-background/50"
+                    />
+                  </div>
+                  <div className="space-y-3">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                      CTA Label (optional)
+                    </Label>
+                    <Input
+                      placeholder="e.g. Enroll now"
+                      value={newBanner.cta_label}
+                      onChange={(e) => setNewBanner({ ...newBanner, cta_label: e.target.value })}
+                      className="h-12 rounded-2xl border-2 bg-background/50"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-3">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                      Schedule Start (optional)
+                    </Label>
+                    <Input
+                      type="datetime-local"
+                      value={newBanner.start_at}
+                      onChange={(e) => setNewBanner({ ...newBanner, start_at: e.target.value })}
+                      className="h-12 rounded-2xl border-2 bg-background/50"
+                    />
+                  </div>
+                  <div className="space-y-3">
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1">
+                      Schedule End (optional)
+                    </Label>
+                    <Input
+                      type="datetime-local"
+                      value={newBanner.end_at}
+                      onChange={(e) => setNewBanner({ ...newBanner, end_at: e.target.value })}
+                      className="h-12 rounded-2xl border-2 bg-background/50"
                     />
                   </div>
                 </div>

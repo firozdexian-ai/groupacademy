@@ -1810,32 +1810,56 @@ export type Database = {
         Row: {
           created_at: string | null
           created_by: string
+          cta_label: string | null
           display_order: number | null
+          end_at: string | null
+          focal_point: string | null
           id: string
           image_url: string
           is_active: boolean | null
           link_content_id: string | null
+          link_url: string | null
+          media_type: string
+          media_url: string | null
           placement: string
+          poster_url: string | null
+          start_at: string | null
         }
         Insert: {
           created_at?: string | null
           created_by: string
+          cta_label?: string | null
           display_order?: number | null
+          end_at?: string | null
+          focal_point?: string | null
           id?: string
           image_url: string
           is_active?: boolean | null
           link_content_id?: string | null
+          link_url?: string | null
+          media_type?: string
+          media_url?: string | null
           placement?: string
+          poster_url?: string | null
+          start_at?: string | null
         }
         Update: {
           created_at?: string | null
           created_by?: string
+          cta_label?: string | null
           display_order?: number | null
+          end_at?: string | null
+          focal_point?: string | null
           id?: string
           image_url?: string
           is_active?: boolean | null
           link_content_id?: string | null
+          link_url?: string | null
+          media_type?: string
+          media_url?: string | null
           placement?: string
+          poster_url?: string | null
+          start_at?: string | null
         }
         Relationships: [
           {
