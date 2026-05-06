@@ -29,6 +29,7 @@ interface CertificateRecord {
   score: number | null;
   total_questions: number | null;
   issued_at: string;
+  kind?: string | null;
 }
 
 export default function VerifyCertificate() {
@@ -44,7 +45,7 @@ export default function VerifyCertificate() {
       setLoading(true);
       const { data, error } = await supabase
         .from("certificates")
-        .select("id, holder_name, course_title, verify_code, percentage, score, total_questions, issued_at")
+        .select("id, holder_name, course_title, verify_code, percentage, score, total_questions, issued_at, kind")
         .eq("verify_code", code.toUpperCase())
         .single();
 
@@ -153,7 +154,7 @@ export default function VerifyCertificate() {
 
                   <div className="text-center space-y-3">
                     <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground opacity-60">
-                      Accomplishment Node
+                      {certificate.kind === "track" ? "Track Completed" : "Accomplishment Node"}
                     </p>
                     <div className="p-6 rounded-[32px] bg-primary/[0.03] border border-primary/10">
                       <h3 className="text-xl md:text-2xl font-black tracking-tight text-primary uppercase leading-tight">

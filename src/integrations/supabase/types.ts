@@ -2164,42 +2164,48 @@ export type Database = {
           content_id: string
           course_title: string
           created_at: string
-          enrollment_id: string
+          enrollment_id: string | null
           holder_name: string
           id: string
           issued_at: string
+          kind: string
           percentage: number | null
           score: number | null
           talent_id: string
           total_questions: number | null
+          track_assignment_id: string | null
           verify_code: string
         }
         Insert: {
           content_id: string
           course_title: string
           created_at?: string
-          enrollment_id: string
+          enrollment_id?: string | null
           holder_name: string
           id?: string
           issued_at?: string
+          kind?: string
           percentage?: number | null
           score?: number | null
           talent_id: string
           total_questions?: number | null
+          track_assignment_id?: string | null
           verify_code?: string
         }
         Update: {
           content_id?: string
           course_title?: string
           created_at?: string
-          enrollment_id?: string
+          enrollment_id?: string | null
           holder_name?: string
           id?: string
           issued_at?: string
+          kind?: string
           percentage?: number | null
           score?: number | null
           talent_id?: string
           total_questions?: number | null
+          track_assignment_id?: string | null
           verify_code?: string
         }
         Relationships: [
@@ -2237,6 +2243,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_weekly_leaderboard"
             referencedColumns: ["talent_id"]
+          },
+          {
+            foreignKeyName: "certificates_track_assignment_id_fkey"
+            columns: ["track_assignment_id"]
+            isOneToOne: false
+            referencedRelation: "learning_track_assignments"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -8382,6 +8395,167 @@ export type Database = {
           },
         ]
       }
+      learning_track_assignments: {
+        Row: {
+          assigned_by: string | null
+          completed_at: string | null
+          created_at: string
+          due_at: string | null
+          id: string
+          org_id: string | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["track_assignment_status"]
+          talent_id: string | null
+          track_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assigned_by?: string | null
+          completed_at?: string | null
+          created_at?: string
+          due_at?: string | null
+          id?: string
+          org_id?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["track_assignment_status"]
+          talent_id?: string | null
+          track_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assigned_by?: string | null
+          completed_at?: string | null
+          created_at?: string
+          due_at?: string | null
+          id?: string
+          org_id?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["track_assignment_status"]
+          talent_id?: string | null
+          track_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learning_track_assignments_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "learning_track_assignments_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: false
+            referencedRelation: "learning_tracks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      learning_track_items: {
+        Row: {
+          content_id: string
+          created_at: string
+          id: string
+          is_required: boolean
+          position: number
+          track_id: string
+        }
+        Insert: {
+          content_id: string
+          created_at?: string
+          id?: string
+          is_required?: boolean
+          position?: number
+          track_id: string
+        }
+        Update: {
+          content_id?: string
+          created_at?: string
+          id?: string
+          is_required?: boolean
+          position?: number
+          track_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learning_track_items_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "learning_track_items_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: false
+            referencedRelation: "learning_tracks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      learning_tracks: {
+        Row: {
+          b2b_enabled: boolean
+          company_id: string | null
+          cover_url: string | null
+          created_at: string
+          created_by: string | null
+          enrollment_credits: number
+          id: string
+          is_published: boolean
+          is_sequential: boolean
+          owner_kind: string
+          slug: string
+          summary: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          b2b_enabled?: boolean
+          company_id?: string | null
+          cover_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          enrollment_credits?: number
+          id?: string
+          is_published?: boolean
+          is_sequential?: boolean
+          owner_kind?: string
+          slug: string
+          summary?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          b2b_enabled?: boolean
+          company_id?: string | null
+          cover_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          enrollment_credits?: number
+          id?: string
+          is_published?: boolean
+          is_sequential?: boolean
+          owner_kind?: string
+          slug?: string
+          summary?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learning_tracks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lesson_answers: {
         Row: {
           author_id: string
@@ -13791,6 +13965,7 @@ export type Database = {
           top_type: string
         }[]
       }
+      get_company_branded_catalog: { Args: { p_slug: string }; Returns: Json }
       get_company_detail: { Args: { p_company_name: string }; Returns: Json }
       get_countries_with_signal: {
         Args: { p_limit?: number }
@@ -13894,6 +14069,7 @@ export type Database = {
         Args: { _recipient: string }
         Returns: number
       }
+      get_track_progress: { Args: { p_assignment_id: string }; Returns: Json }
       get_trending_jobs: {
         Args: { limit_n?: number }
         Returns: {
@@ -14114,6 +14290,18 @@ export type Database = {
           user_id: string
         }[]
       }
+      org_assign_track: {
+        Args: {
+          p_company_id: string
+          p_due_at?: string
+          p_track_id: string
+          p_user_ids: string[]
+        }
+        Returns: {
+          assignment_id: string
+          user_id: string
+        }[]
+      }
       org_learning_health: { Args: { p_company_id: string }; Returns: Json }
       org_mark_overdue: { Args: never; Returns: number }
       org_team_mastery: {
@@ -14181,6 +14369,7 @@ export type Database = {
         Args: { _accept: boolean; _request: string }
         Returns: Json
       }
+      talent_enroll_track: { Args: { p_track_id: string }; Returns: string }
       talent_list_company_id: { Args: { _list_id: string }; Returns: string }
       talent_marketplace_summary: { Args: never; Returns: Json }
       talent_rel_company_id: { Args: { _rel_id: string }; Returns: string }
@@ -14425,6 +14614,12 @@ export type Database = {
         | "hired"
         | "passed"
         | "nurture"
+      track_assignment_status:
+        | "invited"
+        | "active"
+        | "completed"
+        | "overdue"
+        | "cancelled"
       workforce_role_type:
         | "country_director"
         | "head_of_ta"
@@ -14772,6 +14967,13 @@ export const Constants = {
         "hired",
         "passed",
         "nurture",
+      ],
+      track_assignment_status: [
+        "invited",
+        "active",
+        "completed",
+        "overdue",
+        "cancelled",
       ],
       workforce_role_type: [
         "country_director",

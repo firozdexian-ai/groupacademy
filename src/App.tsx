@@ -161,6 +161,7 @@ import Unsubscribe from "./pages/app/Unsubscribe";
 import { Gro10xRoutes } from "./gro10x/Gro10xRoutes";
 import { IS_GRO10X } from "./lib/host";
 import PublicCompanyPage from "./pages/public/PublicCompanyPage";
+import CompanyBrandedCatalog from "./pages/public/CompanyBrandedCatalog";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -259,6 +260,7 @@ export default function App() {
                   {/* ================= GRO10X (B2B super-app) ================= */}
                   <Route path="/gro10x/*" element={<Gro10xRoutes />} />
                   <Route path="/c/:slug" element={<PublicCompanyPage />} />
+                  <Route path="/c/:slug/learn" element={<CompanyBrandedCatalog />} />
                   <Route path="/service/:serviceSlug" element={<ServiceLanding />} />
                   <Route path="/blog" element={<PublicBlog />} />
                   <Route path="/blog/:slug" element={<PublicBlogPost />} />

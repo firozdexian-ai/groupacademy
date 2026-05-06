@@ -10,13 +10,16 @@
  * (/app/learning/...) — single source of truth.
  */
 import { Link } from "react-router-dom";
-import { GraduationCap, Sparkles, BookOpen, Building2, Clock, Coins } from "lucide-react";
+import { GraduationCap, Sparkles, BookOpen, Building2, Clock, Coins, Layers } from "lucide-react";
 import { GRO10X_PANEL, GRO10X_MUTED } from "../lib/tokens";
 import { useB2BCatalog, useMyAssignments } from "../hooks/useCourseAssignments";
+import { useMyTrackAssignments } from "@/hooks/useLearningTracks";
+import { TrackProgressRing } from "@/components/learning/TrackProgressRing";
 
 export default function Gro10xLearn() {
   const catalog = useB2BCatalog();
   const assignments = useMyAssignments();
+  const trackAssignments = useMyTrackAssignments();
 
   return (
     <div className="max-w-md md:max-w-5xl mx-auto pb-24">
@@ -37,6 +40,46 @@ export default function Gro10xLearn() {
           Learning Ops
         </Link>
       </header>
+
+      {/* Track assignments */}
+      {trackAssignments.data && trackAssignments.data.length > 0 && (
+        <section className="px-4 mt-3">
+          <h2 className="text-sm font-semibold flex items-center gap-1.5 mb-2">
+            <Layers className="h-4 w-4 text-[#33E1E4]" /> My tracks
+          </h2>
+          <ul className="space-y-2">
+            {trackAssignments.data.filter((a) => a.status !== "cancelled").map((a) => (
+              <li key={a.id}>
+                <Link
+                  to={`/gro10x/learn/track/${a.track_id}`}
+                  className={`block ${GRO10X_PANEL} border border-white/10 rounded-2xl p-3 hover:bg-white/5`}
+                >
+                  <div className="flex items-center gap-3">
+                    <TrackProgressRing done={a.status === "completed" ? 1 : 0} total={1} size={48} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{a.learning_tracks?.title ?? "Track"}</p>
+                      <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px]">
+                        <span className={`px-1.5 py-0.5 rounded-full ${
+                          a.status === "completed" ? "bg-emerald-500/15 text-emerald-300"
+                          : a.status === "overdue" ? "bg-rose-500/15 text-rose-300"
+                          : "bg-[#33E1E4]/15 text-[#33E1E4]"
+                        }`}>
+                          {a.status}
+                        </span>
+                        {a.due_at && (
+                          <span className="inline-flex items-center gap-0.5 text-amber-300">
+                            <Clock className="h-2.5 w-2.5" /> due {new Date(a.due_at).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {/* Assigned to me */}
       <section className="px-4 mt-3">
@@ -161,15 +204,6 @@ export default function Gro10xLearn() {
         )}
       </section>
 
-      {/* Coming soon */}
-      <div className={`mx-4 mt-6 ${GRO10X_PANEL} border border-white/10 rounded-2xl p-4`}>
-        <p className="text-sm font-medium flex items-center gap-1.5">
-          <Building2 className="h-4 w-4 text-slate-400" /> Company tracks · soon
-        </p>
-        <p className={`text-[11px] ${GRO10X_MUTED} mt-1`}>
-          Curated multi-course paths (e.g. "Sales onboarding", "New manager") — assignable to your whole team in one tap.
-        </p>
-      </div>
     </div>
   );
 }
