@@ -1,107 +1,141 @@
-# Sub-phase 2.5 — Hype verification + agentic feed notifications
+# Phase 3.1 — Browse tab: AI matches + connected sections
 
-Two things this turn:
-1. **Confirm and surface** that the Hype credit economy actually moves credits, end-to-end, with a visible Transactions entry.
-2. **Realtime feed notifications** delivered by **AI General** into the existing notification center (NOT a Messenger-style rewrite).
+First segment of the jobs board overhaul: the **Browse tab on `/app/jobs`** and every surface it links into. Companies, Locations, Tools tabs and the job detail / application flow are out of scope — separate plans will follow.
 
 ---
 
-## Part A — Hype economy verification & visibility
+## What's on the Browse tab today
 
-### What's already correct (verified in DB)
-- `hype_post(post_id)` and `hype_content(type, id)` both:
-  - Debit 1 credit from sender (priority: bonus → free balance → earned).
-  - For posts: credit 0.8 to creator's `earned_balance`; remaining 0.2 stays as platform margin.
-  - For courses/videos/blogs: full 1 credit to platform (no creator yet — by design until creator payouts go live).
-  - Insert two `credit_transactions` rows (`service_type='hype'`, `source='hype_sent'` / `'hype_received'`).
-  - Insert into `post_hypes` / `content_hypes` and bump the `hype_count`.
-
-So the backend is fine. What's missing is **proof to the user**.
-
-### What we add
-1. **Transactions page entry**
-   - Open `src/pages/app/Transactions.tsx` (bKash-style ledger). Confirm `hype_sent` and `hype_received` rows render with proper labels, icons (▲ Hype) and -1 / +0.8 badges. If the page filters by `service_type` whitelist, add `'hype'`. Group "Hype sent / Hype received" under the existing "Engagement" or add an "Engagement" section.
-2. **Wallet drawer micro-toast**
-   - When `useHype` / `useContentHype` succeed, the toast says "▲ Hype sent · -1 credit · New balance: X.X" so the debit is unmissable. Pull fresh balance from `talent_credits` after the RPC.
-3. **Recipient earning toast (only for post hype)**
-   - For the recipient, the realtime notification (Part B) carries `+0.8 earned`. Tap goes to Transactions.
-4. **One-time backfill check**
-   - Run a read-only audit query in the migration that asserts every `post_hypes` row has matching `credit_transactions(source='hype_sent')` and `(source='hype_received')`. If any mismatch, log it. (Today: 0 rows so it passes trivially — but locks the invariant for the future.)
-5. **Self-hype guard surfaced**
-   - `CANNOT_HYPE_SELF` already raises in `hype_post`. Add the same guard for `hype_content` post path (already routes through `hype_post`, so covered) and for the future when creator IDs are added to courses/videos/blogs.
-6. **Idempotency / spam control**
-   - Add a partial unique index `(sender_talent_id, content_id, content_type)` on `post_hypes` and `content_hypes` to **prevent the same user hyping the same item twice within 24h** (cheap dedup using a check column `created_at::date`). Today the UI already disables the button after one hype but we want a DB guarantee. *(Open question — could be relaxed if you want repeat hype as a "stack" mechanic; flag noted in plan, default = one hype per item per user.)*
-
-### Acceptance for Part A
-- Hyping a friend's post: my balance drops by 1, their `earned_balance` rises by 0.8, both rows show in Transactions, my toast confirms the debit.
-- Trying to hype my own post → blocked with a friendly toast.
-- Trying to hype the same post twice → toast "Already hyped" (no double debit).
-- Transactions page lists all `service_type='hype'` rows under a clear "Hype" section.
+```text
+Tabs: [Browse] Companies | Locations | Tools     <- sticky tab bar (kept)
+─────────────────────────────────────────────
+Section 1: AI job matches
+   • "5 FREE LEFT" / "10 CREDITS" badge   <- REMOVING
+   • "Get / Refresh AI matches" CTA
+   • Result list = ai_job_recommendations (uses suggest-jobs-for-talent)
+Section 2: Trending now (jobs.is_featured)
+Section 3: Browse by type (JOB_COLLECTIONS grid)
+```
 
 ---
 
-## Part B — Realtime feed notifications (agentic, NOT Messenger)
+## Diagnosed problems
 
-**Direction confirmed**: notifications stay as **AI General messages** dropped into the existing notification center. We are NOT turning this into a chat surface and NOT touching the Messenger inbox (which remains for talent-to-talent + agent marketplace).
+1. **AI matches are a black box.** No "why this matched", no way to steer results. `JobPreferencesSheet` exists but is orphaned.
+2. **Pricing is confusing.** The "5 free / then 10 credits" badge is redundant — every talent already gets 250 welcome credits. We just charge 10 credits per run, full stop.
+3. **Recommendations go stale.** `generated_at` is stored but never shown, never auto-refreshed, and inactive/expired jobs still appear.
+4. **Trending = `is_featured` only.** Hand-curated and noisy. We have `saved_items` + `job_applications` to derive real signal.
+5. **No personalization beyond AI matches.** Browse-by-type grid is identical for everyone.
+6. **Cold start is bad.** Empty profiles can fire the AI button and get weak matches that hurt trust.
 
-### What changes
-- New server-side triggers create `notifications` rows when feed engagement happens.
-- Every row is **branded as from AI General**: standardized `icon`, an `agent='ai_general'` flag (new column or stored in an `extras jsonb`) so the dropdown can render the AI General avatar + name on the message.
-- Realtime stream into the bell badge is already live via `useNotifications` — we just need the new rows to flow.
+---
 
-### Trigger surface
-- `AFTER INSERT ON post_hypes` → notify post author. Title from AI General: "{sender_name} hyped your post · +0.8 credits". Link → `/app/feed/post/{post_id}`.
-- `AFTER INSERT ON content_hypes` (course/video/blog) → notify creator if known; otherwise skip (platform-only hype, no recipient).
-- `AFTER INSERT ON post_comments` → notify post author. If `parent_comment_id` set, also notify parent commenter (`feed_reply`).
-- Mention parser on `feed_posts` and `post_comments` insert → resolve `@handle` → notify mentioned talents (cap 5 per body, dedupe vs author/parent).
+## Sub-phase 3.1 deliverables
 
-### Helper
-`SECURITY DEFINER` function `notify_talent_from_ai_general(_talent_id, _type, _title, _message, _link)` that:
-- Checks recipient's `notification_preferences` and skips if disabled.
-- Dedups: if an unread row of same `(type, link)` exists from the last 60s, update its `message`/`created_at` instead of inserting a duplicate.
-- Sets the icon/persona so the UI knows it came from AI General.
+### A. AI job matches — clean pricing, transparency, control
 
-### UI updates (light)
-- `NotificationDropdown.tsx`: render the AI General avatar + name on each row's left edge so the agentic framing is obvious. Unread badge count on the bell.
-- Bottom-nav Feed icon shows a small dot when there are unread `feed_*` notifications and you're not on `/app/feed`.
-- `/app/feed`: floating "New posts ↑" pill subscribes to `feed_posts` inserts; tap re-runs the recommendations query. (Doesn't insert into the visible list to avoid scroll thrash.)
-- `/app/feed/post/:id`: subscribes to `post_comments` for that post and appends in place.
+- **Remove the freemium counter entirely.** Drop the "5 FREE LEFT" badge, the `aiMatchUsageCount` query, the `freemium_usage` zero-row insert, and the `FREE_AI_MATCHES_LIMIT` constant. Replace with a single static badge: `Coins · 10 credits`.
+- **Standard credit gate.** `handleGetAIRecommendations` always calls `deductCredits("SUGGESTED_JOBS")`; if balance < 10, surface the existing top-up sheet via `CreditGateModal`. No free-tier branching.
+- **Inline "Tune matches" pill** next to the section header → opens `JobPreferencesSheet`. After saving, recommendations refetch automatically.
+- **Why-it-matched chip on each match card.** Pull top 1 line from `ai_job_recommendations.match_reason` and render dimmed under the title in `JobCard` compact variant.
+- **"Updated Xh ago" stamp** + manual refresh icon on the section.
+- **Filter stale matches at read time.** Skip recs whose `job.is_active=false` OR `job.deadline < now()`.
+- **Profile-completeness gate.** If `talent.profile_completeness < 40`, swap the CTA for a "Complete your profile to unlock AI matching" card with a deep link.
 
-### Light preferences
-New table `notification_preferences (talent_id, channel text, enabled bool)` with channels `feed_hype`, `feed_comment`, `feed_reply`, `feed_mention`. Default = enabled. A small section in Settings with four toggles. `notify_talent_from_ai_general` consults this before inserting.
+### B. Trending now — real signal
 
-### Acceptance for Part B
-- Hype, comment, reply, or `@mention` produce a notification authored visually by AI General within ~1s, no refresh.
-- Bell badge updates live; bottom-nav dot appears for unread feed events when off the feed.
-- "New posts ↑" pill appears on the feed when new posts arrive.
-- Comments on the open post detail appear without refresh.
-- Disabling a channel in Settings stops new rows of that type immediately.
-- Notifications page still looks like the agentic feed it is today — no Messenger UI changes.
+- Replace `is_featured`-only with a ranked list: `score = 3*applies_7d + 1*saves_7d + 0.5*views_7d`, fall back to `is_featured` if window is empty.
+- Add `job_views` table (job_id, talent_id, viewed_at), bumped from `/app/jobs/:id` open. RLS: insert by self only; aggregation via SECURITY DEFINER RPC `get_trending_jobs(limit_n)` so views aren't exposed.
+- Section label: "Trending this week" with 🔥 + `+X applies` chip.
+
+### C. Personalized "For You" rail
+
+- New section between AI matches and Trending: **"Open in your field"** — `jobs.profession_category_id == talent.profession_category_id`, active + future deadline, max 5. No AI cost, no credit charge.
+- Fallback: **"Open in {country}"** if profession not set.
+- Hide the section entirely if neither is known.
+
+### D. Smart Browse-by-type grid
+
+- Re-order categories by count of currently-open jobs in the user's country, descending. Hide categories with 0 open roles.
+- Show live count badge on each tile.
+
+### E. Cold-start polish
+
+- New-user empty state at top of Browse: profile-completion checklist card (title, 2 missing fields, CTA). Auto-hides at `profile_completeness >= 70`.
+- Skeletons match new section ordering.
+
+### F. Connection points (don't break)
+
+- `Show more` → `/app/jobs/all?type=…` — kept.
+- `JobCard.matchInfo` prop — kept.
+- Trending and "For You" pass `matchInfo` only when a real score exists.
+- Tools tab "AI job matches" tile keeps calling the same handler — kept (will now charge 10 credits cleanly).
+- `useSavedItems`, `useCredits`, `useTalent` — kept.
+
+---
+
+## Acceptance criteria
+
+- No "FREE" wording anywhere on the Browse tab. The AI matches section shows a single `10 credits` chip.
+- Tapping "Get AI job matches" with < 10 credits opens the credit top-up sheet; with ≥ 10 it deducts and runs.
+- A talent with empty profile sees the profile-completion card instead of the AI button.
+- A talent with a profession set sees an "Open in your field" rail.
+- "Trending this week" reflects real applies + saves + views from last 7 days.
+- AI matches show "Updated Xh ago" + a why-chip per card; "Tune" pill opens the prefs sheet and a save triggers a fresh fetch.
+- Inactive / expired jobs never appear in the recommendations list.
+- Browse-by-type tiles show live counts in user's country and hide empty categories.
 
 ---
 
 ## Technical details
 
-### New / modified files
-- `supabase/migrations/<ts>_hype_dedup_and_feed_notifs.sql`
-  - Unique-ish index on hype tables.
-  - Triggers + `notify_talent_from_ai_general` helper.
-  - `notification_preferences` table + RLS.
-  - Add publication entries for `feed_posts` and `post_comments` realtime.
-- `src/hooks/useUnreadCount.ts` (derived from `useNotifications`).
-- `src/hooks/useFeedRealtimeIndicator.ts`.
-- `src/components/feed/NewPostsPill.tsx`.
-- `src/components/notifications/NotificationDropdown.tsx` — AI General avatar + badge.
-- `src/pages/app/Notifications.tsx` — group by day, AI General persona row, mark-as-read on open.
-- `src/pages/app/Transactions.tsx` — ensure `service_type='hype'` rows render under an Engagement / Hype section.
-- `src/hooks/useHype.ts`, `src/hooks/useContentHype.ts` — toast with "-1 credit · new balance".
-- `src/components/settings/NotificationChannels.tsx` — four toggles.
+### Removed
+- `FREE_AI_MATCHES_LIMIT` const, `aiMatchUsageCount` query, the `isFreeRun` branch and the `freemium_usage` insert in `JobsHub.tsx`.
+- (Optional cleanup, can defer) the `freemium_usage` enum value in `credit_transactions.transaction_type` — leave for now since old rows exist.
 
-### Out of scope
-- Push notifications (web push / FCM).
-- Email digests of feed activity.
-- Repeat-hype stacking mechanic (default = one per user per item).
-- Any change to the Messenger inbox surface.
-- Creator payouts on course/video/blog hype (whole credit stays with platform until that lands).
+### New tables / RPCs
 
-After 2.5 ships → **2.6: Creator analytics dashboard (per-post reach, hype, comment, save, share funnels).**
+```text
+job_views:
+  id, job_id, talent_id, viewed_at
+  index (job_id, viewed_at)
+  RLS: insert own only; no select for talents
+
+get_trending_jobs(limit_n int)        SECURITY DEFINER, search_path=public
+get_jobs_in_field(_talent_id uuid, _limit int)
+count_jobs_by_type(_country text)
+```
+
+### Edge function tweaks
+
+- `suggest-jobs-for-talent`: delete-then-insert `ai_job_recommendations` for the talent (no stale accumulation); skip jobs with `is_active=false OR deadline < now()` at write time.
+
+### Frontend files touched
+
+- `src/pages/app/JobsHub.tsx` — restructure Browse tab, drop freemium logic, add Tune pill, Updated stamp, profile gate, "For You" rail, smart category grid.
+- `src/components/jobs/JobCard.tsx` — add slim `whyChip?: string` slot under title (compact variant).
+- `src/components/jobs/ProfileCompletenessGate.tsx` *(new)* — checklist card.
+- `src/components/jobs/JobPreferencesSheet.tsx` — add `onSaved` callback to refetch recs.
+- `src/hooks/useTrendingJobs.ts` *(new)*
+- `src/hooks/useJobsInField.ts` *(new)*
+- `src/pages/app/AppJobDetail.tsx` — fire-and-forget insert into `job_views` on mount (gated by auth).
+
+### Out of scope for 3.1
+
+- Companies, Locations, Tools tabs.
+- Job detail page layout, related jobs, score-me.
+- Apply flow (internal vs email vs link, CV picker, AI cover letter).
+- Employer-side anything.
+
+---
+
+## Sequencing
+
+Single approval cycle, merge order:
+1. Migrations (`job_views`, RPCs).
+2. Edge function update (`suggest-jobs-for-talent`).
+3. Frontend hooks.
+4. `JobsHub.tsx` Browse tab restructure + freemium removal + new components.
+5. `AppJobDetail.tsx` view-tracking insert.
+
+After this ships and we measure (target: AI-match CTR up, Browse-tab → detail-page conversion improves), we move to the **Companies tab plan**.

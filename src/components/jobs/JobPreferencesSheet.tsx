@@ -33,7 +33,7 @@ const JOB_TYPE_REGISTRY = Object.entries(JOB_TYPES).map(([value, config]) => ({
   label: config.label,
 }));
 
-export function JobPreferencesSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+export function JobPreferencesSheet({ open, onOpenChange, onSaved }: { open: boolean; onOpenChange: (open: boolean) => void; onSaved?: () => void }) {
   const { talent } = useTalent();
   const [saving, setSaving] = useState(false);
   const [preferences, setPreferences] = useState<JobPreferences>({
@@ -78,6 +78,7 @@ export function JobPreferencesSheet({ open, onOpenChange }: { open: boolean; onO
         .eq("id", talent!.id);
       if (error) throw error;
       toast.success("NEURAL_MATCHING_SYNCED");
+      onSaved?.();
       onOpenChange(false);
     } catch (err) {
       toast.error("SYNC_FAULT");

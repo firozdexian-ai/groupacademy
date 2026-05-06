@@ -6840,6 +6840,56 @@ export type Database = {
           },
         ]
       }
+      job_views: {
+        Row: {
+          id: string
+          job_id: string
+          talent_id: string
+          viewed_at: string
+        }
+        Insert: {
+          id?: string
+          job_id: string
+          talent_id: string
+          viewed_at?: string
+        }
+        Update: {
+          id?: string
+          job_id?: string
+          talent_id?: string
+          viewed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_views_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_views_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_views_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
+          {
+            foreignKeyName: "job_views_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_weekly_leaderboard"
+            referencedColumns: ["talent_id"]
+          },
+        ]
+      }
       jobs: {
         Row: {
           ai_assessment_enabled: boolean | null
@@ -11748,6 +11798,13 @@ export type Database = {
         Args: { _connection_id: string }
         Returns: string
       }
+      count_jobs_by_type: {
+        Args: { _country?: string }
+        Returns: {
+          cnt: number
+          job_type: string
+        }[]
+      }
       create_credit_invoice: {
         Args: {
           p_bundle_credits: number
@@ -11850,6 +11907,48 @@ export type Database = {
           snippet: string
         }[]
       }
+      get_jobs_in_field: {
+        Args: { _limit?: number; _talent_id: string }
+        Returns: {
+          ai_assessment_enabled: boolean | null
+          ai_enhanced_description: string | null
+          application_email: string | null
+          application_type: Database["public"]["Enums"]["application_type"]
+          application_url: string | null
+          assessment_config: Json | null
+          company_id: string | null
+          company_logo_url: string | null
+          company_name: string
+          created_at: string | null
+          deadline: string | null
+          description: string
+          experience_level: Database["public"]["Enums"]["experience_level"]
+          id: string
+          is_active: boolean | null
+          is_featured: boolean | null
+          job_type: Database["public"]["Enums"]["job_type"]
+          location: string | null
+          posted_by: string | null
+          preferred_skills: Json | null
+          profession_category_id: string | null
+          requirements: Json | null
+          salary_currency: string | null
+          salary_range_max: number | null
+          salary_range_min: number | null
+          source_image_url: string | null
+          source_platform: Database["public"]["Enums"]["source_platform"] | null
+          source_url: string | null
+          title: string
+          updated_at: string | null
+          vacancies: number | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "jobs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_or_create_talent: {
         Args: {
           p_email: string
@@ -11864,6 +11963,48 @@ export type Database = {
       get_talent_connection_price: {
         Args: { _recipient: string }
         Returns: number
+      }
+      get_trending_jobs: {
+        Args: { limit_n?: number }
+        Returns: {
+          ai_assessment_enabled: boolean | null
+          ai_enhanced_description: string | null
+          application_email: string | null
+          application_type: Database["public"]["Enums"]["application_type"]
+          application_url: string | null
+          assessment_config: Json | null
+          company_id: string | null
+          company_logo_url: string | null
+          company_name: string
+          created_at: string | null
+          deadline: string | null
+          description: string
+          experience_level: Database["public"]["Enums"]["experience_level"]
+          id: string
+          is_active: boolean | null
+          is_featured: boolean | null
+          job_type: Database["public"]["Enums"]["job_type"]
+          location: string | null
+          posted_by: string | null
+          preferred_skills: Json | null
+          profession_category_id: string | null
+          requirements: Json | null
+          salary_currency: string | null
+          salary_range_max: number | null
+          salary_range_min: number | null
+          source_image_url: string | null
+          source_platform: Database["public"]["Enums"]["source_platform"] | null
+          source_url: string | null
+          title: string
+          updated_at: string | null
+          vacancies: number | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "jobs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       get_tutor_mastery_context: {
         Args: { _content_id?: string; _module_id?: string; _talent_id: string }

@@ -20,6 +20,8 @@ import {
   Target,
   Briefcase,
   Layers,
+  SlidersHorizontal,
+  RefreshCw,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTalent } from "@/hooks/useTalent";
@@ -32,6 +34,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { JobPreferencesSheet } from "@/components/jobs/JobPreferencesSheet";
 import { JobCard, type JobCardData } from "@/components/jobs/JobCard";
+import { ProfileCompletenessGate } from "@/components/jobs/ProfileCompletenessGate";
+import { useTrendingJobs } from "@/hooks/useTrendingJobs";
+import { useJobsInField } from "@/hooks/useJobsInField";
+import { useJobTypeCounts } from "@/hooks/useJobTypeCounts";
 import { JOB_COLLECTIONS } from "@/lib/constants/jobTypes";
 import { toast } from "sonner";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -64,7 +70,7 @@ const TABS: { key: TabKey; label: string; icon: any }[] = [
 ];
 
 const INITIAL_SHOW = 3;
-const FREE_AI_MATCHES_LIMIT = 5;
+const AI_MATCH_COST = 10;
 
 const COUNTRY_FLAGS: Record<string, string> = {
   Bangladesh: "🇧🇩",
@@ -118,19 +124,9 @@ export default function JobsHub() {
     hot: false,
   });
 
-  const { data: aiMatchUsageCount = 0 } = useQuery({
-    queryKey: ["service-usage-ai-match", talent?.id],
-    queryFn: async () => {
-      if (!talent?.id) return 0;
-      const { count } = await supabase
-        .from("credit_transactions")
-        .select("*", { count: "exact", head: true })
-        .eq("talent_id", talent.id)
-        .eq("service_type", "SUGGESTED_JOBS");
-      return count || 0;
-    },
-    enabled: !!talent?.id,
-  });
+  const { data: trendingJobs = [], isLoading: loadingTrending } = useTrendingJobs(10);
+  const { data: jobsInField = [] } = useJobsInField(talent?.id, 5);
+  const { data: jobTypeCounts = {} } = useJobTypeCounts(talent?.country);
 
   const { data: locations = [] } = useQuery({
     queryKey: ["all-job-locations"],
@@ -222,6 +218,38 @@ export default function JobsHub() {
     return list.slice(0, 24);
   }, [allCompanies, companySearch]);
 
+  const visibleRecommendations = useMemo(
+    () =>
+      (recommendations || []).filter((r: any) => {
+        const j = r?.job;
+        if (!j) return false;
+        if (j.is_active === false) return false;
+        if (j.deadline && new Date(j.deadline) < new Date()) return false;
+        return true;
+      }),
+    [recommendations],
+  );
+
+  const smartCollections = useMemo(
+    () =>
+      JOB_COLLECTIONS.map((c) => ({ ...c, count: jobTypeCounts[c.filter] || 0 }))
+        .filter((c) => c.count > 0 || Object.keys(jobTypeCounts).length === 0)
+        .sort((a, b) => b.count - a.count),
+    [jobTypeCounts],
+  );
+
+  function timeAgo(iso?: string | null) {
+    if (!iso) return "just now";
+    const diff = Date.now() - new Date(iso).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    return `${days}d ago`;
+  }
+
   const countryGroups = useMemo(() => {
     const map = new Map<string, CountryGroup>();
     locations.forEach((loc) => {
@@ -256,33 +284,13 @@ export default function JobsHub() {
       return toast.error("Identity verification required to process matches.");
     }
 
-    const isFreeRun = aiMatchUsageCount < FREE_AI_MATCHES_LIMIT;
-
-    if (!isFreeRun && !canAfford("SUGGESTED_JOBS")) {
-      return toast.error("Need 10 credits to run AI matching.");
+    if (!canAfford("SUGGESTED_JOBS")) {
+      return toast.error(`Need ${AI_MATCH_COST} credits to run AI matching. Top up your wallet to continue.`);
     }
 
     setLoadingAI(true);
     try {
-      if (!isFreeRun) {
-        await deductCredits("SUGGESTED_JOBS", undefined, "AI Job Suggestions");
-      } else {
-        const { data: creditData } = await supabase
-          .from("talent_credits")
-          .select("balance")
-          .eq("talent_id", talent.id)
-          .single();
-
-        // CTO FIX: Explicitly matching the exact DB signature, casting as any to bypass Vite's strict type cache
-        await supabase.from("credit_transactions").insert({
-          talent_id: talent.id,
-          amount: 0,
-          transaction_type: "freemium_usage" as any,
-          service_type: "SUGGESTED_JOBS",
-          description: `Free AI Match (${aiMatchUsageCount + 1}/${FREE_AI_MATCHES_LIMIT})`,
-          balance_after: creditData?.balance || 0,
-        });
-      }
+      await deductCredits("SUGGESTED_JOBS", undefined, "AI Job Suggestions");
 
       const { error } = await supabase.functions.invoke("suggest-jobs-for-talent");
       if (error) throw error;
@@ -343,32 +351,36 @@ export default function JobsHub() {
       {/* Browse tab */}
       {activeTab === "browse" && (
         <div className="space-y-7 animate-in fade-in duration-300">
+          {/* Profile completeness gate */}
+          {talent && <ProfileCompletenessGate talent={talent} />}
+
           {/* AI matching CTA */}
           <section className="space-y-3">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <h2 className="text-base font-semibold flex items-center gap-2">
                 <Brain className="h-4 w-4 text-primary" /> AI job matches
               </h2>
-              <Badge
-                variant="outline"
-                className={cn(
-                  "gap-1 text-[10px]",
-                  aiMatchUsageCount < FREE_AI_MATCHES_LIMIT
-                    ? "text-emerald-500 border-emerald-500/20"
-                    : "text-amber-500",
-                )}
-              >
-                {aiMatchUsageCount < FREE_AI_MATCHES_LIMIT ? (
-                  <>
-                    <Sparkles className="h-3 w-3" /> {FREE_AI_MATCHES_LIMIT - aiMatchUsageCount} FREE LEFT
-                  </>
-                ) : (
-                  <>
-                    <Coins className="h-3 w-3" /> 10 CREDITS
-                  </>
-                )}
-              </Badge>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 rounded-lg text-[10px] font-medium text-muted-foreground hover:text-foreground gap-1"
+                  onClick={() => setPreferencesOpen(true)}
+                >
+                  <SlidersHorizontal className="h-3 w-3" /> Tune
+                </Button>
+                <Badge variant="outline" className="gap-1 text-[10px] text-amber-500 border-amber-500/30">
+                  <Coins className="h-3 w-3" /> {AI_MATCH_COST} CREDITS
+                </Badge>
+              </div>
             </div>
+
+            {recommendations.length > 0 && !loadingAI && (
+              <p className="text-[10px] text-muted-foreground flex items-center gap-1.5">
+                <RefreshCw className="h-2.5 w-2.5" />
+                Updated {timeAgo((recommendations[0] as any)?.generated_at)}
+              </p>
+            )}
 
             <Button
               className="w-full h-12 rounded-xl text-sm font-semibold"
@@ -383,9 +395,9 @@ export default function JobsHub() {
               <ProcessingCard title="Finding jobs for you" stages={AI_PROCESSING_STAGES} duration={20000} />
             )}
 
-            {recommendations.length > 0 && !loadingAI && (
+            {visibleRecommendations.length > 0 && !loadingAI && (
               <div className="pt-2 space-y-3">
-                {recommendations.slice(0, showMore.recommended ? recommendations.length : INITIAL_SHOW).map((r: any) => (
+                {visibleRecommendations.slice(0, showMore.recommended ? visibleRecommendations.length : INITIAL_SHOW).map((r: any) => (
                   <JobCard
                     key={r.id}
                     job={r.job}
@@ -399,34 +411,59 @@ export default function JobsHub() {
                       match_reason: r.match_reason,
                       verified_match: r.verified_match,
                     }}
+                    whyChip={r.reason || undefined}
                   />
                 ))}
-                {recommendations.length > INITIAL_SHOW && (
+                {visibleRecommendations.length > INITIAL_SHOW && (
                   <Button
                     variant="ghost"
                     className="w-full h-9 rounded-lg text-xs font-medium text-muted-foreground"
                     onClick={() => setShowMore((p) => ({ ...p, recommended: !p.recommended }))}
                   >
-                    {showMore.recommended ? "Show less" : `Show ${recommendations.length - INITIAL_SHOW} more`}
+                    {showMore.recommended ? "Show less" : `Show ${visibleRecommendations.length - INITIAL_SHOW} more`}
                   </Button>
                 )}
               </div>
             )}
           </section>
 
-          {/* Featured */}
-          <section className="space-y-3">
-            <h2 className="text-base font-semibold flex items-center gap-2">
-              <Flame className="h-4 w-4 text-rose-500" /> Trending now
-            </h2>
-            {loadingCollection ? (
+          {/* For You — open in your field/country */}
+          {jobsInField.length > 0 && (
+            <section className="space-y-3">
+              <h2 className="text-base font-semibold flex items-center gap-2">
+                <Target className="h-4 w-4 text-primary" />
+                {(talent as any)?.professionCategoryId || (talent as any)?.customProfession
+                  ? "Open in your field"
+                  : `Open in ${talent?.country || "your area"}`}
+              </h2>
               <div className="space-y-2">
-                {[1, 2, 3].map((i) => (
-                  <Skeleton key={i} className="h-[120px] w-full rounded-xl" />
+                {jobsInField.slice(0, 5).map((job) => (
+                  <JobCard
+                    key={job.id}
+                    job={job}
+                    variant="compact"
+                    isSaved={isSaved(job.id, "job")}
+                    onSaveToggle={() => toggleSave(job.id, "job")}
+                    onClick={() => navigate(`/app/jobs/${job.id}`)}
+                  />
                 ))}
               </div>
-            ) : collectionData?.featured?.length ? (
-              renderJobSection(collectionData.featured, "featured")
+            </section>
+          )}
+
+          {/* Trending */}
+          <section className="space-y-3">
+            <h2 className="text-base font-semibold flex items-center gap-2">
+              <Flame className="h-4 w-4 text-rose-500" /> Trending this week
+            </h2>
+            {loadingTrending ? (
+              <div className="space-y-2">
+                {[1, 2, 3].map((i) => (
+                  <Skeleton key={i} className="h-[64px] w-full rounded-xl" />
+                ))}
+              </div>
+            ) : trendingJobs.length > 0 ? (
+              renderJobSection(trendingJobs, "featured")
             ) : (
               <div className="h-[120px] flex items-center justify-center border border-dashed rounded-xl bg-muted/20">
                 <p className="text-sm text-muted-foreground italic">No trending jobs right now.</p>
@@ -438,15 +475,20 @@ export default function JobsHub() {
           <section className="space-y-3">
             <h2 className="text-base font-semibold">Browse by type</h2>
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-              {JOB_COLLECTIONS.map((c) => (
+              {smartCollections.map((c) => (
                 <Card
                   key={c.filter}
-                  className="hover:border-primary/40 transition-all cursor-pointer"
+                  className="hover:border-primary/40 transition-all cursor-pointer relative"
                   onClick={() => navigate(`/app/jobs/all?type=${c.filter}`)}
                 >
                   <CardContent className="p-3 flex flex-col items-center text-center gap-1.5">
                     <c.icon className="h-5 w-5 text-primary" />
                     <span className="text-[11px] font-medium leading-tight">{c.label}</span>
+                    {c.count > 0 && (
+                      <Badge variant="secondary" className="text-[9px] px-1.5 py-0 mt-0.5">
+                        {c.count}
+                      </Badge>
+                    )}
                   </CardContent>
                 </Card>
               ))}
@@ -631,7 +673,7 @@ export default function JobsHub() {
         </div>
       )}
 
-      <JobPreferencesSheet open={preferencesOpen} onOpenChange={setPreferencesOpen} />
+      <JobPreferencesSheet open={preferencesOpen} onOpenChange={setPreferencesOpen} onSaved={() => refetchRecs()} />
     </div>
   );
 }

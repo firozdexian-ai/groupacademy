@@ -82,12 +82,15 @@ serve(async (req) => {
       }
     };
 
+    const deadlineFilter = "deadline.is.null,deadline.gte.now()";
+
     // PASS 1: Mandatory Local/Country Match
     const locationQuery = aliases.map((a) => `location.ilike.%${a}%`).join(",");
     const { data: localJobs } = await supabase
       .from("jobs")
       .select(jobFields)
       .eq("is_active", true)
+      .or(deadlineFilter)
       .or(locationQuery)
       .limit(60);
     addJobs(localJobs);
@@ -97,6 +100,7 @@ serve(async (req) => {
       .from("jobs")
       .select(jobFields)
       .eq("is_active", true)
+      .or(deadlineFilter)
       .ilike("location", "%remote%")
       .limit(30);
     addJobs(remoteJobs);
@@ -111,6 +115,7 @@ serve(async (req) => {
         .from("jobs")
         .select(jobFields)
         .eq("is_active", true)
+        .or(deadlineFilter)
         .or(keywordQuery)
         .limit(30);
       addJobs(keyJobs);
