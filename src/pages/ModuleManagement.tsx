@@ -376,6 +376,13 @@ export default function ModuleManagement(props: ModuleManagementProps = {}) {
                       )}
                     </div>
                     <div className="flex items-center gap-1">
+                      <div
+                        {...dragHandle}
+                        className={cn(dragHandle.className, "h-8 w-8 inline-flex items-center justify-center rounded-lg text-muted-foreground hover:bg-muted/50")}
+                        title="Drag to reorder"
+                      >
+                        <GripVertical className="h-3.5 w-3.5" />
+                      </div>
                       <Button
                         variant="ghost"
                         size="icon"
