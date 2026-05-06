@@ -435,6 +435,17 @@ const ContentList = ({ filter }: ContentListProps) => {
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                      {liveNow && (
+                        <Badge className="rounded-lg font-black text-[8px] uppercase tracking-[0.2em] px-3 py-1 border-none bg-red-500 text-white animate-pulse">
+                          ● LIVE NOW
+                        </Badge>
+                      )}
+                      {isPast && item.is_published && !liveNow && (
+                        <Badge className="rounded-lg font-black text-[8px] uppercase tracking-[0.2em] px-3 py-1 border-none bg-amber-500/20 text-amber-700">
+                          PAST EVENT
+                        </Badge>
+                      )}
                       <Badge
                         className={cn(
                           "rounded-lg font-black text-[8px] uppercase tracking-[0.2em] px-3 py-1 border-none",
@@ -460,6 +471,40 @@ const ContentList = ({ filter }: ContentListProps) => {
 
                 <CardContent className="p-8 pt-0 space-y-6 flex-1 flex flex-col justify-between">
                   <div className="space-y-4">
+                    {isLiveType && (
+                      <div className="p-3 rounded-2xl bg-primary/5 border border-primary/10 space-y-2">
+                        <div className="flex items-center gap-2 text-[10px] font-bold">
+                          <span className="text-primary">📅</span>
+                          <span className="text-foreground">
+                            {item.event_date
+                              ? formatEventTime(item.event_date, item.event_timezone || DEFAULT_EVENT_TZ)
+                              : "Not yet scheduled"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {sessionCount > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => navigate(`/content/${item.id}/edit?tab=sessions`)}
+                              className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md bg-card border border-border/40 hover:border-primary/40"
+                            >
+                              {sessionCount} session{sessionCount === 1 ? "" : "s"}
+                            </button>
+                          )}
+                          {capacityPct !== null && (
+                            <span className="text-[9px] font-bold text-muted-foreground">
+                              {item.current_enrollment}/{item.max_capacity} seats ({capacityPct}%)
+                            </span>
+                          )}
+                          {item.youtube_url && isPast && (
+                            <span className="text-[9px] font-black uppercase text-emerald-600">↻ Recording</span>
+                          )}
+                          {item.venue_name && (
+                            <span className="text-[9px] font-bold text-muted-foreground">📍 {item.venue_name}</span>
+                          )}
+                        </div>
+                      </div>
+                    )}
                     <div className="p-4 rounded-2xl bg-muted/10 border border-border/10">
                       <ContentReadinessBadge
                         stats={moduleStatsMap[item.id]}
