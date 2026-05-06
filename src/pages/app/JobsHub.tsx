@@ -218,6 +218,38 @@ export default function JobsHub() {
     return list.slice(0, 24);
   }, [allCompanies, companySearch]);
 
+  const visibleRecommendations = useMemo(
+    () =>
+      (recommendations || []).filter((r: any) => {
+        const j = r?.job;
+        if (!j) return false;
+        if (j.is_active === false) return false;
+        if (j.deadline && new Date(j.deadline) < new Date()) return false;
+        return true;
+      }),
+    [recommendations],
+  );
+
+  const smartCollections = useMemo(
+    () =>
+      JOB_COLLECTIONS.map((c) => ({ ...c, count: jobTypeCounts[c.filter] || 0 }))
+        .filter((c) => c.count > 0 || Object.keys(jobTypeCounts).length === 0)
+        .sort((a, b) => b.count - a.count),
+    [jobTypeCounts],
+  );
+
+  function timeAgo(iso?: string | null) {
+    if (!iso) return "just now";
+    const diff = Date.now() - new Date(iso).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    return `${days}d ago`;
+  }
+
   const countryGroups = useMemo(() => {
     const map = new Map<string, CountryGroup>();
     locations.forEach((loc) => {
