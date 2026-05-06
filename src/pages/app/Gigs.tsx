@@ -14,6 +14,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { GigCard } from "@/components/gigs/GigCard";
 import { MySubmissions } from "@/components/gigs/MySubmissions";
 import { GigUploader, type UploadedFile } from "@/components/gigs/GigUploader";
+import { GigForYouTab } from "@/components/gigs/GigForYouTab";
+import { AvailabilityWidget } from "@/components/gigs/AvailabilityWidget";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Search,
