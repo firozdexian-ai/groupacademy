@@ -182,8 +182,14 @@ export default function Gro10xCRM() {
             })}
           </div>
         </div>
+        )}
       </header>
 
+      {crmTab === "talent" ? (
+        <div className="px-4 py-3">
+          <TalentPipelinePanel companyId={companyId} />
+        </div>
+      ) : (
       <div className="px-4 py-3 space-y-2">
         {filtered.length === 0 && (
           <p className="text-center text-xs text-slate-500 py-12">No leads in {activeStage}.</p>
@@ -209,6 +215,7 @@ export default function Gro10xCRM() {
           </button>
         ))}
       </div>
+      )}
 
       {showNew && (
         <NewLeadSheet
