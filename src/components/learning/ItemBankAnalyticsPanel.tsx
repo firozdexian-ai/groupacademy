@@ -4,8 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertTriangle, RefreshCw } from "lucide-react";
+import { AlertTriangle, RefreshCw, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ItemRewriteSheet } from "@/components/learning/ItemRewriteSheet";
 
 const FLAG_LABEL: Record<string, string> = {
   low_p_value: "Too hard",
