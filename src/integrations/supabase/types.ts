@@ -4531,6 +4531,77 @@ export type Database = {
         }
         Relationships: []
       }
+      direct_message_threads: {
+        Row: {
+          company_id: string
+          created_at: string
+          id: string
+          last_message_at: string | null
+          relationship_id: string | null
+          subject: string | null
+          talent_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          id?: string
+          last_message_at?: string | null
+          relationship_id?: string | null
+          subject?: string | null
+          talent_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          id?: string
+          last_message_at?: string | null
+          relationship_id?: string | null
+          subject?: string | null
+          talent_id?: string
+        }
+        Relationships: []
+      }
+      direct_messages: {
+        Row: {
+          attachments: Json | null
+          body: string
+          created_at: string
+          id: string
+          read_at: string | null
+          sender_id: string
+          sender_role: string
+          thread_id: string
+        }
+        Insert: {
+          attachments?: Json | null
+          body: string
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          sender_id: string
+          sender_role: string
+          thread_id: string
+        }
+        Update: {
+          attachments?: Json | null
+          body?: string
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          sender_id?: string
+          sender_role?: string
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "direct_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "direct_message_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_notifications_log: {
         Row: {
           created_at: string
@@ -6060,6 +6131,100 @@ export type Database = {
         }
         Relationships: []
       }
+      interview_slots: {
+        Row: {
+          created_at: string
+          duration_min: number
+          id: string
+          interview_id: string
+          proposed_by_role: string
+          starts_at: string
+        }
+        Insert: {
+          created_at?: string
+          duration_min?: number
+          id?: string
+          interview_id: string
+          proposed_by_role?: string
+          starts_at: string
+        }
+        Update: {
+          created_at?: string
+          duration_min?: number
+          id?: string
+          interview_id?: string
+          proposed_by_role?: string
+          starts_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interview_slots_interview_id_fkey"
+            columns: ["interview_id"]
+            isOneToOne: false
+            referencedRelation: "interviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      interviews: {
+        Row: {
+          application_id: string
+          company_id: string
+          created_at: string
+          created_by: string | null
+          duration_min: number
+          id: string
+          location: string | null
+          meeting_link: string | null
+          mode: Database["public"]["Enums"]["interview_mode"]
+          note: string | null
+          selected_slot_id: string | null
+          status: Database["public"]["Enums"]["interview_status"]
+          talent_id: string
+          updated_at: string
+        }
+        Insert: {
+          application_id: string
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          duration_min?: number
+          id?: string
+          location?: string | null
+          meeting_link?: string | null
+          mode?: Database["public"]["Enums"]["interview_mode"]
+          note?: string | null
+          selected_slot_id?: string | null
+          status?: Database["public"]["Enums"]["interview_status"]
+          talent_id: string
+          updated_at?: string
+        }
+        Update: {
+          application_id?: string
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          duration_min?: number
+          id?: string
+          location?: string | null
+          meeting_link?: string | null
+          mode?: Database["public"]["Enums"]["interview_mode"]
+          note?: string | null
+          selected_slot_id?: string | null
+          status?: Database["public"]["Enums"]["interview_status"]
+          talent_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interviews_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "job_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ir_email_communications: {
         Row: {
           ai_generated: boolean | null
@@ -6915,6 +7080,53 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "job_channel_posts_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_invitations: {
+        Row: {
+          company_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          invited_by: string | null
+          job_id: string
+          note: string | null
+          responded_at: string | null
+          status: Database["public"]["Enums"]["invitation_status"]
+          talent_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          job_id: string
+          note?: string | null
+          responded_at?: string | null
+          status?: Database["public"]["Enums"]["invitation_status"]
+          talent_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          job_id?: string
+          note?: string | null
+          responded_at?: string | null
+          status?: Database["public"]["Enums"]["invitation_status"]
+          talent_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_invitations_job_id_fkey"
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "jobs"
@@ -8694,6 +8906,124 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_weekly_leaderboard"
             referencedColumns: ["talent_id"]
+          },
+        ]
+      }
+      offer_versions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          offer_id: string
+          payload: Json
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          offer_id: string
+          payload: Json
+          version: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          offer_id?: string
+          payload?: Json
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offer_versions_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      offers: {
+        Row: {
+          application_id: string
+          base_amount: number
+          benefits: string | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          custom_note: string | null
+          decision_note: string | null
+          equity_note: string | null
+          expires_at: string | null
+          id: string
+          pdf_path: string | null
+          signed_at: string | null
+          signed_name: string | null
+          start_date: string | null
+          status: Database["public"]["Enums"]["offer_status"]
+          talent_id: string
+          title: string
+          updated_at: string
+          variable_amount: number | null
+          version: number
+        }
+        Insert: {
+          application_id: string
+          base_amount?: number
+          benefits?: string | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          custom_note?: string | null
+          decision_note?: string | null
+          equity_note?: string | null
+          expires_at?: string | null
+          id?: string
+          pdf_path?: string | null
+          signed_at?: string | null
+          signed_name?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["offer_status"]
+          talent_id: string
+          title: string
+          updated_at?: string
+          variable_amount?: number | null
+          version?: number
+        }
+        Update: {
+          application_id?: string
+          base_amount?: number
+          benefits?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          custom_note?: string | null
+          decision_note?: string | null
+          equity_note?: string | null
+          expires_at?: string | null
+          id?: string
+          pdf_path?: string | null
+          signed_at?: string | null
+          signed_name?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["offer_status"]
+          talent_id?: string
+          title?: string
+          updated_at?: string
+          variable_amount?: number | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offers_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "job_applications"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -12088,6 +12418,10 @@ export type Database = {
       }
     }
     Functions: {
+      accept_offer: {
+        Args: { p_offer_id: string; p_signed_name: string }
+        Returns: Json
+      }
       add_credits: {
         Args: {
           p_amount: number
@@ -12201,6 +12535,10 @@ export type Database = {
         Args: { c: Database["public"]["Tables"]["companies"]["Row"] }
         Returns: number
       }
+      confirm_interview_slot: {
+        Args: { p_interview_id: string; p_slot_id: string }
+        Returns: Json
+      }
       connect_agent: {
         Args: { _agent_key: string; _fee?: number; _talent_id: string }
         Returns: undefined
@@ -12223,6 +12561,10 @@ export type Database = {
           p_bundle_price_usd: number
           p_currency?: string
         }
+        Returns: Json
+      }
+      decline_offer: {
+        Args: { p_note?: string; p_offer_id: string }
         Returns: Json
       }
       deduct_credits:
@@ -12249,6 +12591,8 @@ export type Database = {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
+      dm_thread_company_id: { Args: { p_thread_id: string }; Returns: string }
+      dm_thread_talent_id: { Args: { p_thread_id: string }; Returns: string }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
@@ -12293,6 +12637,10 @@ export type Database = {
         Returns: Json
       }
       get_application_buckets: { Args: { p_user_id: string }; Returns: Json }
+      get_application_hire_state: {
+        Args: { p_application_id: string }
+        Returns: Json
+      }
       get_application_thread_summary: {
         Args: { p_application_id: string }
         Returns: Json
@@ -12347,6 +12695,10 @@ export type Database = {
       }
       get_employer_pipeline: {
         Args: { p_company_id?: string; p_job_id?: string }
+        Returns: Json
+      }
+      get_hiring_stats: {
+        Args: { p_company_id: string; p_window_days?: number }
         Returns: Json
       }
       get_jobs_in_field: {
@@ -12495,6 +12847,11 @@ export type Database = {
         Args: { p_content_id: string }
         Returns: number
       }
+      interview_company_id: {
+        Args: { p_interview_id: string }
+        Returns: string
+      }
+      interview_talent_id: { Args: { p_interview_id: string }; Returns: string }
       is_agent_connected: {
         Args: { _agent_key: string; _talent_id: string }
         Returns: boolean
@@ -12579,6 +12936,8 @@ export type Database = {
         }
         Returns: undefined
       }
+      offer_company_id: { Args: { p_offer_id: string }; Returns: string }
+      offer_talent_id: { Args: { p_offer_id: string }; Returns: string }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
@@ -12672,6 +13031,10 @@ export type Database = {
         Returns: Json
       }
       unlock_talent_inbox: { Args: never; Returns: Json }
+      upsert_direct_thread: {
+        Args: { p_company_id: string; p_talent_id: string }
+        Returns: string
+      }
       user_company_ids: { Args: { _user_id: string }; Returns: string[] }
     }
     Enums: {
@@ -12736,6 +13099,20 @@ export type Database = {
       delivery_status: "pending" | "sent" | "failed"
       enrollment_status: "pending_payment" | "active" | "completed"
       experience_level: "entry" | "mid" | "senior" | "executive"
+      interview_mode: "video" | "phone" | "onsite"
+      interview_status:
+        | "proposed"
+        | "confirmed"
+        | "rescheduled"
+        | "completed"
+        | "no_show"
+        | "cancelled"
+      invitation_status:
+        | "pending"
+        | "accepted"
+        | "declined"
+        | "expired"
+        | "revoked"
       job_type:
         | "full_time"
         | "part_time"
@@ -12758,6 +13135,14 @@ export type Database = {
         | "failed"
         | "cancelled"
       messaging_status: "queued" | "sent" | "delivered" | "read" | "failed"
+      offer_status:
+        | "draft"
+        | "sent"
+        | "accepted"
+        | "declined"
+        | "countered"
+        | "expired"
+        | "withdrawn"
       portfolio_status:
         | "pending"
         | "contacted"
@@ -13014,6 +13399,22 @@ export const Constants = {
       delivery_status: ["pending", "sent", "failed"],
       enrollment_status: ["pending_payment", "active", "completed"],
       experience_level: ["entry", "mid", "senior", "executive"],
+      interview_mode: ["video", "phone", "onsite"],
+      interview_status: [
+        "proposed",
+        "confirmed",
+        "rescheduled",
+        "completed",
+        "no_show",
+        "cancelled",
+      ],
+      invitation_status: [
+        "pending",
+        "accepted",
+        "declined",
+        "expired",
+        "revoked",
+      ],
       job_type: [
         "full_time",
         "part_time",
@@ -13039,6 +13440,15 @@ export const Constants = {
         "cancelled",
       ],
       messaging_status: ["queued", "sent", "delivered", "read", "failed"],
+      offer_status: [
+        "draft",
+        "sent",
+        "accepted",
+        "declined",
+        "countered",
+        "expired",
+        "withdrawn",
+      ],
       portfolio_status: [
         "pending",
         "contacted",

@@ -32,6 +32,7 @@ import { toast } from "sonner";
 import { formatDistanceToNow, differenceInDays } from "date-fns";
 import { cn } from "@/lib/utils";
 import { ApplicationMessageThread } from "@/components/applications/ApplicationMessageThread";
+import { InterviewPanel } from "@/components/interviews/InterviewPanel";
 import { MessageCircle, RotateCcw } from "lucide-react";
 
 interface Detail {
@@ -320,6 +321,8 @@ export default function AppApplicationDetail() {
           </CardContent>
         </Card>
       )}
+
+      <InterviewPanel applicationId={detail.id} actorRole="talent" />
 
       {/* Restore (within 7 days) */}
       {detail.application_status === "withdrawn" &&

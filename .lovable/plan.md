@@ -1,137 +1,141 @@
-# Phase 3.6 — Employer CRM & Talent Sourcing
+# Phase 3.7 — Interview Scheduling & Offers (+ 3.6 polish)
 
-3.5 closed the **inbound** hiring loop (applied → hired). 3.6 closes the **outbound** loop: recruiters discover talent, save them to lists, run sourcing pipelines, and track relationships — all inside Gro10x with admin oversight. CRM today (`Gro10xCRM` + `company_leads`) is sales-style B2B leads; we keep that and add a **Talent CRM** stream alongside it, sharing one shell.
-
-Talent-side gaps (saved searches, AI coach) stay out of scope per decision.
+Closes the end-to-end hire flow. After 3.5 (inbound pipeline + messaging) and 3.6 (outbound CRM + sourcing), the kanban can move a card all the way to "Offer" but there is no offer artifact and no way to schedule an interview. 3.7 fills that gap and absorbs the small leftovers from 3.6.
 
 ---
 
 ## Scope
 
-### A. Talent Search (sourcing surface)
-New `/gro10x/sourcing` page — Boolean-style search over the public talent pool.
+### A. Interview Scheduling
+Lightweight, in-platform first — no external calendar OAuth in 3.7.
 
-- Filters: keywords, skills (chips), location, years of experience, current title, education, salary expectation band, availability (`open_to_work`), languages, mastery-verified topics.
-- Result card: avatar, headline, top 3 verified skills, mastery score, last active, "View profile" + quick actions (Save, Add to list, Message, Invite to job).
-- Honors PII rules: only fields the talent set public via `get_public_talent_profile` RPC. Contact details revealed only after talent accepts a connection (existing connection-fee model unchanged — mem: Creator Economy).
-- Mobile (≤md): filter sheet + vertical card list.
-- Backed by new RPC `search_public_talents(filters jsonb, limit, offset)` returning paginated rows + total count, using existing `talent_skill_profile`, `skill_credentials`, `talent_public_profiles`.
+- **Recruiter side (Gro10x + Admin)**: from any application card, "Schedule interview" opens a sheet. Recruiter picks 1–5 candidate slots (date + time + duration + mode: video / phone / on-site + location/link + note).
+- **Talent side**: in-app + email notification with a deep link to `/app/applications/:id/interview/:token`. Talent picks one slot or proposes alternatives.
+- **Status machine**: `proposed → confirmed → rescheduled → completed → no_show → cancelled`. Confirming an interview auto-moves the application to the `interview` stage on the kanban (if not already past it).
+- **Reminders**: 24h + 1h reminder via the existing email queue + in-app notifications.
+- **Mode**: stores a meeting link (recruiter pastes their own Meet/Zoom URL) — no calendar provider integration in 3.7.
+- **Side panel** on application detail shows upcoming interviews, status, and history.
 
-### B. Talent Lists (saved cohorts)
-- New table `talent_lists` (`company_id`, `name`, `description`, `created_by`).
-- New table `talent_list_members` (`list_id`, `talent_id`, `added_by`, `note`, `added_at`).
-- "Save to list" from sourcing results, profile, **and** application kanban cards.
-- Lists page at `/gro10x/sourcing/lists` — table of lists, member count, last activity.
-- List detail = same talent cards + bulk actions (message, invite to job, move to pipeline).
+### B. Offers
+- **Generate offer** action appears once application reaches `offer` stage (or anytime via override).
+- Form: title, start date, base compensation + currency, variable / equity (optional), benefits (free text), expiry date, custom note.
+- Renders a branded offer letter (HTML → PDF via existing `pdfGenerator` pattern, similar to certificates).
+- Talent sees offer at `/app/applications/:id/offer/:token` with **Accept / Decline / Request changes**.
+- Accept → application stage auto-moves to `hired`, talent + recruiter get confirmation, offer PDF stored in storage and downloadable from both sides.
+- E-signature is text-based "type your full name to accept" in 3.7 (full e-sign deferred).
+- Counter-offer flow: talent can post a comment + the recruiter regenerates a v2.
 
-### C. Talent CRM Pipeline (relationship tracking)
-Extend current `Gro10xCRM` from **leads-only** to a tabbed shell:
+### C. Direct Messaging for CRM talents (3.6 leftover)
+- New `direct_message_threads` (`company_id`, `talent_id`, `relationship_id?`) + `direct_messages` (mirrors `application_messages` shape).
+- Reuses `ApplicationMessageThread` UI, parameterized by `threadType: "application" | "direct"`.
+- Entry points: CRM talent side sheet, sourcing result card "Message".
+- Subject to existing connection-credit gating (mem: Creator Economy + Messenger Inbox).
+- When the same talent later applies to a job, the thread is shown as **linked context** under the application thread.
 
-```text
-[ Sales Leads ]   [ Talent Pipeline ]
-```
+### D. Invite to Apply (3.6 leftover)
+- "Invite to apply" action from sourcing card, talent profile, or CRM relationship side sheet.
+- Picks one of the company's open jobs → creates a `job_invitations` row (`job_id`, `talent_id`, `invited_by`, `expires_at`, `note`).
+- New edge function `notify-job-invitation` sends in-app + email + push with deep link to apply.
+- Apply landing shows an "Invited by {Company}" banner; invitation auto-marked `accepted` on submit and the resulting application is flagged `sourced=true` (reusing the 3.6 trigger by also matching against `job_invitations`).
 
-- New table `talent_relationships` (`company_id`, `talent_id`, `stage` enum [`prospect`|`contacted`|`engaged`|`interviewing`|`offered`|`hired`|`passed`|`nurture`], `owner_id`, `source` text, `next_step`, `next_step_at`, `notes`, `created_at`, `updated_at`).
-- New table `talent_relationship_activities` (`relationship_id`, `actor_id`, `kind` enum [`note`|`message`|`status_change`|`call`|`email`|`task`], `body jsonb`, `created_at`).
-- Kanban same shape as sales CRM. Drag/tap moves stage; logs activity.
-- Side sheet: profile snapshot, message thread (reuses 3.5 `application_messages` infra by linking via talent_id when no application exists, OR a new `direct_messages` thread — see Open Q1), notes, activity timeline, "Convert to application" if a relevant role exists.
-- Auto-promote rule: when a tracked talent submits an application to one of the company's jobs, the application card in 3.5 kanban shows a **"Sourced"** badge linking back to the relationship.
+### E. Admin oversight
+- `/dashboard/admin/jobs/interviews` — read-only roll-up of interviews across all companies (filters by status, date range, company, job).
+- `/dashboard/admin/jobs/offers` — same for offers (with offer value totals as a small KPI strip).
+- All offer + interview state changes audited via existing audit pattern.
 
-### D. Company Contacts (B2B)
-The existing `company_leads` is generic; split it into a proper **Contacts** entity for B2B intros (clients, partners, investors):
-
-- Rename UX label to **Contacts** (table stays `company_leads` for back-compat); add columns `linkedin_url`, `tags text[]`, `last_contacted_at`, `owner_id`.
-- New "Contacts" tab in CRM shell — table view with quick filters, CSV import (recruiter-only).
-- Mailto-only outreach (mem: Email Strategy) — never auto-sends from our domain.
-- Activity log via existing `company_lead_activities`.
-
-### E. Admin oversight (parallel admin views)
-Per the Gro10x + admin pattern from 3.5:
-
-- `/dashboard/admin/sourcing/talents` — admin can search the same pool, see usage analytics per company.
-- `/dashboard/admin/sourcing/lists` — read-only roll-up across companies.
-- `/dashboard/admin/sourcing/pipeline` — read-only kanban roll-up of `talent_relationships`.
-- All read/write actions audited in a new `crm_audit_log`.
-
-### F. Notifications & gating
-- Talent gets in-app notification "{Company} added you to their talent pool" only when relationship moves past `prospect` (avoids spam).
-- "Invite to apply" sends a directed in-app + email notification with a deep link to the job apply flow.
-- Inbox/connection gating reuses existing rules (mem: Creator Economy + Messenger Inbox). Recruiters initiating outreach to a tracked talent consume connection credits per current model — no new economy in 3.6.
-
-### G. Analytics widget (Gro10x Work home)
-Small "Sourcing this week" card on `/gro10x/work`:
-- New talents saved, messages sent, conversion to application, hires from sourced.
-- Powered by new RPC `get_sourcing_stats(p_company_id, p_window_days)`.
+### F. Analytics widget update (Gro10x Work home)
+Extend the existing "Sourcing this week" card pattern with a sibling **"Hiring this week"** card:
+- Interviews scheduled / completed / no-show
+- Offers sent / accepted / declined
+- Avg time-to-offer (offer_sent_at − applied_at)
 
 ---
 
 ## Backend
 
-### New tables (all RLS company-scoped via `is_company_member`)
-- `talent_lists`, `talent_list_members`
-- `talent_relationships`, `talent_relationship_activities`
-- `crm_audit_log`
+### New tables (all RLS company-scoped via `is_company_member`, talent-scoped for talent access)
+- `interview_slots` — one row per proposed slot tied to an `interview`.
+- `interviews` (`application_id`, `company_id`, `talent_id`, `mode`, `meeting_link`, `location`, `status`, `selected_slot_id`, `note`, timestamps, `created_by`).
+- `offers` (`application_id`, `company_id`, `talent_id`, `title`, `start_date`, `currency`, `base_amount numeric(14,2)`, `variable_amount`, `equity_note`, `benefits`, `expires_at`, `pdf_path`, `status` enum [`draft`|`sent`|`accepted`|`declined`|`countered`|`expired`|`withdrawn`], `signed_name`, `signed_at`, timestamps).
+- `offer_versions` — append-only history of offer payloads for counter-offer trail.
+- `direct_message_threads`, `direct_messages` (mirrors `application_messages` schema).
+- `job_invitations` (`job_id`, `talent_id`, `invited_by`, `expires_at`, `status` enum [`pending`|`accepted`|`declined`|`expired`], `note`).
 
-### New RPCs
-- `search_public_talents(p_filters jsonb, p_limit int, p_offset int) returns jsonb`
-- `get_sourcing_stats(p_company_id uuid, p_window_days int) returns jsonb`
-- `link_application_to_relationship(p_application_id uuid)` — trigger helper for the "Sourced" badge
+### Storage
+- New private bucket `offer-letters` (signed URLs, recruiter + talent + admin only).
+
+### RPCs
+- `get_application_hire_state(p_application_id)` → returns latest interview + offer for the side panel in one round-trip.
+- `get_hiring_stats(p_company_id, p_window_days)` → powers the Gro10x Work card.
+- `confirm_interview_slot(p_interview_id, p_slot_id)` — atomic state transition + auto-stage update.
+- `accept_offer(p_offer_id, p_signed_name)` — atomic stage transition to `hired`, marks offer accepted, fires notifications.
 
 ### Triggers
-- `trg_application_inserted_link_relationship` — on `job_applications` insert, if a `talent_relationships` row exists for `(company_id, talent_id)`, log activity + flag application as `sourced=true`.
-- `trg_crm_audit` — generic audit logger across the new tables.
+- `trg_interview_status_sync` — when interview confirmed, ensure `job_applications.stage >= 'interview'`.
+- `trg_offer_accepted_to_hired` — when offer accepted, move application to `hired` stage and append to `application_history`.
+- `trg_job_invitation_accept` — when an application is created and a matching pending `job_invitations` row exists, mark invitation accepted and set `application.sourced=true` (extends the 3.6 sourced flag logic).
 
 ### Edge functions
-- `notify-talent-added` — fires when relationship moves past prospect (in-app only, no email by default).
-- `notify-job-invitation` — invite-to-apply (in-app + email + push).
+- `notify-interview-proposed` / `notify-interview-confirmed` / `notify-interview-reminder` (cron-driven via existing pg_cron pattern at 24h + 1h horizons).
+- `generate-offer-pdf` — server-side render of offer letter PDF, stores in `offer-letters` bucket.
+- `notify-offer-sent` / `notify-offer-decision`.
+- `notify-job-invitation`.
 
 ---
 
 ## Frontend file plan
 
-### Shared CRM shell
-- `src/gro10x/pages/Gro10xCRM.tsx` — refactor into tabbed shell (`Contacts` / `Sales` / `Talent`)
-- `src/components/crm/CrmKanban.tsx` (generic, reused by sales + talent)
-- `src/components/crm/CrmAuditLog.tsx`
+### Interviews
+- `src/components/interviews/ScheduleInterviewSheet.tsx`
+- `src/components/interviews/InterviewSlotPicker.tsx` (talent side)
+- `src/components/interviews/InterviewPanel.tsx` (side panel block)
+- `src/pages/app/AppInterviewSchedule.tsx` (talent confirm/reschedule page)
+- `src/hooks/useInterviews.ts`
 
-### Sourcing
-- `src/gro10x/pages/sourcing/Gro10xSourcing.tsx`
-- `src/gro10x/pages/sourcing/Gro10xSourcingLists.tsx`
-- `src/gro10x/pages/sourcing/Gro10xListDetail.tsx`
-- `src/components/sourcing/TalentSearchFilters.tsx`
-- `src/components/sourcing/TalentResultCard.tsx`
-- `src/components/sourcing/SaveToListSheet.tsx`
-- `src/hooks/useTalentSearch.ts`
-- `src/hooks/useTalentLists.ts`
-- `src/hooks/useTalentRelationships.ts`
+### Offers
+- `src/components/offers/OfferComposer.tsx` (recruiter)
+- `src/components/offers/OfferLetterTemplate.tsx` (PDF + on-screen)
+- `src/components/offers/OfferDecisionPanel.tsx` (talent accept/decline)
+- `src/pages/app/AppOfferDecision.tsx`
+- `src/lib/offerPdfGenerator.ts`
+- `src/hooks/useOffers.ts`
+
+### Direct messaging (CRM)
+- Extend `src/components/applications/ApplicationMessageThread.tsx` to accept `threadType` + `threadId` + new hook.
+- `src/hooks/useDirectMessages.ts`
+- Wire into `TalentPipelinePanel.tsx` and sourcing result card.
+
+### Invite to apply
+- `src/components/sourcing/InviteToApplyDialog.tsx`
+- Banner block on `PublicJobDetail.tsx` + `AppApplicationDetail.tsx` apply flow.
 
 ### Admin
-- `src/pages/admin/sourcing/AdminTalentSearch.tsx`
-- `src/pages/admin/sourcing/AdminTalentLists.tsx`
-- `src/pages/admin/sourcing/AdminSourcingPipeline.tsx`
-- Register under Admin → Workforce/Jobs group (mem: Admin Groups 7-10)
+- `src/pages/admin/jobs/AdminInterviews.tsx`
+- `src/pages/admin/jobs/AdminOffers.tsx`
+- Register under Admin → Jobs group (mem: Admin Groups 7-10).
 
 ### Touchpoints
-- `src/gro10x/Gro10xRoutes.tsx` — add sourcing routes
-- `src/gro10x/pages/Gro10xWork.tsx` — add "Sourcing this week" card
-- `src/components/applications/ApplicationKanbanCard.tsx` — render "Sourced" badge when present
+- `src/components/applications/ApplicationKanbanCard.tsx` — show interview + offer chips.
+- `src/components/applications/ApplicationDetailSheet.tsx` — mount `InterviewPanel` + offer block.
+- `src/gro10x/pages/Gro10xWork.tsx` — add "Hiring this week" card.
+- `src/gro10x/Gro10xRoutes.tsx` — no new routes (sheets only inside Work).
 
 ---
 
 ## Out of scope (later phases)
-- Talent-side: saved searches, job alerts, AI application coach (deferred per decision)
-- Outbound bulk email campaigns from our domain (mem: Email Strategy keeps B2B mailto-only)
-- Calendar / interview scheduling (queued for separate phase)
-- Offer letter generation
-- Paid "premium sourcing" tier or new credit SKUs — current connection-fee model stays
-- A `recruiter` role distinct from company member — existing `is_company_member` check is reused
+- Google/Outlook calendar OAuth + auto-create events
+- Real e-signature (DocuSign / HelloSign)
+- Background-check integrations
+- Multi-round interview kits / scorecards (queued for Assessments subphase)
+- Talent-side saved searches / job alerts (still deferred per earlier decision)
+- Self-serve job posting & employer billing (separate subphase)
 
 ---
 
 ## Open questions
 
-1. **Direct messaging surface** — for talents in the CRM with no application yet, should we (a) create a thin `direct_messages` table and reuse `ApplicationMessageThread` UI keyed by talent_id, or (b) require an "Invite to apply" first so messaging always lives on an application thread? Recommendation: (a) — recruiters need to reach out before there's a role.
-2. **Talent visibility consent** — opt-in vs opt-out for appearing in `search_public_talents`? Recommendation: **opt-in via `open_to_work` flag** (already exists) — if false, only profiles explicitly published via `talent_public_profiles` show up. Keeps PII rules tight.
-3. **Sourced badge semantics** — should "Sourced" be a hard flag set once, or recompute live? Recommendation: hard flag on insert via the trigger, so the badge survives if the relationship row is later deleted.
+1. **Offer PDF branding** — use the company's logo/name only, or co-brand with Group Academy footer? Recommendation: company-branded with a small "Powered by Group Academy" footer, matching certificate pattern.
+2. **Counter-offer credit cost** — should talent counter-offers cost credits (to deter spam) or be free? Recommendation: free for the first counter, credits only if they request a third revision.
+3. **Interview reminder channels** — email + in-app by default; should we also push via SMS for confirmed interviews (uses Twilio connector, costs money)? Recommendation: in-app + email only in 3.7; add SMS as an opt-in toggle later.
 
-Approve to proceed, or tell me which of A–G to drop / reorder.
+Approve to implement, or tell me which of A–F to drop / reorder.

@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import type { PipelineApplication, PipelineStatus } from "@/hooks/useEmployerPipeline";
 import { ApplicationMessageThread } from "./ApplicationMessageThread";
+import { InterviewPanel } from "@/components/interviews/InterviewPanel";
 import { Download, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -78,6 +79,7 @@ export function ApplicationDetailSheet({ application, onClose, onMove, onChanged
         <Tabs defaultValue="overview" className="mt-4">
           <TabsList className="w-full">
             <TabsTrigger value="overview" className="flex-1">Overview</TabsTrigger>
+            <TabsTrigger value="hire" className="flex-1">Hire</TabsTrigger>
             <TabsTrigger value="messages" className="flex-1">Messages</TabsTrigger>
             <TabsTrigger value="actions" className="flex-1">Actions</TabsTrigger>
           </TabsList>
@@ -101,6 +103,19 @@ export function ApplicationDetailSheet({ application, onClose, onMove, onChanged
               <Button variant="outline" size="sm" onClick={handleDownloadCv} className="w-full">
                 <Download className="h-4 w-4 mr-2" /> Download CV
               </Button>
+            )}
+          </TabsContent>
+
+          <TabsContent value="hire" className="mt-3">
+            {application.company_id && application.talent_id ? (
+              <InterviewPanel
+                applicationId={application.id}
+                companyId={application.company_id}
+                talentId={application.talent_id}
+                actorRole={actorRole}
+              />
+            ) : (
+              <p className="text-xs text-muted-foreground">Missing context.</p>
             )}
           </TabsContent>
 
