@@ -36,13 +36,22 @@ serve(async (req) => {
     } = await supabaseAuth.auth.getUser();
     if (authError || !user) return new Response("Unauthorized", { status: 401, headers: corsHeaders });
 
-    const { messages, professionLineId, contextType, contextId, moduleId, contentId } = await req.json();
+    const { messages, professionLineId, contextType, contextId, moduleId, contentId, mode } = await req.json();
+    const isCareerCoach = mode === "career_coach";
 
-    // Resolve talentId for mastery context
+    // Resolve talent (id + career profile fields for coach mode)
     let talentId: string | null = null;
+    let talentRow: any = null;
     try {
-      const { data: t } = await supabaseAdmin.from("talents").select("id").eq("user_id", user.id).maybeSingle();
+      const { data: t } = await supabaseAdmin
+        .from("talents")
+        .select(
+          "id, full_name, current_status, primary_goal, professional_role_id, experience, skills, professional_roles:professional_role_id(name)",
+        )
+        .eq("user_id", user.id)
+        .maybeSingle();
       talentId = t?.id || null;
+      talentRow = t || null;
     } catch (_) {}
 
     // PHASE: Hierarchical_Context_Hydration
