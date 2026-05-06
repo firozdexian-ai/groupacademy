@@ -101,7 +101,7 @@ export function QuickActionsGrid() {
   return (
     <>
       <div className="-mx-1 px-1">
-        <div className="flex items-start gap-3 overflow-x-auto snap-x snap-mandatory scrollbar-none pb-1">
+        <div className="flex items-start gap-3 overflow-x-auto snap-x snap-mandatory no-scrollbar pb-1">
           {actions.map((item) => {
             const ResolvedIcon = item.icon && iconMap[item.icon] ? (iconMap[item.icon] as LucideIcon) : Bot;
             return (
