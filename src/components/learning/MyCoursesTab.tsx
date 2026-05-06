@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { BookOpen, MessageCircle, Award, PlayCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AdaptiveSnapshotCard } from "@/components/learning/AdaptiveSnapshotCard";
 
 interface MyCoursesTabProps {
   onBrowseCatalog?: () => void;
@@ -196,6 +197,7 @@ export function MyCoursesTab({ onBrowseCatalog }: MyCoursesTabProps) {
         </Card>
       ) : (
         <>
+          <AdaptiveSnapshotCard />
           {active.length > 0 && (
             <section className="space-y-2">
               <h2 className="text-sm font-semibold px-1">In progress</h2>

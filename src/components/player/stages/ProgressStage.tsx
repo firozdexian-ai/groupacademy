@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Award, CheckCircle, ArrowRight, Download, Trophy, Target, Clock, Brain, Zap, ShieldCheck, AlertCircle } from "lucide-react";
 import { MasteryBars } from "./MasteryBars";
+import { AdaptiveSnapshotCard } from "@/components/learning/AdaptiveSnapshotCard";
 
 interface ProgressStageProps {
   moduleId?: string;
@@ -217,6 +218,9 @@ export function ProgressStage({
               })}
             </CardContent>
           </Card>
+
+          {/* COMPONENT: ADAPTIVE_SNAPSHOT (per-module mastery + due) */}
+          {moduleId && <AdaptiveSnapshotCard moduleId={moduleId} compact />}
 
           {/* COMPONENT: TOPIC_MASTERY_BARS */}
           <MasteryBars moduleId={moduleId} topN={5} />
