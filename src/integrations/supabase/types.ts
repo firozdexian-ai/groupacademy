@@ -3551,6 +3551,7 @@ export type Database = {
       }
       content: {
         Row: {
+          author_status: string
           b2b_audience: string[]
           content_type: Database["public"]["Enums"]["content_type"]
           cover_image_url: string | null
@@ -3580,7 +3581,11 @@ export type Database = {
           profession_level_id: string | null
           profession_line_id: string | null
           quiz_enabled: boolean | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           slug: string
+          submitted_at: string | null
           thumbnail_url: string | null
           title: string
           updated_at: string | null
@@ -3590,6 +3595,7 @@ export type Database = {
           youtube_url: string | null
         }
         Insert: {
+          author_status?: string
           b2b_audience?: string[]
           content_type: Database["public"]["Enums"]["content_type"]
           cover_image_url?: string | null
@@ -3619,7 +3625,11 @@ export type Database = {
           profession_level_id?: string | null
           profession_line_id?: string | null
           quiz_enabled?: boolean | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           slug: string
+          submitted_at?: string | null
           thumbnail_url?: string | null
           title: string
           updated_at?: string | null
@@ -3629,6 +3639,7 @@ export type Database = {
           youtube_url?: string | null
         }
         Update: {
+          author_status?: string
           b2b_audience?: string[]
           content_type?: Database["public"]["Enums"]["content_type"]
           cover_image_url?: string | null
@@ -3658,7 +3669,11 @@ export type Database = {
           profession_level_id?: string | null
           profession_line_id?: string | null
           quiz_enabled?: boolean | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           slug?: string
+          submitted_at?: string | null
           thumbnail_url?: string | null
           title?: string
           updated_at?: string | null
@@ -3971,6 +3986,167 @@ export type Database = {
           },
         ]
       }
+      course_briefs: {
+        Row: {
+          budget_amount: number | null
+          budget_currency: string
+          content_id: string | null
+          created_at: string
+          created_by: string
+          duration_weeks: number | null
+          id: string
+          instructor_job_id: string | null
+          instructor_user_id: string | null
+          language: string
+          mode: string
+          required_skills: Json
+          revenue_share_pct: number
+          status: string
+          summary: string | null
+          syllabus: Json
+          target_launch: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          budget_amount?: number | null
+          budget_currency?: string
+          content_id?: string | null
+          created_at?: string
+          created_by: string
+          duration_weeks?: number | null
+          id?: string
+          instructor_job_id?: string | null
+          instructor_user_id?: string | null
+          language?: string
+          mode?: string
+          required_skills?: Json
+          revenue_share_pct?: number
+          status?: string
+          summary?: string | null
+          syllabus?: Json
+          target_launch?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          budget_amount?: number | null
+          budget_currency?: string
+          content_id?: string | null
+          created_at?: string
+          created_by?: string
+          duration_weeks?: number | null
+          id?: string
+          instructor_job_id?: string | null
+          instructor_user_id?: string | null
+          language?: string
+          mode?: string
+          required_skills?: Json
+          revenue_share_pct?: number
+          status?: string
+          summary?: string | null
+          syllabus?: Json
+          target_launch?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_briefs_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_briefs_instructor_job_id_fkey"
+            columns: ["instructor_job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      course_engagements: {
+        Row: {
+          ai_credit_cap: number
+          brief_id: string | null
+          content_id: string
+          created_at: string
+          ended_at: string | null
+          hired_via_application_id: string | null
+          hired_via_offer_id: string | null
+          id: string
+          revenue_share_pct: number
+          role: string
+          started_at: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_credit_cap?: number
+          brief_id?: string | null
+          content_id: string
+          created_at?: string
+          ended_at?: string | null
+          hired_via_application_id?: string | null
+          hired_via_offer_id?: string | null
+          id?: string
+          revenue_share_pct?: number
+          role?: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_credit_cap?: number
+          brief_id?: string | null
+          content_id?: string
+          created_at?: string
+          ended_at?: string | null
+          hired_via_application_id?: string | null
+          hired_via_offer_id?: string | null
+          id?: string
+          revenue_share_pct?: number
+          role?: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_engagements_brief_id_fkey"
+            columns: ["brief_id"]
+            isOneToOne: false
+            referencedRelation: "course_briefs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_engagements_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_engagements_hired_via_application_id_fkey"
+            columns: ["hired_via_application_id"]
+            isOneToOne: false
+            referencedRelation: "job_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_engagements_hired_via_offer_id_fkey"
+            columns: ["hired_via_offer_id"]
+            isOneToOne: false
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       course_modules: {
         Row: {
           content_id: string
@@ -4192,6 +4368,78 @@ export type Database = {
             columns: ["course_id"]
             isOneToOne: true
             referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      course_revenue_splits: {
+        Row: {
+          content_id: string
+          created_at: string
+          currency: string
+          engagement_id: string | null
+          fees_amount: number
+          gross_amount: number
+          id: string
+          instructor_amount: number
+          instructor_user_id: string
+          net_amount: number
+          paid_at: string | null
+          platform_amount: number
+          share_pct: number
+          source_id: string | null
+          source_table: string
+          status: string
+        }
+        Insert: {
+          content_id: string
+          created_at?: string
+          currency?: string
+          engagement_id?: string | null
+          fees_amount?: number
+          gross_amount?: number
+          id?: string
+          instructor_amount?: number
+          instructor_user_id: string
+          net_amount?: number
+          paid_at?: string | null
+          platform_amount?: number
+          share_pct?: number
+          source_id?: string | null
+          source_table: string
+          status?: string
+        }
+        Update: {
+          content_id?: string
+          created_at?: string
+          currency?: string
+          engagement_id?: string | null
+          fees_amount?: number
+          gross_amount?: number
+          id?: string
+          instructor_amount?: number
+          instructor_user_id?: string
+          net_amount?: number
+          paid_at?: string | null
+          platform_amount?: number
+          share_pct?: number
+          source_id?: string | null
+          source_table?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_revenue_splits_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_revenue_splits_engagement_id_fkey"
+            columns: ["engagement_id"]
+            isOneToOne: false
+            referencedRelation: "course_engagements"
             referencedColumns: ["id"]
           },
         ]
@@ -6080,6 +6328,82 @@ export type Database = {
           },
         ]
       }
+      instructor_credit_balances: {
+        Row: {
+          balance: number
+          content_id: string | null
+          id: string
+          last_grant_at: string | null
+          monthly_grant: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          content_id?: string | null
+          id?: string
+          last_grant_at?: string | null
+          monthly_grant?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          content_id?: string | null
+          id?: string
+          last_grant_at?: string | null
+          monthly_grant?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instructor_credit_balances_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      instructor_credit_ledger: {
+        Row: {
+          content_id: string | null
+          created_at: string
+          delta: number
+          id: string
+          reason: string
+          ref_id: string | null
+          user_id: string
+        }
+        Insert: {
+          content_id?: string | null
+          created_at?: string
+          delta: number
+          id?: string
+          reason: string
+          ref_id?: string | null
+          user_id: string
+        }
+        Update: {
+          content_id?: string | null
+          created_at?: string
+          delta?: number
+          id?: string
+          reason?: string
+          ref_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instructor_credit_ledger_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       instructors: {
         Row: {
           bank_details: Json | null
@@ -7283,6 +7607,7 @@ export type Database = {
           company_id: string | null
           company_logo_url: string | null
           company_name: string
+          course_brief_id: string | null
           created_at: string | null
           deadline: string | null
           description: string
@@ -7290,6 +7615,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           is_featured: boolean | null
+          job_kind: string
           job_type: Database["public"]["Enums"]["job_type"]
           location: string | null
           posted_by: string | null
@@ -7316,6 +7642,7 @@ export type Database = {
           company_id?: string | null
           company_logo_url?: string | null
           company_name: string
+          course_brief_id?: string | null
           created_at?: string | null
           deadline?: string | null
           description: string
@@ -7323,6 +7650,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_featured?: boolean | null
+          job_kind?: string
           job_type?: Database["public"]["Enums"]["job_type"]
           location?: string | null
           posted_by?: string | null
@@ -7351,6 +7679,7 @@ export type Database = {
           company_id?: string | null
           company_logo_url?: string | null
           company_name?: string
+          course_brief_id?: string | null
           created_at?: string | null
           deadline?: string | null
           description?: string
@@ -7358,6 +7687,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           is_featured?: boolean | null
+          job_kind?: string
           job_type?: Database["public"]["Enums"]["job_type"]
           location?: string | null
           posted_by?: string | null
@@ -7382,6 +7712,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jobs_course_brief_fk"
+            columns: ["course_brief_id"]
+            isOneToOne: false
+            referencedRelation: "course_briefs"
             referencedColumns: ["id"]
           },
           {
@@ -12563,6 +12900,16 @@ export type Database = {
         }
         Returns: Json
       }
+      debit_instructor_credit: {
+        Args: {
+          _amount: number
+          _content_id: string
+          _reason: string
+          _ref_id?: string
+          _user_id: string
+        }
+        Returns: number
+      }
       decline_offer: {
         Args: { p_note?: string; p_offer_id: string }
         Returns: Json
@@ -12701,6 +13048,7 @@ export type Database = {
         Args: { p_company_id: string; p_window_days?: number }
         Returns: Json
       }
+      get_instructor_summary: { Args: { _user_id?: string }; Returns: Json }
       get_jobs_in_field: {
         Args: { _limit?: number; _talent_id: string }
         Returns: {
@@ -12713,6 +13061,7 @@ export type Database = {
           company_id: string | null
           company_logo_url: string | null
           company_name: string
+          course_brief_id: string | null
           created_at: string | null
           deadline: string | null
           description: string
@@ -12720,6 +13069,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           is_featured: boolean | null
+          job_kind: string
           job_type: Database["public"]["Enums"]["job_type"]
           location: string | null
           posted_by: string | null
@@ -12776,6 +13126,7 @@ export type Database = {
           company_id: string | null
           company_logo_url: string | null
           company_name: string
+          course_brief_id: string | null
           created_at: string | null
           deadline: string | null
           description: string
@@ -12783,6 +13134,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           is_featured: boolean | null
+          job_kind: string
           job_type: Database["public"]["Enums"]["job_type"]
           location: string | null
           posted_by: string | null
@@ -12866,6 +13218,10 @@ export type Database = {
       }
       is_content_lead_for_school: {
         Args: { _school_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_course_instructor: {
+        Args: { _content_id: string; _user_id: string }
         Returns: boolean
       }
       is_enrolled_in_module: { Args: { _module_id: string }; Returns: boolean }
@@ -13051,6 +13407,7 @@ export type Database = {
         | "content_lead"
         | "super_admin"
         | "talent_success_executive"
+        | "instructor"
       application_status:
         | "submitted"
         | "sent_to_employer"
@@ -13345,6 +13702,7 @@ export const Constants = {
         "content_lead",
         "super_admin",
         "talent_success_executive",
+        "instructor",
       ],
       application_status: [
         "submitted",
