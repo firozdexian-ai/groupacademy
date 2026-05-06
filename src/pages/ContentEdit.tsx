@@ -250,18 +250,18 @@ export default function ContentEdit() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-6 space-y-6 pt-8">
-                <ImageUpload
+                <div data-readiness-field="cover_image"><ImageUpload
                   value={formData.cover_image_url}
                   onUpload={(url) => setFormData({ ...formData, cover_image_url: url })}
                   onRemove={() => setFormData({ ...formData, cover_image_url: "" })}
-                />
+                /></div>
 
                 <div className="grid gap-6">
                   <div className="space-y-2">
                     <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                       Internal Title *
                     </Label>
-                    <Input
+                    <Input data-readiness-field="title"
                       value={formData.title}
                       onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                       required
@@ -274,7 +274,7 @@ export default function ContentEdit() {
                       <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                         URL Path (Slug) *
                       </Label>
-                      <Input
+                      <Input data-readiness-field="slug"
                         value={formData.slug}
                         onChange={(e) =>
                           setFormData({ ...formData, slug: e.target.value.toLowerCase().replace(/ /g, "-") })
@@ -309,7 +309,7 @@ export default function ContentEdit() {
                     <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
                       Marketplace Description
                     </Label>
-                    <Textarea
+                    <Textarea data-readiness-field="description"
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                       rows={5}
@@ -332,7 +332,7 @@ export default function ContentEdit() {
                   {["live_webinar", "batch_class", "offline_seminar"].includes(formData.content_type) && (
                     <div className="grid grid-cols-2 gap-4">
                       <div className="col-span-2">
-                        <EventDateTimeField
+                        <div data-readiness-field="event_date"><EventDateTimeField
                           utcValue={formData.event_date}
                           timezone={formData.event_timezone}
                           onChange={({ utcValue, timezone }) =>
@@ -344,7 +344,7 @@ export default function ContentEdit() {
                         <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                           Capacity Limit
                         </Label>
-                        <Input
+                        <Input data-readiness-field="max_capacity"
                           type="number"
                           value={formData.max_capacity}
                           onChange={(e) => setFormData({ ...formData, max_capacity: e.target.value })}
@@ -356,7 +356,7 @@ export default function ContentEdit() {
                         <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                           Duration (Mins)
                         </Label>
-                        <Input
+                        <Input data-readiness-field="event_duration"
                           type="number"
                           value={formData.event_duration_minutes}
                           onChange={(e) => setFormData({ ...formData, event_duration_minutes: e.target.value })}
@@ -373,7 +373,7 @@ export default function ContentEdit() {
                         <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                           Venue
                         </Label>
-                        <Input
+                        <Input data-readiness-field="venue_name"
                           value={formData.venue_name}
                           onChange={(e) => setFormData({ ...formData, venue_name: e.target.value })}
                           className="rounded-xl"
@@ -397,7 +397,7 @@ export default function ContentEdit() {
                       <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                         Lead Instructor
                       </Label>
-                      <Input
+                      <Input data-readiness-field="instructor_name"
                         value={formData.instructor_name}
                         onChange={(e) => setFormData({ ...formData, instructor_name: e.target.value })}
                         className="rounded-xl font-bold"
@@ -431,7 +431,7 @@ export default function ContentEdit() {
                   <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                     Stream Target (YouTube)
                   </Label>
-                  <Input
+                  <Input data-readiness-field="youtube_url"
                     value={formData.youtube_url}
                     onChange={(e) => setFormData({ ...formData, youtube_url: e.target.value })}
                     placeholder="https://youtube.com/..."
@@ -468,7 +468,7 @@ export default function ContentEdit() {
                       Currency Pricing
                     </Label>
                     <div className="flex gap-2">
-                      <Input
+                      <Input data-readiness-field="price"
                         type="number"
                         step="0.01"
                         value={formData.price}
