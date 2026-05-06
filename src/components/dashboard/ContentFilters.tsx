@@ -102,22 +102,19 @@ const ContentFilters = ({ values, onChange, className }: ContentFiltersProps) =>
         </SelectTrigger>
         <SelectContent className="rounded-xl border-2 shadow-2xl">
           <SelectItem value="all" className="font-bold uppercase text-[9px]">
-            Global View
+            All Statuses
           </SelectItem>
-          <SelectItem value="no_modules" className="font-bold uppercase text-[9px] text-destructive">
-            Logic Gap (No Modules)
+          <SelectItem value="inactive_only" className="font-bold uppercase text-[9px] text-destructive">
+            Inactive Only (Not Ready)
           </SelectItem>
-          <SelectItem value="has_modules" className="font-bold uppercase text-[9px]">
-            Active Nodes (Modules)
+          <SelectItem value="ready_only" className="font-bold uppercase text-[9px] text-emerald-500">
+            Ready Only
           </SelectItem>
-          <SelectItem value="has_descriptions" className="font-bold uppercase text-[9px]">
-            Spec Defined (Descr)
+          <SelectItem value="published" className="font-bold uppercase text-[9px]">
+            Published
           </SelectItem>
-          <SelectItem value="has_videos" className="font-bold uppercase text-[9px]">
-            Visual Sync'd (Videos)
-          </SelectItem>
-          <SelectItem value="complete" className="font-bold uppercase text-[9px] text-emerald-500">
-            Verified Complete
+          <SelectItem value="draft" className="font-bold uppercase text-[9px]">
+            Draft
           </SelectItem>
         </SelectContent>
       </Select>
@@ -132,16 +129,19 @@ const ContentFilters = ({ values, onChange, className }: ContentFiltersProps) =>
         </SelectTrigger>
         <SelectContent className="rounded-xl border-2 shadow-2xl">
           <SelectItem value="newest" className="font-bold uppercase text-[9px]">
-            Temporal: Newest
+            Newest
           </SelectItem>
           <SelectItem value="oldest" className="font-bold uppercase text-[9px]">
-            Temporal: Oldest
+            Oldest
           </SelectItem>
           <SelectItem value="title_asc" className="font-bold uppercase text-[9px]">
-            Alpha: A-Z
+            Title A-Z
           </SelectItem>
           <SelectItem value="title_desc" className="font-bold uppercase text-[9px]">
-            Alpha: Z-A
+            Title Z-A
+          </SelectItem>
+          <SelectItem value="enrollment_desc" className="font-bold uppercase text-[9px]">
+            Top Enrolled
           </SelectItem>
         </SelectContent>
       </Select>

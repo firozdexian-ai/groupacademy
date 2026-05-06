@@ -23,16 +23,19 @@ import {
   Presentation,
   Users,
   MapPin,
-  RefreshCw,
   AlertCircle,
   Search,
   ChevronLeft,
   ChevronRight,
   Plus,
-  ShieldCheck,
   Layers,
   Zap,
+  Eye,
+  Copy,
+  Power,
+  PowerOff,
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
@@ -53,6 +56,7 @@ type ContentType = "batch_class" | "free_video" | "live_webinar" | "offline_semi
 interface Content {
   id: string;
   title: string;
+  slug: string | null;
   content_type: string;
   description: string | null;
   price: number;
@@ -100,6 +104,8 @@ const ContentList = ({ filter }: ContentListProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearch = useDebounce(searchQuery, 500);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   const [filters, setFilters] = useState<ContentFilterValues>({
     programId: "all",
@@ -149,16 +155,22 @@ const ContentList = ({ filter }: ContentListProps) => {
     setIsLoading(true);
     setLoadError(null);
     try {
-      const sortCol = filters.sortBy.startsWith("title") ? "title" : "created_at";
+      const sortCol =
+        filters.sortBy.startsWith("title") ? "title" :
+        filters.sortBy === "enrollment_desc" ? "current_enrollment" : "created_at";
       const sortAsc = filters.sortBy === "oldest" || filters.sortBy === "title_asc";
 
       let query = supabase.from("content").select("*", { count: "exact" }).order(sortCol, { ascending: sortAsc });
 
-      // CTO FIX: Asserted filter as ContentType to resolve TS2345
       if (filter) query = query.eq("content_type", filter as ContentType);
 
       if (filters.programId !== "all") query = query.eq("profession_line_id", filters.programId);
       if (filters.levelId !== "all") query = query.eq("profession_level_id", filters.levelId);
+
+      if (filters.readiness === "inactive_only") query = query.or("is_ready.is.null,is_ready.eq.false");
+      else if (filters.readiness === "ready_only") query = query.eq("is_ready", true);
+      else if (filters.readiness === "published") query = query.eq("is_published", true);
+      else if (filters.readiness === "draft") query = query.eq("is_published", false);
 
       if (debouncedSearch) {
         const safe = sanitizeIlike(debouncedSearch);
@@ -206,6 +218,65 @@ const ContentList = ({ filter }: ContentListProps) => {
     }
   };
 
+  const toggleSelect = (id: string) =>
+    setSelectedIds((prev) => {
+      const n = new Set(prev);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
+  const toggleSelectAll = () =>
+    setSelectedIds((prev) => (prev.size === content.length ? new Set() : new Set(content.map((c) => c.id))));
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const bulkSetPublished = async (publish: boolean) => {
+    if (selectedIds.size === 0) return;
+    setBulkBusy(true);
+    try {
+      const ids = Array.from(selectedIds);
+      const { error } = await supabase.from("content").update({ is_published: publish }).in("id", ids);
+      if (error) throw error;
+      toast.success(`${ids.length} ${publish ? "published" : "unpublished"}.`);
+      clearSelection();
+      loadRegistry();
+    } catch (e: any) {
+      toast.error(e?.message || "Bulk update failed.");
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+  const duplicateContent = async (item: Content) => {
+    try {
+      const { data: full, error: fErr } = await supabase.from("content").select("*").eq("id", item.id).single();
+      if (fErr || !full) throw fErr || new Error("Source not found");
+      const { id, created_at, updated_at, current_enrollment, slug, ...rest } = full as any;
+      const newSlug = `${(slug || "course")}-copy-${Math.random().toString(36).slice(2, 6)}`;
+      const { error } = await supabase.from("content").insert({
+        ...rest,
+        slug: newSlug,
+        title: `${full.title} (Copy)`,
+        is_published: false,
+        is_ready: false,
+        current_enrollment: 0,
+      });
+      if (error) throw error;
+      toast.success("Course duplicated as draft.");
+      loadRegistry();
+    } catch (e: any) {
+      toast.error(e?.message || "Duplicate failed.");
+    }
+  };
+
+  const previewAsTalent = (item: Content) => {
+    if (!item.slug) {
+      toast.error("This course has no slug yet — open Edit to set one.");
+      return;
+    }
+    const path = item.content_type === "live_webinar" || item.content_type === "batch_class"
+      ? `/webinar/${item.slug}` : `/courses/${item.slug}`;
+    window.open(path, "_blank");
+  };
+
   if (isLoading && content.length === 0) return <CardGridSkeleton count={6} columns={3} />;
 
   return (
@@ -239,6 +310,38 @@ const ContentList = ({ filter }: ContentListProps) => {
 
       <ContentFilters values={filters} onChange={setFilters} className="px-2" />
 
+      {selectedIds.size > 0 && (
+        <div className="flex flex-wrap items-center gap-3 p-4 rounded-2xl border-2 border-primary/30 bg-primary/5 sticky top-2 z-10 backdrop-blur">
+          <p className="text-xs font-black uppercase tracking-widest">
+            {selectedIds.size} selected
+          </p>
+          <Button size="sm" variant="outline" className="rounded-lg h-9 text-[10px] font-bold uppercase"
+            onClick={() => bulkSetPublished(true)} disabled={bulkBusy}>
+            <Power className="w-3.5 h-3.5 mr-1.5" /> Publish
+          </Button>
+          <Button size="sm" variant="outline" className="rounded-lg h-9 text-[10px] font-bold uppercase"
+            onClick={() => bulkSetPublished(false)} disabled={bulkBusy}>
+            <PowerOff className="w-3.5 h-3.5 mr-1.5" /> Unpublish
+          </Button>
+          <Button size="sm" variant="ghost" className="rounded-lg h-9 text-[10px] font-bold uppercase ml-auto"
+            onClick={clearSelection}>
+            Clear
+          </Button>
+        </div>
+      )}
+
+      {content.length > 0 && (
+        <div className="flex items-center gap-2 px-2">
+          <Checkbox
+            checked={selectedIds.size === content.length && content.length > 0}
+            onCheckedChange={toggleSelectAll}
+          />
+          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+            Select all on this page
+          </span>
+        </div>
+      )}
+
       {content.length === 0 ? (
         <Card className="rounded-[40px] border-2 border-dashed border-border/40 bg-card/10 py-24 text-center">
           <Layers className="h-16 w-16 text-muted-foreground/20 mx-auto mb-6" />
@@ -255,17 +358,26 @@ const ContentList = ({ filter }: ContentListProps) => {
             return (
               <Card
                 key={item.id}
-                className="group rounded-[40px] border-2 border-border/40 bg-card/30 backdrop-blur-xl transition-all duration-500 hover:border-primary/40 flex flex-col overflow-hidden"
+                className={cn(
+                  "group rounded-[40px] border-2 bg-card/30 backdrop-blur-xl transition-all duration-500 hover:border-primary/40 flex flex-col overflow-hidden",
+                  selectedIds.has(item.id) ? "border-primary/60 ring-2 ring-primary/20" : "border-border/40",
+                )}
               >
                 <CardHeader className="p-8 pb-4">
                   <div className="flex items-center justify-between mb-4">
-                    <div
-                      className={cn(
-                        "h-12 w-12 rounded-2xl flex items-center justify-center border-2 border-white/5 shadow-inner transition-transform duration-500 group-hover:rotate-6",
-                        config.bg,
-                      )}
-                    >
-                      <Icon className={cn("h-6 w-6", config.color)} />
+                    <div className="flex items-center gap-3">
+                      <Checkbox
+                        checked={selectedIds.has(item.id)}
+                        onCheckedChange={() => toggleSelect(item.id)}
+                      />
+                      <div
+                        className={cn(
+                          "h-12 w-12 rounded-2xl flex items-center justify-center border-2 border-white/5 shadow-inner transition-transform duration-500 group-hover:rotate-6",
+                          config.bg,
+                        )}
+                      >
+                        <Icon className={cn("h-6 w-6", config.color)} />
+                      </div>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <Badge
@@ -305,43 +417,68 @@ const ContentList = ({ filter }: ContentListProps) => {
                       <p className="text-[10px] font-black uppercase tracking-widest text-primary italic leading-none">
                         {config.label}
                       </p>
-                      {item.price > 0 ? (
-                        <div className="flex items-center gap-1.5 font-black italic text-lg tracking-tighter">
-                          <Zap className="h-4 w-4 fill-primary text-primary" /> ${item.price}
-                        </div>
-                      ) : (
-                        <Badge variant="outline" className="text-[9px] font-black uppercase">
-                          ALPHA_FREE
-                        </Badge>
-                      )}
+                      <div className="flex items-center gap-3">
+                        <span className="text-[10px] font-bold uppercase text-muted-foreground">
+                          {item.current_enrollment} enrolled
+                        </span>
+                        {item.price > 0 ? (
+                          <div className="flex items-center gap-1.5 font-black italic text-lg tracking-tighter">
+                            <Zap className="h-4 w-4 fill-primary text-primary" /> ${item.price}
+                          </div>
+                        ) : (
+                          <Badge variant="outline" className="text-[9px] font-black uppercase">
+                            FREE
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   </div>
 
                   <div className="pt-6 border-t border-border/10 flex flex-wrap gap-2">
                     <Button
                       variant="outline"
-                      className="flex-1 min-w-[120px] rounded-xl h-11 border-2 font-black uppercase text-[10px] tracking-widest hover:bg-primary hover:text-white transition-all"
+                      size="sm"
+                      className="rounded-xl h-9 text-[10px] font-bold uppercase"
                       onClick={() => navigate(`/content/${item.id}/edit`)}
                     >
-                      Edit
+                      <Edit className="w-3.5 h-3.5 mr-1.5" /> Edit
                     </Button>
                     {(item.content_type === "recorded_course" || item.content_type === "live_webinar") && (
                       <Button
                         variant="default"
-                        className="flex-1 min-w-[120px] rounded-xl h-11 font-black uppercase text-[10px] tracking-widest"
+                        size="sm"
+                        className="rounded-xl h-9 text-[10px] font-bold uppercase"
                         onClick={() => navigate(`/dashboard?tab=modules&id=${item.id}`)}
                       >
                         <Layers className="w-3.5 h-3.5 mr-1.5" /> Modules
                       </Button>
                     )}
                     <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-xl h-9 text-[10px] font-bold uppercase"
+                      onClick={() => previewAsTalent(item)}
+                    >
+                      <Eye className="w-3.5 h-3.5 mr-1.5" /> Preview
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-xl h-9 text-[10px] font-bold uppercase"
+                      onClick={() => duplicateContent(item)}
+                    >
+                      <Copy className="w-3.5 h-3.5 mr-1.5" /> Duplicate
+                    </Button>
+                    <Button
                       variant="ghost"
-                      className="rounded-xl h-11 w-11 text-destructive/20 hover:text-destructive hover:bg-destructive/10 transition-all border-none"
+                      size="sm"
+                      className="rounded-xl h-9 w-9 p-0 ml-auto text-destructive/40 hover:text-destructive hover:bg-destructive/10"
                       onClick={() => setDeleteId(item.id)}
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
+
                 </CardContent>
               </Card>
             );
