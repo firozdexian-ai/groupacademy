@@ -6136,6 +6136,116 @@ export type Database = {
         }
         Relationships: []
       }
+      gig_briefs: {
+        Row: {
+          company_id: string | null
+          context: Json | null
+          created_at: string
+          id: string
+          posted_by: string
+          poster_kind: string
+          preferred_deadline: string | null
+          preferred_kind: string | null
+          published_gig_id: string | null
+          published_gig_kind: string | null
+          raw_ask: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          context?: Json | null
+          created_at?: string
+          id?: string
+          posted_by: string
+          poster_kind?: string
+          preferred_deadline?: string | null
+          preferred_kind?: string | null
+          published_gig_id?: string | null
+          published_gig_kind?: string | null
+          raw_ask: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          context?: Json | null
+          created_at?: string
+          id?: string
+          posted_by?: string
+          poster_kind?: string
+          preferred_deadline?: string | null
+          preferred_kind?: string | null
+          published_gig_id?: string | null
+          published_gig_kind?: string | null
+          raw_ask?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      gig_scope_drafts: {
+        Row: {
+          acceptance_criteria: Json
+          brief_id: string
+          created_at: string
+          deliverables: Json
+          description: string
+          estimated_credits: number | null
+          id: string
+          is_chosen: boolean
+          model_used: string | null
+          rationale: string | null
+          recommended_kind: string
+          required_skills: string[] | null
+          suggested_deadline_days: number | null
+          title: string
+          version: number
+        }
+        Insert: {
+          acceptance_criteria?: Json
+          brief_id: string
+          created_at?: string
+          deliverables?: Json
+          description: string
+          estimated_credits?: number | null
+          id?: string
+          is_chosen?: boolean
+          model_used?: string | null
+          rationale?: string | null
+          recommended_kind: string
+          required_skills?: string[] | null
+          suggested_deadline_days?: number | null
+          title: string
+          version?: number
+        }
+        Update: {
+          acceptance_criteria?: Json
+          brief_id?: string
+          created_at?: string
+          deliverables?: Json
+          description?: string
+          estimated_credits?: number | null
+          id?: string
+          is_chosen?: boolean
+          model_used?: string | null
+          rationale?: string | null
+          recommended_kind?: string
+          required_skills?: string[] | null
+          suggested_deadline_days?: number | null
+          title?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gig_scope_drafts_brief_id_fkey"
+            columns: ["brief_id"]
+            isOneToOne: false
+            referencedRelation: "gig_briefs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gig_share_logs: {
         Row: {
           channel: string
@@ -6278,6 +6388,7 @@ export type Database = {
       }
       gigs: {
         Row: {
+          acceptance_criteria: Json | null
           auto_approval_config: Json
           auto_approval_mode: string
           category: string
@@ -6290,12 +6401,14 @@ export type Database = {
           is_active: boolean | null
           max_completions_per_user: number | null
           requirements: string | null
+          source_brief_id: string | null
           title: string
           total_budget: number | null
           total_completed: number | null
           updated_at: string | null
         }
         Insert: {
+          acceptance_criteria?: Json | null
           auto_approval_config?: Json
           auto_approval_mode?: string
           category: string
@@ -6308,12 +6421,14 @@ export type Database = {
           is_active?: boolean | null
           max_completions_per_user?: number | null
           requirements?: string | null
+          source_brief_id?: string | null
           title: string
           total_budget?: number | null
           total_completed?: number | null
           updated_at?: string | null
         }
         Update: {
+          acceptance_criteria?: Json | null
           auto_approval_config?: Json
           auto_approval_mode?: string
           category?: string
@@ -6326,12 +6441,21 @@ export type Database = {
           is_active?: boolean | null
           max_completions_per_user?: number | null
           requirements?: string | null
+          source_brief_id?: string | null
           title?: string
           total_budget?: number | null
           total_completed?: number | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "gigs_source_brief_id_fkey"
+            columns: ["source_brief_id"]
+            isOneToOne: false
+            referencedRelation: "gig_briefs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       gro10x_agent_threads: {
         Row: {
@@ -9676,6 +9800,7 @@ export type Database = {
       }
       marketplace_gigs: {
         Row: {
+          acceptance_criteria: Json | null
           attachments: Json | null
           budget_amount: number | null
           budget_currency: string | null
@@ -9693,12 +9818,14 @@ export type Database = {
           selected_bid_id: string | null
           skill_category: string
           skill_subcategory: string | null
+          source_brief_id: string | null
           status: string
           title: string
           total_bids: number | null
           updated_at: string | null
         }
         Insert: {
+          acceptance_criteria?: Json | null
           attachments?: Json | null
           budget_amount?: number | null
           budget_currency?: string | null
@@ -9716,12 +9843,14 @@ export type Database = {
           selected_bid_id?: string | null
           skill_category: string
           skill_subcategory?: string | null
+          source_brief_id?: string | null
           status?: string
           title: string
           total_bids?: number | null
           updated_at?: string | null
         }
         Update: {
+          acceptance_criteria?: Json | null
           attachments?: Json | null
           budget_amount?: number | null
           budget_currency?: string | null
@@ -9739,12 +9868,21 @@ export type Database = {
           selected_bid_id?: string | null
           skill_category?: string
           skill_subcategory?: string | null
+          source_brief_id?: string | null
           status?: string
           title?: string
           total_bids?: number | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_gigs_source_brief_id_fkey"
+            columns: ["source_brief_id"]
+            isOneToOne: false
+            referencedRelation: "gig_briefs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       marketplace_reviews: {
         Row: {
@@ -15191,6 +15329,7 @@ export type Database = {
         }
         Returns: Json
       }
+      publish_gig_from_draft: { Args: { _draft_id: string }; Returns: string }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
