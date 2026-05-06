@@ -138,6 +138,11 @@ export default function ContentEdit() {
       });
       setIsReady(data.is_ready ?? null);
       await loadModuleStats();
+      const { count: sCount } = await supabase
+        .from("course_sessions")
+        .select("*", { count: "exact", head: true })
+        .eq("content_id", id!);
+      setSessionCount(sCount || 0);
     } catch (error: any) {
       toast({ title: "Load Error", description: error.message, variant: "destructive" });
       navigate("/dashboard");
