@@ -85,6 +85,11 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   applications: React.lazy(() =>
     import("@/components/dashboard/JobApplicationsManager").then((m) => ({ default: m.JobApplicationsManager })),
   ),
+  "applications-pipeline": React.lazy(() =>
+    import("@/components/dashboard/AdminApplicationsPipeline").then((m) => ({
+      default: m.AdminApplicationsPipeline,
+    })),
+  ),
   companies: React.lazy(() =>
     import("@/components/dashboard/CompaniesManager").then((m) => ({ default: m.CompaniesManager })),
   ),
