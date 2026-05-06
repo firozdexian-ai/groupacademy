@@ -1,125 +1,101 @@
-# Sub-phase 2.2 — Progress Engine
+# Sub-phase 2.3 — Adaptive Learning
 
-Goal: a single authoritative source of truth for learner progress, auto-computed from stage events, that powers enrollments.progress, dashboards, certificates (2.4), and streaks (2.5).
-
-Today the codebase has two parallel progress paths (`useStageProgress` writes `enrollment_stage_progress` + manual % math; `useCourseProgress` derives from `student_resource_progress`). They drift. Phase 2.2 unifies both behind a DB-side engine.
+Goal: when a learner takes a quiz or scenario, what they see is shaped by *their own* recent performance and the topic-tags they've struggled with — not random sampling. The pools (`module_quiz_pool`, `module_scenario_pool`) and attempt logs (`talent_quiz_attempt`, `talent_scenario_run`) already exist; this sub-phase adds the skill model + adaptive sampler on top.
 
 ---
 
-## 2.2 mini sub-phases
+## 2.3 mini sub-phases
 
 | # | Sub-phase | Outcome |
 |---|---|---|
-| 2.2.a | Schema: `module_progress` + indexes + RLS | Per-(enrollment, module) row with stages_completed, %, started_at, completed_at |
-| 2.2.b | DB triggers: auto-recompute | On `enrollment_stage_progress` upsert → recompute matching `module_progress` row + parent `enrollments.progress` + auto-flip enrollment status to `completed` |
-| 2.2.c | Backfill migration | Populate `module_progress` from existing `enrollment_stage_progress` and legacy `student_resource_progress` |
-| 2.2.d | Unified hook `useProgress` | Replaces split between `useStageProgress` + `useCourseProgress`; reads from `module_progress` view, writes only stage events |
-| 2.2.e | UI rewire (no behavior change) | Player, Enrollments page, dashboard "Continue learning" rail consume `useProgress` |
-| 2.2.f | Completion event hook | Emits `course_completed` notification + sets `enrollments.completed_at`; certificate handoff stub for 2.4 |
-
-We will plan/approve/build each in order. Below is the full 2.2 plan; implementation lands a-then-b-then-c… in one or two PR-sized chunks per your preference.
+| 2.3.a | Skill profile schema | `talent_skill_profile` per (talent, module, topic_tag) → mastery 0–1, attempts, last_seen |
+| 2.3.b | Skill update trigger | After every `talent_quiz_attempt` insert → recompute mastery for each topic_tag of served items |
+| 2.3.c | Adaptive sampler edge fn | Replace random pool draws with: weakness-weighted topics × difficulty band tuned to current mastery |
+| 2.3.d | Wire into quiz/scenario UI | `AssessStage` + `PracticeStage` call new `learner-quiz-adaptive` / `learner-scenario-adaptive` endpoints |
+| 2.3.e | Mastery surface | Tiny "skill bars" on stage 6 (ProgressStage) showing per-topic mastery for the just-finished module |
 
 ---
 
 ## Detailed plan
 
-### 2.2.a — Schema
+### 2.3.a — `talent_skill_profile`
 
 ```sql
-create table public.module_progress (
+create table public.talent_skill_profile (
   id uuid primary key default gen_random_uuid(),
-  enrollment_id uuid not null references public.enrollments(id) on delete cascade,
+  talent_id uuid not null,
   module_id uuid not null references public.course_modules(id) on delete cascade,
-  stages_completed int[] not null default '{}',
-  total_stages int not null default 6,
-  progress_pct int not null default 0,
-  started_at timestamptz,
-  completed_at timestamptz,
-  updated_at timestamptz not null default now(),
-  unique (enrollment_id, module_id)
+  topic_tag text not null,
+  mastery numeric(3,2) not null default 0.50,   -- 0.00–1.00, EWMA
+  attempts int not null default 0,
+  correct int not null default 0,
+  last_seen_at timestamptz not null default now(),
+  unique (talent_id, module_id, topic_tag)
 );
-
-create index module_progress_enrollment_idx on public.module_progress(enrollment_id);
-alter table public.module_progress enable row level security;
 ```
+RLS: learner reads own; admin reads all; trigger-only writes.
 
-RLS: learner reads own (`enrollment.talent_id = auth.uid()` via existing `is_enrolled_in_module`); admins read via `has_role(auth.uid(),'admin')`. No client writes (trigger-only).
+### 2.3.b — Update trigger
 
-### 2.2.b — Triggers
+`fn_update_skill_profile()` AFTER INSERT on `talent_quiz_attempt`:
+- For each `item_id` in `NEW.item_ids`, fetch `topic_tags` + correctness from `NEW.answers`.
+- For each topic_tag: EWMA mastery update
+  - `new_mastery = round((0.7 * old + 0.3 * was_correct), 2)`
+  - bump `attempts` + `correct`, set `last_seen_at = now()`.
+- Upsert per (talent, module, topic_tag).
 
-```text
-enrollment_stage_progress  ──AFTER INSERT/UPDATE──▶  fn_recompute_module_progress()
-                                                         │
-                                                         ├─ upsert module_progress row
-                                                         │  (stages_completed, pct = card(stages)/total*100,
-                                                         │   started_at on first stage, completed_at when full)
-                                                         │
-                                                         └─ recompute enrollments.progress =
-                                                              avg(module_progress.progress_pct) across course modules
-                                                              + flip status='completed', completed_at=now()
-                                                                when all modules done
-```
+Same shape as a future `fn_update_skill_profile_from_scenario` on `talent_scenario_run` (using `evaluation.score_per_topic`), wired only when scenario evaluation lands; out-of-scope nit for 2.3.
 
-All functions: `language plpgsql security definer set search_path = public`.
+### 2.3.c — Adaptive sampler
 
-### 2.2.c — Backfill
+New edge function `learner-adaptive-sample` (replaces split between `learner-quiz-pool` and `learner-scenario-pool`, or wraps them):
+- Input: `{ moduleId, kind: 'quiz'|'scenario', count }`.
+- Verify auth (`auth.getUser`), resolve `talentId`.
+- Read `talent_skill_profile` for module → identify weak topics (mastery < 0.6) and unseen topics.
+- Pick a difficulty band:
+  - avg mastery < 0.4 → easy (60%) / medium (30%) / hard (10%)
+  - 0.4–0.7 → easy 25 / medium 55 / hard 20
+  - > 0.7 → easy 10 / medium 40 / hard 50
+- Query the appropriate pool with: `WHERE module_id=$1 AND difficulty=ANY($band) ORDER BY (topic_tags && weakTags) DESC, times_served ASC, random()`.
+- Return items + a small `{ targetedTopics, difficultyBand, mastery }` object so the UI can show why.
 
-One-shot in the same migration:
-- For every existing row in `enrollment_stage_progress`, call the trigger fn manually to seed `module_progress`.
-- For legacy `student_resource_progress` data without `enrollment_stage_progress` rows, derive completed stages by grouping `(student_id, module_resources.module_id, stage_number)` and resolving `enrollment_id` via `enrollments.talent_id = student_id and content_id = module.content_id`.
+Cost guard: still bounded by the pool — no AI generation during draw. If pool empty (< count), fall back to existing `learner-quiz-pool` / `learner-scenario-pool` (which generate on-demand).
 
-### 2.2.d — Unified hook
+### 2.3.d — UI wiring
 
-`src/hooks/useProgress.ts` (new) — single API:
-```ts
-useProgress({ enrollmentId, contentId })
-  → { modules: ModuleProgress[], overallPct, isCompleted,
-      currentModuleId, currentStage,
-      markStageComplete(moduleId, stage), isStageUnlocked, isResourceViewed, markResourceViewed,
-      reload }
-```
-Reads from `module_progress` (joined with `course_modules` for ordering) + `enrollment_stage_progress.resource_view_states` for per-resource flags. Writes go to `enrollment_stage_progress` only — engine derives the rest.
+- `AssessStage.tsx`: swap fetch → `supabase.functions.invoke('learner-adaptive-sample', { body: { moduleId, kind: 'quiz', count: passThreshold>0 ? 10 : 5 }})`.
+- `PracticeStage.tsx`: same with `kind: 'scenario'`, `count: 1`.
+- Pass `attempt_no` (auto-increment from `talent_quiz_attempt` count) when persisting attempts so we don't break existing analytics.
 
-Realtime: subscribe to `module_progress` changes for current enrollment so multi-tab stays in sync.
+### 2.3.e — Mastery skill-bars
 
-### 2.2.e — UI rewire (no UX change)
-
-- `ImmersiveCoursePlayer.tsx`: swap `useStageProgress` + `useCourseProgress` for `useProgress`.
-- `Enrollments.tsx` + dashboard "Continue learning" rail: drop manual progress math, read `module_progress.progress_pct` / `enrollments.progress`.
-- Delete dead local % math inside `useStageProgress` (kept temporarily as thin shim re-exporting from `useProgress` to avoid blast radius, removed in 2.2.f).
-
-### 2.2.f — Completion handoff
-
-- DB trigger emits a `notifications` row `type='course_completed'` once `enrollments.status` flips to `completed`.
-- Add `course_completed_at` index for 2.4 (certificates) and 2.5 (streaks) consumers.
-- Remove the legacy `useStageProgress` shim once player + dashboard are migrated.
+`ProgressStage` (stage 6) gains a small section: top 5 topic_tags for that module with horizontal bars (`bg-emerald-500` mastery, muted track), labeled with mastery %.
+Single query: `select topic_tag, mastery from talent_skill_profile where talent_id=:t and module_id=:m order by mastery asc limit 5`.
 
 ---
 
 ## Files
 
-**Migrations**
-- `module_progress` table + RLS + indexes
-- `fn_recompute_module_progress`, `fn_recompute_enrollment_progress`, triggers on `enrollment_stage_progress`
-- Backfill block
+**Migration**
+- `talent_skill_profile` table + RLS + indexes
+- `fn_update_skill_profile` + trigger on `talent_quiz_attempt`
 
 **New**
-- `src/hooks/useProgress.ts`
+- `supabase/functions/learner-adaptive-sample/index.ts`
+- `src/components/player/stages/MasteryBars.tsx`
 
 **Edited**
-- `src/pages/ImmersiveCoursePlayer.tsx`
-- `src/pages/Enrollments.tsx`
-- `src/components/dashboard/*` (continue-learning rail)
-- `src/hooks/useStageProgress.ts` → shim, then deleted
-- `src/hooks/useCourseProgress.ts` → deleted
+- `src/components/player/stages/AssessStage.tsx` — call adaptive sampler
+- `src/components/player/stages/PracticeStage.tsx` — call adaptive sampler (scenario)
+- `src/components/player/stages/ProgressStage.tsx` — render `<MasteryBars />`
 
 ---
 
 ## Out of scope (next sub-phases)
-- Adaptive difficulty (2.3)
-- Certificates on completion (2.4)
-- Streaks/goals (2.5)
+- Spaced repetition / due-date scheduling (would extend `talent_skill_profile` with `next_due_at`)
+- Adaptive difficulty for non-quiz stages (Learn/Discuss)
+- Cross-course skill rollups (per profession_line) → covered by 2.8 Talent Mirror
 
 ---
 
-Reply **continue with 2.2.a** to start with the schema migration, or **continue 2.2 a–c** to ship schema + triggers + backfill in one batch (recommended).
+Reply **continue with 2.3.a** to start with the schema, or **continue 2.3 a–c** to ship schema + trigger + edge function in one batch (recommended).
