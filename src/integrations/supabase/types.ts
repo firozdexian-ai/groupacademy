@@ -9201,6 +9201,57 @@ export type Database = {
           },
         ]
       }
+      profile_card_themes: {
+        Row: {
+          created_at: string
+          end_at: string | null
+          gradient_css: string | null
+          id: string
+          is_active: boolean
+          media_type: string
+          media_url: string | null
+          name: string
+          overlay_opacity: number
+          poster_url: string | null
+          priority: number
+          start_at: string | null
+          text_color: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          end_at?: string | null
+          gradient_css?: string | null
+          id?: string
+          is_active?: boolean
+          media_type: string
+          media_url?: string | null
+          name: string
+          overlay_opacity?: number
+          poster_url?: string | null
+          priority?: number
+          start_at?: string | null
+          text_color?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          end_at?: string | null
+          gradient_css?: string | null
+          id?: string
+          is_active?: boolean
+          media_type?: string
+          media_url?: string | null
+          name?: string
+          overlay_opacity?: number
+          poster_url?: string | null
+          priority?: number
+          start_at?: string | null
+          text_color?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       quiz_attempts: {
         Row: {
           answers: Json
@@ -11261,6 +11312,38 @@ export type Database = {
           total_courses: number | null
         }
         Relationships: []
+      }
+      talent_lifetime_credits: {
+        Row: {
+          lifetime_earned: number | null
+          lifetime_spent: number | null
+          lifetime_volume: number | null
+          talent_id: string | null
+          transaction_count: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_transactions_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_transactions_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
+          {
+            foreignKeyName: "credit_transactions_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_weekly_leaderboard"
+            referencedColumns: ["talent_id"]
+          },
+        ]
       }
       v_company_sales_context: {
         Row: {

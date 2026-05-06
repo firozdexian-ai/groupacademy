@@ -255,6 +255,7 @@ const navGroups: NavGroup[] = [
       { title: "Service & Agent Outreach", icon: Sparkles, value: "service-outreach" },
       { title: "Leads & Activities", icon: ClipboardList, value: "leads-activities" },
       { title: "Banner Management", icon: ImageIcon, value: "banners" },
+      { title: "Profile Card Themes", icon: Sparkles, value: "profile-card-themes" },
       { title: "Access Codes", icon: Key, value: "codes" },
     ],
   },

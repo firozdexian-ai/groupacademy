@@ -269,6 +269,7 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   ),
   codes: React.lazy(() => import("@/components/AccessCodeManager").then((m) => ({ default: m.AccessCodeManager }))),
   banners: React.lazy(() => import("@/components/dashboard/BannerManager").then((m) => ({ default: m.BannerManager }))),
+  "profile-card-themes": React.lazy(() => import("@/components/dashboard/ProfileCardThemeManager").then((m) => ({ default: m.ProfileCardThemeManager }))),
   team: React.lazy(() => import("@/components/dashboard/TeamManager").then((m) => ({ default: m.TeamManager }))),
   "payments-legacy": React.lazy(() =>
     import("@/components/dashboard/PaymentSettingsManager").then((m) => ({ default: m.PaymentSettingsManager })),
@@ -466,6 +467,7 @@ const TAB_TITLES: Record<string, string> = {
   "support-assistant": "Helpdesk AI",
   codes: "Priority Codes",
   banners: "Display Layer",
+  "profile-card-themes": "Profile Card Themes",
   team: "Human Capital",
   payments: "Gateway Logic",
   invoices: "Invoice Manager",

@@ -1,8 +1,19 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Coins, RefreshCw } from "lucide-react";
+import { Coins, RefreshCw, MessageCircle, Trophy } from "lucide-react";
 import { useCredits } from "@/hooks/useCredits";
 import { useTalent } from "@/hooks/useTalent";
+import { useMessageThreads } from "@/hooks/useMessageThreads";
+import { useCareerLevel } from "@/hooks/useCareerLevel";
+import { ProfileCardBackdrop } from "./ProfileCardBackdrop";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
 interface FeedHeaderProps {
@@ -13,14 +24,14 @@ interface FeedHeaderProps {
   isRefreshing: boolean;
 }
 
-/**
- * Slim identity strip at the top of the feed.
- * Avatar → profile · Credits chip → transactions · Completion bar → profile edit.
- */
-export function FeedHeader({ talentName, talentPhoto, talentProfession, onRefresh, isRefreshing }: FeedHeaderProps) {
+export function FeedHeader({ talentName, talentPhoto, talentProfession, isRefreshing }: FeedHeaderProps) {
   const navigate = useNavigate();
   const { balance } = useCredits();
   const { talent } = useTalent();
+  const { totalUnread } = useMessageThreads();
+  const { info: career, volume } = useCareerLevel();
+  const [textMode, setTextMode] = useState<"light" | "dark" | "auto">("auto");
+  const [levelOpen, setLevelOpen] = useState(false);
 
   const initials =
     talentName
@@ -31,79 +42,126 @@ export function FeedHeader({ talentName, talentPhoto, talentProfession, onRefres
       .slice(0, 2)
       .toUpperCase() || "?";
 
-  // Lightweight completion estimate based on key talent fields
-  const completion = (() => {
-    if (!talent) return 0;
-    const checks = [
-      !!talent.fullName,
-      !!talent.profilePhotoUrl,
-      !!talent.customProfession,
-      !!talent.country,
-      !!(talent as any).phone || !!(talent as any).whatsapp,
-      !!(talent as any).cvUrl || !!(talent as any).resumeUrl,
-    ];
-    const filled = checks.filter(Boolean).length;
-    return Math.round((filled / checks.length) * 100);
-  })();
-
   const country = talent?.country;
   const subtitle = [talentProfession, country].filter(Boolean).join(" · ");
 
-  return (
-    <div className="rounded-2xl bg-card border border-border/40 px-3 py-2.5 flex items-center gap-3">
-      <button
-        onClick={() => navigate("/app/profile")}
-        aria-label="Open profile"
-        className="shrink-0 active:scale-95 transition-transform"
-      >
-        <Avatar className="h-11 w-11 ring-2 ring-border/40">
-          <AvatarImage src={talentPhoto} alt={talentName || "Profile"} className="object-cover" />
-          <AvatarFallback className="bg-primary/10 text-primary font-semibold text-sm">
-            {initials}
-          </AvatarFallback>
-        </Avatar>
-      </button>
+  const isLight = textMode === "light";
+  const textCls = isLight ? "text-white" : "text-foreground";
+  const mutedCls = isLight ? "text-white/75" : "text-muted-foreground";
 
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <h1 className="text-sm font-semibold text-foreground truncate">
-            {talentName || "Welcome"}
-          </h1>
-          {isRefreshing && <RefreshCw className="h-3 w-3 text-primary animate-spin shrink-0" />}
-        </div>
-        {subtitle && (
-          <p className="text-[11px] text-muted-foreground truncate">{subtitle}</p>
-        )}
-        <div className="flex items-center gap-2 mt-1">
+  return (
+    <>
+      <div className="relative rounded-2xl border border-border/40 overflow-hidden bg-card">
+        <ProfileCardBackdrop onTextColor={setTextMode} />
+        <div className="relative px-3 py-2.5 flex items-center gap-3">
           <button
-            onClick={() => navigate("/app/transactions")}
-            className="flex items-center gap-1 text-[11px] font-semibold text-foreground hover:text-primary transition-colors"
-            aria-label="View credits"
+            onClick={() => navigate("/app/profile")}
+            aria-label="Open profile"
+            className="shrink-0 active:scale-95 transition-transform"
           >
-            <Coins className="h-3 w-3 text-amber-500" />
-            <span className="tabular-nums">{balance != null ? Number(balance).toFixed(1) : "0.0"}</span>
-            <span className="text-muted-foreground font-normal">cr</span>
+            <Avatar className={cn("h-11 w-11 ring-2", isLight ? "ring-white/40" : "ring-border/40")}>
+              <AvatarImage src={talentPhoto} alt={talentName || "Profile"} className="object-cover" />
+              <AvatarFallback className="bg-primary/10 text-primary font-semibold text-sm">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
           </button>
-          <button
-            onClick={() => navigate("/app/profile/edit")}
-            className="flex-1 flex items-center gap-1.5 min-w-0 group"
-            aria-label="Profile completion"
-          >
-            <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
-              <div
-                className={cn(
-                  "h-full rounded-full transition-all",
-                  completion >= 80 ? "bg-emerald-500" : completion >= 50 ? "bg-primary" : "bg-amber-500",
-                )}
-                style={{ width: `${completion}%` }}
-              />
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <h1 className={cn("text-sm font-semibold truncate", textCls)}>
+                {talentName || "Welcome"}
+              </h1>
+              {isRefreshing && <RefreshCw className={cn("h-3 w-3 animate-spin shrink-0", isLight ? "text-white" : "text-primary")} />}
             </div>
-            <span className="text-[10px] font-semibold text-muted-foreground group-hover:text-foreground tabular-nums">
-              {completion}%
-            </span>
+            {subtitle && (
+              <p className={cn("text-[11px] truncate", mutedCls)}>{subtitle}</p>
+            )}
+            <div className="flex items-center gap-2 mt-1">
+              <button
+                onClick={() => navigate("/app/transactions")}
+                className={cn("flex items-center gap-1 text-[11px] font-semibold hover:opacity-80 transition", textCls)}
+                aria-label="Wallet credits"
+              >
+                <Coins className="h-3 w-3 text-amber-400" />
+                <span className="tabular-nums">{balance != null ? Number(balance).toFixed(1) : "0.0"}</span>
+                <span className={cn("font-normal", mutedCls)}>cr</span>
+              </button>
+
+              <button
+                onClick={() => setLevelOpen(true)}
+                className="flex-1 flex items-center gap-1.5 min-w-0 group"
+                aria-label="Career level"
+              >
+                <Trophy className={cn("h-3 w-3 shrink-0", isLight ? "text-white" : "text-primary")} />
+                <span className={cn("text-[10px] font-semibold whitespace-nowrap", textCls)}>
+                  Lv {career.level}
+                </span>
+                <div className={cn("flex-1 h-1.5 rounded-full overflow-hidden", isLight ? "bg-white/25" : "bg-muted")}>
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-primary to-primary/70 transition-all"
+                    style={{ width: `${career.progressPct}%` }}
+                  />
+                </div>
+                <span className={cn("text-[10px] font-semibold tabular-nums", mutedCls)}>
+                  {career.progressPct}%
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <button
+            onClick={() => navigate("/app/messages")}
+            aria-label="Messages"
+            className="relative shrink-0 active:scale-95 transition-transform"
+          >
+            <div className={cn(
+              "h-9 w-9 rounded-xl flex items-center justify-center border",
+              isLight ? "bg-white/15 border-white/30 text-white" : "bg-primary/10 border-primary/20 text-primary"
+            )}>
+              <MessageCircle className="h-4 w-4" />
+            </div>
+            {totalUnread > 0 && (
+              <span className="absolute -top-1 -right-1 h-4 min-w-4 px-1 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center">
+                {totalUnread > 9 ? "9+" : totalUnread}
+              </span>
+            )}
           </button>
         </div>
       </div>
-    </div>
+
+      <Sheet open={levelOpen} onOpenChange={setLevelOpen}>
+        <SheetContent side="bottom" className="rounded-t-2xl">
+          <SheetHeader className="text-left">
+            <SheetTitle className="flex items-center gap-2">
+              <Trophy className="h-5 w-5 text-primary" />
+              Career Level {career.level} · {career.label}
+            </SheetTitle>
+            <SheetDescription>
+              Your level is based on lifetime credits transacted (earned + spent), not your current wallet balance.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="mt-4 space-y-3">
+            <div className="rounded-xl border border-border/40 bg-muted/30 p-3">
+              <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+                <span>Lifetime volume</span>
+                <span className="tabular-nums font-semibold text-foreground">{Math.round(volume).toLocaleString()} cr</span>
+              </div>
+              <div className="h-2 rounded-full bg-muted overflow-hidden">
+                <div className="h-full bg-primary" style={{ width: `${career.progressPct}%` }} />
+              </div>
+              {career.nextLabel && (
+                <div className="mt-2 text-xs text-muted-foreground">
+                  {Math.round(career.toNext).toLocaleString()} cr to <span className="font-semibold text-foreground">{career.nextLabel}</span>
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Earn credits via streaks, referrals, and contributions. Spend credits on AI agents, courses, and services. Both count toward your level.
+            </p>
+          </div>
+        </SheetContent>
+      </Sheet>
+    </>
   );
 }
