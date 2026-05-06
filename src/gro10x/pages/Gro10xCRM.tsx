@@ -52,6 +52,7 @@ export default function Gro10xCRM() {
   const [activeStage, setActiveStage] = useState<Stage>("new");
   const [showNew, setShowNew] = useState(false);
   const [openLead, setOpenLead] = useState<Lead | null>(null);
+  const [crmTab, setCrmTab] = useState<CrmTab>("sales");
 
   const leadsQuery = useQuery({
     queryKey: ["company-leads", companyId],
