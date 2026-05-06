@@ -206,38 +206,12 @@ export function PostCard({ post }: PostCardProps) {
         )}
 
         {/* Footer */}
-        <div className="flex items-center justify-between gap-3 pt-2 border-t border-border/40">
-          <div className="flex-1">
-            <ReactionBar
-              reactions={reactions}
-              userReaction={userReaction}
-              onReact={toggleReaction}
-              disabled={reactionsLoading}
-              inline
-            />
-          </div>
-          <div className="flex items-center gap-1">
-            <HypeButton postId={post.id} />
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 rounded-lg text-muted-foreground hover:text-primary"
-            >
-              <MessageSquare className="h-4 w-4" />
-            </Button>
-            <ShareSheet
-              title={post.textContent.slice(0, 80)}
-              url={`${window.location.origin}/app/feed?post=${post.id}`}
-              description={post.textContent.slice(0, 160)}
-            />
-          </div>
-        </div>
-
-        {totalReactions > 0 && (
-          <p className="text-[10px] text-muted-foreground -mt-1">{totalReactions} reactions</p>
-        )}
-
-        <CommentList postId={post.id} />
+        <PostActionBar
+          postId={post.id}
+          postTitle={post.textContent.slice(0, 80)}
+          postUrl={`${window.location.origin}/app/feed?post=${post.id}`}
+          postDescription={post.textContent.slice(0, 160)}
+        />
       </CardContent>
     </Card>
   );
