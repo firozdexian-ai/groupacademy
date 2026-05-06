@@ -1,51 +1,91 @@
-# Phase 2 ✅ + Phase 3 — In Flight
+## Sub-phase 3.4 — Mastery-driven Job Matching
 
-## Phase 2 — Adaptive Learning Engine — **100% shipped**
+Wire verified skill mastery + credentials from Phase 2/3 into the job matching pipeline so jobs surface and rank by what the talent has actually demonstrated, not just self-declared skills.
 
-| # | Sub-phase | Outcome |
-|---|---|---|
-| 2.1 | Item bank | `module_quiz_pool` + `module_scenario_pool` |
-| 2.2 | Adaptive sampling | `learner-quiz-pool` + `learner-scenario-pool` |
-| 2.3 | Skill profile + EWMA | `talent_skill_profile` |
-| 2.4 | Spaced repetition | SM-2 + review queue + `notify-review-due` |
-| 2.5 | Scenario → skill signal | `learner-scenario-evaluate` (Gemini) → `last_source='scenario'` |
-| 2.6 | Adaptive learner widget | `AdaptiveSnapshotCard` |
-| 2.7 | Instructor analytics | `instructor-item-analytics` + `ItemBankAnalyticsPanel` |
-| 2.8 | Talent Mirror | `learner-talent-mirror` + `/app/talent-mirror` |
+### Goal
+Jobs Hub recommendations and per-job match scores reflect:
+- Verified skill mastery (from `talent_skill_profile`)
+- Issued `skill_credentials` (foundational/proficient/expert)
+- Scenario evidence (Phase 3.1 signals)
+
+…in addition to existing self-declared skills/CV.
 
 ---
 
-## Phase 3 — Activate the Engine
+### Scope
 
-| # | Sub-phase | Status |
-|---|---|---|
-| 3.1 | Next-Best-Action recommender | ✅ Done |
-| 3.2 | Verifiable Skill Credentials | ✅ Done |
-| 3.3 | Talent Mirror → Public Profile | ✅ Done |
-| 3.4 | Mastery-driven Job Match | Pending |
-| 3.5 | AI Tutor with mastery context | Pending |
-| 3.6 | Authoring feedback loop | Pending |
-| 3.7 | Cohort & peer benchmarks | Pending |
-| 3.8 | Mastery snapshots & trend lines | Pending |
+a. **Mastery-aware match scoring (RPC)**
+   - New `score_talent_job_mastery(_talent_id, _job_id)` RPC returning:
+     - `mastery_score` (0–100): weighted overlap between job's required topics and talent's mastery.
+     - `verified_skills`: list of credentials matching job tags.
+     - `gap_topics`: required topics where talent mastery < 0.7.
+   - Uses simple keyword/tag mapping between `jobs.requirements + preferred_skills` and `topics.name` / credential `topic_code`.
 
-**Phase 3 completion: ~37%** (3 of 8 sub-phases)
+b. **Upgrade `score-job-match` edge function**
+   - Inject the RPC's mastery snapshot into the AI system prompt as authoritative "verified evidence."
+   - Returned JSON gains `verified_match: { credentials: [...], mastery_topics: [...], gap_topics: [...] }`.
+   - Persist `verified_match` alongside existing match payload.
 
-### Recommended order
-3.1 ✅ → 3.2 ✅ → 3.3 ✅ → 3.6 → 3.5 → 3.4 → 3.8 → 3.7
+c. **Upgrade `suggest-jobs-for-talent`**
+   - Pre-rank candidate jobs by `mastery_score` before the existing keyword/location pass.
+   - Boost: `final_score = base_score * (1 + 0.4 * mastery_score/100) + credential_bonus`.
+   - Tag each suggestion with `match_reason` ∈ { `verified_skill`, `keyword`, `location_only` }.
+
+d. **UI: Verified-match badges on job cards**
+   - `JobCard.tsx`: when `verified_match.credentials.length > 0`, show a green "Verified skill match" chip with tooltip listing the credentials.
+   - `AIJobInsights.tsx` / job detail panel: new "Why you match" section listing verified topics + gap topics with a "Practice this topic" link to Talent Mirror.
+
+e. **Jobs Hub recommendation strip**
+   - New "Matches your verified skills" rail at the top of Jobs Hub for talents who have ≥1 credential — pulls from `suggest-jobs-for-talent` filtered to `match_reason = verified_skill`.
+   - Empty state: nudge to finish a course / take a scenario.
+
+f. **Telemetry hook (lightweight)**
+   - Log `verified_match_shown` and `verified_match_clicked` events into existing analytics table for 3.8 trend lines.
 
 ---
 
-## 3.3 ship notes
+### Data flow
 
-- DB: `talents` extended with `public_handle` (UNIQUE, regex-checked), `public_profile_enabled`, `public_show_mastery`, `public_show_credentials`, `public_bio`. RPC `get_public_talent_profile(_handle)` SECURITY DEFINER returns name + credentials + mastery snapshot only when opted in. Granted to `anon` + `authenticated`.
-- Edge fn `claim-public-handle` (JWT) — validates format, checks reserved + uniqueness, writes to caller's talent.
-- Public route `/t/:handle` (no auth) — hero, verified skills, mastery snapshot, Connect CTA, JSON-LD `Person` + `hasCredential`, OG/Twitter meta, "Profile is private" fallback.
-- `<PublicProfileSettings>` mounted on `/app/profile` — toggle, handle claim with debounced format guard, bio (240 chars), per-section visibility switches, copy/view link.
-- `<SkillCredentialsPanel>` shows "Share public profile" when enabled, otherwise nudges "Make your skills public →".
-- Out of scope (deferred): custom subdomain mapping, LinkedIn "Add to Profile" button (waits on W3C VC signing), profile view analytics (folded into 3.8), admin reserved-handle UI.
+```text
+talent_skill_profile ──┐
+skill_credentials   ───┼─► score_talent_job_mastery(RPC)
+job tags/skills     ───┘            │
+                                    ▼
+              suggest-jobs-for-talent ──► ranked feed (Jobs Hub rail)
+                                    │
+                                    ▼
+              score-job-match ──► AI insight + verified_match payload ──► JobCard / AIJobInsights
+```
 
 ---
 
-## Up next: 3.6 Authoring Feedback Loop
+### Out of scope (deferred)
+- Embeddings/semantic skill mapping (keyword/tag mapping is sufficient for v1).
+- Employer-side "verified candidates only" filter (Phase 4).
+- Recruiter notifications when a credentialed talent matches a posted job (Phase 4).
 
-Daily admin digest + inline Module Manager nudges of items flagged by 2.7's `needs_review` codes — closing the loop from analytics → fix → re-test. Reply **continue with 3.6** to move forward.
+---
+
+### Files to create / edit
+
+**New**
+- `supabase/migrations/...` — `score_talent_job_mastery` RPC + index on credentials.
+- `src/components/jobs/VerifiedMatchBadge.tsx`
+- `src/components/jobs/WhyYouMatchPanel.tsx`
+- `src/hooks/useVerifiedJobMatch.ts`
+- `mem://product/mastery-driven-job-matching`
+
+**Edit**
+- `supabase/functions/score-job-match/index.ts` — call RPC, augment prompt + response.
+- `supabase/functions/suggest-jobs-for-talent/index.ts` — mastery pre-rank + match_reason.
+- `src/components/jobs/JobCard.tsx` — render badge.
+- `src/components/jobs/AIJobInsights.tsx` — render WhyYouMatch section.
+- `src/pages/app/JobsHub.tsx` — add verified rail.
+- `src/integrations/supabase/types.ts` (auto)
+- `.lovable/plan.md`, `mem://index.md`
+
+---
+
+### Approval options
+- **continue with 3.4** — ship a–f together (recommended).
+- **continue with 3.4.a+b+c** — backend + scoring only; UI rails/badges in a follow-up.
