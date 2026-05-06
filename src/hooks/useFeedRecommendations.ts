@@ -39,17 +39,21 @@ export interface FeedItem {
   linkPreview?: { title: string; description?: string; image?: string };
   tags?: string[];
   isPinned?: boolean;
+  authorCountry?: string;
+  authorProfession?: string;
 }
 
 export type FeedFilterType = "all" | "course" | "video" | "blog" | "post" | "poll";
 export type FeedSortType = "match" | "newest";
+export type FeedScope = "global" | "country" | "profession";
 
 export interface FeedFilters {
   type: FeedFilterType;
   sort: FeedSortType;
+  scope: FeedScope;
 }
 
-const STORAGE_KEY_FILTERS = "feed_filters_v4";
+const STORAGE_KEY_FILTERS = "feed_filters_v5";
 
 const STATIC_INSIGHTS = [
   "Maintain profile parity to optimize recruiter visibility",
@@ -72,9 +76,10 @@ export function useFeedRecommendations() {
   const [filters, setFiltersState] = useState<FeedFilters>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY_FILTERS);
-      return saved ? JSON.parse(saved) : { type: "all", sort: "newest" };
+      const parsed = saved ? JSON.parse(saved) : null;
+      return { type: "all", sort: "newest", scope: "global", ...(parsed || {}) };
     } catch {
-      return { type: "all", sort: "newest" };
+      return { type: "all", sort: "newest", scope: "global" };
     }
   });
 
@@ -153,7 +158,23 @@ export function useFeedRecommendations() {
           });
         });
 
+        // Enrich posts with author country/profession (single batched query)
+        const authorIds = Array.from(
+          new Set((postsRes.data || []).map((p: any) => p.author_user_id).filter(Boolean)),
+        );
+        let authorMeta = new Map<string, { country?: string; profession?: string }>();
+        if (authorIds.length > 0) {
+          const { data: authors } = await supabase
+            .from("talents")
+            .select("user_id, country, custom_profession")
+            .in("user_id", authorIds);
+          authors?.forEach((a: any) =>
+            authorMeta.set(a.user_id, { country: a.country, profession: a.custom_profession }),
+          );
+        }
+
         postsRes.data?.forEach((p) => {
+          const meta = p.author_user_id ? authorMeta.get(p.author_user_id) : undefined;
           items.push({
             id: p.id,
             type: "post",
@@ -167,6 +188,8 @@ export function useFeedRecommendations() {
             authorTitle: p.author_title,
             contentType: p.content_type,
             isPinned: p.is_pinned,
+            authorCountry: meta?.country,
+            authorProfession: meta?.profession,
             // FIXED: Resolved Json assignment conflict
             pollOptions: p.poll_options as unknown as { id: string; text: string }[],
           });
@@ -197,6 +220,9 @@ export function useFeedRecommendations() {
     }
   }, [fetchFeed]);
 
+  const talentCountry = talent?.country;
+  const talentProfession = (talent as any)?.customProfession || (talent as any)?.custom_profession;
+
   return {
     items: allItems
       .filter((i) => !dismissedIds.has(i.id))
@@ -204,6 +230,18 @@ export function useFeedRecommendations() {
         if (filters.type === "all") return true;
         if (filters.type === "poll") return i.type === "post" && i.contentType === "poll";
         return i.type === filters.type;
+      })
+      .filter((i) => {
+        if (filters.scope === "global") return true;
+        // Country/Profession scopes only include posts (community), not catalog content.
+        if (i.type !== "post") return false;
+        if (filters.scope === "country") {
+          return !!talentCountry && i.authorCountry === talentCountry;
+        }
+        if (filters.scope === "profession") {
+          return !!talentProfession && i.authorProfession === talentProfession;
+        }
+        return true;
       }),
     insights: useMemo(() => [...STATIC_INSIGHTS].sort(() => 0.5 - Math.random()).slice(0, 3), []),
     isLoading,

@@ -1,102 +1,107 @@
-# Sub-phase 2.1.6 (polish) + Sub-phase 2.2 (Reactions & card actions)
+# Sub-phase 2.3 — Community Filter System (single row)
 
-Two things in this turn: small fixes to the feed shell from your feedback, then the full plan for 2.2.
+Replace the existing content-type filter row with a **single 4-slot row** focused on community scope. Content-type filters (Posts/Courses/Videos/etc.) move into the "More" sheet.
 
----
+## What the user sees
 
-## Part A — Feed shell polish
-
-### A.1 Profile card — remove Messages, promote Level to the right
-- Drop the Messages icon button from `FeedHeader.tsx`. Messages is already reachable from the bottom nav and from the Quick Actions row (after A.2).
-- Right-side slot becomes a compact **Level badge**:
-  ```text
-  ┌──────────────────────────────────────────────┐
-  │ (avatar)  Rakib Hasan                  ╭───╮ │
-  │           Founder · Bangladesh         │Lv4│ │
-  │           ⚡ 3,830 cr  ▓▓▓▓▓▓░░ 62%   ╰───╯ │
-  └──────────────────────────────────────────────┘
-  ```
-  - Pill: rounded-xl, primary tint, `Lv {n}` on top line, `{label}` tiny below (e.g. "Achiever").
-  - Tap opens the same Career Level sheet we just built.
-- The thin progress bar + % stays inline next to the wallet chip (where it is now).
-
-### A.2 Quick Actions — 4 agents + 5th tile "View all agents"
-- Drop `VISIBLE_LIMIT` to **4**. Same ranking math (personal usage → global popularity).
-- The 5th cell in the `grid-cols-5` is a fixed "View all agents" tile that opens `QuickActionsSheet`.
-- Remove the "View all agents →" text link below the grid (no longer needed).
-- Tile styling: dashed border, muted bg, `Grid` icon, label "All agents" — visually distinct so it doesn't feel like an agent.
-
-**Files**: `src/components/feed/FeedHeader.tsx`, `src/components/feed/QuickActionsGrid.tsx`. No DB changes.
-
----
-
-## Part B — Sub-phase 2.2: Reactions & Card Actions
-
-Goal: simplify every feed card to **three actions only — Hype, Comment, Share** — and make Hype the headline interaction (paid-reaction creator economy already exists in the schema; we wire it to the new bar).
-
-### B.1 Action bar — collapse to 3 buttons
-Current `PostCard.tsx` / `FeedCardRedesigned.tsx` carry a wider set (reactions menu, save, etc.). Replace the footer with a single row:
+One row, exactly 4 tiles, no horizontal scroll:
 
 ```text
-┌────────────────────────────────────────────────┐
-│  🔥 Hype · 1.2k    💬 Comment · 34    ↗ Share  │
-└────────────────────────────────────────────────┘
+[ 🌐 Global ] [ 🇧🇩 Bangladesh ] [ 💼 Marketing ] [ ⋯ More ]
 ```
 
-- **Hype** (primary action)
-  - Single tap = +1 hype (1 credit, 80/20 split per Creator Economy memo).
-  - Long-press / hold = "Boost" sheet to send 5 / 10 / 25 hype at once.
-  - Optimistic count update; rolls back on failure.
-  - Daily free hype budget (existing): tap is free until budget runs out, then prompts wallet.
-- **Comment**: opens existing `CommentList` in a bottom sheet (no inline expansion — keeps cards short).
-- **Share**: opens existing `ShareSheet` (system share + copy link + WhatsApp).
+- **Global** — everyone's feed (replaces today's "All"). Default.
+- **My Country** — pill labeled with the talent's country (e.g. "Bangladesh"), icon `MapPin`.
+- **My Profession** — pill labeled with the talent's profession (e.g. "Marketing"), icon `Briefcase`.
+- **More** — opens the existing bottom sheet with content-type options (Posts, Courses, Videos, Articles, Polls).
 
-Saved/Bookmark moves to the kebab `⋮` in the card header (along with Report, Mute author, Why am I seeing this). No save button in the action bar.
+### Fallback when profile is incomplete
 
-### B.2 Hype counter UI
-- Numeric format: `1.2k`, `12.4k`, `1.1M`. No ambiguity for big posts.
-- When the viewer has hyped, the icon flips to filled + colored (rose-500) and label changes to "Hyped".
-- Top-3 hypers preview (avatars stacked) appears just above the action bar when hype ≥ 5 — taps open a "Top hypers" sheet.
+If the talent is missing country and/or profession, fill the empty slots with the most common content-type filters so the row still shows 4 useful tiles:
 
-### B.3 Card header cleanup
-- Author row: avatar · name · profession · `· 3h`. Country chip moves to a small flag emoji next to name (or hidden on narrow viewport).
-- Kebab `⋮` on the right with: Save, Share, Mute author, Report, Why this post (admin only: Pin, Hide).
-- Drop the "verified shield" chip if author isn't verified (currently always renders on some cards).
+| Country set? | Profession set? | Slot 2          | Slot 3            |
+|--------------|-----------------|-----------------|-------------------|
+| yes          | yes             | Country pill    | Profession pill   |
+| yes          | no              | Country pill    | Posts             |
+| no           | yes             | Posts           | Profession pill   |
+| no           | no              | Posts           | Courses           |
 
-### B.4 Backend
-Most pieces already exist. We need:
-- `feed_posts` already has `hype_count`. Confirm.
-- `feed_post_hypes` table (per-user-per-post hype quantity) — check existing schema; if missing, add:
-  ```sql
-  create table public.feed_post_hypes (
-    id uuid primary key default gen_random_uuid(),
-    post_id uuid references public.feed_posts(id) on delete cascade not null,
-    talent_id uuid not null,
-    quantity int not null default 1,
-    credits_spent numeric(12,1) not null default 1,
-    created_at timestamptz not null default now()
-  );
-  ```
-- Edge function `add-post-hype` (new): verifies auth, deducts credits via existing wallet logic, writes ledger entry, increments `feed_posts.hype_count`, returns new total. Idempotent on `(post_id, talent_id, created_at_minute)` to swallow double-taps.
-- View `feed_post_top_hypers(post_id)` returning top 3 by quantity for the avatar stack.
+Slot 1 is always **Global**, slot 4 is always **More**. Anything not surfaced lives in the More sheet.
 
-### B.5 Frontend files touched
-- `src/components/feed/PostCard.tsx` — strip reactions menu, replace footer with 3-action bar.
-- `src/components/feed/FeedCardRedesigned.tsx` — same treatment if still in use; otherwise consolidate to `PostCard`.
-- `src/components/feed/HypeButton.tsx` — extend with hold-to-boost gesture + boost sheet.
-- `src/components/feed/ReactionBar.tsx` — delete (replaced).
-- `src/components/feed/PostAuthor.tsx` — kebab menu with Save / Mute / Report.
-- New: `src/components/feed/HypeBoostSheet.tsx`, `src/components/feed/TopHypersSheet.tsx`.
-- New: `supabase/functions/add-post-hype/index.ts`.
+### Active state behavior
 
-### B.6 Validation
-- Single tap on Hype: count goes up by 1, balance ticks down by 1, button fills.
-- Hold Hype: Boost sheet opens; pick 10 → 10 credits debited, count +10, ledger shows entry with `kind='hype_outgoing'`.
-- Tap Comment: bottom sheet opens with existing comment thread, can post.
-- Tap Share: native share sheet.
-- Kebab → Save: post appears in `/app/saved`.
-- 390px viewport: no horizontal scroll, action bar fits comfortably.
+- Only one tile is "active" at a time across the whole row (scope OR type, not both).
+- Picking Global / Country / Profession sets `scope` and resets `type` to `all`.
+- Picking a type from the More sheet (or from a fallback slot) sets `type` and resets `scope` to `global`.
+- The active tile uses `bg-primary text-primary-foreground`; others use `bg-card border-border/60`.
 
----
+### Empty state
 
-After this sub-phase ships → **2.3: Community Filter System** (Global / My Country / My Profession / Content Type tabs).
+When a Country or Profession scope returns 0 items, show a soft card:
+> "Nothing in {label} yet. Be the first — or **switch to Global**."
+
+## What changes under the hood
+
+### Types & state
+Extend `useFeedRecommendations`:
+
+```ts
+export type FeedScope = "global" | "country" | "profession";
+
+export interface FeedFilters {
+  type: FeedFilterType;   // existing — "all" | "post" | "course" | "video" | "blog" | "poll"
+  scope: FeedScope;       // new — defaults to "global"
+}
+```
+
+- Persist both in the existing localStorage key.
+- If user previously selected Country/Profession but later cleared their profile, fall back to `global`.
+
+### Filtering logic
+After the existing content-type filter, apply scope:
+
+- `global` → no extra filter.
+- `country` → keep posts whose author's `talents.country` matches the talent's country.
+- `profession` → keep posts whose author's `talents.profession` matches the talent's profession.
+- Non-post items (courses/videos/blogs) have no author country/profession, so:
+  - In `global` scope → always included.
+  - In `country` or `profession` scope → **excluded** (community scope is about people, not catalog content).
+
+### Data
+Extend the post fetcher in `useFeedRecommendations` to pull author scope fields via the existing join:
+
+```ts
+.select(`*, author:talents!inner(country, profession)`)
+```
+
+Flatten `author_country` and `author_profession` onto the resulting `FeedItem` so filtering is a pure client-side comparison. No DB migration needed.
+
+### UI
+
+`src/components/feed/FeedFilters.tsx` is rewritten to render the new 4-slot row:
+
+- Slot 1: always Global.
+- Slot 2 + 3: dynamic per fallback table above.
+- Slot 4: More button → opens existing `Sheet` with all content-type options + Country/Profession entries that didn't fit.
+
+The current 3-primary + More structure is replaced; the More sheet logic and styling stay the same.
+
+`Feed.tsx` only needs to keep passing `filters` and `setFilters`; no second row added.
+
+`FeedHeader.tsx` is unchanged for this sub-phase (career level pill stays where it is).
+
+## Acceptance checklist
+
+- One row, four tiles, no horizontal scroll at 390px.
+- New users (no country/profession) see Global + Posts + Courses + More.
+- Talents with full profiles see Global + Country + Profession + More.
+- Country/Profession scopes hide catalog items (courses/videos/blogs).
+- Empty scope view offers a one-tap return to Global.
+- Selection persists across reloads; stale selections fall back to Global gracefully.
+
+## Out of scope
+
+- City-level scope, Following feed, multi-select scopes — later phase.
+- Server-side ranking changes — pure client filter on the already-fetched list.
+
+After 2.3 ships → **2.4: Post detail view & deep linking** (`/app/feed/post/:id`).
