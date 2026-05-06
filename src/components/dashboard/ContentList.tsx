@@ -220,6 +220,22 @@ const ContentList = ({ filter }: ContentListProps) => {
       setContent(data);
       setTotalCount(result.count || 0);
       await fetchModuleStats(data.map((c) => c.id));
+
+      // Fetch session counts for live/batch items
+      const liveIds = data
+        .filter((d) => ["live_webinar", "batch_class", "offline_seminar"].includes(d.content_type))
+        .map((d) => d.id);
+      if (liveIds.length) {
+        const { data: rows } = await supabase
+          .from("course_sessions")
+          .select("content_id")
+          .in("content_id", liveIds);
+        const counts: Record<string, number> = {};
+        for (const r of rows || []) counts[r.content_id] = (counts[r.content_id] || 0) + 1;
+        setSessionCounts(counts);
+      } else {
+        setSessionCounts({});
+      }
     } catch (err: any) {
       setLoadError("Transmission Error: Failed to synchronize registry nodes.");
     } finally {
