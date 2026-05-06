@@ -197,6 +197,7 @@ export function MyCoursesTab({ onBrowseCatalog }: MyCoursesTabProps) {
         </Card>
       ) : (
         <>
+          <AdaptiveSnapshotCard />
           {active.length > 0 && (
             <section className="space-y-2">
               <h2 className="text-sm font-semibold px-1">In progress</h2>
