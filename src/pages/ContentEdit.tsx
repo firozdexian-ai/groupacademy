@@ -260,12 +260,15 @@ export default function ContentEdit() {
                     onRemove={() => setFormData({ ...formData, cover_image_url: "" })}
                   />
                   <div className="flex justify-end">
-                    <AIActionButton
-                      mode="image_prompt"
-                      context={{ title: formData.title, description: formData.description, content_type: formData.content_type }}
-                      label="AI cover"
-                      onResult={() => setAiCoverOpen(true)}
-                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setAiCoverOpen(true)}
+                      className="h-7 px-2 text-[10px] font-bold uppercase tracking-widest gap-1 rounded-lg border-primary/30 text-primary hover:bg-primary/10"
+                    >
+                      ✨ AI cover
+                    </Button>
                   </div>
                 </div>
 
