@@ -17,6 +17,7 @@ interface DueRow {
   interval_days: number;
   due_at: string;
   last_reviewed_at: string | null;
+  last_source: "quiz" | "scenario" | null;
 }
 
 interface PoolItem {
@@ -41,6 +42,7 @@ interface ReviewTopic {
   last_reviewed_at: string | null;
   module_title?: string | null;
   content_title?: string | null;
+  source: "quiz" | "scenario";
   items: Omit<PoolItem, "module_id">[];
 }
 
