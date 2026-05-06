@@ -10745,6 +10745,7 @@ export type Database = {
           current_status: string | null
           current_streak: number
           custom_profession: string | null
+          cv_fingerprint: string | null
           cv_parsed_at: string | null
           cv_text: string | null
           cv_url: string | null
@@ -10796,6 +10797,7 @@ export type Database = {
           current_status?: string | null
           current_streak?: number
           custom_profession?: string | null
+          cv_fingerprint?: string | null
           cv_parsed_at?: string | null
           cv_text?: string | null
           cv_url?: string | null
@@ -10847,6 +10849,7 @@ export type Database = {
           current_status?: string | null
           current_streak?: number
           custom_profession?: string | null
+          cv_fingerprint?: string | null
           cv_parsed_at?: string | null
           cv_text?: string | null
           cv_url?: string | null
