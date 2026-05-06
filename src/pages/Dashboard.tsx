@@ -375,6 +375,7 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   "b2b-engagements": React.lazy(() => import("@/components/dashboard/learn/B2BEngagementsTab")),
   "instructor-payouts": React.lazy(() => import("@/components/dashboard/learn/InstructorPayoutsTab")),
   "gig-overview": React.lazy(() => import("@/components/dashboard/gig/GigOverviewTab")),
+  "gig-ops-scoper": React.lazy(() => import("@/components/dashboard/gig/GigOpsTab")),
   "quick-action-gigs": React.lazy(() => import("@/components/dashboard/gig/QuickActionGigsTab")),
   "client-projects": React.lazy(() => import("@/components/dashboard/gig/ClientProjectsTab")),
   "gig-workers-wallet": React.lazy(() => import("@/components/dashboard/gig/GigWorkersWalletTab")),
