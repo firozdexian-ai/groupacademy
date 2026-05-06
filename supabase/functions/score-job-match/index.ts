@@ -63,6 +63,16 @@ serve(async (req) => {
       );
     }
 
+    // Fetch verified mastery + credentials snapshot for this job
+    const { data: masterySnapshot } = await supabase.rpc("score_talent_job_mastery", {
+      _talent_id: talentId,
+      _job_id: jobId,
+    });
+
+    const verifiedMatch = masterySnapshot && !masterySnapshot.error
+      ? masterySnapshot
+      : { mastery_score: 0, mastery_topics: [], gap_topics: [], verified_credentials: [] };
+
     const systemPrompt = `You are a career matching expert. Analyze how well a candidate matches a job posting.
 Return a JSON object with:
 - overall_match: number 0-100
@@ -91,6 +101,14 @@ Skills: ${JSON.stringify(talent.skills || [])}
 Experience: ${JSON.stringify(talent.experience || [])}
 Education: ${JSON.stringify(talent.education || [])}
 CV Summary: ${talent.cv_text?.substring(0, 1000) || "No CV uploaded"}
+
+VERIFIED EVIDENCE (authoritative — earned via assessments and scenarios):
+Mastery score: ${verifiedMatch.mastery_score}/100
+Mastery topics: ${JSON.stringify(verifiedMatch.mastery_topics || [])}
+Gap topics: ${JSON.stringify(verifiedMatch.gap_topics || [])}
+Verified credentials: ${JSON.stringify(verifiedMatch.verified_credentials || [])}
+
+Treat verified evidence as the strongest signal — boost overall_match if mastery_score is high, and prefer matched topics in skills_match. Mention earned credentials in the recommendation.
 
 Return only the JSON object, no markdown.`;
 
@@ -158,6 +176,8 @@ Return only the JSON object, no markdown.`;
         tips_to_improve: ["Update your profile with more details", "Upload a comprehensive CV"],
       };
     }
+
+    result.verified_match = verifiedMatch;
 
     console.log("Match analysis completed for job:", jobId, "talent:", talentId);
 
