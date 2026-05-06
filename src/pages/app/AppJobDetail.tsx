@@ -1,12 +1,16 @@
-import { useEffect, useState, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useEffect, useState, useCallback, useMemo } from "react";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useTalent } from "@/hooks/useTalent";
 import { useSavedItems } from "@/hooks/useSavedItems";
+import { useCredits } from "@/hooks/useCredits";
+import { useJobMatchCached } from "@/hooks/useJobMatchCached";
+import { recordToolRun } from "@/hooks/useToolRuns";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   ArrowLeft,
   Building2,
@@ -14,27 +18,24 @@ import {
   Clock,
   Briefcase,
   Bookmark,
-  Brain,
-  ArrowRight,
   ShieldCheck,
   Flame,
+  Share2,
+  ChevronDown,
   Sparkles,
-  Zap,
+  Loader2,
+  CheckCircle2,
+  Target,
+  ArrowRight,
+  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
-import { AIJobInsights } from "@/components/jobs/AIJobInsights";
 import { ExternalApplicationPrep } from "@/components/jobs/ExternalApplicationPrep";
-import { useCredits } from "@/hooks/useCredits";
-import { CREDIT_CONFIG } from "@/lib/creditPricing";
 import { RelatedJobs } from "@/components/jobs/RelatedJobs";
+import { CREDIT_CONFIG } from "@/lib/creditPricing";
 import { getJobTypeLabel, getExperienceLevelLabel, isDeadlinePassed } from "@/lib/constants/jobTypes";
 import { cn } from "@/lib/utils";
-
-/**
- * Platform Logic: Job Files
- * High-fidelity role orchestration with neural fit analysis.
- * 2026 Standard: Executive Logic geometry with reinforced CTA hierarchy.
- */
+import { formatDistanceToNow } from "date-fns";
 
 interface Job {
   id: string;
@@ -51,6 +52,7 @@ interface Job {
   description: string;
   ai_enhanced_description: string | null;
   requirements: any;
+  preferred_skills: any;
   application_type: string;
   application_email: string | null;
   application_url: string | null;
@@ -67,19 +69,57 @@ interface ExistingApplication {
   assessment_status?: string;
 }
 
+function deadlineMeta(deadline: string | null) {
+  if (!deadline) return { label: "Open until filled", tone: "muted" as const, urgent: false };
+  const now = new Date();
+  const d = new Date(deadline);
+  if (d < now) return { label: "Closed", tone: "destructive" as const, urgent: false };
+  const days = Math.ceil((d.getTime() - now.getTime()) / 86400000);
+  if (days <= 2) return { label: `Closes in ${days}d`, tone: "destructive" as const, urgent: true };
+  if (days <= 7) return { label: `Closes in ${days}d`, tone: "warning" as const, urgent: true };
+  return { label: `Closes ${d.toLocaleDateString()}`, tone: "muted" as const, urgent: false };
+}
+
+function formatSalary(min: number | null, max: number | null, currency: string | null) {
+  if (!min && !max) return null;
+  const c = currency || "BDT";
+  const fmt = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(0)}K` : `${n}`);
+  if (min && max) return `${c} ${fmt(min)}–${fmt(max)}`;
+  return `${c} ${fmt((min || max) as number)}+`;
+}
+
+function toChips(value: any): string[] {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.map(String).filter(Boolean);
+  if (typeof value === "string") {
+    return value
+      .split(/[,;\n]/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+  return [];
+}
+
 export default function AppJobDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { talent } = useTalent();
   const { isSaved: checkIsSaved, toggleSave } = useSavedItems();
-  const { balance } = useCredits();
+  const { balance, canAfford, deductCredits } = useCredits();
 
   const [job, setJob] = useState<Job | null>(null);
   const [existingApp, setExistingApp] = useState<ExistingApplication | null>(null);
   const [loading, setLoading] = useState(true);
   const [showApplyAI, setShowApplyAI] = useState(false);
+  const [scoring, setScoring] = useState(false);
+  const [liveScore, setLiveScore] = useState<{ score: number; rationale?: string | null } | null>(null);
+  const [descriptionOpen, setDescriptionOpen] = useState(false);
+
+  const { data: cachedMatch } = useJobMatchCached(id, talent?.id);
 
   const isSaved = id ? checkIsSaved(id, "job") : false;
+  const dl = useMemo(() => deadlineMeta(job?.deadline ?? null), [job?.deadline]);
   const deadlinePassed = job?.deadline ? isDeadlinePassed(job.deadline) : false;
 
   const loadData = useCallback(async () => {
@@ -91,7 +131,7 @@ export default function AppJobDetail() {
       setJob(jobData as Job);
 
       if (talent?.id) {
-        const { data: appData } = await supabase
+        const { data: appData } = await (supabase as any)
           .from("job_applications")
           .select(`id, application_status, job_assessments(id, status)`)
           .eq("job_id", id)
@@ -109,7 +149,7 @@ export default function AppJobDetail() {
         }
       }
     } catch (error) {
-      toast.error("Failed to load registry entry.");
+      toast.error("Failed to load job.");
     } finally {
       setLoading(false);
     }
@@ -119,15 +159,16 @@ export default function AppJobDetail() {
     loadData();
   }, [loadData]);
 
-  // Track view for trending signal (fire-and-forget)
+  // Track view (fire-and-forget)
   useEffect(() => {
     if (!id || !talent?.id) return;
-    supabase.from("job_views").insert({ job_id: id, talent_id: talent.id }).then(() => {});
+    (supabase as any).from("job_views").insert({ job_id: id, talent_id: talent.id }).then(() => {});
   }, [id, talent?.id]);
 
   const handleApply = () => {
-    if (job?.application_type === "link") {
-      const cost = CREDIT_CONFIG.SERVICES.EXTERNAL_APPLICATION.cost;
+    if (!job) return;
+    if (job.application_type === "link") {
+      const cost = CREDIT_CONFIG.SERVICES.EXTERNAL_APPLICATION?.cost ?? 5;
       if ((balance ?? 0) < cost) return toast.error(`Need ${cost} credits.`);
       setShowApplyAI(true);
     } else {
@@ -135,184 +176,338 @@ export default function AppJobDetail() {
     }
   };
 
-  if (loading)
-    return (
-      <div className="max-w-6xl mx-auto p-8 space-y-10 animate-pulse">
-        <Skeleton className="h-12 w-48 rounded-full bg-muted/40" />
-        <Skeleton className="h-40 w-full rounded-[32px] bg-muted/40" />
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <Skeleton className="lg:col-span-2 h-[600px] rounded-[32px] bg-muted/40" />
-          <Skeleton className="h-[400px] rounded-[32px] bg-muted/40" />
-        </div>
-      </div>
-    );
+  const handleScore = useCallback(async () => {
+    if (!id || !talent?.id) return;
+    if (!canAfford("JOB_MATCH_SCORE")) return toast.error("Need 10 credits.");
+    setScoring(true);
+    try {
+      const ok = await deductCredits("JOB_MATCH_SCORE", id, "Job match score");
+      if (!ok) throw new Error("payment");
+      const { data, error } = await supabase.functions.invoke("score-job-match", {
+        body: { jobId: id, talentId: talent.id },
+      });
+      if (error) throw error;
+      setLiveScore({ score: data?.match_score ?? 0, rationale: data?.rationale });
+      recordToolRun({ toolKey: "score", costCredits: 10, jobId: id, payload: { score: data?.match_score } });
+      toast.success("Match scored");
+    } catch (e) {
+      toast.error("Couldn't score this job. Try again.");
+    } finally {
+      setScoring(false);
+    }
+  }, [id, talent?.id, canAfford, deductCredits]);
 
-  if (!job)
+  // Auto-score if ?score=1 was passed (from ScoreMeJobPicker)
+  useEffect(() => {
+    if (searchParams.get("score") === "1" && !cachedMatch && !liveScore && !scoring && job && talent?.id) {
+      handleScore();
+    }
+  }, [searchParams, cachedMatch, liveScore, scoring, job, talent?.id, handleScore]);
+
+  if (loading) {
     return (
-      <div className="p-32 text-center text-[10px] font-black uppercase tracking-[0.3em] opacity-20">
-        List Entry Not Found.
+      <div className="max-w-3xl mx-auto px-4 py-4 space-y-3">
+        <Skeleton className="h-9 w-32 rounded-lg" />
+        <Skeleton className="h-32 w-full rounded-2xl" />
+        <Skeleton className="h-20 w-full rounded-2xl" />
+        <Skeleton className="h-40 w-full rounded-2xl" />
       </div>
     );
+  }
+
+  if (!job) {
+    return <div className="p-12 text-center text-sm text-muted-foreground">Job not found.</div>;
+  }
+
+  const score = liveScore?.score ?? cachedMatch?.score ?? null;
+  const rationale = liveScore?.rationale ?? cachedMatch?.rationale ?? null;
+  const salary = formatSalary(job.salary_range_min, job.salary_range_max, job.salary_currency);
+  const requirementChips = toChips(job.requirements);
+  const niceToHaveChips = toChips(job.preferred_skills);
+
+  // Sticky CTA state
+  let ctaLabel = "Apply now";
+  let ctaDisabled = false;
+  let ctaAction: () => void = handleApply;
+  if (deadlinePassed) {
+    ctaLabel = "Closed";
+    ctaDisabled = true;
+  } else if (existingApp) {
+    if (job.ai_assessment_enabled && existingApp.assessment_status !== "completed") {
+      ctaLabel = "Continue assessment";
+      ctaAction = () =>
+        existingApp.assessment_id
+          ? navigate(`/app/job-assessment/${existingApp.assessment_id}`)
+          : navigate(`/app/applications/${existingApp.id}`);
+    } else {
+      ctaLabel = "View application";
+      ctaAction = () => navigate(`/app/applications/${existingApp.id}`);
+    }
+  }
 
   return (
-    <div className="max-w-6xl mx-auto px-6 py-10 pb-40 space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      {/* Structural Connection: Navigation */}
-      <header className="flex items-center">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate(-1)}
-          className="group rounded-xl px-4 h-11 font-black text-[10px] uppercase tracking-[0.3em] hover:bg-primary/5 transition-all"
-        >
-          <ArrowLeft className="mr-3 h-4 w-4 transition-transform group-hover:-translate-x-1" />
-          Back to Career List
+    <div className="max-w-3xl mx-auto px-4 pt-3 pb-32 space-y-3 animate-in fade-in duration-300">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <Button variant="ghost" size="sm" className="h-9 px-2" onClick={() => navigate(-1)}>
+          <ArrowLeft className="h-4 w-4 mr-1" /> Back
         </Button>
-      </header>
-
-      {/* Artifact Hero: Role Identity */}
-      <div
-        className={cn(
-          "flex flex-col md:flex-row gap-8 items-start justify-between p-10 rounded-[40px] transition-all",
-          "bg-card/30 backdrop-blur-xl border-2 border-border/40 shadow-2xl",
-        )}
-      >
-        <div className="flex gap-6 items-center">
-          <div className="w-20 h-20 rounded-[24px] bg-primary/5 flex items-center justify-center border-2 border-border/40 shrink-0 overflow-hidden shadow-inner">
-            {job.company_logo_url ? (
-              <img src={job.company_logo_url} alt="logo" className="object-cover w-full h-full" />
-            ) : (
-              <Building2 className="text-primary w-8 h-8" />
-            )}
-          </div>
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-4xl font-black uppercase tracking-tighter leading-none italic">{job.title}</h1>
-              {job.is_featured && (
-                <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest italic">
-                  <Flame className="w-3 h-3 mr-1.5" /> Featured Logic
-                </Badge>
-              )}
-            </div>
-            <p className="flex items-center gap-3 text-[11px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 italic">
-              <span className="text-foreground">{job.company_name}</span>
-              <span className="h-1 w-1 rounded-full bg-primary/30" />
-              <span className="flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5" /> {job.location || "Remote"}
-              </span>
-            </p>
-          </div>
-        </div>
-
-        <div className="flex gap-4 w-full md:w-auto">
+        <div className="flex items-center gap-1">
           <Button
-            variant={isSaved ? "default" : "outline"}
-            className="h-14 w-14 rounded-2xl border-2 transition-all active:scale-90"
-            onClick={() => toggleSave(job.id, "job")}
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9"
+            onClick={() => {
+              if (navigator.share) {
+                navigator.share({ title: job.title, url: window.location.href }).catch(() => {});
+              } else {
+                navigator.clipboard.writeText(window.location.href);
+                toast.success("Link copied");
+              }
+            }}
           >
-            <Bookmark className={cn("w-5 h-5", isSaved ? "fill-current" : "")} />
+            <Share2 className="h-4 w-4" />
           </Button>
-          <Button
-            size="lg"
-            className="flex-1 md:min-w-[200px] h-14 rounded-2xl font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all"
-            onClick={handleApply}
-            disabled={deadlinePassed || !!existingApp}
-          >
-            {deadlinePassed ? "Closed" : existingApp ? "File saved" : "Initialize Application"}
+          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => toggleSave(job.id, "job")}>
+            <Bookmark className={cn("h-4 w-4", isSaved && "fill-current text-primary")} />
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-        {/* Main Content: Neural Analysis & Artifacts */}
-        <div className="lg:col-span-2 space-y-12">
-          {talent?.id && <AIJobInsights jobId={job.id} talentId={talent.id} />}
+      {/* Hero */}
+      <Card className="border-border/40">
+        <CardContent className="p-4 space-y-3">
+          <div className="flex gap-3 items-start">
+            <div className="h-14 w-14 rounded-xl bg-primary/5 border border-border/40 flex items-center justify-center shrink-0 overflow-hidden">
+              {job.company_logo_url ? (
+                <img src={job.company_logo_url} alt={job.company_name} className="object-cover w-full h-full" />
+              ) : (
+                <Building2 className="h-6 w-6 text-primary" />
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-lg font-bold leading-tight">{job.title}</h1>
+              <p className="text-sm text-muted-foreground truncate">{job.company_name}</p>
+              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                <MapPin className="h-3 w-3" /> {job.location || "Remote"}
+              </p>
+            </div>
+            {job.is_featured && (
+              <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20 shrink-0">
+                <Flame className="h-3 w-3 mr-1" /> Featured
+              </Badge>
+            )}
+          </div>
 
-          <Card className="rounded-[32px] border-border/40 shadow-xl overflow-hidden">
-            <CardHeader className="bg-muted/20 px-8 py-6 border-b">
-              <CardTitle className="text-[11px] font-black uppercase tracking-[0.3em] text-primary">
-                List Narrative
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-8 text-foreground/80 font-medium leading-relaxed italic text-sm selection:bg-primary/10">
-              <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">
-                {job.ai_enhanced_description || job.description}
-              </div>
-            </CardContent>
-          </Card>
+          {/* Meta pills */}
+          <div className="flex flex-wrap gap-1.5">
+            <Badge variant="secondary" className="gap-1 text-[11px]">
+              <Briefcase className="h-3 w-3" /> {getJobTypeLabel(job.job_type)}
+            </Badge>
+            <Badge variant="secondary" className="gap-1 text-[11px]">
+              <ShieldCheck className="h-3 w-3" /> {getExperienceLevelLabel(job.experience_level)}
+            </Badge>
+            {salary && (
+              <Badge variant="secondary" className="text-[11px]">
+                {salary}
+              </Badge>
+            )}
+            <Badge
+              variant="outline"
+              className={cn(
+                "gap-1 text-[11px]",
+                dl.tone === "destructive" && "text-destructive border-destructive/40",
+                dl.tone === "warning" && "text-amber-600 border-amber-500/40",
+              )}
+            >
+              <Clock className="h-3 w-3" /> {dl.label}
+            </Badge>
+          </div>
+        </CardContent>
+      </Card>
 
-          <RelatedJobs
-            currentJobId={job.id}
-            companyName={job.company_name}
-            location={job.location || "Remote"}
-            linkPrefix="/app/jobs"
-          />
-        </div>
-
-        {/* Sidebar: Operational Parameters */}
-        <aside className="space-y-8 sticky top-24">
-          {existingApp && job.ai_assessment_enabled && existingApp.assessment_status !== "completed" && (
-            <Card className="rounded-[32px] border-2 border-primary/20 bg-primary/5 shadow-2xl animate-in zoom-in-95 duration-1000">
-              <CardContent className="p-8 space-y-6 text-center">
-                <div className="w-16 h-16 bg-primary/10 rounded-[24px] flex items-center justify-center mx-auto border border-primary/20 rotate-3">
-                  <Brain className="w-8 h-8 text-primary animate-pulse" />
-                </div>
-                <div className="space-y-2">
-                  <h4 className="font-black uppercase tracking-tighter text-lg">AI Interview Required</h4>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 leading-relaxed italic">
-                    Initialize the neural assessment to finalize your registry ranking.
+      {/* Match strip */}
+      {talent?.id && (
+        <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+          <CardContent className="p-3 flex items-center gap-3">
+            <div className="h-11 w-11 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
+              {scoring ? (
+                <Loader2 className="h-5 w-5 text-primary animate-spin" />
+              ) : score != null ? (
+                <span className="text-sm font-bold text-primary">{Math.round(score)}%</span>
+              ) : (
+                <Target className="h-5 w-5 text-primary" />
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              {score != null ? (
+                <>
+                  <p className="text-sm font-semibold">
+                    {score >= 75 ? "Strong match" : score >= 50 ? "Decent match" : "Light match"}
                   </p>
-                </div>
-                <Button
-                  className="w-full h-12 rounded-xl font-black uppercase tracking-widest text-[10px] shadow-xl shadow-primary/20"
-                  onClick={() => navigate(`/app/job-assessment/${existingApp.assessment_id}`)}
-                >
-                  Start Assessment <ArrowRight className="ml-2 w-4 h-4" />
-                </Button>
-              </CardContent>
-            </Card>
+                  <p className="text-[11px] text-muted-foreground line-clamp-1">
+                    {rationale || "Based on your skills, experience and CV."}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm font-semibold">See how you match</p>
+                  <p className="text-[11px] text-muted-foreground">10 credits · gaps + tailored advice</p>
+                </>
+              )}
+            </div>
+            {score == null && (
+              <Button size="sm" className="shrink-0" onClick={handleScore} disabled={scoring}>
+                {scoring ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Score me"}
+              </Button>
+            )}
+          </CardContent>
+          {score != null && rationale && (
+            <Collapsible>
+              <CollapsibleTrigger asChild>
+                <button className="w-full text-[11px] font-medium text-primary px-3 pb-2 flex items-center justify-center gap-1">
+                  Why you match <ChevronDown className="h-3 w-3" />
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="px-4 pb-3 text-xs text-muted-foreground whitespace-pre-wrap">{rationale}</div>
+              </CollapsibleContent>
+            </Collapsible>
           )}
+        </Card>
+      )}
 
-          <Card className="rounded-[32px] border-border/40 shadow-lg bg-card/50 backdrop-blur-sm overflow-hidden">
-            <CardHeader className="bg-muted/20 px-8 py-5 border-b">
-              <CardTitle className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 italic">
-                Operational Details
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-8 space-y-6">
-              {[
-                { icon: Briefcase, label: "Type", value: getJobTypeLabel(job.job_type) },
-                { icon: ShieldCheck, label: "Exp Level", value: getExperienceLevelLabel(job.experience_level) },
-                {
-                  icon: Clock,
-                  label: "Deadline",
-                  value: job.deadline ? new Date(job.deadline).toLocaleDateString() : "Open Sequence",
-                  destructive: deadlinePassed,
-                },
-              ].map((item, idx) => (
-                <div
-                  key={idx}
-                  className="flex justify-between items-center text-[11px] font-black uppercase tracking-widest"
-                >
-                  <span className="flex items-center gap-3 text-muted-foreground/40">
-                    <item.icon className="w-4 h-4" /> {item.label}
-                  </span>
-                  <span className={cn("text-foreground text-right", item.destructive ? "text-destructive italic" : "")}>
-                    {item.value}
-                  </span>
-                </div>
+      {/* Pending assessment nudge */}
+      {existingApp && job.ai_assessment_enabled && existingApp.assessment_status !== "completed" && (
+        <Card className="border-amber-500/30 bg-amber-500/5">
+          <CardContent className="p-3 flex items-center gap-3">
+            <AlertCircle className="h-5 w-5 text-amber-600 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold">AI assessment required</p>
+              <p className="text-[11px] text-muted-foreground">Complete it to finalize your application.</p>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() =>
+                existingApp.assessment_id && navigate(`/app/job-assessment/${existingApp.assessment_id}`)
+              }
+            >
+              Start
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* About this role */}
+      <Card>
+        <CardContent className="p-4 space-y-2">
+          <h2 className="text-sm font-semibold">About this role</h2>
+          <Collapsible open={descriptionOpen} onOpenChange={setDescriptionOpen}>
+            <div
+              className={cn(
+                "text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed",
+                !descriptionOpen && "line-clamp-6",
+              )}
+            >
+              {job.ai_enhanced_description || job.description}
+            </div>
+            <CollapsibleTrigger asChild>
+              <button className="mt-2 text-xs font-medium text-primary flex items-center gap-1">
+                {descriptionOpen ? "Show less" : "Read full description"}
+                <ChevronDown className={cn("h-3 w-3 transition-transform", descriptionOpen && "rotate-180")} />
+              </button>
+            </CollapsibleTrigger>
+          </Collapsible>
+        </CardContent>
+      </Card>
+
+      {/* Requirements */}
+      {requirementChips.length > 0 && (
+        <Card>
+          <CardContent className="p-4 space-y-2">
+            <h2 className="text-sm font-semibold">Requirements</h2>
+            <div className="flex flex-wrap gap-1.5">
+              {requirementChips.map((c, i) => (
+                <Badge key={i} variant="secondary" className="text-[11px]">
+                  <CheckCircle2 className="h-3 w-3 mr-1 text-primary/70" />
+                  {c}
+                </Badge>
               ))}
-
-              <div className="pt-6 border-t border-border/40">
-                <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10 flex items-center gap-3">
-                  <Sparkles className="w-4 h-4 text-primary" />
-                  <p className="text-[9px] font-black uppercase tracking-widest text-primary/60 italic leading-none">
-                    Neural Match Active
-                  </p>
+            </div>
+            {niceToHaveChips.length > 0 && (
+              <>
+                <p className="text-[11px] font-semibold text-muted-foreground pt-1">Nice to have</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {niceToHaveChips.map((c, i) => (
+                    <Badge key={i} variant="outline" className="text-[11px]">
+                      {c}
+                    </Badge>
+                  ))}
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        </aside>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* About company */}
+      <Card>
+        <CardContent className="p-4 flex items-center gap-3">
+          <div className="h-10 w-10 rounded-lg bg-primary/5 border border-border/40 flex items-center justify-center shrink-0 overflow-hidden">
+            {job.company_logo_url ? (
+              <img src={job.company_logo_url} alt={job.company_name} className="object-cover w-full h-full" />
+            ) : (
+              <Building2 className="h-5 w-5 text-primary" />
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold truncate">{job.company_name}</p>
+            <p className="text-[11px] text-muted-foreground">
+              Posted {formatDistanceToNow(new Date(job.created_at), { addSuffix: true })}
+            </p>
+          </div>
+          {job.company_id && (
+            <Button variant="ghost" size="sm" onClick={() => navigate(`/jobs?company=${encodeURIComponent(job.company_name)}`)}>
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Similar */}
+      <RelatedJobs
+        currentJobId={job.id}
+        companyName={job.company_name}
+        location={job.location || "Remote"}
+        linkPrefix="/app/jobs"
+      />
+
+      {/* Sticky bottom apply bar */}
+      <div className="fixed bottom-0 inset-x-0 z-40 border-t border-border bg-background/95 backdrop-blur-xl pb-safe">
+        <div className="max-w-3xl mx-auto px-4 py-2.5 flex items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <p
+              className={cn(
+                "text-[11px] font-medium",
+                dl.tone === "destructive" && "text-destructive",
+                dl.tone === "warning" && "text-amber-600",
+                dl.tone === "muted" && "text-muted-foreground",
+              )}
+            >
+              <Clock className="h-3 w-3 inline mr-1" />
+              {dl.label}
+            </p>
+            {existingApp && (
+              <p className="text-[11px] text-muted-foreground truncate">
+                <Sparkles className="h-3 w-3 inline mr-1" /> Applied · {existingApp.application_status}
+              </p>
+            )}
+          </div>
+          <Button size="lg" className="shrink-0 h-12 px-6 rounded-xl" onClick={ctaAction} disabled={ctaDisabled}>
+            {ctaLabel} {!ctaDisabled && <ArrowRight className="ml-1.5 h-4 w-4" />}
+          </Button>
+        </div>
       </div>
 
       {showApplyAI && job.application_url && (
