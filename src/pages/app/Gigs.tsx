@@ -49,7 +49,7 @@ export default function Gigs() {
   const queryClient = useQueryClient();
 
   // 4-tab layout with back-compat for older links
-  const rawTab = searchParams.get("tab") || "tasks";
+  const rawTab = searchParams.get("tab") || "for-you";
   const activeTab = ["work", "activity"].includes(rawTab)
     ? "work"
     : ["projects", "course", "courses", "course-projects"].includes(rawTab)
@@ -58,7 +58,9 @@ export default function Gigs() {
     ? "client"
     : ["earn", "tasks", "quick"].includes(rawTab)
     ? "tasks"
-    : "tasks";
+    : ["for-you", "foryou", "matches"].includes(rawTab)
+    ? "for-you"
+    : "for-you";
 
   const [search, setSearch] = useState("");
   const [verificationStatus, setVerificationStatus] = useState<string>("unverified");
