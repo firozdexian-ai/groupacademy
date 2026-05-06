@@ -22,6 +22,7 @@ export interface ReviewTopic {
   last_reviewed_at: string | null;
   module_title: string | null;
   content_title: string | null;
+  source: "quiz" | "scenario";
   items: ReviewItem[];
 }
 

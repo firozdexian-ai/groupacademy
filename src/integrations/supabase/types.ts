@@ -10461,6 +10461,7 @@ export type Database = {
           interval_days: number
           last_attempt_at: string | null
           last_reviewed_at: string | null
+          last_source: string
           mastery: number
           module_id: string
           talent_id: string
@@ -10478,6 +10479,7 @@ export type Database = {
           interval_days?: number
           last_attempt_at?: string | null
           last_reviewed_at?: string | null
+          last_source?: string
           mastery?: number
           module_id: string
           talent_id: string
@@ -10495,6 +10497,7 @@ export type Database = {
           interval_days?: number
           last_attempt_at?: string | null
           last_reviewed_at?: string | null
+          last_source?: string
           mastery?: number
           module_id?: string
           talent_id?: string

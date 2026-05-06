@@ -17,6 +17,7 @@ interface DueRow {
   interval_days: number;
   due_at: string;
   last_reviewed_at: string | null;
+  last_source: "quiz" | "scenario" | null;
 }
 
 interface PoolItem {
@@ -41,6 +42,7 @@ interface ReviewTopic {
   last_reviewed_at: string | null;
   module_title?: string | null;
   content_title?: string | null;
+  source: "quiz" | "scenario";
   items: Omit<PoolItem, "module_id">[];
 }
 
@@ -99,7 +101,7 @@ Deno.serve(async (req) => {
     let q = supabase
       .from("talent_skill_profile")
       .select(
-        "module_id, content_id, topic_tag, mastery, ease, interval_days, due_at, last_reviewed_at",
+        "module_id, content_id, topic_tag, mastery, ease, interval_days, due_at, last_reviewed_at, last_source",
       )
       .eq("talent_id", user.id)
       .order("due_at", { ascending: true })
@@ -172,30 +174,35 @@ Deno.serve(async (req) => {
       contentTitleById.set(c.id as string, (c.title as string) ?? "");
     }
 
-    // 4. For each due topic, sample items biased toward the topic_tag
+    // 4. For each due topic, sample items biased toward the topic_tag.
+    //    Scenario-sourced topics skip quiz sampling — the UI re-runs the scenario.
     const topics: ReviewTopic[] = due.map((d) => {
-      const modPool = pool.filter((p) => p.module_id === d.module_id);
-      const tagged = modPool.filter((p) =>
-        (p.topic_tags ?? []).includes(d.topic_tag)
-      );
-      const others = modPool.filter((p) =>
-        !(p.topic_tags ?? []).includes(d.topic_tag)
-      );
-      const picked = [
-        ...shuffle(tagged).slice(0, itemsPerTopic),
-        ...shuffle(others).slice(
-          0,
-          Math.max(0, itemsPerTopic - Math.min(tagged.length, itemsPerTopic)),
-        ),
-      ].slice(0, itemsPerTopic);
-
-      const items = picked.map(({ module_id: _m, ...rest }) => rest);
+      const source: "quiz" | "scenario" = d.last_source === "scenario" ? "scenario" : "quiz";
+      let items: Omit<PoolItem, "module_id">[] = [];
+      if (source === "quiz") {
+        const modPool = pool.filter((p) => p.module_id === d.module_id);
+        const tagged = modPool.filter((p) =>
+          (p.topic_tags ?? []).includes(d.topic_tag)
+        );
+        const others = modPool.filter((p) =>
+          !(p.topic_tags ?? []).includes(d.topic_tag)
+        );
+        const picked = [
+          ...shuffle(tagged).slice(0, itemsPerTopic),
+          ...shuffle(others).slice(
+            0,
+            Math.max(0, itemsPerTopic - Math.min(tagged.length, itemsPerTopic)),
+          ),
+        ].slice(0, itemsPerTopic);
+        items = picked.map(({ module_id: _m, ...rest }) => rest);
+      }
 
       const contentId = moduleContentById.get(d.module_id) ?? d.content_id;
       return {
         ...d,
         module_title: moduleTitleById.get(d.module_id) ?? null,
         content_title: contentTitleById.get(contentId) ?? null,
+        source,
         items,
       };
     });
