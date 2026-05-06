@@ -24,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ProfileCompletionMeter } from "@/components/profile/ProfileCompletionMeter";
 import { ProfileSectionEditor } from "@/components/profile/ProfileSectionEditor";
+import { PublicProfileSettings } from "@/components/profile/PublicProfileSettings";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -412,6 +413,8 @@ export default function Profile() {
             )}
           </CardContent>
         </Card>
+
+        <PublicProfileSettings />
       </div>
 
       {/* Synthesis Modal: AI Logic */}

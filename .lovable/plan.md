@@ -21,29 +21,28 @@
 |---|---|---|
 | 3.1 | Next-Best-Action recommender | ✅ Done |
 | 3.2 | Verifiable Skill Credentials | ✅ Done |
-| 3.3 | Talent Mirror → Public Profile | Pending |
+| 3.3 | Talent Mirror → Public Profile | ✅ Done |
 | 3.4 | Mastery-driven Job Match | Pending |
 | 3.5 | AI Tutor with mastery context | Pending |
 | 3.6 | Authoring feedback loop | Pending |
 | 3.7 | Cohort & peer benchmarks | Pending |
 | 3.8 | Mastery snapshots & trend lines | Pending |
 
-**Phase 3 completion: ~25%** (2 of 8 sub-phases)
+**Phase 3 completion: ~37%** (3 of 8 sub-phases)
 
 ### Recommended order
-3.1 ✅ → 3.2 ✅ → 3.6 → 3.5 → 3.3 → 3.4 → 3.8 → 3.7
+3.1 ✅ → 3.2 ✅ → 3.3 ✅ → 3.6 → 3.5 → 3.4 → 3.8 → 3.7
 
 ---
 
-## 3.2 ship notes
+## 3.3 ship notes
 
-- DB: `skill_credentials` table + `issue_skill_credential(talent, module, topic)` SECURITY DEFINER RPC. Public SELECT (verify), admin-only UPDATE/DELETE, inserts only via RPC.
-- Thresholds: foundational ≥0.70/4 attempts · proficient ≥0.82/8 · expert ≥0.92/12 + scenario signal. Idempotent — upgrades in place.
-- Edge fn `issue-skill-credentials` (JWT) walks caller's profile, mints qualifying rows, returns `newly_issued`.
-- Auto-mint hooks: `learner-scenario-evaluate` calls RPC per evaluated topic; `<SkillCredentialsPanel>` triggers issuer once per session on mount (covers quiz path).
-- Public verify route `/verify/skill/:code` — branded card, JSON-LD `EducationalOccupationalCredential` for SEO, no auth.
-- UI: condensed panel on My Hub (limit 3, between NextActions and AdaptiveSnapshot), full panel on Talent Mirror page.
-- Out of scope (deferred): W3C VC cryptographic signing, LinkedIn share (folded into 3.3), admin revoke UI.
+- DB: `talents` extended with `public_handle` (UNIQUE, regex-checked), `public_profile_enabled`, `public_show_mastery`, `public_show_credentials`, `public_bio`. RPC `get_public_talent_profile(_handle)` SECURITY DEFINER returns name + credentials + mastery snapshot only when opted in. Granted to `anon` + `authenticated`.
+- Edge fn `claim-public-handle` (JWT) — validates format, checks reserved + uniqueness, writes to caller's talent.
+- Public route `/t/:handle` (no auth) — hero, verified skills, mastery snapshot, Connect CTA, JSON-LD `Person` + `hasCredential`, OG/Twitter meta, "Profile is private" fallback.
+- `<PublicProfileSettings>` mounted on `/app/profile` — toggle, handle claim with debounced format guard, bio (240 chars), per-section visibility switches, copy/view link.
+- `<SkillCredentialsPanel>` shows "Share public profile" when enabled, otherwise nudges "Make your skills public →".
+- Out of scope (deferred): custom subdomain mapping, LinkedIn "Add to Profile" button (waits on W3C VC signing), profile view analytics (folded into 3.8), admin reserved-handle UI.
 
 ---
 

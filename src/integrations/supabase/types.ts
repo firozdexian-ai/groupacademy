@@ -10640,6 +10640,11 @@ export type Database = {
           professional_role_id: string | null
           profile_photo_url: string | null
           projects: Json | null
+          public_bio: string | null
+          public_handle: string | null
+          public_profile_enabled: boolean
+          public_show_credentials: boolean
+          public_show_mastery: boolean
           ref_code: string | null
           referred_by: string | null
           search_tsv: unknown
@@ -10686,6 +10691,11 @@ export type Database = {
           professional_role_id?: string | null
           profile_photo_url?: string | null
           projects?: Json | null
+          public_bio?: string | null
+          public_handle?: string | null
+          public_profile_enabled?: boolean
+          public_show_credentials?: boolean
+          public_show_mastery?: boolean
           ref_code?: string | null
           referred_by?: string | null
           search_tsv?: unknown
@@ -10732,6 +10742,11 @@ export type Database = {
           professional_role_id?: string | null
           profile_photo_url?: string | null
           projects?: Json | null
+          public_bio?: string | null
+          public_handle?: string | null
+          public_profile_enabled?: boolean
+          public_show_credentials?: boolean
+          public_show_mastery?: boolean
           ref_code?: string | null
           referred_by?: string | null
           search_tsv?: unknown
@@ -11330,6 +11345,7 @@ export type Database = {
         }
         Returns: string
       }
+      get_public_talent_profile: { Args: { _handle: string }; Returns: Json }
       get_talent_connection_price: {
         Args: { _recipient: string }
         Returns: number
