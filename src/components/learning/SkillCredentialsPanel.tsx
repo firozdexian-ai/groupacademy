@@ -1,8 +1,9 @@
+import { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BadgeCheck, Award, Trophy, ExternalLink, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useSkillCredentials, type SkillCredential } from "@/hooks/useSkillCredentials";
+import { useSkillCredentials, useIssueSkillCredentials, type SkillCredential } from "@/hooks/useSkillCredentials";
 import { useTalent } from "@/hooks/useTalent";
 import { Link } from "react-router-dom";
 
@@ -15,6 +16,17 @@ const LEVEL_META: Record<SkillCredential["level"], { icon: any; label: string; t
 export function SkillCredentialsPanel({ compact = false, limit }: { compact?: boolean; limit?: number }) {
   const { talent } = useTalent();
   const { data, isLoading } = useSkillCredentials(talent?.id);
+  const issue = useIssueSkillCredentials();
+
+  // Opportunistic mint once per session per talent — cheap, idempotent.
+  useEffect(() => {
+    if (!talent?.id) return;
+    const key = `skill-cred-mint:${talent.id}`;
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, "1");
+    issue.mutate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [talent?.id]);
 
   if (isLoading) return <Skeleton className="h-32 rounded-2xl" />;
   if (!data || data.length === 0) return null;
