@@ -252,33 +252,13 @@ export default function JobsHub() {
       return toast.error("Identity verification required to process matches.");
     }
 
-    const isFreeRun = aiMatchUsageCount < FREE_AI_MATCHES_LIMIT;
-
-    if (!isFreeRun && !canAfford("SUGGESTED_JOBS")) {
-      return toast.error("Need 10 credits to run AI matching.");
+    if (!canAfford("SUGGESTED_JOBS")) {
+      return toast.error(`Need ${AI_MATCH_COST} credits to run AI matching. Top up your wallet to continue.`);
     }
 
     setLoadingAI(true);
     try {
-      if (!isFreeRun) {
-        await deductCredits("SUGGESTED_JOBS", undefined, "AI Job Suggestions");
-      } else {
-        const { data: creditData } = await supabase
-          .from("talent_credits")
-          .select("balance")
-          .eq("talent_id", talent.id)
-          .single();
-
-        // CTO FIX: Explicitly matching the exact DB signature, casting as any to bypass Vite's strict type cache
-        await supabase.from("credit_transactions").insert({
-          talent_id: talent.id,
-          amount: 0,
-          transaction_type: "freemium_usage" as any,
-          service_type: "SUGGESTED_JOBS",
-          description: `Free AI Match (${aiMatchUsageCount + 1}/${FREE_AI_MATCHES_LIMIT})`,
-          balance_after: creditData?.balance || 0,
-        });
-      }
+      await deductCredits("SUGGESTED_JOBS", undefined, "AI Job Suggestions");
 
       const { error } = await supabase.functions.invoke("suggest-jobs-for-talent");
       if (error) throw error;
