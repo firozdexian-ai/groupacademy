@@ -433,6 +433,7 @@ export default function App() {
                   >
                     {/* Main Hubs */}
                     <Route path="feed" element={<Feed />} />
+                    <Route path="feed/post/:id" element={<PostDetail />} />
                     <Route path="jobs" element={<JobsHub />} />
                     <Route path="learning" element={<LearningHub />} />
                     <Route path="learning/review" element={<LearningReview />} />
