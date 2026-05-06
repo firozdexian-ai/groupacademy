@@ -170,7 +170,8 @@ export function ProfileCardThemeManager() {
               <Label>Media URL</Label>
               <ImageUpload
                 value={draft.media_url || ""}
-                onChange={(url) => setDraft({ ...draft, media_url: url })}
+                onUpload={(url) => setDraft({ ...draft, media_url: url })}
+                onRemove={() => setDraft({ ...draft, media_url: null })}
                 bucket="banners"
               />
             </div>
@@ -181,7 +182,8 @@ export function ProfileCardThemeManager() {
               <Label>Poster image (fallback for reduced-motion)</Label>
               <ImageUpload
                 value={draft.poster_url || ""}
-                onChange={(url) => setDraft({ ...draft, poster_url: url })}
+                onUpload={(url) => setDraft({ ...draft, poster_url: url })}
+                onRemove={() => setDraft({ ...draft, poster_url: null })}
                 bucket="banners"
               />
             </div>
