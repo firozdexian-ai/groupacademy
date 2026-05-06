@@ -27,8 +27,11 @@ import { DiscussStage } from "@/components/player/stages/DiscussStage";
 import { PracticeStage } from "@/components/player/stages/PracticeStage";
 import { AssessStage } from "@/components/player/stages/AssessStage";
 import { ProgressStage } from "@/components/player/stages/ProgressStage";
+import StageShell from "@/components/player/StageShell";
+import ShortcutsDialog from "@/components/player/ShortcutsDialog";
 import { useModuleResourcesByStage } from "@/hooks/useModuleResources";
 import { useStageProgress } from "@/hooks/useStageProgress";
+import { usePlayerHotkeys } from "@/hooks/usePlayerHotkeys";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -43,6 +46,8 @@ export default function ImmersiveCoursePlayer() {
   const { user } = useAuth();
   const [currentModuleId, setCurrentModuleId] = useState<string | undefined>();
   const [moduleProgress, setModuleProgress] = useState<Record<string, ModuleProgressState>>({});
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [resumed, setResumed] = useState(false);
 
   // 1. Data Ingestion
   const {
