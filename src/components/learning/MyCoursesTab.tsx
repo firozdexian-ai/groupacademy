@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { BookOpen, MessageCircle, Award, PlayCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AdaptiveSnapshotCard } from "@/components/learning/AdaptiveSnapshotCard";
 
 interface MyCoursesTabProps {
   onBrowseCatalog?: () => void;
