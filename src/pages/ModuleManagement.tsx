@@ -49,6 +49,22 @@ import ResearchPromptDialog from "@/components/modules/ResearchPromptDialog";
 import { BatchContentGenerator } from "@/components/dashboard/BatchContentGenerator";
 import { DraggableList } from "@/components/dashboard/common/DraggableList";
 import { ItemBankAnalyticsPanel } from "@/components/learning/ItemBankAnalyticsPanel";
+import { useModuleReviewBadge } from "@/hooks/useModuleReviewBadge";
+
+function ReviewNudge({ moduleId, onClick }: { moduleId: string; onClick: () => void }) {
+  const { flagged, loading } = useModuleReviewBadge(moduleId);
+  if (loading || flagged <= 0) return null;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-600 px-2 py-1 text-[10px] font-bold uppercase tracking-widest hover:bg-amber-500/20 transition"
+      title="Items flagged for author review"
+    >
+      {flagged} need review
+    </button>
+  );
+}
 
 /**
  * Curriculum Module Manager
