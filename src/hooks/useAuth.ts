@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable";
 import { User, Session } from "@supabase/supabase-js";
 import { toast } from "sonner";
 import { isPhoneNumber } from "@/lib/validations";
@@ -22,6 +23,7 @@ export interface AuthState {
     country?: string,
     countryCode?: string,
   ) => Promise<boolean>;
+  signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   updatePassword: (newPassword: string) => Promise<void>;
@@ -37,36 +39,17 @@ export const useAuth = (): AuthState => {
   useEffect(() => {
     mounted.current = true;
 
-    // HUD: IDENTITY_STATE_LISTENER
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      if (mounted.current) {
-        if (event === "TOKEN_REFRESHED" && !session) {
-          supabase.auth.signOut();
-          setSession(null);
-          setUser(null);
-          setIsLoading(false);
-          return;
-        }
-        setSession(session);
-        setUser(session?.user ?? null);
-        setIsLoading(false);
-      }
-    });
-
-    const executeSessionAudit = async () => {
+    // Bootstrap: read existing session FIRST, then attach listener (race-free).
+    (async () => {
       try {
         const { data, error } = await supabase.auth.getSession();
         if (error) throw error;
-
-        if (mounted.current && data.session) {
+        if (mounted.current) {
           setSession(data.session);
-          setUser(data.session.user);
+          setUser(data.session?.user ?? null);
         }
       } catch (err: any) {
         console.warn("[Auth] Session check failed:", err);
-        if (err?.message?.includes("Refresh Token")) await supabase.auth.signOut();
         if (mounted.current) {
           setSession(null);
           setUser(null);
@@ -74,9 +57,20 @@ export const useAuth = (): AuthState => {
       } finally {
         if (mounted.current) setIsLoading(false);
       }
-    };
+    })();
 
-    executeSessionAudit();
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      if (!mounted.current) return;
+      if (event === "TOKEN_REFRESHED" && !nextSession) {
+        setSession(null);
+        setUser(null);
+        return;
+      }
+      setSession(nextSession);
+      setUser(nextSession?.user ?? null);
+    });
 
     return () => {
       mounted.current = false;
@@ -148,30 +142,11 @@ export const useAuth = (): AuthState => {
       if (signUpError) throw signUpError;
       if (!authData.user) throw new Error("We couldn't create your account. Please try again.");
 
-      toast.loading("Setting up your profile…", { duration: 1500 });
-      await new Promise((r) => setTimeout(r, 1500));
-
-      let activeSession = null;
-      for (let i = 0; i < 3; i++) {
-        const { data } = await supabase.auth.getSession();
-        if (data.session) {
-          activeSession = data.session;
-          break;
-        }
-        await new Promise((r) => setTimeout(r, 500));
-      }
-
-      if (!activeSession) {
-        toast.dismiss();
-        toast.warning("Almost there — please check your inbox to confirm your email.");
-        return false;
-      }
-
-      // Apply pending referral, if any
+      // Auto-confirm is ON, so a session should be present immediately.
+      // Apply pending referral if any.
       try {
         const ref = localStorage.getItem("pending_ref") || localStorage.getItem("ga_referral");
         if (ref && authData.user) {
-          // Look up referrer by ref_code or by id
           const { data: referrer } = await supabase
             .from("talents")
             .select("id")
@@ -188,12 +163,27 @@ export const useAuth = (): AuthState => {
         }
       } catch {}
 
-      toast.dismiss();
       toast.success("Account created.");
       return true;
     } catch (err: any) {
-      toast.dismiss();
       toast.error(err.message || "Couldn't create your account. Please try again.");
+      throw err;
+    }
+  };
+
+  const signInWithGoogle = async () => {
+    try {
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: `${window.location.origin}/auth/callback`,
+        extraParams: { prompt: "select_account" },
+      });
+      if (result.error) {
+        toast.error("Couldn't sign in with Google. Please try again.");
+        throw result.error;
+      }
+      // If redirected, browser navigates away; otherwise tokens already set.
+    } catch (err: any) {
+      if (!err?.message) toast.error("Couldn't sign in with Google. Please try again.");
       throw err;
     }
   };
@@ -218,37 +208,5 @@ export const useAuth = (): AuthState => {
     toast.success("Password updated.");
   };
 
-  return { user, session, isLoading, signIn, signUp, signOut, resetPassword, updatePassword };
-};
-
-/**
- * Helper for hydrating the talents table after a manual signup. Currently unused;
- * kept for batch import paths. Will be revisited in 1.2.
- */
-export const createStudentProfile = async (
-  userId: string,
-  fullName: string,
-  email: string,
-  phone?: string,
-  status: "free_learner" | "lead" | "enrolled" | "graduated" = "free_learner",
-): Promise<boolean> => {
-  try {
-    const { error } = await supabase.from("talents").upsert(
-      {
-        id: userId,
-        full_name: fullName,
-        email: email,
-        phone: phone || "",
-        status: status,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "id" },
-    );
-
-    if (error) throw error;
-    return true;
-  } catch (err) {
-    console.error("Failed to create talent profile:", err);
-    return false;
-  }
+  return { user, session, isLoading, signIn, signUp, signInWithGoogle, signOut, resetPassword, updatePassword };
 };
