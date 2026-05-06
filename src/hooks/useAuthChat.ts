@@ -210,8 +210,8 @@ export function useAuthChat() {
 
           case "collect_phone": {
             const digits = trimmed.replace(/\D/g, "");
-            if (collectedData.country === "Bangladesh" && digits.length < 10) {
-              addMessage("assistant", "INCOMPLETE_DATA: Bangladesh mobile artifacts require 11 digits.");
+            if (digits.length < 7) {
+              addMessage("assistant", "That phone number looks short — please enter the full number.");
               return;
             }
             setCollectedData((prev) => ({ ...prev, phone: trimmed }));
