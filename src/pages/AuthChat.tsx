@@ -92,14 +92,15 @@ const AuthChat = () => {
 
   const getInputPlaceholder = (action: AuthAction): string => {
     const placeholders: Record<string, string> = {
-      collect_email: "name@example.com",
-      collect_name: "How should we call you?",
-      collect_password: "Enter your secure password",
-      set_password: "Create a password (min 8 chars)",
-      collect_phone: "Primary contact number",
-      verify_human: "Type your answer here...",
+      collect_email: "you@example.com",
+      collect_name: "Your full name",
+      collect_password: "Enter your password",
+      set_password: "Create a password (min 8 characters)",
+      collect_phone: "Your mobile number",
+      collect_country: "Country (e.g. United States)",
+      verify_human: "Type your answer here",
     };
-    return placeholders[action] || "Type a message...";
+    return placeholders[action] || "Type a message…";
   };
 
   if (authLoading) {
