@@ -55,7 +55,7 @@ export default function AppSubmissionDetail() {
       </div>
 
       <Card className="p-3 mt-3 rounded-2xl">
-        {sub.body?.summary ? <p className="text-sm whitespace-pre-wrap">{sub.body.summary}</p> : <p className="text-xs text-muted-foreground italic">No summary provided.</p>}
+        {(sub.body as any)?.summary ? <p className="text-sm whitespace-pre-wrap">{(sub.body as any).summary}</p> : <p className="text-xs text-muted-foreground italic">No summary provided.</p>}
         {Array.isArray(sub.files) && sub.files.length > 0 && (
           <div className="mt-2 space-y-1">
             {sub.files.map((f: any, i: number) => (

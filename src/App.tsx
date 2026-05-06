@@ -114,6 +114,10 @@ import InstructorShell from "./pages/app/instructor/InstructorShell";
 import InstructorCourseSessions from "./pages/app/instructor/InstructorCourseSessions";
 import AppCohortHome from "./pages/app/AppCohortHome";
 import AppSessionJoin from "./pages/app/AppSessionJoin";
+import AppCohortDiscussions from "./pages/app/AppCohortDiscussions";
+import AppDiscussionThread from "./pages/app/AppDiscussionThread";
+import AppReviewQueue from "./pages/app/AppReviewQueue";
+import AppSubmissionDetail from "./pages/app/AppSubmissionDetail";
 import AppProfessions from "./pages/app/AppProfessions";
 import AppProfessionDetail from "./pages/app/AppProfessionDetail";
 import SchoolDetail from "./pages/app/SchoolDetail";
@@ -486,7 +490,11 @@ export default function App() {
                     <Route path="instructor/insights" element={<InstructorInsights />} />
                     <Route path="instructor/course/:contentId/sessions" element={<InstructorCourseSessions />} />
                     <Route path="cohorts/:cohortId" element={<AppCohortHome />} />
+                    <Route path="cohorts/:cohortId/discussions" element={<AppCohortDiscussions />} />
+                    <Route path="cohorts/:cohortId/discussions/:threadId" element={<AppDiscussionThread />} />
                     <Route path="sessions/:sessionId/join" element={<AppSessionJoin />} />
+                    <Route path="review-queue" element={<AppReviewQueue />} />
+                    <Route path="submissions/:submissionId" element={<AppSubmissionDetail />} />
                     <Route path="learning/events" element={<AppEvents />} />
                     <Route path="learning/webinars" element={<AppEvents />} />
                     <Route path="learning/competitions" element={<Competitions />} />
