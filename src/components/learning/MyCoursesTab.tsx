@@ -11,6 +11,7 @@ import { BookOpen, MessageCircle, Award, PlayCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AdaptiveSnapshotCard } from "@/components/learning/AdaptiveSnapshotCard";
 import { NextActionsCard } from "@/components/learning/NextActionsCard";
+import { SkillCredentialsPanel } from "@/components/learning/SkillCredentialsPanel";
 
 interface MyCoursesTabProps {
   onBrowseCatalog?: () => void;
@@ -199,6 +200,7 @@ export function MyCoursesTab({ onBrowseCatalog }: MyCoursesTabProps) {
       ) : (
         <>
           <NextActionsCard />
+          <SkillCredentialsPanel compact limit={3} />
           <AdaptiveSnapshotCard />
           <button
             type="button"

@@ -33,6 +33,7 @@ import PublicServices from "./pages/PublicServices";
 import PublicCourses from "./pages/PublicCourses";
 import ServiceLanding from "./pages/ServiceLanding";
 import VerifyCertificate from "./pages/VerifyCertificate";
+import VerifySkillCredential from "./pages/VerifySkillCredential";
 import WebinarLanding from "./pages/public/WebinarLanding";
 import { PWAInstallPrompt } from "./components/PWAInstallPrompt";
 import { PWAUpdatePrompt } from "./components/PWAUpdatePrompt";
@@ -237,6 +238,7 @@ export default function App() {
                   <Route path="/blog" element={<PublicBlog />} />
                   <Route path="/blog/:slug" element={<PublicBlogPost />} />
                   <Route path="/verify/:code" element={<VerifyCertificate />} />
+                  <Route path="/verify/skill/:code" element={<VerifySkillCredential />} />
 
                   {/* Public Services */}
                   <Route path="/career-assessment" element={<CareerAssessment />} />
