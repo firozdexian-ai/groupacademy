@@ -60,6 +60,7 @@ import Organization from "./pages/Organization";
 // App/Dashboard Pages
 import Feed from "./pages/app/Feed";
 import LearningHub from "./pages/app/LearningHub";
+import LearningReview from "./pages/LearningReview";
 import ServicesHub from "./pages/app/ServicesHub";
 import JobsHub from "./pages/app/JobsHub";
 import CareerAbroad from "./pages/app/CareerAbroad";
@@ -417,6 +418,7 @@ export default function App() {
                     <Route path="feed" element={<Feed />} />
                     <Route path="jobs" element={<JobsHub />} />
                     <Route path="learning" element={<LearningHub />} />
+                    <Route path="learning/review" element={<LearningReview />} />
                     <Route path="services" element={<Navigate to="/app/agents" replace />} />
                     <Route path="abroad" element={<CareerAbroad />} />
                     <Route path="agents" element={<AIAgents />} />
