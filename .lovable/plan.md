@@ -158,3 +158,14 @@ Step 9 → Memory entry + Phase 5.4 checkpoint in .lovable/plan.md
 4. **Anonymity** — reviewers fully anonymized to disputants; disputants identifiable to reviewers (needed to judge prior work/context). OK?
 5. **Calibration cadence** — re-calibrate every 90 days OR only on accuracy drop below threshold? (Default: only on drop, plus quarterly random spot-check via `ai-reviewer-quality-check`.)
 6. **Conflict of interest** — auto-block reviewer if same company/poster/category-recent-collab, OR rely on manual recuse? (Default: auto-block + manual recuse fallback.)
+
+---
+
+## Phase 5.4 — SHIPPED ✅
+- Schema: reviewer_profiles, reviewer_calibration_attempts, gig_review_assignments, gig_disputes, reviewer_credit_ledger, reviewer_reputation_events
+- Triggers: tg_reviewer_rep_recompute (auto-promotes tier on accuracy)
+- RPCs: apply_for_reviewer, submit_calibration_attempt, claim_review_assignment, submit_review_verdict, settle_review_panel, open_gig_dispute, resolve_dispute
+- Edges: ai-reviewer-brief, ai-dispute-summarizer, ai-reviewer-quality-check, cron-review-assignment-sweeper (2m), cron-review-assignment-expiry (10m), cron-trust-decay (daily), cron-reviewer-payouts (daily), notify-review-assignment, notify-dispute-update
+- Cleanup edges from 5.1-5.3: ai-content-originality, ai-deliverable-fetch, gig_verifier_override_rollup view, recompute_all_trust_scores
+- UI: /app/reviewer (cockpit), /app/gigs/disputes, OpenDisputeButton, admin Gig Ops → Reviewer Program tab
+- Memory: mem://product/community-reviewer-and-disputes
