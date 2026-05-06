@@ -1,94 +1,130 @@
-# Phase 3.2 — Companies & Locations Tabs Overhaul
+# Phase 3.3 — Consolidated AI Tools Hub
 
-3.1 shipped the Browse tab. The next two tabs (Companies, Locations) are still flat aggregations of `jobs.company_name` / `jobs.country` with no real signal. Goal: make each tab a useful discovery surface that pulls a talent toward live, relevant roles — not just a directory.
+## What I missed
 
-We'll do **both tabs in this sub-phase** because they share the same architectural lift (aggregation RPCs, follow/save, detail drill-down). Tools tab + Job Details/Application become 3.3 and 3.4.
+There are already **4 mature career services** in a separate hub (`ServicesHub` at `/app/services`) that I was ignoring. Plus 2 in the Tools tab and 1 component-only tool. **7 working tools total**, spread across 2 hubs. Goal of 3.3: bring them all into one home.
 
----
+## Current state
 
-## Goals
+| # | Tool | Status | Lives at |
+|---|---|---|---|
+| 1 | Career Assessment | Built | `/app/services/assessment` |
+| 2 | Mock Interview | Built | `/app/services/mock-interview` |
+| 3 | Salary AI | Built | `/app/services/salary-analysis` |
+| 4 | Portfolio Service | Built | `/app/services/portfolio` |
+| 5 | ATS CV Maker | Built | `/app/tools/cv-maker` |
+| 6 | Application Answers | Built | `/app/tools/application-helper` |
+| 7 | Score me vs job | Component built, no entry | dashboard widgets only |
 
-1. **Companies tab** → from logo grid into a follow-able employer directory with hiring signal.
-2. **Locations tab** → from country accordion into a personalized geo discovery surface (your country first, abroad opportunities, salary/visa hints).
-3. Reuse the trending/personalization patterns from 3.1 (RPCs + hooks, no client-side aggregation of 1000-row dumps).
+## Final consolidated list (7 tools)
 
----
+**Profile builders** (sharpen who you are)
+1. ATS CV Maker — 15 cr
+2. Career Assessment — paid
+3. Salary Insight — paid (no free first run; 250 welcome credits already cover it)
+4. Portfolio Service — paid request
 
-## Companies Tab
+**Job-specific tools** (win this role)
+5. Score me vs job — 10 cr (new inline picker)
+6. Application Answers — 10 cr
+7. Mock Interview — paid
 
-### What changes
-- **Hiring-velocity ranking** — sort companies by active job count + recent posting velocity (jobs added last 14d), not alphabetical.
-- **Followed companies** rail at the top — talents can follow an employer; new postings from followed companies surface here and in notifications later.
-- **Company card upgrades** — show: logo, name, total active roles, "+N this week" badge, top hiring location, top role type chip (Remote / Full-time / Internship).
-- **Company detail drawer** (`/app/jobs/company/:slug`) — opens existing `/app/jobs/all?company=...` route but with a real header: logo, follow button, total roles, location split, role-type split, list of open jobs. Replaces the bare filter view.
-- **Search + filter** — keep search; add a "Hiring now" toggle (only companies with ≥1 job posted in last 14d).
+No new tools. No new edge functions. Pure consolidation + personalization.
 
-### Backend
-- New table `followed_companies (user_id, company_name, created_at)` with RLS (own rows only).
-- New RPC `get_companies_with_signal(p_country text default null, p_limit int default 100)` returning `{ company_name, logo_url, active_jobs, jobs_last_14d, top_location, top_type }`.
-- New RPC `get_company_detail(p_company_name text)` returning header stats + the open jobs list.
+## Pricing change — remove "first analysis free" everywhere
 
----
+Per your direction: 250 welcome credits already cover trial usage, so the Salary AI's "First Analysis Free" / "Free Audit" framing is removed.
+- `src/pages/SalaryAnalysis.tsx` lines 74, 92, 217 — replace "First Analysis Free", "Initialize Free Audit", "Launch Free Audit" with neutral CTA copy showing the actual credit price.
+- Remove any free-first-run logic in salary edge / hooks (none currently in code; only the marketing copy).
+- Update [AI Salary Analysis](mem://product/ai-salary-analysis-free-then-paid-model) memory to reflect "always paid via credits".
 
-## Locations Tab
+## What changes in 3.3
 
-### What changes
-- **"Your country" hero card** at top — flag, total active roles, "+N this week", quick CTA "Browse all in [country]".
-- **"Working abroad" rail** — top 5 destination countries for talents in your field (uses existing abroad demand signal where possible, else falls back to global top countries by active jobs).
-- **Country card upgrades** — show: flag, country name, active jobs, jobs added last 14d, top 3 hiring cities (chips), top hiring company logo strip (max 3).
-- **City drill-in** — clicking a city opens `/app/jobs/all?location=...` (already exists, no change), but city chips now show live counts that refresh when expanded.
-- **Remote-friendly card** — pin a "Remote-friendly" tile at top (jobs where `is_remote = true`), independent of country.
-
-### Backend
-- New RPC `get_countries_with_signal(p_limit int default 50)` → `{ country, flag_emoji, active_jobs, jobs_last_14d, top_cities jsonb, top_companies jsonb }`.
-- New RPC `get_remote_friendly_summary()` → `{ active_jobs, jobs_last_14d, top_companies jsonb }`.
-
-Both replace the current client-side group/sort over `jobs` rows (which is hitting the 1000-row cap silently).
-
----
-
-## Frontend Wiring
-
-### New files
-- `src/hooks/useCompaniesWithSignal.ts`
-- `src/hooks/useFollowedCompanies.ts` (toggle + list)
-- `src/hooks/useCountriesWithSignal.ts`
-- `src/hooks/useRemoteFriendly.ts`
-- `src/components/jobs/CompanyCard.tsx` (rich variant)
-- `src/components/jobs/CountryCard.tsx` (rich variant)
-- `src/components/jobs/CompanyDetailSheet.tsx` (drawer for company drill-in) — or upgrade `/app/jobs/all` header when `?company=` is set; will pick during implementation.
-
-### Modified
-- `src/pages/app/JobsHub.tsx` — replace Companies and Locations tab JSX with the new components/hooks. Drop the in-page `useMemo` aggregations (`countryGroups`, `companies`).
-
----
-
-## Out of scope (future sub-phases)
-- Company logo upload pipeline / employer claim flow → admin/employer side.
-- Notifications for new jobs at followed companies → wire after 3.4.
-- Tools tab (3.3) and Job Details/Application (3.4).
-
----
-
-## Technical notes
+### 1. Jobs > Tools tab becomes the only AI Tools home
 
 ```text
-Tab layout after 3.2
-
-Companies tab                Locations tab
-┌──────────────────────┐     ┌──────────────────────┐
-│ [Search] [Hiring now]│     │ Your country (hero)  │
-├──────────────────────┤     ├──────────────────────┤
-│ Following (rail)     │     │ Remote-friendly      │
-├──────────────────────┤     ├──────────────────────┤
-│ Top hiring (grid)    │     │ Working abroad rail  │
-│  - logo / +N / type  │     ├──────────────────────┤
-│                      │     │ All countries (grid) │
-└──────────────────────┘     └──────────────────────┘
+Tools tab
+┌──────────────────────────────────────────┐
+│ Up next for you  (1 personalized card)   │
+├──────────────────────────────────────────┤
+│ Profile builders                         │
+│  CV  •  Assessment  •  Salary  •  Folio  │
+├──────────────────────────────────────────┤
+│ Job-specific tools                       │
+│  Score-me  •  Answers  •  Mock interview │
+├──────────────────────────────────────────┤
+│ Recent results (resume / re-download)    │
+├──────────────────────────────────────────┤
+│ Talk to a career agent (existing list)   │
+└──────────────────────────────────────────┘
 ```
 
-All RPCs `SECURITY INVOKER`, `SET search_path = public`, return only data already exposed by `jobs` RLS (active jobs only).
+### 2. Deprecate ServicesHub
+- Replace `/app/services` route with redirect to `/app/jobs?tab=tools`.
+- Remove "Services" sidebar/nav entries pointing to it.
+- Keep underlying tool routes (deep links from emails/transactions still work).
 
----
+### 3. "Up next for you" — rule-based pick
+First match wins:
+1. No CV → CV Maker
+2. Profile <60% → Tune profile
+3. Saved job, deadline ≤7d → Application Answers (pre-loaded with that job)
+4. Saved job without AI score → Score me vs job (pre-loaded)
+5. No assessment in 90d → Career Assessment
+6. No salary lookup in 30d → Salary Insight
+7. Else → Mock Interview
 
-Approve to proceed and I'll run the migration first, then wire the UI.
+Powered by `get_next_best_tool(user_id) → { tool_key, reason, job_id }` reading `talents`, `saved_items`, `tool_runs`.
+
+### 4. "Score me vs job" gets a real entry
+- New `ScoreMeJobPicker` sheet listing saved jobs + recent applications + last viewed.
+- On select → existing `score-job-match` edge → result in existing `AIJobInsights` sheet.
+- 10 credits, deducted only after edge succeeds.
+
+### 5. Recent results rail
+- New `tool_runs` table (user_id, tool_key, cost_credits, payload jsonb, job_id, created_at, RLS own-rows-only).
+- Each tool calls a single `recordToolRun()` helper after successful credit deduction.
+- Tools tab shows last 5 runs with click-to-resume (`?run=<id>` prefill).
+
+## Backend (1 table + 1 RPC, 0 edges)
+
+### `tool_runs`
+| Column | Type |
+|---|---|
+| id | uuid pk |
+| user_id | uuid not null, RLS |
+| tool_key | text (cv/assessment/salary/portfolio/score/answers/interview) |
+| cost_credits | numeric(12,1) |
+| payload | jsonb (≤8 KB summary) |
+| job_id | uuid nullable |
+| created_at | timestamptz default now() |
+
+RLS: own rows only.
+
+### `get_next_best_tool(p_user_id uuid) returns jsonb`
+SECURITY INVOKER, `search_path = public`.
+
+## Frontend wiring
+
+**New**
+- `src/components/jobs/ToolsHub.tsx` (extracted from JobsHub)
+- `src/components/jobs/ScoreMeJobPicker.tsx`
+- `src/hooks/useNextBestTool.ts`
+- `src/hooks/useToolRuns.ts` (list + recordToolRun helper)
+
+**Modified**
+- `src/pages/app/JobsHub.tsx` — render `<ToolsHub />` for tools tab
+- `src/pages/SalaryAnalysis.tsx` — strip "free" copy (lines 74, 92, 217)
+- 6 tool pages (CVMaker, ApplicationHelper, AppMockInterviewSetup, AppCareerAssessment, AppSalaryAnalysisSetup, AppPortfolioRequest) — single `recordToolRun()` call after credit deduction; no other behavior changes
+- `src/App.tsx` — `/app/services` → `<Navigate to="/app/jobs?tab=tools" />`
+- Sidebar/nav — drop "Services" link
+
+**Untouched**
+- All public service landing pages, tool flows, credit pricing logic, PDF templates
+
+## Out of scope (3.4)
+- Job Details redesign
+- Application workflow
+- AI assessment-on-job
+
+Approve to proceed.

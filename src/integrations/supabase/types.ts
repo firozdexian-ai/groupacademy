@@ -11323,6 +11323,36 @@ export type Database = {
           },
         ]
       }
+      tool_runs: {
+        Row: {
+          cost_credits: number
+          created_at: string
+          id: string
+          job_id: string | null
+          payload: Json
+          tool_key: string
+          user_id: string
+        }
+        Insert: {
+          cost_credits?: number
+          created_at?: string
+          id?: string
+          job_id?: string | null
+          payload?: Json
+          tool_key: string
+          user_id: string
+        }
+        Update: {
+          cost_credits?: number
+          created_at?: string
+          id?: string
+          job_id?: string | null
+          payload?: Json
+          tool_key?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -11992,6 +12022,7 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_next_best_tool: { Args: { p_user_id: string }; Returns: Json }
       get_or_create_talent: {
         Args: {
           p_email: string
