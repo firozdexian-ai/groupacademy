@@ -2,8 +2,10 @@ import { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Award, CheckCircle, ArrowRight, Download, Trophy, Target, Clock, Brain, Zap, ShieldCheck, AlertCircle } from "lucide-react";
+import { MasteryBars } from "./MasteryBars";
 
 interface ProgressStageProps {
+  moduleId?: string;
   moduleName: string;
   moduleIndex: number;
   totalModules: number;
@@ -26,6 +28,7 @@ import { toast } from "sonner";
  */
 
 export function ProgressStage({
+  moduleId,
   moduleName,
   moduleIndex,
   totalModules,
@@ -214,6 +217,9 @@ export function ProgressStage({
               })}
             </CardContent>
           </Card>
+
+          {/* COMPONENT: TOPIC_MASTERY_BARS */}
+          <MasteryBars moduleId={moduleId} topN={5} />
 
           {/* COMPONENT: AGGREGATE_COURSE_PROGRESS */}
           <Card className="rounded-[32px] border-2 border-border/40 bg-card/30">
