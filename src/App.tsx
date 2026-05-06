@@ -62,6 +62,7 @@ import Organization from "./pages/Organization";
 
 // App/Dashboard Pages
 import Feed from "./pages/app/Feed";
+import PostDetail from "./pages/app/PostDetail";
 import LearningHub from "./pages/app/LearningHub";
 import LearningReview from "./pages/LearningReview";
 import ServicesHub from "./pages/app/ServicesHub";
