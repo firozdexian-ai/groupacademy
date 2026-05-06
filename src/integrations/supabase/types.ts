@@ -10449,6 +10449,63 @@ export type Database = {
           },
         ]
       }
+      talent_skill_profile: {
+        Row: {
+          attempts: number
+          content_id: string
+          correct_count: number
+          created_at: string
+          id: string
+          last_attempt_at: string | null
+          mastery: number
+          module_id: string
+          talent_id: string
+          topic_tag: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          content_id: string
+          correct_count?: number
+          created_at?: string
+          id?: string
+          last_attempt_at?: string | null
+          mastery?: number
+          module_id: string
+          talent_id: string
+          topic_tag: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          content_id?: string
+          correct_count?: number
+          created_at?: string
+          id?: string
+          last_attempt_at?: string | null
+          mastery?: number
+          module_id?: string
+          talent_id?: string
+          topic_tag?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_skill_profile_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "talent_skill_profile_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "course_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       talents: {
         Row: {
           achievements: Json | null
