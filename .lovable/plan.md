@@ -1,139 +1,94 @@
-# Phase 4 — Completion Report
+# Phase 5.2 — AI Matchmaker + Bid Coach (with 5.1 cleanup)
 
-Phase 4 is fully shipped. All eight sub-phases landed end-to-end (schema → RPCs → edges → UI → admin → memory).
+## Part A — Phase 5.1 cleanup (close before opening 5.2)
 
-| Sub-phase | Theme | Key shipped surfaces |
-|---|---|---|
-| 4.1 | Instructor Workspace closed loop | `course_briefs` → instructor jobs, accepted-offer trigger seeds engagement + `instructor` role + 50 AI credits, 60/40 splits, `/app/instructor`, admin Course Briefs |
-| 4.2 | Cohorts & Live Sessions | `cohorts`, `cohort_enrollments`, extended `course_sessions`, `session_attendance`, `/app/cohorts/:id`, `/app/sessions/:id/join`, instructor cockpit, admin Cohorts tab, reminder cron |
-| 4.3 | Tracks foundation (rolled into 4.5) | `learning_tracks` schema seeded |
-| 4.4 | Gro10x Learning Ops B2B | Sponsored assignments deduct `company_credits`, `/gro10x/learn/ops` 5-tab admin, `org_assign_talents` / `org_learning_health` RPCs, hourly overdue + seat-low cron, admin B2B Engagements |
-| 4.5 | Tracks & Branded Catalog | `learning_tracks` + items + assignments, `certificates.kind`, `org_assign_track` / `talent_enroll_track` / `get_track_progress`, `/gro10x/learn/track/:id`, public `/c/:slug/learn` branded catalog, daily `cron-track-sweeps` |
-| 4.5b + 4.6 | Desktop polish + Outcome signals | ⌘K command palette + `gro10x_global_search` RPC, `get_talent_outcome_signal` RPC, `TalentSignalPanel` in CRM, `/t/:handle` Completed Tracks, `score-job-match` verified-skill boost |
-| 4.7 | Instructor monetization & payouts | `instructor_earnings_ledger` auto-fed by `course_revenue_splits` trigger, request/process payout RPCs (min 500cr), `/app/instructor?tab=earnings`, admin Learn → Instructor Payouts, monthly statement cron, `ActiveInstructorChip` |
-| 4.8 | Study Abroad + AI IELTS Coach + Language Lab | Roadmap Creator absorbed into per-country **Destination Agents** (8 launched), 8-stage `abroad_applications` + counsellor cockpit, `ai-ielts-evaluate` (writing/speaking via `ielts-audio`), `ielts_streaks` gamification, `ai-language-partner` + `book-language-session`, admin tabs (Destinations / Applications / IELTS Prompts / Language Lab) |
+5.1 shipped `gig_briefs`, `gig_scope_drafts`, `ai-gig-scoper`, `acceptance_criteria`, `/app/gigs/new`, and the admin Gig Ops queue. Three loose ends remain that 5.2 depends on:
 
-### Cross-cutting outcomes
-- **Closed-loop learning**: brief → instructor → cohort → certificate → outcome signal → job match.
-- **AI signals everywhere**: verified mastery + CEFR + IELTS bands flow into `talent_skill_profile`, `score-job-match`, `/t/:handle`, employer CRM.
-- **Monetization unified**: single `instructor_earnings_ledger` covers course splits, cohort sessions, abroad applications, language sessions, IELTS sessions.
-- **Admin coverage**: Career Abroad group expanded from 4 → 8 tabs; Learn group has Cohorts, B2B Engagements, Instructor Payouts.
-- **Public discovery**: `/c/:slug/learn`, `/verify/skill/:code`, `/t/:handle`, `/jobs/:id` mobile-first.
+1. **`ai-gig-pricer` edge function** (was in 5.1 spec, not deployed). Suggests fair credit price using `gig_submissions` history + scope complexity. Used by both the wizard ("AI suggested 35cr — adjust?") and Matchmaker (price-fairness signal).
+2. **Unified `gig_kind` enum + `acceptance_criteria` on `gigs` and `content_gigs`** — the column was added to `marketplace_gigs` only. Without parity, Matchmaker can't rank across all three sources.
+3. **Unified `/app/gigs` v2 listing** — current Gigs.tsx still queries 3 tables separately. Add a `gigs_unified_view` (SQL view) over the three tables exposing `id`, `kind`, `title`, `skills`, `credits`, `deadline`, `status`, `acceptance_criteria` so Matchmaker, the public list, and the new push-notifications all use one source.
 
-### Known follow-ups deferred from Phase 4
-- Real-time full-duplex voice (IELTS / language partner — currently upload-based).
-- Stripe Connect international payouts (still credits → existing flow).
-- Visa appointment integrations.
-- Counsellor public marketplace (cockpit shipped; discovery surface pending).
+## Part B — Phase 5.2 — AI Matchmaker + Bid Coach
 
----
+### Goal
+Stop relying on talents finding gigs. Push qualified gigs to the right talent, coach their bid, and give the poster an AI-shortlisted bidder list.
 
-# Phase 5 — Gig Economy (AI Assistance + Verification Automation)
+### Schema
 
-## North-star
-Turn the gig economy into a **self-driving marketplace** where AI scopes work, matches talent, verifies deliverables, and releases payouts — across all three existing gig systems (`gigs` / `marketplace_gigs` / `content_gigs`) plus a new B2B services layer. Every action a human takes today (scope a brief, pick a winner, review a submission, score quality, release credits, dispute) gets an AI co-pilot or full automation with a human override.
+| Object | Purpose |
+|---|---|
+| `gig_matches` | One row per (gig_id, talent_id) candidate. Columns: `score numeric(5,2)`, `signals jsonb` (verified skills hit, CEFR, past quality, availability, price-fit), `status` (`offered` / `viewed` / `bid` / `won` / `dismissed` / `expired`), `offered_at`, `expires_at`. Unique (gig_id, talent_id). |
+| `gig_bids` (extend or create if missing on unified table) | Add `coached_version_id`, `ai_rationale jsonb`, `proof_links jsonb`, `match_id` FK. |
+| `talent_availability` | `weekly_capacity_hours`, `paused_until`, `categories[]`. Lightweight; defaults inferred from past activity. |
+| `gig_match_digests` | Daily/weekly digest log per talent (for unsubscribe + dedup). |
 
-## Stakeholders
-1. **Talents** (workers / bidders / content leads / language tutors / counsellors / instructors)
-2. **Companies / B2B clients** (project posters, ops sponsors)
-3. **Admins** (gig ops, finance, trust & safety)
-4. **AI Agents** (scoper, matcher, verifier, dispute mediator, payouts)
-5. **Reviewers / Content Leads** (specialised QA tier)
-6. **Public visitors** (SEO landings, project showcase, talent for-hire pages)
+RLS: talent sees own matches/bids; poster sees own gig's matches once `status >= 'bid'` (or always for the AI-recommended panel, anonymized until shortlisted); admin full.
 
-## Sub-phase breakdown
+### RPCs
 
-### 5.1 — Unified Gig Hub v2 + AI Scoper
-Consolidate the three gig surfaces behind one schema-aware hub. Add **AI Scoper** that turns a one-line ask ("I need 10 product images for Shopify") into a structured gig: scope, deliverables, acceptance criteria, fair credit price, suggested deadline, required skills.
+- `match_talents_to_gig(_gig_id uuid, _limit int default 25)` — scoring across `talent_skill_profile`, verified credentials, CEFR, prior `gig_verifications` quality, `talent_trust_score`, `talent_availability`, language match, price-fit vs `talent_earnings_ledger` history. Returns ranked list, upserts `gig_matches`.
+- `match_gigs_for_talent(_talent_id uuid, _limit int default 20)` — inverse, used by daily digest + `/app/gigs?tab=for-you`.
+- `record_match_event(_match_id, _event)` — view/dismiss/bid telemetry.
+- `shortlist_match(_match_id)` — poster action; flips status, notifies talent.
 
-- Schema: `gig_briefs` (raw ask), `gig_scope_drafts` (AI output, versioned), unify `gig_kind` enum across the 3 tables, add `acceptance_criteria jsonb` to every gig table.
-- Edges: `ai-gig-scoper`, `ai-gig-pricer` (uses historical `gig_submissions` + market data).
-- Surfaces: `/app/gigs/new` wizard (talent self-post or company post), unified `/app/gigs` v2 with filters by kind/skill/credits/deadline.
-- Admin: Gig Ops dashboard merges Quick / Marketplace / Content under one queue.
+### Edge functions
 
-### 5.2 — AI Matchmaker + Bid Coach
-Stop relying on talents finding gigs. Push gigs to qualified talent and coach their bids.
+- `ai-bid-coach` — input: `gig_id`, `draft_text`. Pulls scope, talent's verified skills + portfolio + past wins, returns improved bid, structured `rationale`, suggested `proof_links` (auto-pulled from public profile / completed tracks / certificates).
+- `ai-match-explainer` — short "Why you?" string per match for the inbox card and the poster's recommended panel ("Verified React + 92% on past 4 frontend gigs + within budget").
+- `cron-gig-matchmaker` — runs every 15 min on new/updated open gigs → calls `match_talents_to_gig` → emits notifications (cap N/talent/day to avoid spam).
+- `cron-gig-digest` — daily 9am local-time digest per talent via the native email queue.
+- `notify-gig-match` — single transactional email + in-app insert for hot matches (score ≥ 0.85).
 
-- RPC: `match_talents_to_gig(gig_id)` — uses `talent_skill_profile`, verified credentials, CEFR, past gig quality scores, availability.
-- Edge: `ai-bid-coach` (rewrites talent's bid with rationale + proof links from their portfolio + verified skills).
-- Notifications: native email + in-app for top-N matches; daily digest for talents.
-- Company side: "AI-recommended bidders" panel on every project; one-tap shortlist.
-- Admin: matchmaker quality dashboard (offered → bid → won → completed funnel).
+### Talent surfaces
 
-### 5.3 — AI Verification Layer (the heart of Phase 5)
-Automate deliverable QA so payouts release faster and scale. Different verifier per `gig_kind`.
+- `/app/gigs?tab=for-you` — new default tab. Cards show match score, Why-you chip, one-tap "Draft bid with AI". Empty state: profile-strengthening nudges (verify skills, add availability).
+- Bid composer (modal on any gig detail): textarea + **"Improve with AI"** button → diff view + accept/reject. Stores both versions.
+- Profile sidebar widget: weekly capacity slider + paused toggle (writes `talent_availability`).
+- In-app inbox + email: "3 new matches" summary card.
 
-- Schema: `gig_verifications` (one row per submission attempt: `verifier_kind`, `score`, `pass_threshold`, `findings jsonb`, `evidence jsonb`, `status`, `human_override_by`).
-- Verifiers (each its own edge function):
-  - `verify-cv-upload` — parse PDF, check completeness, plagiarism vs prior uploads, real-person heuristics.
-  - `verify-job-posting` — dedupe, title sanity, JD quality score, salary plausibility per market.
-  - `verify-job-sharing` — fetch shared URL, confirm `utm_source=gro10x` + ref code, count reach.
-  - `verify-content-gig` — Gemini multimodal: rubric scoring vs `module_resources` spec (length, accuracy, brand voice, examples).
-  - `verify-marketplace-deliverable` — image/video/code QA per `acceptance_criteria`; runs lint/visual diff/transcription as relevant.
-  - `verify-cv-outreach` / `verify-portfolio` (reuses Phase 3 work).
-- Auto-release: when AI score ≥ pass_threshold AND no fraud flags → credit + ledger row written immediately. Below threshold → routes to human reviewer with AI's findings prefilled.
-- Trust score: `talent_trust_score` table aggregating verification outcomes, age of account, dispute rate; gates higher-credit gigs.
+### Company / poster surfaces
 
-### 5.4 — Reviewer Tier + Dispute Mediator
-Even with AI, some calls need humans. Build a paid Reviewer tier and a structured dispute flow.
+- On every gig detail (employer view): **AI-recommended bidders** panel (top 5, anonymized name + score + Why-you chip + verified-skill badges). One-tap **Shortlist** → reveals identity + sends notification.
+- `/app/employer/gigs/:id` gets a Matches subtab with funnel (offered → viewed → bid → shortlisted → won).
 
-- Roles: extend `app_role` with `gig_reviewer`. Reviewers earn per verified item; tracked in `instructor_earnings_ledger` with `source_kind = 'gig_review'`.
-- Schema: `gig_reviewer_assignments` (round-robin), `gig_disputes` (poster ↔ talent, with AI-mediator transcript).
-- Edge: `ai-dispute-mediator` — reads scope, deliverable, both sides' messages, proposes settlement (full / partial / reject + reasoning). Admin can accept/override.
-- Surface: `/app/reviewer` cockpit (mirrors counsellor cockpit pattern from 4.8) with kanban: pending / in-review / decided / appealed.
-- Admin: Trust & Safety tab — fraud pattern dashboard, reviewer leaderboard, dispute SLA.
+### Admin surfaces
 
-### 5.5 — B2B Project Marketplace + Managed Services
-Open the marketplace to companies properly (paying in `company_credits`), with optional "Managed by Gro10x" tier where admin acts as PM.
+- Gig Ops → **Matchmaker** subtab: live funnel (offered/viewed/bid/won/completed) per kind, top mismatched gigs (low scores everywhere → scope or price issue → flag back to Scoper), bid-coach acceptance rate, digest open-rate.
+- Trust signal: matches that bid but lose >5× consecutively → trust score nudge.
 
-- Schema: `marketplace_projects` (rename/extend `marketplace_gigs`), `project_milestones` with escrow (`credits_escrowed`, `released_at`), `project_managed_assignments` (Gro10x PM).
-- RPCs: `escrow_project_funds`, `release_milestone`, `refund_project`.
-- Edges: `ai-project-pm` (drafts milestone plan + risks + weekly status), `ai-deliverable-summarizer` (digest for company stakeholders).
-- Surfaces: `/c/:slug/projects` (company-branded board), `/app/projects/:id` (talent workspace with milestone chat + files + verification badges), admin Managed Projects queue.
+### Notifications
 
-### 5.6 — Content Studio v2 (academy build-out scaled by AI)
-Phase 4 closed the learning loop; Phase 5 makes the content side self-replenishing.
+- Native email queue only (per memory: never B2B mailto for transactional).
+- Templates: `gig_match_hot`, `gig_match_digest`, `gig_bid_shortlisted`, `gig_bid_lost`. All include unsubscribe + capacity-update deep links.
 
-- Auto-discovery: nightly cron compares `learning_tracks` → `module_resources` → flags gaps → AI Scoper auto-creates `content_gigs` with full scope + rubric + estimated credits.
-- Content Lead workspace: `/app/studio` v2 — claim queue, AI co-writer (`ai-content-cowriter`), auto-citation checker, brand-voice linter.
-- Verification: `verify-content-gig` writes a quality score that directly drives the existing `approve_content_gig(p_quality_score)` multiplier (0.6×–1.25×) — admin only confirms.
-- Admin: Content Ops dashboard shows AI-flagged risk gigs (low rubric score, plagiarism, off-brand) at the top.
+### Cross-cutting
 
-### 5.7 — Earnings, Payouts & Tax (Gig-wide)
-Unify all gig income (Quick / Marketplace / Content / Reviewer / Managed PM cuts) into the existing `instructor_earnings_ledger` model, extend it for non-instructor sources, and add tax/withdrawal automation.
+- Memory entry: `mem://product/gig-matchmaker-and-bid-coach` capturing scoring weights, digest rules, anonymization rule, capacity defaults.
+- Fractional credits unchanged. No payout changes (those land in 5.7).
+- `talent_skill_profile` and `talent_trust_score` already exist from Phase 4 + 5.1 prep — extend signals only, no rename.
 
-- Schema: rename ledger to `talent_earnings_ledger` (view alias kept for compat); add `source_kind` values for every gig flow; `payout_tax_profile` per user (country, ID type, withholding %).
-- RPCs: `request_gig_payout`, `process_gig_payout` (mirrors instructor payouts), monthly statement cron extended.
-- AI: `ai-tax-helper` answers withholding questions; `ai-payout-coach` warns "you'll cross threshold X, want to split?".
-- Surfaces: `/app/earnings` unified for all gig roles; admin `Finance → Gig Payouts` tab.
+## Technical sequencing (matches Phase 4 SOP)
 
-### 5.8 — Public Gig Marketplace + SEO
-Make the gig economy a discovery surface, not just an in-app feature.
+```text
+Step 1 → 5.1 cleanup migration: ai-gig-pricer edge + acceptance_criteria parity + gigs_unified_view
+Step 2 → 5.2 schema migration: gig_matches, talent_availability, bids extension, gig_match_digests + RLS
+Step 3 → RPCs: match_talents_to_gig, match_gigs_for_talent, record_match_event, shortlist_match
+Step 4 → Edge functions: ai-bid-coach, ai-match-explainer, cron-gig-matchmaker, cron-gig-digest, notify-gig-match
+Step 5 → Talent UI: /app/gigs ForYou tab, bid composer "Improve with AI", availability widget
+Step 6 → Poster UI: AI-recommended bidders panel + Matches subtab
+Step 7 → Admin Matchmaker subtab under Gig Ops
+Step 8 → Memory entry + Phase 5.2 checkpoint in .lovable/plan.md
+```
 
-- Public routes: `/gigs` (browse open quick gigs + projects, JSON-LD `JobPosting` for project gigs), `/gigs/:slug` (rich brief + AI-generated FAQ), `/for-hire/:handle` (talent's verified gig portfolio + trust score badge).
-- Edge: `ai-gig-seo` generates titles, meta, FAQ from `gig_scope_drafts`.
-- Sitemap + RSS feeds per gig kind.
-- Auth gate stays on submission; browsing is public (matches `/jobs/:id` pattern from 3.5).
+## Out of scope (still later phases)
+- Verification automation (5.3)
+- Reviewer tier / disputes (5.4)
+- B2B managed projects (5.5)
+- Public `/gigs` SEO (5.8)
 
-## Cross-cutting (applies to every sub-phase)
-- **Memory contract**: `talent_skill_profile`, `talent_trust_score`, `get_talent_outcome_signal` extended with gig signals so Phase 4 surfaces (CRM, `/t/:handle`, job match) automatically benefit.
-- **Storage**: private buckets `gig-deliverables`, `gig-evidence`, `gig-disputes`, all signed-URL only.
-- **RLS**: posters see own gigs + bids; bidders see public gigs + own bids; reviewers see assigned items via `has_role('gig_reviewer')`; admins via `has_role('admin')`.
-- **Notifications**: native email queue for new match, bid received, verification pass/fail, dispute opened, payout released.
-- **Credits**: fractional `numeric(12,1)` model unchanged; escrow uses same wallet with `held_amount` column.
+## Open questions
 
-## Out of scope (Phase 6 candidates)
-- Real-time collab (live whiteboard / pair coding inside a gig).
-- On-chain proof-of-work / NFT credentials.
-- Cross-border fiat payouts (still credits → existing rails).
-- Voice/video calls between bidders and posters in-app.
-
-## SOP for execution (matches Phase 4 pattern)
-For each sub-phase: schema migration → RLS + RPCs → edge functions → talent surfaces → admin tab → memory entry → completion checkpoint, then move to next.
-
-## Open questions before kickoff
-
-1. **Sub-phase ordering** — start with **5.1 (Unified Hub + AI Scoper)** as foundation, or jump to **5.3 (Verification Layer)** first because it unblocks faster payouts on existing volume?
-2. **Reviewer tier** — open to all talents who pass a calibration test, or invitation-only by admin?
-3. **Escrow model for B2B projects (5.5)** — full upfront escrow per project, or per-milestone top-ups?
-4. **Public marketplace (5.8)** — launch under `/gigs` on the main domain, or keep gig discovery inside `/app` only for trust reasons?
+1. **Push channel** for hot matches — in-app + email only, or also SMS via the existing global phone capture?
+2. **Anonymization** of bidders to posters — keep anonymous until shortlist (recommended for trust), or always reveal?
+3. **Cap on matches/talent/day** — default to 5 hot pushes + 1 daily digest. OK?
+4. **For-you tab** — make it the default landing tab on `/app/gigs`, or keep "Tasks" default and add a banner?
