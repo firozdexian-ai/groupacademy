@@ -218,6 +218,9 @@ export function ProgressStage({
             </CardContent>
           </Card>
 
+          {/* COMPONENT: TOPIC_MASTERY_BARS */}
+          <MasteryBars moduleId={moduleId} topN={5} />
+
           {/* COMPONENT: AGGREGATE_COURSE_PROGRESS */}
           <Card className="rounded-[32px] border-2 border-border/40 bg-card/30">
             <CardContent className="p-6 space-y-4">
