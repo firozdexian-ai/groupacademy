@@ -33,6 +33,7 @@ import {
   Sparkles,
   HelpCircle,
   Wand2,
+  GripVertical,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -45,6 +46,7 @@ import {
 } from "@/components/ui/sheet";
 import ResearchPromptDialog from "@/components/modules/ResearchPromptDialog";
 import { BatchContentGenerator } from "@/components/dashboard/BatchContentGenerator";
+import { DraggableList } from "@/components/dashboard/common/DraggableList";
 
 /**
  * Curriculum Module Manager
@@ -200,23 +202,26 @@ export default function ModuleManagement(props: ModuleManagementProps = {}) {
     const idx = modules.findIndex((m) => m.id === id);
     const swapIdx = direction === "up" ? idx - 1 : idx + 1;
     if (idx < 0 || swapIdx < 0 || swapIdx >= modules.length) return;
-
-    const a = modules[idx];
-    const b = modules[swapIdx];
-    const orderA = a.display_order ?? idx + 1;
-    const orderB = b.display_order ?? swapIdx + 1;
-
     const newList = [...modules];
-    newList[idx] = { ...a, display_order: orderB };
-    newList[swapIdx] = { ...b, display_order: orderA };
-    newList.sort((x, y) => (x.display_order ?? 0) - (y.display_order ?? 0));
-    setModules(newList);
+    [newList[idx], newList[swapIdx]] = [newList[swapIdx], newList[idx]];
+    await reorderModules(newList);
+  };
 
+  const reorderModules = async (newList: CourseModule[]) => {
+    // Densely renumber and persist only changed rows.
+    const renumbered = newList.map((m, i) => ({ ...m, display_order: i + 1 }));
+    const changed = renumbered.filter((m) => {
+      const orig = modules.find((o) => o.id === m.id);
+      return orig && orig.display_order !== m.display_order;
+    });
+    setModules(renumbered);
+    if (!changed.length) return;
     try {
-      await Promise.all([
-        supabase.from("course_modules").update({ display_order: orderB }).eq("id", a.id),
-        supabase.from("course_modules").update({ display_order: orderA }).eq("id", b.id),
-      ]);
+      await Promise.all(
+        changed.map((m) =>
+          supabase.from("course_modules").update({ display_order: m.display_order }).eq("id", m.id),
+        ),
+      );
     } catch (e: any) {
       toast.error("Reorder failed; reloading.");
       loadModules();
@@ -322,11 +327,15 @@ export default function ModuleManagement(props: ModuleManagementProps = {}) {
             </CardContent>
           </Card>
         ) : (
-          modules.map((mod, index) => {
-            const status = saveStates[mod.id] ?? "saved";
-            return (
-              <Card key={mod.id} className="rounded-[24px] border-border/40 overflow-hidden">
-                <CardContent className="p-5 space-y-4">
+          <DraggableList
+            items={modules}
+            getId={(m) => m.id}
+            onReorder={reorderModules}
+            renderItem={(mod, index, dragHandle) => {
+              const status = saveStates[mod.id] ?? "saved";
+              return (
+                <Card key={mod.id} className="rounded-[24px] border-border/40 overflow-hidden">
+                  <CardContent className="p-5 space-y-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
                       <Badge variant="outline" className="rounded-lg font-black text-[10px] tracking-widest">
@@ -367,6 +376,13 @@ export default function ModuleManagement(props: ModuleManagementProps = {}) {
                       )}
                     </div>
                     <div className="flex items-center gap-1">
+                      <div
+                        {...dragHandle}
+                        className={cn(dragHandle.className, "h-8 w-8 inline-flex items-center justify-center rounded-lg text-muted-foreground hover:bg-muted/50")}
+                        title="Drag to reorder"
+                      >
+                        <GripVertical className="h-3.5 w-3.5" />
+                      </div>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -522,8 +538,9 @@ export default function ModuleManagement(props: ModuleManagementProps = {}) {
                   </div>
                 </CardContent>
               </Card>
-            );
-          })
+              );
+            }}
+          />
         )}
       </main>
 

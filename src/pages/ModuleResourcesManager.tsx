@@ -31,6 +31,9 @@ import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 import { cn } from "@/lib/utils";
 import { ModuleResourceFileUpload } from "@/components/dashboard/ModuleResourceFileUpload";
+import { BulkResourceUpload } from "@/components/dashboard/BulkResourceUpload";
+import { DraggableList } from "@/components/dashboard/common/DraggableList";
+import { GripVertical } from "lucide-react";
 
 type ResourceType = Database["public"]["Enums"]["resource_type"];
 
@@ -272,6 +275,31 @@ export default function ModuleResourcesManager() {
     }
   };
 
+  const reorderStageResources = async (stage: number, newStageItems: ModuleResource[]) => {
+    // Renumber within the stage densely. Persist only changed (already-saved) rows.
+    const renumbered = newStageItems.map((r, i) => ({ ...r, display_order: i }));
+    const updates = renumbered.filter((r) => {
+      if (!r.id) return false;
+      const orig = resources.find((o) => o._key === r._key);
+      return orig && orig.display_order !== r.display_order;
+    });
+    setResources((prev) => {
+      const others = prev.filter((r) => r.stage_number !== stage);
+      return [...others, ...renumbered];
+    });
+    if (!updates.length) return;
+    try {
+      await Promise.all(
+        updates.map((r) =>
+          supabase.from("module_resources").update({ display_order: r.display_order }).eq("id", r.id!),
+        ),
+      );
+    } catch (e: any) {
+      toast.error("Reorder failed; reloading.");
+      loadData();
+    }
+  };
+
   if (loading)
     return (
       <div className="h-screen flex items-center justify-center text-muted-foreground">
@@ -373,23 +401,45 @@ export default function ModuleResourcesManager() {
                       ))}
                     </div>
                   </CardHeader>
-                  <CardContent className="p-6">
+                  <CardContent className="p-6 space-y-5">
+                    {moduleId && (
+                      <BulkResourceUpload
+                        moduleId={moduleId}
+                        stageNumber={stage.number}
+                        currentMaxOrder={stageResources.reduce(
+                          (m, r) => Math.max(m, r.display_order ?? 0),
+                          -1,
+                        )}
+                        onComplete={loadData}
+                      />
+                    )}
                     {stageResources.length === 0 ? (
-                      <div className="py-16 text-center border-2 border-dashed border-border/40 rounded-2xl bg-muted/10">
+                      <div className="py-12 text-center border-2 border-dashed border-border/40 rounded-2xl bg-muted/10">
                         <Zap className="h-10 w-10 mx-auto mb-3 text-muted-foreground/30" />
                         <p className="text-xs font-black uppercase tracking-widest text-muted-foreground/60">
-                          No resources yet — add one above.
+                          No resources yet — bulk-upload above or add one type at a time.
                         </p>
                       </div>
                     ) : (
-                      <div className="space-y-5">
-                        {stageResources.map((resource) => {
+                      <DraggableList
+                        items={stageResources}
+                        getId={(r) => r._key!}
+                        onReorder={(newItems) => reorderStageResources(stage.number, newItems)}
+                        className="space-y-5"
+                        renderItem={(resource, _i, dragHandle) => {
                           const key = resource._key!;
                           const state = saveStates[key] || { status: "saved" };
                           return (
                             <Card key={key} className="rounded-2xl border-border/40 bg-background overflow-hidden">
                               <CardHeader className="py-3 px-5 border-b border-border/20 flex flex-row items-center justify-between bg-muted/10">
                                 <div className="flex items-center gap-3 flex-wrap">
+                                  <div
+                                    {...dragHandle}
+                                    className={cn(dragHandle.className, "h-7 w-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-muted/50")}
+                                    title="Drag to reorder"
+                                  >
+                                    <GripVertical className="h-3.5 w-3.5" />
+                                  </div>
                                   <Badge
                                     variant="outline"
                                     className="h-6 rounded-full border-primary/20 bg-primary/5 text-primary font-black text-[9px] uppercase"
@@ -526,8 +576,8 @@ export default function ModuleResourcesManager() {
                               </CardContent>
                             </Card>
                           );
-                        })}
-                      </div>
+                        }}
+                      />
                     )}
                   </CardContent>
                 </Card>
