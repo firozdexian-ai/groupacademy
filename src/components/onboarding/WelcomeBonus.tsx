@@ -88,9 +88,9 @@ export function WelcomeBonus({ onContinue }: WelcomeBonusProps) {
       </div>
 
       <div className="space-y-3 mb-10 relative z-10">
-        <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-slate-900 leading-tight">Welcome Bonus</h1>
+        <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-slate-900 leading-tight">Welcome aboard</h1>
         <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-          Your initial career capital is ready.
+          Here's a little something to get you started.
         </p>
       </div>
 
@@ -103,10 +103,10 @@ export function WelcomeBonus({ onContinue }: WelcomeBonusProps) {
           </div>
 
           <div className="flex flex-col gap-2 relative z-10">
-            <p className="text-xs font-black uppercase tracking-widest text-slate-900">Free Credits Awarded</p>
+            <p className="text-xs font-black uppercase tracking-widest text-slate-900">Credits added to your wallet</p>
             <div className="flex items-center justify-center gap-2 text-slate-400">
               <ShieldCheck className="h-4 w-4" />
-              <span className="text-[10px] font-bold uppercase tracking-widest">$5.00 USD Value</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest">Worth around $5 USD</span>
             </div>
           </div>
         </div>
@@ -116,13 +116,13 @@ export function WelcomeBonus({ onContinue }: WelcomeBonusProps) {
         onClick={() => setShowExplanation(!showExplanation)}
         className="group flex items-center gap-3 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-blue-500 transition-all mb-8 relative z-10"
       >
-        How can I use these?
+        How can I use these credits?
         {showExplanation ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
       </button>
 
       {showExplanation && (
         <div className="w-full bg-slate-50 border border-slate-200 rounded-[32px] p-8 mb-10 text-left animate-in slide-in-from-bottom-4 duration-500 shadow-sm relative z-10">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-5">Credit Value Breakdown</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-5">What credits unlock</p>
           <ul className="space-y-4">
             {[
               { label: "Career Readiness Audit", val: "50 Credits" },
@@ -162,7 +162,7 @@ export function WelcomeBonus({ onContinue }: WelcomeBonusProps) {
                   className="h-8 text-xs rounded-lg w-full"
                   onClick={() => navigate(`/app/learning/courses/${upcomingEvent.slug}`)}
                 >
-                  Reserve my seat (free with bonus) <ArrowRight className="h-3 w-3 ml-1" />
+                  Reserve my seat (free with credits) <ArrowRight className="h-3 w-3 ml-1" />
                 </Button>
               </div>
             </div>
@@ -178,10 +178,10 @@ export function WelcomeBonus({ onContinue }: WelcomeBonusProps) {
       >
         {animationComplete ? (
           <>
-            Build Your Profile <ArrowRight className="h-4 w-4" />
+            Build my profile <ArrowRight className="h-4 w-4" />
           </>
         ) : (
-          "Loading..."
+          "Loading…"
         )}
       </Button>
     </div>
