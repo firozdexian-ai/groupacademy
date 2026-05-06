@@ -1,152 +1,137 @@
-# Phase 3.5 — Closing the Hiring Loop (Gro10x + Admin + Talent)
+# Phase 3.6 — Employer CRM & Talent Sourcing
 
-3.4 made the **talent-side** application a tracked pipeline. The other side of the loop is silent: the Gro10x employer portal already has `Gro10xJobsList` / `Gro10xJobApplicants` / `Gro10xShortlist` / `Gro10xInbox`, but they aren't wired into the new `application_status` model, status moves don't notify talent, and the public `/jobs/:id` page is still the old dense layout. 3.5 closes the loop end-to-end.
+3.5 closed the **inbound** hiring loop (applied → hired). 3.6 closes the **outbound** loop: recruiters discover talent, save them to lists, run sourcing pipelines, and track relationships — all inside Gro10x with admin oversight. CRM today (`Gro10xCRM` + `company_leads`) is sales-style B2B leads; we keep that and add a **Talent CRM** stream alongside it, sharing one shell.
 
-CRM (`Gro10xCRM`) and the marketing of company contacts are **out of scope** — they get their own phase.
+Talent-side gaps (saved searches, AI coach) stay out of scope per decision.
 
 ---
 
 ## Scope
 
-### A. Gro10x employer pipeline (primary employer surface)
+### A. Talent Search (sourcing surface)
+New `/gro10x/sourcing` page — Boolean-style search over the public talent pool.
 
-Upgrade `Gro10xJobApplicants.tsx` and `Gro10xShortlist.tsx` into a single **kanban pipeline** per job:
+- Filters: keywords, skills (chips), location, years of experience, current title, education, salary expectation band, availability (`open_to_work`), languages, mastery-verified topics.
+- Result card: avatar, headline, top 3 verified skills, mastery score, last active, "View profile" + quick actions (Save, Add to list, Message, Invite to job).
+- Honors PII rules: only fields the talent set public via `get_public_talent_profile` RPC. Contact details revealed only after talent accepts a connection (existing connection-fee model unchanged — mem: Creator Economy).
+- Mobile (≤md): filter sheet + vertical card list.
+- Backed by new RPC `search_public_talents(filters jsonb, limit, offset)` returning paginated rows + total count, using existing `talent_skill_profile`, `skill_credentials`, `talent_public_profiles`.
+
+### B. Talent Lists (saved cohorts)
+- New table `talent_lists` (`company_id`, `name`, `description`, `created_by`).
+- New table `talent_list_members` (`list_id`, `talent_id`, `added_by`, `note`, `added_at`).
+- "Save to list" from sourcing results, profile, **and** application kanban cards.
+- Lists page at `/gro10x/sourcing/lists` — table of lists, member count, last activity.
+- List detail = same talent cards + bulk actions (message, invite to job, move to pipeline).
+
+### C. Talent CRM Pipeline (relationship tracking)
+Extend current `Gro10xCRM` from **leads-only** to a tabbed shell:
 
 ```text
-New → Reviewing → Shortlisted → Interview → Offer → Hired
-                                               ↘ Rejected   ↘ Withdrawn
+[ Sales Leads ]   [ Talent Pipeline ]
 ```
 
-- Drag (desktop) or tap-to-move (mobile) between lanes → updates `application_status`. The 3.4 trigger already stamps `last_status_at` and (new in 3.5) fires the talent notification.
-- Card: applicant name, headline, AI match score, applied X ago, CV download icon.
-- Click → side sheet with: full profile snapshot, submitted CV/cover letter (signed URL), AI rationale, **Messages tab** (reuses Gro10xInbox thread for that application), internal notes (private to recruiters).
-- Filters: by job, min match score, status, date range, has-assessment.
-- Bulk actions: shortlist, reject with templated reason, export CSV.
-- Mobile (≤md): kanban auto-collapses to a status-tab list — same card, same sheet.
-- Lives at `/gro10x/work/jobs/:jobId/applicants` (replaces current `Gro10xJobApplicants`) and a roll-up `/gro10x/work/applications`.
+- New table `talent_relationships` (`company_id`, `talent_id`, `stage` enum [`prospect`|`contacted`|`engaged`|`interviewing`|`offered`|`hired`|`passed`|`nurture`], `owner_id`, `source` text, `next_step`, `next_step_at`, `notes`, `created_at`, `updated_at`).
+- New table `talent_relationship_activities` (`relationship_id`, `actor_id`, `kind` enum [`note`|`message`|`status_change`|`call`|`email`|`task`], `body jsonb`, `created_at`).
+- Kanban same shape as sales CRM. Drag/tap moves stage; logs activity.
+- Side sheet: profile snapshot, message thread (reuses 3.5 `application_messages` infra by linking via talent_id when no application exists, OR a new `direct_messages` thread — see Open Q1), notes, activity timeline, "Convert to application" if a relevant role exists.
+- Auto-promote rule: when a tracked talent submits an application to one of the company's jobs, the application card in 3.5 kanban shows a **"Sourced"** badge linking back to the relationship.
 
-### B. Admin oversight console (parallel /dashboard view)
+### D. Company Contacts (B2B)
+The existing `company_leads` is generic; split it into a proper **Contacts** entity for B2B intros (clients, partners, investors):
 
-Per the answer to "where does the pipeline live", build a parallel admin console at `/dashboard/admin/jobs/applications`:
+- Rename UX label to **Contacts** (table stays `company_leads` for back-compat); add columns `linkedin_url`, `tags text[]`, `last_contacted_at`, `owner_id`.
+- New "Contacts" tab in CRM shell — table view with quick filters, CSV import (recruiter-only).
+- Mailto-only outreach (mem: Email Strategy) — never auto-sends from our domain.
+- Activity log via existing `company_lead_activities`.
 
-- Same kanban + side sheet components as A — exposed across **all** companies (admin scope), not just one company's jobs.
-- Adds an `Owner company` column/filter so platform admins can intervene on any pipeline.
-- Read-write (admins can move cards) but every move is logged in `application_audit_log` with `actor_role='admin'`.
-- Lives in the existing Admin → Jobs group (mem: Admin Groups 7-10).
-- Component reuse: A and B import the same `<ApplicationKanban>`, `<ApplicationDetailSheet>`, `<ApplicationFilters>` — only the data scope and filter defaults differ.
+### E. Admin oversight (parallel admin views)
+Per the Gro10x + admin pattern from 3.5:
 
-### C. Status-change notifications (talent-facing)
+- `/dashboard/admin/sourcing/talents` — admin can search the same pool, see usage analytics per company.
+- `/dashboard/admin/sourcing/lists` — read-only roll-up across companies.
+- `/dashboard/admin/sourcing/pipeline` — read-only kanban roll-up of `talent_relationships`.
+- All read/write actions audited in a new `crm_audit_log`.
 
-Every status move triggers a notification to the talent:
+### F. Notifications & gating
+- Talent gets in-app notification "{Company} added you to their talent pool" only when relationship moves past `prospect` (avoids spam).
+- "Invite to apply" sends a directed in-app + email notification with a deep link to the job apply flow.
+- Inbox/connection gating reuses existing rules (mem: Creator Economy + Messenger Inbox). Recruiters initiating outreach to a tracked talent consume connection credits per current model — no new economy in 3.6.
 
-| Status change         | Channel                  | Copy                                      |
-|-----------------------|--------------------------|-------------------------------------------|
-| → Viewed              | In-app feed only         | "Your application was viewed by {co}"     |
-| → Shortlisted         | In-app + email           | "You're shortlisted for {role} at {co}"   |
-| → Interview requested | In-app + email + push    | "Interview request from {co}"             |
-| → Offer               | In-app + email + push    | "Offer from {co} — review by {date}"      |
-| → Rejected            | In-app + email (gentle)  | "Update on your {role} application"       |
-| → Hired               | In-app + email + push    | "🎉 You got hired at {co}"                 |
-
-- In-app: reuses agentic feed notifications infra (mem: Agentic Feed Notifications).
-- Email: reuses native queue at `notify.groupacademy.online` (mem: Native Email Flow + Email Strategy).
-- New trigger `trg_job_application_status_notify` fires after the existing `last_status_at` stamp; trigger calls a new dispatcher edge `notify-application-status` which fans out per the matrix above.
-
-### D. Recruiter ↔ candidate messaging via Gro10xInbox
-
-Application threads become a new channel inside the existing inbox (one source of truth):
-
-- New table `application_messages` (`application_id`, `sender_id`, `sender_role` enum [`talent`|`recruiter`|`admin`], `body`, `attachments jsonb`, `read_at`, `created_at`).
-- **Recruiter view**: thread renders inside the Gro10x application side sheet AND surfaces in `Gro10xInbox` as an `Application: {Job} — {Candidate}` conversation.
-- **Talent view**: thread renders inside `AppApplicationDetail` (3.4 page) as a Messages section; also lands in the talent's existing messenger (mem: Messenger Inbox) as a conversation pinned with the job context.
-- Reuses existing `messaging-send` edge (just adds an `application_id` linkage so threads route to the right surface).
-- Realtime via `supabase_realtime` on `application_messages`.
-- Gating: respects the platform's existing inbox gating rules; **recruiters initiating a thread on their own posted role do not consume credits** (it's their pipeline) — talents initiating a thread to a recruiter still follows existing connection-fee rules (mem: Creator Economy).
-- New messages trigger the in-app notification + a 15-min email digest (instant email only on the first message of a thread).
-
-### E. Public job detail redesign (`/jobs/:id`)
-
-The logged-out page is the SEO + share surface. Mirror the 3.4 mobile-first layout, **without** any tools that need credits:
-
-- Same hero, meta pills, About / Requirements / Company sections, similar-roles rail.
-- **No** match strip — replaced with a "Sign in to see your match" banner → routes to auth then back.
-- Sticky bottom bar: "Apply" → auth gate → `/app/jobs/:id/apply`.
-- Keeps existing JSON-LD `JobPosting` block (mem: SEO & Discovery).
-- Public-safe RPC for similar roles (no personalization).
-
-### F. Withdraw / re-open polish
-
-3.4 added soft `withdrawn`. Now:
-- 7-day undo window in `AppApplicationDetail` ("Restore application").
-- Withdrawn cards show in a greyed Withdrawn lane in both A and B kanbans (so recruiters see ghosts and can ignore them cleanly).
+### G. Analytics widget (Gro10x Work home)
+Small "Sourcing this week" card on `/gro10x/work`:
+- New talents saved, messages sent, conversion to application, hires from sourced.
+- Powered by new RPC `get_sourcing_stats(p_company_id, p_window_days)`.
 
 ---
 
 ## Backend
 
-### Schema changes
-- New table `application_messages` with RLS:
-  - Talent: read/write rows where they own the parent `job_applications.user_id`.
-  - Recruiter: read/write rows where the parent application's `job_id` belongs to a company they manage (uses existing company-membership check).
-  - Admin: read/write all (uses `has_role(auth.uid(), 'admin')`).
-- New table `application_audit_log` (`application_id`, `actor_id`, `actor_role`, `from_status`, `to_status`, `reason`, `created_at`).
-- `job_applications` UPDATE RLS extended: recruiters of the owning company may change `application_status`, `recruiter_notes`, `assessment_status` (currently admin-only).
+### New tables (all RLS company-scoped via `is_company_member`)
+- `talent_lists`, `talent_list_members`
+- `talent_relationships`, `talent_relationship_activities`
+- `crm_audit_log`
 
-### Triggers / functions
-- `trg_job_application_status_notify` — after-update on status change, calls `notify-application-status` and writes to `application_audit_log`.
-- `notify-application-status` edge — single dispatcher, fans out to in-app feed + email queue per the matrix in C.
+### New RPCs
+- `search_public_talents(p_filters jsonb, p_limit int, p_offset int) returns jsonb`
+- `get_sourcing_stats(p_company_id uuid, p_window_days int) returns jsonb`
+- `link_application_to_relationship(p_application_id uuid)` — trigger helper for the "Sourced" badge
 
-### RPCs
-- `get_employer_pipeline(p_company_id uuid default null, p_job_id uuid default null) returns jsonb` — bucketed counts per lane for kanban headers. Admin scope passes `null` company.
-- `get_application_thread_summary(p_application_id uuid) returns jsonb` — last message preview + unread count, used by Gro10xInbox row.
+### Triggers
+- `trg_application_inserted_link_relationship` — on `job_applications` insert, if a `talent_relationships` row exists for `(company_id, talent_id)`, log activity + flag application as `sourced=true`.
+- `trg_crm_audit` — generic audit logger across the new tables.
+
+### Edge functions
+- `notify-talent-added` — fires when relationship moves past prospect (in-app only, no email by default).
+- `notify-job-invitation` — invite-to-apply (in-app + email + push).
 
 ---
 
 ## Frontend file plan
 
-### New (shared)
-- `src/components/applications/ApplicationKanban.tsx` — used by both A and B
-- `src/components/applications/ApplicationKanbanCard.tsx`
-- `src/components/applications/ApplicationDetailSheet.tsx`
-- `src/components/applications/ApplicationFilters.tsx`
-- `src/components/applications/ApplicationMessageThread.tsx` — used in talent + recruiter surfaces
-- `src/components/applications/MessageComposer.tsx`
-- `src/hooks/useApplicationMessages.ts` (with realtime)
-- `src/hooks/useEmployerPipeline.ts`
-- `supabase/functions/notify-application-status/index.ts`
+### Shared CRM shell
+- `src/gro10x/pages/Gro10xCRM.tsx` — refactor into tabbed shell (`Contacts` / `Sales` / `Talent`)
+- `src/components/crm/CrmKanban.tsx` (generic, reused by sales + talent)
+- `src/components/crm/CrmAuditLog.tsx`
 
-### Gro10x (A)
-- `src/gro10x/pages/work/Gro10xJobApplicants.tsx` — rewritten as kanban shell
-- `src/gro10x/pages/work/Gro10xApplications.tsx` — new roll-up across all jobs in the company
-- `src/gro10x/pages/Gro10xInbox.tsx` — extended to render `Application: {Job} — {Candidate}` threads
+### Sourcing
+- `src/gro10x/pages/sourcing/Gro10xSourcing.tsx`
+- `src/gro10x/pages/sourcing/Gro10xSourcingLists.tsx`
+- `src/gro10x/pages/sourcing/Gro10xListDetail.tsx`
+- `src/components/sourcing/TalentSearchFilters.tsx`
+- `src/components/sourcing/TalentResultCard.tsx`
+- `src/components/sourcing/SaveToListSheet.tsx`
+- `src/hooks/useTalentSearch.ts`
+- `src/hooks/useTalentLists.ts`
+- `src/hooks/useTalentRelationships.ts`
 
-### Admin (B)
-- `src/pages/admin/jobs/AdminApplicationsPipeline.tsx` — admin scope shell
+### Admin
+- `src/pages/admin/sourcing/AdminTalentSearch.tsx`
+- `src/pages/admin/sourcing/AdminTalentLists.tsx`
+- `src/pages/admin/sourcing/AdminSourcingPipeline.tsx`
+- Register under Admin → Workforce/Jobs group (mem: Admin Groups 7-10)
 
-### Talent (C, D, F)
-- `src/pages/app/AppApplicationDetail.tsx` — add Messages section + Restore button
-- Talent messenger entry list — add application threads
-
-### Public (E)
-- `src/pages/PublicJobDetail.tsx` — full rewrite mirroring the 3.4 layout
-- `src/App.tsx` — ensure public route uses new component (no other route changes since A and B use existing Gro10x and admin routes)
+### Touchpoints
+- `src/gro10x/Gro10xRoutes.tsx` — add sourcing routes
+- `src/gro10x/pages/Gro10xWork.tsx` — add "Sourcing this week" card
+- `src/components/applications/ApplicationKanbanCard.tsx` — render "Sourced" badge when present
 
 ---
 
 ## Out of scope (later phases)
-- **Gro10xCRM** — company contacts, lead pipeline, deal tracking — separate phase
-- Offer-letter generation
-- Calendar / interview scheduling
-- Multi-stage assessment workflow
-- Talent-initiated cold outreach to recruiters (current connection-fee model unchanged)
-- A `company_manager` role distinct from admin — recruiters acting on the pipeline use existing company-membership check; finer-grained roles come later
+- Talent-side: saved searches, job alerts, AI application coach (deferred per decision)
+- Outbound bulk email campaigns from our domain (mem: Email Strategy keeps B2B mailto-only)
+- Calendar / interview scheduling (queued for separate phase)
+- Offer letter generation
+- Paid "premium sourcing" tier or new credit SKUs — current connection-fee model stays
+- A `recruiter` role distinct from company member — existing `is_company_member` check is reused
 
 ---
 
 ## Open questions
 
-1. **Audit log retention** — keep all status moves forever, or auto-archive after 12 months? Recommendation: keep forever (low row volume, high HR/legal value).
-2. **Email cadence for messages** — 15-min digest with instant-on-first-message (my recommendation), or always instant?
-3. **Withdrawn lane visibility** — show in employer kanban by default, or hidden behind a filter toggle? Recommendation: hidden by default, toggle to show.
+1. **Direct messaging surface** — for talents in the CRM with no application yet, should we (a) create a thin `direct_messages` table and reuse `ApplicationMessageThread` UI keyed by talent_id, or (b) require an "Invite to apply" first so messaging always lives on an application thread? Recommendation: (a) — recruiters need to reach out before there's a role.
+2. **Talent visibility consent** — opt-in vs opt-out for appearing in `search_public_talents`? Recommendation: **opt-in via `open_to_work` flag** (already exists) — if false, only profiles explicitly published via `talent_public_profiles` show up. Keeps PII rules tight.
+3. **Sourced badge semantics** — should "Sourced" be a hard flag set once, or recompute live? Recommendation: hard flag on insert via the trigger, so the badge survives if the relationship row is later deleted.
 
-Approve to proceed, or tell me which of A–F to drop / reorder.
+Approve to proceed, or tell me which of A–G to drop / reorder.
