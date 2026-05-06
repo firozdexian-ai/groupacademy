@@ -208,8 +208,9 @@ export function PostCard({ post }: PostCardProps) {
         {/* Footer */}
         <PostActionBar
           postId={post.id}
-          shareTitle={post.textContent.slice(0, 80)}
-          shareText={post.textContent.slice(0, 160)}
+          postTitle={post.textContent.slice(0, 80)}
+          postUrl={`${window.location.origin}/app/feed?post=${post.id}`}
+          postDescription={post.textContent.slice(0, 160)}
         />
       </CardContent>
     </Card>
