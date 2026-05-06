@@ -128,7 +128,11 @@ export function ItemBankAnalyticsPanel({ moduleId }: ItemBankAnalyticsPanelProps
               {onlyFlagged ? "No flagged quiz items." : "No quiz items in this module yet."}
             </p>
           )}
-          {quizItems.map(q => <QuizRow key={q.id} q={q} />)}
+          {quizItems.map(q => (
+            <QuizRow key={q.id} q={q}
+              onRewrite={() => setRewrite({ kind: "quiz", itemId: q.id, flags: q.needs_review })}
+            />
+          ))}
         </CardContent>
       </Card>
 
@@ -141,9 +145,22 @@ export function ItemBankAnalyticsPanel({ moduleId }: ItemBankAnalyticsPanelProps
               {onlyFlagged ? "No flagged scenarios." : "No scenarios in this module yet."}
             </p>
           )}
-          {scenarioItems.map(s => <ScenarioRow key={s.id} s={s} />)}
+          {scenarioItems.map(s => (
+            <ScenarioRow key={s.id} s={s}
+              onRewrite={() => setRewrite({ kind: "scenario", itemId: s.id, flags: s.needs_review })}
+            />
+          ))}
         </CardContent>
       </Card>
+
+      <ItemRewriteSheet
+        open={!!rewrite}
+        onOpenChange={(o) => !o && setRewrite(null)}
+        kind={rewrite?.kind ?? "quiz"}
+        itemId={rewrite?.itemId ?? null}
+        flags={rewrite?.flags ?? []}
+        onApplied={refresh}
+      />
     </div>
   );
 }
