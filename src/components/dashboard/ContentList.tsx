@@ -44,6 +44,7 @@ import { useNavigate } from "react-router-dom";
 import ContentFilters, { type ContentFilterValues } from "./ContentFilters";
 import ContentReadinessBadge, { type ModuleStats } from "./ContentReadinessBadge";
 import { cn } from "@/lib/utils";
+import { formatEventTime, DEFAULT_EVENT_TZ } from "@/lib/eventTime";
 
 /**
  * Platform Logic: Academic Artifact Registry (Content List)
