@@ -1,134 +1,102 @@
-# Sub-phase 2.1.5 — Profile Card, Quick Actions, Composer & Career Level
+# Sub-phase 2.1.6 (polish) + Sub-phase 2.2 (Reactions & card actions)
 
-Four targeted polish items before we move to 2.2. You're right about the wallet vs. lifetime-transactions distinction — that was a slip in 2.1, and it changes how the profile card communicates progress.
-
----
-
-## 1. Profile Card — Animated "Doodle" Background
-
-Bring back the admin-managed living background behind the identity strip while keeping the new typography intact. Like Google Doodle: themes swap on occasions (Eid, Independence Day, New Year, etc.).
-
-**Schema (new table)**
-```sql
-create table public.profile_card_themes (
-  id uuid primary key default gen_random_uuid(),
-  name text not null,                                  -- "Eid 2026"
-  media_type text not null check (media_type in ('image','gif','video','lottie','gradient')),
-  media_url text,
-  poster_url text,
-  gradient_css text,                                   -- when media_type='gradient'
-  overlay_opacity numeric default 0.55,                -- readability scrim
-  text_color text default 'auto',                      -- 'light'|'dark'|'auto'
-  start_at timestamptz, end_at timestamptz,            -- scheduling window
-  priority int default 0,
-  is_active boolean default true,
-  created_at timestamptz default now()
-);
-```
-Active = highest-priority active row inside its date window (nulls = always).
-
-**Components**
-- `ProfileCardBackdrop.tsx` (new) — fetches the active theme via React Query, renders absolutely behind `FeedHeader` content. Honours `prefers-reduced-motion` (poster fallback for video/lottie).
-- `FeedHeader.tsx` — wrap children in a relative container with the backdrop + scrim. Auto-flip text/icon tints when `text_color='light'`.
-- Admin: new "Profile Card Themes" tab in the existing banner area, same uploader + scheduling UX as `BannerManager`.
+Two things in this turn: small fixes to the feed shell from your feedback, then the full plan for 2.2.
 
 ---
 
-## 2. Quick Actions — Fixed Top-5 Grid (no side-scroll)
+## Part A — Feed shell polish
 
-Per your "no horizontal scroll" rule. Selection math stays exactly the same — personal usage frequency first, fall back to global popularity — but the row becomes a hard 5-column grid.
+### A.1 Profile card — remove Messages, promote Level to the right
+- Drop the Messages icon button from `FeedHeader.tsx`. Messages is already reachable from the bottom nav and from the Quick Actions row (after A.2).
+- Right-side slot becomes a compact **Level badge**:
+  ```text
+  ┌──────────────────────────────────────────────┐
+  │ (avatar)  Rakib Hasan                  ╭───╮ │
+  │           Founder · Bangladesh         │Lv4│ │
+  │           ⚡ 3,830 cr  ▓▓▓▓▓▓░░ 62%   ╰───╯ │
+  └──────────────────────────────────────────────┘
+  ```
+  - Pill: rounded-xl, primary tint, `Lv {n}` on top line, `{label}` tiny below (e.g. "Achiever").
+  - Tap opens the same Career Level sheet we just built.
+- The thin progress bar + % stays inline next to the wallet chip (where it is now).
+
+### A.2 Quick Actions — 4 agents + 5th tile "View all agents"
+- Drop `VISIBLE_LIMIT` to **4**. Same ranking math (personal usage → global popularity).
+- The 5th cell in the `grid-cols-5` is a fixed "View all agents" tile that opens `QuickActionsSheet`.
+- Remove the "View all agents →" text link below the grid (no longer needed).
+- Tile styling: dashed border, muted bg, `Grid` icon, label "All agents" — visually distinct so it doesn't feel like an agent.
+
+**Files**: `src/components/feed/FeedHeader.tsx`, `src/components/feed/QuickActionsGrid.tsx`. No DB changes.
+
+---
+
+## Part B — Sub-phase 2.2: Reactions & Card Actions
+
+Goal: simplify every feed card to **three actions only — Hype, Comment, Share** — and make Hype the headline interaction (paid-reaction creator economy already exists in the schema; we wire it to the new bar).
+
+### B.1 Action bar — collapse to 3 buttons
+Current `PostCard.tsx` / `FeedCardRedesigned.tsx` carry a wider set (reactions menu, save, etc.). Replace the footer with a single row:
 
 ```text
-[ Agent1 ] [ Agent2 ] [ Agent3 ] [ Agent4 ] [ Agent5 ]
-```
-- `grid grid-cols-5 gap-2`, no `overflow-x`, no `snap-*`.
-- Each cell `min-w-0`, label `truncate` — fits comfortably at 390px.
-- **Messages**: move out of the row, pin a small icon-with-badge inside `FeedHeader` next to the credits chip (its natural home).
-- **More agents**: a tiny ghost link "View all agents →" right below the row, opening the existing `QuickActionsSheet`.
-
-File: rewrite the render block of `QuickActionsGrid.tsx`; ranking logic in the `useQuery` is unchanged, `VISIBLE_LIMIT` stays at 5, drop the Messages/More tiles.
-
----
-
-## 3. ComposePost — Rebuild
-
-The current card (your screenshot — "DEPLOY CAREER UPDATES…", "ABORT SYNC", "0/1000 PAYLOAD") was inherited from an older iteration and clashes with the new slim shell. Replace with a calm, modern composer.
-
-**Collapsed**
-```text
-┌─────────────────────────────────────────────┐
-│ (avatar)  What's on your mind, Rakib?      │
-│           [📷]  [#]  [✨ AI]                │
-└─────────────────────────────────────────────┘
+┌────────────────────────────────────────────────┐
+│  🔥 Hype · 1.2k    💬 Comment · 34    ↗ Share  │
+└────────────────────────────────────────────────┘
 ```
 
-**Expanded**
-- Plain `Textarea`, sentence-case placeholder: "Share an update with your community…"
-- Tag chips: soft `bg-muted` pills (no italics, no uppercase, no wide tracking), capped at 5.
-- Footer: left = `120 / 1000` muted counter; right = `Cancel` (ghost) + `Post` (default primary). No shadow-2xl, no scale-on-focus, no purple ring.
-- Card chrome: `rounded-2xl border border-border/40 bg-card` — matches `FeedHeader` and `BannerCarousel`.
+- **Hype** (primary action)
+  - Single tap = +1 hype (1 credit, 80/20 split per Creator Economy memo).
+  - Long-press / hold = "Boost" sheet to send 5 / 10 / 25 hype at once.
+  - Optimistic count update; rolls back on failure.
+  - Daily free hype budget (existing): tap is free until budget runs out, then prompts wallet.
+- **Comment**: opens existing `CommentList` in a bottom sheet (no inline expansion — keeps cards short).
+- **Share**: opens existing `ShareSheet` (system share + copy link + WhatsApp).
 
-Image upload, AI rewrite, and scheduler stay deferred to **2.4** — icons render but show "Coming soon" tooltip so the layout is final.
+Saved/Bookmark moves to the kebab `⋮` in the card header (along with Report, Mute author, Why am I seeing this). No save button in the action bar.
 
----
+### B.2 Hype counter UI
+- Numeric format: `1.2k`, `12.4k`, `1.1M`. No ambiguity for big posts.
+- When the viewer has hyped, the icon flips to filled + colored (rose-500) and label changes to "Hyped".
+- Top-3 hypers preview (avatars stacked) appears just above the action bar when hype ≥ 5 — taps open a "Top hypers" sheet.
 
-## 4. Career Level — Lifetime Transactions, not Wallet Balance
+### B.3 Card header cleanup
+- Author row: avatar · name · profession · `· 3h`. Country chip moves to a small flag emoji next to name (or hidden on narrow viewport).
+- Kebab `⋮` on the right with: Save, Share, Mute author, Report, Why this post (admin only: Pin, Hide).
+- Drop the "verified shield" chip if author isn't verified (currently always renders on some cards).
 
-Big correction. The number on the card today (`3,830`) is `talent_credits.balance` — that's the wallet, which goes up and down. Career progression / gamification should be tied to **lifetime transaction volume** (earned + spent), which only ever grows.
-
-**Two distinct displays in `FeedHeader`**
-- **Wallet chip** (existing) — current `balance`, links to `/app/transactions`. Stays as-is.
-- **Career Level bar** (replaces the profile-completion bar) — derived from lifetime transacted credits.
-
-**Source of truth**
-- New view `public.talent_lifetime_credits` aggregating `credit_transactions` per talent:
+### B.4 Backend
+Most pieces already exist. We need:
+- `feed_posts` already has `hype_count`. Confirm.
+- `feed_post_hypes` table (per-user-per-post hype quantity) — check existing schema; if missing, add:
   ```sql
-  create or replace view public.talent_lifetime_credits as
-  select talent_id,
-         sum(abs(amount))::numeric        as lifetime_volume,
-         sum(case when amount > 0 then amount else 0 end)::numeric as lifetime_earned,
-         sum(case when amount < 0 then -amount else 0 end)::numeric as lifetime_spent
-  from public.credit_transactions
-  group by talent_id;
+  create table public.feed_post_hypes (
+    id uuid primary key default gen_random_uuid(),
+    post_id uuid references public.feed_posts(id) on delete cascade not null,
+    talent_id uuid not null,
+    quantity int not null default 1,
+    credits_spent numeric(12,1) not null default 1,
+    created_at timestamptz not null default now()
+  );
   ```
-  RLS: each talent reads their own row; admins read all.
-- New helper `src/lib/careerLevels.ts`:
-  ```ts
-  // Tunable thresholds (admin-configurable later)
-  export const LEVELS = [
-    { level: 1, label: "Explorer",   min: 0      },
-    { level: 2, label: "Builder",    min: 500    },
-    { level: 3, label: "Contender",  min: 2_000  },
-    { level: 4, label: "Achiever",   min: 5_000  },
-    { level: 5, label: "Strategist", min: 12_000 },
-    { level: 6, label: "Luminary",   min: 25_000 },
-    { level: 7, label: "Icon",       min: 50_000 },
-  ];
-  // returns { level, label, progressPct, toNext }
-  ```
-- New hook `useCareerLevel.ts` — reads `talent_lifetime_credits`, computes level + progress to next tier.
+- Edge function `add-post-hype` (new): verifies auth, deducts credits via existing wallet logic, writes ledger entry, increments `feed_posts.hype_count`, returns new total. Idempotent on `(post_id, talent_id, created_at_minute)` to swallow double-taps.
+- View `feed_post_top_hypers(post_id)` returning top 3 by quantity for the avatar stack.
 
-**UI in `FeedHeader`**
-```text
-Lv 3 · Contender ▓▓▓▓▓▓░░░░ 62%   1,240 to Strategist
-```
-Tap → opens a small sheet explaining how the level is calculated and what the next tier unlocks. The old profile-completion percentage moves into the profile page itself (where it actually drives action), not the feed header.
+### B.5 Frontend files touched
+- `src/components/feed/PostCard.tsx` — strip reactions menu, replace footer with 3-action bar.
+- `src/components/feed/FeedCardRedesigned.tsx` — same treatment if still in use; otherwise consolidate to `PostCard`.
+- `src/components/feed/HypeButton.tsx` — extend with hold-to-boost gesture + boost sheet.
+- `src/components/feed/ReactionBar.tsx` — delete (replaced).
+- `src/components/feed/PostAuthor.tsx` — kebab menu with Save / Mute / Report.
+- New: `src/components/feed/HypeBoostSheet.tsx`, `src/components/feed/TopHypersSheet.tsx`.
+- New: `supabase/functions/add-post-hype/index.ts`.
+
+### B.6 Validation
+- Single tap on Hype: count goes up by 1, balance ticks down by 1, button fills.
+- Hold Hype: Boost sheet opens; pick 10 → 10 credits debited, count +10, ledger shows entry with `kind='hype_outgoing'`.
+- Tap Comment: bottom sheet opens with existing comment thread, can post.
+- Tap Share: native share sheet.
+- Kebab → Save: post appears in `/app/saved`.
+- 390px viewport: no horizontal scroll, action bar fits comfortably.
 
 ---
 
-## Files Touched
-- `supabase/migrations/<new>.sql` — `profile_card_themes` table + RLS, `talent_lifetime_credits` view + RLS.
-- `src/components/feed/ProfileCardBackdrop.tsx` (new)
-- `src/components/feed/FeedHeader.tsx` (backdrop wrapper, Messages icon, swap completion bar → Career Level)
-- `src/components/feed/QuickActionsGrid.tsx` (fixed 5-col grid)
-- `src/components/feed/ComposePost.tsx` (rewrite UI; submit logic untouched)
-- `src/components/dashboard/ProfileCardThemeManager.tsx` (new admin tab)
-- `src/hooks/useCareerLevel.ts` (new)
-- `src/lib/careerLevels.ts` (new)
-
-## Validation
-- 390px viewport: 5 quick actions fit without scroll; profile card shows active theme with legible text; composer collapsed = single line, expanded = clean modern card; Career Level bar reflects lifetime `credit_transactions` volume — confirmed it never decreases when wallet drops.
-- Admin can schedule a theme (e.g. Eid 2026, Apr 1–10) and watch it auto-activate.
-- `prefers-reduced-motion` disables video/lottie playback, falls back to poster.
-
-After this lands → **Sub-phase 2.2: Reactions & card actions**.
+After this sub-phase ships → **2.3: Community Filter System** (Global / My Country / My Profession / Content Type tabs).
