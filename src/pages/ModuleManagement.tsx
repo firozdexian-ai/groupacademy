@@ -87,6 +87,7 @@ export default function ModuleManagement(props: ModuleManagementProps = {}) {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [researchModuleId, setResearchModuleId] = useState<string | null>(null);
   const [studioOpen, setStudioOpen] = useState(false);
+  const [analyticsModuleId, setAnalyticsModuleId] = useState<string | null>(null);
   
 
   const handleBack = () => {
@@ -522,6 +523,15 @@ export default function ModuleManagement(props: ModuleManagementProps = {}) {
                         title="Bulk-generate content with AI Content Studio"
                       >
                         <Wand2 className="mr-1.5 h-3.5 w-3.5" /> AI Studio
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setAnalyticsModuleId(mod.id)}
+                        className="rounded-xl font-bold uppercase text-[10px] tracking-widest"
+                        title="Item-bank analytics for this module"
+                      >
+                        <BarChart3 className="mr-1.5 h-3.5 w-3.5" /> Analytics
                       </Button>
                     </div>
                     <Button
