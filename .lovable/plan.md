@@ -1,109 +1,109 @@
-## Phase 4.5 — Company Tracks & Branded Catalog
+# Phase 4.5b + 4.6 — Combined Plan
 
-Bundle multiple courses into a sequenced **Track**, assign tracks to talents (B2C self-enroll or B2B sponsored), and surface a public **branded company learning page** at `/c/:slug/learn`. Tracks earn a unified completion certificate via the existing `/verify/...` flow.
+Two complementary phases shipped together: 4.5b makes Gro10x feel native on desktop, and 4.6 turns the learning data we now have (mastery, credentials, track completions) into hiring signal across `/jobs`, employer CRM, and public talent profiles.
 
-### Recommended decisions (from earlier 4.5 questions)
-
-1. **Optional steps** — counted in progress %, but only required steps gate completion.
-2. **Sequential unlock** — opt-in `is_sequential` flag per track; default = all unlocked.
-3. **Template ownership** — platform admin only for 4.5; instructors propose via brief in a later phase.
-4. **Track certificate** — extend `certificates` with `kind` + `track_assignment_id` (no new table).
-
-If any of these need to flip, say so before approval.
+They pair well because both touch the same surfaces (Inbox, CRM, talent cards, jobs pipeline) — doing them in one pass avoids re-touching components twice.
 
 ---
 
-### Data model
+## Phase 4.5b — Desktop Polish
 
-**`learning_tracks`**
-- `id`, `slug` (unique, for `/c/:slug/learn` deep link), `title`, `summary`, `cover_url`
-- `owner_kind` (`platform` | `company`), `company_id` (nullable, FK), `created_by`
-- `is_sequential boolean default false`, `is_published boolean default false`
-- `enrollment_credits numeric(12,1) default 0` (B2C self-enroll price; B2B sponsored = sum of child courses)
-- `b2b_enabled boolean default true`
+Goal: Gro10x at ≥1024px stops feeling like a stretched mobile app.
 
-**`learning_track_items`**
-- `track_id`, `course_id`, `position int`, `is_required boolean default true`
-- Unique `(track_id, course_id)`; `position` defines unlock order when `is_sequential`.
+### 1. Three-pane Inbox & CRM
+```text
++----------+--------------------+----------------+
+| Sidenav  | List (threads /    | Thread / Detail|
+|          | talents / leads)   | + Context rail |
++----------+--------------------+----------------+
+```
+- New `ThreePaneLayout` primitive (list | detail | context), responsive: stacks on <lg.
+- Apply to `Gro10xInbox`, `Gro10xCRM`, `Gro10xLearnOps` (assignment detail), `/app/instructor/review-queue`.
+- Context rail surfaces: talent mastery summary, last 3 enrollments, verified skills, open jobs (CRM); thread metadata + linked application/track (Inbox).
 
-**`learning_track_assignments`**
-- `id`, `track_id`, `talent_id` (the recipient), `assigned_by` (user_id), `org_id` (nullable — set when sponsored from Learning Ops)
-- `status` (`invited` | `active` | `completed` | `overdue` | `cancelled`)
-- `due_at`, `started_at`, `completed_at`
-- Unique `(track_id, talent_id)` (re-assign reactivates).
+### 2. Command palette (⌘K)
+- `Gro10xCommandPalette` using `cmdk`.
+- Sections: Navigate, Companies, Talents, Courses, Tracks, Jobs, Recent.
+- Backed by one new RPC `gro10x_global_search(q, limit)` returning typed rows (kind, id, title, subtitle, url).
+- Keyboard: ⌘K open, ↑/↓ navigate, Enter open, ⌘Enter open in new tab.
 
-**`certificates`** — add columns
-- `kind text default 'course'` (`course` | `track` | `skill`)
-- `track_assignment_id uuid` (nullable, FK)
-- Existing `/verify/:code` page reads `kind` and renders the right template.
+### 3. Working global search
+- Wire the existing top-bar search to the same RPC (debounced, 200ms), with grouped results dropdown.
 
-**RLS**
-- Tracks: `select` if `is_published` OR `created_by = auth.uid()` OR admin.
-- Track items: follow parent track.
-- Assignments: talent sees own; `org_id` controllers see their org's; admin sees all.
-- Certificates: same as today, with `kind='track'` rows visible to the talent + public verify by code.
+### 4. Desktop chrome polish
+- Persistent collapsible sidenav state (localStorage), keyboard shortcut `[`.
+- Breadcrumbs in `Gro10xAppShell` header on ≥md.
+- Tighter desktop density (reduce paddings on cards/tables at lg+ only — mobile untouched per memory rule).
 
-### RPCs / Edge functions
+### 5. Dev/QA
+- Test at 1920, 1440, 1024, 768, 393.
+- No new mobile regressions (memory: vertical-only mobile, py-2 spacing preserved).
 
-- **`org_assign_track(track_id, talent_ids[], due_at)`** — atomically:
-  1. Insert/refresh `learning_track_assignments`.
-  2. For each required course in the track, call existing `org_assign_talents` to enroll + debit `org_wallet_ledger` (per-course pricing reuses 4.4 logic).
-  3. Optional courses are NOT pre-enrolled; talent can enroll on demand.
-- **`talent_enroll_track(track_id)`** — B2C self-enroll: debits learner credits by `enrollment_credits`, then enrolls them in the required courses (uses existing `enroll_in_course`).
-- **`get_track_progress(assignment_id)`** — returns `{ items: [{course_id, status, percent}], required_done, total_required, optional_done, is_complete }`. Marks `completed_at` and mints a track certificate when all required are done.
-- **`notify-track-event`** — `assigned`, `step_completed`, `track_completed`, `due_soon`, `overdue`. Routes through existing in-app + email dispatcher.
-- **`cron-track-sweeps`** (daily) — flips assignments to `overdue` past `due_at`, queues `due_soon` (T-72h, T-24h), nudges stalled (no progress in 7d).
-- **`get_company_branded_catalog(slug)`** — public RPC returning company branding (logo, banner, tagline) + published tracks + featured courses for `/c/:slug/learn`. No auth required; obeys `is_published`.
+---
 
-### Surfaces
+## Phase 4.6 — Learner Outcomes → Employer Signals
 
-**Talent (Gro10x)**
-- `/gro10x/learn` — new "Tracks" section above Catalog: each assigned track renders as a card with `TrackProgressRing`, next step, due date.
-- `/gro10x/learn/track/:id` — track detail: ordered course list with lock icons (sequential mode), per-step status, optional steps tagged, certificate banner once complete.
+Goal: Mastery + credentials + track completions become first-class signals in hiring, CRM, and public profiles.
 
-**Public**
-- `/c/:slug/learn` — branded company page: logo + banner + tagline + grid of public tracks (CTA: Sign in to enroll / Sponsored by {company}). SEO-friendly with `<title>`, JSON-LD `Course` for each track.
-- `/verify/:code` — already exists; renders `kind='track'` template with track title, talent name, completed required courses list.
+### 1. Talent signal payload (shared)
+New RPC `get_talent_outcome_signal(talent_id)` returning:
+- `verified_skills[]` (from skill_credentials, with topic + level + issued_at)
+- `tracks_completed[]` (track title, company sponsor if any, completed_at, certificate code)
+- `mastery_summary` (top 5 strong topics, weak topics count)
+- `learning_recency_score` (0–1, decays over 90 days)
 
-**Gro10x Learning Ops (`/gro10x/learn/ops`)** — extend with two tabs:
-- **Tracks** — list company-owned tracks; "New track" composer (drag-and-drop course ordering, required toggle, sequential toggle, publish).
-- **Bulk-assign** — extend existing assignment sheet to accept either a single course or a track.
+Used by every surface below — single source of truth.
 
-**Admin (`/dashboard` Learn console)**
-- New **Tracks** tab — platform-template tracks (CRUD), publish/unpublish, see assignment counts, completion %.
-- Existing **B2B Engagements** tab — show track adoption alongside course adoption.
+### 2. `/jobs` — Verified candidate boost
+- Extend `score-job-match` and `suggest-jobs-for-talent` to read outcome signal:
+  - +boost when verified skill matches a required skill on the job.
+  - New `outcome_match` block in match payload.
+- `VerifiedMatchBadge` already exists (memory: Mastery Job Match) — add new `TrackCompletionBadge` and `RecentLearnerChip` (active in last 30d).
 
-### Components & files
+### 3. Employer pipeline (`/gro10x/work` + admin)
+- `get_employer_pipeline` returns outcome signal alongside each application.
+- Application card: verified skill chips, completed tracks, "Active learner" indicator.
+- New filter on Sourcing (`search_public_talents`): `completed_track_id`, `has_verified_skill`, `learning_recency`.
+- CRM talent detail rail (from 4.5b context pane) shows the same signal block — one component `TalentSignalPanel`.
 
-**New**
-- `src/hooks/useLearningTracks.ts` — list/create/update/publish, list assignments for current user.
-- `src/components/learning/TrackProgressRing.tsx`
-- `src/components/learning/TrackComposer.tsx` — drag-drop ordering using existing dnd primitives.
-- `src/components/learning/TrackStepList.tsx` — sequential lock UX.
-- `src/pages/app/AppTrackDetail.tsx` — `/gro10x/learn/track/:id`
-- `src/pages/public/CompanyBrandedCatalog.tsx` — `/c/:slug/learn`
-- `src/components/dashboard/learn/TracksTab.tsx` — admin platform templates.
-- `src/gro10x/components/learn/OpsTracksTab.tsx` — Learning Ops tab.
-- `supabase/functions/notify-track-event/index.ts`
-- `supabase/functions/cron-track-sweeps/index.ts`
-- One migration with all tables, RPCs, RLS, certificate column extension, `pg_cron` daily schedule.
+### 4. Public talent profile (`/t/:handle`)
+- Add "Verified Outcomes" section: skill credentials grid + completed tracks timeline.
+- Update `get_public_talent_profile` RPC to include the outcome signal (only public-flagged credentials).
+- JSON-LD: add `EducationalOccupationalCredential` entries for each verified skill / track certificate.
 
-**Edited**
-- `src/App.tsx` — add `/c/:slug/learn`, `/gro10x/learn/track/:id` routes (already responsive after 4.5a).
-- `src/gro10x/pages/Gro10xLearn.tsx` — Tracks section above existing assignments.
-- `src/gro10x/pages/Gro10xLearnOps.tsx` — register Tracks + Bulk-assign extensions.
-- `src/components/dashboard/learn/*` — add TracksTab to Learn console.
-- `src/pages/Verify.tsx` (or current verify page) — branch on `kind`.
+### 5. Hiring loop nudge
+- `cron-hiring-signal-sweep` (daily): when a sourced/applied talent completes a track or earns a credential relevant to an open application, push a message into `application_messages` ("New verified skill: X") and notify the employer.
 
-### Out of scope
+### 6. Admin oversight
+- New tab in admin Talents group → "Outcomes & Signals": leaderboards (most verified skills this week, tracks completed, employer signals fired), abuse/quality flags.
 
-- Adaptive sequencing (skip ahead based on mastery) — slated for 4.6.
-- Track-level pricing tiers / discounts vs sum-of-courses.
-- Instructor-proposed templates (admin-only for now).
-- Custom domains on `/c/:slug/learn` (uses path slug).
+---
 
-### Open questions
+## Technical details
 
-1. **Slug source** — reuse company `handle` if it exists, or add a dedicated `learning_slug` so marketing can pick a vanity path independent of the company handle? (Recommended: reuse `handle`; add `learning_slug` only when a company asks.)
-2. **Public catalog visibility default** — when a company creates a track, default to `is_published=false` (private to assignees), or `true` (publicly listed on `/c/:slug/learn`)? (Recommended: false; shipping a "Publish" toggle in the composer.)
-3. **Certificate template for tracks** — list every required course on the cert, or only the track title + completion date? (Recommended: track title + date on the cert, with the verify page expanding the full course list.)
+### New / changed DB
+- RPC: `gro10x_global_search`, `get_talent_outcome_signal`.
+- Extend RPCs: `score-job-match`, `suggest-jobs-for-talent`, `get_employer_pipeline`, `search_public_talents`, `get_public_talent_profile`.
+- New cron: `cron-hiring-signal-sweep` (06:30 UTC daily).
+- No new tables — reuses `skill_credentials`, `learning_track_assignments`, `certificates`, `talent_skill_profile`.
+
+### New components
+- `src/gro10x/components/layout/ThreePaneLayout.tsx`
+- `src/gro10x/components/Gro10xCommandPalette.tsx`
+- `src/components/talent/TalentSignalPanel.tsx`
+- `src/components/talent/TrackCompletionBadge.tsx`
+- `src/components/talent/RecentLearnerChip.tsx`
+
+### Edited surfaces
+- `Gro10xInbox`, `Gro10xCRM`, `Gro10xLearnOps`, `Gro10xAppShell`, `Gro10xSideNav`
+- `src/pages/app/JobDetail*`, `WhyYouMatchPanel`, employer pipeline kanban, admin Talents tab, `/t/:handle`.
+
+### Out of scope (deferred to 4.7)
+- Instructor payouts / Stripe Connect.
+- Employer-side billing for sourcing premium filters.
+
+---
+
+## Open questions
+1. Should "verified skill" boost in `/jobs` be visible to all talents or only above a mastery threshold (e.g. ≥0.7)? Recommend ≥0.7 to keep the signal trustworthy.
+2. For the public profile, should completed *company-sponsored* tracks show the sponsor's logo, or stay neutral? Recommend show sponsor (more credible, drives B2B branding).
