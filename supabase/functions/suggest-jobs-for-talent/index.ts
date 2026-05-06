@@ -234,6 +234,24 @@ serve(async (req) => {
       })
       .sort((a: any, b: any) => b.match_score - a.match_score);
 
+    // Persist top suggestions for the Jobs Hub rail (replace previous batch)
+    try {
+      await supabase.from("ai_job_recommendations").delete().eq("talent_id", talent.id);
+      if (suggestions.length > 0) {
+        const rows = suggestions.slice(0, 12).map((s: any) => ({
+          talent_id: talent.id,
+          job_id: s.job_id,
+          match_score: s.match_score,
+          reason: s.reason,
+          match_reason: s.match_reason,
+          verified_match: s.verified_match,
+        }));
+        await supabase.from("ai_job_recommendations").insert(rows);
+      }
+    } catch (e) {
+      console.error("persist recs failed", e);
+    }
+
     return new Response(JSON.stringify({ suggestions }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
