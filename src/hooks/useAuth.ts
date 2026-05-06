@@ -108,16 +108,16 @@ export const useAuth = (): AuthState => {
 
       if (isPhoneNumber(identifier)) {
         const resolved = await resolveIdentifier(identifier);
-        if (!resolved) throw new Error("IDENTITY_NOT_FOUND: No account linked to this phone.");
+        if (!resolved) throw new Error("No account found for that phone number.");
         email = resolved;
       }
 
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
 
-      toast.success("WELCOME_BACK: Identity verified.");
+      toast.success("Welcome back!");
     } catch (err: any) {
-      toast.error(err.message || "SIGN_IN_FAULT");
+      toast.error(err.message || "Couldn't sign you in. Please try again.");
       throw err;
     }
   };
