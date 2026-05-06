@@ -65,13 +65,6 @@ const AI_PROCESSING_STAGES: ProcessingStage[] = [
   { progress: 90, message: "Almost done..." },
 ];
 
-interface CountryGroup {
-  country: string;
-  flag: string;
-  totalJobs: number;
-  cities: { name: string; count: number }[];
-}
-
 type TabKey = "browse" | "company" | "country" | "tools";
 
 const TABS: { key: TabKey; label: string; icon: any }[] = [
