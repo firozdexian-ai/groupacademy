@@ -222,6 +222,7 @@ const navGroups: NavGroup[] = [
       { title: "Course Briefs", icon: Sparkles, value: "course-briefs" },
       { title: "Cohorts", icon: Users, value: "cohorts" },
       { title: "Moderation", icon: Flag, value: "moderation" },
+      { title: "B2B Engagements", icon: Building2, value: "b2b-engagements" },
     ],
   },
   {
