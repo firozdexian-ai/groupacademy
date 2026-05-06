@@ -84,6 +84,8 @@ import AgentProfile from "./pages/app/AgentProfile";
 import MyResults from "./pages/app/MyResults";
 import MyApplications from "./pages/app/MyApplications";
 import AppApplicationDetail from "./pages/app/AppApplicationDetail";
+import AppInterviewSchedule from "./pages/app/AppInterviewSchedule";
+import AppOfferDecision from "./pages/app/AppOfferDecision";
 import SavedItems from "./pages/app/SavedItems";
 import Gigs from "./pages/app/Gigs";
 import MarketplaceGigDetail from "./pages/app/MarketplaceGigDetail";
@@ -462,6 +464,8 @@ export default function App() {
                     <Route path="job-assessment/:assessmentId/results" element={<JobAssessmentResults />} />
                     <Route path="applications" element={<MyApplications />} />
                     <Route path="applications/:id" element={<AppApplicationDetail />} />
+                    <Route path="applications/:id/interview/:interviewId" element={<AppInterviewSchedule />} />
+                    <Route path="applications/:id/offer/:offerId" element={<AppOfferDecision />} />
                     <Route path="saved" element={<SavedItems />} />
                     <Route path="course-project/:projectId" element={<CourseProjectDetail />} />
 
