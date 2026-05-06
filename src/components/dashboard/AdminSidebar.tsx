@@ -219,6 +219,7 @@ const navGroups: NavGroup[] = [
       { title: "Graduates", icon: Trophy, value: "graduates" },
       { title: "B2B Courses", icon: Building2, value: "b2b-courses" },
       { title: "Course Briefs", icon: Sparkles, value: "course-briefs" },
+      { title: "Cohorts", icon: Users, value: "cohorts" },
     ],
   },
   {

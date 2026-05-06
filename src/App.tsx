@@ -111,6 +111,9 @@ import TalentMirror from "./pages/app/TalentMirror";
 import InstructorReviewQueue from "./pages/app/InstructorReviewQueue";
 import InstructorInsights from "./pages/app/InstructorInsights";
 import InstructorShell from "./pages/app/instructor/InstructorShell";
+import InstructorCourseSessions from "./pages/app/instructor/InstructorCourseSessions";
+import AppCohortHome from "./pages/app/AppCohortHome";
+import AppSessionJoin from "./pages/app/AppSessionJoin";
 import AppProfessions from "./pages/app/AppProfessions";
 import AppProfessionDetail from "./pages/app/AppProfessionDetail";
 import SchoolDetail from "./pages/app/SchoolDetail";
@@ -481,6 +484,9 @@ export default function App() {
                     <Route path="instructor" element={<InstructorShell />} />
                     <Route path="instructor/review-queue" element={<InstructorReviewQueue />} />
                     <Route path="instructor/insights" element={<InstructorInsights />} />
+                    <Route path="instructor/course/:contentId/sessions" element={<InstructorCourseSessions />} />
+                    <Route path="cohorts/:cohortId" element={<AppCohortHome />} />
+                    <Route path="sessions/:sessionId/join" element={<AppSessionJoin />} />
                     <Route path="learning/events" element={<AppEvents />} />
                     <Route path="learning/webinars" element={<AppEvents />} />
                     <Route path="learning/competitions" element={<Competitions />} />
