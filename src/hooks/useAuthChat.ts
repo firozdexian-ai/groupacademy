@@ -5,9 +5,7 @@ import { toast } from "sonner";
 import { COUNTRIES_WITH_PHONE } from "@/lib/constants/countries";
 
 /**
- * GroUp Academy: Neural Authentication Orchestrator
- * CTO Reference: Authoritative controller for conversational onboarding (Aisha).
- * Security: v2.4.29 - Hardened type assertions and state scope synchronization.
+ * Conversational auth flow controller for Aisha (sign-in / sign-up assistant).
  */
 
 export type AuthAction =
