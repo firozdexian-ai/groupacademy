@@ -158,10 +158,26 @@ export default function ImmersiveCoursePlayer() {
     timeout: TIMEOUTS.DEFAULT,
   });
 
-  // Lifecycle Sync
+  // Resume-where-you-left-off (runs once after enrollment + modules + progress hydrate)
   useEffect(() => {
-    if (modules.length > 0 && !currentModuleId) setCurrentModuleId(modules[0].id);
-  }, [modules, currentModuleId]);
+    if (resumed || modules.length === 0) return;
+    // Wait for progress data when an enrollment exists
+    if (enrollment?.id && allModuleProgress === undefined) return;
+
+    let resumeModuleId: string | undefined = enrollment?.current_module_id ?? undefined;
+    if (!resumeModuleId && allModuleProgress?.length) {
+      // pick module with most completed stages
+      const ranked = [...allModuleProgress].sort(
+        (a, b) =>
+          ((b.completed_stages as number[])?.length ?? 0) -
+          ((a.completed_stages as number[])?.length ?? 0),
+      );
+      resumeModuleId = ranked[0]?.module_id ?? undefined;
+    }
+    if (!resumeModuleId) resumeModuleId = modules[0].id;
+    setCurrentModuleId(resumeModuleId);
+    setResumed(true);
+  }, [modules, enrollment, allModuleProgress, resumed]);
 
   const { data: stageResources = [] } = useModuleResourcesByStage(currentModuleId);
 
