@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Coins, RefreshCw, MessageCircle, Trophy } from "lucide-react";
+import { Coins, RefreshCw, Trophy } from "lucide-react";
 import { useCredits } from "@/hooks/useCredits";
 import { useTalent } from "@/hooks/useTalent";
-import { useMessageThreads } from "@/hooks/useMessageThreads";
 import { useCareerLevel } from "@/hooks/useCareerLevel";
 import { ProfileCardBackdrop } from "./ProfileCardBackdrop";
 import {
@@ -28,7 +27,6 @@ export function FeedHeader({ talentName, talentPhoto, talentProfession, isRefres
   const navigate = useNavigate();
   const { balance } = useCredits();
   const { talent } = useTalent();
-  const { totalUnread } = useMessageThreads();
   const { info: career, volume } = useCareerLevel();
   const [textMode, setTextMode] = useState<"light" | "dark" | "auto">("auto");
   const [levelOpen, setLevelOpen] = useState(false);
@@ -111,21 +109,31 @@ export function FeedHeader({ talentName, talentPhoto, talentProfession, isRefres
           </div>
 
           <button
-            onClick={() => navigate("/app/messages")}
-            aria-label="Messages"
-            className="relative shrink-0 active:scale-95 transition-transform"
+            onClick={() => setLevelOpen(true)}
+            aria-label={`Career level ${career.level} ${career.label}`}
+            className="shrink-0 active:scale-95 transition-transform"
           >
-            <div className={cn(
-              "h-9 w-9 rounded-xl flex items-center justify-center border",
-              isLight ? "bg-white/15 border-white/30 text-white" : "bg-primary/10 border-primary/20 text-primary"
-            )}>
-              <MessageCircle className="h-4 w-4" />
-            </div>
-            {totalUnread > 0 && (
-              <span className="absolute -top-1 -right-1 h-4 min-w-4 px-1 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center">
-                {totalUnread > 9 ? "9+" : totalUnread}
+            <div
+              className={cn(
+                "rounded-xl px-2.5 py-1.5 flex flex-col items-center justify-center border min-w-[48px]",
+                isLight
+                  ? "bg-white/15 border-white/30 text-white"
+                  : "bg-primary/10 border-primary/20 text-primary",
+              )}
+            >
+              <div className="flex items-center gap-1 leading-none">
+                <Trophy className="h-3 w-3" />
+                <span className="text-xs font-bold tabular-nums">Lv {career.level}</span>
+              </div>
+              <span
+                className={cn(
+                  "text-[9px] font-medium mt-0.5 leading-none truncate max-w-[60px]",
+                  isLight ? "text-white/80" : "text-primary/70",
+                )}
+              >
+                {career.label}
               </span>
-            )}
+            </div>
           </button>
         </div>
       </div>
