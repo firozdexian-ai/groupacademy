@@ -8,12 +8,12 @@
 | 2.2 | Adaptive sampling edge fn (`learner-adaptive-sample`) | Done |
 | 2.3 | Skill profile + EWMA mastery trigger | Done |
 | 2.4 | Spaced repetition (SM-2 schedule, review queue, hub badge, daily nudge) | Done (a–f) |
-| 2.5 | Scenario evaluation → skill signal | **Next** |
+| 2.5 | Scenario evaluation → skill signal | Done (a–e) |
 | 2.6 | Adaptive learner dashboard widget | Pending |
 | 2.7 | Instructor analytics for item bank | Pending |
 | 2.8 | Talent Mirror cross-course rollup | Pending |
 
-**Phase 2 completion: ~50%** (4 of 8 sub-phases shipped, foundation layer complete; remaining work is signal expansion + surfacing).
+**Phase 2 completion: ~62%** (5 of 8 sub-phases shipped — adaptive engine now ingests both quiz and scenario signals through a single SM-2 review queue; remaining work is surfacing dashboards + instructor analytics + cross-course rollup).
 
 ---
 
