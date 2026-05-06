@@ -351,6 +351,11 @@ export function ReviewQueueRunner() {
                     <Badge variant="outline" className="text-[9px] px-1.5 py-0">
                       {Math.round(t.mastery * 100)}% mastery
                     </Badge>
+                    {t.source === "scenario" && (
+                      <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-primary/40 text-primary">
+                        <MessageSquare className="h-2.5 w-2.5 mr-1" /> Scenario
+                      </Badge>
+                    )}
                     <span>·</span>
                     <span>{overdue ?? "due"}</span>
                   </div>
