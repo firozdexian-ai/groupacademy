@@ -21,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCredits } from "@/hooks/useCredits";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { WhyYouMatchPanel } from "@/components/jobs/WhyYouMatchPanel";
 
 /**
  * GroUp Academy: Career Intelligence Hub
@@ -219,6 +220,7 @@ export function AIJobInsights({ jobId, talentId }: AIJobInsightsProps) {
                     </div>
                   </div>
 
+                  {matchResult.verified_match && <WhyYouMatchPanel verifiedMatch={matchResult.verified_match} />}
                   <div className="p-5 rounded-3xl bg-primary/5 border-2 border-primary/20 relative overflow-hidden">
                     <Zap className="absolute top-2 right-2 h-4 w-4 text-primary opacity-20" />
                     <p className="text-xs font-medium leading-relaxed italic text-foreground/80">
