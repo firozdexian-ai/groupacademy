@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTalent } from "@/hooks/useTalent";
 import { useFeedRecommendations, FeedItem } from "@/hooks/useFeedRecommendations";
-import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
+
 import { FeedCardRedesigned } from "@/components/feed/FeedCardRedesigned";
 import { PostCard } from "@/components/feed/PostCard";
 import { FeedFilters } from "@/components/feed/FeedFilters";
