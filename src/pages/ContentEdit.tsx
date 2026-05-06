@@ -645,6 +645,12 @@ export default function ContentEdit() {
           </Card>
         )}
       </div>
+      <AICoverImageSheet
+        open={aiCoverOpen}
+        onOpenChange={setAiCoverOpen}
+        context={{ title: formData.title, description: formData.description, content_type: formData.content_type }}
+        onApply={(url) => setFormData((f) => ({ ...f, cover_image_url: url }))}
+      />
     </div>
   );
 }
