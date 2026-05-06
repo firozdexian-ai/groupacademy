@@ -195,14 +195,14 @@ export function useAuthChat() {
             if (!matched) {
               addMessage(
                 "assistant",
-                "REGISTRY_ERROR: Country not recognized. Please re-input your institutional base.",
+                "I didn't recognise that country — could you type it again? (e.g. United States, India, Bangladesh)",
               );
               return;
             }
             setCollectedData((prev) => ({ ...prev, country: matched.name, countryCode: matched.phoneCode }));
             addMessage(
               "assistant",
-              `Acknowledged. For ${matched.name}, what is your mobile artifact number? (e.g. ${matched.phoneCode}...)`,
+              `Got it. What's your mobile number? (e.g. ${matched.phoneCode}…)`,
             );
             setCurrentAction("collect_phone");
             break;
