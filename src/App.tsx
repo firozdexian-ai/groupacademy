@@ -102,6 +102,7 @@ import AppCourseDetail from "./pages/app/AppCourseDetail";
 import AppMyLearning from "./pages/app/AppMyLearning";
 import TalentMirror from "./pages/app/TalentMirror";
 import InstructorReviewQueue from "./pages/app/InstructorReviewQueue";
+import InstructorInsights from "./pages/app/InstructorInsights";
 import AppProfessions from "./pages/app/AppProfessions";
 import AppProfessionDetail from "./pages/app/AppProfessionDetail";
 import SchoolDetail from "./pages/app/SchoolDetail";
