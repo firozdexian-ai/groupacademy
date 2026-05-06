@@ -30,8 +30,9 @@ export default function GigOpsTab() {
 
       <Tabs defaultValue="scoper">
         <TabsList>
-          <TabsTrigger value="scoper">Scoper queue</TabsTrigger>
+          <TabsTrigger value="scoper">Scoper</TabsTrigger>
           <TabsTrigger value="matchmaker">Matchmaker</TabsTrigger>
+          <TabsTrigger value="verification">Verification</TabsTrigger>
         </TabsList>
 
         <TabsContent value="scoper" className="mt-3">
