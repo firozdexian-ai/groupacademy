@@ -9,8 +9,6 @@ import {
   Building2,
   Globe,
   Flame,
-  ChevronDown,
-  ChevronUp,
   ChevronRight,
   Heart,
   TrendingUp,
