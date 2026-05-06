@@ -29,8 +29,10 @@ import {
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, differenceInDays } from "date-fns";
 import { cn } from "@/lib/utils";
+import { ApplicationMessageThread } from "@/components/applications/ApplicationMessageThread";
+import { MessageCircle, RotateCcw } from "lucide-react";
 
 interface Detail {
   id: string;
@@ -139,6 +141,17 @@ export default function AppApplicationDetail() {
     if (error) return toast.error("Couldn't withdraw.");
     toast.success("Application withdrawn");
     setDetail({ ...detail, application_status: "withdrawn", withdrawn_at: new Date().toISOString() });
+  };
+
+  const handleRestore = async () => {
+    if (!detail) return;
+    const { error } = await (supabase as any)
+      .from("job_applications")
+      .update({ application_status: "submitted", withdrawn_at: null })
+      .eq("id", detail.id);
+    if (error) return toast.error("Couldn't restore.");
+    toast.success("Application restored");
+    setDetail({ ...detail, application_status: "submitted", withdrawn_at: null });
   };
 
   if (loading) {
