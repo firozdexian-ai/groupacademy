@@ -222,6 +222,65 @@ const ContentList = ({ filter }: ContentListProps) => {
     }
   };
 
+  const toggleSelect = (id: string) =>
+    setSelectedIds((prev) => {
+      const n = new Set(prev);
+      n.has(id) ? n.delete(id) : n.add(id);
+      return n;
+    });
+  const toggleSelectAll = () =>
+    setSelectedIds((prev) => (prev.size === content.length ? new Set() : new Set(content.map((c) => c.id))));
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const bulkSetPublished = async (publish: boolean) => {
+    if (selectedIds.size === 0) return;
+    setBulkBusy(true);
+    try {
+      const ids = Array.from(selectedIds);
+      const { error } = await supabase.from("content").update({ is_published: publish }).in("id", ids);
+      if (error) throw error;
+      toast.success(`${ids.length} ${publish ? "published" : "unpublished"}.`);
+      clearSelection();
+      loadRegistry();
+    } catch (e: any) {
+      toast.error(e?.message || "Bulk update failed.");
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
+  const duplicateContent = async (item: Content) => {
+    try {
+      const { data: full, error: fErr } = await supabase.from("content").select("*").eq("id", item.id).single();
+      if (fErr || !full) throw fErr || new Error("Source not found");
+      const { id, created_at, updated_at, current_enrollment, slug, ...rest } = full as any;
+      const newSlug = `${(slug || "course")}-copy-${Math.random().toString(36).slice(2, 6)}`;
+      const { error } = await supabase.from("content").insert({
+        ...rest,
+        slug: newSlug,
+        title: `${full.title} (Copy)`,
+        is_published: false,
+        is_ready: false,
+        current_enrollment: 0,
+      });
+      if (error) throw error;
+      toast.success("Course duplicated as draft.");
+      loadRegistry();
+    } catch (e: any) {
+      toast.error(e?.message || "Duplicate failed.");
+    }
+  };
+
+  const previewAsTalent = (item: Content) => {
+    if (!item.slug) {
+      toast.error("This course has no slug yet — open Edit to set one.");
+      return;
+    }
+    const path = item.content_type === "live_webinar" || item.content_type === "batch_class"
+      ? `/webinar/${item.slug}` : `/courses/${item.slug}`;
+    window.open(path, "_blank");
+  };
+
   if (isLoading && content.length === 0) return <CardGridSkeleton count={6} columns={3} />;
 
   return (
