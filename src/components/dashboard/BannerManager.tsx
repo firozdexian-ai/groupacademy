@@ -23,6 +23,9 @@ import { cn } from "@/lib/utils";
 
 type PlacementType = "carousel" | "hero" | "learning";
 
+type MediaType = "image" | "gif" | "video";
+type FocalPoint = "center" | "top" | "bottom" | "left" | "right";
+
 interface Banner {
   id: string;
   image_url: string;
@@ -30,6 +33,14 @@ interface Banner {
   display_order: number;
   is_active: boolean;
   placement: PlacementType;
+  media_type: MediaType | null;
+  media_url: string | null;
+  poster_url: string | null;
+  link_url: string | null;
+  cta_label: string | null;
+  focal_point: FocalPoint | null;
+  start_at: string | null;
+  end_at: string | null;
   content?: {
     id: string;
     title: string;
@@ -51,6 +62,14 @@ export const BannerManager = () => {
     link_content_id: "none",
     display_order: 0,
     placement: "carousel" as PlacementType,
+    media_type: "image" as MediaType,
+    media_url: "",
+    poster_url: "",
+    link_url: "",
+    cta_label: "",
+    focal_point: "center" as FocalPoint,
+    start_at: "",
+    end_at: "",
   });
 
   useEffect(() => {
