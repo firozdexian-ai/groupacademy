@@ -66,6 +66,7 @@ export function AIChatPanel({
   });
 
   const starterPrompts = useMemo(() => {
+    if (starterChips && starterChips.length > 0) return starterChips;
     const out: { label: string; prompt: string }[] = [];
     if (!masteryCtx) return out;
     const weakest = masteryCtx.weak_topics?.[0];
@@ -82,7 +83,15 @@ export function AIChatPanel({
       });
     }
     return out;
-  }, [masteryCtx]);
+  }, [masteryCtx, starterChips]);
+
+  // Seed first assistant message (career coach intro etc.)
+  useEffect(() => {
+    if (seedAssistantMessage && messages.length === 0) {
+      setMessages([{ role: "assistant", content: seedAssistantMessage }]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seedAssistantMessage]);
 
   // PROTOCOL: Viewport Auto-Sync
   useEffect(() => {
