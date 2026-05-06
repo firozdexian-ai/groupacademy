@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -10,17 +10,23 @@ const AuthCallback = () => {
   const [params] = useSearchParams();
   const { user, isLoading: authLoading } = useAuth();
   const { accountType, isLoading: accountTypeLoading } = useAccountType();
+  const [retried, setRetried] = useState(false);
 
   useEffect(() => {
     if (authLoading || accountTypeLoading) return;
     if (!user) {
-      // OAuth failed or got cancelled — back to chat auth.
       navigate("/auth", { replace: true });
       return;
     }
+    // For brand-new OAuth users, the talents row may not exist yet — retry once.
+    if (accountType === "unknown" && !retried) {
+      setRetried(true);
+      const t = setTimeout(() => setRetried(false), 600);
+      return () => clearTimeout(t);
+    }
     const dest = resolvePostAuthRoute(accountType, params.get("returnTo")) || "/app/feed";
     navigate(dest, { replace: true });
-  }, [user, authLoading, accountType, accountTypeLoading, navigate, params]);
+  }, [user, authLoading, accountType, accountTypeLoading, navigate, params, retried]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-3">

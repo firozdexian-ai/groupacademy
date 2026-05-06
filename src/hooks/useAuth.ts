@@ -163,6 +163,20 @@ export const useAuth = (): AuthState => {
         }
       } catch {}
 
+      // Fire welcome email (non-blocking, idempotent on user id)
+      try {
+        await supabase.functions.invoke("send-transactional-email", {
+          body: {
+            templateName: "welcome",
+            recipientEmail: email.trim(),
+            idempotencyKey: `welcome-${authData.user.id}`,
+            templateData: { name: fullName?.split(" ")[0] || undefined },
+          },
+        });
+      } catch (e) {
+        console.warn("[Auth] welcome email enqueue failed", e);
+      }
+
       toast.success("Account created.");
       return true;
     } catch (err: any) {

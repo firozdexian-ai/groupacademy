@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTalent } from "@/hooks/useTalent";
 import { useFeedRecommendations, FeedItem } from "@/hooks/useFeedRecommendations";
-import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
+
 import { FeedCardRedesigned } from "@/components/feed/FeedCardRedesigned";
 import { PostCard } from "@/components/feed/PostCard";
 import { FeedFilters } from "@/components/feed/FeedFilters";
@@ -28,10 +28,9 @@ import { cn } from "@/lib/utils";
 
 export default function Feed() {
   const navigate = useNavigate();
-  const { talent, refreshTalent } = useTalent();
-  const [showOnboarding, setShowOnboarding] = useState(false);
+  const { talent } = useTalent();
 
-  // Pull-to-refresh state: Tactical Tracking
+  // Pull-to-refresh state
   const [startY, setStartY] = useState(0);
   const [pullDistance, setPullDistance] = useState(0);
   const [isPulling, setIsPulling] = useState(false);
@@ -50,18 +49,6 @@ export default function Feed() {
     markInterested,
     markNotInterested,
   } = useFeedRecommendations();
-
-  useEffect(() => {
-    if (talent && !talent.onboardingCompletedAt) {
-      setShowOnboarding(true);
-    }
-  }, [talent]);
-
-  const handleOnboardingComplete = async () => {
-    setShowOnboarding(false);
-    await refreshTalent();
-    refresh();
-  };
 
   const handleInterested = async (item: FeedItem) => {
     await markInterested(item);
@@ -120,8 +107,6 @@ export default function Feed() {
     if (pullDistance > 60) await refresh();
     setPullDistance(0);
   };
-
-  if (showOnboarding) return <OnboardingWizard onComplete={handleOnboardingComplete} />;
 
   if (isLoading && !isRefreshing)
     return (

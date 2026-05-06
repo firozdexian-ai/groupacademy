@@ -1,102 +1,111 @@
-# Phase 1.4 — AI Career Coach (Talent Side) — IMPLEMENTED
+# Phase 1.5 — Auth & Onboarding: Closeout (before Phase 2)
 
-Goal: now that 1.3 captures **profession_category_id**, **professional_role_id**, **current_status**, and **primary_goal**, turn that data into a working **personal Career Coach** for every talent. Reuse the existing `ai_instructors` table (78 active, one per profession category — `Career Coaching` already exists as a fallback) and the streaming `ai-instructor-chat` edge function. No new model, no new chat surface — just the **routing, persona injection, and entry points**.
+Goal: clean every loose end in **authentication + onboarding** so we can hand off to Phase 2 (Dashboard / Feed / Home) on a stable base. No new feature areas — just gaps, leaks, polish, and the telemetry plumbing the next phases will need.
 
-## Findings from current code
+## Audit findings (what's still wrong / missing)
 
-1. **`ai_instructors`** has 78 active rows, one per `profession_category` (FK `profession_line_id` → `profession_categories.id`). Each row already carries `name`, `persona`, `system_prompt`, `expertise_areas`. Coverage of the 83 categories is near-complete; gaps include `Fresh Graduate` (no instructor) — needs a fallback.
-2. **`ai-instructor-chat` edge function** already streams via Lovable AI, hydrates curriculum KB and `get_tutor_mastery_context`. It accepts `professionLineId` and builds a system prompt from instructor + school + curriculum. **No goal/status/role injection today.**
-3. **No "Career Coach" entry point** — `AICoachConsoleTab` / `AishaConsoleTab` exist as `AgentRedirectStub`s pointing into the agentic dashboard, but there's no per-talent default coach binding. Aisha (the auth/general agent) is separate from the per-profession coach.
-4. **Talent already has** `profession_category_id`, `professional_role_id`, `current_status`, `primary_goal`, `experience/education/skills`. All of this is unused by `ai-instructor-chat`.
-5. **Concierge memory** says `ai-general` (agent_key) is the free-forever platform concierge. Career Coach is **different**: it's persona-bound, profession-bound, and lives next to AI General — not a replacement.
+1. **Wizard is mounted twice.** `App.tsx OnboardingGuard` mounts `<OnboardingWizard>` for any `/app/*` route AND `pages/app/Feed.tsx` mounts it again on the feed. Two instances flicker / race the `setShowWizard` state. One of them must go (the global guard wins).
+2. **CV step still has the old, duplicated "career track" selector.** It overlaps with the new `ProfessionStep` from 1.3, has uppercase chrome ("PROFILE UPDATED", "SKILLS FOUND"), and forces selecting a category here even though step 3 covers it. Strip the in-CV category picker, keep only upload + parse summary.
+3. **Google OAuth users have no phone.** Mandatory phone is enforced in classic signup but Google sign-in skips it. After OAuth, the talent has `phone = ''` and breaks the global "Mandatory phone capture" rule. Need a one-shot "complete your phone" gate inside onboarding (step 1.5 — between Welcome and CV) that **only renders if phone is empty**.
+4. **No telemetry sink.** `trackOnboardingStep` / `trackCoachEvent` write to `console.debug`. The `platform_events` table is already there and admin-readable — wire both helpers to it (`event_kind = 'onboarding_step' | 'career_coach'`, `payload` for action + meta). No new table.
+5. **Suspected duplicate is silent.** `is_suspected_duplicate` gets set, welcome credits are skipped, but: (a) admin gets no notification, (b) the user sees no message, (c) `platform_events` doesn't record it. Fire one `platform_events` row (`event_kind = 'duplicate_cv_detected'`) and show a soft toast: *"Looks like you've used GroUp before — welcome back. Reach out if you need to recover an old account."*
+6. **Wizard skip is too cheap.** `Skip for now` jumps straight to `completeOnboarding` without persisting profession/goal — those users then bypass Career Coach binding and matching. Soft-friction confirmation modal + always set `onboarding_completed_at` but **don't** mark profile as complete (`profile_complete` flag → false) so dashboard can nudge later.
+7. **Welcome email not sent.** Email confirmation is off (per your decision), but no transactional email goes out on signup. Send one via the existing `notify.groupacademy.online` native queue (per Email Architecture core memory) — a simple "Welcome to GroUp" with a link to `/app/feed`.
+8. **HIBP leaked-password check is off.** Free, one-toggle protection. Turn it on through `configure_auth` (no UI changes).
+9. **CV bucket inconsistency.** CV upload writes to `portfolio-uploads` with a **public** URL. Per security core ("`talent-cvs` requires signed URLs"), the canonical CV bucket is `talent-cvs` and must be private. Migrate the CV write path to `talent-cvs`, store the path (not public URL) in `talents.cv_url`, and produce signed URLs on read in the few places that need it (CV preview, parse-cv edge function).
+10. **Resume mid-onboarding is fragile.** `OnboardingWizard` syncs `savedStep` only forward, but if a user lands on `/app/jobs` mid-flow the guard re-mounts and sometimes resets to step 0 because the talent context hasn't loaded yet. Add a small skeleton state (don't render the wizard until `talent` is hydrated).
+11. **Auth chat password setter** allows any 8-char string. Add a tiny inline strength indicator + reject obvious weak passwords (length + 1 number) — UI only; HIBP does the rest.
+12. **`/reset-password`** page exists but no path tests forgot-password from `AuthClassic`. Add a "Forgot password?" link in `AuthClassic` (Aisha already supports it).
+13. **Auth callback** — when Google OAuth succeeds for a brand-new user, the `talents` row may not exist yet (it's created via trigger on first login but timing varies). `/auth/callback` should retry `useAccountType` once before deciding the route, otherwise new Google signups briefly land on `/` before bouncing to `/app/feed`.
 
 ## Plan
 
-### 1.4.a — DB: bind a coach to each talent
+### 1.5.a — Single source of truth for the wizard
+- Remove the wizard mount from `pages/app/Feed.tsx`. Keep only `App.tsx OnboardingGuard`.
+- Guard waits for `talent !== null && !isTalentLoading` before deciding to show the wizard (kills the reset-to-step-0 flicker).
 
-- Migration:
-  - `ALTER TABLE talents ADD COLUMN career_coach_instructor_id uuid REFERENCES ai_instructors(id) ON DELETE SET NULL;`
-  - `CREATE INDEX idx_talents_career_coach ON talents(career_coach_instructor_id);`
-  - SECURITY DEFINER function `assign_career_coach(_talent_id uuid) RETURNS uuid` that:
-    1. Looks up talent's `profession_category_id`.
-    2. Picks the `ai_instructors` row for that category (active).
-    3. Falls back to the `Career Coaching` instructor (id resolved by name) if none.
-    4. Writes `talents.career_coach_instructor_id` and returns the id.
-  - Set `search_path = public` (per platform memory).
-- Backfill query in the migration: `UPDATE talents SET career_coach_instructor_id = (SELECT id FROM ai_instructors WHERE profession_line_id = talents.profession_category_id AND is_active LIMIT 1) WHERE career_coach_instructor_id IS NULL AND profession_category_id IS NOT NULL;`
+### 1.5.b — CV step cleanup
+- Delete the in-CV "Choose your career track" `Select` block (lines 330–351) and its save handler — `ProfessionStep` owns this now.
+- Replace ALL-CAPS micro labels (`PROFILE UPDATED`, `SKILLS FOUND`, `EXPERIENCE`, `Click or drag to replace`) with sentence case.
+- Drop the `selectedCategory` state and the `categories` fetch from this file entirely. `Continue` becomes simply `onContinue()` after the file is uploaded (or skipped).
 
-### 1.4.b — Auto-assign at end of onboarding
+### 1.5.c — Mandatory phone gate (post-OAuth)
+- New step `PhoneCaptureStep.tsx` inserted **only when** `talent.phone` is empty. Reuses `<PhoneInput>` from `ui/phone-input`. Saves `phone`, `country`, `country_code` to `talents`.
+- `OnboardingWizard.ONBOARDING_NODES` becomes a runtime-filtered array: `[welcome, phone?, cv, profession, goal, explore]`. `phone` is included only if `!talent.phone`. Step indices and progress bar adapt automatically.
 
-- In `useOnboarding.completeOnboarding`, after the existing welcome-credit gating, call `supabase.rpc("assign_career_coach", { _talent_id })`.
-- Also call it in `ProfessionStep`'s save handler so a coach is bound the moment profession is chosen — not only after step 5.
-- If `assign_career_coach` returns null (no match + no fallback), surface a soft toast and continue (non-blocking).
+### 1.5.d — Telemetry → platform_events
+- Update `src/lib/onboarding/telemetry.ts`:
+  - `trackOnboardingStep(stepId, action, meta)` → fire-and-forget `supabase.from("platform_events").insert({ event_kind: "onboarding_step", subject_kind: "talent", subject_id: talentId, payload: { stepId, action, ...meta } })`.
+  - `trackCoachEvent(action, meta)` → same, with `event_kind = "career_coach"`.
+  - Pass `talentId` from caller (read from `useTalent` once at the top of each step).
+  - Keep the `console.debug` for dev; just add the insert.
+- No schema change — `platform_events` already exists and admins can read it.
 
-### 1.4.c — Inject onboarding context into `ai-instructor-chat`
+### 1.5.e — Duplicate detection: surface it
+- In `useOnboarding.completeOnboarding`, when `isDuplicate` is true, also `INSERT INTO platform_events (event_kind = 'duplicate_cv_detected', subject_kind='talent', subject_id, payload: { fingerprint })`.
+- Replace the silent "you're all set" toast with: *"Welcome back — looks like you've been here before. If you have an old account, [contact support](/app/messages?to=support) to recover it."* (markdown link rendered via existing toast description support, or plain text if not supported).
+- No admin-UI surface in 1.5; the row in `platform_events` is enough — admin tile comes in Phase 2.
 
-Edge function `supabase/functions/ai-instructor-chat/index.ts`:
+### 1.5.f — Skip-with-friction
+- Tap on `Skip for now` opens a small AlertDialog: *"Skip setup? You'll miss your AI Career Coach and personalised job matches. You can finish anytime from your profile."* Buttons: **"Finish later"** (proceed) / **"Keep going"** (cancel).
+- On confirm, call `skipOnboarding()` AND fire `platform_events` `onboarding_skipped` with the current step id.
+- Add a derived `talents.profile_complete` virtual flag computed in TS (no schema): `!!profession_category_id && !!primary_goal && !!phone`. Used by Phase 2 dashboard.
 
-- Already loads instructor + curriculum + mastery. **Add**:
-  - Resolve talent row (already does, for `talentId`).
-  - Pull `current_status`, `primary_goal`, `professional_roles.name` (via FK from `talents.professional_role_id`), top 5 `skills`, last `experience.title @ company`.
-  - Inject a **CAREER PROFILE** block into `systemPrompt` after the institutional block:
-    ```
-    CAREER PROFILE (use to ground every reply)
-    - Goal: {primary_goal}
-    - Status: {current_status}
-    - Target role: {professional_role.name}
-    - Recent role: {experience[0].title @ company}
-    - Top skills: {top 5 skills}
-    Coach toward {primary_goal}. Be direct, practical, name a next step in every reply.
-    ```
-- Keep injection ≤ 1.5 KB.
-- New optional payload field `mode: "career_coach" | "tutor"` so the existing tutor flows on `/app/courses/...` are unchanged. When `mode === "career_coach"`, skip the curriculum KB block (it's noise for career chat).
+### 1.5.g — Welcome transactional email
+- New edge function `send-welcome-email` (no JWT verification; called server-side from a DB trigger or from `signUp` directly).
+- Triggered on first INSERT into `talents` (DB trigger calling `pg_net` to invoke the function), payload `{ talent_id, email, full_name }`.
+- The function sends through the existing `notify.groupacademy.online` queue (per memory). Subject: *"Welcome to GroUp Academy, {first_name}"*. Body: short, links to `/app/feed` and `/app/career-coach`.
+- If the queue isn't reachable, log and swallow — never block signup.
 
-### 1.4.d — Career Coach surface
+### 1.5.h — HIBP + password UX
+- Call `configure_auth` to enable `password_hibp_enabled: true`.
+- In `useAuthChat` `set_password` step, add a sub-component that:
+  - Shows length/strength dot (weak / fair / strong).
+  - Rejects passwords with no digit OR length < 8.
+- In `AuthClassic`, add a "Forgot password?" link → `handleForgotPassword(email)`.
 
-Two minimal entry points, no new chat UI from scratch — reuse existing chat panel infra.
+### 1.5.i — CV bucket migration to `talent-cvs`
+- Migration: ensure `talent-cvs` bucket exists, **private**, with these RLS storage policies:
+  - User can `select`/`insert`/`update`/`delete` only objects under `auth.uid()/...`.
+  - Admins can read all (via `has_role`).
+- Update `CVUploadStep.handleCVUpload` to upload to `talent-cvs/{user_id}/cv_v3.{ext}`, store the **path** in `talents.cv_url`, and call `createSignedUrl(path, 3600)` for the parse-cv edge function and any preview.
+- Update `parse-cv` edge function (and any other CV reader) to accept either a public URL or a path → fetches the file via service role.
+- Backfill: leave existing `portfolio-uploads/.../cv_v*` untouched (don't break old links). New uploads only.
 
-1. **Dashboard tile** on the talent dashboard quick actions grid:
-   - "Talk to your Coach" → routes to `/app/career-coach`.
-   - Subtitle shows the bound coach's `name` (fallback "Career Coach").
-2. **New page** `src/pages/app/CareerCoach.tsx`:
-   - Reads `talents.career_coach_instructor_id`. If null, calls `assign_career_coach` on mount.
-   - Renders `AIChatPanel` (existing) wired to `ai-instructor-chat` with `professionLineId` (from instructor row) and `mode: "career_coach"`.
-   - **Seed first message** when there are no prior messages: a server-side starter built from goal+role: e.g. `"Hi {first_name}, I'm {coach.name}. You said your goal is to {goal label}. Want to start with a 30-day plan or fix your CV first?"` — render as the first assistant bubble (not user-sent).
-   - Persists thread via existing `agent_chat_sessions` (use `agent_key = 'career-coach'`; insert a row in `ai_agents` for `career-coach` if not present, mirroring the `ai-general` pattern).
-3. Update `AICoachConsoleTab` (currently a redirect stub) to point at `/app/career-coach` instead of the generic agent route.
+### 1.5.j — Auth callback resilience
+- In `AuthCallback.tsx`, after `useAccountType` resolves, if `accountType === 'unknown'` AND `user.app_metadata.provider === 'google'`, wait 600ms and re-query once before falling back to `/app/feed`.
+- Add a small fallback: if still `unknown`, just go to `/app/feed` (don't bounce to `/`).
 
-### 1.4.e — Concierge ↔ Coach handoff
-
-- In `useAIGeneralChat`'s system prompt (server side, already markdown-link-aware), append: "When the user asks for career planning, CV feedback, interview prep, or skill gaps — recommend they open their Career Coach: `[Open your Career Coach](/app/career-coach)`."
-- No code changes on the client; just a system-prompt append in whatever edge function `ai-general` uses (verify location during implementation).
-
-### 1.4.f — Telemetry (light, same pattern as 1.3)
-
-- Reuse `src/lib/onboarding/telemetry.ts` shape; add `trackCoachEvent("opened" | "first_message" | "session_resume")` writing to `console.debug`. Real table comes in 1.5.
+### 1.5.k — `OnboardingGuard` hydration check
+- In `App.tsx`, render `null` (or a tiny spinner) while `isTalentLoading` is true. Only decide `showWizard` after `talent` is loaded. Removes the brief re-render at step 0.
 
 ## Files changed (planned)
+- `src/App.tsx` — guard waits for hydration
+- `src/pages/app/Feed.tsx` — remove duplicate wizard mount
+- `src/components/onboarding/OnboardingWizard.tsx` — runtime-filtered steps (phone optional), skip dialog
+- `src/components/onboarding/CVUploadStep.tsx` — strip category picker, sentence-case copy, talent-cvs bucket, signed URL
+- `src/components/onboarding/PhoneCaptureStep.tsx` — **new**
+- `src/hooks/useAuth.ts` — strength validation hook for `set_password`
+- `src/hooks/useAuthChat.ts` — wire strength validator + forgot-password discoverability
+- `src/hooks/useOnboarding.ts` — duplicate `platform_events` log + softer messaging + skip event
+- `src/lib/onboarding/telemetry.ts` — write to `platform_events`
+- `src/pages/AuthClassic.tsx` — "Forgot password?" link
+- `src/pages/AuthCallback.tsx` — retry account-type once for OAuth
+- `supabase/functions/send-welcome-email/` — **new** edge function
+- `supabase/functions/parse-cv/index.ts` — accept path + service-role download
+- DB migration:
+  - Trigger on `talents` INSERT → `pg_net` invoke `send-welcome-email` (idempotent on email)
+  - Storage bucket `talent-cvs` (private) + policies (user-scoped + admin read)
+- `configure_auth` call: `password_hibp_enabled: true`
 
-- `supabase/migrations/<ts>_career_coach.sql` — new column, index, `assign_career_coach` RPC, backfill
-- `supabase/functions/ai-instructor-chat/index.ts` — career-profile context block, `mode` switch
-- `src/hooks/useOnboarding.ts` — call `assign_career_coach` on completion
-- `src/components/onboarding/ProfessionStep.tsx` — call `assign_career_coach` after save
-- `src/pages/app/CareerCoach.tsx` — new page, reuses `AIChatPanel`
-- `src/components/ai-instructor/AIChatPanel.tsx` — accept optional `seedAssistantMessage` + `mode` props (small additive change)
-- `src/components/dashboard/talent/AICoachConsoleTab.tsx` (or equivalent quick-action card) — link to `/app/career-coach`
-- `src/App.tsx` — route `/app/career-coach`
-- `src/lib/onboarding/telemetry.ts` — `trackCoachEvent`
-
-## Out of scope (deferred)
-
-- Profile groomer / CV-rewrite tools inside the coach chat → 1.5
-- Voice mode, mock interview launcher inside coach → later
-- Per-goal sub-personas (one coach per `primary_goal`) — current plan binds **per profession**; goal lives in the system prompt only
-- Admin UI to edit per-talent coach assignment → trivial later add
-- Migration of legacy `Aisha` chat threads into the coach surface
-- WhatsApp / phone verification → Profile Verification phase
+## Out of scope (Phase 2 and beyond)
+- Dashboard / Feed / Home redesign — that's **Phase 2**.
+- Admin "Suspected Duplicates" review UI (the `platform_events` row ships now, the admin tile is later).
+- WhatsApp connect for verification (still in "Profile Verification" phase, post-Phase 2).
+- Per-goal sub-coaches.
+- Funnel charts in admin (the rows land in `platform_events`; charts in Phase 2's admin pass).
 
 ## Open questions
-
-1. **Coach naming** — show the instructor's real persona name (e.g. *"Rafiq, your Project Management Coach"*) or always brand it as **"GroUp Career Coach"** with the persona only inside replies? My recommendation: show real persona name — feels more human and matches the existing instructor identity.
-2. **First-message seeding** — auto-send the seed as the assistant's first bubble (recommended) or show a **starter chips** strip ("Plan my next 30 days", "Review my CV", "Find me jobs", "What skill should I learn?") and let the user pick? Could do both.
-3. **Coverage gap** — for the few categories without an `ai_instructors` row (e.g. `Fresh Graduate`), should I (a) fall back to the `Career Coaching` instructor only, or (b) auto-create missing instructor rows from a template at migration time so every talent always has a same-category coach?
+1. **Welcome email** — happy with a single "Welcome" email at signup, or also a follow-up at onboarding completion (mentioning credits awarded)? My recommendation: only signup for now, less spammy.
+2. **Skip friction** — soft modal (recommended) or a stronger 2-tap confirm ("Type 'skip' to continue")? Soft is enough given the flag captures intent.
+3. **CV bucket migration** — keep old uploads on `portfolio-uploads` (read-only, never written again) or move them too? My recommendation: leave them — migration risk outweighs benefit, and they were already public by user choice.

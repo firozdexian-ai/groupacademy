@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useTalent } from "@/hooks/useTalent";
 import { useCredits } from "@/hooks/useCredits";
 import { useQueryClient } from "@tanstack/react-query";
+import { trackDuplicateDetected } from "@/lib/onboarding/telemetry";
 
 /**
  * Onboarding wizard state — tracks current step, awards welcome credits once,
@@ -47,7 +48,7 @@ export function useOnboarding() {
 
   
   const completeOnboarding = useCallback(async () => {
-    if (!talent?.id) return { success: false, creditsAwarded: false };
+    if (!talent?.id) return { success: false, creditsAwarded: false, duplicate: false };
 
     setIsUpdating(true);
     try {
@@ -60,7 +61,7 @@ export function useOnboarding() {
       // Refetch latest duplicate flag (CV step may have set it after Talent context cached)
       const { data: fresh } = await supabase
         .from("talents")
-        .select("is_suspected_duplicate")
+        .select("is_suspected_duplicate, cv_fingerprint")
         .eq("id", talent.id)
         .maybeSingle();
 
@@ -70,6 +71,10 @@ export function useOnboarding() {
       if (!existingCredits && !isDuplicate) {
         await addCredits(250, "welcome_bonus", "Welcome bonus");
         creditsAwarded = true;
+      }
+
+      if (isDuplicate) {
+        trackDuplicateDetected(talent.id, fresh?.cv_fingerprint ?? null);
       }
 
       const { error: syncError } = await supabase
@@ -94,10 +99,10 @@ export function useOnboarding() {
       queryClient.invalidateQueries({ queryKey: ["feed-recommendations"] });
 
       await refreshTalent();
-      return { success: true, creditsAwarded };
+      return { success: true, creditsAwarded, duplicate: isDuplicate };
     } catch (err) {
       console.error("Onboarding completion failed:", err);
-      return { success: false, creditsAwarded: false };
+      return { success: false, creditsAwarded: false, duplicate: false };
     } finally {
       setIsUpdating(false);
     }
