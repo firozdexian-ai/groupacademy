@@ -38,6 +38,8 @@ export default function LearningHub() {
 
   const [activeTab, setActiveTab] = useState<TabKey>(initialTab);
   const [detailView, setDetailView] = useState<DetailView>(null);
+  const { data: reviewData } = useReviewQueue({ limit: 50, itemsPerTopic: 1 });
+  const dueCount = reviewData?.total_due ?? 0;
 
   useEffect(() => {
     if (!detailView) {
