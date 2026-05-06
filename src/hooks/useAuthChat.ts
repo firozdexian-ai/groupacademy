@@ -167,7 +167,9 @@ export function useAuthChat() {
           console.warn("[Aisha] Agent reply failed validation, using fallback.", parsed.error.flatten());
           return getFallbackProtocol(context);
         }
-        return { reply: parsed.data.reply, action: parsed.data.action, quiz: parsed.data.quiz ?? null };
+          const safeQuiz: QuizData | null =
+            parsed.data.quiz && parsed.data.quiz.answer ? { answer: parsed.data.quiz.answer } : null;
+          return { reply: parsed.data.reply, action: parsed.data.action, quiz: safeQuiz };
       } catch {
         return getFallbackProtocol(context);
       }

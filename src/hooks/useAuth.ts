@@ -210,3 +210,33 @@ export const useAuth = (): AuthState => {
 
   return { user, session, isLoading, signIn, signUp, signInWithGoogle, signOut, resetPassword, updatePassword };
 };
+
+/**
+ * Helper for hydrating the talents table after a manual signup (used by access-code flows).
+ */
+export const createStudentProfile = async (
+  userId: string,
+  fullName: string,
+  email: string,
+  phone?: string,
+  status: "free_learner" | "lead" | "enrolled" | "graduated" = "free_learner",
+): Promise<boolean> => {
+  try {
+    const { error } = await supabase.from("talents").upsert(
+      {
+        id: userId,
+        full_name: fullName,
+        email,
+        phone: phone || "",
+        status,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "id" },
+    );
+    if (error) throw error;
+    return true;
+  } catch (err) {
+    console.error("Failed to create talent profile:", err);
+    return false;
+  }
+};
