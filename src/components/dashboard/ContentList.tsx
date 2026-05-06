@@ -53,6 +53,7 @@ type ContentType = "batch_class" | "free_video" | "live_webinar" | "offline_semi
 interface Content {
   id: string;
   title: string;
+  slug: string | null;
   content_type: string;
   description: string | null;
   price: number;
