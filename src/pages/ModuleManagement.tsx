@@ -34,6 +34,7 @@ import {
   HelpCircle,
   Wand2,
   GripVertical,
+  BarChart3,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -47,6 +48,7 @@ import {
 import ResearchPromptDialog from "@/components/modules/ResearchPromptDialog";
 import { BatchContentGenerator } from "@/components/dashboard/BatchContentGenerator";
 import { DraggableList } from "@/components/dashboard/common/DraggableList";
+import { ItemBankAnalyticsPanel } from "@/components/learning/ItemBankAnalyticsPanel";
 
 /**
  * Curriculum Module Manager
