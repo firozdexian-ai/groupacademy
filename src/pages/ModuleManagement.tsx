@@ -34,6 +34,7 @@ import {
   HelpCircle,
   Wand2,
   GripVertical,
+  BarChart3,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -47,6 +48,7 @@ import {
 import ResearchPromptDialog from "@/components/modules/ResearchPromptDialog";
 import { BatchContentGenerator } from "@/components/dashboard/BatchContentGenerator";
 import { DraggableList } from "@/components/dashboard/common/DraggableList";
+import { ItemBankAnalyticsPanel } from "@/components/learning/ItemBankAnalyticsPanel";
 
 /**
  * Curriculum Module Manager
@@ -85,6 +87,7 @@ export default function ModuleManagement(props: ModuleManagementProps = {}) {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [researchModuleId, setResearchModuleId] = useState<string | null>(null);
   const [studioOpen, setStudioOpen] = useState(false);
+  const [analyticsModuleId, setAnalyticsModuleId] = useState<string | null>(null);
   
 
   const handleBack = () => {
@@ -521,6 +524,15 @@ export default function ModuleManagement(props: ModuleManagementProps = {}) {
                       >
                         <Wand2 className="mr-1.5 h-3.5 w-3.5" /> AI Studio
                       </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setAnalyticsModuleId(mod.id)}
+                        className="rounded-xl font-bold uppercase text-[10px] tracking-widest"
+                        title="Item-bank analytics for this module"
+                      >
+                        <BarChart3 className="mr-1.5 h-3.5 w-3.5" /> Analytics
+                      </Button>
                     </div>
                     <Button
                       onClick={() => saveModule(mod)}
@@ -595,6 +607,18 @@ export default function ModuleManagement(props: ModuleManagementProps = {}) {
           </SheetHeader>
           <div className="p-4">
             <BatchContentGenerator />
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      <Sheet open={!!analyticsModuleId} onOpenChange={(o) => !o && setAnalyticsModuleId(null)}>
+        <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto p-0">
+          <SheetHeader className="px-6 py-4 border-b">
+            <SheetTitle>Item-bank Analytics</SheetTitle>
+            <SheetDescription>Per-item difficulty, topic mastery, and items needing review.</SheetDescription>
+          </SheetHeader>
+          <div className="p-4">
+            {analyticsModuleId && <ItemBankAnalyticsPanel moduleId={analyticsModuleId} />}
           </div>
         </SheetContent>
       </Sheet>
