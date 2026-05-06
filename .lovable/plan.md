@@ -1,101 +1,121 @@
-# Sub-phase 2.3 — Adaptive Learning
+# Sub-phase 2.4 — Spaced Repetition & Review Queue
 
-Goal: when a learner takes a quiz or scenario, what they see is shaped by *their own* recent performance and the topic-tags they've struggled with — not random sampling. The pools (`module_quiz_pool`, `module_scenario_pool`) and attempt logs (`talent_quiz_attempt`, `talent_scenario_run`) already exist; this sub-phase adds the skill model + adaptive sampler on top.
+Goal: turn the new skill profile from a one-shot signal into an ongoing memory engine. After a learner finishes a module, weak topics resurface on a schedule (SM-2-style), and a single "Review" surface lets them clear due items across all modules they've touched. This is the natural follow-up to 2.3: 2.3 made *what gets shown* adaptive; 2.4 makes *when it gets shown again* adaptive.
 
 ---
 
-## 2.3 mini sub-phases
+## 2.4 mini sub-phases
 
 | # | Sub-phase | Outcome |
 |---|---|---|
-| 2.3.a | Skill profile schema | `talent_skill_profile` per (talent, module, topic_tag) → mastery 0–1, attempts, last_seen |
-| 2.3.b | Skill update trigger | After every `talent_quiz_attempt` insert → recompute mastery for each topic_tag of served items |
-| 2.3.c | Adaptive sampler edge fn | Replace random pool draws with: weakness-weighted topics × difficulty band tuned to current mastery |
-| 2.3.d | Wire into quiz/scenario UI | `AssessStage` + `PracticeStage` call new `learner-quiz-adaptive` / `learner-scenario-adaptive` endpoints |
-| 2.3.e | Mastery surface | Tiny "skill bars" on stage 6 (ProgressStage) showing per-topic mastery for the just-finished module |
+| 2.4.a | Schedule schema | Extend `talent_skill_profile` with `interval_days`, `ease`, `due_at`, `last_reviewed_at` |
+| 2.4.b | Schedule trigger | After every quiz attempt, recompute SM-2 schedule per topic from EWMA result |
+| 2.4.c | Review queue edge fn | `learner-review-queue` returns due topics across all modules + a sampled item per topic |
+| 2.4.d | Review page UI | New `/app/learning/review` route with daily-streak header, due count, and inline quiz runner |
+| 2.4.e | Notifications + dashboard surfacing | "N topics due today" badge in Learning hub + optional daily reminder via existing notifications table |
 
 ---
 
 ## Detailed plan
 
-### 2.3.a — `talent_skill_profile`
+### 2.4.a — Extend `talent_skill_profile`
 
-```sql
-create table public.talent_skill_profile (
-  id uuid primary key default gen_random_uuid(),
-  talent_id uuid not null,
-  module_id uuid not null references public.course_modules(id) on delete cascade,
-  topic_tag text not null,
-  mastery numeric(3,2) not null default 0.50,   -- 0.00–1.00, EWMA
-  attempts int not null default 0,
-  correct int not null default 0,
-  last_seen_at timestamptz not null default now(),
-  unique (talent_id, module_id, topic_tag)
-);
+Migration adds:
 ```
-RLS: learner reads own; admin reads all; trigger-only writes.
+interval_days     int          not null default 1
+ease              numeric(3,2) not null default 2.50
+due_at            timestamptz  not null default now()
+last_reviewed_at  timestamptz
+```
+Plus index `(talent_id, due_at)` for the daily queue lookup.
 
-### 2.3.b — Update trigger
+No RLS changes — existing learner-own / admin-read policies cover the new columns.
 
-`fn_update_skill_profile()` AFTER INSERT on `talent_quiz_attempt`:
-- For each `item_id` in `NEW.item_ids`, fetch `topic_tags` + correctness from `NEW.answers`.
-- For each topic_tag: EWMA mastery update
-  - `new_mastery = round((0.7 * old + 0.3 * was_correct), 2)`
-  - bump `attempts` + `correct`, set `last_seen_at = now()`.
-- Upsert per (talent, module, topic_tag).
+### 2.4.b — Schedule trigger
 
-Same shape as a future `fn_update_skill_profile_from_scenario` on `talent_scenario_run` (using `evaluation.score_per_topic`), wired only when scenario evaluation lands; out-of-scope nit for 2.3.
+Extend `fn_update_skill_mastery_from_attempt` (created in 2.3.b). After the EWMA upsert, recompute SM-2 per touched topic:
 
-### 2.3.c — Adaptive sampler
+```text
+quality = round(mastery * 5)            -- 0..5
+if quality < 3:
+   interval_days = 1
+   ease = max(1.30, ease - 0.20)
+else:
+   if attempts == 1: interval_days = 1
+   elif attempts == 2: interval_days = 6
+   else:              interval_days = round(interval_days * ease)
+   ease = ease + (0.10 - (5 - quality) * (0.08 + (5 - quality) * 0.02))
+   ease = greatest(1.30, ease)
+due_at = now() + interval_days * '1 day'
+last_reviewed_at = now()
+```
 
-New edge function `learner-adaptive-sample` (replaces split between `learner-quiz-pool` and `learner-scenario-pool`, or wraps them):
-- Input: `{ moduleId, kind: 'quiz'|'scenario', count }`.
-- Verify auth (`auth.getUser`), resolve `talentId`.
-- Read `talent_skill_profile` for module → identify weak topics (mastery < 0.6) and unseen topics.
-- Pick a difficulty band:
-  - avg mastery < 0.4 → easy (60%) / medium (30%) / hard (10%)
-  - 0.4–0.7 → easy 25 / medium 55 / hard 20
-  - > 0.7 → easy 10 / medium 40 / hard 50
-- Query the appropriate pool with: `WHERE module_id=$1 AND difficulty=ANY($band) ORDER BY (topic_tags && weakTags) DESC, times_served ASC, random()`.
-- Return items + a small `{ targetedTopics, difficultyBand, mastery }` object so the UI can show why.
+All inside the same trigger to keep the chain atomic.
 
-Cost guard: still bounded by the pool — no AI generation during draw. If pool empty (< count), fall back to existing `learner-quiz-pool` / `learner-scenario-pool` (which generate on-demand).
+### 2.4.c — `learner-review-queue` edge function
 
-### 2.3.d — UI wiring
+- Verifies JWT (`auth.getUser`).
+- Body: `{ limit?: number, module_id?: string }`.
+- Returns:
+  - `due_topics`: `talent_skill_profile` rows where `talent_id = user.id` and `due_at <= now()`, ordered by `due_at` then ascending mastery, capped at `limit` (default 20).
+  - For each due topic, one sampled `module_quiz_pool` item matching `module_id` and `topic_tags && [topic_tag]`, weighted toward unseen / lower `times_served`.
+  - `summary`: `{ total_due, modules_touched, oldest_due_at }`.
 
-- `AssessStage.tsx`: swap fetch → `supabase.functions.invoke('learner-adaptive-sample', { body: { moduleId, kind: 'quiz', count: passThreshold>0 ? 10 : 5 }})`.
-- `PracticeStage.tsx`: same with `kind: 'scenario'`, `count: 1`.
-- Pass `attempt_no` (auto-increment from `talent_quiz_attempt` count) when persisting attempts so we don't break existing analytics.
+Reuses the same scoring helpers as `learner-adaptive-sample` for consistency.
 
-### 2.3.e — Mastery skill-bars
+### 2.4.d — Review surface
 
-`ProgressStage` (stage 6) gains a small section: top 5 topic_tags for that module with horizontal bars (`bg-emerald-500` mastery, muted track), labeled with mastery %.
-Single query: `select topic_tag, mastery from talent_skill_profile where talent_id=:t and module_id=:m order by mastery asc limit 5`.
+New route `/app/learning/review` (lazy-loaded), linked from the Learning hub. Page sections:
+
+```text
++---------------------------------------+
+| [Streak: 3🔥]   12 topics due today   |
++---------------------------------------+
+| Mastery snapshot (mini bars, top 5)   |
++---------------------------------------+
+| Inline quiz runner over the queue     |
+|  - one item per due topic             |
+|  - submit -> writes talent_quiz_attempt
+|  - trigger reschedules in DB          |
++---------------------------------------+
+| "Done for today" empty state          |
++---------------------------------------+
+```
+
+Reuses `ModuleQuizRunner`-style components but switches the source to the review queue. Submitting an attempt naturally reuses 2.3's trigger chain — no separate write path.
+
+### 2.4.e — Surfacing
+
+- Learning hub tab badge: small `Badge` next to "Academy" showing due count, fetched via the same edge fn with `limit: 1` + `summary` only.
+- Optional daily nudge: insert a `notifications` row of type `review_due` once per day if `total_due > 0`. Implemented as a tiny edge fn `notify-review-due` triggered by an existing scheduled run (or on app-open if scheduling isn't wired yet — pick the cheaper path).
 
 ---
 
 ## Files
 
 **Migration**
-- `talent_skill_profile` table + RLS + indexes
-- `fn_update_skill_profile` + trigger on `talent_quiz_attempt`
+- ALTER `talent_skill_profile` (4 cols + index)
+- Replace `fn_update_skill_mastery_from_attempt` with the SM-2 extension
 
 **New**
-- `supabase/functions/learner-adaptive-sample/index.ts`
-- `src/components/player/stages/MasteryBars.tsx`
+- `supabase/functions/learner-review-queue/index.ts`
+- `supabase/functions/notify-review-due/index.ts` (only if we go with scheduled nudges)
+- `src/pages/LearningReview.tsx`
+- `src/components/learning/ReviewQueueRunner.tsx`
+- `src/hooks/useReviewQueue.ts`
 
 **Edited**
-- `src/components/player/stages/AssessStage.tsx` — call adaptive sampler
-- `src/components/player/stages/PracticeStage.tsx` — call adaptive sampler (scenario)
-- `src/components/player/stages/ProgressStage.tsx` — render `<MasteryBars />`
+- `src/App.tsx` (route)
+- Learning hub page (badge + entry card)
 
 ---
 
-## Out of scope (next sub-phases)
-- Spaced repetition / due-date scheduling (would extend `talent_skill_profile` with `next_due_at`)
-- Adaptive difficulty for non-quiz stages (Learn/Discuss)
-- Cross-course skill rollups (per profession_line) → covered by 2.8 Talent Mirror
+## Out of scope
+
+- Cross-course rollups into a profession-line skill graph (that's 2.8 Talent Mirror).
+- Scenario-based scheduling (depends on `talent_scenario_run.evaluation` being structured; revisit after 2.5).
+- Email digests for due reviews (sits behind notifications-only for now).
 
 ---
 
-Reply **continue with 2.3.a** to start with the schema, or **continue 2.3 a–c** to ship schema + trigger + edge function in one batch (recommended).
+Reply **continue with 2.4.a** to start with the schema + trigger, or **continue 2.4 a–c** to ship schema, trigger, and the review queue edge function in one batch (recommended).
