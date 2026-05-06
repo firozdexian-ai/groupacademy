@@ -33,6 +33,7 @@ import { cn } from "@/lib/utils";
 import { EventDateTimeField } from "@/components/admin/EventDateTimeField";
 import { DEFAULT_EVENT_TZ } from "@/lib/eventTime";
 import ContentReadinessBadge, { type ModuleStats } from "@/components/dashboard/ContentReadinessBadge";
+import ContentReadinessChecklist from "@/components/dashboard/ContentReadinessChecklist";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
 
 export default function ContentEdit() {
@@ -52,6 +53,7 @@ export default function ContentEdit() {
   const [moduleStats, setModuleStats] = useState<ModuleStats | null>(null);
   const [isReady, setIsReady] = useState<boolean | null>(null);
   const [moduleAudit, setModuleAudit] = useState<Array<{ id: string; title: string; reason: string }>>([]);
+  const [sessionCount, setSessionCount] = useState(0);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -136,6 +138,11 @@ export default function ContentEdit() {
       });
       setIsReady(data.is_ready ?? null);
       await loadModuleStats();
+      const { count: sCount } = await supabase
+        .from("course_sessions")
+        .select("*", { count: "exact", head: true })
+        .eq("content_id", id!);
+      setSessionCount(sCount || 0);
     } catch (error: any) {
       toast({ title: "Load Error", description: error.message, variant: "destructive" });
       navigate("/dashboard");
@@ -243,18 +250,18 @@ export default function ContentEdit() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-6 space-y-6 pt-8">
-                <ImageUpload
+                <div data-readiness-field="cover_image"><ImageUpload
                   value={formData.cover_image_url}
                   onUpload={(url) => setFormData({ ...formData, cover_image_url: url })}
                   onRemove={() => setFormData({ ...formData, cover_image_url: "" })}
-                />
+                /></div>
 
                 <div className="grid gap-6">
                   <div className="space-y-2">
                     <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                       Internal Title *
                     </Label>
-                    <Input
+                    <Input data-readiness-field="title"
                       value={formData.title}
                       onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                       required
@@ -267,7 +274,7 @@ export default function ContentEdit() {
                       <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                         URL Path (Slug) *
                       </Label>
-                      <Input
+                      <Input data-readiness-field="slug"
                         value={formData.slug}
                         onChange={(e) =>
                           setFormData({ ...formData, slug: e.target.value.toLowerCase().replace(/ /g, "-") })
@@ -302,7 +309,7 @@ export default function ContentEdit() {
                     <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
                       Marketplace Description
                     </Label>
-                    <Textarea
+                    <Textarea data-readiness-field="description"
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                       rows={5}
@@ -325,7 +332,7 @@ export default function ContentEdit() {
                   {["live_webinar", "batch_class", "offline_seminar"].includes(formData.content_type) && (
                     <div className="grid grid-cols-2 gap-4">
                       <div className="col-span-2">
-                        <EventDateTimeField
+                        <div data-readiness-field="event_date"><EventDateTimeField
                           utcValue={formData.event_date}
                           timezone={formData.event_timezone}
                           onChange={({ utcValue, timezone }) =>
@@ -337,7 +344,7 @@ export default function ContentEdit() {
                         <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                           Capacity Limit
                         </Label>
-                        <Input
+                        <Input data-readiness-field="max_capacity"
                           type="number"
                           value={formData.max_capacity}
                           onChange={(e) => setFormData({ ...formData, max_capacity: e.target.value })}
@@ -349,7 +356,7 @@ export default function ContentEdit() {
                         <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                           Duration (Mins)
                         </Label>
-                        <Input
+                        <Input data-readiness-field="event_duration"
                           type="number"
                           value={formData.event_duration_minutes}
                           onChange={(e) => setFormData({ ...formData, event_duration_minutes: e.target.value })}
@@ -366,7 +373,7 @@ export default function ContentEdit() {
                         <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                           Venue
                         </Label>
-                        <Input
+                        <Input data-readiness-field="venue_name"
                           value={formData.venue_name}
                           onChange={(e) => setFormData({ ...formData, venue_name: e.target.value })}
                           className="rounded-xl"
@@ -390,7 +397,7 @@ export default function ContentEdit() {
                       <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                         Lead Instructor
                       </Label>
-                      <Input
+                      <Input data-readiness-field="instructor_name"
                         value={formData.instructor_name}
                         onChange={(e) => setFormData({ ...formData, instructor_name: e.target.value })}
                         className="rounded-xl font-bold"
@@ -424,7 +431,7 @@ export default function ContentEdit() {
                   <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                     Stream Target (YouTube)
                   </Label>
-                  <Input
+                  <Input data-readiness-field="youtube_url"
                     value={formData.youtube_url}
                     onChange={(e) => setFormData({ ...formData, youtube_url: e.target.value })}
                     placeholder="https://youtube.com/..."
@@ -461,7 +468,7 @@ export default function ContentEdit() {
                       Currency Pricing
                     </Label>
                     <div className="flex gap-2">
-                      <Input
+                      <Input data-readiness-field="price"
                         type="number"
                         step="0.01"
                         value={formData.price}
@@ -539,65 +546,16 @@ export default function ContentEdit() {
               </CardContent>
             </Card>
 
-            {/* Readiness Audit */}
-            {(formData.content_type === "recorded_course" ||
-              formData.content_type === "live_webinar" ||
-              formData.content_type === "batch_class") && (
-              <Card className="rounded-[32px] border-border/40 overflow-hidden">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-xs font-black uppercase tracking-widest flex items-center gap-2">
-                    {isReady ? (
-                      <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                    ) : (
-                      <AlertTriangle className="h-4 w-4 text-amber-500" />
-                    )}
-                    Catalog Status
-                  </CardTitle>
-                  <CardDescription className="text-[10px] leading-snug">
-                    {formData.content_type === "recorded_course"
-                      ? "Recorded courses appear in the talent app only when every module has a video URL or at least one resource attached."
-                      : "Live sessions appear when published and the event date is in the future."}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <ContentReadinessBadge
-                    stats={moduleStats || undefined}
-                    isReady={isReady ?? undefined}
-                    appliesPlayableRule={formData.content_type === "recorded_course"}
-                  />
-                  {moduleAudit.length > 0 && (
-                    <div className="space-y-1.5 pt-2 border-t border-border/20">
-                      <p className="text-[9px] font-black uppercase tracking-widest text-amber-600">
-                        Modules blocking activation
-                      </p>
-                      <ul className="space-y-1">
-                        {moduleAudit.slice(0, 5).map((m) => (
-                          <li key={m.id} className="text-[10px] text-muted-foreground flex gap-2">
-                            <AlertTriangle className="h-3 w-3 text-amber-500 shrink-0 mt-0.5" />
-                            <span>
-                              <span className="font-semibold text-foreground">{m.title}</span> — {m.reason}
-                            </span>
-                          </li>
-                        ))}
-                        {moduleAudit.length > 5 && (
-                          <li className="text-[10px] text-muted-foreground italic">
-                            +{moduleAudit.length - 5} more…
-                          </li>
-                        )}
-                      </ul>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="w-full mt-2 rounded-xl text-[10px] font-black uppercase tracking-widest"
-                        onClick={() => navigate(`/content/${id}/modules`)}
-                      >
-                        Fix in Modules
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+            {/* Readiness checklist */}
+            {id && (
+              <ContentReadinessChecklist
+                contentId={id}
+                formData={formData as any}
+                moduleStats={moduleStats || undefined}
+                moduleAudit={moduleAudit}
+                sessionCount={sessionCount}
+                onRecomputed={loadContent}
+              />
             )}
 
 
