@@ -169,6 +169,8 @@ export default function Feed() {
 
           <FeedFilters filters={filters} onChange={setFilters} counts={counts} />
 
+          <NewPostsPill onTap={() => refresh()} />
+
           {error ? (
             <Card className="border-destructive/20 bg-destructive/5 rounded-3xl py-10 md:py-16 text-center animate-in zoom-in-95">
               <CardContent className="space-y-5">
