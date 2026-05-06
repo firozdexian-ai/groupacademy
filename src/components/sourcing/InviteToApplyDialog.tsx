@@ -26,7 +26,7 @@ export function InviteToApplyDialog({ open, onOpenChange, companyId, talentId }:
   useEffect(() => {
     if (!open || !companyId) return;
     (async () => {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from("jobs")
         .select("id, title")
         .eq("company_id", companyId)
