@@ -117,7 +117,10 @@ const ContentList = ({ filter }: ContentListProps) => {
     levelId: "all",
     readiness: "all",
     sortBy: "newest",
+    typeSegment: "all",
+    dateWindow: "all",
   });
+  const [sessionCounts, setSessionCounts] = useState<Record<string, number>>({});
 
   // Telemetry Calculation
   const totalPages = Math.max(1, Math.ceil(totalCount / ITEMS_PER_PAGE));
