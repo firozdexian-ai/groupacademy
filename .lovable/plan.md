@@ -1,107 +1,107 @@
-# Sub-phase 2.3 — Community Filter System (single row)
+# Sub-phase 2.4 — Post detail + carryover fixes
 
-Replace the existing content-type filter row with a **single 4-slot row** focused on community scope. Content-type filters (Posts/Courses/Videos/etc.) move into the "More" sheet.
+Three things in this turn: two carryover fixes you just flagged, then the main 2.4 work (post detail view & deep linking). Hype goes universal as part of 2.4 since the detail view is the natural place to consume it.
 
-## What the user sees
+## Part A — Carryover fixes (small)
 
-One row, exactly 4 tiles, no horizontal scroll:
+### A1. Animated profile-card backdrop is missing
+The backdrop component is wired up correctly — it just queries `profile_card_themes` and there are **zero rows in the table** right now (confirmed via DB). So nothing renders, by design.
 
-```text
-[ 🌐 Global ] [ 🇧🇩 Bangladesh ] [ 💼 Marketing ] [ ⋯ More ]
+Two parts to the fix:
+- **Seed one default theme** (a soft Tech Blue → Cyan gradient) marked `is_active=true`, `priority=0`, no start/end date. This gives every user a baseline animated/gradient backdrop out of the box.
+- **In the admin Profile Card Theme Manager**, when the table is empty show a one-click "Create default theme" CTA so you don't have to fill the form manually next time.
+
+You won't need to touch the admin panel — the seed will populate immediately. After that, any theme you create with higher priority will take over.
+
+### A2. Compose Post overflows when expanded
+At 390px the expanded composer footer breaks out of the card because the icon row + counter + Post button don't wrap and the textarea has no horizontal padding offset. Fix in `ComposePost.tsx` only:
+- Wrap the bottom row with `flex-wrap gap-y-2`, give the action icons a min-width-0 container, push counter + Post button to the right with `ml-auto`.
+- Constrain the tag input row to `max-w-full overflow-hidden` and shrink the textarea to `w-full` (currently inherits implicit width from absent box-sizing on the parent).
+- Remove the lingering empty `<div>` after the icons that creates the overflow.
+
+No behavior change, purely layout.
+
+## Part B — Universal Hype
+
+Today `HypeButton` and the underlying `hype_post` RPC only target `feed_posts`. We expand it to cover **courses, videos, articles (blogs), and any future feed item**.
+
+### Approach
+Add a polymorphic table + RPC, identical economics (1 credit, 80/20 split):
+
+```sql
+create table public.content_hypes (
+  id uuid primary key default gen_random_uuid(),
+  talent_id uuid not null references talents(id) on delete cascade,
+  content_type text not null check (content_type in ('post','course','video','blog')),
+  content_id uuid not null,
+  credits numeric(12,1) not null default 1,
+  created_at timestamptz default now()
+);
+create index on content_hypes (content_type, content_id);
 ```
 
-- **Global** — everyone's feed (replaces today's "All"). Default.
-- **My Country** — pill labeled with the talent's country (e.g. "Bangladesh"), icon `MapPin`.
-- **My Profession** — pill labeled with the talent's profession (e.g. "Marketing"), icon `Briefcase`.
-- **More** — opens the existing bottom sheet with content-type options (Posts, Courses, Videos, Articles, Polls).
+A new RPC `hype_content(_type, _id)`:
+- Resolves the creator (`talents.user_id` for posts; `content.created_by` for courses/videos; `blog_posts.author_id` for blogs).
+- Deducts 1 credit from caller (free → earned), credits 0.8 to creator's earned wallet, 0.2 to platform — same logic as `hype_post`.
+- Inserts a row in `content_hypes`.
+- Increments a denormalized `hype_count` per content type (add `hype_count int default 0` to `content` and `blog_posts`; `feed_posts` already has it — keep both RPCs, the new one is the only one new code calls).
 
-### Fallback when profile is incomplete
+`feed_posts` keeps its existing column. Posts route through `hype_content('post', id)` going forward; the old `hype_post` stays for back-compat.
 
-If the talent is missing country and/or profession, fill the empty slots with the most common content-type filters so the row still shows 4 useful tiles:
+A new `useUniversalHype(contentType, contentId, initialCount)` hook mirrors `useHype` but takes a content type. `HypeButton` accepts `contentType?: 'post'|'course'|'video'|'blog'` (defaults to `'post'`).
 
-| Country set? | Profession set? | Slot 2          | Slot 3            |
-|--------------|-----------------|-----------------|-------------------|
-| yes          | yes             | Country pill    | Profession pill   |
-| yes          | no              | Country pill    | Posts             |
-| no           | yes             | Posts           | Profession pill   |
-| no           | no              | Posts           | Courses           |
+### Where it appears
+- `PostCard` → unchanged usage (still posts).
+- `FeedCardRedesigned` (courses/videos/blogs) → add the same Hype button to its action row, alongside Save and Share.
+- Course detail page, blog post detail page → same button in the header actions.
 
-Slot 1 is always **Global**, slot 4 is always **More**. Anything not surfaced lives in the More sheet.
+Self-hype is blocked (mirrors `CANNOT_HYPE_SELF`).
 
-### Active state behavior
+## Part C — Post detail view & deep linking (the actual 2.4)
 
-- Only one tile is "active" at a time across the whole row (scope OR type, not both).
-- Picking Global / Country / Profession sets `scope` and resets `type` to `all`.
-- Picking a type from the More sheet (or from a fallback slot) sets `type` and resets `scope` to `global`.
-- The active tile uses `bg-primary text-primary-foreground`; others use `bg-card border-border/60`.
-
-### Empty state
-
-When a Country or Profession scope returns 0 items, show a soft card:
-> "Nothing in {label} yet. Be the first — or **switch to Global**."
-
-## What changes under the hood
-
-### Types & state
-Extend `useFeedRecommendations`:
-
-```ts
-export type FeedScope = "global" | "country" | "profession";
-
-export interface FeedFilters {
-  type: FeedFilterType;   // existing — "all" | "post" | "course" | "video" | "blog" | "poll"
-  scope: FeedScope;       // new — defaults to "global"
-}
+### Route
+```
+/app/feed/post/:id
 ```
 
-- Persist both in the existing localStorage key.
-- If user previously selected Country/Profession but later cleared their profile, fall back to `global`.
+Renders a single `feed_posts` row in a focused, full-width view (still mobile-vertical). Used by:
+- The Share button (already links to `?post=`; switch to the proper URL).
+- Notifications.
+- External previews (OpenGraph).
 
-### Filtering logic
-After the existing content-type filter, apply scope:
+### Components
+- `src/pages/app/PostDetail.tsx` — fetches the post by id, renders `<PostCard>` at the top, then a full `<CommentList>` (not in a sheet — inline, expanded).
+- `<RelatedPosts>` — same author or shared tags, 3–5 cards below comments.
+- Back button in the header → `navigate(-1)` with fallback to `/app/feed`.
 
-- `global` → no extra filter.
-- `country` → keep posts whose author's `talents.country` matches the talent's country.
-- `profession` → keep posts whose author's `talents.profession` matches the talent's profession.
-- Non-post items (courses/videos/blogs) have no author country/profession, so:
-  - In `global` scope → always included.
-  - In `country` or `profession` scope → **excluded** (community scope is about people, not catalog content).
+### Deep-linking
+- `PostActionBar`'s share URL becomes `/app/feed/post/${id}` instead of `?post=`.
+- `Feed.tsx`: if `?post=<id>` is still on the URL (legacy notifications), redirect to the new route.
 
-### Data
-Extend the post fetcher in `useFeedRecommendations` to pull author scope fields via the existing join:
+### SEO / sharing
+- `PostDetail` sets `<title>` to the first 60 chars of `text_content` and a meta description from the next 160 chars.
+- JSON-LD `SocialMediaPosting` block with author, datePublished, articleBody.
+- OpenGraph image: post media if present, else a generated default.
 
-```ts
-.select(`*, author:talents!inner(country, profession)`)
-```
-
-Flatten `author_country` and `author_profession` onto the resulting `FeedItem` so filtering is a pure client-side comparison. No DB migration needed.
-
-### UI
-
-`src/components/feed/FeedFilters.tsx` is rewritten to render the new 4-slot row:
-
-- Slot 1: always Global.
-- Slot 2 + 3: dynamic per fallback table above.
-- Slot 4: More button → opens existing `Sheet` with all content-type options + Country/Profession entries that didn't fit.
-
-The current 3-primary + More structure is replaced; the More sheet logic and styling stay the same.
-
-`Feed.tsx` only needs to keep passing `filters` and `setFilters`; no second row added.
-
-`FeedHeader.tsx` is unchanged for this sub-phase (career level pill stays where it is).
+### Empty / error states
+- Loading: skeleton card.
+- Not found / unpublished: "This post isn't available." with a button back to the feed.
 
 ## Acceptance checklist
 
-- One row, four tiles, no horizontal scroll at 390px.
-- New users (no country/profession) see Global + Posts + Courses + More.
-- Talents with full profiles see Global + Country + Profession + More.
-- Country/Profession scopes hide catalog items (courses/videos/blogs).
-- Empty scope view offers a one-tap return to Global.
-- Selection persists across reloads; stale selections fall back to Global gracefully.
+- Profile card shows a gradient/animated backdrop on a fresh load with no admin setup needed.
+- Empty Theme Manager shows a "Create default theme" CTA.
+- Compose Post: at 390px, expanded composer fits inside the card; counter + Post button never overflow.
+- Hype button appears on courses, videos, and articles in the feed and on their detail pages.
+- Hype across all content types deducts 1 credit, splits 80/20, blocks self-hype, and shows the right toasts.
+- `/app/feed/post/:id` renders the post, full comment thread, and related posts.
+- Share from `PostActionBar` produces a URL that opens the detail view directly.
+- Detail view has a proper title, meta description, and JSON-LD.
 
 ## Out of scope
 
-- City-level scope, Following feed, multi-select scopes — later phase.
-- Server-side ranking changes — pure client filter on the already-fetched list.
+- Comment threading depth > 1 (already simple list).
+- Realtime comment updates (poll on focus is enough for now).
+- Hype leaderboards across content types — later phase.
 
-After 2.3 ships → **2.4: Post detail view & deep linking** (`/app/feed/post/:id`).
+After 2.4 ships → **2.5: Notifications & realtime hype/comments badges.**

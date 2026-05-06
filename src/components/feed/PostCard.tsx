@@ -209,7 +209,7 @@ export function PostCard({ post }: PostCardProps) {
         <PostActionBar
           postId={post.id}
           postTitle={post.textContent.slice(0, 80)}
-          postUrl={`${window.location.origin}/app/feed?post=${post.id}`}
+          postUrl={`${window.location.origin}/app/feed/post/${post.id}`}
           postDescription={post.textContent.slice(0, 160)}
         />
       </CardContent>

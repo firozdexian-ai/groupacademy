@@ -1920,6 +1920,7 @@ export type Database = {
           excerpt: string | null
           external_url: string | null
           featured_image: string | null
+          hype_count: number
           id: string
           is_featured: boolean | null
           published_at: string | null
@@ -1940,6 +1941,7 @@ export type Database = {
           excerpt?: string | null
           external_url?: string | null
           featured_image?: string | null
+          hype_count?: number
           id?: string
           is_featured?: boolean | null
           published_at?: string | null
@@ -1960,6 +1962,7 @@ export type Database = {
           excerpt?: string | null
           external_url?: string | null
           featured_image?: string | null
+          hype_count?: number
           id?: string
           is_featured?: boolean | null
           published_at?: string | null
@@ -3468,6 +3471,7 @@ export type Database = {
           event_date: string | null
           event_duration_minutes: number | null
           event_timezone: string
+          hype_count: number
           id: string
           instructor_name: string | null
           is_b2b: boolean
@@ -3506,6 +3510,7 @@ export type Database = {
           event_date?: string | null
           event_duration_minutes?: number | null
           event_timezone?: string
+          hype_count?: number
           id?: string
           instructor_name?: string | null
           is_b2b?: boolean
@@ -3544,6 +3549,7 @@ export type Database = {
           event_date?: string | null
           event_duration_minutes?: number | null
           event_timezone?: string
+          hype_count?: number
           id?: string
           instructor_name?: string | null
           is_b2b?: boolean
@@ -3610,6 +3616,55 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "content"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_hypes: {
+        Row: {
+          content_id: string
+          content_type: string
+          created_at: string
+          credits: number
+          id: string
+          sender_talent_id: string
+        }
+        Insert: {
+          content_id: string
+          content_type: string
+          created_at?: string
+          credits?: number
+          id?: string
+          sender_talent_id: string
+        }
+        Update: {
+          content_id?: string
+          content_type?: string
+          created_at?: string
+          credits?: number
+          id?: string
+          sender_talent_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_hypes_sender_talent_id_fkey"
+            columns: ["sender_talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_hypes_sender_talent_id_fkey"
+            columns: ["sender_talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
+          {
+            foreignKeyName: "content_hypes_sender_talent_id_fkey"
+            columns: ["sender_talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_weekly_leaderboard"
+            referencedColumns: ["talent_id"]
           },
         ]
       }
@@ -11647,6 +11702,10 @@ export type Database = {
       }
       headless_pool_charge: {
         Args: { p_amount: number; p_reason?: string }
+        Returns: Json
+      }
+      hype_content: {
+        Args: { _content_id: string; _content_type: string }
         Returns: Json
       }
       hype_post: { Args: { _post_id: string }; Returns: Json }

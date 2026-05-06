@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CircularMatchBadge } from "./CircularMatchBadge";
 import { ShareSheet } from "./ShareSheet";
+import { HypeButton } from "./HypeButton";
+import type { HypeContentType } from "@/hooks/useContentHype";
 import { cn } from "@/lib/utils";
 import { useSavedItems, SavedItemType } from "@/hooks/useSavedItems";
 import type { FeedItem } from "@/hooks/useFeedRecommendations";
@@ -176,6 +178,9 @@ export function FeedCardRedesigned({ item, onInterested }: FeedCardRedesignedPro
             {config.cta}
             <ArrowRight className="h-3.5 w-3.5" />
           </Button>
+          {(["course", "video", "blog"] as const).includes(item.type as any) && (
+            <HypeButton contentType={item.type as HypeContentType} contentId={item.id} variant="compact" />
+          )}
           <ShareSheet title={item.title} url={shareUrl} description={item.matchReason} />
         </div>
       </CardContent>

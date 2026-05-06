@@ -202,13 +202,13 @@ export function ComposePost({ onPostCreated }: ComposePostProps) {
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between pt-1">
-                    <div className="flex items-center gap-0.5">
+                  <div className="flex flex-wrap items-center gap-y-2 gap-x-2 pt-1">
+                    <div className="flex items-center gap-0.5 min-w-0">
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <button
                             disabled
-                            className="h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground/60 cursor-not-allowed"
+                            className="h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground/60 cursor-not-allowed shrink-0"
                             aria-label="Add image"
                           >
                             <ImageIcon className="h-4 w-4" />
@@ -218,7 +218,7 @@ export function ComposePost({ onPostCreated }: ComposePostProps) {
                       </Tooltip>
                       <button
                         onClick={() => setShowTagInput(true)}
-                        className="h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-muted/60 transition-colors"
+                        className="h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-muted/60 transition-colors shrink-0"
                         aria-label="Add tag"
                       >
                         <Hash className="h-4 w-4" />
@@ -227,7 +227,7 @@ export function ComposePost({ onPostCreated }: ComposePostProps) {
                         <TooltipTrigger asChild>
                           <button
                             disabled
-                            className="h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground/60 cursor-not-allowed"
+                            className="h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground/60 cursor-not-allowed shrink-0"
                             aria-label="Rewrite with AI"
                           >
                             <Sparkles className="h-4 w-4" />
@@ -237,23 +237,23 @@ export function ComposePost({ onPostCreated }: ComposePostProps) {
                       </Tooltip>
                       <span
                         className={cn(
-                          "ml-2 text-xs tabular-nums",
+                          "ml-1 text-[11px] tabular-nums shrink-0",
                           text.length > MAX_LENGTH * 0.9 ? "text-destructive" : "text-muted-foreground",
                         )}
                       >
-                        {text.length} / {MAX_LENGTH}
+                        {text.length}/{MAX_LENGTH}
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="sm" onClick={handleReset} disabled={isSubmitting}>
+                    <div className="flex items-center gap-1.5 ml-auto shrink-0">
+                      <Button variant="ghost" size="sm" onClick={handleReset} disabled={isSubmitting} className="h-8 px-2.5">
                         Cancel
                       </Button>
                       <Button
                         size="sm"
                         onClick={handleSubmit}
                         disabled={!text.trim() || isSubmitting}
-                        className="gap-1.5"
+                        className="h-8 px-3 gap-1.5"
                       >
                         {isSubmitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
                         Post
