@@ -110,7 +110,16 @@ export function ModuleQuizRunner({ moduleId, onComplete }: { moduleId: string; o
 
   return (
     <Card className="rounded-3xl">
-      <CardHeader><CardTitle className="flex items-center gap-2"><Brain className="h-5 w-5 text-primary" /> Quiz</CardTitle></CardHeader>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Brain className="h-5 w-5 text-primary" /> Quiz
+          {adaptiveMix && (
+            <span className="ml-auto text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              Adaptive · Mastery {Math.round(adaptiveMix.avg_mastery * 100)}%
+            </span>
+          )}
+        </CardTitle>
+      </CardHeader>
       <CardContent className="space-y-5">
         {items.map((it, idx) => (
           <div key={it.id} className="space-y-2">
