@@ -230,7 +230,7 @@ export function useAuthChat() {
               addMessage("assistant", res.reply);
               setCurrentAction("set_password");
             } else {
-              addMessage("assistant", "VAL_FAULT: Incorrect. Let's re-try: What is the opposite of 'hot'?");
+              addMessage("assistant", "Not quite — what's the opposite of 'hot'?");
               setQuiz({ answer: "cold" });
             }
             break;
