@@ -39,17 +39,21 @@ export interface FeedItem {
   linkPreview?: { title: string; description?: string; image?: string };
   tags?: string[];
   isPinned?: boolean;
+  authorCountry?: string;
+  authorProfession?: string;
 }
 
 export type FeedFilterType = "all" | "course" | "video" | "blog" | "post" | "poll";
 export type FeedSortType = "match" | "newest";
+export type FeedScope = "global" | "country" | "profession";
 
 export interface FeedFilters {
   type: FeedFilterType;
   sort: FeedSortType;
+  scope: FeedScope;
 }
 
-const STORAGE_KEY_FILTERS = "feed_filters_v4";
+const STORAGE_KEY_FILTERS = "feed_filters_v5";
 
 const STATIC_INSIGHTS = [
   "Maintain profile parity to optimize recruiter visibility",
