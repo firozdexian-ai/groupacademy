@@ -1,112 +1,112 @@
-# Sub-phase 1.4 — Drag-Reorder Modules + Bulk Resource Upload
+# Sub-phase 1.5 — AI Helpers in ContentEdit + Talent-Generated Quiz/Scenario Pool
 
-Goal: Replace the slow up/down arrow reordering in `ModuleManagement` with native drag-and-drop, and add a **bulk resource upload** flow inside `ModuleResourcesManager` so admins can drop many files at once into a stage instead of creating rows one by one.
-
----
-
-## Problem today
-
-**Module reorder (`src/pages/ModuleManagement.tsx`)**
-- Each reorder is a single up/down click → 2 sequential `update` calls per swap.
-- Moving a module from position 8 → 1 requires 7 clicks and 14 round-trips.
-- No visual cue of drop position, no keyboard support beyond the buttons.
-
-**Resource upload (`src/pages/ModuleResourcesManager.tsx`)**
-- Resources are added one at a time — fill title, pick file, save, repeat.
-- Most real curricula need 5–20 PDFs/videos per module, per stage. The current flow is a bottleneck.
-- `display_order` is auto-computed as `count + 1`, so order can only be changed by deleting/re-adding (no reorder UI exists at all).
+Two coordinated tracks: (A) admin-side AI helpers inside the catalog editor, (B) a learner-driven quiz & AI-scenario generator backed by a shared, reusable pool to keep AI costs flat as enrollment grows.
 
 ---
 
-## What changes
+## Track A — AI helpers inside ContentEdit (unchanged from prior plan)
 
-### 1. Drag-reorder for modules
+Single edge function `admin-content-ai` with `mode` discriminator: `description | slug | image_prompt | outline`.
 
-In `ModuleManagement.tsx`, replace the up/down arrow buttons with a drag handle on each module row. Use **HTML5 native drag/drop** (no new dependency — matches existing pattern in `ImageUpload`, `GigUploader`, `MultiFileUpload`).
+UI surfaces:
+- ✨ button next to **Description** → streams a 200+ char marketing description.
+- ✨ button next to **Slug** → kebab-case + dedup-checked against `content`.
+- **AI Cover** on `ImageUpload` → sheet with 3 prompt variants → image via `gemini-3.1-flash-image-preview` → uploaded to `course-content` bucket → patches `cover_image`.
+- **AI Outline** in the empty Modules tab → drafts 5–8 modules (admin edits/reorders).
+- **Fix with AI** at top of `ContentReadinessChecklist` → runs the relevant helpers in sequence then re-runs `recompute_content_readiness`.
 
-Behavior:
-- Grip icon on the left of each row is `draggable`.
-- On drag-over another row, show an insertion indicator line (top or bottom border).
-- On drop, reorder the local array, then **batch-update `display_order`** for every affected row in a single `Promise.all` of upserts. Compute the new order densely (1, 2, 3, …) so future inserts remain clean.
-- Up/down arrow buttons stay as a fallback (accessible for keyboard / mobile-without-touch-drag).
-- Add `onTouchStart`-based long-press + move fallback for mobile (same pattern as `MultiFileUpload`).
+All AI calls go through the edge function; admin role enforced via `auth.getUser` + `has_role('admin')`. 402/429 surfaced as toasts.
 
-Tiny optimistic update: reorder local state first, fire updates, revert on error with a toast.
+**Files (Track A):**
+- New: `supabase/functions/admin-content-ai/index.ts`, `src/lib/contentAI.ts`, `src/components/dashboard/ContentAIActions.tsx`, `src/components/dashboard/AICoverImageSheet.tsx`.
+- Edit: `src/pages/ContentEdit.tsx`, `src/components/dashboard/ContentReadinessChecklist.tsx`.
 
-### 2. Drag-reorder for resources
+---
 
-Same pattern inside `ModuleResourcesManager.tsx`, scoped per-stage. Each stage panel renders its resources in `display_order`; admin can drag resources within their stage to reorder. Cross-stage drag is **out of scope** (use the existing stage_number selector to move across stages).
+## Track B — Talent-generated quiz & AI scenarios with shared pool
 
-### 3. Bulk resource upload
+### Idea
+Instead of admins authoring (or pre-generating) quizzes/scenarios per module, the **learner triggers generation in-flow**. Generated items are saved to a **module-scoped pool** and reused for future learners — so AI cost is amortized across enrollments while each talent still gets a fresh, personalized experience layer on top.
 
-New component **`BulkResourceUpload.tsx`** rendered inside each stage panel of `ModuleResourcesManager`.
+### Pooling model
 
-UX:
 ```text
-┌─ STAGE 2 · LEARN ──────────────────────────────────────┐
-│                                                         │
-│  ┌───────────────────────────────────────────────────┐ │
-│  │   ⬆  Drop files here, or click to select          │ │
-│  │       PDF · MP4 · DOCX · PPTX · images · ≤ 50 MB  │ │
-│  └───────────────────────────────────────────────────┘ │
-│                                                         │
-│  Queued (3):                                           │
-│   • intro.pdf    [PDF]  ✓ Uploaded                     │
-│   • lecture.mp4  [Video] ⏳ 42%                         │
-│   • slides.pptx  [Doc]  ⏸ Waiting                       │
-│                                                         │
-│  Defaults: Title = filename (editable inline)          │
-│            Type auto-detected · Order continues stage  │
-│  [Save 3 resources]                                    │
-└─────────────────────────────────────────────────────────┘
+module ──┬── quiz_pool (shared, reusable items)
+         └── scenario_pool (shared, reusable items)
+              │
+              ▼
+   talent_quiz_attempt / talent_scenario_run
+   (per-learner selection + personalization seed)
 ```
 
-Logic:
-- Accept multi-file drop or file-picker (`<input multiple>`).
-- For each file:
-  1. Auto-detect `resource_type` from MIME (`application/pdf` → `pdf`, `video/*` → `video`, `image/*` → `image`, office docs → `document`, else `file`).
-  2. Default `title` = filename minus extension.
-  3. Upload to existing `module-resources` storage bucket (reuses `ModuleResourceFileUpload` upload helper — extracted to `src/lib/moduleResourceUpload.ts` so both single and bulk paths share it).
-  4. Track per-file status: `queued | uploading | uploaded | error` with a progress bar.
-- Concurrency: upload **3 in parallel**, queue the rest.
-- After all uploads finish, "Save 3 resources" performs a single `insert([...])` on `module_resources` with computed `display_order` continuing from the stage's current max.
-- Inline-editable title for each queued row before save.
-- Failed rows stay in the queue with a Retry button; successful rows are removed from the queue and appear in the stage list.
+When a talent reaches the quiz/scenario step:
 
-### 4. Empty/edge cases
+1. Look up the module's pool. If pool size ≥ target threshold (e.g. 20 quiz questions / 10 scenarios), **sample** N items deterministically by `(talent_id, module_id, attempt_no)` → no AI call.
+2. If pool is below threshold, generate a small batch (5 quiz questions / 1 scenario) via Lovable AI, **insert into the pool**, then sample the talent's set from the now-larger pool.
+3. The "personalization layer" is a lightweight wrapper applied at render time — talent's name, role goal, prior wrong-answer topics — without re-generating the underlying item. Keeps cost flat.
 
-- Reorder while a save is in flight: disable drag handles for that row.
-- Bulk upload exceeding 50 MB per file: reject locally with a toast (matches existing limits).
-- Admin closes the page mid-upload: `beforeunload` warning if any file is `uploading`.
+This means: first ~4 learners "pay" the AI cost; everyone after draws from the pool.
+
+### New tables (migration)
+
+- `module_quiz_pool` — `id, module_id, question, options jsonb, correct_index, explanation, difficulty, topic_tags text[], generated_by ('ai'|'admin'), created_by_talent_id nullable, quality_score numeric default 0, times_served int default 0, created_at`.
+- `module_scenario_pool` — `id, module_id, title, scenario_prompt, rubric jsonb, difficulty, topic_tags text[], generated_by, created_by_talent_id nullable, quality_score, times_served, created_at`.
+- `talent_quiz_attempt` — `id, talent_id, module_id, item_ids uuid[], answers jsonb, score, attempt_no, created_at`.
+- `talent_scenario_run` — `id, talent_id, module_id, scenario_id, conversation jsonb, evaluation jsonb, created_at`.
+
+RLS:
+- Pool tables: `select` open to authenticated talents enrolled in the parent course; `insert` only via SECURITY DEFINER edge function (no direct client writes).
+- Attempt/run tables: talent can `select/insert` own rows; admins can read all.
+
+### New edge functions
+
+- `learner-quiz-pool` — modes: `draw` (sample N for this talent, generating only if pool below threshold), `submit` (score + persist attempt + bump `times_served` and `quality_score` based on item discrimination).
+- `learner-scenario-pool` — modes: `draw`, `turn` (streams a single conversational turn grounded in `scenario_prompt` + module resources), `evaluate` (rubric scoring at end).
+
+Both functions:
+- Verify talent JWT, confirm enrollment in parent course.
+- Cap per-talent generation to prevent abuse (e.g. ≤ 2 net-new pool items per module per talent per day).
+- Use `google/gemini-3-flash-preview` for generation, with a structured-output tool schema to avoid free-form JSON.
+
+### Frontend (talent side)
+
+- `src/components/learning/ModuleQuizRunner.tsx` — calls `learner-quiz-pool/draw` on entry, renders questions, posts `/submit`, shows score + explanations.
+- `src/components/learning/ModuleScenarioRunner.tsx` — chat UI streaming turns from `learner-scenario-pool/turn`, ends with rubric evaluation.
+- Hook into existing module stage runner where `resource_type` is `quiz` or `ai_scenario`.
+
+### Admin oversight (lightweight, in 1.5)
+
+- Add a **Pool Inspector** tab inside `ContentEdit` → Modules → per-module drawer showing pool counts, top-served items, and a "hide low-quality" toggle (sets `quality_score = -1` to exclude from sampling). Full curation UI lives in a later phase.
+
+### Cost / performance notes
+- First N learners trigger generation; subsequent learners hit the pool → roughly **O(modules)** AI cost, not **O(modules × learners)**.
+- `times_served` + `quality_score` (driven by aggregate correct rate / time-to-answer) feed sampling weights — bad items naturally fade.
+- Personalization stays cheap: name/goal interpolation is template-side, no extra AI call.
 
 ---
 
-## Implementation
+## Files (Track B)
 
 ### New
-- `src/components/dashboard/BulkResourceUpload.tsx` — bulk uploader panel; props `{ moduleId, stageNumber, currentMaxOrder, onComplete }`.
-- `src/lib/moduleResourceUpload.ts` — shared upload helper (`uploadModuleResourceFile(file, moduleId): Promise<{ url, type }>`).
-- `src/components/dashboard/common/DraggableList.tsx` — tiny reusable wrapper that takes `items`, `renderItem`, `onReorder(newOrder)` and handles HTML5 drag events + drop indicator. Used by both modules and resources.
+- `supabase/functions/learner-quiz-pool/index.ts`
+- `supabase/functions/learner-scenario-pool/index.ts`
+- `src/components/learning/ModuleQuizRunner.tsx`
+- `src/components/learning/ModuleScenarioRunner.tsx`
+- `src/lib/learnerAIPool.ts` — shared client wrappers + sampling helpers.
 
 ### Edited
-- `src/pages/ModuleManagement.tsx`
-  - Wrap module list in `<DraggableList>`; keep arrow buttons as secondary controls.
-  - Replace pairwise `moveModule` with a single `reorderModules(newList)` that batches `update display_order` calls for every changed row.
-- `src/pages/ModuleResourcesManager.tsx`
-  - Wrap each stage's resource list in `<DraggableList>` (per-stage reorder).
-  - Mount `<BulkResourceUpload>` at the top of every stage panel above the existing single-resource form.
-  - Refactor existing single upload to call `moduleResourceUpload` helper.
-- `src/components/dashboard/ModuleResourceFileUpload.tsx`
-  - Switch internal upload call to the shared helper (no UX change).
+- Module stage runner (existing) — route `quiz` / `ai_scenario` resources to the new runners.
+- `src/pages/ContentEdit.tsx` — add Pool Inspector drawer in the Modules tab.
 
-### Database
-No schema changes. `display_order` already exists on both `course_modules` and `module_resources`.
+### Database (migration)
+- 4 new tables + RLS + a SECURITY DEFINER function `pool_draw_or_generate(module_id, kind, n, talent_id)` that the edge functions call.
 
 ---
 
-## Out of scope
-- Cross-stage drag for resources (use existing stage selector).
-- Cross-module drag (move resource between modules).
-- Resumable / chunked uploads — stays single-shot per file, capped at 50 MB.
+## Out of scope for 1.5
+- Per-talent adaptive difficulty progression (next phase).
+- Admin bulk pre-seeding of pools (separate tool).
+- Cross-module pool sharing.
+- Image/audio scenarios.
 
-Reply **continue** to implement.
+Reply **continue** to implement (DB migration first, then Track B backend, then Track A helpers, then UI wiring).
