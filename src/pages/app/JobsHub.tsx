@@ -107,6 +107,10 @@ export default function JobsHub() {
   const [companySearch, setCompanySearch] = useState("");
   const [hiringNowOnly, setHiringNowOnly] = useState(false);
   const [activeCompany, setActiveCompany] = useState<string | null>(null);
+  const [scorePickerOpen, setScorePickerOpen] = useState(false);
+
+  const { data: nextBest } = useNextBestTool();
+  const { data: recentRuns = [] } = useToolRuns(5);
 
   const [showMore, setShowMore] = useState({
     recommended: false,
