@@ -1,80 +1,114 @@
-# Phase 1 Plan — Content & Learning Admin (Deep Dive)
+# Sub-phase 1.2 — Type-Aware Catalog & Sessions Management
 
-## Audit Findings
-
-The Learn area has **11 sidebar entries**. Of those, several are real (ContentList, EnrollmentsManager, LearnerProgressManager) while many are scaffolds or have major gaps. Below is the file-by-file status and the exact work needed to ship a complete Learn admin.
-
-### Stub files (placeholder cards, no functionality)
-| File | Current state | Needed |
-|---|---|---|
-| `learn/B2BCoursesTab.tsx` (13 lines) | Static description card | Real list of company → course assignments + cohort progress |
-| `learn/GraduatesTab.tsx` (13 lines) | Static description card | Table of certified graduates with filters + CSV export |
-| `learn/LearnOverviewTab.tsx` (47 lines) | 4 raw counts | Add: active vs ready content split, upcoming live sessions, pending readiness fixes, top-performing courses, enrollment trend (30d) |
-
-### Thin scaffolds (CRUD exists but missing key admin UX)
-| File | Gap |
-|---|---|
-| `LearnSimpleTabs.tsx` (Academies / Schools / Professional Lives) | Uses `SimpleAdminRegistry` — no cover image upload, no slug auto-gen, no "feature on homepage" toggle, no soft-delete |
-| `ContentList.tsx` | Has readiness badges (just shipped). Missing: **"Inactive only" filter**, bulk publish/unpublish, duplicate course, "preview as talent" link, sort by readiness/enrollment |
-| `ContentEdit.tsx` | Long form. Missing: live readiness checklist sidebar, AI cover-image generator, AI description rewriter, change history |
-| `ModulePickerPanel.tsx` (157 lines) | Module CRUD only. Missing: drag-reorder, bulk-add resources from URL list, preview each resource inline |
-| `EnrollmentsManager.tsx` | Full list. Missing: refund/credit-restore action, manual enrol on behalf of talent, attendance mark for live sessions |
-| `LearnerProgressManager.tsx` | Per-learner view. Missing: cohort comparison, "stuck on module X" cohort, nudge-via-WhatsApp action |
-| `QuizManagement.tsx` | Quiz list. Missing: AI question generator from module content, randomization controls, per-question analytics |
-| `FlashcardEditor.tsx` | Card CRUD. Missing: AI deck generation from a module/PDF, import from CSV |
-| `QuizResultsViewer.tsx` | Result drill-down. Missing: per-question success rate heatmap, export to CSV |
-| `CourseProjectsManager.tsx` (666 lines) | Big component. Missing: rubric template library, AI auto-grade hint, deliverable file viewer |
-
-### Missing entirely (no admin surface yet)
-1. **Certificates admin** — issue/revoke certificates, regenerate PDFs, view `certificate_verifications` log. Memory `[Certificates]` defines the system; admin UX is absent.
-2. **Career Tracks** — sidebar maps to `ContentList` filtered by type, but tracks have their own `career_tracks` + `career_track_steps` tables (per memory). Needs dedicated track builder (steps, gating, credit cost).
-3. **Recorded vs Online split** — both `courses` and `webinars` route to the same `ContentList`. Need stronger type-aware UI: webinars show event date/timezone/seats/Join URL columns; recorded shows modules/resources counts.
-4. **Instructors admin** in sidebar (`Instructors.tsx` exists as a page) but **not wired into Learn group** — missing nav item; also no instructor performance panel.
-5. **Sessions** (`Sessions.tsx`, `SessionNew.tsx`, `SessionEdit.tsx`) — exist as pages but not surfaced in admin sidebar at all. Should appear under each webinar's edit screen as a sub-tab.
-
-### Cross-cutting fixes
-- **Mobile / safe areas**: ContentList and EnrollmentsManager have horizontal-scroll tables on phones; convert to stacked cards under `md`.
-- **Readiness explanations**: when a course is auto-deactivated, surface the exact failing rule on the list row tooltip + a "Fix now" deep-link to the missing module/resource.
-- **AI helpers** (Lovable AI, English-only): description rewriter, cover-image generator, quiz auto-gen, flashcard auto-gen — all behind one shared `generate-learning-content` edge function with `task` switch.
+Goal: Make the admin Content list visually distinguish Live vs Recorded items, surface event-specific signals (date, capacity, sessions count, recording status), and add a fully-functional **Sessions** sub-tab inside `ContentEdit` so admins can schedule and manage multi-session live courses (batch classes / recurring webinars) without leaving the course editor.
 
 ---
 
-## Build Order (sub-phases inside Phase 1)
+## Part A — Type-Aware ContentList (`src/components/dashboard/ContentList.tsx`)
 
+Today every catalog row renders the same metadata strip (price · duration · enrollments). Live and offline items hide their most important data (event date, capacity fill, session count, venue).
+
+### A1. Type-aware metadata strip on each card
+For each `content_type`, render a different chip set:
+- **recorded_course / free_video**: modules count · total duration · enrollments · readiness
+- **live_webinar**: event date in `event_timezone` · duration · capacity bar (`current_enrollment / max_capacity`) · "Live in 2d" countdown chip · session count
+- **batch_class**: next session date · total sessions · capacity bar · enrolled
+- **offline_seminar**: event date · venue name · capacity bar
+
+### A2. Visual treatment per type
+- Add a left accent bar color per type (already partly in `TYPE_CONFIG`); also colorize the type pill background for instant scan.
+- New "LIVE NOW" pulsing badge when `event_date` is within ±duration window.
+- New "PAST" muted badge when `event_date < now()` and item still published (prompts admin to unpublish or duplicate).
+
+### A3. New filters & quick segments
+Add to `ContentFilters.tsx`:
+- Quick segment tabs at the top: **All · Recorded · Live & Webinars · Offline · Free**
+- Date filter for live items: `Upcoming · This week · Past · Undated`
+- "Has recording" toggle (live items where `youtube_url` set post-event)
+
+### A4. Bulk action additions (live-aware)
+- Bulk "Reschedule…" for selected live items (opens sheet with date+timezone picker, writes `event_date` for all).
+- Bulk "Mark recording uploaded" — sets `youtube_url` from clipboard per row (manual confirm step).
+
+### A5. Sessions count badge
+Each live/batch row fetches `count(course_sessions)` (single aggregated query keyed by `content_id IN (...)`) and shows "3 sessions" chip; clicking deep-links to `ContentEdit?tab=sessions`.
+
+---
+
+## Part B — Sessions sub-tab in ContentEdit (`src/pages/ContentEdit.tsx`)
+
+`ContentEdit` is currently a single long form. We introduce a tabbed shell so multi-session live courses get a real management surface backed by `public.course_sessions` (already exists, RLS in place — see migration `20251202073824`).
+
+### B1. Tab shell
+Wrap the existing form in a `Tabs` component with these tabs (the last two are conditional on `content_type`):
+- **Schema** (existing form)
+- **Modules** (existing module editor — unchanged this phase)
+- **Sessions** *(new — only for `live_webinar`, `batch_class`, `offline_seminar`)*
+- **Readiness** (the existing readiness sidebar moves here on mobile; stays as sidebar on desktop)
+
+Tab state is mirrored to URL `?tab=sessions` so deep links from ContentList work.
+
+### B2. Sessions tab UI (new component `src/components/dashboard/CourseSessionsManager.tsx`)
+Layout:
 ```text
-1.1  ContentList polish              Inactive filter, bulk actions, duplicate,
-                                     preview-as-talent, sort by readiness
-1.2  Webinar/Recorded type-aware     Split list columns; expose Sessions sub-tab
-                                     in ContentEdit for webinars
-1.3  ContentEdit readiness sidebar   Live checklist + "Fix now" jump links;
-                                     AI description + cover image generators
-1.4  Modules & Resources UX          Drag-reorder, bulk-add resources, inline
-                                     preview, mobile stacked cards
-1.5  Quizzes & Flashcards AI         Auto-generate from module content; CSV
-                                     import; per-question analytics
-1.6  Career Tracks builder           Dedicated CRUD for tracks + steps + gating
-1.7  Certificates admin              Issue/revoke/regenerate, verification log
-1.8  Graduates tab                   Real table from certificates+enrollments
-1.9  B2B Courses tab                 Company-cohort progress aggregate
-1.10 Learn Overview upgrade          Trends, readiness debt, upcoming sessions
-1.11 Instructors in Learn nav        Add nav entry + performance panel
-1.12 Mobile pass + safe areas        Stacked cards across all Learn tables
+┌──────────────────────────────────────────────────────┐
+│  Sessions for "Course Title"     [+ Add Session]     │
+│  Timezone: Asia/Dhaka (BDT)        [Bulk reschedule] │
+├──────────────────────────────────────────────────────┤
+│  ▸ Session 1 · Mon Dec 9, 7:00 PM BDT · 60min        │
+│      Instructor: Aisha · Status: scheduled           │
+│      Meeting: zoom.us/...      [Edit] [Cancel] [Del] │
+│  ▸ Session 2 · ...                                   │
+└──────────────────────────────────────────────────────┘
 ```
+Per-session fields (matches `course_sessions` schema):
+- `title`, `description`, `scheduled_date` (UTC, picker uses `EventDateTimeField` + `event_timezone` from parent course as default), `duration_minutes`, `instructor_id` (select from `instructors`), `meeting_link`, `recording_link`, `status` (scheduled/ongoing/completed/cancelled).
 
-Each sub-phase is one approved build cycle. 1.1–1.4 unlock the highest daily-use pain (catalog + readiness). 1.5–1.6 unlock content velocity. 1.7–1.9 close revenue-credibility gaps. 1.10–1.12 polish.
+### B3. Session quick-actions
+- **Generate recurring series**: dialog "Every week, N sessions, starting <date>" creates rows in one batch insert.
+- **Mark completed + attach recording**: status → `completed`, paste `recording_link`.
+- **Copy meeting link** button per row.
+- **Send reminder** stub button (queues a notification job — wired in a later sub-phase, but the row inserts into `notification_outbox` if table exists, otherwise toast "Reminders queue not yet configured").
+
+### B4. Auto-sync helpers
+- If the course has `event_date` set but no rows in `course_sessions`, show a one-click "Create first session from course event date" prompt.
+- If user adds a session, optionally update parent `content.event_date` to earliest scheduled session (toggle in dialog).
+
+### B5. Permissions & data
+- All reads/writes via supabase client; RLS already restricts to admins.
+- Single query: `course_sessions` filtered by `content_id`, ordered by `scheduled_date asc`.
+- Use the same `EventDateTimeField` + `DEFAULT_EVENT_TZ` pattern already used in the schema form for consistency.
 
 ---
 
-## Database / Edge work (consolidated)
-- **New edge function**: `generate-learning-content` — tasks: `rewrite_description`, `generate_cover_image`, `generate_quiz_questions`, `generate_flashcard_deck`. English only. Verifies `auth.getUser` + admin role.
-- **No new tables required** for 1.1–1.5; `career_tracks`, `career_track_steps`, `certificates`, `certificate_verifications` already exist.
-- Add a small SQL view `v_course_readiness_reasons` returning `{content_id, reason_code, reason_label, missing_count}` so the UI can render exact "why inactive" tooltips without recomputing rules client-side.
-- Migration: `learn_audit_log` table (content_id, actor_id, action, diff jsonb, created_at) for change history in 1.3.
+## Part C — Small supporting changes
 
-## Files affected (Phase 1 total)
-Roughly 18 edits + 4 new files + 1 migration + 1 edge function. We'll ship one sub-phase per approval.
+- `ContentList.tsx` query: add `event_timezone`, `youtube_url` to selected columns; aggregate session counts in a follow-up `.from('course_sessions').select('content_id', { count: 'exact', head: false })` grouped client-side.
+- New helper `src/lib/eventTime.ts` already exposes `formatEventInTz`; reuse for all date rendering — no inline `toLocaleString`.
+- English-only copy throughout (per global rule).
 
 ---
 
-## Recommended start
-Approve and I'll begin with **Sub-phase 1.1 — ContentList polish** (Inactive-only filter, bulk publish/unpublish, duplicate, preview-as-talent, sort by readiness/enrollment, mobile stacked cards). It's the lowest-risk, highest-daily-use win and sets the table-pattern reused in 1.2.
+## Files
+
+**New**
+- `src/components/dashboard/CourseSessionsManager.tsx` — Sessions tab manager + add/edit dialog.
+- `src/components/dashboard/SessionFormDialog.tsx` — single session create/edit form.
+- `src/components/dashboard/RecurringSessionDialog.tsx` — bulk generate.
+
+**Edited**
+- `src/pages/ContentEdit.tsx` — wrap in Tabs, mount Sessions tab conditionally, sync `?tab=` URL.
+- `src/components/dashboard/ContentList.tsx` — type-aware chips, LIVE/PAST badges, sessions-count chip, session counts batched query.
+- `src/components/dashboard/ContentFilters.tsx` — quick segment tabs, date-window filter, "has recording" toggle.
+
+**No DB migration needed** — `course_sessions` table, enum, RLS, indexes already exist.
+
+---
+
+## Out of scope (handled in later sub-phases)
+- Drag-reorder of modules (1.4)
+- AI quiz/flashcard generation (1.5)
+- Talent-side Sessions list & ICS download (separate talent-app sub-phase)
+- Reminder email scheduling (lives in Phase 2 notifications)
+
+Reply **continue** to implement.

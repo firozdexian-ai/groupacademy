@@ -20,7 +20,25 @@ export interface ContentFilterValues {
   levelId: string;
   readiness: string;
   sortBy: string;
+  typeSegment?: "all" | "recorded" | "live" | "offline" | "free";
+  dateWindow?: "all" | "upcoming" | "this_week" | "past" | "undated";
 }
+
+const TYPE_SEGMENTS: { value: NonNullable<ContentFilterValues["typeSegment"]>; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "recorded", label: "Recorded" },
+  { value: "live", label: "Live & Webinars" },
+  { value: "offline", label: "Offline" },
+  { value: "free", label: "Free" },
+];
+
+const DATE_WINDOWS: { value: NonNullable<ContentFilterValues["dateWindow"]>; label: string }[] = [
+  { value: "all", label: "Any date" },
+  { value: "upcoming", label: "Upcoming" },
+  { value: "this_week", label: "This week" },
+  { value: "past", label: "Past" },
+  { value: "undated", label: "Undated" },
+];
 
 interface ContentFiltersProps {
   values: ContentFilterValues;
@@ -48,8 +66,48 @@ const ContentFilters = ({ values, onChange, className }: ContentFiltersProps) =>
     onChange({ ...values, [key]: val });
   };
 
+  const segment = values.typeSegment || "all";
+  const dateWindow = values.dateWindow || "all";
+  const showDateWindow = segment === "live" || segment === "offline";
+
   return (
-    <div className={cn("flex flex-wrap items-center gap-3 p-1", className)}>
+    <div className={cn("space-y-3", className)}>
+      {/* Quick type segments */}
+      <div className="flex flex-wrap gap-1.5 p-1 bg-muted/30 rounded-xl w-fit">
+        {TYPE_SEGMENTS.map((s) => (
+          <button
+            key={s.value}
+            type="button"
+            onClick={() => updateLogic("typeSegment", s.value)}
+            className={cn(
+              "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors",
+              segment === s.value ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {s.label}
+          </button>
+        ))}
+      </div>
+
+      {showDateWindow && (
+        <div className="flex flex-wrap gap-1.5">
+          {DATE_WINDOWS.map((d) => (
+            <button
+              key={d.value}
+              type="button"
+              onClick={() => updateLogic("dateWindow", d.value)}
+              className={cn(
+                "px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-widest border transition-colors",
+                dateWindow === d.value ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground",
+              )}
+            >
+              {d.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center gap-3 p-1">
       {/* Program Identifier */}
       <div className="relative group">
         <Select value={values.programId} onValueChange={(v) => updateLogic("programId", v)}>
@@ -145,6 +203,7 @@ const ContentFilters = ({ values, onChange, className }: ContentFiltersProps) =>
           </SelectItem>
         </SelectContent>
       </Select>
+      </div>
     </div>
   );
 };

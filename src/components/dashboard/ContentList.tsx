@@ -44,6 +44,7 @@ import { useNavigate } from "react-router-dom";
 import ContentFilters, { type ContentFilterValues } from "./ContentFilters";
 import ContentReadinessBadge, { type ModuleStats } from "./ContentReadinessBadge";
 import { cn } from "@/lib/utils";
+import { formatEventTime, DEFAULT_EVENT_TZ } from "@/lib/eventTime";
 
 /**
  * Platform Logic: Academic Artifact Registry (Content List)
@@ -64,6 +65,10 @@ interface Content {
   is_ready: boolean | null;
   instructor_name: string | null;
   event_date: string | null;
+  event_timezone: string | null;
+  event_duration_minutes: number | null;
+  venue_name: string | null;
+  youtube_url: string | null;
   max_capacity: number | null;
   current_enrollment: number;
   profession_line_id: string | null;
@@ -112,7 +117,10 @@ const ContentList = ({ filter }: ContentListProps) => {
     levelId: "all",
     readiness: "all",
     sortBy: "newest",
+    typeSegment: "all",
+    dateWindow: "all",
   });
+  const [sessionCounts, setSessionCounts] = useState<Record<string, number>>({});
 
   // Telemetry Calculation
   const totalPages = Math.max(1, Math.ceil(totalCount / ITEMS_PER_PAGE));
@@ -164,6 +172,28 @@ const ContentList = ({ filter }: ContentListProps) => {
 
       if (filter) query = query.eq("content_type", filter as ContentType);
 
+      // Type segment filter
+      const seg = filters.typeSegment || "all";
+      if (!filter) {
+        if (seg === "recorded") query = query.in("content_type", ["recorded_course"]);
+        else if (seg === "live") query = query.in("content_type", ["live_webinar", "batch_class"]);
+        else if (seg === "offline") query = query.eq("content_type", "offline_seminar");
+        else if (seg === "free") query = query.eq("content_type", "free_video");
+      }
+
+      // Date window filter (live + offline only)
+      const dw = filters.dateWindow || "all";
+      if ((seg === "live" || seg === "offline") && dw !== "all") {
+        const now = new Date().toISOString();
+        if (dw === "upcoming") query = query.gte("event_date", now);
+        else if (dw === "past") query = query.lt("event_date", now);
+        else if (dw === "undated") query = query.is("event_date", null);
+        else if (dw === "this_week") {
+          const wk = new Date(); wk.setDate(wk.getDate() + 7);
+          query = query.gte("event_date", now).lte("event_date", wk.toISOString());
+        }
+      }
+
       if (filters.programId !== "all") query = query.eq("profession_line_id", filters.programId);
       if (filters.levelId !== "all") query = query.eq("profession_level_id", filters.levelId);
 
@@ -190,6 +220,22 @@ const ContentList = ({ filter }: ContentListProps) => {
       setContent(data);
       setTotalCount(result.count || 0);
       await fetchModuleStats(data.map((c) => c.id));
+
+      // Fetch session counts for live/batch items
+      const liveIds = data
+        .filter((d) => ["live_webinar", "batch_class", "offline_seminar"].includes(d.content_type))
+        .map((d) => d.id);
+      if (liveIds.length) {
+        const { data: rows } = await supabase
+          .from("course_sessions")
+          .select("content_id")
+          .in("content_id", liveIds);
+        const counts: Record<string, number> = {};
+        for (const r of rows || []) counts[r.content_id] = (counts[r.content_id] || 0) + 1;
+        setSessionCounts(counts);
+      } else {
+        setSessionCounts({});
+      }
     } catch (err: any) {
       setLoadError("Transmission Error: Failed to synchronize registry nodes.");
     } finally {
@@ -354,6 +400,15 @@ const ContentList = ({ filter }: ContentListProps) => {
           {content.map((item) => {
             const config = TYPE_CONFIG[item.content_type] || TYPE_CONFIG.free_video;
             const Icon = config.icon;
+            const isLiveType = ["live_webinar", "batch_class", "offline_seminar"].includes(item.content_type);
+            const eventTs = item.event_date ? new Date(item.event_date).getTime() : null;
+            const now = Date.now();
+            const dur = (item.event_duration_minutes || 60) * 60_000;
+            const liveNow = !!eventTs && now >= eventTs && now <= eventTs + dur;
+            const isPast = !!eventTs && now > eventTs + dur;
+            const sessionCount = sessionCounts[item.id] || 0;
+            const capacityPct = item.max_capacity && item.max_capacity > 0
+              ? Math.min(100, Math.round((item.current_enrollment / item.max_capacity) * 100)) : null;
 
             return (
               <Card
@@ -379,7 +434,17 @@ const ContentList = ({ filter }: ContentListProps) => {
                         <Icon className={cn("h-6 w-6", config.color)} />
                       </div>
                     </div>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                      {liveNow && (
+                        <Badge className="rounded-lg font-black text-[8px] uppercase tracking-[0.2em] px-3 py-1 border-none bg-red-500 text-white animate-pulse">
+                          ● LIVE NOW
+                        </Badge>
+                      )}
+                      {isPast && item.is_published && !liveNow && (
+                        <Badge className="rounded-lg font-black text-[8px] uppercase tracking-[0.2em] px-3 py-1 border-none bg-amber-500/20 text-amber-700">
+                          PAST EVENT
+                        </Badge>
+                      )}
                       <Badge
                         className={cn(
                           "rounded-lg font-black text-[8px] uppercase tracking-[0.2em] px-3 py-1 border-none",
@@ -405,6 +470,40 @@ const ContentList = ({ filter }: ContentListProps) => {
 
                 <CardContent className="p-8 pt-0 space-y-6 flex-1 flex flex-col justify-between">
                   <div className="space-y-4">
+                    {isLiveType && (
+                      <div className="p-3 rounded-2xl bg-primary/5 border border-primary/10 space-y-2">
+                        <div className="flex items-center gap-2 text-[10px] font-bold">
+                          <span className="text-primary">📅</span>
+                          <span className="text-foreground">
+                            {item.event_date
+                              ? formatEventTime(item.event_date, item.event_timezone || DEFAULT_EVENT_TZ)
+                              : "Not yet scheduled"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {sessionCount > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => navigate(`/content/${item.id}/edit?tab=sessions`)}
+                              className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md bg-card border border-border/40 hover:border-primary/40"
+                            >
+                              {sessionCount} session{sessionCount === 1 ? "" : "s"}
+                            </button>
+                          )}
+                          {capacityPct !== null && (
+                            <span className="text-[9px] font-bold text-muted-foreground">
+                              {item.current_enrollment}/{item.max_capacity} seats ({capacityPct}%)
+                            </span>
+                          )}
+                          {item.youtube_url && isPast && (
+                            <span className="text-[9px] font-black uppercase text-emerald-600">↻ Recording</span>
+                          )}
+                          {item.venue_name && (
+                            <span className="text-[9px] font-bold text-muted-foreground">📍 {item.venue_name}</span>
+                          )}
+                        </div>
+                      </div>
+                    )}
                     <div className="p-4 rounded-2xl bg-muted/10 border border-border/10">
                       <ContentReadinessBadge
                         stats={moduleStatsMap[item.id]}

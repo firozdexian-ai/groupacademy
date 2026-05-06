@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import CourseSessionsManager from "@/components/dashboard/CourseSessionsManager";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,6 +38,13 @@ import { AlertTriangle, CheckCircle2 } from "lucide-react";
 export default function ContentEdit() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") || "schema";
+  const setActiveTab = (t: string) => {
+    const next = new URLSearchParams(searchParams);
+    next.set("tab", t);
+    setSearchParams(next, { replace: true });
+  };
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -204,6 +213,26 @@ export default function ContentEdit() {
           </div>
         </header>
 
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="rounded-2xl bg-muted/40 p-1">
+            <TabsTrigger value="schema" className="rounded-xl text-[10px] font-black uppercase tracking-widest">Schema</TabsTrigger>
+            {["live_webinar", "batch_class", "offline_seminar"].includes(formData.content_type) && (
+              <TabsTrigger value="sessions" className="rounded-xl text-[10px] font-black uppercase tracking-widest">Sessions</TabsTrigger>
+            )}
+          </TabsList>
+
+          <TabsContent value="sessions" className="mt-0">
+            {id && (
+              <CourseSessionsManager
+                contentId={id}
+                contentTitle={formData.title || "Untitled course"}
+                defaultTimezone={formData.event_timezone}
+                parentEventDate={formData.event_date || null}
+              />
+            )}
+          </TabsContent>
+
+          <TabsContent value="schema" className="mt-0">
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-[1fr,300px] gap-8">
           <div className="space-y-6">
             {/* Core Identity Section */}
@@ -600,6 +629,8 @@ export default function ContentEdit() {
             </div>
           </aside>
         </form>
+          </TabsContent>
+        </Tabs>
 
         {formData.is_private && (
           <Card className="rounded-[32px] border-dashed border-primary/40 bg-primary/[0.01] animate-in zoom-in-95">
