@@ -159,16 +159,22 @@ const ContentList = ({ filter }: ContentListProps) => {
     setIsLoading(true);
     setLoadError(null);
     try {
-      const sortCol = filters.sortBy.startsWith("title") ? "title" : "created_at";
+      const sortCol =
+        filters.sortBy.startsWith("title") ? "title" :
+        filters.sortBy === "enrollment_desc" ? "current_enrollment" : "created_at";
       const sortAsc = filters.sortBy === "oldest" || filters.sortBy === "title_asc";
 
       let query = supabase.from("content").select("*", { count: "exact" }).order(sortCol, { ascending: sortAsc });
 
-      // CTO FIX: Asserted filter as ContentType to resolve TS2345
       if (filter) query = query.eq("content_type", filter as ContentType);
 
       if (filters.programId !== "all") query = query.eq("profession_line_id", filters.programId);
       if (filters.levelId !== "all") query = query.eq("profession_level_id", filters.levelId);
+
+      if (filters.readiness === "inactive_only") query = query.or("is_ready.is.null,is_ready.eq.false");
+      else if (filters.readiness === "ready_only") query = query.eq("is_ready", true);
+      else if (filters.readiness === "published") query = query.eq("is_published", true);
+      else if (filters.readiness === "draft") query = query.eq("is_published", false);
 
       if (debouncedSearch) {
         const safe = sanitizeIlike(debouncedSearch);
