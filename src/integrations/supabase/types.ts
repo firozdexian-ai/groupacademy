@@ -6831,6 +6831,197 @@ export type Database = {
           },
         ]
       }
+      instructor_earnings_ledger: {
+        Row: {
+          amount_credits: number
+          created_at: string
+          id: string
+          instructor_id: string | null
+          instructor_user_id: string
+          notes: string | null
+          payout_request_id: string | null
+          period_month: string
+          source_id: string | null
+          source_kind: string
+          status: string
+          talent_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount_credits: number
+          created_at?: string
+          id?: string
+          instructor_id?: string | null
+          instructor_user_id: string
+          notes?: string | null
+          payout_request_id?: string | null
+          period_month: string
+          source_id?: string | null
+          source_kind: string
+          status?: string
+          talent_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount_credits?: number
+          created_at?: string
+          id?: string
+          instructor_id?: string | null
+          instructor_user_id?: string
+          notes?: string | null
+          payout_request_id?: string | null
+          period_month?: string
+          source_id?: string | null
+          source_kind?: string
+          status?: string
+          talent_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "iel_payout_fk"
+            columns: ["payout_request_id"]
+            isOneToOne: false
+            referencedRelation: "instructor_payout_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instructor_earnings_ledger_instructor_id_fkey"
+            columns: ["instructor_id"]
+            isOneToOne: false
+            referencedRelation: "instructors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instructor_earnings_ledger_instructor_id_fkey"
+            columns: ["instructor_id"]
+            isOneToOne: false
+            referencedRelation: "instructors_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instructor_earnings_ledger_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instructor_earnings_ledger_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
+          {
+            foreignKeyName: "instructor_earnings_ledger_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_weekly_leaderboard"
+            referencedColumns: ["talent_id"]
+          },
+        ]
+      }
+      instructor_payout_requests: {
+        Row: {
+          admin_notes: string | null
+          amount_credits: number
+          created_at: string
+          fx_rate_bdt: number | null
+          id: string
+          instructor_user_id: string
+          payout_details: Json
+          payout_method: string
+          processed_at: string | null
+          processed_by: string | null
+          status: string
+          talent_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount_credits: number
+          created_at?: string
+          fx_rate_bdt?: number | null
+          id?: string
+          instructor_user_id: string
+          payout_details?: Json
+          payout_method: string
+          processed_at?: string | null
+          processed_by?: string | null
+          status?: string
+          talent_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          amount_credits?: number
+          created_at?: string
+          fx_rate_bdt?: number | null
+          id?: string
+          instructor_user_id?: string
+          payout_details?: Json
+          payout_method?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          status?: string
+          talent_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "instructor_payout_requests_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "instructor_payout_requests_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
+          {
+            foreignKeyName: "instructor_payout_requests_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_weekly_leaderboard"
+            referencedColumns: ["talent_id"]
+          },
+        ]
+      }
+      instructor_statements: {
+        Row: {
+          created_at: string
+          emailed_at: string | null
+          id: string
+          instructor_user_id: string
+          pdf_path: string | null
+          period_month: string
+          summary: Json
+        }
+        Insert: {
+          created_at?: string
+          emailed_at?: string | null
+          id?: string
+          instructor_user_id: string
+          pdf_path?: string | null
+          period_month: string
+          summary?: Json
+        }
+        Update: {
+          created_at?: string
+          emailed_at?: string | null
+          id?: string
+          instructor_user_id?: string
+          pdf_path?: string | null
+          period_month?: string
+          summary?: Json
+        }
+        Relationships: []
+      }
       instructors: {
         Row: {
           bank_details: Json | null
@@ -14003,6 +14194,10 @@ export type Database = {
         Args: { p_company_id: string; p_window_days?: number }
         Returns: Json
       }
+      get_instructor_earnings_summary: {
+        Args: { _user_id?: string }
+        Returns: Json
+      }
       get_instructor_summary: { Args: { _user_id?: string }; Returns: Json }
       get_jobs_in_field: {
         Args: { _limit?: number; _talent_id: string }
@@ -14172,6 +14367,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      instructor_session_rate_credits: { Args: never; Returns: number }
       interview_company_id: {
         Args: { p_interview_id: string }
         Returns: string
@@ -14313,6 +14509,15 @@ export type Database = {
         Args: { p_company_id: string; p_content_id?: string }
         Returns: Json
       }
+      process_instructor_payout: {
+        Args: {
+          _action: string
+          _fx_rate?: number
+          _notes?: string
+          _request_id: string
+        }
+        Returns: Json
+      }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
@@ -14352,6 +14557,10 @@ export type Database = {
       reject_gig_submission: {
         Args: { p_admin_notes?: string; p_submission_id: string }
         Returns: Json
+      }
+      request_instructor_payout: {
+        Args: { _amount: number; _details?: Json; _method: string }
+        Returns: string
       }
       school_id_for_content: { Args: { _content_id: string }; Returns: string }
       score_talent_job_mastery: {

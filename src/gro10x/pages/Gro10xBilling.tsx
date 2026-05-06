@@ -4,7 +4,7 @@
  */
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, ArrowDownCircle, ArrowUpCircle, Plus, Loader2, AlertTriangle } from "lucide-react";
+import { ArrowLeft, ArrowDownCircle, ArrowUpCircle, Plus, Loader2, AlertTriangle, GraduationCap } from "lucide-react";
 import { useCompanyCredits } from "../hooks/useCompanyCredits";
 import { useCurrencyRates } from "@/hooks/useCurrencyRates";
 import { useAuth } from "@/hooks/useAuth";
@@ -25,6 +25,20 @@ export default function Gro10xBilling() {
   const { rates } = useCurrencyRates();
   const [country, setCountry] = useState<string | null>(null);
   const [topupPending, setTopupPending] = useState<number | null>(null);
+  const [instructorEarnings, setInstructorEarnings] = useState<{ available: number; lifetime: number } | null>(null);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    void supabase.rpc("get_instructor_earnings_summary" as any).then(({ data }) => {
+      if (cancelled || !data) return;
+      const d = data as any;
+      if ((d?.lifetime_credits ?? 0) > 0) {
+        setInstructorEarnings({ available: Number(d.available_credits ?? 0), lifetime: Number(d.lifetime_credits ?? 0) });
+      }
+    });
+    return () => { cancelled = true; };
+  }, [user?.id]);
 
   // Pull country from talents (best-effort) so we can localize.
   useEffect(() => {
@@ -114,7 +128,22 @@ export default function Gro10xBilling() {
               >
                 <div className="h-10 w-10 rounded-full bg-[#33E1E4]/10 grid place-items-center text-[#33E1E4]">
                   {topupPending === p.credits ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                </div>
+      </div>
+
+      {instructorEarnings && (
+        <section className="px-4 mt-3">
+          <Link to="/app/instructor?tab=earnings" className={`${GRO10X_PANEL} border border-white/10 rounded-2xl p-3 flex items-center gap-3 hover:bg-white/5`}>
+            <div className="h-9 w-9 rounded-full bg-primary/10 grid place-items-center text-primary">
+              <GraduationCap className="h-4 w-4" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold">Instructor earnings</p>
+              <p className="text-[11px] text-slate-400">Available {instructorEarnings.available.toFixed(1)} cr · lifetime {instructorEarnings.lifetime.toFixed(0)}</p>
+            </div>
+            <span className="text-xs text-[#33E1E4]">Open →</span>
+          </Link>
+        </section>
+      )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="font-semibold text-sm">{p.credits.toLocaleString()} credits</p>

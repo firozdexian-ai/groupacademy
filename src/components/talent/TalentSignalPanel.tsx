@@ -1,6 +1,7 @@
 import { BadgeCheck, Award, Trophy, Layers, Sparkles, Activity } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTalentOutcomeSignal } from "@/hooks/useTalentOutcomeSignal";
+import { ActiveInstructorChip } from "./ActiveInstructorChip";
 import { cn } from "@/lib/utils";
 
 const LEVEL_ICON = {
@@ -51,12 +52,15 @@ export function TalentSignalPanel({ talentId, compact, className }: Props) {
 
   return (
     <div className={cn("space-y-3 text-sm", className)}>
-      {recent && (
-        <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-success-green/10 border border-success-green/30 text-success-green text-[11px]">
-          <Activity className="h-3 w-3" />
-          Active learner
-        </div>
-      )}
+      <div className="flex flex-wrap gap-1.5">
+        {recent && (
+          <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-success-green/10 border border-success-green/30 text-success-green text-[11px]">
+            <Activity className="h-3 w-3" />
+            Active learner
+          </div>
+        )}
+        <ActiveInstructorChip talentId={talentId} />
+      </div>
 
       {skills.length > 0 && (
         <div>

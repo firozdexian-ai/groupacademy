@@ -14,6 +14,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useInstructorSummary } from "@/hooks/useInstructorWorkspace";
+import InstructorEarnings from "./InstructorEarnings";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -91,9 +92,7 @@ export default function InstructorShell() {
       <main className="px-4 mt-3 space-y-2">
         {tab === "courses" && <CoursesPanel engagements={engagements} />}
         {tab === "credits" && <CreditsPanel credits={data?.credits ?? []} />}
-        {tab === "earnings" && (
-          <EarningsPanel total={data?.earnings_total ?? 0} pending={data?.earnings_pending ?? 0} />
-        )}
+        {tab === "earnings" && <InstructorEarnings />}
         {tab === "review" && (
           <Card className="p-4 text-sm">
             <Link to="/app/instructor/review-queue" className="text-primary underline">
