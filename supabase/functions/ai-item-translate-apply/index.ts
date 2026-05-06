@@ -66,13 +66,11 @@ Deno.serve(async (req) => {
 
     await admin.from("module_item_revision_log").insert({
       item_id,
-      item_type,
-      change_type: "translation",
-      changed_by: user.id,
+      kind: item_type,
+      before: {},
+      after: { language_code, payload, source, change_type: "translation" },
       flags_addressed: [],
-      before_snapshot: {},
-      after_snapshot: { language_code, payload },
-      notes: `Translated to ${language_code} (${source})`,
+      applied_by: user.id,
     });
 
     return j({ ok: true, translation: upserted });
