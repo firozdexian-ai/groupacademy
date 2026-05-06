@@ -111,6 +111,18 @@ Deno.serve(async (req) => {
       return new Response(aiResp.body, { headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
     }
 
+    if (body.mode === "create_run") {
+      // body: scenario_id, conversation
+      const { data: ins, error: insErr } = await sb.from("talent_scenario_run").insert({
+        talent_id: talent.id, module_id: moduleId, scenario_id: body.scenario_id,
+        conversation: body.conversation,
+      }).select("id").single();
+      if (insErr || !ins) return new Response(JSON.stringify({ error: insErr?.message || "Failed to create run" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ run_id: ins.id }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     if (body.mode === "evaluate") {
       // body: scenario_id, conversation, rubric
       const evalResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
