@@ -296,9 +296,9 @@ export function useAuthChat() {
     handleUserInput,
     handlePasswordSubmit,
     handleForgotPassword: async () => {
-      if (!collectedData.email) return addMessage("assistant", "EMAIL_REQUIRED: Provide email for recovery sync.");
+      if (!collectedData.email) return addMessage("assistant", "Please share your email first so I can send the reset link.");
       await resetPassword(collectedData.email);
-      addMessage("assistant", "RECOVERY_LINK_DEPLOYED: Check your inbox.");
+      addMessage("assistant", "Reset link sent — check your inbox.");
     },
     updatePhoneData: (phone: string, countryCode: string, country: string) =>
       setCollectedData((prev) => ({ ...prev, phone, countryCode, country })),
