@@ -10455,8 +10455,12 @@ export type Database = {
           content_id: string
           correct_count: number
           created_at: string
+          due_at: string
+          ease: number
           id: string
+          interval_days: number
           last_attempt_at: string | null
+          last_reviewed_at: string | null
           mastery: number
           module_id: string
           talent_id: string
@@ -10468,8 +10472,12 @@ export type Database = {
           content_id: string
           correct_count?: number
           created_at?: string
+          due_at?: string
+          ease?: number
           id?: string
+          interval_days?: number
           last_attempt_at?: string | null
+          last_reviewed_at?: string | null
           mastery?: number
           module_id: string
           talent_id: string
@@ -10481,8 +10489,12 @@ export type Database = {
           content_id?: string
           correct_count?: number
           created_at?: string
+          due_at?: string
+          ease?: number
           id?: string
+          interval_days?: number
           last_attempt_at?: string | null
+          last_reviewed_at?: string | null
           mastery?: number
           module_id?: string
           talent_id?: string
