@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useTalent } from "@/hooks/useTalent";
+import { computeCVFingerprint } from "@/lib/onboarding/cvFingerprint";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -263,7 +264,7 @@ export function CVUploadStep({ onContinue, onSkip }: CVUploadStepProps) {
           if (dt && dt.files && dt.files.length > 0) {
             const file = dt.files.item(0);
             if (file) {
-              handleExecutiveUpload(file);
+              handleCVUpload(file);
             }
           }
         }}
@@ -277,7 +278,7 @@ export function CVUploadStep({ onContinue, onSkip }: CVUploadStepProps) {
             if (target && target.files && target.files.length > 0) {
               const file = target.files.item(0);
               if (file) {
-                handleExecutiveUpload(file);
+                handleCVUpload(file);
               }
             }
           }}
