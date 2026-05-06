@@ -14069,6 +14069,7 @@ export type Database = {
         Args: { _recipient: string }
         Returns: number
       }
+      get_talent_outcome_signal: { Args: { _talent_id: string }; Returns: Json }
       get_track_progress: { Args: { p_assignment_id: string }; Returns: Json }
       get_trending_jobs: {
         Args: { limit_n?: number }
@@ -14129,6 +14130,10 @@ export type Database = {
       grant_company_welcome_credits: {
         Args: { p_amount?: number; p_company_id: string }
         Returns: boolean
+      }
+      gro10x_global_search: {
+        Args: { _limit?: number; _q: string }
+        Returns: Json
       }
       has_any_admin_role: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
