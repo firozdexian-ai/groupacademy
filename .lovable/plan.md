@@ -1,162 +1,117 @@
-# Phase 4.7 — Instructor Monetization & Payouts
+# Phase 4.8 — Study Abroad, AI IELTS Coach & Language Lab (FINAL)
 
-Closes the loop opened in 4.1: instructors already earn 60/40 splits on course briefs and 50 free AI credits on accepted offers, but there is no statement, no payout request flow built for instructors specifically, and no admin reconciliation. This phase makes "I taught — I got paid" a first-class workflow.
-
-> Study Abroad is intentionally **not** in scope here — it gets its own Phase 4.8 (notes at the bottom).
+Closes Phase 4. Three pillars, with the **Roadmap Creator absorbed into per-country Destination Agents** (no standalone tool).
 
 ---
 
-## Goals
+## How the Roadmap Creator becomes per-country agents
 
-1. Every instructor sees a clear earnings dashboard: lifetime, this month, pending, paid.
-2. Instructors can request a payout to bKash / bank / Wise / PayPal, reusing existing `talent_payout_accounts`.
-3. Admin can review, approve, mark paid, and download a CSV statement.
-4. Monthly statement PDF auto-generated and emailed (transactional, via existing `notify.groupacademy.online`).
-5. Cohort + course-brief revenue flows into a single ledger so the math is auditable.
+**Today**: `/app/abroad/roadmap` → `RoadmapIntakeForm` → `generate-study-roadmap` edge → `StudyAbroadRoadmapResults`. One generic tool, no country specialization.
 
----
+**New model**: each destination country has a **Destination Agent** (e.g. UK Agent, Germany Agent, Canada Agent…) that:
+1. Lives under `Career Abroad → Destinations` in Admin Group #13 and `/app/abroad` for talents.
+2. Knows that country's universities, intake terms, visa rules, IELTS/PTE cutoffs, scholarships, post-study-work norms — grounded in `study_abroad_programs` + a new `country_knowledge_packs` table (curated by admin).
+3. Exposes **Roadmap** as a *skill* of the agent (one tool-call), not a separate page. Same form fields, but the agent can also chat — "When's the Russell Group fall deadline?", "What's a budget plan for £25k?", "Will my IELTS 6.5 work for Edinburgh?".
+4. Logs roadmap outputs into existing `study_abroad_roadmaps` so admin pipeline keeps working.
 
-## 1. Earnings ledger (single source of truth)
+### Schema
+- `destination_agents` — `country_code` (ISO-2, PK), `display_name`, `flag_emoji`, `tagline`, `system_prompt`, `is_active`, `default_currency`, `intake_terms[]`, `visa_processing_weeks`
+- `country_knowledge_packs` — `country_code`, `kind` (visa/scholarship/cost/process/policy), `title`, `body_markdown`, `source_url`, `valid_through`, `is_published`
+- Replace standalone `/app/abroad/roadmap` route → redirect to `/app/abroad/destinations/:country?intent=roadmap`.
 
-New table `instructor_earnings_ledger`:
-- `instructor_id`, `talent_id` (denormalised), `source_kind` (`course_revenue_split` | `cohort_session` | `bonus` | `adjustment`)
-- `source_id` (FK-ish to `course_revenue_splits.id` / `course_sessions.id` / NULL)
-- `amount_credits` numeric(12,1), `currency` always credits
-- `period_month` date (first of month) for fast statement queries
-- `status` `accrued` | `available` | `paid` | `void`
-- `payout_request_id` nullable
-- `created_at`, `updated_at`, audit columns
+### Agent runtime
+- One edge `ai-destination-agent` (parameterized by `country_code`) replaces both `generate-study-roadmap` (kept as an internal tool-call) and per-country routing.
+- Tools the agent can call:
+  - `build_roadmap(intake)` — wraps existing `generate-study-roadmap` logic, persists row.
+  - `find_programs(filters)` — queries `study_abroad_programs WHERE country = X`.
+  - `estimate_costs(profile)` — uses knowledge pack + currency rates.
+  - `check_visa_eligibility(profile)` — knowledge-pack lookup.
+- Cost: 1 credit per chat response, 3 credits when `build_roadmap` runs (replaces existing per-roadmap charge).
 
-Backfill on migration:
-- One row per existing `course_revenue_splits` row where `instructor_share > 0`, status `available`.
-- One row per `course_sessions` with `instructor_id` and `status='completed'`, valued by the existing per-session rate.
+### Surfaces
+- `/app/abroad` — country grid (flags + agent cards). Tap → `/app/abroad/destinations/:code` (chat + Roadmap CTA + programs panel).
+- Old `RoadmapIntakeForm` becomes a sheet inside the destination page (still callable as the agent's first action via "Build my roadmap" chip).
+- Admin: `Career Abroad → Destinations` tab — manage agents, knowledge packs, agent test console (reuses Agentic Dashboard pattern).
 
-Trigger: when `course_revenue_splits` is INSERTed, write a ledger row automatically.
-
-## 2. Instructor earnings dashboard (`/app/instructor/earnings`)
-
-New tab inside the existing `/app/instructor` shell.
-
-- Hero: 4 stat cards — `Lifetime`, `This month`, `Available to withdraw`, `Pending payout`.
-- Chart: 6-month bar chart by `period_month` (Recharts).
-- Table: ledger with filters (period, source kind, status). CSV export.
-- Side panel: payout method (reuse `talent_payout_accounts`), big "Request payout" button.
-
-RPC: `get_instructor_earnings_summary(_instructor_id)` → totals + 6-month series + last 20 ledger rows. SECURITY DEFINER, search_path = public.
-
-## 3. Payout request flow
-
-New table `instructor_payout_requests` (mirrors `agent_payout_requests` shape):
-- `instructor_id`, `talent_id`, `amount_credits`, `payout_method`, `payout_details jsonb`, `status` (`pending|approved|paid|rejected`), `admin_notes`, `processed_by`, `processed_at`.
-
-Edge function `request-instructor-payout`:
-- Validates: minimum 500 credits, `available` ledger balance ≥ amount, primary `talent_payout_accounts` exists.
-- Creates request row, flips matching ledger rows from `available` → `pending` (locked via FK `payout_request_id`).
-- Notifies admin via existing `notify.groupacademy.online` queue.
-
-Approve/reject:
-- Edge function `process-instructor-payout` (admin-only): on `approve` keep ledger pending; on `paid` flip ledger rows to `paid`; on `reject` flip back to `available` and clear FK.
-- Audit trail in `payout_audit_log` (existing table; verify in implementation).
-
-## 4. Monthly statement PDF + email
-
-- `cron-instructor-monthly-statement` (1st of month, 03:00 UTC):
-  - For each instructor with activity in the previous month, generate an HTML statement and PDF (use `pdf-lib`-style approach already used by certificates if present — otherwise render HTML and let recipient print; **decide in implementation**).
-  - Insert into `instructor_statements` table (`period_month`, `pdf_url` in storage bucket `instructor-statements`, `summary jsonb`).
-  - Email via the native transactional pipeline (templated subject "Your October 2026 earnings statement — Group Academy").
-
-Storage bucket: private `instructor-statements`, signed-URL access only.
-
-## 5. Admin reconciliation surface
-
-In existing **Group #11 — Learn → Instructor Workspace** admin tab, add a 3-tab nested view:
-
-| Tab | What it shows |
-|---|---|
-| **Earnings** | Aggregated ledger across all instructors, filters by month/instructor/course |
-| **Payout Requests** | Inbox of pending requests, approve/mark-paid actions |
-| **Statements** | Monthly PDFs, manual regenerate button |
-
-Reuse `useTanStackTable` patterns already in admin.
-
-## 6. Talent-side polish
-
-- `/gro10x/billing` already shows "earned" credits — add a small "Instructor earnings" card if the user has an instructor role, deep-linking to `/app/instructor/earnings`.
-- TalentSignalPanel (4.6) already shows "Active learner"; add a sibling chip "Active instructor" when `last_instructor_activity_at` < 30d.
+### Launch destinations (8)
+UK, USA, Canada, Australia, Germany, Ireland, Netherlands, Singapore. (Add more via admin without code.)
 
 ---
 
-## Technical details
+## Pillar 1 — Counsellor Workflow (unchanged from previous plan, summary)
 
-### New / changed DB
-
-| Object | Type | Purpose |
-|---|---|---|
-| `instructor_earnings_ledger` | table | Append-only ledger of accruals |
-| `instructor_payout_requests` | table | Withdrawal workflow |
-| `instructor_statements` | table | Monthly PDF metadata |
-| `instructor-statements` | storage bucket | Private, signed URLs |
-| `get_instructor_earnings_summary(uuid)` | RPC | Dashboard payload |
-| `request_instructor_payout(uuid, numeric, uuid)` | RPC | Atomic ledger lock |
-| `trg_split_to_ledger` | trigger | Auto-write on `course_revenue_splits` insert |
-
-RLS:
-- Ledger rows: instructor reads own (`talent_id` matches), admin reads all.
-- Payout requests: instructor reads/inserts own; admin updates.
-- Statements: instructor reads own, admin reads all, signed-URL only for the PDF.
-
-### New / changed edge functions
-
-- `request-instructor-payout` (new) — validates + creates request.
-- `process-instructor-payout` (new) — admin approve/reject/mark-paid.
-- `cron-instructor-monthly-statement` (new, scheduled 1st of month).
-- `notify-instructor-payout-event` (new) — payout status emails to instructor.
-
-### New / changed surfaces
-
-- `src/pages/app/instructor/InstructorEarnings.tsx` (new tab page)
-- `src/pages/app/instructor/InstructorEarningsLedgerTable.tsx`
-- `src/pages/app/instructor/RequestPayoutSheet.tsx`
-- `src/components/dashboard/admin/learn/InstructorPayoutsTab.tsx`
-- Extend `Gro10xBilling` with the small "Instructor earnings" card.
-- Extend `TalentSignalPanel` with `Active instructor` chip.
-
-### Out of scope (deferred)
-
-- Stripe Connect / international ACH — keep manual bKash/bank/Wise for now (matches existing `talent_payout_accounts` constraint).
-- Currency conversion — everything stays in credits until the moment of actual payout (admin records the BDT/USD rate on `mark_paid`).
-- Cohort co-instructor splits beyond the existing 60/40 — explicit follow-up.
+- New tables: `abroad_counsellors`, `abroad_applications` (8-stage pipeline), `abroad_application_docs` (private bucket `abroad-docs`), `abroad_application_events`.
+- RPCs: `assign_abroad_counsellor`, `advance_abroad_stage`, `request_abroad_doc_review`.
+- Edges: `ai-abroad-sop-coach`, `notify-abroad-event`.
+- Counsellor earnings reuse Phase 4.7 `instructor_earnings_ledger` with `source_kind = 'abroad_application'` (60% counsellor / 40% platform).
+- Surfaces: `/app/abroad/applications`, `/app/abroad/applications/:id`, `/app/counsellor` cockpit, admin tabs `Applications | Counsellors | Doc Reviews | Payouts`.
+- Destination Agent automatically offers "Start application with a counsellor" once roadmap exists.
 
 ---
 
-## Recommended decisions (built-in unless you object)
+## Pillar 2 — AI IELTS Coach (gamified + AI mocks)
 
-1. **Minimum payout = 500 credits** (≈ 1,000 BDT). Aligned with existing earned-credit thresholds.
-2. **Payout cycle = on-demand** (instructor initiated), not auto-monthly — gives instructors control and reduces failed-disbursement noise.
-3. **Statements are informational, not gated** — sending the PDF doesn't trigger payment; it's a record.
+- New tables: `ielts_prompts` (curated), `ielts_mock_attempts` (AI-graded bands per criterion), `ielts_streaks`, `ielts_daily_challenges`.
+- Edges:
+  - `ai-ielts-evaluate` — grades writing (text), speaking (audio upload to private `ielts-audio` bucket → Gemini multimodal), reading/listening (auto + AI explanation). Returns 0–9 bands per criterion + actionable feedback.
+  - `ai-ielts-coach-chat` — conversational tutor grounded in last 5 attempts.
+  - `cron-ielts-daily-challenge`, `cron-ielts-streak-decay`.
+- Pricing: **1 free attempt/day** (drives engagement) → 1 credit/section, 4 credits/full mock.
+- Surfaces:
+  - `/app/ielts` redesigned as Coach Home (streak ring, daily challenge, weakest-band chip, "Take a mock" CTA).
+  - `/app/ielts/mock/:section` runner (timer + MediaRecorder for speaking).
+  - `/app/ielts/results/:attemptId` with per-criterion AI feedback and inline coach chat.
+  - Public `/ielts` SEO landing with rate-limited (1/day per IP) free band predictor demo.
+- Gamification: XP per attempt, badges at 7/30/100-day streaks, country leaderboard (display name only).
+- Admin: `IELTSPromptsTab` + `IELTSAttemptsTab` for curation and quality monitoring.
+- Destination Agents reference talent's latest IELTS band when answering eligibility questions.
+
+---
+
+## Pillar 3 — Language Lab (new vertical for Language Experts)
+
+- New tables: `languages` (ISO 639-1), `language_levels` (CEFR A1–C2), `language_instructors` (extends talent profile), `language_bookings` (1:1 sessions), `language_practice_sessions` (AI partner logs).
+- Extend existing `courses` with `subject_kind`, `language_code`, `cefr_level` (additive columns — no fork).
+- Edges:
+  - `ai-language-partner` — multilingual conversation partner at chosen CEFR; inline corrections via tool-call.
+  - `ai-language-evaluate` — placement test → CEFR estimate per skill, recommends instructors + courses.
+  - `book-language-session` — credits deduction + booking + meet room + notification.
+- Surfaces:
+  - `/app/languages` — language grid; per-language landing with AI partner CTA, top instructors, courses by CEFR, placement test.
+  - `/app/languages/:code/practice` — chat with AI partner + corrections pane.
+  - `/app/languages/:code/instructors` — browse + book.
+  - `/app/languages/me` — verified CEFR levels, history, streak.
+  - Instructor side: `/app/instructor` gains "Languages" tab (calendar + earnings reusing 4.7 ledger with `source_kind = 'language_session'`).
+  - Public `/learn/languages` SEO landing.
+  - Admin: `Language Lab` group with `Languages | Instructors | Bookings | Practice Insights`.
+- Launch with 6 languages: English, Spanish, French, German, Japanese, Bangla (extend via admin).
+- Verified CEFR levels feed into `talent_skill_profile` → surfaced in `get_talent_outcome_signal`, displayed on `/t/:handle`, and boost `score-job-match` when jobs require languages.
+
+---
+
+## Cross-cutting
+
+- **Credits**: fractional `numeric(12,1)` deductions per existing model.
+- **Storage** (private buckets, signed URLs): `abroad-docs`, `ielts-audio`, `language-audio`.
+- **RLS**: talents see own rows; counsellors see assigned applications; instructors see own bookings; admins see all via `has_role`.
+- **Notifications**: native email queue (`notify.groupacademy.online`) for stage changes, booking confirmations, daily IELTS challenge.
+- **Memory updates**: 4 new entries — Destination Agents architecture, Counsellor Workflow, AI IELTS Coach, Language Lab.
+- **Retire**: standalone Roadmap Creator route + admin lead manager card; data preserved (`study_abroad_roadmaps` lives on as agent output store).
+
+---
+
+## Out of scope (explicit defer)
+
+- Real-time full-duplex voice for IELTS speaking / language partner (audio upload only this phase).
+- Visa appointment booking integrations.
+- Stripe Connect international payouts (credits → existing payout flow only).
+- Instructor-led IELTS classes (AI coach first; cohorts can layer later).
 
 ---
 
 ## Open questions
 
-1. Should we let instructors split earnings across multiple payout methods in one request (e.g. half bKash, half bank), or one method per request? Recommend **one method per request** for simplicity.
-2. Should rejected payouts return ledger rows to `available` automatically (recommend yes), or require admin re-classification first?
-
----
-
-## Quick note on Phase 4.8 — Study Abroad Closed Loop
-
-Already-built primitives we'd build on in 4.8 (not this phase):
-- Tables: `study_abroad_programs`, `study_abroad_roadmaps`, `ielts_resources`, `ielts_resource_access`.
-- Pages: `/app/study-abroad`, `StudyAbroadDetail`, `StudyAbroadRoadmap`, `StudyAbroadRoadmapResults`.
-- Admin: Group #13 "Career Abroad" tabs (programs, leads, IELTS, counsellor, outreach agents).
-
-What's missing (4.8 scope, for later approval):
-- Counsellor assignment + pipeline (mirroring employer pipeline in 4.5/4.6).
-- Document checklist per program (transcripts, SOP, LORs, IELTS, financials) with talent uploads.
-- Application timeline & status tracking per program.
-- Counsellor payouts (reuse the ledger built in 4.7).
-- "Active applicant" signal feeding TalentSignalPanel.
-- AI agent for SOP draft + program shortlisting (Lovable AI, no extra keys).
-
-If you'd like, after 4.7 ships we can plan 4.8 in detail.
+1. **Counsellor sourcing** — sub-role of `instructor` (reuse onboarding) or fully separate role with its own application flow?
+2. **Document retention** — keep abroad docs how long after `enrolled` / `declined`? Default proposal: 24 months then archive.
+3. **Destination Agent voice** — single shared brand voice, or per-country localized tone (e.g. UK Agent more formal)?
+4. **Language Lab launch** — confirm 6 languages above, or different mix for MVP?

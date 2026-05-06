@@ -14,6 +14,190 @@ export type Database = {
   }
   public: {
     Tables: {
+      abroad_application_docs: {
+        Row: {
+          application_id: string
+          created_at: string
+          file_path: string | null
+          id: string
+          kind: string
+          review_note: string | null
+          reviewed_at: string | null
+          reviewer_user_id: string | null
+          status: string
+          title: string | null
+          uploaded_at: string | null
+        }
+        Insert: {
+          application_id: string
+          created_at?: string
+          file_path?: string | null
+          id?: string
+          kind: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewer_user_id?: string | null
+          status?: string
+          title?: string | null
+          uploaded_at?: string | null
+        }
+        Update: {
+          application_id?: string
+          created_at?: string
+          file_path?: string | null
+          id?: string
+          kind?: string
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewer_user_id?: string | null
+          status?: string
+          title?: string | null
+          uploaded_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "abroad_application_docs_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "abroad_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      abroad_application_events: {
+        Row: {
+          actor_user_id: string | null
+          application_id: string
+          created_at: string
+          event_kind: string
+          id: string
+          payload: Json | null
+        }
+        Insert: {
+          actor_user_id?: string | null
+          application_id: string
+          created_at?: string
+          event_kind: string
+          id?: string
+          payload?: Json | null
+        }
+        Update: {
+          actor_user_id?: string | null
+          application_id?: string
+          created_at?: string
+          event_kind?: string
+          id?: string
+          payload?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "abroad_application_events_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "abroad_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      abroad_applications: {
+        Row: {
+          counsellor_user_id: string | null
+          created_at: string
+          id: string
+          intake_term: string | null
+          notes: string | null
+          program_id: string | null
+          roadmap_id: string | null
+          stage: string
+          talent_user_id: string
+          target_country: string
+          updated_at: string
+        }
+        Insert: {
+          counsellor_user_id?: string | null
+          created_at?: string
+          id?: string
+          intake_term?: string | null
+          notes?: string | null
+          program_id?: string | null
+          roadmap_id?: string | null
+          stage?: string
+          talent_user_id: string
+          target_country: string
+          updated_at?: string
+        }
+        Update: {
+          counsellor_user_id?: string | null
+          created_at?: string
+          id?: string
+          intake_term?: string | null
+          notes?: string | null
+          program_id?: string | null
+          roadmap_id?: string | null
+          stage?: string
+          talent_user_id?: string
+          target_country?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "abroad_applications_program_id_fkey"
+            columns: ["program_id"]
+            isOneToOne: false
+            referencedRelation: "study_abroad_programs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "abroad_applications_roadmap_id_fkey"
+            columns: ["roadmap_id"]
+            isOneToOne: false
+            referencedRelation: "study_abroad_roadmaps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      abroad_counsellors: {
+        Row: {
+          bio: string | null
+          commission_pct: number
+          created_at: string
+          display_name: string
+          expertise_countries: string[]
+          id: string
+          is_active: boolean
+          is_verified: boolean
+          languages: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bio?: string | null
+          commission_pct?: number
+          created_at?: string
+          display_name: string
+          expertise_countries?: string[]
+          id?: string
+          is_active?: boolean
+          is_verified?: boolean
+          languages?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bio?: string | null
+          commission_pct?: number
+          created_at?: string
+          display_name?: string
+          expertise_countries?: string[]
+          id?: string
+          is_active?: boolean
+          is_verified?: boolean
+          languages?: string[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       academies: {
         Row: {
           academy_type: Database["public"]["Enums"]["academy_type"]
@@ -4195,6 +4379,56 @@ export type Database = {
           },
         ]
       }
+      country_knowledge_packs: {
+        Row: {
+          body_markdown: string
+          country_code: string
+          created_at: string
+          display_order: number
+          id: string
+          is_published: boolean
+          kind: string
+          source_url: string | null
+          title: string
+          updated_at: string
+          valid_through: string | null
+        }
+        Insert: {
+          body_markdown?: string
+          country_code: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_published?: boolean
+          kind: string
+          source_url?: string | null
+          title: string
+          updated_at?: string
+          valid_through?: string | null
+        }
+        Update: {
+          body_markdown?: string
+          country_code?: string
+          created_at?: string
+          display_order?: number
+          id?: string
+          is_published?: boolean
+          kind?: string
+          source_url?: string | null
+          title?: string
+          updated_at?: string
+          valid_through?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "country_knowledge_packs_country_code_fkey"
+            columns: ["country_code"]
+            isOneToOne: false
+            referencedRelation: "destination_agents"
+            referencedColumns: ["country_code"]
+          },
+        ]
+      }
       course_affiliate_clicks: {
         Row: {
           clicked_at: string
@@ -5066,6 +5300,84 @@ export type Database = {
           symbol?: string
           updated_at?: string
           usd_rate?: number
+        }
+        Relationships: []
+      }
+      destination_agent_messages: {
+        Row: {
+          content: string
+          country_code: string
+          created_at: string
+          credits_spent: number | null
+          id: string
+          role: string
+          tool_payload: Json | null
+          user_id: string
+        }
+        Insert: {
+          content?: string
+          country_code: string
+          created_at?: string
+          credits_spent?: number | null
+          id?: string
+          role: string
+          tool_payload?: Json | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          country_code?: string
+          created_at?: string
+          credits_spent?: number | null
+          id?: string
+          role?: string
+          tool_payload?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      destination_agents: {
+        Row: {
+          country_code: string
+          created_at: string
+          default_currency: string | null
+          display_name: string
+          display_order: number
+          flag_emoji: string | null
+          intake_terms: string[] | null
+          is_active: boolean
+          system_prompt: string
+          tagline: string | null
+          updated_at: string
+          visa_processing_weeks: number | null
+        }
+        Insert: {
+          country_code: string
+          created_at?: string
+          default_currency?: string | null
+          display_name: string
+          display_order?: number
+          flag_emoji?: string | null
+          intake_terms?: string[] | null
+          is_active?: boolean
+          system_prompt?: string
+          tagline?: string | null
+          updated_at?: string
+          visa_processing_weeks?: number | null
+        }
+        Update: {
+          country_code?: string
+          created_at?: string
+          default_currency?: string | null
+          display_name?: string
+          display_order?: number
+          flag_emoji?: string | null
+          intake_terms?: string[] | null
+          is_active?: boolean
+          system_prompt?: string
+          tagline?: string | null
+          updated_at?: string
+          visa_processing_weeks?: number | null
         }
         Relationships: []
       }
@@ -6385,6 +6697,124 @@ export type Database = {
         }
         Relationships: []
       }
+      ielts_daily_challenges: {
+        Row: {
+          challenge_date: string
+          created_at: string
+          prompt_id: string | null
+          section: string | null
+        }
+        Insert: {
+          challenge_date?: string
+          created_at?: string
+          prompt_id?: string | null
+          section?: string | null
+        }
+        Update: {
+          challenge_date?: string
+          created_at?: string
+          prompt_id?: string | null
+          section?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ielts_daily_challenges_prompt_id_fkey"
+            columns: ["prompt_id"]
+            isOneToOne: false
+            referencedRelation: "ielts_prompts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ielts_mock_attempts: {
+        Row: {
+          ai_band_score: number | null
+          ai_feedback: Json | null
+          audio_path: string | null
+          created_at: string
+          credits_spent: number | null
+          id: string
+          is_free_attempt: boolean | null
+          prompt_id: string | null
+          response_text: string | null
+          section: string
+          user_id: string
+        }
+        Insert: {
+          ai_band_score?: number | null
+          ai_feedback?: Json | null
+          audio_path?: string | null
+          created_at?: string
+          credits_spent?: number | null
+          id?: string
+          is_free_attempt?: boolean | null
+          prompt_id?: string | null
+          response_text?: string | null
+          section: string
+          user_id: string
+        }
+        Update: {
+          ai_band_score?: number | null
+          ai_feedback?: Json | null
+          audio_path?: string | null
+          created_at?: string
+          credits_spent?: number | null
+          id?: string
+          is_free_attempt?: boolean | null
+          prompt_id?: string | null
+          response_text?: string | null
+          section?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ielts_mock_attempts_prompt_id_fkey"
+            columns: ["prompt_id"]
+            isOneToOne: false
+            referencedRelation: "ielts_prompts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ielts_prompts: {
+        Row: {
+          audio_url: string | null
+          band_target: number | null
+          created_at: string
+          difficulty: string | null
+          id: string
+          is_active: boolean
+          prompt_text: string
+          reference_text: string | null
+          section: string
+          task_type: string | null
+        }
+        Insert: {
+          audio_url?: string | null
+          band_target?: number | null
+          created_at?: string
+          difficulty?: string | null
+          id?: string
+          is_active?: boolean
+          prompt_text: string
+          reference_text?: string | null
+          section: string
+          task_type?: string | null
+        }
+        Update: {
+          audio_url?: string | null
+          band_target?: number | null
+          created_at?: string
+          difficulty?: string | null
+          id?: string
+          is_active?: boolean
+          prompt_text?: string
+          reference_text?: string | null
+          section?: string
+          task_type?: string | null
+        }
+        Relationships: []
+      }
       ielts_resource_access: {
         Row: {
           id: string
@@ -6483,6 +6913,36 @@ export type Database = {
           section?: string
           title?: string
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      ielts_streaks: {
+        Row: {
+          badges: string[] | null
+          current_streak_days: number
+          last_practice_at: string | null
+          longest_streak_days: number
+          updated_at: string
+          user_id: string
+          xp_total: number
+        }
+        Insert: {
+          badges?: string[] | null
+          current_streak_days?: number
+          last_practice_at?: string | null
+          longest_streak_days?: number
+          updated_at?: string
+          user_id: string
+          xp_total?: number
+        }
+        Update: {
+          badges?: string[] | null
+          current_streak_days?: number
+          last_practice_at?: string | null
+          longest_streak_days?: number
+          updated_at?: string
+          user_id?: string
+          xp_total?: number
         }
         Relationships: []
       }
@@ -8375,6 +8835,176 @@ export type Database = {
           period_type?: string | null
           target_value?: number
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      language_bookings: {
+        Row: {
+          created_at: string
+          credits_spent: number
+          duration_mins: number
+          id: string
+          instructor_user_id: string
+          language_code: string
+          meet_url: string | null
+          scheduled_at: string
+          status: string
+          talent_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          credits_spent: number
+          duration_mins?: number
+          id?: string
+          instructor_user_id: string
+          language_code: string
+          meet_url?: string | null
+          scheduled_at: string
+          status?: string
+          talent_user_id: string
+        }
+        Update: {
+          created_at?: string
+          credits_spent?: number
+          duration_mins?: number
+          id?: string
+          instructor_user_id?: string
+          language_code?: string
+          meet_url?: string | null
+          scheduled_at?: string
+          status?: string
+          talent_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "language_bookings_language_code_fkey"
+            columns: ["language_code"]
+            isOneToOne: false
+            referencedRelation: "languages"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
+      language_instructors: {
+        Row: {
+          bio: string | null
+          cefr_proof_url: string | null
+          created_at: string
+          display_name: string
+          hourly_rate_credits: number
+          id: string
+          is_active: boolean
+          is_verified: boolean
+          native_language: string | null
+          rating: number | null
+          teaches_languages: string[]
+          user_id: string
+        }
+        Insert: {
+          bio?: string | null
+          cefr_proof_url?: string | null
+          created_at?: string
+          display_name: string
+          hourly_rate_credits?: number
+          id?: string
+          is_active?: boolean
+          is_verified?: boolean
+          native_language?: string | null
+          rating?: number | null
+          teaches_languages?: string[]
+          user_id: string
+        }
+        Update: {
+          bio?: string | null
+          cefr_proof_url?: string | null
+          created_at?: string
+          display_name?: string
+          hourly_rate_credits?: number
+          id?: string
+          is_active?: boolean
+          is_verified?: boolean
+          native_language?: string | null
+          rating?: number | null
+          teaches_languages?: string[]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      language_levels: {
+        Row: {
+          code: string
+          description: string
+          display_order: number
+        }
+        Insert: {
+          code: string
+          description: string
+          display_order: number
+        }
+        Update: {
+          code?: string
+          description?: string
+          display_order?: number
+        }
+        Relationships: []
+      }
+      language_practice_sessions: {
+        Row: {
+          cefr_level: string | null
+          corrections: Json | null
+          created_at: string
+          credits_spent: number | null
+          ended_at: string | null
+          id: string
+          language_code: string
+          transcript: Json | null
+          user_id: string
+        }
+        Insert: {
+          cefr_level?: string | null
+          corrections?: Json | null
+          created_at?: string
+          credits_spent?: number | null
+          ended_at?: string | null
+          id?: string
+          language_code: string
+          transcript?: Json | null
+          user_id: string
+        }
+        Update: {
+          cefr_level?: string | null
+          corrections?: Json | null
+          created_at?: string
+          credits_spent?: number | null
+          ended_at?: string | null
+          id?: string
+          language_code?: string
+          transcript?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      languages: {
+        Row: {
+          code: string
+          display_order: number
+          flag_emoji: string | null
+          is_active: boolean
+          name: string
+        }
+        Insert: {
+          code: string
+          display_order?: number
+          flag_emoji?: string | null
+          is_active?: boolean
+          name: string
+        }
+        Update: {
+          code?: string
+          display_order?: number
+          flag_emoji?: string | null
+          is_active?: boolean
+          name?: string
         }
         Relationships: []
       }
@@ -12764,6 +13394,41 @@ export type Database = {
           },
         ]
       }
+      talent_language_levels: {
+        Row: {
+          cefr_level: string
+          id: string
+          language_code: string
+          source: string
+          user_id: string
+          verified_at: string | null
+        }
+        Insert: {
+          cefr_level: string
+          id?: string
+          language_code: string
+          source?: string
+          user_id: string
+          verified_at?: string | null
+        }
+        Update: {
+          cefr_level?: string
+          id?: string
+          language_code?: string
+          source?: string
+          user_id?: string
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_language_levels_language_code_fkey"
+            columns: ["language_code"]
+            isOneToOne: false
+            referencedRelation: "languages"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       talent_list_members: {
         Row: {
           added_at: string
@@ -13906,6 +14571,10 @@ export type Database = {
         Args: { _amount: number; _reason: string; _talent: string }
         Returns: undefined
       }
+      advance_abroad_stage: {
+        Args: { _application_id: string; _next_stage: string; _note?: string }
+        Returns: undefined
+      }
       analyst_metric: { Args: { metric: string; period?: Json }; Returns: Json }
       analyst_series: {
         Args: { granularity?: string; metric: string; period?: Json }
@@ -13942,6 +14611,10 @@ export type Database = {
           p_payment_reference?: string
         }
         Returns: Json
+      }
+      assign_abroad_counsellor: {
+        Args: { _application_id: string; _counsellor_user_id: string }
+        Returns: undefined
       }
       assign_career_coach: { Args: { _talent_id: string }; Returns: string }
       assign_peer_reviewers: {

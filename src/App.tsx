@@ -148,9 +148,17 @@ import SalaryAnalysisResults from "./pages/SalaryAnalysisResults";
 // Study Abroad & Blog
 import StudyAbroad from "./pages/app/StudyAbroad";
 import StudyAbroadDetail from "./pages/app/StudyAbroadDetail";
-import StudyAbroadRoadmap from "./pages/app/StudyAbroadRoadmap";
 import StudyAbroadRoadmapResults from "./pages/app/StudyAbroadRoadmapResults";
 import IELTSPrep from "./pages/app/IELTSPrep";
+import AbroadHub from "./pages/app/AbroadHub";
+import DestinationAgentPage from "./pages/app/DestinationAgentPage";
+import AbroadApplications from "./pages/app/AbroadApplications";
+import IELTSCoach from "./pages/app/IELTSCoach";
+import IELTSMockRunner from "./pages/app/IELTSMockRunner";
+import IELTSResults from "./pages/app/IELTSResults";
+import LanguagesHub from "./pages/app/LanguagesHub";
+import LanguagePracticePage from "./pages/app/LanguagePracticePage";
+import LanguageInstructorsPage from "./pages/app/LanguageInstructorsPage";
 import Competitions from "./pages/app/Competitions";
 import CompetitionDetail from "./pages/app/CompetitionDetail";
 import Blog from "./pages/app/Blog";
@@ -453,7 +461,15 @@ export default function App() {
                     <Route path="learning" element={<LearningHub />} />
                     <Route path="learning/review" element={<LearningReview />} />
                     <Route path="services" element={<Navigate to="/app/jobs?tab=tools" replace />} />
-                    <Route path="abroad" element={<CareerAbroad />} />
+                    <Route path="abroad" element={<AbroadHub />} />
+                    <Route path="abroad/destinations/:country" element={<DestinationAgentPage />} />
+                    <Route path="abroad/applications" element={<AbroadApplications />} />
+                    <Route path="abroad/ielts" element={<IELTSCoach />} />
+                    <Route path="abroad/ielts/mock/:section" element={<IELTSMockRunner />} />
+                    <Route path="abroad/ielts/results/:id" element={<IELTSResults />} />
+                    <Route path="languages" element={<LanguagesHub />} />
+                    <Route path="languages/:code/practice" element={<LanguagePracticePage />} />
+                    <Route path="languages/:code/instructors" element={<LanguageInstructorsPage />} />
                     <Route path="agents" element={<AIAgents />} />
                     <Route path="my-agents" element={<MyAgents />} />
                     <Route path="agent-marketplace" element={<AgentMarketplace />} />
@@ -534,8 +550,8 @@ export default function App() {
                     {/* Study Abroad - Specific Routes First */}
                     <Route path="abroad/study" element={<StudyAbroad />} />
                     <Route path="abroad/study/:id" element={<StudyAbroadDetail />} />
-                    <Route path="abroad/ielts" element={<IELTSPrep />} />
-                    <Route path="abroad/roadmap" element={<StudyAbroadRoadmap />} />
+                    <Route path="abroad/ielts-legacy" element={<IELTSPrep />} />
+                    <Route path="abroad/roadmap" element={<Navigate to="/app/abroad" replace />} />
                     <Route path="abroad/roadmap/:id" element={<StudyAbroadRoadmapResults />} />
 
                     {/* Content Players */}
