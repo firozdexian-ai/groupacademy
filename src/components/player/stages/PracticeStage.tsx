@@ -78,10 +78,14 @@ export function PracticeStage({ resources, onComplete, isCompleted, professionLi
     : null;
 
   const hasFlashcards = flashcards.length > 0;
-  const hasScenario = !!scenario;
+  const hasAuthoredScenario = !!scenario;
+  const hasPoolScenario = !!scenarioResource && !hasAuthoredScenario && !!moduleId;
+  const hasScenarioTab = hasAuthoredScenario || hasPoolScenario;
+  const hasQuiz = !!quizResource && !!moduleId;
 
-  // PROTOCOL: Bimodal Completion Heuristic
-  const canComplete = flashcardsCompleted || scenarioCompleted || (!hasFlashcards && !hasScenario);
+  const canComplete =
+    flashcardsCompleted || scenarioCompleted || quizCompleted ||
+    (!hasFlashcards && !hasScenarioTab && !hasQuiz);
 
   const handleScenarioSync = (score: number) => {
     if (score >= 5) setScenarioCompleted(true);
@@ -107,7 +111,7 @@ export function PracticeStage({ resources, onComplete, isCompleted, professionLi
         )}
       </div>
 
-      {!hasFlashcards && !hasScenario ? (
+      {!hasFlashcards && !hasScenarioTab && !hasQuiz ? (
         <Card className="border-2 border-dashed border-border/40 bg-muted/5 rounded-[40px] p-24 text-center">
           <div className="flex flex-col items-center gap-6">
             <Zap className="h-12 w-12 text-muted-foreground/20 animate-pulse" />
@@ -123,22 +127,22 @@ export function PracticeStage({ resources, onComplete, isCompleted, professionLi
           </div>
         </Card>
       ) : (
-        <Tabs defaultValue={hasFlashcards ? "flashcards" : "scenario"} className="space-y-6">
-          <TabsList className="bg-muted/20 backdrop-blur-md p-1.5 rounded-[22px] border-2 border-border/40 w-full lg:w-[400px]">
+        <Tabs defaultValue={hasFlashcards ? "flashcards" : hasQuiz ? "quiz" : "scenario"} className="space-y-6">
+          <TabsList className="bg-muted/20 backdrop-blur-md p-1.5 rounded-[22px] border-2 border-border/40 w-full lg:w-[520px]">
             {hasFlashcards && (
-              <TabsTrigger
-                value="flashcards"
-                className="rounded-2xl font-black uppercase italic text-[10px] tracking-[0.2em] py-3 data-[state=active]:bg-background data-[state=active]:shadow-lg flex items-center gap-2"
-              >
+              <TabsTrigger value="flashcards" className="rounded-2xl font-black uppercase italic text-[10px] tracking-[0.2em] py-3 data-[state=active]:bg-background data-[state=active]:shadow-lg flex items-center gap-2">
                 <Layers className="h-3.5 w-3.5" /> RECALL
                 {flashcardsCompleted && <CheckCircle className="h-3 w-3 text-emerald-500" />}
               </TabsTrigger>
             )}
-            {hasScenario && (
-              <TabsTrigger
-                value="scenario"
-                className="rounded-2xl font-black uppercase italic text-[10px] tracking-[0.2em] py-3 data-[state=active]:bg-background data-[state=active]:shadow-lg flex items-center gap-2"
-              >
+            {hasQuiz && (
+              <TabsTrigger value="quiz" className="rounded-2xl font-black uppercase italic text-[10px] tracking-[0.2em] py-3 data-[state=active]:bg-background data-[state=active]:shadow-lg flex items-center gap-2">
+                <Brain className="h-3.5 w-3.5" /> QUIZ
+                {quizCompleted && <CheckCircle className="h-3 w-3 text-emerald-500" />}
+              </TabsTrigger>
+            )}
+            {hasScenarioTab && (
+              <TabsTrigger value="scenario" className="rounded-2xl font-black uppercase italic text-[10px] tracking-[0.2em] py-3 data-[state=active]:bg-background data-[state=active]:shadow-lg flex items-center gap-2">
                 <Target className="h-3.5 w-3.5" /> SIMULATE
                 {scenarioCompleted && <CheckCircle className="h-3 w-3 text-emerald-500" />}
               </TabsTrigger>
@@ -150,30 +154,31 @@ export function PracticeStage({ resources, onComplete, isCompleted, professionLi
               <Card className="rounded-[32px] border-2 border-border/40 bg-card/30 backdrop-blur-xl overflow-hidden shadow-2xl">
                 <CardHeader className="p-6 border-b border-border/10">
                   <CardTitle className="text-sm font-black uppercase italic tracking-tight flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                      <Layers className="h-4 w-4" />
-                    </div>
+                    <div className="p-2 rounded-lg bg-primary/10 text-primary"><Layers className="h-4 w-4" /></div>
                     {flashcardResource?.title || "Node_Knowledge_Recall"}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6 md:p-10">
-                  <FlashcardPlayer
-                    cards={flashcards}
-                    title={flashcardResource?.title || "Knowledge_Artifacts"}
-                    onComplete={() => setFlashcardsCompleted(true)}
-                  />
+                  <FlashcardPlayer cards={flashcards} title={flashcardResource?.title || "Knowledge_Artifacts"} onComplete={() => setFlashcardsCompleted(true)} />
                 </CardContent>
               </Card>
             </TabsContent>
           )}
 
-          {hasScenario && scenario && (
+          {hasQuiz && (
+            <TabsContent value="quiz" className="animate-in slide-in-from-bottom-2 duration-500">
+              <ModuleQuizRunner moduleId={moduleId} onComplete={(score) => { if (score >= 60) setQuizCompleted(true); }} />
+            </TabsContent>
+          )}
+
+          {hasAuthoredScenario && scenario && (
             <TabsContent value="scenario" className="animate-in slide-in-from-bottom-2 duration-500">
-              <AIScenarioPlayer
-                scenario={scenario}
-                professionLineId={professionLineId}
-                onComplete={handleScenarioSync}
-              />
+              <AIScenarioPlayer scenario={scenario} professionLineId={professionLineId} onComplete={handleScenarioSync} />
+            </TabsContent>
+          )}
+          {hasPoolScenario && (
+            <TabsContent value="scenario" className="animate-in slide-in-from-bottom-2 duration-500">
+              <ModuleScenarioRunner moduleId={moduleId} onComplete={() => setScenarioCompleted(true)} />
             </TabsContent>
           )}
         </Tabs>
