@@ -67,14 +67,20 @@ export function ItemRewriteSheet({ open, onOpenChange, kind, itemId, flags, onAp
       <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2 text-base">
-            <Sparkles className="h-4 w-4 text-primary" /> AI rewrite
+            <Sparkles className="h-4 w-4 text-primary" /> AI rewrite & translate
           </SheetTitle>
           <SheetDescription className="text-xs">
-            Reviewed by you before saving. Applying resets serve counters so the new version is re-measured fairly.
+            Rewrite resets serve counters. Translation saves a sidecar copy without touching the original.
           </SheetDescription>
         </SheetHeader>
 
-        <div className="space-y-3 py-3">
+        <Tabs defaultValue="rewrite" className="mt-3">
+          <TabsList className="grid grid-cols-2 w-full">
+            <TabsTrigger value="rewrite" className="text-xs"><Sparkles className="h-3 w-3 mr-1" /> Rewrite</TabsTrigger>
+            <TabsTrigger value="translate" className="text-xs"><Languages className="h-3 w-3 mr-1" /> Translate</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="rewrite" className="space-y-3 py-3">
           <div className="flex flex-wrap gap-1.5">
             {flags.map(f => <Badge key={f} variant="destructive" className="text-[10px]">{f}</Badge>)}
           </div>
