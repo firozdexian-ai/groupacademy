@@ -10,7 +10,7 @@ import {
 import { useHype } from "@/hooks/useHype";
 import { CommentList } from "./CommentList";
 import { HypeBoostSheet } from "./HypeBoostSheet";
-import { ShareSheet } from "./ShareSheet";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 function formatCount(n: number): string {
@@ -35,7 +35,6 @@ export function PostActionBar({ postId, initialHypeCount = 0, postTitle, postUrl
   const [hasHyped, setHasHyped] = useState(false);
   const [boostOpen, setBoostOpen] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
-  const [shareOpen, setShareOpen] = useState(false);
   const holdTimer = useRef<number | null>(null);
   const heldRef = useRef(false);
 
@@ -79,6 +78,30 @@ export function PostActionBar({ postId, initialHypeCount = 0, postTitle, postUrl
       await hype();
     }
     setHasHyped(true);
+  };
+
+  const handleShare = async () => {
+    const fullUrl = postUrl.startsWith("http") ? postUrl : `${window.location.origin}${postUrl}`;
+    const payload = {
+      title: postTitle,
+      text: postDescription || postTitle,
+      url: fullUrl,
+    };
+    try {
+      if (typeof navigator !== "undefined" && (navigator as any).share) {
+        await (navigator as any).share(payload);
+        return;
+      }
+      await navigator.clipboard.writeText(fullUrl);
+      toast.success("Link copied");
+    } catch {
+      try {
+        await navigator.clipboard.writeText(fullUrl);
+        toast.success("Link copied");
+      } catch {
+        toast.error("Couldn't share");
+      }
+    }
   };
 
   return (
