@@ -24,7 +24,7 @@ const SERVICE_REGISTRY = [
   {
     icon: ClipboardCheck,
     name: "Career Readiness Audit",
-    description: "Autonomous analysis of your career trajectory with personalized optimization strategies.",
+    description: "Get a personalised analysis of where your career stands and how to improve.",
     cost: CREDIT_CONFIG.SERVICES.CAREER_ASSESSMENT.cost,
     bgClass: "bg-blue-50",
     iconColor: "text-blue-500",
@@ -32,7 +32,7 @@ const SERVICE_REGISTRY = [
   {
     icon: MessageSquare,
     name: "AI Mock Interviews",
-    description: "Practice with high-fidelity interview simulations and receive real-time, actionable feedback.",
+    description: "Practise interviews with realistic simulations and instant feedback.",
     cost: CREDIT_CONFIG.SERVICES.MOCK_INTERVIEW.cost,
     bgClass: "bg-purple-50",
     iconColor: "text-purple-500",
@@ -40,7 +40,7 @@ const SERVICE_REGISTRY = [
   {
     icon: TrendingUp,
     name: "Salary Analysis",
-    description: "Discover your true market value with AI-powered compensation insights and negotiation scripts.",
+    description: "See your real market value with AI insights and negotiation tips.",
     cost: CREDIT_CONFIG.SERVICES.SALARY_ANALYSIS.cost,
     bgClass: "bg-emerald-50",
     iconColor: "text-emerald-500",
@@ -48,7 +48,7 @@ const SERVICE_REGISTRY = [
   {
     icon: Send,
     name: "Smart Job Applications",
-    description: "Accelerate your job hunt with AI-crafted cover letters perfectly matched to the job description.",
+    description: "Speed up applications with AI-written cover letters tailored to each job.",
     cost: CREDIT_CONFIG.SERVICES.JOB_APPLICATION.cost,
     bgClass: "bg-orange-50",
     iconColor: "text-orange-500",
@@ -56,7 +56,7 @@ const SERVICE_REGISTRY = [
   {
     icon: Globe,
     name: "Digital Portfolio",
-    description: "Instantly generate a professional portfolio website to showcase your skills and experience.",
+    description: "Generate a polished portfolio site to showcase your work.",
     cost: CREDIT_CONFIG.SERVICES.PORTFOLIO.cost,
     bgClass: "bg-rose-50",
     iconColor: "text-rose-500",
@@ -64,7 +64,7 @@ const SERVICE_REGISTRY = [
   {
     icon: Bot,
     name: "AI Career Agents",
-    description: "Consult with a network of specialized AI advisors for 24/7 strategic career guidance.",
+    description: "Chat with specialised AI advisors for career guidance, anytime.",
     cost: CREDIT_CONFIG.SERVICES.AI_AGENT_CHAT.cost,
     bgClass: "bg-sky-50",
     iconColor: "text-sky-500",
@@ -85,10 +85,10 @@ export function ServicesTour({ onComplete }: ServicesTourProps) {
     <div className="flex flex-col items-center px-4 py-8 max-w-xl mx-auto min-h-[70vh] text-left w-full animate-in fade-in duration-700">
       <div className="mb-12 space-y-3 text-center">
         <h2 className="text-4xl md:text-5xl font-black tracking-tighter text-slate-900 leading-tight">
-          Platform Tools
+          What you can do here
         </h2>
         <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-          Discover your premium AI career toolkit.
+          A quick look at your AI career toolkit.
         </p>
       </div>
 
@@ -130,7 +130,7 @@ export function ServicesTour({ onComplete }: ServicesTourProps) {
 
             <div className="pt-8">
               <span className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-slate-50 border border-slate-100 text-slate-700 text-[10px] font-bold uppercase tracking-widest">
-                <Zap className="h-4 w-4 text-amber-500 fill-amber-500" /> {currentService.cost} Credits Per Use
+                <Zap className="h-4 w-4 text-amber-500 fill-amber-500" /> {currentService.cost} credits per use
               </span>
             </div>
           </div>
@@ -155,7 +155,7 @@ export function ServicesTour({ onComplete }: ServicesTourProps) {
             onClick={onComplete}
             className="flex-1 h-14 rounded-full bg-blue-500 hover:bg-blue-600 text-white font-bold uppercase text-[10px] tracking-widest shadow-sm transition-all active:scale-95 gap-3"
           >
-            Enter Academy <ShieldCheck className="h-4 w-4" />
+            Enter the platform <ShieldCheck className="h-4 w-4" />
           </Button>
         ) : (
           <Button
@@ -164,7 +164,7 @@ export function ServicesTour({ onComplete }: ServicesTourProps) {
             onClick={goNext}
             className="flex-1 h-14 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-900 font-bold uppercase text-[10px] tracking-widest shadow-sm transition-all active:scale-95 gap-3"
           >
-            Next Tool <ArrowRight className="h-4 w-4" />
+            Next <ArrowRight className="h-4 w-4" />
           </Button>
         )}
 
@@ -184,7 +184,7 @@ export function ServicesTour({ onComplete }: ServicesTourProps) {
         onClick={onComplete}
         className="mt-8 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-colors rounded-full h-10 px-6"
       >
-        Skip Tour
+        Skip tour
       </Button>
     </div>
   );

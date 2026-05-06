@@ -10,8 +10,7 @@ import { usePWADetect } from "@/hooks/usePWADetect";
 import { cn } from "@/lib/utils";
 
 /**
- * GroUp Academy: Security Perimeter Node (AuthGate)
- * CTO Reference: Authoritative sentry for protected trajectory routes.
+ * AuthGate — protects routes by checking the user has a valid session.
  */
 
 interface AuthGateProps {
@@ -63,7 +62,7 @@ export function AuthGate({ children, redirectTo, message, authType = "ai" }: Aut
         return;
       }
 
-      setError("Uplink fault: Unable to verify neural identity artifacts.");
+      setError("We couldn't verify your session. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -103,10 +102,10 @@ export function AuthGate({ children, redirectTo, message, authType = "ai" }: Aut
           </div>
           <div className="space-y-2">
             <p className="text-[10px] font-black uppercase tracking-[0.4em] text-primary/60 italic">
-              Neural_Identity_Check
+              Checking session
             </p>
             <p className="text-sm font-medium text-muted-foreground italic">
-              {syncSeconds > 8 ? "Optimizing high-latency uplink..." : "Verifying access artifacts..."}
+              {syncSeconds > 8 ? "Still working — your connection is slow." : "Verifying your session…"}
             </p>
           </div>
         </div>
@@ -120,7 +119,7 @@ export function AuthGate({ children, redirectTo, message, authType = "ai" }: Aut
         <Card className="max-w-md w-full rounded-[32px] border-2 border-rose-500/20 bg-rose-500/5 shadow-2xl overflow-hidden">
           <CardHeader className="text-center p-8 pb-4">
             <AlertCircle className="h-12 w-12 text-rose-500 mx-auto mb-4" />
-            <CardTitle className="text-2xl font-black uppercase italic tracking-tighter">Registry_Fault</CardTitle>
+            <CardTitle className="text-2xl font-black uppercase italic tracking-tighter">Something went wrong</CardTitle>
             <CardDescription className="font-medium italic">{error}</CardDescription>
           </CardHeader>
           <CardContent className="p-8 pt-4 flex flex-col gap-3">
@@ -129,14 +128,14 @@ export function AuthGate({ children, redirectTo, message, authType = "ai" }: Aut
               size="xl"
               className="w-full rounded-2xl font-black uppercase italic gap-2 shadow-lg shadow-primary/20"
             >
-              <RefreshCw className="h-4 w-4" /> ATTEMPT_RE_SYNC
+              <RefreshCw className="h-4 w-4" /> Try again
             </Button>
             <Button
               variant="outline"
               onClick={executeRedirectHandshake}
               className="w-full h-14 rounded-2xl border-2 font-black uppercase italic text-[10px] tracking-widest"
             >
-              RETURN_TO_INGRESS
+              Back to sign in
             </Button>
           </CardContent>
         </Card>
@@ -153,10 +152,10 @@ export function AuthGate({ children, redirectTo, message, authType = "ai" }: Aut
               <ShieldCheck className="h-10 w-10 text-primary animate-pulse" />
             </div>
             <CardTitle className="text-3xl font-black uppercase italic tracking-tighter leading-none">
-              Access_Locked
+              Sign in to continue
             </CardTitle>
             <CardDescription className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground/60 italic mt-4">
-              {message || "Initialize identity sync to continue your career trajectory."}
+              {message || "Sign in to continue."}
             </CardDescription>
           </CardHeader>
           <CardContent className="p-10 pt-4 flex flex-col gap-4">
@@ -165,14 +164,14 @@ export function AuthGate({ children, redirectTo, message, authType = "ai" }: Aut
               size="xl"
               className="w-full h-16 rounded-[24px] font-black uppercase italic tracking-[0.2em] shadow-[0_20px_50px_rgba(var(--primary),0.3)] hover:shadow-primary/40 active:scale-95 transition-all"
             >
-              INITIALIZE_SYNC
+              Sign in
             </Button>
             <Button
               variant="ghost"
               onClick={() => navigate("/")}
               className="w-full h-12 text-[10px] font-black uppercase tracking-widest opacity-40 hover:opacity-100"
             >
-              ← ABORT_TO_BASE
+              ← Back to home
             </Button>
           </CardContent>
         </Card>

@@ -85,7 +85,7 @@ export function CVUploadStep({ onContinue, onSkip }: CVUploadStepProps) {
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     ];
     if (!validTypes.includes(file.type)) {
-      toast.error("Invalid format. PDF or Word document required.");
+      toast.error("Please upload a PDF or Word document.");
       return;
     }
 
@@ -117,8 +117,8 @@ export function CVUploadStep({ onContinue, onSkip }: CVUploadStepProps) {
 
       if (invokeError || !parseResult?.success) {
         await updateTalent({ cvUrl: publicUrl });
-        setParseError("Auto-parsing unavailable. You can manually enter details later.");
-        toast.warning("File uploaded successfully.");
+        setParseError("We couldn't read the file automatically — you can fill in details later.");
+        toast.warning("File uploaded.");
         setIsParsing(false);
         setParseComplete(true);
         return;
@@ -141,7 +141,7 @@ export function CVUploadStep({ onContinue, onSkip }: CVUploadStepProps) {
       await updateTalent(updatePayload);
       await refreshTalent();
 
-      toast.success("CV successfully parsed and synced.");
+      toast.success("Resume parsed and saved.");
       setParseComplete(true);
       setIsParsing(false);
     } catch (error) {
@@ -170,7 +170,7 @@ export function CVUploadStep({ onContinue, onSkip }: CVUploadStepProps) {
       <div className="w-full mt-8 p-6 bg-emerald-50 border border-emerald-100 rounded-[32px] animate-in slide-in-from-bottom-4 duration-700">
         <div className="flex items-center gap-3 mb-5">
           <ShieldCheck className="h-5 w-5 text-emerald-500" />
-          <span className="font-bold uppercase text-[10px] tracking-widest text-emerald-600">Profile Synchronized</span>
+          <span className="font-bold uppercase text-[10px] tracking-widest text-emerald-600">Profile updated</span>
         </div>
 
         {parsedData?.full_name && (
@@ -185,14 +185,14 @@ export function CVUploadStep({ onContinue, onSkip }: CVUploadStepProps) {
         <div className="grid grid-cols-2 gap-4">
           {parsedData?.skills?.length && (
             <div className="p-4 bg-white rounded-[20px] border border-slate-100 shadow-sm">
-              <p className="text-[10px] font-bold uppercase text-slate-400 mb-1 tracking-widest">Skills Found</p>
+              <p className="text-[10px] font-bold uppercase text-slate-400 mb-1 tracking-widest">Skills found</p>
               <p className="text-xl font-black text-slate-900">{parsedData.skills.length}</p>
             </div>
           )}
           {parsedData?.experience?.length && (
             <div className="p-4 bg-white rounded-[20px] border border-slate-100 shadow-sm">
               <p className="text-[10px] font-bold uppercase text-slate-400 mb-1 tracking-widest">Experience</p>
-              <p className="text-xl font-black text-slate-900">{parsedData.experience.length} Roles</p>
+              <p className="text-xl font-black text-slate-900">{parsedData.experience.length} roles</p>
             </div>
           )}
         </div>
@@ -204,10 +204,10 @@ export function CVUploadStep({ onContinue, onSkip }: CVUploadStepProps) {
     <div className="flex flex-col items-center px-4 py-8 max-w-xl mx-auto text-left w-full">
       <div className="mb-12 space-y-3 text-center">
         <h2 className="text-4xl md:text-5xl font-black tracking-tighter text-slate-900 leading-tight">
-          Build Your Profile
+          Build your profile
         </h2>
         <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-          Upload your resume to automatically map your skills.
+          Upload your resume so we can pre-fill your profile.
         </p>
       </div>
 
@@ -256,7 +256,7 @@ export function CVUploadStep({ onContinue, onSkip }: CVUploadStepProps) {
         {isUploading ? (
           <div className="flex flex-col items-center gap-5 animate-in fade-in">
             <Loader2 className="h-10 w-10 text-blue-500 animate-spin" />
-            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Uploading Document...</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Uploading…</p>
           </div>
         ) : isParsing ? (
           <div className="flex flex-col items-center gap-6 w-full animate-in zoom-in-95">
@@ -278,7 +278,7 @@ export function CVUploadStep({ onContinue, onSkip }: CVUploadStepProps) {
             <div className="h-16 w-16 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-500 mb-2">
               <CheckCircle2 className="h-8 w-8" />
             </div>
-            <p className="text-lg font-black tracking-tighter text-slate-900">Upload Complete</p>
+            <p className="text-lg font-black tracking-tighter text-slate-900">Upload complete</p>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Click or drag to replace</p>
           </div>
         ) : (
@@ -287,8 +287,8 @@ export function CVUploadStep({ onContinue, onSkip }: CVUploadStepProps) {
               <FileText className="h-7 w-7 text-slate-400 group-hover:text-blue-500 transition-colors" />
             </div>
             <div className="space-y-2">
-              <p className="text-xl font-black tracking-tighter text-slate-900">Upload Resume</p>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">PDF or DOCX (Max 5MB)</p>
+              <p className="text-xl font-black tracking-tighter text-slate-900">Upload your resume</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">PDF or DOCX, up to 5MB</p>
             </div>
           </div>
         )}
@@ -299,12 +299,12 @@ export function CVUploadStep({ onContinue, onSkip }: CVUploadStepProps) {
       {/* HUD: CATEGORY_LEDGER */}
       <div className="w-full mt-8 p-8 bg-white border border-slate-100 rounded-[32px] shadow-sm">
         <Label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4 flex items-center gap-3">
-          <Briefcase className="h-4 w-4" /> Select Career Track <span className="text-rose-500">*</span>
+          <Briefcase className="h-4 w-4" /> Choose your career track <span className="text-rose-500">*</span>
         </Label>
 
         <Select value={selectedCategory} onValueChange={setSelectedCategory} disabled={isParsing}>
           <SelectTrigger className="h-14 bg-slate-50 border-slate-200 rounded-2xl font-bold focus:ring-blue-500/20 text-slate-900">
-            <SelectValue placeholder="Choose your primary focus..." />
+            <SelectValue placeholder="Pick your main focus…" />
           </SelectTrigger>
           <SelectContent className="rounded-2xl border-slate-100 shadow-xl">
             {categories.map((cat) => (
@@ -315,7 +315,7 @@ export function CVUploadStep({ onContinue, onSkip }: CVUploadStepProps) {
           </SelectContent>
         </Select>
         <p className="text-[10px] font-medium text-slate-400 mt-4 leading-relaxed">
-          This determines your dedicated AI instructor and curates recommended learning paths.
+          This sets your AI mentor and tailors the learning paths we recommend.
         </p>
       </div>
 
@@ -324,7 +324,7 @@ export function CVUploadStep({ onContinue, onSkip }: CVUploadStepProps) {
         <Button
           size="lg"
           onClick={async () => {
-            if (selectedCategory === "none") return toast.error("Please select a career track to continue.");
+            if (selectedCategory === "none") return toast.error("Please choose a career track to continue.");
             setIsSaving(true);
             await updateTalent({ professionCategoryId: selectedCategory });
             onContinue();
@@ -333,7 +333,7 @@ export function CVUploadStep({ onContinue, onSkip }: CVUploadStepProps) {
           className="w-full h-14 rounded-full bg-blue-500 hover:bg-blue-600 text-white font-bold uppercase tracking-widest text-[10px] shadow-sm gap-3"
         >
           {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-          Verify & Continue
+          Continue
           {!isSaving && <ArrowRight className="h-4 w-4" />}
         </Button>
         <Button

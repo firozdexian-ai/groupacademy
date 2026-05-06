@@ -5,9 +5,7 @@ import { toast } from "sonner";
 import { COUNTRIES_WITH_PHONE } from "@/lib/constants/countries";
 
 /**
- * GroUp Academy: Neural Authentication Orchestrator
- * CTO Reference: Authoritative controller for conversational onboarding (Aisha).
- * Security: v2.4.29 - Hardened type assertions and state scope synchronization.
+ * Conversational auth flow controller for Aisha (sign-in / sign-up assistant).
  */
 
 export type AuthAction =
@@ -107,28 +105,28 @@ export function useAuthChat() {
     const step = context.step as string;
     const protocols: Record<string, any> = {
       welcome: {
-        reply: "Welcome to GroUp Academy! 😊 I'm Aisha. To initialize your trajectory, what's your email?",
+        reply: "Hi, I'm Aisha 👋 What email should I use to set you up?",
         action: "collect_email",
       },
       email_found: {
-        reply: "Registry match confirmed! 🎉 Please enter your password to continue.",
+        reply: "Welcome back! Enter your password to continue.",
         action: "collect_password",
       },
       email_not_found: {
-        reply: "New talent node detected! Let's create your account. What's your full name?",
+        reply: "Looks like you're new here. What's your full name?",
         action: "collect_name",
       },
       phone_collected: {
-        reply: "Initializing human-validation check!\n\nQuestion: What is the opposite of hot?",
+        reply: "Quick check to make sure you're human.\n\nQuestion: What is the opposite of hot?",
         action: "verify_human",
         quiz: FALLBACK_HUMAN_CHECK,
       },
       quiz_passed: {
-        reply: "Verification successful. Create a secure password (min 8 characters).",
+        reply: "Great. Now create a password (at least 8 characters).",
         action: "set_password",
       },
       signup_success: {
-        reply: "🎉 Trajectory synchronized! Welcome to the Academy. You've been granted 250 bonus credits.",
+        reply: "You're in 🎉 Welcome to GroUp Academy. We've added 250 welcome credits to your wallet.",
         action: "complete",
       },
     };
@@ -160,7 +158,7 @@ export function useAuthChat() {
           case "collect_email": {
             const email = trimmed.toLowerCase();
             if (!email.includes("@")) {
-              addMessage("assistant", "INVALID_FORMAT: Please provide a valid email artifact.");
+              addMessage("assistant", "That doesn't look like a valid email — try again?");
               return;
             }
             setCollectedData((prev) => ({ ...prev, email }));
@@ -186,7 +184,7 @@ export function useAuthChat() {
 
           case "collect_name":
             setCollectedData((prev) => ({ ...prev, name: trimmed }));
-            addMessage("assistant", `Identity noted, ${trimmed}. In which country is your current base?`);
+            addMessage("assistant", `Nice to meet you, ${trimmed}. Which country are you in?`);
             setCurrentAction("collect_country");
             break;
 
@@ -197,14 +195,14 @@ export function useAuthChat() {
             if (!matched) {
               addMessage(
                 "assistant",
-                "REGISTRY_ERROR: Country not recognized. Please re-input your institutional base.",
+                "I didn't recognise that country — could you type it again? (e.g. United States, India, Bangladesh)",
               );
               return;
             }
             setCollectedData((prev) => ({ ...prev, country: matched.name, countryCode: matched.phoneCode }));
             addMessage(
               "assistant",
-              `Acknowledged. For ${matched.name}, what is your mobile artifact number? (e.g. ${matched.phoneCode}...)`,
+              `Got it. What's your mobile number? (e.g. ${matched.phoneCode}…)`,
             );
             setCurrentAction("collect_phone");
             break;
@@ -212,8 +210,8 @@ export function useAuthChat() {
 
           case "collect_phone": {
             const digits = trimmed.replace(/\D/g, "");
-            if (collectedData.country === "Bangladesh" && digits.length < 10) {
-              addMessage("assistant", "INCOMPLETE_DATA: Bangladesh mobile artifacts require 11 digits.");
+            if (digits.length < 7) {
+              addMessage("assistant", "That phone number looks short — please enter the full number.");
               return;
             }
             setCollectedData((prev) => ({ ...prev, phone: trimmed }));
@@ -232,7 +230,7 @@ export function useAuthChat() {
               addMessage("assistant", res.reply);
               setCurrentAction("set_password");
             } else {
-              addMessage("assistant", "VAL_FAULT: Incorrect. Let's re-try: What is the opposite of 'hot'?");
+              addMessage("assistant", "Not quite — what's the opposite of 'hot'?");
               setQuiz({ answer: "cold" });
             }
             break;
@@ -253,7 +251,7 @@ export function useAuthChat() {
       try {
         if (flow === "login") {
           await signIn(collectedData.email, password);
-          addMessage("assistant", "SESSION_ESTABLISHED: Access granted.");
+          addMessage("assistant", "Signed in. Taking you to your dashboard…");
           setIsComplete(true);
         } else {
           const finalPhone = collectedData.phone.startsWith("+")
@@ -272,14 +270,14 @@ export function useAuthChat() {
             addMessage("assistant", res.reply);
             setIsComplete(true);
           } else {
-            addMessage("assistant", "SIGNUP_PENDING: Please verify your email artifact, then return to synchronize.");
+            addMessage("assistant", "Almost there — please check your inbox to confirm your email, then come back to sign in.");
             setFlow("login");
             setCurrentAction("collect_email");
           }
         }
       } catch (err: any) {
         toast.error(err.message);
-        addMessage("assistant", `AUTH_ERROR: ${err.message}. Please re-input credentials.`);
+        addMessage("assistant", err.message ? `${err.message} — please try again.` : "Something went wrong. Please try again.");
       } finally {
         setIsLoading(false);
       }
@@ -298,9 +296,9 @@ export function useAuthChat() {
     handleUserInput,
     handlePasswordSubmit,
     handleForgotPassword: async () => {
-      if (!collectedData.email) return addMessage("assistant", "EMAIL_REQUIRED: Provide email for recovery sync.");
+      if (!collectedData.email) return addMessage("assistant", "Please share your email first so I can send the reset link.");
       await resetPassword(collectedData.email);
-      addMessage("assistant", "RECOVERY_LINK_DEPLOYED: Check your inbox.");
+      addMessage("assistant", "Reset link sent — check your inbox.");
     },
     updatePhoneData: (phone: string, countryCode: string, country: string) =>
       setCollectedData((prev) => ({ ...prev, phone, countryCode, country })),

@@ -5,9 +5,8 @@ import { useCredits } from "@/hooks/useCredits";
 import { useQueryClient } from "@tanstack/react-query";
 
 /**
- * GroUp Academy: Talent Lifecycle Orchestrator
- * CTO Reference: Authoritative gatekeeper for talent ingress and trajectory initialization.
- * Logic: Implements idempotent welcome bonuses and neural cache purging.
+ * Onboarding wizard state — tracks current step, awards welcome credits once,
+ * and resets recommendation cache on completion.
  */
 
 export interface OnboardingState {
@@ -25,7 +24,7 @@ export function useOnboarding() {
   const isOnboardingComplete = !!talent?.onboardingCompletedAt;
   const currentStep = talent?.onboardingStep || 0;
 
-  // PHASE: Monotonic_Step_Update
+  
   const updateStep = useCallback(
     async (step: number) => {
       if (!talent?.id) return false;
@@ -37,7 +36,7 @@ export function useOnboarding() {
         if (error) throw error;
         return true;
       } catch (err) {
-        console.error("[Sentinel] ONBOARDING_STEP_FAULT:", err);
+        console.error("Onboarding step update failed:", err);
         return false;
       } finally {
         setIsUpdating(false);
@@ -46,37 +45,37 @@ export function useOnboarding() {
     [talent?.id],
   );
 
-  // PHASE: Trajectory_Initialization
+  
   const completeOnboarding = useCallback(async () => {
     if (!talent?.id) return false;
 
     setIsUpdating(true);
     try {
-      // HUD: IDEMPOTENCY_CHECK
+      
       const { data: existingCredits } = await supabase
         .from("talent_credits")
         .select("id")
         .eq("talent_id", talent.id)
         .maybeSingle();
 
-      // EXECUTE: Fiscal Welcome Handshake (250 Units)
+      // Award welcome credits (idempotent — only if no row exists yet)
       if (!existingCredits) {
-        await addCredits(250, "welcome_bonus", "Institutional welcome bonus - Trajectory Start");
+        await addCredits(250, "welcome_bonus", "Welcome bonus");
       }
 
-      // HUD: REGISTRY_STATUS_SYNC
+      
       const { error: syncError } = await supabase
         .from("talents")
         .update({
           onboarding_completed_at: new Date().toISOString(),
-          onboarding_step: 2, // Terminal Step Node
+          onboarding_step: 2,
         })
         .eq("id", talent.id);
 
       if (syncError) throw syncError;
 
-      // HUD: NEURAL_CACHE_PURGE
-      // Remove stale recommendations to allow fresh trajectory scoring
+      
+      // Clear stale recommendations so they re-rank with the new profile
       await supabase.from("ai_recommendations").delete().eq("talent_id", talent.id);
 
       // Invalidate global content caches
@@ -85,7 +84,7 @@ export function useOnboarding() {
       await refreshTalent();
       return true;
     } catch (err) {
-      console.error("[Sentinel] ONBOARDING_COMPLETION_FAULT:", err);
+      console.error("Onboarding completion failed:", err);
       return false;
     } finally {
       setIsUpdating(false);

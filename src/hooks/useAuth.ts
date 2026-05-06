@@ -6,9 +6,7 @@ import { toast } from "sonner";
 import { isPhoneNumber } from "@/lib/validations";
 
 /**
- * GroUp Academy: Neural Identity Orchestrator
- * CTO Reference: Authoritative controller for identity sync and session lifecycle.
- * Sync Version: 2026.04.29 - Fixed createStudentProfile parameter mismatch (TS2554).
+ * Talent identity hook — wraps Supabase auth with friendly toasts and phone-based sign-in.
  */
 
 export interface AuthState {
@@ -67,7 +65,7 @@ export const useAuth = (): AuthState => {
           setUser(data.session.user);
         }
       } catch (err: any) {
-        console.warn("[Auth] Registry_Audit_Fault:", err);
+        console.warn("[Auth] Session check failed:", err);
         if (err?.message?.includes("Refresh Token")) await supabase.auth.signOut();
         if (mounted.current) {
           setSession(null);
@@ -99,7 +97,7 @@ export const useAuth = (): AuthState => {
       .limit(2);
 
     if (error || !data || data.length === 0) return null;
-    if (data.length > 1) throw new Error("IDENTITY_COLLISION: Multiple accounts detected. Use email ingress.");
+    if (data.length > 1) throw new Error("Multiple accounts use this phone. Please sign in with email instead.");
 
     return data[0].email;
   };
@@ -110,16 +108,16 @@ export const useAuth = (): AuthState => {
 
       if (isPhoneNumber(identifier)) {
         const resolved = await resolveIdentifier(identifier);
-        if (!resolved) throw new Error("IDENTITY_NOT_FOUND: No account linked to this phone.");
+        if (!resolved) throw new Error("No account found for that phone number.");
         email = resolved;
       }
 
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
 
-      toast.success("WELCOME_BACK: Identity verified.");
+      toast.success("Welcome back!");
     } catch (err: any) {
-      toast.error(err.message || "SIGN_IN_FAULT");
+      toast.error(err.message || "Couldn't sign you in. Please try again.");
       throw err;
     }
   };
@@ -148,9 +146,9 @@ export const useAuth = (): AuthState => {
       });
 
       if (signUpError) throw signUpError;
-      if (!authData.user) throw new Error("INGRESS_FAULT: Signup artifact creation failed.");
+      if (!authData.user) throw new Error("We couldn't create your account. Please try again.");
 
-      toast.loading("INITIALIZING_PROFILE_ARTIFACT...", { duration: 1500 });
+      toast.loading("Setting up your profile…", { duration: 1500 });
       await new Promise((r) => setTimeout(r, 1500));
 
       let activeSession = null;
@@ -165,7 +163,7 @@ export const useAuth = (): AuthState => {
 
       if (!activeSession) {
         toast.dismiss();
-        toast.warning("REGISTRY_SYNC_DELAYED: Please sign in manually.");
+        toast.warning("Almost there — please check your inbox to confirm your email.");
         return false;
       }
 
@@ -191,18 +189,18 @@ export const useAuth = (): AuthState => {
       } catch {}
 
       toast.dismiss();
-      toast.success("ACCOUNT_SYNC_COMPLETE");
+      toast.success("Account created.");
       return true;
     } catch (err: any) {
       toast.dismiss();
-      toast.error(err.message || "SIGN_UP_FAULT");
+      toast.error(err.message || "Couldn't create your account. Please try again.");
       throw err;
     }
   };
 
   const signOut = async () => {
     await supabase.auth.signOut();
-    toast.success("SESSION_TERMINATED");
+    toast.success("Signed out.");
     navigate("/", { replace: true });
   };
 
@@ -211,21 +209,21 @@ export const useAuth = (): AuthState => {
       redirectTo: `${window.location.origin}/reset-password`,
     });
     if (error) throw error;
-    toast.success("RECOVERY_SYNC_SENT");
+    toast.success("Reset link sent — check your inbox.");
   };
 
   const updatePassword = async (newPassword: string) => {
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     if (error) throw error;
-    toast.success("ARTIFACT_UPDATED: Password reset complete.");
+    toast.success("Password updated.");
   };
 
   return { user, session, isLoading, signIn, signUp, signOut, resetPassword, updatePassword };
 };
 
 /**
- * Institutional Profile Handshake
- * CTO Reference: Corrected signature to resolve TS2554. Hydrates the talent registry.
+ * Helper for hydrating the talents table after a manual signup. Currently unused;
+ * kept for batch import paths. Will be revisited in 1.2.
  */
 export const createStudentProfile = async (
   userId: string,
@@ -250,7 +248,7 @@ export const createStudentProfile = async (
     if (error) throw error;
     return true;
   } catch (err) {
-    console.error("IDENTITY_HYDRATION_FAULT:", err);
+    console.error("Failed to create talent profile:", err);
     return false;
   }
 };
