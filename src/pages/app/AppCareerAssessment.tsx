@@ -13,6 +13,7 @@ import { ArrowLeft, Target, TrendingUp, CheckCircle, Sparkles, Zap } from "lucid
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { useTalent } from "@/hooks/useTalent";
 import { useCredits } from "@/hooks/useCredits";
+import { recordToolRun } from "@/hooks/useToolRuns";
 import { useToast } from "@/hooks/use-toast";
 
 /**
@@ -125,8 +126,9 @@ export default function AppCareerAssessment() {
 
       toast({ title: "Analysis Finalized", description: "Your executive report is now active." });
 
+      recordToolRun({ toolKey: "assessment", costCredits: 100, payload: { assessment_id: data?.assessmentId } });
       if (data?.assessmentId) navigate(`/assessment-results/${data.assessmentId}`);
-      else navigate("/app/services");
+      else navigate("/app/jobs?tab=tools");
     } catch (error: any) {
       toast({
         title: "Failed",

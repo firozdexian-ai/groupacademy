@@ -13,6 +13,7 @@ import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { useProgressiveLoadingMessage } from "@/hooks/useProgressiveLoadingMessage";
 import { useTalent } from "@/hooks/useTalent";
 import { useCredits } from "@/hooks/useCredits";
+import { recordToolRun } from "@/hooks/useToolRuns";
 import { ProfileCompletionPrompt } from "@/components/profile/ProfileCompletionPrompt";
 import { RetryErrorCard, getErrorType } from "@/components/ui/retry-error-card";
 import { cn } from "@/lib/utils";
@@ -202,6 +203,7 @@ export default function AppMockInterviewSetup() {
 
       localStorage.removeItem(DRAFT_STORAGE_KEY);
       toast.success("Starting your interview...");
+      recordToolRun({ toolKey: "interview", costCredits: 100, payload: { interview_id: tempInterviewId, job_title: data.jobTitle } });
       navigate(`/mock-interview/questions/${tempInterviewId}`);
     } catch (error: any) {
       await handleRefund();
