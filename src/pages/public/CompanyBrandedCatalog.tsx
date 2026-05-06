@@ -3,6 +3,16 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Building2, BookOpen, ArrowRight } from "lucide-react";
 
+function setHead(title: string, desc: string, jsonLd: object) {
+  document.title = title;
+  let m = document.querySelector('meta[name="description"]') as HTMLMetaElement | null;
+  if (!m) { m = document.createElement("meta"); m.name = "description"; document.head.appendChild(m); }
+  m.content = desc;
+  let s = document.getElementById("ld-branded-catalog") as HTMLScriptElement | null;
+  if (!s) { s = document.createElement("script"); s.id = "ld-branded-catalog"; s.type = "application/ld+json"; document.head.appendChild(s); }
+  s.text = JSON.stringify(jsonLd);
+}
+
 interface BrandedCatalog {
   company: {
     id: string;
