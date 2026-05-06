@@ -351,9 +351,14 @@ export default function MarketplaceGigDetail() {
                   </div>
 
                   <div className="space-y-3">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-2">
-                      Strategic Narrative
-                    </Label>
+                    <div className="flex items-center justify-between">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-primary ml-2">
+                        Strategic Narrative
+                      </Label>
+                      <Button type="button" size="sm" variant="ghost" onClick={() => setCoachOpen(true)} className="h-7 text-xs gap-1">
+                        <Sparkles className="h-3.5 w-3.5 text-primary" /> Improve with AI
+                      </Button>
+                    </div>
                     <Textarea
                       placeholder="Articulate your technical value proposition..."
                       className="rounded-3xl min-h-[220px] bg-muted/10 border-2 border-border/40 p-6 italic font-medium leading-relaxed resize-none focus:border-primary/40 transition-all"
@@ -362,6 +367,21 @@ export default function MarketplaceGigDetail() {
                     />
                   </div>
                 </div>
+                <BidCoachDialog
+                  open={coachOpen}
+                  onOpenChange={setCoachOpen}
+                  gigId={id!}
+                  gigKind="marketplace"
+                  initialDraft={coverLetter}
+                  onAccept={(r) => setCoverLetter(r.text)}
+                />
+
+                {gig?.posted_by && talent?.user_id === gig.posted_by && (
+                  <div className="my-4">
+                    <RecommendedBiddersPanel gigId={id!} gigKind="marketplace" />
+                  </div>
+                )}
+
 
                 <Button
                   className="w-full h-20 rounded-[32px] font-black uppercase tracking-[0.3em] text-[12px] shadow-2xl shadow-primary/30 transition-all hover:scale-[1.02] active:scale-95 group overflow-hidden"
