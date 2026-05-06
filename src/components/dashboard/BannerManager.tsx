@@ -135,6 +135,14 @@ export const BannerManager = () => {
               link_content_id: newBanner.link_content_id === "none" ? null : newBanner.link_content_id,
               display_order: newBanner.display_order,
               placement: newBanner.placement,
+              media_type: newBanner.media_type,
+              media_url: newBanner.media_url || null,
+              poster_url: newBanner.poster_url || null,
+              link_url: newBanner.link_url || null,
+              cta_label: newBanner.cta_label || null,
+              focal_point: newBanner.focal_point,
+              start_at: newBanner.start_at ? new Date(newBanner.start_at).toISOString() : null,
+              end_at: newBanner.end_at ? new Date(newBanner.end_at).toISOString() : null,
               created_by: user.id,
             },
           ]),
@@ -145,7 +153,20 @@ export const BannerManager = () => {
 
       if (error) throw error;
       toast.success("Artifact Deployed: Banner successfully registered.");
-      setNewBanner({ image_url: "", link_content_id: "none", display_order: 0, placement: "carousel" });
+      setNewBanner({
+        image_url: "",
+        link_content_id: "none",
+        display_order: 0,
+        placement: "carousel",
+        media_type: "image",
+        media_url: "",
+        poster_url: "",
+        link_url: "",
+        cta_label: "",
+        focal_point: "center",
+        start_at: "",
+        end_at: "",
+      });
       loadRegistryData();
     } catch (error: any) {
       toast.error(error.message || "Protocol Error: Deployment failed");
