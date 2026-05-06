@@ -128,6 +128,7 @@ export function AIChatPanel({
           contextId,
           moduleId: moduleId || (contextType === "module" ? contextId : undefined),
           contentId: contentId || (contextType === "course" ? contextId : undefined),
+          mode,
         }),
         signal: abortControllerRef.current.signal,
       });
