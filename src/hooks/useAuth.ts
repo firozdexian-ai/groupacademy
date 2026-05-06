@@ -146,9 +146,9 @@ export const useAuth = (): AuthState => {
       });
 
       if (signUpError) throw signUpError;
-      if (!authData.user) throw new Error("INGRESS_FAULT: Signup artifact creation failed.");
+      if (!authData.user) throw new Error("We couldn't create your account. Please try again.");
 
-      toast.loading("INITIALIZING_PROFILE_ARTIFACT...", { duration: 1500 });
+      toast.loading("Setting up your profile…", { duration: 1500 });
       await new Promise((r) => setTimeout(r, 1500));
 
       let activeSession = null;
@@ -163,7 +163,7 @@ export const useAuth = (): AuthState => {
 
       if (!activeSession) {
         toast.dismiss();
-        toast.warning("REGISTRY_SYNC_DELAYED: Please sign in manually.");
+        toast.warning("Almost there — please check your inbox to confirm your email.");
         return false;
       }
 
