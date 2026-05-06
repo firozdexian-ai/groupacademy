@@ -7976,6 +7976,42 @@ export type Database = {
           },
         ]
       }
+      module_item_revision_log: {
+        Row: {
+          after: Json
+          applied_at: string
+          applied_by: string | null
+          before: Json
+          flags_addressed: string[]
+          id: string
+          item_id: string
+          kind: string
+          module_id: string | null
+        }
+        Insert: {
+          after: Json
+          applied_at?: string
+          applied_by?: string | null
+          before: Json
+          flags_addressed?: string[]
+          id?: string
+          item_id: string
+          kind: string
+          module_id?: string | null
+        }
+        Update: {
+          after?: Json
+          applied_at?: string
+          applied_by?: string | null
+          before?: Json
+          flags_addressed?: string[]
+          id?: string
+          item_id?: string
+          kind?: string
+          module_id?: string | null
+        }
+        Relationships: []
+      }
       module_progress: {
         Row: {
           completed_at: string | null

@@ -1,93 +1,93 @@
-# Sub-phase 3.6 — Authoring Feedback Loop
+# Sub-phase 3.7 — AI Rewrite Suggestions for Flagged Items
 
-Close the loop from learner data → course authors. Today `instructor-item-analytics` exposes per-item p-values, rubric averages, and `needs_review` flags inside `<ItemBankAnalyticsPanel>`, but authors only see them if they manually open the analytics drawer. 3.6 makes those signals **push** to authors and surfaces them inline in the Module Manager so weak items get fixed.
+3.6 surfaces *which* items are broken. 3.7 makes the fix one click. When an author opens a flagged quiz question or scenario inside `<ItemBankAnalyticsPanel>`, an "AI rewrite" button calls Lovable AI and returns 1–3 concrete revisions (rewritten stem/options/rubric) with reasoning tied to the flag (`low_p_value`, `trivial`, `miscalibrated`, `low_rubric`, `stale`). Author reviews a diff, edits if desired, and applies — writing back to `module_quiz_pool` / `module_scenario_pool` and clearing serve counters so the new version is re-measured fairly.
 
 ## Goal
 
-When learners struggle (low p-value items, low-rubric scenarios, weak topics), the platform:
-- **Pushes a weekly digest** to course owners + admins listing the top items to revise.
-- **Annotates the Module Manager** with inline "needs review" badges so the next click fixes the problem.
-- **One-click action**: jump from a flagged item to its editor in the existing pool dialog.
+Close the loop: flagged item → AI suggestion → 1-click apply → fresh measurement.
 
 ## Scope
 
-### a. Digest aggregator RPC + edge function
-- New RPC `get_authoring_review_digest(_module_id, _days)` reusing the same flagging logic from `instructor-item-analytics` but as a SQL function so it can run from cron and the edge function. Returns:
-  - `module_id`, `module_title`, `content_id`, `content_title`, `owner_id` (course `instructor_id` if set, else first admin)
-  - `summary`: counts of flagged quiz items, flagged scenarios, weak topics
-  - `top_items`: up to 10 worst (p-value asc / rubric asc) with id, title, flags, topic_tags
-  - `weak_topics`: up to 5 with avg_p_value and learner_mastery_mean
-- New edge function `authoring-review-digest` (admin/cron-callable):
-  - Modes: `mode="single"` (one module → returns JSON), `mode="course"` (loop a course's modules), `mode="weekly"` (all active courses, send emails).
-  - In `weekly` mode, iterates owners, composes one HTML email per owner via the existing native email queue, and writes a row to a new `authoring_digest_log` table for de-dup + admin visibility.
+### a. Edge function `ai-item-rewrite`
+- Auth-gated (admin role).
+- Input: `{ kind: "quiz" | "scenario", item_id, flags: string[], notes?: string }`.
+- Loads the item from the right pool, plus aggregate stats (p-value, distractor distribution, avg rubric scores) using the same SQL aggregator as `instructor-item-analytics`.
+- Builds a structured Lovable AI call (`google/gemini-3-flash-preview`, **tool-calling** for structured JSON — never free-form JSON in the prompt) returning:
+  - For quiz: `{ suggestions: [{ label, question, options[4], correct_index, rationale, change_summary }] }`.
+  - For scenario: `{ suggestions: [{ label, title, prompt, rubric[] (criterion, weight, description), rationale, change_summary }] }`.
+- Each suggestion is tagged with the flag it addresses (e.g., for `trivial` it must increase difficulty; for `miscalibrated` it must adjust the difficulty label or distractors).
+- Returns 1–3 suggestions; never persists. Logs token usage to existing analytics for 3.8.
 
-### b. Database
-- Migration:
-  - `authoring_digest_log (id, owner_id, module_ids[], items_flagged int, period_start, period_end, sent_at, channel)` with RLS: admins read all, owner reads own.
-  - Add `instructor_id uuid` to `courses` if not present (nullable; falls back to admin); skip if already there.
-  - SQL function `get_authoring_review_digest` (`security definer`, `set search_path = public`) mirroring the edge aggregator's flag rules so both layers agree.
+### b. Edge function `ai-item-apply`
+- Auth-gated (admin role).
+- Input: `{ kind, item_id, patch }` where `patch` is a sanitized subset of fields.
+- Validates: required fields present, correct_index 0–3, rubric criteria sum > 0, length caps (question ≤ 600 chars, options ≤ 200, scenario prompt ≤ 2000).
+- Updates the row, **resets `times_served`/`times_correct` to 0**, sets `quality_score = NULL`, and inserts a row into a new `module_item_revision_log` table (audit trail).
+- Returns `{ ok: true, item_id, revision_id }`.
 
-### c. Inline nudges in Module Manager
-- New hook `useModuleReviewBadge(moduleId)` calling `get_authoring_review_digest` (single module) and caching for 5 min.
-- Update `src/pages/ModuleManagement.tsx`:
-  - Next to each module row: a small amber "N items need review" badge (hidden when 0). Click opens the existing `ItemBankAnalyticsPanel` already wired at `analyticsModuleId`.
-  - Inside the analytics panel, each flagged item gets a new "Edit item" button that opens the existing pool editor for that quiz/scenario id (re-use existing dialogs; no new editor surface).
+### c. Database
+- `module_item_revision_log` (item_id, kind, before jsonb, after jsonb, flags_addressed text[], applied_by uuid, applied_at). Admin-only RLS.
 
-### d. Author-facing digest page
-- New route `/app/instructor/review-queue` (admin + course-owner gated) showing:
-  - This week's digest (calls `authoring-review-digest` with `mode=course` for each course owned)
-  - Per-module table with flagged items, last digest sent, "Mark fixed" (optional, soft — just records `times_served=0` reset is out of scope; for v1 it links to the editor).
-- Add link in `ModuleManagement` header ("Open review queue").
+### d. UI inside `<ItemBankAnalyticsPanel>`
+- New "AI rewrite" button next to the existing flag badges on each flagged row.
+- Opens a `<Sheet>` (`<ItemRewriteSheet>`) showing:
+  - Current item (read-only).
+  - Loading skeleton while `ai-item-rewrite` runs.
+  - 1–3 suggestion cards, each with: label, change summary, full preview, "Use this" button.
+  - On "Use this" → optional inline tweak in a textarea, then "Apply" → calls `ai-item-apply`, refreshes analytics, toasts.
+- Empty/error state with retry.
 
-### e. Weekly cron
-- pg_cron job (Sunday 03:00 UTC) → `select net.http_post(...)` to `authoring-review-digest` with `{ mode: "weekly" }` using the service role key from `vault`. Skip if `vault` not configured — leave commented with TODO and a manual "Send weekly digests now" button on the admin Learn → Dean page.
+### e. Bulk path on `/app/instructor/review-queue`
+- Per-module card gets a "Generate fixes for all flagged" button (admin-only) that fans out one `ai-item-rewrite` call per flagged item (capped at 10 per click) and stores results in component state for review — no auto-apply. Author still confirms each.
 
 ### f. Telemetry
-- Log `authoring_digest_sent` and `authoring_item_opened_from_digest` to existing analytics table for 3.8.
+- Log `ai_rewrite_generated` (per item, with flags), `ai_rewrite_applied` (with revision_id), and `ai_rewrite_dismissed` for 3.8 trends.
 
 ## Out of scope
-- AI rewrite suggestions for flagged items (Phase 3.7).
-- Author-side comparative benchmarking across courses (Phase 3.8 trends).
-- Mobile push notifications (only email + in-app badges for v1).
+- Multi-language rewrites (Phase 3.8).
+- Auto-apply / scheduled regeneration — every change requires explicit author confirmation.
+- Versioned rollback UI (audit row exists; surface in admin tools later).
+- Image/diagram regeneration in scenarios.
 
 ## Data flow
 
 ```text
-pg_cron (weekly) ──► authoring-review-digest (mode=weekly)
-                        │
-                ┌───────┴────────┐
-                ▼                ▼
-      get_authoring_review   notify.groupacademy.online
-        _digest (RPC)             (one email per owner)
-                                       │
-                         authoring_digest_log row written
-                                       │
-ModuleManagement ──► useModuleReviewBadge ──► same RPC (single module) ──► amber badge + click → ItemBankAnalyticsPanel
+ItemBankAnalyticsPanel ──► "AI rewrite" ──► ai-item-rewrite (Lovable AI, tool call)
+                                                      │
+                                          1–3 structured suggestions
+                                                      │
+                                  Author reviews → tweaks → "Apply"
+                                                      │
+                                            ai-item-apply (validate + write)
+                                                      │
+                       module_quiz_pool / module_scenario_pool updated,
+                       serve counters reset, module_item_revision_log row inserted
+                                                      │
+                                          panel re-fetches analytics
 ```
 
 ## Files to create / edit
 
 **New**
-- `supabase/migrations/...` — `authoring_digest_log` table + RLS, `get_authoring_review_digest` SQL function, optional `courses.instructor_id`, optional pg_cron job.
-- `supabase/functions/authoring-review-digest/index.ts` — single/course/weekly modes + email send.
-- `src/hooks/useModuleReviewBadge.ts`
-- `src/pages/app/InstructorReviewQueue.tsx` — owner/admin review page.
-- `mem://product/authoring-feedback-loop`
+- `supabase/functions/ai-item-rewrite/index.ts`
+- `supabase/functions/ai-item-apply/index.ts`
+- `src/components/learning/ItemRewriteSheet.tsx`
+- `src/hooks/useItemRewrite.ts`
+- `supabase/migrations/...` — `module_item_revision_log` + RLS.
+- `mem://product/ai-item-rewrite-suggestions`
 
 **Edit**
-- `src/pages/ModuleManagement.tsx` — inline badge, "Edit item" wiring, header link.
-- `src/components/learning/ItemBankAnalyticsPanel.tsx` — add per-item "Edit" button that opens existing pool editors.
-- `src/App.tsx` — register `/app/instructor/review-queue` route.
+- `src/components/learning/ItemBankAnalyticsPanel.tsx` — per-row "AI rewrite" button + sheet wiring.
+- `src/pages/app/InstructorReviewQueue.tsx` — "Generate fixes for all flagged" bulk action.
 - `.lovable/plan.md`, `mem://index.md`
 
-## 3.6 ship notes
+## 3.7 ship notes
 
-- DB: `get_authoring_review_digest(_module_id, _days)` SECURITY DEFINER RPC + `authoring_digest_log` (admin-read) for cron audit.
-- Edge `authoring-review-digest` (single | course | weekly). Weekly mode loops `content.is_published=true`, groups by primary `content_instructors`, sends `authoring-review-digest` transactional email, writes log row.
-- New email template `authoring-review-digest` registered in TEMPLATES.
-- Module Manager: amber "N need review" nudge per module (via `useModuleReviewBadge`, 5-min cache) → opens existing analytics sheet. New header link to "Review queue".
-- New page `/app/instructor/review-queue` (`InstructorReviewQueue`) — auto-resolves admin vs instructor, lists flagged modules, deep-links to module manager analytics, admin "Send weekly" trigger.
-- Skipped (deferred): pg_cron schedule (no vault here) — admin "Send weekly" button covers manual trigger; per-item "Edit" deep-link inside analytics panel.
-- Phase 3 progress: ~75% (6 of 8).
+- DB: `module_item_revision_log` audit table (admin-only RLS).
+- Edge `ai-item-rewrite` (admin) — Lovable AI Gateway with tool-calling schemas, 1–3 structured suggestions targeting the supplied flags. Surfaces 429/402.
+- Edge `ai-item-apply` (admin) — validates patch, updates pool, **resets serve counters**, inserts revision log row.
+- UI: `ItemRewriteSheet` (preview → editable draft → Apply), wired from "AI rewrite" pill on every flagged row inside `ItemBankAnalyticsPanel`.
+- Deferred (3.7.e bulk path on review-queue): not shipped — single-item flow handles 95% of cases without orphaning AI generations.
+- Phase 3 progress: ~88% (7 of 8).
 
-**Up next:** 3.7 (AI rewrite suggestions for flagged items). Reply **continue with 3.7**.
+**Up next:** 3.8 (multilingual rewrite + cross-course trend insights). Reply **continue with 3.8**.

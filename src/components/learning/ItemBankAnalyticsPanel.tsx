@@ -4,8 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertTriangle, RefreshCw } from "lucide-react";
+import { AlertTriangle, RefreshCw, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ItemRewriteSheet } from "@/components/learning/ItemRewriteSheet";
 
 const FLAG_LABEL: Record<string, string> = {
   low_p_value: "Too hard",
@@ -32,6 +33,7 @@ export interface ItemBankAnalyticsPanelProps {
 export function ItemBankAnalyticsPanel({ moduleId }: ItemBankAnalyticsPanelProps) {
   const { data, loading, error, refresh } = useItemAnalytics(moduleId);
   const [onlyFlagged, setOnlyFlagged] = useState(false);
+  const [rewrite, setRewrite] = useState<{ kind: "quiz" | "scenario"; itemId: string; flags: string[] } | null>(null);
 
   const quizItems = useMemo(() => {
     if (!data) return [];
@@ -126,7 +128,11 @@ export function ItemBankAnalyticsPanel({ moduleId }: ItemBankAnalyticsPanelProps
               {onlyFlagged ? "No flagged quiz items." : "No quiz items in this module yet."}
             </p>
           )}
-          {quizItems.map(q => <QuizRow key={q.id} q={q} />)}
+          {quizItems.map(q => (
+            <QuizRow key={q.id} q={q}
+              onRewrite={() => setRewrite({ kind: "quiz", itemId: q.id, flags: q.needs_review })}
+            />
+          ))}
         </CardContent>
       </Card>
 
@@ -139,9 +145,22 @@ export function ItemBankAnalyticsPanel({ moduleId }: ItemBankAnalyticsPanelProps
               {onlyFlagged ? "No flagged scenarios." : "No scenarios in this module yet."}
             </p>
           )}
-          {scenarioItems.map(s => <ScenarioRow key={s.id} s={s} />)}
+          {scenarioItems.map(s => (
+            <ScenarioRow key={s.id} s={s}
+              onRewrite={() => setRewrite({ kind: "scenario", itemId: s.id, flags: s.needs_review })}
+            />
+          ))}
         </CardContent>
       </Card>
+
+      <ItemRewriteSheet
+        open={!!rewrite}
+        onOpenChange={(o) => !o && setRewrite(null)}
+        kind={rewrite?.kind ?? "quiz"}
+        itemId={rewrite?.itemId ?? null}
+        flags={rewrite?.flags ?? []}
+        onApplied={refresh}
+      />
     </div>
   );
 }
@@ -171,11 +190,12 @@ function FlagBadges({ flags }: { flags: string[] }) {
   );
 }
 
-function QuizRow({ q }: { q: QuizItemStat }) {
+function QuizRow({ q, onRewrite }: { q: QuizItemStat; onRewrite: () => void }) {
   const tone = q.p_value === null ? "text-muted-foreground"
     : q.p_value < 0.3 ? "text-destructive"
     : q.p_value > 0.9 ? "text-amber-500"
     : "text-foreground";
+  const flagged = q.needs_review.length > 0;
   return (
     <div className="rounded-lg border border-border/30 p-2.5 space-y-1.5">
       <p className="text-xs line-clamp-2">{q.question}</p>
@@ -193,17 +213,25 @@ function QuizRow({ q }: { q: QuizItemStat }) {
           <span className={cn("font-bold", tone)}>p {pct(q.p_value)}</span>
         </div>
       </div>
-      <FlagBadges flags={q.needs_review} />
+      <div className="flex items-center justify-between gap-2">
+        <FlagBadges flags={q.needs_review} />
+        {flagged && (
+          <Button size="sm" variant="outline" onClick={onRewrite} className="h-6 text-[10px] px-2">
+            <Sparkles className="h-3 w-3 mr-1" /> AI rewrite
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
 
-function ScenarioRow({ s }: { s: ScenarioItemStat }) {
+function ScenarioRow({ s, onRewrite }: { s: ScenarioItemStat; onRewrite: () => void }) {
   const rubricKeys = Object.keys(s.avg_per_rubric);
   const tone = s.avg_overall === null ? "text-muted-foreground"
     : s.avg_overall < 0.4 ? "text-destructive"
     : s.avg_overall < 0.7 ? "text-amber-500"
     : "text-success-green";
+  const flagged = s.needs_review.length > 0;
   return (
     <div className="rounded-lg border border-border/30 p-2.5 space-y-1.5">
       <div className="flex items-start justify-between gap-2">
@@ -235,7 +263,14 @@ function ScenarioRow({ s }: { s: ScenarioItemStat }) {
           ))}
         </div>
       )}
-      <FlagBadges flags={s.needs_review} />
+      <div className="flex items-center justify-between gap-2">
+        <FlagBadges flags={s.needs_review} />
+        {flagged && (
+          <Button size="sm" variant="outline" onClick={onRewrite} className="h-6 text-[10px] px-2">
+            <Sparkles className="h-3 w-3 mr-1" /> AI rewrite
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
