@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Building2, MapPin, Clock, ArrowRight, Bookmark, Star, Banknote, Brain, Zap, ShieldCheck } from "lucide-react";
+import { VerifiedMatchBadge } from "@/components/jobs/VerifiedMatchBadge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,11 @@ export interface JobCardData {
 export interface JobMatchInfo {
   match_score: number;
   reason: string;
+  match_reason?: "verified_skill" | "keyword" | "location_only";
+  verified_match?: {
+    mastery_score?: number;
+    verified_credentials?: Array<{ topic_tag: string; level: string; verify_code?: string }>;
+  } | null;
 }
 
 interface JobCardProps {
