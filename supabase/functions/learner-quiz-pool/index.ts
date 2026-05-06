@@ -123,10 +123,11 @@ Deno.serve(async (req) => {
       }
       // shuffle the candidate set, take N
       const picked = items.sort(() => Math.random() - 0.5).slice(0, Math.min(DRAW_N, items.length));
-      // bump times_served
-      await sbAdmin.from("module_quiz_pool").update({ times_served: 1 } as any); // placeholder; do batched RPC below
+      // bump times_served (best-effort; non-fatal)
       for (const it of picked) {
-        await sbAdmin.rpc("increment_pool_served", { _id: it.id }).then(() => {}, () => {});
+        await sbAdmin.from("module_quiz_pool")
+          .update({ times_served: (it.times_served ?? 0) + 1 })
+          .eq("id", it.id);
       }
       return new Response(JSON.stringify({
         items: picked.map(p => ({ id: p.id, question: p.question, options: p.options, difficulty: p.difficulty })),
