@@ -1,298 +1,215 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  Briefcase,
-  Clock,
-  ClipboardList,
-  Loader2,
-  Trophy,
-  SearchX,
-  ShieldCheck,
-  Zap,
-} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTalent } from "@/hooks/useTalent";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { useApplicationBuckets } from "@/hooks/useApplicationBuckets";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Briefcase,
+  Building2,
+  ArrowRight,
+  CheckCircle2,
+  Trophy,
+  XCircle,
+  Trash2,
+  Clock,
+  Brain,
+  AlertCircle,
+  SearchX,
+} from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-interface Application {
+type Bucket = "active" | "action_needed" | "closed";
+
+interface Row {
   id: string;
   job_id: string;
-  job_title: string;
-  company_name: string;
-  created_at: string;
   application_status: string;
-  delivery_status: string;
-  ai_assessment_enabled: boolean;
-  assessment_id: string | null;
-  assessment_status: string | null;
-  assessment_score: number | null;
+  created_at: string;
+  last_status_at: string | null;
+  job: {
+    title: string;
+    company_name: string;
+    company_logo_url: string | null;
+    ai_assessment_enabled: boolean | null;
+  } | null;
+  assessment?: { id: string; status: string } | null;
 }
 
-const ApplicationTimeline = ({ status, isRejected }: { status: string; isRejected: boolean }) => {
-  const steps = [
-    { id: "submitted", label: "Submitted" },
-    { id: "screening", label: "Reviewed" },
-    { id: "interview", label: "Interview" },
-    { id: "offer", label: "Offer" },
-  ];
+const ACTIVE = ["submitted", "sent_to_employer", "viewed", "shortlisted"];
+const CLOSED = ["rejected", "withdrawn", "hired"];
 
-  const statusMap: Record<string, number> = {
-    submitted: 0, reviewed: 1, screening: 1, shortlisted: 2,
-    interview: 2, offer: 3, hired: 3, rejected: -1,
-  };
-  const currentIndex = statusMap[status] ?? 0;
-
-  return (
-    <div className="w-full mt-4 mb-2">
-      <div className="relative flex justify-between">
-        <div className="absolute top-2 left-0 w-full h-px bg-muted -z-10" />
-        <div
-          className="absolute top-2 left-0 h-0.5 bg-primary -z-10 transition-all duration-700"
-          style={{ width: isRejected ? "0%" : `${(currentIndex / (steps.length - 1)) * 100}%` }}
-        />
-        {steps.map((step, index) => {
-          const isActive = index <= currentIndex;
-          return (
-            <div key={step.id} className="flex flex-col items-center flex-1 relative">
-              <div
-                className={cn(
-                  "w-4 h-4 rounded-full border-2 bg-background transition-all z-10",
-                  isActive ? "border-primary" : "border-muted-foreground/30",
-                  isRejected && status === step.id && "border-destructive",
-                )}
-              >
-                {isActive && <div className="w-full h-full rounded-full bg-primary scale-50" />}
-              </div>
-              <span className={cn("text-[10px] font-medium mt-1.5 absolute top-5 text-center w-full", isActive ? "text-foreground" : "text-muted-foreground")}>
-                {step.label}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-};
-
-const ApplicationCard = ({ application, onGenerate, onTake, onViewResult, isGenerating }: any) => {
-  const navigate = useNavigate();
-  const isRejected = application.application_status === "rejected";
-
-  return (
-    <Card
-      className="cursor-pointer hover:border-primary/40 transition-all"
-      onClick={() => navigate(`/app/jobs/${application.job_id}`)}
-    >
-      <CardContent className="p-4">
-        <div className="flex justify-between items-start gap-3 mb-2">
-          <div className="flex gap-3 min-w-0">
-            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-              <Briefcase className="h-5 w-5 text-primary" />
-            </div>
-            <div className="min-w-0">
-              <h3 className="font-semibold text-sm truncate">{application.job_title}</h3>
-              <p className="text-xs text-muted-foreground truncate">{application.company_name}</p>
-            </div>
-          </div>
-          <Badge
-            className={cn(
-              "text-[10px] capitalize shrink-0",
-              isRejected ? "bg-destructive/10 text-destructive border-destructive/20" : "bg-primary/10 text-primary border-primary/20",
-            )}
-            variant="outline"
-          >
-            {application.application_status.replace("_", " ")}
-          </Badge>
-        </div>
-        <ApplicationTimeline status={application.application_status} isRejected={isRejected} />
-      </CardContent>
-
-      <CardFooter className="bg-muted/30 px-4 py-3 flex justify-between items-center border-t">
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Clock className="h-3 w-3" />
-          {formatDistanceToNow(new Date(application.created_at), { addSuffix: true })}
-        </div>
-
-        <div className="flex gap-2">
-          {application.ai_assessment_enabled &&
-            (application.assessment_status === "completed" ? (
-              <Button
-                size="sm" variant="outline" className="h-8 text-xs gap-1.5"
-                onClick={(e) => { e.stopPropagation(); onViewResult(application.assessment_id); }}
-              >
-                <Trophy className="w-3 h-3 text-amber-500" /> View result · {application.assessment_score}%
-              </Button>
-            ) : application.assessment_id ? (
-              <Button
-                size="sm" className="h-8 text-xs gap-1.5"
-                onClick={(e) => { e.stopPropagation(); onTake(application.assessment_id); }}
-              >
-                <Zap className="w-3 h-3" /> Take assessment
-              </Button>
-            ) : (
-              <Button
-                size="sm" variant="outline" className="h-8 text-xs gap-1.5" disabled={isGenerating}
-                onClick={(e) => { e.stopPropagation(); onGenerate(application); }}
-              >
-                {isGenerating ? <Loader2 className="animate-spin w-3 h-3" /> : <ShieldCheck className="w-3 h-3 text-primary" />}
-                Generate AI interview
-              </Button>
-            ))}
-        </div>
-      </CardFooter>
-    </Card>
-  );
-};
-
-const STATUS_BUCKETS: Record<string, (s: string) => boolean> = {
-  all: () => true,
-  active: (s) => !["rejected", "hired", "offer"].includes(s),
-  shortlisted: (s) => ["shortlisted", "interview"].includes(s),
-  closed: (s) => ["rejected", "hired", "offer"].includes(s),
+const STATUS_PILL: Record<string, { label: string; className: string; icon: any }> = {
+  submitted: { label: "Submitted", className: "bg-primary/10 text-primary border-primary/20", icon: Clock },
+  sent_to_employer: { label: "Sent", className: "bg-primary/10 text-primary border-primary/20", icon: ArrowRight },
+  viewed: { label: "Viewed", className: "bg-primary/10 text-primary border-primary/20", icon: CheckCircle2 },
+  shortlisted: { label: "Shortlisted", className: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20", icon: Trophy },
+  hired: { label: "Hired", className: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20", icon: Trophy },
+  rejected: { label: "Not selected", className: "bg-destructive/10 text-destructive border-destructive/20", icon: XCircle },
+  withdrawn: { label: "Withdrawn", className: "bg-muted text-muted-foreground border-border", icon: Trash2 },
 };
 
 export default function MyApplications() {
-  const { talent } = useTalent();
   const navigate = useNavigate();
-  const [applications, setApplications] = useState<Application[]>([]);
+  const { talent } = useTalent();
+  const { data: buckets } = useApplicationBuckets();
+  const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
-  const [generatingId, setGeneratingId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<keyof typeof STATUS_BUCKETS>("all");
+  const [tab, setTab] = useState<Bucket>("active");
 
-  const applicationsRef = useRef<Application[]>([]);
-  const generatingIdRef = useRef<string | null>(null);
-  applicationsRef.current = applications;
-  generatingIdRef.current = generatingId;
+  const fetchRows = useCallback(async () => {
+    if (!talent?.id) return;
+    setLoading(true);
+    const { data, error } = await (supabase as any)
+      .from("job_applications")
+      .select(
+        `id, job_id, application_status, created_at, last_status_at,
+         job:jobs(title, company_name, company_logo_url, ai_assessment_enabled),
+         job_assessments(id, status)`,
+      )
+      .eq("talent_id", talent.id)
+      .order("last_status_at", { ascending: false, nullsFirst: false })
+      .order("created_at", { ascending: false });
 
-  const fetchApplications = useCallback(
-    async (silent = false) => {
-      if (!talent?.id) return;
-      if (!silent) setLoading(true);
-      try {
-        const { data: appData } = await supabase
-          .from("job_applications")
-          .select(`id, job_id, created_at, application_status, delivery_status, jobs (title, company_name, ai_assessment_enabled)`)
-          .eq("talent_id", talent.id)
-          .order("created_at", { ascending: false });
-
-        const { data: assessData } = await supabase
-          .from("job_assessments")
-          .select("id, job_id, status, ai_score")
-          .eq("talent_id", talent.id);
-
-        const assessMap = new Map(assessData?.map((a) => [a.job_id, a]) || []);
-        const formatted = appData?.map((app: any) => {
-          const ass = assessMap.get(app.job_id);
-          return {
-            id: app.id,
-            job_id: app.job_id,
-            job_title: app.jobs?.title,
-            company_name: app.jobs?.company_name,
-            created_at: app.created_at,
-            application_status: app.application_status || "submitted",
-            delivery_status: app.delivery_status || "pending",
-            ai_assessment_enabled: app.jobs?.ai_assessment_enabled,
-            assessment_id: ass?.id || null,
-            assessment_status: ass?.status || null,
-            assessment_score: ass?.ai_score || null,
-          };
-        });
-        setApplications(formatted || []);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [talent?.id],
-  );
+    setLoading(false);
+    if (error) {
+      toast.error("Couldn't load your applications.");
+      return;
+    }
+    setRows(
+      (data || []).map((r: any) => ({
+        ...r,
+        assessment: r.job_assessments?.[0] || null,
+      })),
+    );
+  }, [talent?.id]);
 
   useEffect(() => {
-    if (!talent?.id) return;
-    fetchApplications();
-    const pollInterval = setInterval(() => {
-      const needsUpdate = applicationsRef.current.some(
-        (a) => a.ai_assessment_enabled && (!a.assessment_id || a.assessment_status === "generating"),
-      );
-      if (needsUpdate || generatingIdRef.current) fetchApplications(true);
-    }, 5000);
-    return () => clearInterval(pollInterval);
-  }, [talent?.id, fetchApplications]);
+    fetchRows();
+  }, [fetchRows]);
 
-  const filtered = useMemo(
-    () => applications.filter((a) => STATUS_BUCKETS[activeTab](a.application_status)),
-    [applications, activeTab],
-  );
-
-  const counts = useMemo(() => {
-    const c: Record<string, number> = {};
-    for (const k of Object.keys(STATUS_BUCKETS)) c[k] = applications.filter((a) => STATUS_BUCKETS[k](a.application_status)).length;
-    return c;
-  }, [applications]);
+  const filtered = useMemo(() => {
+    if (tab === "active") return rows.filter((r) => ACTIVE.includes(r.application_status));
+    if (tab === "closed") return rows.filter((r) => CLOSED.includes(r.application_status));
+    // action_needed
+    return rows.filter(
+      (r) =>
+        ACTIVE.includes(r.application_status) &&
+        r.job?.ai_assessment_enabled &&
+        (!r.assessment || r.assessment.status !== "completed"),
+    );
+  }, [rows, tab]);
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-4 pb-28 space-y-4">
-      <header className="flex items-center gap-3">
-        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-          <ClipboardList className="h-5 w-5 text-primary" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-semibold">My applications</h1>
-          <p className="text-sm text-muted-foreground">Track your job applications and assessments.</p>
-        </div>
+    <div className="max-w-3xl mx-auto px-4 pt-3 pb-12 space-y-3 animate-in fade-in duration-300">
+      <header className="space-y-1">
+        <h1 className="text-xl font-bold">My applications</h1>
+        <p className="text-xs text-muted-foreground">Track every role you've applied to.</p>
       </header>
 
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 h-10">
-          <TabsTrigger value="all" className="text-xs">All ({counts.all})</TabsTrigger>
-          <TabsTrigger value="active" className="text-xs">Active ({counts.active})</TabsTrigger>
-          <TabsTrigger value="shortlisted" className="text-xs">Shortlisted ({counts.shortlisted})</TabsTrigger>
-          <TabsTrigger value="closed" className="text-xs">Closed ({counts.closed})</TabsTrigger>
+      <Tabs value={tab} onValueChange={(v) => setTab(v as Bucket)}>
+        <TabsList className="w-full grid grid-cols-3">
+          <TabsTrigger value="active" className="gap-1.5 text-xs">
+            Active
+            {buckets && buckets.active > 0 && (
+              <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">
+                {buckets.active}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="action_needed" className="gap-1.5 text-xs">
+            Action
+            {buckets && buckets.action_needed > 0 && (
+              <Badge className="h-4 px-1.5 text-[10px] bg-amber-500/15 text-amber-600 border-amber-500/30">
+                {buckets.action_needed}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="closed" className="gap-1.5 text-xs">
+            Closed
+            {buckets && buckets.closed > 0 && (
+              <Badge variant="outline" className="h-4 px-1.5 text-[10px]">
+                {buckets.closed}
+              </Badge>
+            )}
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value={activeTab} className="mt-4 space-y-3">
-          {loading ? (
-            [1, 2].map((i) => <Skeleton key={i} className="h-32 w-full rounded-lg" />)
-          ) : filtered.length === 0 ? (
-            <Card className="py-12 text-center border-dashed">
-              <CardContent className="space-y-3">
-                <SearchX className="h-10 w-10 text-muted-foreground/30 mx-auto" />
-                <div>
-                  <h3 className="font-semibold">No applications here</h3>
-                  <p className="text-sm text-muted-foreground mt-1">Apply to jobs and they'll show up here.</p>
-                </div>
-                <Button onClick={() => navigate("/app/jobs")} size="sm">Browse jobs</Button>
+        <TabsContent value={tab} className="mt-3 space-y-2">
+          {loading && (
+            <>
+              <Skeleton className="h-20 w-full rounded-2xl" />
+              <Skeleton className="h-20 w-full rounded-2xl" />
+            </>
+          )}
+          {!loading && filtered.length === 0 && (
+            <Card className="border-dashed">
+              <CardContent className="p-8 text-center space-y-2">
+                <SearchX className="h-8 w-8 text-muted-foreground/50 mx-auto" />
+                <p className="text-sm font-medium">
+                  {tab === "active" && "No active applications."}
+                  {tab === "action_needed" && "Nothing needs your attention."}
+                  {tab === "closed" && "No closed applications yet."}
+                </p>
+                {tab === "active" && (
+                  <Button variant="outline" size="sm" onClick={() => navigate("/app/jobs")}>
+                    <Briefcase className="h-4 w-4 mr-2" /> Browse jobs
+                  </Button>
+                )}
               </CardContent>
             </Card>
-          ) : (
-            filtered.map((app) => (
-              <ApplicationCard
-                key={app.id}
-                application={app}
-                isGenerating={generatingId === app.id}
-                onTake={(id: string) => navigate(`/app/job-assessment/${id}`)}
-                onViewResult={(id: string) => navigate(`/app/job-assessment/${id}/results`)}
-                onGenerate={async (a: Application) => {
-                  setGeneratingId(a.id);
-                  try {
-                    await supabase.functions.invoke("generate-job-assessment", {
-                      body: { jobId: a.job_id, talentId: talent!.id, jobApplicationId: a.id },
-                    });
-                    await fetchApplications(true);
-                  } catch {
-                    toast.error("Couldn't generate the assessment. Try again.");
-                  } finally {
-                    setGeneratingId(null);
-                  }
-                }}
-              />
-            ))
           )}
+
+          {!loading &&
+            filtered.map((r) => {
+              const pill = STATUS_PILL[r.application_status] || STATUS_PILL.submitted;
+              const PillIcon = pill.icon;
+              const needsAssessment =
+                r.job?.ai_assessment_enabled &&
+                ACTIVE.includes(r.application_status) &&
+                (!r.assessment || r.assessment.status !== "completed");
+              return (
+                <Card
+                  key={r.id}
+                  className="cursor-pointer hover:border-primary/40 transition-all"
+                  onClick={() => navigate(`/app/applications/${r.id}`)}
+                >
+                  <CardContent className="p-3 flex items-center gap-3">
+                    <div className="h-11 w-11 rounded-xl bg-primary/5 border border-border/40 flex items-center justify-center shrink-0 overflow-hidden">
+                      {r.job?.company_logo_url ? (
+                        <img src={r.job.company_logo_url} alt="" className="object-cover w-full h-full" />
+                      ) : (
+                        <Building2 className="h-5 w-5 text-primary" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold truncate">{r.job?.title || "Job"}</p>
+                      <p className="text-[11px] text-muted-foreground truncate">
+                        {r.job?.company_name} ·{" "}
+                        {formatDistanceToNow(new Date(r.last_status_at || r.created_at), { addSuffix: true })}
+                      </p>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        <Badge variant="outline" className={cn("text-[10px] gap-1", pill.className)}>
+                          <PillIcon className="h-2.5 w-2.5" /> {pill.label}
+                        </Badge>
+                        {needsAssessment && (
+                          <Badge className="text-[10px] gap-1 bg-amber-500/10 text-amber-600 border-amber-500/30">
+                            <Brain className="h-2.5 w-2.5" /> Assessment due
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                  </CardContent>
+                </Card>
+              );
+            })}
         </TabsContent>
       </Tabs>
     </div>
