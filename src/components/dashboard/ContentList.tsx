@@ -65,6 +65,10 @@ interface Content {
   is_ready: boolean | null;
   instructor_name: string | null;
   event_date: string | null;
+  event_timezone: string | null;
+  event_duration_minutes: number | null;
+  venue_name: string | null;
+  youtube_url: string | null;
   max_capacity: number | null;
   current_enrollment: number;
   profession_line_id: string | null;
