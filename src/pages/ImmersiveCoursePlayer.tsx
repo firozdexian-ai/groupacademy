@@ -35,17 +35,11 @@ import { usePlayerHotkeys } from "@/hooks/usePlayerHotkeys";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-interface ModuleProgressState {
-  completedStages: number[];
-  isComplete: boolean;
-}
-
 export default function ImmersiveCoursePlayer() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [currentModuleId, setCurrentModuleId] = useState<string | undefined>();
-  const [moduleProgress, setModuleProgress] = useState<Record<string, ModuleProgressState>>({});
+  const [currentStage, setCurrentStage] = useState(1);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [resumed, setResumed] = useState(false);
 
@@ -144,65 +138,40 @@ export default function ImmersiveCoursePlayer() {
     timeout: TIMEOUTS.DEFAULT,
   });
 
-  const { data: allModuleProgress = [] } = useQueryWithTimeout({
-    queryKey: ["all-module-progress", enrollment?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("enrollment_stage_progress")
-        .select("module_id, completed_stages")
-        .eq("enrollment_id", enrollment!.id);
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!enrollment?.id,
-    timeout: TIMEOUTS.DEFAULT,
-  });
+  // Unified progress engine (DB-backed via module_progress + triggers)
+  const {
+    modules: progressModules,
+    overallPct,
+    currentModuleId,
+    setCurrentModule,
+    markStageComplete,
+    isStageUnlocked,
+    isStageCompleted,
+    getCurrentStage,
+  } = useProgress({ enrollmentId: enrollment?.id, contentId: content?.id });
 
-  // Resume-where-you-left-off (runs once after enrollment + modules + progress hydrate)
+  // Resume-where-you-left-off: align local stage with engine's currentModuleId
   useEffect(() => {
-    if (resumed || modules.length === 0) return;
-    // Wait for progress data when an enrollment exists
-    if (enrollment?.id && allModuleProgress === undefined) return;
-
-    let resumeModuleId: string | undefined = enrollment?.current_module_id ?? undefined;
-    if (!resumeModuleId && allModuleProgress?.length) {
-      // pick module with most completed stages
-      const ranked = [...allModuleProgress].sort(
-        (a, b) =>
-          ((b.completed_stages as number[])?.length ?? 0) -
-          ((a.completed_stages as number[])?.length ?? 0),
-      );
-      resumeModuleId = ranked[0]?.module_id ?? undefined;
-    }
-    if (!resumeModuleId) resumeModuleId = modules[0].id;
-    setCurrentModuleId(resumeModuleId);
+    if (resumed || !currentModuleId) return;
+    setCurrentStage(getCurrentStage(currentModuleId));
     setResumed(true);
-  }, [modules, enrollment, allModuleProgress, resumed]);
+  }, [resumed, currentModuleId, getCurrentStage]);
 
-  const { data: stageResources = [] } = useModuleResourcesByStage(currentModuleId);
+  const { data: stageResources = [] } = useModuleResourcesByStage(currentModuleId ?? undefined);
 
-  const { completedStages, currentStage, setCurrentStage, markStageComplete, goToStage, resetForModule } =
-    useStageProgress({
-      enrollmentId: enrollment?.id,
-      moduleId: currentModuleId,
-    });
-
+  const completedStages = progressModules.find((m) => m.moduleId === currentModuleId)?.stagesCompleted ?? [];
   const currentModule = modules.find((m) => m.id === currentModuleId);
   const currentModuleIndex = modules.findIndex((m) => m.id === currentModuleId);
-  const hasNextModule = currentModuleIndex < modules.length - 1;
+  const hasNextModule = currentModuleIndex >= 0 && currentModuleIndex < modules.length - 1;
 
-  // Handlers
+  const goToStage = (stage: number) => {
+    if (!currentModuleId) return;
+    if (isStageUnlocked(currentModuleId, stage)) setCurrentStage(stage);
+  };
+
   const handleStageComplete = async (stageNumber: number) => {
-    await markStageComplete(stageNumber);
-    if (currentModuleId) {
-      setModuleProgress((prev) => ({
-        ...prev,
-        [currentModuleId]: {
-          completedStages: Array.from(new Set([...(prev[currentModuleId]?.completedStages || []), stageNumber])),
-          isComplete: stageNumber >= 5,
-        },
-      }));
-    }
+    if (!currentModuleId) return;
+    await markStageComplete(currentModuleId, stageNumber);
     if (stageNumber < 6) setCurrentStage(stageNumber + 1);
     toast.success(`Milestone ${stageNumber} Synchronized`);
   };
@@ -212,25 +181,20 @@ export default function ImmersiveCoursePlayer() {
     else toast.error("Performance threshold not met. Review material.");
   };
 
-  // Persist current_module_id whenever it changes (debounced)
-  useEffect(() => {
-    if (!enrollment?.id || !currentModuleId) return;
-    const t = setTimeout(() => {
-      supabase
-        .from("enrollments")
-        .update({ current_module_id: currentModuleId, last_accessed_at: new Date().toISOString() })
-        .eq("id", enrollment.id)
-        .then(() => {});
-    }, 500);
-    return () => clearTimeout(t);
-  }, [currentModuleId, enrollment?.id]);
-
   const handlePrevModule = () => {
     if (currentModuleIndex > 0) {
-      const prev = modules[currentModuleIndex - 1];
-      resetForModule(prev.id);
-      setCurrentModuleId(prev.id);
+      setCurrentModule(modules[currentModuleIndex - 1].id);
       setCurrentStage(1);
+    }
+  };
+
+  const handleNextModule = async () => {
+    if (hasNextModule) {
+      setCurrentModule(modules[currentModuleIndex + 1].id);
+      setCurrentStage(1);
+    } else {
+      toast.success("Academy Curriculum Mastered!");
+      navigate("/app/learning/my-courses");
     }
   };
 
@@ -240,34 +204,21 @@ export default function ImmersiveCoursePlayer() {
     onNextStage: () => currentStage < 6 && goToStage(currentStage + 1),
     onPrevModule: handlePrevModule,
     onNextModule: () => hasNextModule && handleNextModule(),
-    onComplete: () => !completedStages.includes(currentStage) && handleStageComplete(currentStage),
+    onComplete: () =>
+      currentModuleId && !isStageCompleted(currentModuleId, currentStage) && handleStageComplete(currentStage),
     onShowShortcuts: () => setShortcutsOpen(true),
   });
 
-  const handleNextModule = async () => {
-    if (hasNextModule) {
-      const nextModule = modules[currentModuleIndex + 1];
-      resetForModule(nextModule.id);
-      setCurrentModuleId(nextModule.id);
-      setCurrentStage(1);
-    } else {
-      if (enrollment?.id) {
-        await supabase
-          .from("enrollments")
-          .update({ status: "completed", completed_at: new Date().toISOString(), progress: 100 })
-          .eq("id", enrollment.id);
-      }
-      toast.success("Academy Curriculum Mastered!");
-      navigate("/app/learning/my-courses");
-    }
-  };
-
-  const totalStages = modules.length * 6;
-  const persistedTotal = allModuleProgress.reduce(
-    (sum, mp) => sum + ((mp.completed_stages as number[])?.length || 0),
-    0,
+  // moduleProgress shape for ImmersiveModuleList
+  const moduleProgress = progressModules.reduce<Record<string, { completedStages: number[]; isComplete: boolean }>>(
+    (acc, m) => {
+      acc[m.moduleId] = { completedStages: m.stagesCompleted, isComplete: m.progressPct >= 100 };
+      return acc;
+    },
+    {},
   );
-  const overallProgress = totalStages > 0 ? Math.min((persistedTotal / totalStages) * 100, 100) : 0;
+
+  const overallProgress = overallPct;
 
   if (contentLoading || modulesLoading || enrollmentLoading)
     return (
