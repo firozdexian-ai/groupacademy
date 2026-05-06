@@ -35,15 +35,24 @@ import { Input } from "@/components/ui/input";
 import { JobPreferencesSheet } from "@/components/jobs/JobPreferencesSheet";
 import { JobCard, type JobCardData } from "@/components/jobs/JobCard";
 import { ProfileCompletenessGate } from "@/components/jobs/ProfileCompletenessGate";
+import { CompanyCard } from "@/components/jobs/CompanyCard";
+import { CountryCard } from "@/components/jobs/CountryCard";
+import { CompanyDetailSheet } from "@/components/jobs/CompanyDetailSheet";
 import { useTrendingJobs } from "@/hooks/useTrendingJobs";
 import { useJobsInField } from "@/hooks/useJobsInField";
 import { useJobTypeCounts } from "@/hooks/useJobTypeCounts";
+import { useCompaniesWithSignal } from "@/hooks/useCompaniesWithSignal";
+import { useFollowedCompanies } from "@/hooks/useFollowedCompanies";
+import { useCountriesWithSignal } from "@/hooks/useCountriesWithSignal";
+import { useRemoteFriendly } from "@/hooks/useRemoteFriendly";
 import { JOB_COLLECTIONS } from "@/lib/constants/jobTypes";
 import { toast } from "sonner";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ProcessingCard, type ProcessingStage } from "@/components/ui/processing-card";
 import { AgentAvatar } from "@/components/ai-agents/AgentAvatar";
 import { cn } from "@/lib/utils";
+import { Switch } from "@/components/ui/switch";
+import { Wifi } from "lucide-react";
 
 const AI_PROCESSING_STAGES: ProcessingStage[] = [
   { progress: 0, message: "Reading your profile..." },
