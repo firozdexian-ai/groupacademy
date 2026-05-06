@@ -38,20 +38,26 @@ export function ScoreMeJobPicker({ open, onOpenChange }: Props) {
         const seen = new Set<string>();
 
         if (uid) {
-          const { data: saved } = await supabase
+          const savedRes: any = await supabase
             .from("saved_items")
-            .select("item_id, jobs:item_id(id, title, company_name)")
+            .select("item_id")
             .eq("user_id", uid)
             .eq("item_type", "job")
             .order("created_at", { ascending: false })
             .limit(20);
-          (saved || []).forEach((row: any) => {
-            const j = row.jobs;
-            if (j?.id && !seen.has(j.id)) {
-              seen.add(j.id);
-              out.push({ id: j.id, title: j.title, company_name: j.company_name, source: "saved" });
-            }
-          });
+          const savedIds = (savedRes.data || []).map((r: any) => r.item_id);
+          if (savedIds.length) {
+            const { data: savedJobs } = await supabase
+              .from("jobs")
+              .select("id, title, company_name")
+              .in("id", savedIds);
+            (savedJobs || []).forEach((j: any) => {
+              if (!seen.has(j.id)) {
+                seen.add(j.id);
+                out.push({ id: j.id, title: j.title, company_name: j.company_name, source: "saved" });
+              }
+            });
+          }
         }
 
         const { data: recent } = await supabase
