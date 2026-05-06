@@ -11,12 +11,14 @@ import {
   RefreshCw,
   Clock,
   ChevronRight,
+  MessageSquare,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useReviewQueue, type ReviewTopic } from "@/hooks/useReviewQueue";
 import { formatDistanceToNowStrict } from "date-fns";
+import { ModuleScenarioRunner } from "@/components/learning/ModuleScenarioRunner";
 
 interface TopicResult {
   score: number;
