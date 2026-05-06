@@ -153,6 +153,8 @@ export default function Feed() {
             isRefreshing={isRefreshing}
           />
 
+          <BannerCarousel placement="carousel" />
+
           <QuickActionsGrid />
 
           <div className="rounded-2xl overflow-hidden border border-border/40 bg-card">
