@@ -13,7 +13,7 @@ export function useRemoteFriendly() {
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_remote_friendly_summary");
       if (error) throw error;
-      return (data ?? { active_jobs: 0, jobs_last_14d: 0, top_companies: [] }) as RemoteFriendlySummary;
+      return (data ?? { active_jobs: 0, jobs_last_14d: 0, top_companies: [] }) as unknown as RemoteFriendlySummary;
     },
     staleTime: 5 * 60 * 1000,
   });
