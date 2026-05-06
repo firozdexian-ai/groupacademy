@@ -36,7 +36,14 @@ serve(async (req) => {
     } = await supabaseAuth.auth.getUser();
     if (authError || !user) return new Response("Unauthorized", { status: 401, headers: corsHeaders });
 
-    const { messages, professionLineId, contextType, contextId } = await req.json();
+    const { messages, professionLineId, contextType, contextId, moduleId, contentId } = await req.json();
+
+    // Resolve talentId for mastery context
+    let talentId: string | null = null;
+    try {
+      const { data: t } = await supabaseAdmin.from("talents").select("id").eq("user_id", user.id).maybeSingle();
+      talentId = t?.id || null;
+    } catch (_) {}
 
     // PHASE: Hierarchical_Context_Hydration
     let systemPrompt = "You are a professional academic coach at GroUp Academy.";
@@ -84,7 +91,35 @@ serve(async (req) => {
       }
     }
 
-    // ACTION: Initiate Streaming AI Handshake
+    // PHASE: Mastery_Context_Injection
+    if (talentId) {
+      try {
+        const { data: ctx } = await supabaseAdmin.rpc("get_tutor_mastery_context", {
+          _talent_id: talentId,
+          _module_id: moduleId || null,
+          _content_id: contentId || null,
+        });
+        if (ctx) {
+          const weak = (ctx.weak_topics || []).map((t: any) => `${t.tag} (${Math.round(t.mastery * 100)}%)`).join(", ") || "none";
+          const strong = (ctx.strong_topics || []).map((t: any) => `${t.tag} (${Math.round(t.mastery * 100)}%)`).join(", ") || "none";
+          const creds = (ctx.credentials || []).map((c: any) => `${c.tag}:${c.level}`).join(", ") || "none";
+          const last = ctx.last_scenario
+            ? `${ctx.last_scenario.tag} (${Math.round((ctx.last_scenario.mastery || 0) * 100)}%)`
+            : "none";
+          systemPrompt += `\n\nLEARNER MASTERY SNAPSHOT (authoritative; use to personalize coaching)
+- Weak topics: ${weak}
+- Strong topics: ${strong}
+- Earned credentials: ${creds}
+- Items due for spaced review: ${ctx.due_for_review_count || 0}
+- Last scenario: ${last}
+
+Coach toward weak topics first. Reference their wins by name. If they ask "what should I study", recommend the weakest topic and link to /app/talent-mirror. Keep replies concise and actionable.`.slice(0, 1500);
+        }
+      } catch (e) {
+        console.error("mastery context fetch failed", e);
+      }
+    }
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 90000);
 

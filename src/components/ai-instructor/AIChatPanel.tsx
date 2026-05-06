@@ -1,13 +1,15 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Send, Bot, User, Loader2, Sparkles, RefreshCw, Zap, ShieldCheck } from "lucide-react";
+import { Send, Bot, User, Loader2, Sparkles, RefreshCw, Zap, ShieldCheck, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { useTutorMasteryContext } from "@/hooks/useTutorMasteryContext";
 
 /**
  * GroUp Academy: Neural Instructor Interface
@@ -23,6 +25,8 @@ interface AIChatPanelProps {
   professionLineId?: string;
   contextType?: "general" | "course" | "module";
   contextId?: string;
+  moduleId?: string;
+  contentId?: string;
   instructorName?: string;
   placeholder?: string;
   className?: string;
@@ -35,6 +39,8 @@ export function AIChatPanel({
   professionLineId,
   contextType = "general",
   contextId,
+  moduleId,
+  contentId,
   instructorName = "Neural Instructor",
   placeholder = "Initialize query regarding trajectory or curriculum...",
   className = "",
@@ -43,9 +49,34 @@ export function AIChatPanel({
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [hintDismissed, setHintDismissed] = useState(false);
   const [lastError, setLastError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  const { data: masteryCtx } = useTutorMasteryContext({
+    moduleId: moduleId || (contextType === "module" ? contextId : undefined),
+    contentId: contentId || (contextType === "course" ? contextId : undefined),
+  });
+
+  const starterPrompts = useMemo(() => {
+    const out: { label: string; prompt: string }[] = [];
+    if (!masteryCtx) return out;
+    const weakest = masteryCtx.weak_topics?.[0];
+    if (weakest) {
+      out.push({
+        label: `Help me with: ${weakest.tag}`,
+        prompt: `Help me improve at "${weakest.tag}". Explain it simply and give me one practice question.`,
+      });
+    }
+    if ((masteryCtx.due_for_review_count || 0) > 0) {
+      out.push({
+        label: `Quick review: ${masteryCtx.due_for_review_count} items`,
+        prompt: `I have ${masteryCtx.due_for_review_count} items due for review. Quiz me on the most important one first.`,
+      });
+    }
+    return out;
+  }, [masteryCtx]);
 
   // PROTOCOL: Viewport Auto-Sync
   useEffect(() => {
@@ -80,6 +111,8 @@ export function AIChatPanel({
           professionLineId,
           contextType,
           contextId,
+          moduleId: moduleId || (contextType === "module" ? contextId : undefined),
+          contentId: contentId || (contextType === "course" ? contextId : undefined),
         }),
         signal: abortControllerRef.current.signal,
       });
@@ -98,11 +131,12 @@ export function AIChatPanel({
     }
   };
 
-  const handleMessageIngress = async (e?: React.FormEvent) => {
+  const handleMessageIngress = async (e?: React.FormEvent, override?: string) => {
     e?.preventDefault();
-    if (!input.trim() || isLoading) return;
+    const text = (override ?? input).trim();
+    if (!text || isLoading) return;
 
-    const userPayload: Message = { role: "user", content: input.trim() };
+    const userPayload: Message = { role: "user", content: text };
     const trajectory = [...messages, userPayload];
 
     setMessages(trajectory);
@@ -206,6 +240,36 @@ export function AIChatPanel({
             <p className="text-[10px] font-medium text-muted-foreground/30 italic max-w-[200px] leading-relaxed">
               {placeholder}
             </p>
+
+            {!hintDismissed && masteryCtx && (masteryCtx.weak_topics?.length || masteryCtx.credentials?.length) ? (
+              <div className="mt-6 max-w-[280px] flex items-start gap-2 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-left">
+                <ShieldCheck className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
+                <p className="text-[11px] text-foreground/80 italic leading-snug">
+                  Tutor knows your progress — weak topics, credentials, and items due for review.
+                </p>
+                <button
+                  onClick={() => setHintDismissed(true)}
+                  className="text-muted-foreground/40 hover:text-foreground"
+                  aria-label="Dismiss"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ) : null}
+
+            {starterPrompts.length > 0 && (
+              <div className="mt-5 flex flex-wrap gap-2 justify-center max-w-[300px]">
+                {starterPrompts.map((s) => (
+                  <button
+                    key={s.label}
+                    onClick={() => handleMessageIngress(undefined, s.prompt)}
+                    className="rounded-full border-2 border-primary/20 bg-primary/5 px-3 py-1.5 text-[10px] font-semibold text-primary hover:bg-primary/10 transition"
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         ) : (
           <div className="space-y-6">

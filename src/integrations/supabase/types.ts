@@ -11356,6 +11356,10 @@ export type Database = {
         Args: { _recipient: string }
         Returns: number
       }
+      get_tutor_mastery_context: {
+        Args: { _content_id?: string; _module_id?: string; _talent_id: string }
+        Returns: Json
+      }
       get_weekly_winners: {
         Args: { _end: string; _start: string }
         Returns: {
