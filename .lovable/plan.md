@@ -1,109 +1,102 @@
-# Phase 1.3 — Onboarding Restructure (Talent Side)
+# Phase 1.4 — AI Career Coach (Talent Side)
 
-Goal: turn the current 3-step "robotic" wizard into a tight, human, mobile-first flow that captures the **infrastructural pillars** (profession category → professional role → current status → goal) and uses the freshly-added `cv_fingerprint` to block obvious duplicate-account abuse. No Career Coach yet (that's 1.4).
+Goal: now that 1.3 captures **profession_category_id**, **professional_role_id**, **current_status**, and **primary_goal**, turn that data into a working **personal Career Coach** for every talent. Reuse the existing `ai_instructors` table (78 active, one per profession category — `Career Coaching` already exists as a fallback) and the streaming `ai-instructor-chat` edge function. No new model, no new chat surface — just the **routing, persona injection, and entry points**.
 
 ## Findings from current code
 
-1. **Wizard** (`OnboardingWizard.tsx`) has 3 nodes: `welcome` → `profile` (CV upload) → `explore` (services tour). The `profile` step is **only** CV upload; profession/role/goal capture is missing entirely. `ProfileQuickSetup.tsx` exists but is **orphan code** — never rendered.
-2. **CV step** (`CVUploadStep.tsx`) still carries leftover sci-fi terms (`REGISTRY_SYNC`, `DROPSHIP_ZONE`, `ARTIFACT_AUDIT`, `handleExecutiveUpload`) and uppercase headings like "PROFILE UPDATED". Cleanup left over from 1.1.
-3. **CV parse** writes only `full_name` back to `talents`; `experience`, `education`, `skills` are extracted but **discarded**. They live in `talents.experience/education/skills` JSONB columns — there's no merge.
-4. **No fingerprint computation** during parse, so the 1.2 `cv_fingerprint` column stays empty. We need to compute and persist it, then check duplicates before awarding the 250-credit welcome bonus.
-5. **Welcome credits** are awarded inside `useOnboarding.completeOnboarding` purely on row-presence in `talent_credits`. That makes credit farming trivial right now (delete account, sign up again with a different email + same CV).
-6. **Profession infrastructure ready**: `profession_categories` (83 active), `professional_roles` (829 rows, FK to category). `talents.profession_category_id` and `talents.professional_role_id` columns already exist.
-7. **No goal capture** anywhere. Downstream features (jobs match, AI concierge, agents hub) all want it.
-8. **Mobile**: current wizard pages render fine but with desktop-tier headings (`text-4xl md:text-5xl font-black`). Per memory rules they need compact spacing and notched safe-bottom.
+1. **`ai_instructors`** has 78 active rows, one per `profession_category` (FK `profession_line_id` → `profession_categories.id`). Each row already carries `name`, `persona`, `system_prompt`, `expertise_areas`. Coverage of the 83 categories is near-complete; gaps include `Fresh Graduate` (no instructor) — needs a fallback.
+2. **`ai-instructor-chat` edge function** already streams via Lovable AI, hydrates curriculum KB and `get_tutor_mastery_context`. It accepts `professionLineId` and builds a system prompt from instructor + school + curriculum. **No goal/status/role injection today.**
+3. **No "Career Coach" entry point** — `AICoachConsoleTab` / `AishaConsoleTab` exist as `AgentRedirectStub`s pointing into the agentic dashboard, but there's no per-talent default coach binding. Aisha (the auth/general agent) is separate from the per-profession coach.
+4. **Talent already has** `profession_category_id`, `professional_role_id`, `current_status`, `primary_goal`, `experience/education/skills`. All of this is unused by `ai-instructor-chat`.
+5. **Concierge memory** says `ai-general` (agent_key) is the free-forever platform concierge. Career Coach is **different**: it's persona-bound, profession-bound, and lives next to AI General — not a replacement.
 
 ## Plan
 
-### 1.3.a — Restructure wizard to 5 steps
+### 1.4.a — DB: bind a coach to each talent
 
-```text
-1. Welcome           → keep; tighten copy; reuse WelcomeBonus
-2. CV (optional)     → CVUploadStep, refactored
-3. Profession + Role → NEW: ProfessionStep
-4. Status + Goal     → NEW: GoalStep
-5. Quick tour        → keep; ServicesTour (slim)
-```
+- Migration:
+  - `ALTER TABLE talents ADD COLUMN career_coach_instructor_id uuid REFERENCES ai_instructors(id) ON DELETE SET NULL;`
+  - `CREATE INDEX idx_talents_career_coach ON talents(career_coach_instructor_id);`
+  - SECURITY DEFINER function `assign_career_coach(_talent_id uuid) RETURNS uuid` that:
+    1. Looks up talent's `profession_category_id`.
+    2. Picks the `ai_instructors` row for that category (active).
+    3. Falls back to the `Career Coaching` instructor (id resolved by name) if none.
+    4. Writes `talents.career_coach_instructor_id` and returns the id.
+  - Set `search_path = public` (per platform memory).
+- Backfill query in the migration: `UPDATE talents SET career_coach_instructor_id = (SELECT id FROM ai_instructors WHERE profession_line_id = talents.profession_category_id AND is_active LIMIT 1) WHERE career_coach_instructor_id IS NULL AND profession_category_id IS NOT NULL;`
 
-- `ONBOARDING_NODES` updated; `useOnboarding.updateStep` already persists step index.
-- CV step gets a clear **Skip for now** (already exists; relabel to "I'll add it later"). If CV is uploaded successfully, **prefill** profession step from extracted titles via a tiny RPC.
-- Mobile: replace `text-4xl md:text-5xl font-black` with `text-2xl md:text-3xl font-bold`, drop wide paddings, add `pb-[env(safe-area-inset-bottom)]` on action bars.
+### 1.4.b — Auto-assign at end of onboarding
 
-### 1.3.b — ProfessionStep (NEW)
+- In `useOnboarding.completeOnboarding`, after the existing welcome-credit gating, call `supabase.rpc("assign_career_coach", { _talent_id })`.
+- Also call it in `ProfessionStep`'s save handler so a coach is bound the moment profession is chosen — not only after step 5.
+- If `assign_career_coach` returns null (no match + no fallback), surface a soft toast and continue (non-blocking).
 
-- Two cascaded selects:
-  - **Profession Category** (search-as-you-type combobox over the 83 active categories)
-  - **Professional Role** (combobox over `professional_roles WHERE profession_category_id = $cat`, 829 rows)
-- Both are required to advance; "Other / not listed" option writes to existing `talents.custom_profession` (no schema change).
-- Saves `profession_category_id`, `professional_role_id`, optional `custom_profession`.
-- Powers the Career Coach selection in 1.4.
+### 1.4.c — Inject onboarding context into `ai-instructor-chat`
 
-### 1.3.c — GoalStep (NEW)
+Edge function `supabase/functions/ai-instructor-chat/index.ts`:
 
-- **Current status** (radio): student / fresh graduate / actively looking / employed / freelancer / career changer. Maps to existing `talents.current_status` (text — no schema change).
-- **Primary goal** (single-select chips): land first job / switch role / get promoted / freelance & earn / learn a new skill / study abroad / build my own thing.
-- Goal needs a column. **Migration**: add `talents.primary_goal TEXT` + check on a fixed enum-like list enforced by a validation **trigger** (per platform memory — never CHECK constraints with mutable logic; here the list is static, but we use a trigger to remain consistent with existing convention).
-- Both are persisted; goal becomes the seed for AI concierge dynamic chips and for the Career Coach intro in 1.4.
+- Already loads instructor + curriculum + mastery. **Add**:
+  - Resolve talent row (already does, for `talentId`).
+  - Pull `current_status`, `primary_goal`, `professional_roles.name` (via FK from `talents.professional_role_id`), top 5 `skills`, last `experience.title @ company`.
+  - Inject a **CAREER PROFILE** block into `systemPrompt` after the institutional block:
+    ```
+    CAREER PROFILE (use to ground every reply)
+    - Goal: {primary_goal}
+    - Status: {current_status}
+    - Target role: {professional_role.name}
+    - Recent role: {experience[0].title @ company}
+    - Top skills: {top 5 skills}
+    Coach toward {primary_goal}. Be direct, practical, name a next step in every reply.
+    ```
+- Keep injection ≤ 1.5 KB.
+- New optional payload field `mode: "career_coach" | "tutor"` so the existing tutor flows on `/app/courses/...` are unchanged. When `mode === "career_coach"`, skip the curriculum KB block (it's noise for career chat).
 
-### 1.3.d — CV parse → write everything back, compute fingerprint
+### 1.4.d — Career Coach surface
 
-- In `CVUploadStep.handleExecutiveUpload` (renamed `handleCVUpload`) merge parsed fields into `talents`:
-  - `experience`, `education`, `skills` JSONB → only when current value is empty / null (don't overwrite user-edited data).
-  - `linkedin_url`, `portfolio_url` if extracted.
-- Compute `cv_fingerprint` client-side from `parseResult.parsed`:
-  - Normalised string of `[skills sorted | experience.company+title sorted | education.institution+degree sorted]`
-  - SHA-256 (Web Crypto), hex string.
-- Persist on `talents.cv_fingerprint`.
-- **Duplicate check**: edge function `check-cv-duplicate` (server-side, security definer RPC) returns `{ duplicate: boolean, otherTalentCount: number }`. If `duplicate && otherTalentCount > 0`, set a flag on the talent (`is_suspected_duplicate boolean`, new column) and **suppress the welcome credit award** in `completeOnboarding`. User can still finish onboarding and use the platform; admins see the flag in Talent admin (already a known surface in admin memory).
-- This is the **anti-abuse mechanism** the user asked for. No blocking, no friction for legit users — just no free credits for repeats.
+Two minimal entry points, no new chat UI from scratch — reuse existing chat panel infra.
 
-### 1.3.e — Welcome credits gating
+1. **Dashboard tile** on the talent dashboard quick actions grid:
+   - "Talk to your Coach" → routes to `/app/career-coach`.
+   - Subtitle shows the bound coach's `name` (fallback "Career Coach").
+2. **New page** `src/pages/app/CareerCoach.tsx`:
+   - Reads `talents.career_coach_instructor_id`. If null, calls `assign_career_coach` on mount.
+   - Renders `AIChatPanel` (existing) wired to `ai-instructor-chat` with `professionLineId` (from instructor row) and `mode: "career_coach"`.
+   - **Seed first message** when there are no prior messages: a server-side starter built from goal+role: e.g. `"Hi {first_name}, I'm {coach.name}. You said your goal is to {goal label}. Want to start with a 30-day plan or fix your CV first?"` — render as the first assistant bubble (not user-sent).
+   - Persists thread via existing `agent_chat_sessions` (use `agent_key = 'career-coach'`; insert a row in `ai_agents` for `career-coach` if not present, mirroring the `ai-general` pattern).
+3. Update `AICoachConsoleTab` (currently a redirect stub) to point at `/app/career-coach` instead of the generic agent route.
 
-- Update `useOnboarding.completeOnboarding`:
-  - Read `talent.is_suspected_duplicate` (and existing `talent_credits` row).
-  - Only call `addCredits(250, "welcome_bonus", …)` if neither is true.
-  - Otherwise show a softer success toast: "You're all set — explore the platform!" (no credit mention).
+### 1.4.e — Concierge ↔ Coach handoff
 
-### 1.3.f — Copy & UX polish (carries on 1.1)
+- In `useAIGeneralChat`'s system prompt (server side, already markdown-link-aware), append: "When the user asks for career planning, CV feedback, interview prep, or skill gaps — recommend they open their Career Coach: `[Open your Career Coach](/app/career-coach)`."
+- No code changes on the client; just a system-prompt append in whatever edge function `ai-general` uses (verify location during implementation).
 
-- Remove residual `REGISTRY_SYNC`, `DROPSHIP_ZONE`, `ARTIFACT_AUDIT`, `VISUAL_ID_HANGER`, `handle*Ingress` names.
-- Replace ALL-CAPS micro-labels (`PROFILE UPDATED`, `SKILLS FOUND`, etc.) with sentence case.
-- Header in `OnboardingWizard.tsx` already simplified; ensure `Skip for now` is a low-emphasis text button (per UX rules — it's currently fine, just verify mobile spacing).
+### 1.4.f — Telemetry (light, same pattern as 1.3)
 
-### 1.3.g — Telemetry hook (light)
-
-- Add a thin `trackOnboardingStep(step, action)` helper writing to `console.debug` for now (proper `talent_funnel_events` table comes in 1.5). Wire it on each step's `next` and on `skipOnboarding`. **No DB writes in 1.3.**
+- Reuse `src/lib/onboarding/telemetry.ts` shape; add `trackCoachEvent("opened" | "first_message" | "session_resume")` writing to `console.debug`. Real table comes in 1.5.
 
 ## Files changed (planned)
 
-- `src/components/onboarding/OnboardingWizard.tsx` — 5-step `ONBOARDING_NODES`, mobile spacing
-- `src/components/onboarding/CVUploadStep.tsx` — merge parsed fields, compute & persist fingerprint, copy cleanup
-- `src/components/onboarding/ProfileQuickSetup.tsx` — **delete** (orphan; replaced by ProfessionStep + GoalStep)
-- `src/components/onboarding/ProfessionStep.tsx` — **new** (cascaded comboboxes)
-- `src/components/onboarding/GoalStep.tsx` — **new** (status + goal chips)
-- `src/components/onboarding/WelcomeBonus.tsx` — copy tighten only
-- `src/components/onboarding/ServicesTour.tsx` — copy tighten + mobile spacing
-- `src/hooks/useOnboarding.ts` — gate welcome credits on `is_suspected_duplicate`
-- `src/lib/onboarding/cvFingerprint.ts` — **new** SHA-256 helper
-- `src/lib/onboarding/telemetry.ts` — **new** thin tracker stub
-- `supabase/functions/check-cv-duplicate/` — **new** edge function
-- DB migration:
-  - `ALTER TABLE talents ADD COLUMN primary_goal TEXT`
-  - `ALTER TABLE talents ADD COLUMN is_suspected_duplicate BOOLEAN DEFAULT false`
-  - `CREATE INDEX idx_talents_is_suspected_duplicate WHERE is_suspected_duplicate = true`
-  - Validation trigger for `primary_goal` (allowed list)
-  - Server-side RPC `check_cv_duplicate(_fingerprint TEXT, _self_user_id UUID) RETURNS TABLE(duplicate boolean, other_count int)` (SECURITY DEFINER, `search_path = public`)
+- `supabase/migrations/<ts>_career_coach.sql` — new column, index, `assign_career_coach` RPC, backfill
+- `supabase/functions/ai-instructor-chat/index.ts` — career-profile context block, `mode` switch
+- `src/hooks/useOnboarding.ts` — call `assign_career_coach` on completion
+- `src/components/onboarding/ProfessionStep.tsx` — call `assign_career_coach` after save
+- `src/pages/app/CareerCoach.tsx` — new page, reuses `AIChatPanel`
+- `src/components/ai-instructor/AIChatPanel.tsx` — accept optional `seedAssistantMessage` + `mode` props (small additive change)
+- `src/components/dashboard/talent/AICoachConsoleTab.tsx` (or equivalent quick-action card) — link to `/app/career-coach`
+- `src/App.tsx` — route `/app/career-coach`
+- `src/lib/onboarding/telemetry.ts` — `trackCoachEvent`
 
 ## Out of scope (deferred)
 
-- Career Coach persona / `ai-career-coach` edge function → 1.4
-- Profile groomer chat / per-profession agent → 1.4
-- `talent_funnel_events` analytics table → 1.5
-- WhatsApp connect, email verification, phone verification → "Profile Verification" phase
-- Admin UI surface for `is_suspected_duplicate` flag (the column ships now; admin filter chip is a tiny later add — not blocking)
+- Profile groomer / CV-rewrite tools inside the coach chat → 1.5
+- Voice mode, mock interview launcher inside coach → later
+- Per-goal sub-personas (one coach per `primary_goal`) — current plan binds **per profession**; goal lives in the system prompt only
+- Admin UI to edit per-talent coach assignment → trivial later add
+- Migration of legacy `Aisha` chat threads into the coach surface
+- WhatsApp / phone verification → Profile Verification phase
 
 ## Open questions
 
-1. **Goal options** — happy with the seven I listed (first job / switch / promoted / freelance / learn / study abroad / own thing), or do you want a different set / wording?
-2. **Duplicate handling stance** — soft (current proposal: no welcome credits, flag the row, full access) or harder (also block welcome credits + put account in `verification_status='pending_review'` until admin clears)?
-3. **CV is currently optional and skippable** — keep it optional, or make it required-but-skippable-with-friction (e.g., a confirmation modal "Skipping means you'll fill these in manually later")?
+1. **Coach naming** — show the instructor's real persona name (e.g. *"Rafiq, your Project Management Coach"*) or always brand it as **"GroUp Career Coach"** with the persona only inside replies? My recommendation: show real persona name — feels more human and matches the existing instructor identity.
+2. **First-message seeding** — auto-send the seed as the assistant's first bubble (recommended) or show a **starter chips** strip ("Plan my next 30 days", "Review my CV", "Find me jobs", "What skill should I learn?") and let the user pick? Could do both.
+3. **Coverage gap** — for the few categories without an `ai_instructors` row (e.g. `Fresh Graduate`), should I (a) fall back to the `Career Coaching` instructor only, or (b) auto-create missing instructor rows from a template at migration time so every talent always has a same-category coach?
