@@ -47,8 +47,8 @@ export function ProfileQuickSetup({ onContinue, onSkip }: ProfileQuickSetupProps
     const file = e.target.files?.[0];
     if (!file || !talent?.id) return;
 
-    if (!file.type.startsWith("image/")) return toast.error("Invalid format. Please upload an image file.");
-    if (file.size > 5 * 1024 * 1024) return toast.error("File is too large. Must be under 5MB.");
+    if (!file.type.startsWith("image/")) return toast.error("Please upload an image file.");
+    if (file.size > 5 * 1024 * 1024) return toast.error("Image too large — keep it under 5MB.");
 
     setIsUploading(true);
     try {
@@ -66,7 +66,7 @@ export function ProfileQuickSetup({ onContinue, onSkip }: ProfileQuickSetupProps
       } = supabase.storage.from("portfolio-uploads").getPublicUrl(filePath);
 
       setProfilePhoto(publicUrl);
-      toast.success("Profile photo uploaded successfully.");
+      toast.success("Profile photo uploaded.");
     } catch (error) {
       toast.error("Upload failed. Please try again.");
     } finally {
@@ -87,7 +87,7 @@ export function ProfileQuickSetup({ onContinue, onSkip }: ProfileQuickSetupProps
       }
       onContinue();
     } catch (error) {
-      toast.error("Failed to save profile. Please try again.");
+      toast.error("Couldn't save your profile. Please try again.");
     } finally {
       setIsSaving(false);
     }
@@ -97,10 +97,10 @@ export function ProfileQuickSetup({ onContinue, onSkip }: ProfileQuickSetupProps
     <div className="flex flex-col items-center px-4 py-8 max-w-xl mx-auto text-left w-full animate-in fade-in duration-700">
       <div className="mb-12 space-y-3 text-center">
         <h2 className="text-4xl md:text-5xl font-black tracking-tighter text-slate-900 leading-tight">
-          Profile Details
+          A bit about you
         </h2>
         <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-          Set your career track and current status.
+          Tell us your career focus and where you're at right now.
         </p>
       </div>
 
@@ -112,7 +112,7 @@ export function ProfileQuickSetup({ onContinue, onSkip }: ProfileQuickSetupProps
           <div className="flex items-center gap-3 mb-8 relative z-10">
             <Sparkles className="h-5 w-5 text-blue-500" />
             <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
-              Profile Photo
+              Profile photo
             </span>
           </div>
 
@@ -142,8 +142,8 @@ export function ProfileQuickSetup({ onContinue, onSkip }: ProfileQuickSetupProps
 
           <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
             {profilePhoto ? (
-              <span className="text-emerald-500 flex items-center gap-1.5"><CheckCircle2 className="w-3 h-3"/> Photo Uploaded</span>
-            ) : "Upload a professional photo"}
+              <span className="text-emerald-500 flex items-center gap-1.5"><CheckCircle2 className="w-3 h-3"/> Photo uploaded</span>
+            ) : "Add a clear, professional photo"}
           </p>
         </div>
       </div>
@@ -152,11 +152,11 @@ export function ProfileQuickSetup({ onContinue, onSkip }: ProfileQuickSetupProps
       <div className="w-full space-y-10">
         <div className="space-y-4">
           <Label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-2">
-            Career Track
+            Career track
           </Label>
           <Select value={selectedProfession} onValueChange={setSelectedProfession}>
             <SelectTrigger className="h-14 bg-white border-slate-200 rounded-2xl font-bold text-slate-900 shadow-sm focus:ring-blue-500/20">
-              <SelectValue placeholder="Select your primary focus..." />
+              <SelectValue placeholder="Pick your main focus…" />
             </SelectTrigger>
             <SelectContent className="rounded-2xl border-slate-100 shadow-xl">
               {professions.map((p) => (
@@ -170,7 +170,7 @@ export function ProfileQuickSetup({ onContinue, onSkip }: ProfileQuickSetupProps
 
         <div className="space-y-4">
           <Label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 ml-2">
-            Current Status
+            Current status
           </Label>
           <RadioGroup value={currentStatus} onValueChange={setCurrentStatus} className="grid grid-cols-1 gap-3">
             {STATUS_NODES.map((option) => (
@@ -213,7 +213,7 @@ export function ProfileQuickSetup({ onContinue, onSkip }: ProfileQuickSetupProps
           className="w-full h-14 rounded-full bg-blue-500 hover:bg-blue-600 text-white font-bold uppercase tracking-widest text-[10px] shadow-sm gap-3"
         >
           {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-          Complete Setup
+          Save and continue
           {!isSaving && <ArrowRight className="h-4 w-4" />}
         </Button>
         <Button

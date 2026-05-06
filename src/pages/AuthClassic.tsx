@@ -105,7 +105,7 @@ const Auth = () => {
     try {
       const { data: existing } = await supabase.from("talents").select("id").eq("phone", fullPhone).maybeSingle();
       if (existing) {
-        toast.error("Account already exists. Switching to sign in.");
+        toast.error("An account already uses this phone. Switching to sign in.");
         setActiveTab("login");
         setLoginData((prev) => ({ ...prev, identifier: fullPhone }));
         return;
@@ -239,7 +239,7 @@ const Auth = () => {
                       </Label>
                       <Input
                         type="text"
-                        placeholder="you@example.com or +1234567890"
+                        placeholder="you@example.com or +1 234 567 890"
                         value={loginData.identifier}
                         onChange={(e) => setLoginData({ ...loginData, identifier: e.target.value })}
                         className="rounded-xl border-border/40 h-11"
