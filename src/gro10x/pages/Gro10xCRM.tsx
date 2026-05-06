@@ -98,7 +98,7 @@ export default function Gro10xCRM() {
 
   if (!user) {
     return (
-      <div className="max-w-md mx-auto p-6 text-center">
+      <div className="max-w-md md:max-w-5xl md:max-w-5xl mx-auto p-6 text-center">
         <p className="text-sm text-slate-400 mb-4">Sign in to manage your CRM.</p>
         <button onClick={() => navigate("/gro10x/auth")} className="rounded-full bg-[#33E1E4] text-[#06121A] px-5 py-2 text-sm font-semibold">
           Get started
@@ -110,7 +110,7 @@ export default function Gro10xCRM() {
   if (isLoading) return <div className="p-6 text-center text-sm text-slate-400">Loading…</div>;
   if (!companyId) {
     return (
-      <div className="max-w-md mx-auto p-6 text-center">
+      <div className="max-w-md md:max-w-5xl md:max-w-5xl mx-auto p-6 text-center">
         <p className="text-sm text-slate-400 mb-4">Create your company workspace to use the CRM.</p>
         <button onClick={() => navigate("/gro10x/page")} className="rounded-full bg-[#33E1E4] text-[#06121A] px-5 py-2 text-sm font-semibold">Set up company</button>
       </div>
@@ -125,7 +125,7 @@ export default function Gro10xCRM() {
   }, { new: 0, contacted: 0, qualified: 0, proposal: 0, won: 0, lost: 0 });
 
   return (
-    <div className="max-w-md mx-auto pb-24">
+    <div className="max-w-md md:max-w-5xl md:max-w-5xl mx-auto pb-24">
       <header className="sticky top-0 z-10 bg-[#0B1220]/95 backdrop-blur-md border-b border-white/5">
         <div className="px-4 pt-3 pb-2 flex items-center justify-between">
           <div>
@@ -262,7 +262,7 @@ function NewLeadSheet({
       aria-label="New lead"
     >
       <div
-        className="w-full max-w-md mx-auto bg-[#0B1220] border-t border-white/10 rounded-t-3xl p-4 space-y-3"
+        className="w-full max-w-md md:max-w-5xl md:max-w-5xl mx-auto bg-[#0B1220] border-t border-white/10 rounded-t-3xl p-4 space-y-3"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
@@ -364,7 +364,7 @@ function LeadDetail({
       aria-label={`Lead: ${lead.name}`}
     >
       <div
-        className="w-full max-w-md mx-auto bg-[#0B1220] border-t border-white/10 rounded-t-3xl max-h-[85vh] overflow-y-auto"
+        className="w-full max-w-md md:max-w-5xl md:max-w-5xl mx-auto bg-[#0B1220] border-t border-white/10 rounded-t-3xl max-h-[85vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="sticky top-0 bg-[#0B1220] border-b border-white/5 px-4 py-3 flex items-center justify-between">

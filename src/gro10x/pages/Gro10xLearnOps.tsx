@@ -38,7 +38,7 @@ export default function Gro10xLearnOps() {
   const isAdmin = role === "owner" || role === "admin";
 
   return (
-    <div className="max-w-md mx-auto pb-24">
+    <div className="max-w-md md:max-w-5xl md:max-w-5xl mx-auto pb-24">
       <header className="px-4 pt-4 pb-2">
         <h1 className="text-xl font-semibold tracking-tight">Learning Ops</h1>
         <p className={`text-xs ${GRO10X_MUTED} mt-0.5`}>

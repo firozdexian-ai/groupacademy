@@ -19,7 +19,7 @@ export default function Gro10xLearn() {
   const assignments = useMyAssignments();
 
   return (
-    <div className="max-w-md mx-auto pb-24">
+    <div className="max-w-md md:max-w-5xl md:max-w-5xl mx-auto pb-24">
       <header className="px-4 pt-4 pb-2 flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2">

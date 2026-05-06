@@ -61,7 +61,7 @@ export default function Gro10xChat() {
 
   if (!user) {
     return (
-      <div className="max-w-md mx-auto p-6 text-center">
+      <div className="max-w-md md:max-w-5xl md:max-w-5xl mx-auto p-6 text-center">
         <p className="text-sm text-slate-400 mb-4">Sign in to chat with this agent.</p>
         <button
           onClick={() => navigate("/gro10x/auth")}
@@ -75,7 +75,7 @@ export default function Gro10xChat() {
 
   if (!companyId) {
     return (
-      <div className="max-w-md mx-auto p-6 text-center">
+      <div className="max-w-md md:max-w-5xl md:max-w-5xl mx-auto p-6 text-center">
         <p className="text-sm text-slate-400 mb-4">Set up your company workspace to chat.</p>
         <button
           onClick={() => navigate("/gro10x/auth")}
@@ -88,7 +88,7 @@ export default function Gro10xChat() {
   }
 
   return (
-    <div className="max-w-md mx-auto min-h-[100dvh] flex flex-col">
+    <div className="max-w-md md:max-w-5xl md:max-w-5xl mx-auto min-h-[100dvh] flex flex-col">
       <header className="sticky top-0 z-10 bg-[#0B1220]/95 backdrop-blur-md border-b border-white/5 px-3 py-3 flex items-center gap-3">
         <button
           onClick={() => navigate("/gro10x/inbox")}

@@ -78,7 +78,7 @@ export default function Gro10xAuth() {
 
   return (
     <div className={cn(GRO10X_BG, GRO10X_TEXT, "min-h-[100dvh] flex flex-col")}>
-      <header className="px-5 pt-6 pb-3 flex items-center justify-between max-w-md mx-auto w-full">
+      <header className="px-5 pt-6 pb-3 flex items-center justify-between max-w-md md:max-w-5xl md:max-w-5xl mx-auto w-full">
         <button onClick={() => navigate("/gro10x")} className="flex items-center gap-2">
           <img src="/gro10x/icon-192.png" alt="" className="h-7 w-7 rounded-lg" />
           <span className="font-semibold tracking-tight">Gro10x</span>
@@ -90,7 +90,7 @@ export default function Gro10xAuth() {
       </header>
 
       {/* Messages */}
-      <main className="flex-1 overflow-y-auto px-4 py-4 max-w-md mx-auto w-full space-y-3">
+      <main className="flex-1 overflow-y-auto px-4 py-4 max-w-md md:max-w-5xl md:max-w-5xl mx-auto w-full space-y-3">
         {messages.map((m) => (
           <div
             key={m.id}
@@ -240,7 +240,7 @@ export default function Gro10xAuth() {
           onSubmit={onSubmit}
           className="border-t border-white/5 bg-[#0B1220]/95 backdrop-blur px-4 py-4 pb-[calc(16px+env(safe-area-inset-bottom))]"
         >
-          <div className="max-w-md mx-auto flex items-center gap-2">
+          <div className="max-w-md md:max-w-5xl md:max-w-5xl mx-auto flex items-center gap-2">
             <div className="flex-1 relative">
               <input
                 ref={inputRef}

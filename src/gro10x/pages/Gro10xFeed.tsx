@@ -218,7 +218,7 @@ export default function Gro10xFeed() {
   };
 
   return (
-    <div className="max-w-md mx-auto">
+    <div className="max-w-md md:max-w-5xl md:max-w-5xl mx-auto">
       <header className="sticky top-0 z-10 bg-[#0B1220]/95 backdrop-blur-md border-b border-white/5 px-4 py-3 flex items-center justify-between gap-3">
         <div className="min-w-0">
           <h1 className="text-xl font-semibold tracking-tight">Feed</h1>

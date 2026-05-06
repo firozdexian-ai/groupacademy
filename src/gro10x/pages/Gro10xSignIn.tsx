@@ -90,7 +90,7 @@ export default function Gro10xSignIn() {
 
   return (
     <div className={cn(GRO10X_BG, GRO10X_TEXT, "min-h-[100dvh] flex flex-col")}>
-      <header className="px-5 pt-6 pb-3 max-w-md mx-auto w-full">
+      <header className="px-5 pt-6 pb-3 max-w-md md:max-w-5xl md:max-w-5xl mx-auto w-full">
         <button
           onClick={() => navigate("/gro10x")}
           className="flex items-center gap-2"
@@ -100,7 +100,7 @@ export default function Gro10xSignIn() {
         </button>
       </header>
 
-      <main className="flex-1 px-5 max-w-md mx-auto w-full">
+      <main className="flex-1 px-5 max-w-md md:max-w-5xl md:max-w-5xl mx-auto w-full">
         <h1 className="text-2xl font-bold mt-4">Welcome back</h1>
         <p className="text-sm text-slate-400 mt-1">
           Sign in to your Gro10x workspace.

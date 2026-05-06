@@ -69,11 +69,11 @@ export default function Gro10xBilling() {
   };
 
   if (isLoading) {
-    return <div className="max-w-md mx-auto p-6 text-center text-slate-400 text-sm">Loading billing…</div>;
+    return <div className="max-w-md md:max-w-5xl md:max-w-5xl mx-auto p-6 text-center text-slate-400 text-sm">Loading billing…</div>;
   }
 
   return (
-    <div className="max-w-md mx-auto pb-8">
+    <div className="max-w-md md:max-w-5xl md:max-w-5xl mx-auto pb-8">
       {/* Header */}
       <div className="px-4 pt-4 flex items-center gap-3">
         <Link to="/gro10x/me" className="text-slate-400 hover:text-white">

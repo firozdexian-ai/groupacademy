@@ -37,7 +37,7 @@ export default function Gro10xInbox() {
 
   if (!user) {
     return (
-      <div className="max-w-md mx-auto p-6 text-center">
+      <div className="max-w-md md:max-w-5xl md:max-w-5xl mx-auto p-6 text-center">
         <p className="text-sm text-slate-400 mb-4">Sign in to see your agent inbox.</p>
         <button
           onClick={() => navigate("/gro10x/auth")}
@@ -50,7 +50,7 @@ export default function Gro10xInbox() {
   }
 
   return (
-    <div className="max-w-md mx-auto">
+    <div className="max-w-md md:max-w-5xl md:max-w-5xl mx-auto">
       <header className="sticky top-0 z-10 bg-[#0B1220]/95 backdrop-blur-md border-b border-white/5">
         <div className="flex items-center justify-between px-4 py-3">
           <div>

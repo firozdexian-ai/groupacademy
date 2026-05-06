@@ -157,11 +157,11 @@ export default function Gro10xCompanyPage() {
   };
 
   if (loading) {
-    return <div className="max-w-md mx-auto p-6 text-center text-slate-400 text-sm">Loading company…</div>;
+    return <div className="max-w-md md:max-w-5xl md:max-w-5xl mx-auto p-6 text-center text-slate-400 text-sm">Loading company…</div>;
   }
   if (!company) {
     return (
-      <div className="max-w-md mx-auto p-6 text-center">
+      <div className="max-w-md md:max-w-5xl md:max-w-5xl mx-auto p-6 text-center">
         <Building2 className="h-10 w-10 mx-auto text-slate-500 mb-3" />
         <p className="text-sm text-slate-400">
           You're not connected to a company yet. Finish onboarding to create or join one.
@@ -171,7 +171,7 @@ export default function Gro10xCompanyPage() {
   }
 
   return (
-    <div className="max-w-md mx-auto pb-6">
+    <div className="max-w-md md:max-w-5xl md:max-w-5xl mx-auto pb-6">
       {/* Banner — 3:1 aspect */}
       <div
         className="aspect-[3/1] w-full bg-gradient-to-br from-[#0F172A] to-[#1E293B]"

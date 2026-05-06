@@ -29,7 +29,7 @@ export default function Gro10xOfferings() {
 
   if (!user) {
     return (
-      <div className="max-w-md mx-auto p-6 text-center">
+      <div className="max-w-md md:max-w-5xl md:max-w-5xl mx-auto p-6 text-center">
         <p className="text-sm text-slate-400 mb-4">Sign in to manage your offerings.</p>
         <button
           onClick={() => navigate("/gro10x/auth")}
@@ -44,7 +44,7 @@ export default function Gro10xOfferings() {
   if (isLoading) return <div className="p-6 text-center text-sm text-slate-400">Loading…</div>;
   if (!companyId) {
     return (
-      <div className="max-w-md mx-auto p-6 text-center">
+      <div className="max-w-md md:max-w-5xl md:max-w-5xl mx-auto p-6 text-center">
         <p className="text-sm text-slate-400 mb-4">Set up your company to add offerings.</p>
         <button
           onClick={() => navigate("/gro10x/page")}
@@ -59,7 +59,7 @@ export default function Gro10xOfferings() {
   const list = offerings.data ?? [];
 
   return (
-    <div className="max-w-md mx-auto pb-24">
+    <div className="max-w-md md:max-w-5xl md:max-w-5xl mx-auto pb-24">
       <header className="sticky top-0 z-10 bg-[#0B1220]/95 backdrop-blur-md border-b border-white/5 px-4 pt-3 pb-2 flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold tracking-tight">Offerings</h1>
@@ -229,7 +229,7 @@ function OfferingEditor({
       aria-label={initial.id ? "Edit offering" : "Add offering"}
     >
       <div
-        className="w-full max-w-md mx-auto bg-[#0B1220] border-t border-white/10 rounded-t-3xl max-h-[90vh] overflow-y-auto"
+        className="w-full max-w-md md:max-w-5xl md:max-w-5xl mx-auto bg-[#0B1220] border-t border-white/10 rounded-t-3xl max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="sticky top-0 bg-[#0B1220] border-b border-white/5 px-4 py-3 flex items-center justify-between">

@@ -11,7 +11,7 @@ import Gro10xInstallButton from "../components/Gro10xInstallButton";
 export default function Gro10xLanding() {
   return (
     <div className={`${GRO10X_BG} ${GRO10X_TEXT} min-h-[100dvh]`}>
-      <header className="px-5 pt-10 pb-6 max-w-md mx-auto">
+      <header className="px-5 pt-10 pb-6 max-w-md md:max-w-5xl md:max-w-5xl mx-auto">
         <div className="flex items-center gap-2 mb-6">
           <img src="/gro10x/icon-192.png" alt="" className="h-8 w-8 rounded-lg" />
           <span className="font-semibold tracking-tight">Gro10x</span>
@@ -41,7 +41,7 @@ export default function Gro10xLanding() {
         </p>
       </header>
 
-      <section className="px-5 pb-12 max-w-md mx-auto space-y-3">
+      <section className="px-5 pb-12 max-w-md md:max-w-5xl md:max-w-5xl mx-auto space-y-3">
         <Feature icon={<MessageSquare className="h-5 w-5" />} title="Chat-first workflows" desc="Every action is a message. No dashboards to learn." />
         <Feature icon={<Building2 className="h-5 w-5" />} title="Shared company page" desc="Your team edits one source of truth — visible to clients." />
         <Feature icon={<Sparkles className="h-5 w-5" />} title="Agents tuned to your goals" desc="Hiring? Sales? Ops? Riya picks the right agents at signup." />

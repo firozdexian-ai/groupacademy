@@ -21,7 +21,7 @@ export default function Gro10xWork() {
 
   if (!user) {
     return (
-      <div className="max-w-md mx-auto p-6 text-center">
+      <div className="max-w-md md:max-w-5xl md:max-w-5xl mx-auto p-6 text-center">
         <p className="text-sm text-slate-400 mb-4">Sign in to manage your activities.</p>
         <button
           onClick={() => navigate("/gro10x/auth")}
@@ -34,7 +34,7 @@ export default function Gro10xWork() {
   }
 
   return (
-    <div className="max-w-md mx-auto">
+    <div className="max-w-md md:max-w-5xl md:max-w-5xl mx-auto">
       <header className="sticky top-0 z-10 bg-[#0B1220]/95 backdrop-blur-md border-b border-white/5">
         <div className="px-4 pt-3 pb-2">
           <h1 className="text-xl font-semibold tracking-tight">Activities</h1>

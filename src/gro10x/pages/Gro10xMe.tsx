@@ -39,7 +39,7 @@ export default function Gro10xMe() {
 
   if (!user) {
     return (
-      <div className="max-w-md mx-auto p-6 text-center">
+      <div className="max-w-md md:max-w-5xl md:max-w-5xl mx-auto p-6 text-center">
         <p className="text-sm text-slate-400 mb-4">Sign in to see your profile.</p>
         <button
           onClick={() => navigate("/gro10x/auth")}
