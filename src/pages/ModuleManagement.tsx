@@ -549,6 +549,7 @@ export default function ModuleManagement(props: ModuleManagementProps = {}) {
                       >
                         <BarChart3 className="mr-1.5 h-3.5 w-3.5" /> Analytics
                       </Button>
+                      <ReviewNudge moduleId={mod.id} onClick={() => setAnalyticsModuleId(mod.id)} />
                     </div>
                     <Button
                       onClick={() => saveModule(mod)}
