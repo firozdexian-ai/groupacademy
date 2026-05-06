@@ -89,3 +89,15 @@ job tags/skills     ───┘            │
 ### Approval options
 - **continue with 3.4** — ship a–f together (recommended).
 - **continue with 3.4.a+b+c** — backend + scoring only; UI rails/badges in a follow-up.
+---
+
+## 3.4 ship notes
+
+- DB: `score_talent_job_mastery(_talent_id, _job_id)` SECURITY DEFINER returns mastery_score (coverage 70 + credential bonus 30, cap 100), mastery_topics, gap_topics, verified_credentials by tag-matching job requirements/preferred_skills against `talent_skill_profile` and `skill_credentials`.
+- `ai_job_recommendations` extended with `match_reason` ('verified_skill' | 'keyword' | 'location_only') + `verified_match` jsonb snapshot.
+- Edge `score-job-match` injects mastery snapshot into AI prompt as authoritative evidence; returns `verified_match` payload.
+- Edge `suggest-jobs-for-talent` pre-ranks by mastery_score, boosts `final = base*(1+0.4*m/100)+5*credentials`, tags match_reason, persists top 12 to `ai_job_recommendations`.
+- UI: `<VerifiedMatchBadge>` (compact + full) on JobCard, `<WhyYouMatchPanel>` in AIJobInsights, JobsHub recs render passes verified_match through matchInfo.
+- Phase 3 progress: ~50% (4 of 8).
+
+**Up next:** 3.6 Authoring Feedback Loop. Reply **continue with 3.6**.
