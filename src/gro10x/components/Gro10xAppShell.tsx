@@ -3,6 +3,7 @@ import { Outlet, useMatch } from "react-router-dom";
 import { Gro10xBottomNav } from "./Gro10xBottomNav";
 import { Gro10xTopBar } from "./Gro10xTopBar";
 import { Gro10xSideNav } from "./Gro10xSideNav";
+import { Gro10xCommandPalette } from "./Gro10xCommandPalette";
 import { GRO10X_BG, GRO10X_TEXT } from "../lib/tokens";
 
 interface Props {
@@ -40,6 +41,9 @@ export function Gro10xAppShell({ children, hideBottomNav }: Props) {
           <Gro10xBottomNav />
         </div>
       )}
+
+      {/* Global ⌘K palette (mounted once for the whole shell) */}
+      <Gro10xCommandPalette />
     </div>
   );
 }

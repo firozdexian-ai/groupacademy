@@ -7,7 +7,7 @@
  * - Notifications are surfaced via the "concierge" agent thread (Atlas), not a separate bell.
  */
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Coins } from "lucide-react";
+import { Coins, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -69,6 +69,19 @@ export function Gro10xTopBar() {
           {isCompanyController ? "company" : "mine"}
         </span>
       </Link>
+
+      {/* Desktop search trigger (⌘K) */}
+      <button
+        type="button"
+        onClick={() => window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true }))}
+        className="hidden md:inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-slate-400 hover:text-white hover:bg-white/10"
+        aria-label="Open search (Cmd+K)"
+      >
+        <Search className="h-3.5 w-3.5" />
+        <span>Search</span>
+        <kbd className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-white/10 border border-white/10">⌘K</kbd>
+      </button>
+
       <button
         type="button"
         onClick={() => navigate("/gro10x/me")}
