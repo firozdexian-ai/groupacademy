@@ -131,9 +131,14 @@ function CoursesPanel({ engagements }: { engagements: any[] }) {
                 </Badge>
               </div>
             </div>
-            <Button asChild size="sm" variant="outline">
-              <Link to={`/app/instructor/course/${e.content_id}`}>Open</Link>
-            </Button>
+            <div className="flex flex-col gap-1.5">
+              <Button asChild size="sm" variant="outline">
+                <Link to={`/app/instructor/course/${e.content_id}`}>Open</Link>
+              </Button>
+              <Button asChild size="sm" variant="ghost">
+                <Link to={`/app/instructor/course/${e.content_id}/sessions`}>Sessions</Link>
+              </Button>
+            </div>
           </div>
         </Card>
       ))}
