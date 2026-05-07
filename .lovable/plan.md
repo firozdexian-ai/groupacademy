@@ -1,171 +1,166 @@
-# Phase 5.4 — Community Reviewer Tier & Disputes
+# Phase 5.5 — Managed Projects, Milestones & Escrow
 
 ## Goal
-Phase 5.3 closed the AI verification loop but kept admins as the only fallback for `escalated` verdicts and appeals. At marketplace scale that doesn't hold. Phase 5.4 introduces a **trusted community reviewer tier** — vetted talent who earn credits to resolve escalations, two-sided disputes between poster and talent, and a transparent reputation layer that feeds back into trust + matchmaker.
+Phases 5.1–5.4 turned the gig marketplace into a self-driving system for **discrete, single-deliverable** work: a poster scopes one ask, the matchmaker recommends bidders, the verifier + reviewers settle outcomes, disputes resolve fairly. That model breaks the moment a Gro10x company posts a real B2B engagement — a website rebuild, a 4-week ops sprint, a content campaign — which is **multi-deliverable, milestone-paid, often multi-talent**, and needs funds held in escrow rather than paid per submission.
 
-This is the human layer that makes 5.3's automation safe to scale, and the reputation layer that makes 5.2's matchmaker fair.
+Phase 5.5 introduces the **Managed Project** primitive on top of the existing gig stack: a parent project that owns one or more milestones (each effectively a 5.1-style gig), with credit escrow, a project room, optional team composition, and a Gro10x-side cockpit that mirrors the talent cockpit. It plugs directly into the verification (5.3), reviewer (5.4) and matchmaker (5.2) layers — those already know how to settle a "gig"; a milestone is just a gig with a parent.
 
----
-
-## Part A — Cleanup carried over from 5.1 → 5.3
-
-Six small gaps surfaced during 5.1–5.3 that 5.4 either depends on or should close in the same pass:
-
-1. **`ai-content-originality`** — listed in 5.3 plan but not deployed. Needed before reviewers can adjudicate "AI-generated" risk flags meaningfully. Ship as a real edge function (heuristic n-gram + Gemini classifier).
-2. **`ai-deliverable-fetch`** — same status. Without it, both verifier and reviewer see URLs not content for figma/github/gdrive submissions.
-3. **`gig_bid_events` analytics surface** — table was created in 5.2 cleanup but admin Matchmaker subtab never wired the coach-acceptance chart. Quick win.
-4. **`talent_trust_score` decay job** — recompute trigger exists, but the 90-day decay only applies on new event insert. Add a `cron-trust-decay` (daily) so dormant talent decay correctly even with no new events.
-5. **Poster-side verification "Override → Reject" telemetry** — clicks are logged but no aggregation for the Verifier Insights chart (false-positive rate). Backfill the rollup view.
-6. **Marketplace gig detail** — verdict chips render for poster, but talent's own submission card on `/app/gigs/mine` (or equivalent) still shows the legacy status, not the 5.3 verdict. Unify.
-
-These ride on the 5.4 migration to avoid a separate cleanup release.
+This is the layer that lets companies actually spend serious credits on the platform instead of treating it as a freelancer bench.
 
 ---
 
-## Part B — Phase 5.4 — Reviewer Tier & Disputes
+## Part A — Cleanup carried over from 5.1 → 5.4
+
+Five small follow-ups surfaced while shipping 5.4 that 5.5 should close in the same migration:
+
+1. **Reviewer calibration item bank** — schema exists, admin editor in `ReviewerProgramTab` is stubbed. Wire CRUD + preview-as-reviewer.
+2. **Reviewer Insights chart** — `cron-reviewer-payouts` writes ledger rows but the program-health surface (supply/demand per category, panel-agreement rate, AI-vs-panel agreement) is not yet rendered. Add `get_reviewer_program_health` RPC + chart.
+3. **Dispute SLA reminders** — `notify-dispute-update` fires on state change; missing the "panel claim deadline approaching" + "verdict due soon" pings. Extend `cron-review-assignment-expiry` to emit these.
+4. **`gig_submissions_unified_view`** (5.3) — verifier reads it but talent-side `MyGigs` still hits the two underlying tables separately. Unify.
+5. **Trust event weight tuning surface** — `verification_rules` row exists, no admin UI. Tiny form in Gig Ops → Verification.
+
+These ride on the 5.5 migration to avoid a separate cleanup release.
+
+---
+
+## Part B — Phase 5.5 — Managed Projects
 
 ### Core concepts
 
-- **Reviewer** = a talent who has opted in, passed a calibration test, and maintains a quality score. Earns credits per resolved item.
-- **Escalation pool** = items 5.3 marked `escalated` are first offered to qualified reviewers (3 reviewers per item, majority verdict). Admin only sees items where reviewers disagree or no reviewer claims within SLA.
-- **Dispute** = either party (poster or talent) can open a dispute on a completed/rejected gig within 7 days. Disputes always go through reviewer panel → admin appeal as last resort.
-- **Reputation** = reviewer accuracy is measured against the eventual settled verdict; bad reviewers lose tier; good reviewers earn higher per-item credits and unlock dispute-tier items.
+- **Project** = a parent container owned by a company (or admin on a company's behalf). Has a budget in credits, currency display, timeline, scope doc, and 1..N milestones.
+- **Milestone** = effectively a Phase 5.1 gig with `parent_project_id` set. Inherits 5.2 matchmaker, 5.3 verification, 5.4 reviewer/dispute behavior. Has its own escrow slice.
+- **Escrow** = credits debited from the company wallet at project funding time, held in a dedicated escrow ledger, and released to talent only when a milestone is settled `approved` (auto or panel). Refunds on cancellation follow rules.
+- **Project Room** = single thread per project, scoped to company members + assigned talents + admin. Reuses `application_messages` infra.
+- **Team mode** = a milestone may have multiple awarded talents with credit splits (e.g. designer 60 / writer 40). The verification verdict applies to the milestone as a whole; splits apply on release.
 
 ### Schema
 
 | Object | Purpose |
 |---|---|
-| `reviewer_profiles` | `talent_id`, `tier` (`apprentice` / `reviewer` / `senior` / `master`), `categories text[]`, `status` (`active` / `paused` / `suspended`), `accuracy numeric`, `items_resolved`, `joined_at`, `last_active_at` |
-| `reviewer_calibration_attempts` | Onboarding test results: `talent_id`, `score`, `passed`, `answers jsonb`, `attempted_at`. 3-attempt cap / 30 days. |
-| `review_assignments` | One row per (item, reviewer). `kind` (`escalation` / `dispute`), `source_id` (verification_id or dispute_id), `status` (`offered` / `claimed` / `submitted` / `expired` / `recused`), `claimed_at`, `due_at`, `verdict`, `verdict_payload jsonb`, `confidence numeric`, `time_spent_s` |
-| `gig_disputes` | `gig_id`, `submission_id`, `opened_by` (`poster` / `talent`), `reason_code`, `narrative`, `evidence jsonb`, `status` (`open` / `panel` / `admin` / `resolved` / `withdrawn`), `final_verdict`, `resolved_by`, `resolved_at` |
-| `reviewer_credit_ledger` | `talent_id`, `assignment_id`, `delta numeric(12,1)`, `reason`, `paid_at` — flows through existing fractional credits wallet (per `mem://business/fractional-per-response-credit-model`) |
-| `reviewer_reputation_events` | append-only: `talent_id`, `event` (`assignment_correct` / `assignment_incorrect` / `assignment_expired` / `recused` / `tier_promoted` / `tier_demoted`), `weight`, `assignment_id` |
+| `gig_projects` | `company_id`, `created_by`, `title`, `summary`, `category`, `budget_credits numeric(12,1)`, `currency_display`, `status` (`draft` / `funded` / `active` / `completed` / `cancelled` / `disputed`), `starts_at`, `due_at`, `scope_doc jsonb`, `visibility` (`private` / `invite` / `public`) |
+| `gig_project_milestones` | `project_id`, `gig_id` (nullable until published), `seq int`, `title`, `summary`, `acceptance_criteria jsonb`, `budget_credits`, `due_at`, `status` (`draft` / `open` / `in_progress` / `submitted` / `approved` / `revising` / `rejected` / `cancelled`) |
+| `gig_project_assignments` | `milestone_id`, `talent_id`, `role`, `split_pct numeric(5,2)`, `status` (`invited` / `accepted` / `declined` / `removed`), `accepted_at` |
+| `gig_escrow_accounts` | `project_id`, `balance_credits numeric(12,1)`, `held_credits`, `released_credits`, `refunded_credits` |
+| `gig_escrow_ledger` | `project_id`, `milestone_id`, `talent_id` (nullable), `delta numeric(12,1)`, `kind` (`fund` / `hold` / `release` / `refund` / `adjustment`), `reason`, `actor_id`, `tx_ref` |
+| `gig_project_messages` | reuses `application_messages` shape but scoped by `project_id` |
+| `gig_project_invitations` | `project_id`, `talent_id`, `invited_by`, `note`, `status` (`pending` / `accepted` / `declined` / `expired`) |
 
-RLS: reviewer sees only their own assignments + own ledger; parties to a dispute see only their dispute; admin full. Reviewer identities are anonymized to disputants ("Reviewer A/B/C").
+RLS: company members see only their company's projects; assigned talents see only milestones they're on + project room; admin full. Escrow ledger is select-only for company; admin can adjust with audit.
 
 ### RPCs
 
-- `apply_for_reviewer(_categories text[])` — opens calibration attempt; idempotent.
-- `submit_calibration_attempt(_payload jsonb)` — scores, promotes to `apprentice` if pass.
-- `claim_review_assignment(_assignment_id uuid)` — atomic claim; rejects if already claimed/expired or reviewer is party to gig.
-- `submit_review_verdict(_assignment_id uuid, _verdict text, _payload jsonb, _confidence numeric)` — writes verdict; if 3 verdicts in → calls `settle_review_panel`.
-- `settle_review_panel(_source_id uuid, _kind text)` — majority logic; ties → admin queue; writes settled verdict, fires `apply_verification_verdict` (5.3) or `resolve_dispute`.
-- `open_gig_dispute(_submission_id uuid, _reason_code text, _narrative text, _evidence jsonb)` — either party; routes to reviewer panel.
-- `resolve_dispute(_dispute_id uuid, _verdict text, _notes text)` — invoked by panel settlement or admin override.
-- `recompute_reviewer_reputation(_talent_id uuid)` — invoked on every settlement; updates accuracy, triggers tier change if thresholds crossed.
+- `create_gig_project(_payload jsonb)` — draft creation; validates budget ≤ company wallet.
+- `add_project_milestone(_project_id uuid, _payload jsonb)` — appends milestone to draft.
+- `fund_gig_project(_project_id uuid)` — atomic: debits company wallet, credits `gig_escrow_accounts.balance_credits`, writes `fund` ledger row, flips project → `funded`.
+- `publish_milestone(_milestone_id uuid)` — creates underlying `gig` row (kind = `marketplace` or `quick` per choice), holds milestone budget, opens to matchmaker. Reuses 5.1 `gig_briefs` pipeline if scoper assistance is requested.
+- `award_milestone(_milestone_id uuid, _assignments jsonb)` — accepts winning bidder(s), writes `gig_project_assignments`, hold remains, flips milestone → `in_progress`.
+- `submit_milestone_deliverables(_milestone_id uuid, _payload jsonb)` — talent submission; routes through `auto-review-gig-submission` (5.3); on approve → `release_milestone_funds`.
+- `release_milestone_funds(_milestone_id uuid)` — reads `gig_project_assignments.split_pct`, credits each talent's wallet, writes `release` ledger rows, marks milestone `approved`, recomputes project status.
+- `request_milestone_revision(_milestone_id uuid, _notes text)` — wraps 5.3 revision_requests, no escrow movement.
+- `cancel_milestone(_milestone_id uuid, _reason text)` — refund hold to project balance per cancellation rules (full if not started, partial after work begun, none after submission unless dispute won).
+- `cancel_gig_project(_project_id uuid, _reason text)` — bulk cancel all open milestones; refund unspent balance.
+- `open_project_dispute(_milestone_id uuid, _reason_code text, _narrative text, _evidence jsonb)` — wraps 5.4 `open_gig_dispute`; outcome reflected in ledger (release vs refund vs split).
+- `get_company_project_pipeline(_company_id uuid)` — returns project + milestones + escrow snapshot for the cockpit.
+- `get_talent_project_workload(_talent_id uuid)` — for talent cockpit.
 
 ### Edge functions
 
-- `ai-reviewer-brief` — pre-digests an escalated item for a claiming reviewer: gig brief, acceptance criteria, AI verdict + rationale, prior submissions/revisions, surfaced risk flags. Cuts review time. (Gemini 2.5-flash.)
-- `ai-dispute-summarizer` — same idea but two-sided: synthesizes both narratives + evidence into a neutral fact sheet for the panel.
-- `ai-reviewer-quality-check` — periodic spot-check that re-scores a random 5% of reviewer verdicts with the verifier model; flags consistent disagreement → reputation event.
-- `cron-review-assignment-sweeper` (every 2 min) — picks up new escalations + disputes → offers to top-N matched reviewers (by tier + category + load) using a small fan-out.
-- `cron-review-assignment-expiry` (every 10 min) — `offered` past TTL → re-offer; `claimed` past `due_at` → expire + reputation hit.
-- `cron-reviewer-payouts` (daily) — settles `reviewer_credit_ledger` into wallet; emits statement.
-- `notify-review-assignment` — single rail for offer/claim-confirmed/verdict-due-soon/settled (in-app + native email queue).
-- `notify-dispute-update` — for both parties.
+- `ai-project-scoper` — extends `ai-gig-scoper` (5.1) to recommend a milestone breakdown from a single B2B brief: returns 2–6 milestones with titles, acceptance criteria, suggested credits, suggested team roles. Gemini 2.5-pro for structure quality.
+- `ai-project-team-recommender` — for awarded milestones with multiple roles, proposes a multi-talent team and split percentages, leveraging `gig_matches` (5.2) per role.
+- `ai-project-status-summary` — daily/weekly project digest for the company: progress, blockers, upcoming due dates, escrow position. Plain-English email body.
+- `ai-milestone-acceptance-coach` — for talents joining a milestone, surfaces the acceptance criteria + linked AI brief (reuses `ai-reviewer-brief` shape) so they understand what "done" looks like before they start.
+- `cron-project-status-sweep` (every 15 min) — flips milestone/project statuses based on escrow/submission/verdict state; emits `notify-project-update`.
+- `cron-project-due-date-sweep` (daily) — at-risk + overdue detection; emits company + talent reminders.
+- `cron-escrow-reconciliation` (daily) — invariant check: `balance = funded - released - refunded - held`; alerts admin on drift.
+- `notify-project-update` — single rail: funded, milestone published, awarded, submitted, approved, revision requested, cancelled, disputed.
+- `notify-escrow-event` — fund/release/refund receipts to company; payout receipts to talents.
 
-### Reviewer cockpit (`/app/reviewer`)
+### Talent surfaces
 
-- **Dashboard** — current tier, accuracy, items-this-week, credits earned, eligibility.
-- **Inbox** — `Offered` / `Claimed` / `History`. Each row: gig title (anonymized poster), kind, payout, time-left.
-- **Adjudication view** — ai-reviewer-brief panel + criteria checklist (✓/✗/partial) + risk-flag toggles + verdict + confidence slider + free-text rationale. Mandatory recuse button if conflict-of-interest.
-- **Reputation panel** — last 20 settlements (Correct / Incorrect / Tied), trend, tier requirements.
-- **Calibration & onboarding** — 5–10 sample items + rubric tutorial; instant scoring.
+- **`/app/projects`** — "My projects" list: per-milestone status, next action, escrow-pending, due dates.
+- **`/app/projects/:projectId`** — project room (chat), milestones I'm on, deliverable upload, dispute CTA (reuses 5.4 `OpenDisputeButton`), verdict cards (reuses 5.3 `VerificationVerdictCard`), payout chip per milestone.
+- **Invitations** — `gig_project_invitations` surfaced in existing `JobInvitations`-style hook; accept/decline with note.
+- **Earnings** — milestone payouts feed the existing earnings/wallet view; new "from project" tag.
 
-### Talent (disputant) surfaces
+### Company surfaces (Gro10x)
 
-- On `auto_revise` / `human_rejected` / `escalated` verdict: **"Open dispute"** CTA visible for 7 days.
-- `/app/gigs/disputes` — own disputes, status, reviewer panel progress (anonymized), final verdict.
-- Dispute composer — reason code dropdown, narrative, evidence upload (reuses `gig-submissions` storage with signed URLs).
-
-### Poster surfaces
-
-- On `auto_approved` / `human_approved`: same "Open dispute" CTA for 7 days post-approval.
-- On gig detail: dispute chip + panel status.
-- "Disputes" subtab on `/app/employer/gigs/:id`.
+- **`/gro10x/work/projects`** — pipeline: Drafts / Funded / Active / Completed / Disputed.
+- **`/gro10x/work/projects/:id`** — project cockpit:
+  - Summary header: budget, escrow balance, % released, due, status
+  - Milestones board (Kanban: Draft → Open → In Progress → Submitted → Approved/Revising)
+  - Per-milestone panel: acceptance criteria, awarded talents + splits, submission viewer, verification verdict, dispute status
+  - Project room (chat)
+  - Escrow ledger view + receipts download
+  - Activity timeline
+- **New project wizard** (`/gro10x/work/projects/new`): brief → `ai-project-scoper` proposal → editable milestones → choose visibility (private invite vs open marketplace) → fund (debits wallet via `fund_gig_project`).
+- **Invite talents** — direct invitation pulled from existing CRM (`talent_lists`, `talent_relationships`).
 
 ### Admin surfaces
 
-- **Gig Ops → Reviewer Program** (new subtab):
-  - Applications & calibration queue
-  - Active reviewers table (tier, accuracy, items, last active, suspend/promote/demote)
-  - Calibration item bank editor
-  - Reviewer payout statements
-- **Gig Ops → Disputes**: open / panel / admin queues, ai-dispute-summarizer surfaced, override + final-verdict actions.
-- **Gig Ops → Verification Queue** (existing from 5.3): now shows reviewer-panel status inline; admin only sees items where panel deadlocked or no reviewers available within SLA.
-- **Reviewer Insights**: program health — supply/demand per category, median time-to-resolve, panel agreement rate, AI-vs-panel agreement rate, cost per resolved item.
+- **Gig Ops → Managed Projects** (new subtab):
+  - Pipeline across all companies (filterable)
+  - Escrow position per project + cross-platform aggregate
+  - Disputed/at-risk queue
+  - Override actions: force release, force refund, adjust escrow (audited), reassign milestone
+- **Gig Ops → Escrow Reconciliation**: daily reconciliation report, drift alerts, manual adjustments with audit log.
+- **Project Insights**: median time-to-fund, time-to-award, time-to-approve per category; revision rate; dispute rate; average team size; cost per milestone.
 
-### Trust + matchmaker wiring
+### Wiring into existing systems
 
-- `talent_trust_events` (5.3) gains new event types: `dispute_won`, `dispute_lost`, `reviewer_correct`, `reviewer_incorrect`. Weights tunable in `verification_rules`.
-- Matchmaker (5.2) automatically picks up changes via `talent_trust_score`. No code change in matchmaker.
-- Reviewers' reputation does **not** influence their own talent trust score — kept separate to prevent feedback loops.
+- **5.1 Scoper** → `ai-project-scoper` extends, doesn't replace; single-gig path unchanged.
+- **5.2 Matchmaker** → each published milestone is a gig with a `parent_project_id`; matchmaker treats it identically. New filter: company members can prefer talents already on other accepted milestones for cohesion.
+- **5.3 Verification** → milestone submissions flow through `auto-review-gig-submission` unchanged; verdict triggers escrow movement instead of direct payout.
+- **5.4 Reviewer + Disputes** → milestone escalations and disputes use the existing reviewer panel; resolution writes to the escrow ledger via the same RPCs.
+- **Trust + reputation** → milestone outcomes feed `talent_trust_events` exactly like standalone gigs; no double counting.
+- **Credits wallet** → all movements stay inside the existing fractional wallet (per `mem://business/fractional-per-response-credit-model`); escrow is a typed bucket, not a parallel system.
 
-### Notifications
+### Memory
 
-Templates (native email queue): `reviewer_application_received`, `reviewer_calibration_passed`, `reviewer_calibration_failed`, `review_assignment_offered`, `review_assignment_claim_confirmed`, `review_assignment_due_soon`, `review_assignment_settled`, `dispute_opened`, `dispute_panel_assembled`, `dispute_resolved`, `reviewer_tier_promoted`, `reviewer_tier_demoted`, `reviewer_payout_statement`.
+- New entry: `mem://product/managed-projects-and-escrow` — project model, escrow rules, cancellation/refund table, team-split rules, release triggers, anonymity & visibility rules, admin override audit policy.
 
-### Cross-cutting
+### Out of scope (future phases)
 
-- Memory entry: `mem://product/community-reviewer-and-disputes` — tiers, thresholds, payout rates, panel rules, dispute window, anonymity rules.
-- Reuses fractional credit wallet, native email queue, signed-URL storage, existing `auto-review-gig-submission` extension point.
-- All reviewer earnings flow through the same earnings/payout pipeline as instructor payouts (`mem://product/instructor-monetization-payouts`) — minimum payout threshold reuses 500cr.
+- **5.6** — Public discovery for projects (`/projects` SEO) and project-level leaderboards.
+- **5.7** — Cash payouts for talents (managed payments rails) once volume justifies.
+- **5.8** — Cross-project portfolio surfaces and case-study generator from completed projects.
 
 ---
 
 ## Technical sequencing (Phase 4 SOP)
 
 ```text
-Step 1 → Cleanup migration: ai-content-originality + ai-deliverable-fetch deployed,
-         gig_bid_events analytics view, cron-trust-decay, verifier-override rollup,
-         talent submission card unification
-Step 2 → 5.4 schema migration: reviewer_profiles, reviewer_calibration_attempts,
-         review_assignments, gig_disputes, reviewer_credit_ledger,
-         reviewer_reputation_events + RLS + triggers
-Step 3 → RPCs: apply_for_reviewer, submit_calibration_attempt, claim_review_assignment,
-         submit_review_verdict, settle_review_panel, open_gig_dispute,
-         resolve_dispute, recompute_reviewer_reputation
-Step 4 → Edge functions: ai-reviewer-brief, ai-dispute-summarizer,
-         ai-reviewer-quality-check, cron-review-assignment-sweeper,
-         cron-review-assignment-expiry, cron-reviewer-payouts,
-         notify-review-assignment, notify-dispute-update
-Step 5 → Reviewer cockpit (/app/reviewer): dashboard, inbox, adjudication, reputation, calibration
-Step 6 → Disputant UI: open-dispute CTA on verdicts, /app/gigs/disputes, composer
-Step 7 → Poster UI: dispute chip + Disputes subtab on employer gig page
-Step 8 → Admin UI: Gig Ops → Reviewer Program + Disputes + Reviewer Insights;
-         extend Verification Queue with panel status
-Step 9 → Memory entry + Phase 5.4 checkpoint in .lovable/plan.md
+Step 1 → Cleanup migration: reviewer item-bank CRUD, reviewer program health RPC,
+         dispute SLA reminders, gig_submissions_unified_view consumer fixes,
+         trust-event weight admin form.
+
+Step 2 → Phase 5.5 schema: gig_projects, gig_project_milestones,
+         gig_project_assignments, gig_escrow_accounts, gig_escrow_ledger,
+         gig_project_messages, gig_project_invitations + RLS + triggers.
+
+Step 3 → RPCs: create/add/fund/publish/award/submit/release/refund/cancel
+         + dispute wrapper + pipeline/workload reads.
+
+Step 4 → Edge functions: ai-project-scoper, ai-project-team-recommender,
+         ai-project-status-summary, ai-milestone-acceptance-coach,
+         cron-project-status-sweep, cron-project-due-date-sweep,
+         cron-escrow-reconciliation, notify-project-update, notify-escrow-event.
+
+Step 5 → Talent UI: /app/projects list, /app/projects/:id room, invitations,
+         deliverable submit hooked to 5.3 verifier, dispute via 5.4 panel.
+
+Step 6 → Gro10x UI: /gro10x/work/projects pipeline, project cockpit,
+         new project wizard (scoper → fund), invite-from-CRM.
+
+Step 7 → Admin UI: Gig Ops → Managed Projects subtab, Escrow Reconciliation,
+         Project Insights.
+
+Step 8 → Memory entry + plan.md update + smoke test:
+         draft → fund → publish milestone → award → submit → approve → release.
 ```
-
----
-
-## Out of scope (later phases)
-
-- B2B managed projects (5.5) — disputes there will have an SLA layer on top of this
-- Public reviewer profiles / leaderboards (5.6 ideas)
-- Payout & escrow release (5.7) — disputes still flip status only here
-- Public `/gigs` SEO + reviewer transparency page (5.8)
-
----
 
 ## Open questions
 
-1. **Panel size** — 3 reviewers majority, OR 2-of-2 with admin tiebreak? (Default proposal: 3.)
-2. **Dispute window** — 7 days post-verdict for both sides. OK, or 5/10?
-3. **Reviewer payout rate** — flat per-item by tier (e.g. 5cr / 10cr / 20cr / 40cr) OR % of gig value (e.g. 2%)? (Default: flat by tier — predictable for reviewer, decoupled from gig price gaming.)
-4. **Anonymity** — reviewers fully anonymized to disputants; disputants identifiable to reviewers (needed to judge prior work/context). OK?
-5. **Calibration cadence** — re-calibrate every 90 days OR only on accuracy drop below threshold? (Default: only on drop, plus quarterly random spot-check via `ai-reviewer-quality-check`.)
-6. **Conflict of interest** — auto-block reviewer if same company/poster/category-recent-collab, OR rely on manual recuse? (Default: auto-block + manual recuse fallback.)
-
----
-
-## Phase 5.4 — SHIPPED ✅
-- Schema: reviewer_profiles, reviewer_calibration_attempts, gig_review_assignments, gig_disputes, reviewer_credit_ledger, reviewer_reputation_events
-- Triggers: tg_reviewer_rep_recompute (auto-promotes tier on accuracy)
-- RPCs: apply_for_reviewer, submit_calibration_attempt, claim_review_assignment, submit_review_verdict, settle_review_panel, open_gig_dispute, resolve_dispute
-- Edges: ai-reviewer-brief, ai-dispute-summarizer, ai-reviewer-quality-check, cron-review-assignment-sweeper (2m), cron-review-assignment-expiry (10m), cron-trust-decay (daily), cron-reviewer-payouts (daily), notify-review-assignment, notify-dispute-update
-- Cleanup edges from 5.1-5.3: ai-content-originality, ai-deliverable-fetch, gig_verifier_override_rollup view, recompute_all_trust_scores
-- UI: /app/reviewer (cockpit), /app/gigs/disputes, OpenDisputeButton, admin Gig Ops → Reviewer Program tab
-- Memory: mem://product/community-reviewer-and-disputes
+1. **Escrow funding source** — credits-only at launch, or also accept managed payments (Stripe) directly into escrow when a company tops up specifically for a project?
+2. **Cancellation refund schedule** — proposed: 100% before award, 50% after award before submission, 0% after submission unless dispute won. Confirm.
+3. **Team splits** — fixed at award time, or editable mid-milestone with mutual consent? Default proposal: fixed; admin override only.
+4. **Project visibility** — should `public` projects show up in the existing `/app/gigs` marketplace listing or in a separate `/app/projects` discovery surface? Default proposal: separate surface to avoid muddling single-gig matchmaker UX.
