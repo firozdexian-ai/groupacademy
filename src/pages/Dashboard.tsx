@@ -428,6 +428,8 @@ const TAB_TITLES: Record<string, string> = {
   talent: "Talent Intel",
   "talent-upload": "Talent Upload",
   "talent-outreach": "Talent Outreach",
+  "companies-wa-channel": "Employer WhatsApp Line",
+  "community-wa-channel": "Community WhatsApp Line",
   "lead-hunter": "Lead Acquisition",
   professions: "Taxonomies",
   "jobs-kpis": "Growth Analytics",
