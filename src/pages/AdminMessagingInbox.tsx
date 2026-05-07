@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Send, Loader2, Bot, User, MessageSquare, ShieldAlert, Users, Phone, ListAll } from "lucide-react";
+import { Send, Loader2, Bot, User, MessageSquare, ShieldAlert, Users, Phone, List } from "lucide-react";
 
 interface Conversation {
   id: string;
