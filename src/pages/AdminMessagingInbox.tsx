@@ -40,9 +40,11 @@ export default function AdminMessagingInbox() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const loadConvs = async () => {
+    // Safety: hide 1-on-1 chats with no resolved contact (prevents stranger DMs leaking into admin inbox)
     const { data } = await supabase
       .from("messaging_conversations")
       .select("*")
+      .or("is_group.eq.true,contact_id.not.is.null")
       .order("last_message_at", { ascending: false, nullsFirst: false })
       .limit(100);
     setConversations((data ?? []) as Conversation[]);
