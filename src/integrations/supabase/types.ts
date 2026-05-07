@@ -10434,6 +10434,7 @@ export type Database = {
           created_at: string
           due_at: string | null
           id: string
+          last_due_soon_notified_at: string | null
           org_id: string | null
           started_at: string | null
           status: Database["public"]["Enums"]["track_assignment_status"]
@@ -10448,6 +10449,7 @@ export type Database = {
           created_at?: string
           due_at?: string | null
           id?: string
+          last_due_soon_notified_at?: string | null
           org_id?: string | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["track_assignment_status"]
@@ -10462,6 +10464,7 @@ export type Database = {
           created_at?: string
           due_at?: string | null
           id?: string
+          last_due_soon_notified_at?: string | null
           org_id?: string | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["track_assignment_status"]
