@@ -50,6 +50,7 @@ import {
   Wallet,
   Mic,
   Languages,
+  Phone,
 } from "lucide-react";
 import {
   Sidebar,
