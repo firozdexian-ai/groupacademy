@@ -59,7 +59,8 @@ Deno.serve(async (req) => {
     const { data: cProfiles } = await admin.from("companies").select("id, name, slug, logo_url").in("id", cIds);
     const cMap = new Map((cProfiles ?? []).map(p => [p.id, p]));
     const companyPayload = cRows.map((r, i) => ({ rank: i + 1, ...r, ...(cMap.get(r.company_id) || {}) }));
-    await admin.from("leaderboard_snapshots").upsert({ kind: "company", period, category: null, payload: companyPayload, computed_at: new Date().toISOString() }, { onConflict: "kind,period" } as never);
+    await admin.from("leaderboard_snapshots").delete().eq("kind", "company").eq("period", period).is("category", null);
+    await admin.from("leaderboard_snapshots").insert({ kind: "company", period, category: null, payload: companyPayload });
 
     // ---- Reviewers ----
     const { data: revs } = await admin.from("reviewer_profiles")
