@@ -16369,15 +16369,25 @@ export type Database = {
         Args: { p_offer_id: string; p_signed_name: string }
         Returns: Json
       }
-      add_credits: {
-        Args: {
-          p_amount: number
-          p_description?: string
-          p_talent_id: string
-          p_transaction_type: string
-        }
-        Returns: Json
-      }
+      add_credits:
+        | {
+            Args: {
+              p_amount: number
+              p_description?: string
+              p_talent_id: string
+              p_transaction_type: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_amount: number
+              p_description?: string
+              p_talent_id: string
+              p_transaction_type?: string
+            }
+            Returns: Json
+          }
       add_project_milestone: {
         Args: { _payload: Json; _project_id: string }
         Returns: string
