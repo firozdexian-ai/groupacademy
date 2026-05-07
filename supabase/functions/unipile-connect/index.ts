@@ -205,7 +205,7 @@ Deno.serve(async (req) => {
         .update({
           unipile_account_id: accId,
           phone_e164: phone,
-          status: "active",
+          status: "connected",
           metadata: { ...(channelMetadata ?? {}), webhook_secret: webhookSecret },
         })
         .eq("id", channelId);
