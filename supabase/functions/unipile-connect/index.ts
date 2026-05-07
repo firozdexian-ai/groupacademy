@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
       return_to,
       provider = "whatsapp",
     } = body as {
-      action?: "start_hosted_auth" | "verify_and_save" | "delete";
+      action?: "start_hosted_auth" | "verify_and_save" | "delete" | "reconcile";
       agent_key?: string;
       account_id?: string;
       label?: string;
