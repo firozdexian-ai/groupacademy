@@ -31,7 +31,7 @@ export default function PublicProjectDetail() {
       setLoading(true);
       const { data } = await supabase.rpc("get_public_project_detail", { _slug: slug! });
       if (cancelled) return;
-      const d = data as Detail | null;
+      const d = data as unknown as Detail | null;
       setData(d);
       setLoading(false);
       if (d?.project) {
