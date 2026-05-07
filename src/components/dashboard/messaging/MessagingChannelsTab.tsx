@@ -212,7 +212,7 @@ export function MessagingChannelsTab({
                       <Switch checked={c.auto_reply_enabled} onCheckedChange={(v) => toggleAutoReply(c.id, v)} />
                       <span className="text-xs">AI</span>
                     </div>
-                    <Button variant="ghost" size="icon" onClick={() => removeChannel(c.id)}>
+                    <Button variant="ghost" size="icon" onClick={() => removeChannel()}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
