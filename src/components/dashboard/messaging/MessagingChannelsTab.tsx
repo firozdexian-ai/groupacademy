@@ -23,12 +23,26 @@ interface Channel {
   metadata: any;
 }
 
-export function MessagingChannelsTab({ agentKey }: { agentKey: string }) {
+interface MessagingChannelsTabProps {
+  agentKey: string;
+  defaultLabel?: string;
+  defaultRegion?: string;
+  title?: string;
+  description?: string;
+}
+
+export function MessagingChannelsTab({
+  agentKey,
+  defaultLabel = "Talent Executive — Bangladesh",
+  defaultRegion = "Bangladesh",
+  title,
+  description,
+}: MessagingChannelsTabProps) {
   const [channels, setChannels] = useState<Channel[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
-  const [label, setLabel] = useState("Talent Executive — Bangladesh");
-  const [region, setRegion] = useState("Bangladesh");
+  const [label, setLabel] = useState(defaultLabel);
+  const [region, setRegion] = useState(defaultRegion);
 
   const load = async () => {
     setLoading(true);
@@ -85,6 +99,12 @@ export function MessagingChannelsTab({ agentKey }: { agentKey: string }) {
 
   return (
     <div className="space-y-4">
+      {(title || description) && (
+        <div className="space-y-1">
+          {title && <h2 className="text-xl font-semibold">{title}</h2>}
+          {description && <p className="text-sm text-muted-foreground">{description}</p>}
+        </div>
+      )}
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Connect a new channel</CardTitle>

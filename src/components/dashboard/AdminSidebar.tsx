@@ -50,6 +50,7 @@ import {
   Wallet,
   Mic,
   Languages,
+  Phone,
 } from "lucide-react";
 import {
   Sidebar,
@@ -96,6 +97,7 @@ const navGroups: NavGroup[] = [
       { title: "Industries", icon: Factory, value: "industries" },
       { title: "Contacts", icon: Users, value: "contacts" },
       { title: "Company Agents", icon: Bot, value: "company-agents" },
+      { title: "WhatsApp Line", icon: Phone, value: "companies-wa-channel" },
     ],
   },
   {
@@ -265,6 +267,7 @@ const navGroups: NavGroup[] = [
     items: [
       { title: "Analytics Overview", icon: PieChart, value: "analytics" },
       { title: "Channels", icon: Network, value: "mkt-channels" },
+      { title: "Community WhatsApp Line", icon: Phone, value: "community-wa-channel" },
       { title: "Community Groups", icon: Users, value: "mkt-community" },
       { title: "Admins & Reps", icon: UserCog, value: "mkt-admins-reps" },
       { title: "Talent Outreach", icon: Send, value: "outreach" },
