@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
     const accountId = payload.account_id;
     await admin.from("messaging_channels").update({
       unipile_account_id: accountId,
-      status: status.includes("OK") || status.includes("CONNECT") ? "active" : "pending",
+      status: status.includes("OK") || status.includes("CONNECT") ? "connected" : "pending",
       phone_e164: payload.phone || payload.phone_number || (channel as any).phone_e164 || null,
       metadata: { ...(channel.metadata as any), last_account_event: payload },
       updated_at: new Date().toISOString(),
