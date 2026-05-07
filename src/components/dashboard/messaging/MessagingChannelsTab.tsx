@@ -23,12 +23,26 @@ interface Channel {
   metadata: any;
 }
 
-export function MessagingChannelsTab({ agentKey }: { agentKey: string }) {
+interface MessagingChannelsTabProps {
+  agentKey: string;
+  defaultLabel?: string;
+  defaultRegion?: string;
+  title?: string;
+  description?: string;
+}
+
+export function MessagingChannelsTab({
+  agentKey,
+  defaultLabel = "Talent Executive — Bangladesh",
+  defaultRegion = "Bangladesh",
+  title,
+  description,
+}: MessagingChannelsTabProps) {
   const [channels, setChannels] = useState<Channel[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
-  const [label, setLabel] = useState("Talent Executive — Bangladesh");
-  const [region, setRegion] = useState("Bangladesh");
+  const [label, setLabel] = useState(defaultLabel);
+  const [region, setRegion] = useState(defaultRegion);
 
   const load = async () => {
     setLoading(true);
