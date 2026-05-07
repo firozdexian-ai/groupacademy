@@ -47,7 +47,7 @@ export default function PublicProjectDetail() {
           },
           key: "project-detail",
         });
-        supabase.rpc("record_discovery_signal", { _kind: "project", _id: d.project.id, _signal: "view" }).catch(() => {});
+        void supabase.rpc("record_discovery_signal", { _kind: "project", _id: d.project.id, _signal: "view" }).then(() => undefined);
       }
     })();
     return () => { cancelled = true; };
