@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
  * CTO NOTE: Registry updated to include curriculum and certification management.
  * PATH OVERRIDE: Using /pages/ directory for ModuleManagement due to environment restrictions.
  * Lazy loading enforced for all 62+ admin routes to protect mobile PWA memory limits.
+ * All dead 10 legacy *ConsoleTab redirect stubs removed to force use of /dashboard/chat.
  */
 const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   overview: React.lazy(() =>
@@ -53,12 +54,6 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   ),
   "talent-overview": React.lazy(() =>
     import("@/components/dashboard/talent/TalentOverviewTab").then((m) => ({ default: m.TalentOverviewTab })),
-  ),
-  "talent-aisha": React.lazy(() =>
-    import("@/components/dashboard/talent/AishaConsoleTab").then((m) => ({ default: m.AishaConsoleTab })),
-  ),
-  "talent-ai-general": React.lazy(() =>
-    import("@/components/dashboard/talent/AIGeneralConsoleTab").then((m) => ({ default: m.AIGeneralConsoleTab })),
   ),
   "talent-upload": React.lazy(() =>
     import("@/components/dashboard/talent/TalentUploadTab").then((m) => ({ default: m.TalentUploadTab })),
@@ -119,17 +114,6 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   ),
   "companies-overview": React.lazy(() =>
     import("@/components/dashboard/companies/CompaniesOverviewTab").then((m) => ({ default: m.CompaniesOverviewTab })),
-  ),
-  "companies-riya": React.lazy(() =>
-    import("@/components/dashboard/companies/RiyaConsoleTab").then((m) => ({ default: m.RiyaConsoleTab })),
-  ),
-  "companies-ai-general": React.lazy(() =>
-    import("@/components/dashboard/companies/CompanyAIGeneralTab").then((m) => ({ default: m.CompanyAIGeneralTab })),
-  ),
-  "companies-outreach": React.lazy(() =>
-    import("@/components/dashboard/companies/CompanyOutreachConsoleTab").then((m) => ({
-      default: m.CompanyOutreachConsoleTab,
-    })),
   ),
   all: React.lazy(() => import("@/components/dashboard/ContentList")),
   videos: React.lazy(() => import("@/components/dashboard/ContentList")),
@@ -225,9 +209,6 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   "agents-payouts": React.lazy(() =>
     import("@/components/dashboard/AgentPayoutsManager").then((m) => ({ default: m.AgentPayoutsManager })),
   ),
-  "agents-manager": React.lazy(() =>
-    import("@/components/dashboard/agents/AgentManagerConsoleTab").then((m) => ({ default: m.AgentManagerConsoleTab })),
-  ),
   "agents-sessions": React.lazy(() =>
     import("@/components/dashboard/AgentSessionsManager").then((m) => ({ default: m.AgentSessionsManager })),
   ),
@@ -282,14 +263,14 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   ),
   "ir-overview": React.lazy(() => import("@/components/dashboard/investors/IROverviewTab")),
   "ir-influencers": React.lazy(() => import("@/components/dashboard/investors/KeyInfluencersTab")),
-  "ir-relationship-exec": React.lazy(() => import("@/components/dashboard/investors/RelationshipExecConsoleTab")),
-  "ir-fpa-agent": React.lazy(() => import("@/components/dashboard/investors/FpaAgentConsoleTab")),
   "support-assistant": React.lazy(() =>
     import("@/components/dashboard/SupportAssistant").then((m) => ({ default: m.SupportAssistant })),
   ),
   codes: React.lazy(() => import("@/components/AccessCodeManager").then((m) => ({ default: m.AccessCodeManager }))),
   banners: React.lazy(() => import("@/components/dashboard/BannerManager").then((m) => ({ default: m.BannerManager }))),
-  "profile-card-themes": React.lazy(() => import("@/components/dashboard/ProfileCardThemeManager").then((m) => ({ default: m.ProfileCardThemeManager }))),
+  "profile-card-themes": React.lazy(() =>
+    import("@/components/dashboard/ProfileCardThemeManager").then((m) => ({ default: m.ProfileCardThemeManager })),
+  ),
   team: React.lazy(() => import("@/components/dashboard/TeamManager").then((m) => ({ default: m.TeamManager }))),
   "payments-legacy": React.lazy(() =>
     import("@/components/dashboard/PaymentSettingsManager").then((m) => ({ default: m.PaymentSettingsManager })),
@@ -318,8 +299,6 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
       default: m.OrgEventsManager,
     })),
   ),
-  "inst-outreach": React.lazy(() => import("@/components/dashboard/institutions/InstOutreachTab")),
-  "inst-analyst": React.lazy(() => import("@/components/dashboard/institutions/InstAnalystTab")),
   "hr-overview": React.lazy(() => import("@/components/dashboard/hr/HrOverviewTab")),
   "hr-grades": React.lazy(() =>
     import("@/components/dashboard/hr/HrSimpleTabs").then((m) => ({ default: m.HrGradesTab })),
@@ -375,8 +354,8 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   graduates: React.lazy(() => import("@/components/dashboard/learn/GraduatesTab")),
   "b2b-courses": React.lazy(() => import("@/components/dashboard/learn/B2BCoursesTab")),
   "course-briefs": React.lazy(() => import("@/components/dashboard/learn/CourseBriefsTab")),
-  "cohorts": React.lazy(() => import("@/components/dashboard/learn/CohortsTab")),
-  "moderation": React.lazy(() => import("@/components/dashboard/learn/ModerationTab")),
+  cohorts: React.lazy(() => import("@/components/dashboard/learn/CohortsTab")),
+  moderation: React.lazy(() => import("@/components/dashboard/learn/ModerationTab")),
   "b2b-engagements": React.lazy(() => import("@/components/dashboard/learn/B2BEngagementsTab")),
   "instructor-payouts": React.lazy(() => import("@/components/dashboard/learn/InstructorPayoutsTab")),
   "gig-overview": React.lazy(() => import("@/components/dashboard/gig/GigOverviewTab")),
@@ -447,9 +426,6 @@ const TAB_TITLES: Record<string, string> = {
   "company-agents": "Internal Agents",
   industries: "Verticals",
   "companies-overview": "Companies Overview",
-  "companies-riya": "Riya Console",
-  "companies-ai-general": "Company AI General",
-  "companies-outreach": "Company Outreach",
   all: "Catalog Architecture",
   videos: "Digital Library",
   courses: "Academy Courses",
@@ -488,7 +464,6 @@ const TAB_TITLES: Record<string, string> = {
   "agents-ugc": "User-Generated Agents",
   "agents-marketplace": "Marketplace Review",
   "agents-payouts": "Agent Payouts",
-  "agents-manager": "Agent Manager",
   "agents-sessions": "Sessions Log",
   "agents-insights": "Agent Insights",
   leads: "Scorecard Intel",
@@ -498,8 +473,8 @@ const TAB_TITLES: Record<string, string> = {
   gigs: "Micro-Earning",
   "course-projects": "Course Projects",
   "course-briefs": "Course Briefs",
-  "cohorts": "Cohorts",
-  "moderation": "Moderation Queue",
+  cohorts: "Cohorts",
+  moderation: "Moderation Queue",
   "b2b-engagements": "B2B Engagements",
   "marketplace-gigs": "Project Gigs",
   "gig-submissions": "Work Evidence",
@@ -509,12 +484,10 @@ const TAB_TITLES: Record<string, string> = {
   "ir-dashboard": "Investor Nexus",
   "ir-targets": "MRR Projections",
   "ir-vcs": "VC Portfolio",
-  "ir-investors": "Shareholders", // CTO FIX: Corrected from ir_investors to map properly
+  "ir-investors": "Shareholders",
   "ir-emails": "Executive Updates",
   "ir-overview": "IR Overview",
   "ir-influencers": "Key Influencers",
-  "ir-relationship-exec": "Relationship Exec",
-  "ir-fpa-agent": "Fundraising FP&A",
   "support-assistant": "Helpdesk AI",
   codes: "Priority Codes",
   banners: "Display Layer",
@@ -529,8 +502,6 @@ const TAB_TITLES: Record<string, string> = {
   "inst-clubs": "Clubs & Departments",
   "inst-reps": "Representatives",
   "inst-events": "Events & Competitions",
-  "inst-outreach": "Institutions Outreach",
-  "inst-analyst": "Organizations Analyst",
   "hr-overview": "Team & Workforce",
   "hr-grades": "Grades & Levels",
   "hr-verticals": "Verticals",
