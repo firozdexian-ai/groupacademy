@@ -97,6 +97,7 @@ const navGroups: NavGroup[] = [
       { title: "Industries", icon: Factory, value: "industries" },
       { title: "Contacts", icon: Users, value: "contacts" },
       { title: "Company Agents", icon: Bot, value: "company-agents" },
+      { title: "WhatsApp Line", icon: Phone, value: "companies-wa-channel" },
     ],
   },
   {
