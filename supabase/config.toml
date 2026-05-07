@@ -11,3 +11,9 @@ verify_jwt = false
 
 [functions.messaging-autoreply]
 verify_jwt = false
+
+[functions.discovery-share-redirect]
+verify_jwt = false
+
+[functions.og-image-render]
+verify_jwt = false

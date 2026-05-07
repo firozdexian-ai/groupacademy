@@ -177,6 +177,10 @@ import { Gro10xRoutes } from "./gro10x/Gro10xRoutes";
 import { IS_GRO10X } from "./lib/host";
 import PublicCompanyPage from "./pages/public/PublicCompanyPage";
 import CompanyBrandedCatalog from "./pages/public/CompanyBrandedCatalog";
+import PublicProjectsIndex from "./pages/public/PublicProjectsIndex";
+import PublicProjectDetail from "./pages/public/PublicProjectDetail";
+import PublicLeaderboard from "./pages/public/PublicLeaderboard";
+import CompanyPublicProjects from "./pages/public/CompanyPublicProjects";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -282,6 +286,13 @@ export default function App() {
                   <Route path="/verify/:code" element={<VerifyCertificate />} />
                   <Route path="/verify/skill/:code" element={<VerifySkillCredential />} />
                   <Route path="/t/:handle" element={<PublicTalentProfile />} />
+
+                  {/* Phase 5.6 — public discovery */}
+                  <Route path="/projects" element={<PublicProjectsIndex />} />
+                  <Route path="/projects/:slug" element={<PublicProjectDetail />} />
+                  <Route path="/leaderboards" element={<Navigate to="/leaderboards/talents" replace />} />
+                  <Route path="/leaderboards/:kind" element={<PublicLeaderboard />} />
+                  <Route path="/c/:slug/projects" element={<CompanyPublicProjects />} />
 
                   {/* Public Services */}
                   <Route path="/career-assessment" element={<CareerAssessment />} />

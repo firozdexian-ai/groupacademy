@@ -5452,6 +5452,54 @@ export type Database = {
           },
         ]
       }
+      discovery_rules: {
+        Row: {
+          key: string
+          updated_at: string
+          weights: Json
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          weights?: Json
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          weights?: Json
+        }
+        Relationships: []
+      }
+      discovery_signals: {
+        Row: {
+          created_at: string
+          entity_id: string
+          entity_kind: string
+          id: number
+          metadata: Json
+          signal: string
+          weight: number
+        }
+        Insert: {
+          created_at?: string
+          entity_id: string
+          entity_kind: string
+          id?: number
+          metadata?: Json
+          signal: string
+          weight?: number
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string
+          entity_kind?: string
+          id?: number
+          metadata?: Json
+          signal?: string
+          weight?: number
+        }
+        Relationships: []
+      }
       discussion_posts: {
         Row: {
           author_id: string
@@ -10204,6 +10252,33 @@ export type Database = {
           },
         ]
       }
+      leaderboard_snapshots: {
+        Row: {
+          category: string | null
+          computed_at: string
+          id: string
+          kind: string
+          payload: Json
+          period: string
+        }
+        Insert: {
+          category?: string | null
+          computed_at?: string
+          id?: string
+          kind: string
+          payload?: Json
+          period: string
+        }
+        Update: {
+          category?: string | null
+          computed_at?: string
+          id?: string
+          kind?: string
+          payload?: Json
+          period?: string
+        }
+        Relationships: []
+      }
       learning_activity: {
         Row: {
           activity_date: string
@@ -12988,6 +13063,62 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      project_public_settings: {
+        Row: {
+          case_study_md: string | null
+          created_at: string
+          featured_deliverables: Json
+          is_public: boolean
+          og_image_url: string | null
+          project_id: string
+          published_at: string | null
+          seo_description: string | null
+          seo_title: string | null
+          share_count: number
+          slug: string | null
+          updated_at: string
+          view_count: number
+        }
+        Insert: {
+          case_study_md?: string | null
+          created_at?: string
+          featured_deliverables?: Json
+          is_public?: boolean
+          og_image_url?: string | null
+          project_id: string
+          published_at?: string | null
+          seo_description?: string | null
+          seo_title?: string | null
+          share_count?: number
+          slug?: string | null
+          updated_at?: string
+          view_count?: number
+        }
+        Update: {
+          case_study_md?: string | null
+          created_at?: string
+          featured_deliverables?: Json
+          is_public?: boolean
+          og_image_url?: string | null
+          project_id?: string
+          published_at?: string | null
+          seo_description?: string | null
+          seo_title?: string | null
+          share_count?: number
+          slug?: string | null
+          updated_at?: string
+          view_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_public_settings_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "gig_projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       quiz_attempts: {
         Row: {
@@ -16311,6 +16442,10 @@ export type Database = {
         Returns: string
       }
       ensure_system_thread: { Args: { _talent_id: string }; Returns: string }
+      export_escrow_ledger_csv: {
+        Args: { _project_id: string }
+        Returns: string
+      }
       find_or_create_company: {
         Args: {
           p_country?: string
@@ -16367,6 +16502,7 @@ export type Database = {
         Args: { _company_id: string }
         Returns: Json
       }
+      get_company_public_projects: { Args: { _slug: string }; Returns: Json }
       get_countries_with_signal: {
         Args: { p_limit?: number }
         Returns: {
@@ -16452,6 +16588,10 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_leaderboard: {
+        Args: { _category?: string; _kind: string; _period?: string }
+        Returns: Json
+      }
       get_next_best_tool: { Args: { p_user_id: string }; Returns: Json }
       get_or_create_talent: {
         Args: {
@@ -16463,6 +16603,11 @@ export type Database = {
         Returns: string
       }
       get_post_insights: { Args: { _post_id: string }; Returns: Json }
+      get_public_project_detail: { Args: { _slug: string }; Returns: Json }
+      get_public_projects: {
+        Args: { _filters?: Json; _page?: number; _page_size?: number }
+        Returns: Json
+      }
       get_public_talent_profile: { Args: { _handle: string }; Returns: Json }
       get_remote_friendly_summary: { Args: never; Returns: Json }
       get_reviewer_program_health: { Args: never; Returns: Json }
@@ -16479,6 +16624,7 @@ export type Database = {
         Args: { _talent_id: string }
         Returns: Json
       }
+      get_talent_public_projects: { Args: { _handle: string }; Returns: Json }
       get_track_progress: { Args: { p_assignment_id: string }; Returns: Json }
       get_trending_jobs: {
         Args: { limit_n?: number }
@@ -16810,6 +16956,16 @@ export type Database = {
         Args: { p_talent_id: string }
         Returns: string
       }
+      record_discovery_signal: {
+        Args: {
+          _id: string
+          _kind: string
+          _metadata?: Json
+          _signal: string
+          _weight?: number
+        }
+        Returns: undefined
+      }
       record_impression: {
         Args: { _post_id: string; _surface?: string }
         Returns: undefined
@@ -16914,6 +17070,30 @@ export type Database = {
       tip_comment: {
         Args: { _amount: number; _comment_id: string }
         Returns: Json
+      }
+      toggle_project_public: {
+        Args: { _project_id: string; _public: boolean }
+        Returns: {
+          case_study_md: string | null
+          created_at: string
+          featured_deliverables: Json
+          is_public: boolean
+          og_image_url: string | null
+          project_id: string
+          published_at: string | null
+          seo_description: string | null
+          seo_title: string | null
+          share_count: number
+          slug: string | null
+          updated_at: string
+          view_count: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "project_public_settings"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       track_content_click: {
         Args: { p_content_id: string; p_source: string }
