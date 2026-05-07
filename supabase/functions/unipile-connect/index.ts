@@ -1,4 +1,3 @@
-// Unipile hosted-auth link generator (per-channel WhatsApp connect)
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -6,88 +5,134 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Secure helper for webhook validation
 function randomSecret(len = 32) {
   const bytes = new Uint8Array(len);
   crypto.getRandomValues(bytes);
-  return Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join("");
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
   try {
-    const authHeader = req.headers.get("Authorization") ?? "";
-    if (!authHeader.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
     const UNIPILE_API_KEY = Deno.env.get("UNIPILE_API_KEY");
     const UNIPILE_DSN = Deno.env.get("UNIPILE_DSN");
-    if (!UNIPILE_API_KEY || !UNIPILE_DSN) {
-      return new Response(JSON.stringify({ error: "Unipile credentials missing" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
 
-    const userClient = createClient(SUPABASE_URL, ANON_KEY, { global: { headers: { Authorization: authHeader } } });
-    const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userErr } = await userClient.auth.getUser(token);
-    if (userErr || !userData?.user?.id) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (!UNIPILE_API_KEY || !UNIPILE_DSN) {
+      throw new Error("Unipile credentials missing in Environment Variables");
     }
-    const userId = userData.user.id;
 
     const admin = createClient(SUPABASE_URL, SERVICE_KEY);
-    const { data: roleRow } = await admin.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle();
-    if (!roleRow) {
-      return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+    // 1. ROBUST AUTH CHECK
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const token = authHeader.replace("Bearer ", "");
+    const {
+      data: { user },
+      error: userErr,
+    } = await admin.auth.getUser(token);
+
+    if (userErr || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: corsHeaders });
+    }
+
+    // 2. ROLE CHECK (RPC has_any_admin_role is safer)
+    const { data: isAdmin } = await admin.rpc("has_role", { _user_id: user.id, _role: "admin" });
+    if (!isAdmin) {
+      return new Response(JSON.stringify({ error: "Forbidden: Admins only" }), { status: 403, headers: corsHeaders });
     }
 
     const body = await req.json();
-    const { agent_key, label, region, language, provider = "whatsapp" } = body ?? {};
-    if (!agent_key || !label) {
-      return new Response(JSON.stringify({ error: "agent_key and label required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const { agent_key, label, provider = "whatsapp" } = body ?? {};
+
+    if (!agent_key) {
+      return new Response(JSON.stringify({ error: "agent_key is required" }), { status: 400, headers: corsHeaders });
     }
 
-    // Create or reuse a pending channel row
-    const webhookSecret = randomSecret();
-    const { data: channel, error: chErr } = await admin.from("messaging_channels").insert({
-      agent_key,
-      provider,
-      label,
-      region: region ?? null,
-      language: language ?? null,
-      status: "pending",
-      created_by: userId,
-      metadata: { webhook_secret: webhookSecret },
-    }).select("id").single();
-    if (chErr) throw chErr;
+    // 3. TARGETED CHANNEL LOOKUP (Prevents duplicate rows)
+    // We look for the existing seeded channel row first
+    const { data: existingChannel } = await admin
+      .from("messaging_channels")
+      .select("id, metadata")
+      .eq("agent_key", agent_key)
+      .maybeSingle();
 
-    const successUrl = `${SUPABASE_URL.replace(".supabase.co", ".supabase.co")}/functions/v1/unipile-webhook?c=${channel.id}&cs=${webhookSecret}&kind=success`;
-    const notifyUrl = `${SUPABASE_URL}/functions/v1/unipile-webhook?c=${channel.id}&cs=${webhookSecret}`;
-    const expiresOn = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+    let channelId: string;
+    let webhookSecret: string;
 
+    if (existingChannel) {
+      channelId = existingChannel.id;
+      webhookSecret = (existingChannel.metadata as any)?.webhook_secret || randomSecret();
+
+      // Update existing row with fresh secret and status
+      await admin
+        .from("messaging_channels")
+        .update({
+          status: "pending",
+          label: label || existingChannel.label,
+          metadata: { ...(existingChannel.metadata as any), webhook_secret: webhookSecret },
+        })
+        .eq("id", channelId);
+    } else {
+      // Fallback: Create if it really doesn't exist
+      webhookSecret = randomSecret();
+      const { data: newChannel, error: insErr } = await admin
+        .from("messaging_channels")
+        .insert({
+          agent_key,
+          provider,
+          label: label || agent_key,
+          status: "pending",
+          created_by: user.id,
+          metadata: { webhook_secret: webhookSecret },
+        })
+        .select("id")
+        .single();
+
+      if (insErr) throw insErr;
+      channelId = newChannel.id;
+    }
+
+    // 4. CONSTRUCT WEBHOOK URLS
+    const successUrl = `${SUPABASE_URL}/functions/v1/unipile-webhook?c=${channelId}&cs=${webhookSecret}&kind=success`;
+    const notifyUrl = `${SUPABASE_URL}/functions/v1/unipile-webhook?c=${channelId}&cs=${webhookSecret}`;
+
+    // 5. UNIPILE HANDSHAKE
     const dsnBase = UNIPILE_DSN.startsWith("http") ? UNIPILE_DSN : `https://${UNIPILE_DSN}`;
+
+    // Using the modern Hosted Accounts Link endpoint
     const linkRes = await fetch(`${dsnBase}/api/v1/hosted/accounts/link`, {
       method: "POST",
-      headers: { "X-API-KEY": UNIPILE_API_KEY, "Content-Type": "application/json", "accept": "application/json" },
+      headers: {
+        "X-API-KEY": UNIPILE_API_KEY,
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
         type: "create",
-        providers: [provider === "whatsapp" ? "WHATSAPP" : "WHATSAPP"],
+        providers: ["WHATSAPP"],
         api_url: dsnBase,
-        expiresOn,
         notify_url: notifyUrl,
-        name: channel.id,
+        name: `GroUp-${agent_key}`,
         success_redirect_url: successUrl,
       }),
     });
-    const linkData = await linkRes.json();
-    if (!linkRes.ok) {
-      await admin.from("messaging_channels").delete().eq("id", channel.id);
-      return new Response(JSON.stringify({ error: "Unipile link failed", details: linkData }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
 
-    return new Response(JSON.stringify({ url: linkData.url, channel_id: channel.id }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const linkData = await linkRes.json();
+    if (!linkRes.ok) throw new Error(linkData.message || "Unipile API Handshake Failed");
+
+    return new Response(JSON.stringify({ url: linkData.url, channel_id: channelId }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (e) {
-    return new Response(JSON.stringify({ error: (e as Error).message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    console.error("Connection Error:", e);
+    return new Response(JSON.stringify({ error: (e as Error).message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
