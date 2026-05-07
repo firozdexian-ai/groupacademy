@@ -267,6 +267,7 @@ const navGroups: NavGroup[] = [
     items: [
       { title: "Analytics Overview", icon: PieChart, value: "analytics" },
       { title: "Channels", icon: Network, value: "mkt-channels" },
+      { title: "Community WhatsApp Line", icon: Phone, value: "community-wa-channel" },
       { title: "Community Groups", icon: Users, value: "mkt-community" },
       { title: "Admins & Reps", icon: UserCog, value: "mkt-admins-reps" },
       { title: "Talent Outreach", icon: Send, value: "outreach" },
