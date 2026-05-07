@@ -1,166 +1,163 @@
-# Phase 5.5 — Managed Projects, Milestones & Escrow
+# Phase 5.6 — Public Discovery for Projects & Leaderboards
 
 ## Goal
-Phases 5.1–5.4 turned the gig marketplace into a self-driving system for **discrete, single-deliverable** work: a poster scopes one ask, the matchmaker recommends bidders, the verifier + reviewers settle outcomes, disputes resolve fairly. That model breaks the moment a Gro10x company posts a real B2B engagement — a website rebuild, a 4-week ops sprint, a content campaign — which is **multi-deliverable, milestone-paid, often multi-talent**, and needs funds held in escrow rather than paid per submission.
+Phases 5.1–5.5 made the gig + projects engine work end-to-end **inside the logged-in app**. But everything happens behind auth — Google can't index a single project, no company can show off a completed engagement publicly, and there's no SEO surface that pulls new talent + new posters into the funnel. Phase 5.6 closes that gap: a public, SEO-friendly discovery layer for **gigs, projects, and the talents/companies who win them**, plus opt-in leaderboards that turn the marketplace into a magnet.
 
-Phase 5.5 introduces the **Managed Project** primitive on top of the existing gig stack: a parent project that owns one or more milestones (each effectively a 5.1-style gig), with credit escrow, a project room, optional team composition, and a Gro10x-side cockpit that mirrors the talent cockpit. It plugs directly into the verification (5.3), reviewer (5.4) and matchmaker (5.2) layers — those already know how to settle a "gig"; a milestone is just a gig with a parent.
-
-This is the layer that lets companies actually spend serious credits on the platform instead of treating it as a freelancer bench.
+This is the layer that converts Gro10x from "private tool we use" into "platform people search for."
 
 ---
 
-## Part A — Cleanup carried over from 5.1 → 5.4
+## Part A — 5.5 cleanup carried over
 
-Five small follow-ups surfaced while shipping 5.4 that 5.5 should close in the same migration:
+Three small follow-ups from 5.5 that ride on the 5.6 migration:
 
-1. **Reviewer calibration item bank** — schema exists, admin editor in `ReviewerProgramTab` is stubbed. Wire CRUD + preview-as-reviewer.
-2. **Reviewer Insights chart** — `cron-reviewer-payouts` writes ledger rows but the program-health surface (supply/demand per category, panel-agreement rate, AI-vs-panel agreement) is not yet rendered. Add `get_reviewer_program_health` RPC + chart.
-3. **Dispute SLA reminders** — `notify-dispute-update` fires on state change; missing the "panel claim deadline approaching" + "verdict due soon" pings. Extend `cron-review-assignment-expiry` to emit these.
-4. **`gig_submissions_unified_view`** (5.3) — verifier reads it but talent-side `MyGigs` still hits the two underlying tables separately. Unify.
-5. **Trust event weight tuning surface** — `verification_rules` row exists, no admin UI. Tiny form in Gig Ops → Verification.
-
-These ride on the 5.5 migration to avoid a separate cleanup release.
+1. **Project status digest delivery** — `ai-project-status-summary` runs but isn't wired to a weekly cron + email send. Add `cron-project-weekly-digest`.
+2. **Escrow receipts download** — `gig_escrow_ledger` is queryable but no PDF/CSV export from project cockpit. Wire a CSV export RPC + button.
+3. **Project room realtime** — `gig_project_messages` insert event isn't subscribed in `ProjectRoom.tsx` yet (still polls). Add Supabase realtime channel.
 
 ---
 
-## Part B — Phase 5.5 — Managed Projects
+## Part B — Phase 5.6 — Public Discovery
 
-### Core concepts
+### Core surfaces
 
-- **Project** = a parent container owned by a company (or admin on a company's behalf). Has a budget in credits, currency display, timeline, scope doc, and 1..N milestones.
-- **Milestone** = effectively a Phase 5.1 gig with `parent_project_id` set. Inherits 5.2 matchmaker, 5.3 verification, 5.4 reviewer/dispute behavior. Has its own escrow slice.
-- **Escrow** = credits debited from the company wallet at project funding time, held in a dedicated escrow ledger, and released to talent only when a milestone is settled `approved` (auto or panel). Refunds on cancellation follow rules.
-- **Project Room** = single thread per project, scoped to company members + assigned talents + admin. Reuses `application_messages` infra.
-- **Team mode** = a milestone may have multiple awarded talents with credit splits (e.g. designer 60 / writer 40). The verification verdict applies to the milestone as a whole; splits apply on release.
+| Route | Purpose | Auth |
+|---|---|---|
+| `/gigs` | Public marketplace index (open gigs + recently completed) | public |
+| `/gigs/:slug` | Public gig detail (single-deliverable, 5.1) | public |
+| `/projects` | Public project showcase (completed + open-public) | public |
+| `/projects/:slug` | Public project case-study page | public |
+| `/leaderboards/talents` | Top talents (overall + per category) | public |
+| `/leaderboards/companies` | Top hiring companies (volume + reputation) | public |
+| `/leaderboards/reviewers` | Top community reviewers (5.4 program) | public |
+| `/c/:slug/projects` | Branded company project portfolio | public |
+| `/t/:handle/projects` | Talent's public project portfolio (extends 5.5 `/t/:handle`) | public |
+
+All pages are server-friendly: meta tags, JSON-LD, OG image, canonical, sitemap entry.
 
 ### Schema
 
 | Object | Purpose |
 |---|---|
-| `gig_projects` | `company_id`, `created_by`, `title`, `summary`, `category`, `budget_credits numeric(12,1)`, `currency_display`, `status` (`draft` / `funded` / `active` / `completed` / `cancelled` / `disputed`), `starts_at`, `due_at`, `scope_doc jsonb`, `visibility` (`private` / `invite` / `public`) |
-| `gig_project_milestones` | `project_id`, `gig_id` (nullable until published), `seq int`, `title`, `summary`, `acceptance_criteria jsonb`, `budget_credits`, `due_at`, `status` (`draft` / `open` / `in_progress` / `submitted` / `approved` / `revising` / `rejected` / `cancelled`) |
-| `gig_project_assignments` | `milestone_id`, `talent_id`, `role`, `split_pct numeric(5,2)`, `status` (`invited` / `accepted` / `declined` / `removed`), `accepted_at` |
-| `gig_escrow_accounts` | `project_id`, `balance_credits numeric(12,1)`, `held_credits`, `released_credits`, `refunded_credits` |
-| `gig_escrow_ledger` | `project_id`, `milestone_id`, `talent_id` (nullable), `delta numeric(12,1)`, `kind` (`fund` / `hold` / `release` / `refund` / `adjustment`), `reason`, `actor_id`, `tx_ref` |
-| `gig_project_messages` | reuses `application_messages` shape but scoped by `project_id` |
-| `gig_project_invitations` | `project_id`, `talent_id`, `invited_by`, `note`, `status` (`pending` / `accepted` / `declined` / `expired`) |
+| `gig_public_settings` | `gig_id`, `is_public bool`, `slug`, `og_image_url`, `published_at`, `seo_title`, `seo_description` |
+| `project_public_settings` | `project_id`, `is_public`, `slug`, `og_image_url`, `published_at`, `case_study_md`, `featured_deliverables jsonb` |
+| `leaderboard_snapshots` | `kind` (`talent` / `company` / `reviewer`), `period` (`weekly` / `monthly` / `alltime`), `category` nullable, `payload jsonb`, `computed_at` — pre-computed rankings; cron writes |
+| `discovery_signals` | append-only event stream: `entity_kind`, `entity_id`, `signal` (`view` / `share` / `apply` / `hire` / `complete` / `dispute_lost`), `weight`, `created_at` — feeds ranking + trending |
 
-RLS: company members see only their company's projects; assigned talents see only milestones they're on + project room; admin full. Escrow ledger is select-only for company; admin can adjust with audit.
+RLS:
+- `gig_public_settings` / `project_public_settings`: select by anyone when `is_public=true`; write only by owner (poster) or admin.
+- `leaderboard_snapshots`: select by anyone, write only by service role.
+- `discovery_signals`: insert by edge functions only, select by admin.
+
+### Triggers
+- On `gig_projects.status → 'completed'`: auto-create `project_public_settings` row with `is_public=false` and seed `case_study_md` from `ai-project-case-study` (off by default; poster opts in).
+- On `talent_trust_events` insert: append `discovery_signals` view-equivalent for ranking inputs.
 
 ### RPCs
-
-- `create_gig_project(_payload jsonb)` — draft creation; validates budget ≤ company wallet.
-- `add_project_milestone(_project_id uuid, _payload jsonb)` — appends milestone to draft.
-- `fund_gig_project(_project_id uuid)` — atomic: debits company wallet, credits `gig_escrow_accounts.balance_credits`, writes `fund` ledger row, flips project → `funded`.
-- `publish_milestone(_milestone_id uuid)` — creates underlying `gig` row (kind = `marketplace` or `quick` per choice), holds milestone budget, opens to matchmaker. Reuses 5.1 `gig_briefs` pipeline if scoper assistance is requested.
-- `award_milestone(_milestone_id uuid, _assignments jsonb)` — accepts winning bidder(s), writes `gig_project_assignments`, hold remains, flips milestone → `in_progress`.
-- `submit_milestone_deliverables(_milestone_id uuid, _payload jsonb)` — talent submission; routes through `auto-review-gig-submission` (5.3); on approve → `release_milestone_funds`.
-- `release_milestone_funds(_milestone_id uuid)` — reads `gig_project_assignments.split_pct`, credits each talent's wallet, writes `release` ledger rows, marks milestone `approved`, recomputes project status.
-- `request_milestone_revision(_milestone_id uuid, _notes text)` — wraps 5.3 revision_requests, no escrow movement.
-- `cancel_milestone(_milestone_id uuid, _reason text)` — refund hold to project balance per cancellation rules (full if not started, partial after work begun, none after submission unless dispute won).
-- `cancel_gig_project(_project_id uuid, _reason text)` — bulk cancel all open milestones; refund unspent balance.
-- `open_project_dispute(_milestone_id uuid, _reason_code text, _narrative text, _evidence jsonb)` — wraps 5.4 `open_gig_dispute`; outcome reflected in ledger (release vs refund vs split).
-- `get_company_project_pipeline(_company_id uuid)` — returns project + milestones + escrow snapshot for the cockpit.
-- `get_talent_project_workload(_talent_id uuid)` — for talent cockpit.
+- `get_public_gigs(_filters jsonb, _page int, _page_size int)` — paginated, filtered (category, budget range, currency, recency).
+- `get_public_gig_detail(_slug text)` — returns gig + poster company snippet (anonymized if private) + similar gigs.
+- `get_public_projects(_filters jsonb, _page int, _page_size int)` — same shape.
+- `get_public_project_detail(_slug text)` — project + milestones (titles only, no internal chat) + awarded talents (handles only) + case study + featured deliverables.
+- `get_leaderboard(_kind text, _period text, _category text)` — reads latest `leaderboard_snapshots`.
+- `get_company_public_projects(_slug text)` — branded portfolio.
+- `get_talent_public_projects(_handle text)` — extends `get_public_talent_profile` with completed projects.
+- `toggle_gig_public(_gig_id uuid, _public bool)` / `toggle_project_public(_project_id uuid, _public bool)` — owner-only; auto-generates slug + OG image job.
+- `record_discovery_signal(_kind text, _id uuid, _signal text)` — service-role only; called by edge functions.
 
 ### Edge functions
+- `ai-project-case-study` — Gemini 2.5-pro: from project + milestones + verdicts, draft a 4-section markdown case study (Brief / Approach / Outcome / Team). Owner can edit before publishing.
+- `ai-gig-public-summary` — short 2-paragraph poster-friendly summary used as `seo_description`.
+- `og-image-render` — generates 1200×630 OG image per public entity (gig, project, leaderboard rank); cached in storage bucket `discovery-og`.
+- `cron-leaderboard-rebuild` (hourly weekly + nightly monthly) — recomputes `leaderboard_snapshots` from `talent_trust_score`, `talent_trust_events`, `gig_escrow_ledger`, `gig_review_assignments`, `discovery_signals`.
+- `cron-sitemap-rebuild` (every 30 min) — writes `public/sitemap.xml` slice for `/gigs`, `/projects`, `/leaderboards`, `/t`, `/c` from public-settings tables. Uses incremental rewrite, not full scan.
+- `cron-discovery-signal-decay` (daily) — applies time-decay to `discovery_signals.weight` for trending recency.
+- `discovery-share-redirect` — `/s/:short` short-link redirector that records `share` signals and forwards to canonical URL.
+- `notify-public-listing` — pings poster when their listing gets X views/applies/saves (digest, not per-event).
 
-- `ai-project-scoper` — extends `ai-gig-scoper` (5.1) to recommend a milestone breakdown from a single B2B brief: returns 2–6 milestones with titles, acceptance criteria, suggested credits, suggested team roles. Gemini 2.5-pro for structure quality.
-- `ai-project-team-recommender` — for awarded milestones with multiple roles, proposes a multi-talent team and split percentages, leveraging `gig_matches` (5.2) per role.
-- `ai-project-status-summary` — daily/weekly project digest for the company: progress, blockers, upcoming due dates, escrow position. Plain-English email body.
-- `ai-milestone-acceptance-coach` — for talents joining a milestone, surfaces the acceptance criteria + linked AI brief (reuses `ai-reviewer-brief` shape) so they understand what "done" looks like before they start.
-- `cron-project-status-sweep` (every 15 min) — flips milestone/project statuses based on escrow/submission/verdict state; emits `notify-project-update`.
-- `cron-project-due-date-sweep` (daily) — at-risk + overdue detection; emits company + talent reminders.
-- `cron-escrow-reconciliation` (daily) — invariant check: `balance = funded - released - refunded - held`; alerts admin on drift.
-- `notify-project-update` — single rail: funded, milestone published, awarded, submitted, approved, revision requested, cancelled, disputed.
-- `notify-escrow-event` — fund/release/refund receipts to company; payout receipts to talents.
+### Public UI
 
-### Talent surfaces
+- **`/gigs` index** — search bar, category chips, sort (Newest / Trending / Highest budget), 12-card grid, infinite scroll. Sidebar: top categories, top posters this week.
+- **`/gigs/:slug`** — hero (title, budget chip in poster currency + USD, deadline, category), brief, similar gigs, "Bid on this gig" CTA → `/auth?returnTo=…`.
+- **`/projects` index** — same layout, two tabs: Live (open public projects) + Showcase (completed case studies).
+- **`/projects/:slug`** — case-study page: hero with company brand, brief, team (talent chips → `/t/:handle`), milestone timeline, featured deliverables (images/PDFs), outcome metrics, "Hire this team" CTA.
+- **`/leaderboards/*`** — ranked table, per-category filter, period toggle (Week / Month / All-time), badge chips (verified, trust tier, reviewer tier), profile links. Each row links to public profile.
+- **`/c/:slug/projects`** — extends `CompanyBrandedCatalog.tsx` shell: branded header + projects grid.
+- **`/t/:handle/projects`** — extends `PublicTalentProfile.tsx`: new "Projects" section above existing skill credentials.
 
-- **`/app/projects`** — "My projects" list: per-milestone status, next action, escrow-pending, due dates.
-- **`/app/projects/:projectId`** — project room (chat), milestones I'm on, deliverable upload, dispute CTA (reuses 5.4 `OpenDisputeButton`), verdict cards (reuses 5.3 `VerificationVerdictCard`), payout chip per milestone.
-- **Invitations** — `gig_project_invitations` surfaced in existing `JobInvitations`-style hook; accept/decline with note.
-- **Earnings** — milestone payouts feed the existing earnings/wallet view; new "from project" tag.
+All pages: SSR-friendly head tags via `setHead` pattern already used in `CompanyBrandedCatalog.tsx`, JSON-LD (`Course` → `JobPosting` for gigs, `CreativeWork` for projects, `ItemList` for leaderboards), canonical URL, OG image from `discovery-og` bucket, sitemap entry.
 
-### Company surfaces (Gro10x)
+### App-side surfaces
 
-- **`/gro10x/work/projects`** — pipeline: Drafts / Funded / Active / Completed / Disputed.
-- **`/gro10x/work/projects/:id`** — project cockpit:
-  - Summary header: budget, escrow balance, % released, due, status
-  - Milestones board (Kanban: Draft → Open → In Progress → Submitted → Approved/Revising)
-  - Per-milestone panel: acceptance criteria, awarded talents + splits, submission viewer, verification verdict, dispute status
-  - Project room (chat)
-  - Escrow ledger view + receipts download
-  - Activity timeline
-- **New project wizard** (`/gro10x/work/projects/new`): brief → `ai-project-scoper` proposal → editable milestones → choose visibility (private invite vs open marketplace) → fund (debits wallet via `fund_gig_project`).
-- **Invite talents** — direct invitation pulled from existing CRM (`talent_lists`, `talent_relationships`).
+- **Poster cockpit (Gro10x)** — new "Make public" toggle on each gig + project with preview, slug editor, OG image preview, view/share counters.
+- **Talent cockpit** — same toggle on completed gigs + projects ("Add to portfolio").
+- **Admin → Gig Ops → Discovery** (new subtab):
+  - Public listings table (filter by entity, status, owner)
+  - Force-unpublish / takedown with reason
+  - Leaderboard rebuild trigger + last-run status
+  - Sitemap last-rebuild status
+  - Discovery signals analytics (top viewed, top shared, conversion funnel)
 
-### Admin surfaces
+### Ranking inputs (talent leaderboard, illustrative)
+```text
+score = 0.35 * trust_score
+      + 0.20 * normalized(gigs_completed_30d)
+      + 0.15 * normalized(escrow_released_30d)
+      + 0.10 * verified_skill_count
+      + 0.10 * reviewer_tier_weight
+      + 0.10 * recency_boost(last_completed_at)
+```
+Weights live in `verification_rules`-style `discovery_rules` row so admin can tune without redeploy.
 
-- **Gig Ops → Managed Projects** (new subtab):
-  - Pipeline across all companies (filterable)
-  - Escrow position per project + cross-platform aggregate
-  - Disputed/at-risk queue
-  - Override actions: force release, force refund, adjust escrow (audited), reassign milestone
-- **Gig Ops → Escrow Reconciliation**: daily reconciliation report, drift alerts, manual adjustments with audit log.
-- **Project Insights**: median time-to-fund, time-to-award, time-to-approve per category; revision rate; dispute rate; average team size; cost per milestone.
+---
 
-### Wiring into existing systems
+## Out of scope (deferred)
 
-- **5.1 Scoper** → `ai-project-scoper` extends, doesn't replace; single-gig path unchanged.
-- **5.2 Matchmaker** → each published milestone is a gig with a `parent_project_id`; matchmaker treats it identically. New filter: company members can prefer talents already on other accepted milestones for cohesion.
-- **5.3 Verification** → milestone submissions flow through `auto-review-gig-submission` unchanged; verdict triggers escrow movement instead of direct payout.
-- **5.4 Reviewer + Disputes** → milestone escalations and disputes use the existing reviewer panel; resolution writes to the escrow ledger via the same RPCs.
-- **Trust + reputation** → milestone outcomes feed `talent_trust_events` exactly like standalone gigs; no double counting.
-- **Credits wallet** → all movements stay inside the existing fractional wallet (per `mem://business/fractional-per-response-credit-model`); escrow is a typed bucket, not a parallel system.
-
-### Memory
-
-- New entry: `mem://product/managed-projects-and-escrow` — project model, escrow rules, cancellation/refund table, team-split rules, release triggers, anonymity & visibility rules, admin override audit policy.
-
-### Out of scope (future phases)
-
-- **5.6** — Public discovery for projects (`/projects` SEO) and project-level leaderboards.
-- **5.7** — Cash payouts for talents (managed payments rails) once volume justifies.
-- **5.8** — Cross-project portfolio surfaces and case-study generator from completed projects.
+- **5.7** — Cash payouts for talents via managed payments rails.
+- **5.8** — Cross-project portfolio auto-generator + per-talent case-study export (PDF).
+- Indexable internal search results pages (low ROI vs sitemap).
+- Paid promotion / featured listings (separate monetization phase).
 
 ---
 
 ## Technical sequencing (Phase 4 SOP)
 
 ```text
-Step 1 → Cleanup migration: reviewer item-bank CRUD, reviewer program health RPC,
-         dispute SLA reminders, gig_submissions_unified_view consumer fixes,
-         trust-event weight admin form.
+Step 1 → Cleanup migration: weekly project digest cron, escrow CSV export RPC,
+         project room realtime subscription.
 
-Step 2 → Phase 5.5 schema: gig_projects, gig_project_milestones,
-         gig_project_assignments, gig_escrow_accounts, gig_escrow_ledger,
-         gig_project_messages, gig_project_invitations + RLS + triggers.
+Step 2 → Phase 5.6 schema: gig_public_settings, project_public_settings,
+         leaderboard_snapshots, discovery_signals + RLS + triggers + slug uniqueness.
 
-Step 3 → RPCs: create/add/fund/publish/award/submit/release/refund/cancel
-         + dispute wrapper + pipeline/workload reads.
+Step 3 → RPCs: get_public_gigs/projects (+ details), get_leaderboard,
+         get_company/talent_public_projects, toggle_*_public,
+         record_discovery_signal.
 
-Step 4 → Edge functions: ai-project-scoper, ai-project-team-recommender,
-         ai-project-status-summary, ai-milestone-acceptance-coach,
-         cron-project-status-sweep, cron-project-due-date-sweep,
-         cron-escrow-reconciliation, notify-project-update, notify-escrow-event.
+Step 4 → Edge functions: ai-project-case-study, ai-gig-public-summary,
+         og-image-render (writes discovery-og bucket),
+         cron-leaderboard-rebuild, cron-sitemap-rebuild,
+         cron-discovery-signal-decay, discovery-share-redirect,
+         notify-public-listing.
 
-Step 5 → Talent UI: /app/projects list, /app/projects/:id room, invitations,
-         deliverable submit hooked to 5.3 verifier, dispute via 5.4 panel.
+Step 5 → Public UI: /gigs, /gigs/:slug, /projects, /projects/:slug,
+         /leaderboards/{talents,companies,reviewers}, extend
+         /c/:slug/projects + /t/:handle/projects. Wire setHead + JSON-LD + OG.
 
-Step 6 → Gro10x UI: /gro10x/work/projects pipeline, project cockpit,
-         new project wizard (scoper → fund), invite-from-CRM.
+Step 6 → App UI: "Make public" toggle on gig + project cockpits with preview,
+         view/share counters.
 
-Step 7 → Admin UI: Gig Ops → Managed Projects subtab, Escrow Reconciliation,
-         Project Insights.
+Step 7 → Admin UI: Gig Ops → Discovery subtab (listings, takedowns,
+         leaderboard rebuild, sitemap status, signal analytics).
 
 Step 8 → Memory entry + plan.md update + smoke test:
-         draft → fund → publish milestone → award → submit → approve → release.
+         publish project → verify slug + OG + sitemap entry → record share signal
+         → leaderboard rebuild includes new data.
 ```
+
+---
 
 ## Open questions
 
-1. **Escrow funding source** — credits-only at launch, or also accept managed payments (Stripe) directly into escrow when a company tops up specifically for a project?
-2. **Cancellation refund schedule** — proposed: 100% before award, 50% after award before submission, 0% after submission unless dispute won. Confirm.
-3. **Team splits** — fixed at award time, or editable mid-milestone with mutual consent? Default proposal: fixed; admin override only.
-4. **Project visibility** — should `public` projects show up in the existing `/app/gigs` marketplace listing or in a separate `/app/projects` discovery surface? Default proposal: separate surface to avoid muddling single-gig matchmaker UX.
+1. **Default visibility on completion** — auto-public completed projects (with anonymized client name unless opted in) or strict opt-in only? Proposal: strict opt-in; auto-create draft case study so owner just clicks Publish.
+2. **Leaderboard categories** — use the existing `gig_categories` taxonomy as-is, or introduce a tighter "discovery category" mapping (10–12 buckets) for cleaner browsing? Proposal: derived bucketing on top of existing categories.
+3. **OG image style** — branded card with company logo + budget + category, or photographic generation per project? Proposal: branded card (cheap, on-platform consistency); photographic only for showcase hero on `/projects/:slug`.
+4. **Leaderboard refresh cadence** — hourly weekly + nightly monthly + weekly all-time, or all hourly? Proposal: tiered (above) to keep cron cost bounded.
