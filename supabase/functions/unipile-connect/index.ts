@@ -184,6 +184,96 @@ Deno.serve(async (req) => {
       return json({ url: r.body?.url, expiresOn, channel_id: channelId });
     }
 
+    // Helper: activate a channel given a confirmed Unipile account_id
+    const activateChannel = async (
+      channelId: string,
+      channelMetadata: any,
+      accId: string,
+      accountBody: any,
+    ) => {
+      const phone =
+        accountBody?.connection_params?.im?.phone_number ||
+        accountBody?.connection_params?.phone_number ||
+        accountBody?.params?.phone_number ||
+        null;
+
+      let webhookSecret = channelMetadata?.webhook_secret;
+      if (!webhookSecret) webhookSecret = rand(16);
+
+      const { error: upErr } = await admin
+        .from("messaging_channels")
+        .update({
+          unipile_account_id: accId,
+          phone_e164: phone,
+          status: "active",
+          metadata: { ...(channelMetadata ?? {}), webhook_secret: webhookSecret },
+        })
+        .eq("id", channelId);
+      if (upErr) throw new Error(upErr.message);
+
+      const webhookUrl = `${SUPABASE_URL}/functions/v1/unipile-webhook?c=${channelId}&cs=${webhookSecret}`;
+      const registerWebhook = async () => {
+        try {
+          const list = await unipile(UNIPILE_DSN, UNIPILE_API_KEY, "/api/v1/webhooks");
+          const items: any[] = Array.isArray(list.body?.items)
+            ? list.body.items
+            : Array.isArray(list.body)
+              ? list.body
+              : [];
+          const already = items.some(
+            (w) =>
+              w?.request_url === webhookUrl ||
+              (Array.isArray(w?.account_ids) &&
+                w.account_ids.includes(accId) &&
+                w?.source === "messaging"),
+          );
+          if (already) return;
+          const wh = await unipile(UNIPILE_DSN, UNIPILE_API_KEY, "/api/v1/webhooks", {
+            method: "POST",
+            body: JSON.stringify({
+              request_url: webhookUrl,
+              source: "messaging",
+              events: ["message_received"],
+              account_ids: [accId],
+              format: "json",
+            }),
+          });
+          if (!wh.ok) {
+            await admin
+              .from("messaging_channels")
+              .update({
+                metadata: {
+                  ...(channelMetadata ?? {}),
+                  webhook_secret: webhookSecret,
+                  last_error: `webhook register: ${wh.status} ${JSON.stringify(wh.body).slice(0, 200)}`,
+                },
+              })
+              .eq("id", channelId);
+          }
+        } catch (e) {
+          await admin
+            .from("messaging_channels")
+            .update({
+              metadata: {
+                ...(channelMetadata ?? {}),
+                webhook_secret: webhookSecret,
+                last_error: `webhook register: ${e instanceof Error ? e.message : String(e)}`.slice(0, 240),
+              },
+            })
+            .eq("id", channelId);
+        }
+      };
+      // @ts-ignore EdgeRuntime is provided by Supabase runtime
+      if (typeof EdgeRuntime !== "undefined" && EdgeRuntime.waitUntil) {
+        // @ts-ignore
+        EdgeRuntime.waitUntil(registerWebhook());
+      } else {
+        registerWebhook();
+      }
+
+      return { phone };
+    };
+
     // ───── verify_and_save ─────
     if (action === "verify_and_save") {
       if (!account_id) return json({ error: "account_id required" }, 400);
@@ -203,90 +293,44 @@ Deno.serve(async (req) => {
       if (accProvider && String(accProvider).toUpperCase() !== "WHATSAPP") {
         return json({ error: `Account is ${accProvider}, not WHATSAPP` }, 400);
       }
-      const phone =
-        acc.body?.connection_params?.im?.phone_number ||
-        acc.body?.connection_params?.phone_number ||
-        acc.body?.params?.phone_number ||
-        null;
 
-      let webhookSecret = (channel.metadata as any)?.webhook_secret;
-      if (!webhookSecret) {
-        webhookSecret = rand(16);
-      }
-
-      const { error: upErr } = await admin
-        .from("messaging_channels")
-        .update({
-          unipile_account_id: account_id,
-          phone_e164: phone,
-          status: "active",
-          metadata: { ...(channel.metadata as any), webhook_secret: webhookSecret },
-        })
-        .eq("id", channel.id);
-      if (upErr) return json({ error: upErr.message }, 500);
-
-      // Idempotent webhook registration in background
-      const webhookUrl = `${SUPABASE_URL}/functions/v1/unipile-webhook?c=${channel.id}&cs=${webhookSecret}`;
-      const registerWebhook = async () => {
-        try {
-          const list = await unipile(UNIPILE_DSN, UNIPILE_API_KEY, "/api/v1/webhooks");
-          const items: any[] = Array.isArray(list.body?.items)
-            ? list.body.items
-            : Array.isArray(list.body)
-              ? list.body
-              : [];
-          const already = items.some(
-            (w) =>
-              w?.request_url === webhookUrl ||
-              (Array.isArray(w?.account_ids) &&
-                w.account_ids.includes(account_id) &&
-                w?.source === "messaging"),
-          );
-          if (already) return;
-          const wh = await unipile(UNIPILE_DSN, UNIPILE_API_KEY, "/api/v1/webhooks", {
-            method: "POST",
-            body: JSON.stringify({
-              request_url: webhookUrl,
-              source: "messaging",
-              events: ["message_received"],
-              account_ids: [account_id],
-              format: "json",
-            }),
-          });
-          if (!wh.ok) {
-            await admin
-              .from("messaging_channels")
-              .update({
-                metadata: {
-                  ...(channel.metadata as any),
-                  webhook_secret: webhookSecret,
-                  last_error: `webhook register: ${wh.status} ${JSON.stringify(wh.body).slice(0, 200)}`,
-                },
-              })
-              .eq("id", channel.id);
-          }
-        } catch (e) {
-          await admin
-            .from("messaging_channels")
-            .update({
-              metadata: {
-                ...(channel.metadata as any),
-                webhook_secret: webhookSecret,
-                last_error: `webhook register: ${e instanceof Error ? e.message : String(e)}`.slice(0, 240),
-              },
-            })
-            .eq("id", channel.id);
-        }
-      };
-      // @ts-ignore EdgeRuntime is provided by Supabase runtime
-      if (typeof EdgeRuntime !== "undefined" && EdgeRuntime.waitUntil) {
-        // @ts-ignore
-        EdgeRuntime.waitUntil(registerWebhook());
-      } else {
-        registerWebhook();
-      }
-
+      const { phone } = await activateChannel(channel.id, channel.metadata, account_id, acc.body);
       return json({ ok: true, phone, account_id, channel_id: channel.id });
+    }
+
+    // ───── reconcile ─────
+    // Look up the WhatsApp account in Unipile by name = "group-<agent_key>" and activate.
+    if (action === "reconcile") {
+      const { data: channel } = await admin
+        .from("messaging_channels")
+        .select("id, metadata")
+        .eq("agent_key", agent_key)
+        .maybeSingle();
+      if (!channel) return json({ error: "Channel not found. Start hosted auth first." }, 404);
+
+      const list = await unipile(UNIPILE_DSN, UNIPILE_API_KEY, "/api/v1/accounts?limit=250");
+      if (!list.ok) {
+        return json({ error: list.body?.title || list.body?.message || `Unipile ${list.status}` }, 400);
+      }
+      const items: any[] = Array.isArray(list.body?.items)
+        ? list.body.items
+        : Array.isArray(list.body)
+          ? list.body
+          : [];
+      const wantedName = `group-${agent_key}`;
+      const match = items.find(
+        (a) =>
+          (String(a?.type || a?.provider || "").toUpperCase() === "WHATSAPP") &&
+          (a?.name === wantedName || a?.name === agent_key),
+      );
+      if (!match?.id) {
+        return json(
+          { error: `No WhatsApp account in Unipile named "${wantedName}". Try Connect WhatsApp again or paste the account ID.` },
+          404,
+        );
+      }
+      const { phone } = await activateChannel(channel.id, channel.metadata, match.id, match);
+      return json({ ok: true, phone, account_id: match.id, channel_id: channel.id });
     }
 
     return json({ error: `Unknown action: ${action}` }, 400);
