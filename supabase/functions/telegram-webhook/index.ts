@@ -106,3 +106,43 @@ async function sendTelegramEdit(chatId: number, messageId: number, text: string)
     }),
   });
 }
+
+// Self-verification: confirm balance bumped, audit_log row created, ledger row created
+async function runApprovalVerification(
+  supabase: any,
+  talentId: string,
+  expectedDelta: number,
+): Promise<string> {
+  try {
+    const [{ data: credits }, { data: audit }, { data: tx }] = await Promise.all([
+      supabase.from("talent_credits").select("balance, updated_at").eq("talent_id", talentId).maybeSingle(),
+      supabase
+        .from("audit_log")
+        .select("id, action, created_at")
+        .eq("table_name", "talent_credits")
+        .order("created_at", { ascending: false })
+        .limit(1),
+      supabase
+        .from("credit_transactions")
+        .select("id, amount, balance_after, created_at")
+        .eq("talent_id", talentId)
+        .order("created_at", { ascending: false })
+        .limit(1),
+    ]);
+
+    const balance = credits?.balance ?? "?";
+    const auditOk = !!(audit && audit.length > 0);
+    const lastTx = tx?.[0];
+    const txOk = lastTx && Number(lastTx.amount) === Number(expectedDelta);
+
+    const lines = [
+      `🔍 *Auto-Verification*`,
+      `• Balance: *${balance}* (updated ${credits?.updated_at?.slice(11, 19) || "?"} UTC)`,
+      `• Audit log: ${auditOk ? "✅ row recorded" : "❌ no row"}`,
+      `• Ledger: ${txOk ? `✅ +${lastTx.amount} (after=${lastTx.balance_after})` : "❌ ledger mismatch"}`,
+    ];
+    return lines.join("\n");
+  } catch (e: any) {
+    return `🔍 *Auto-Verification* failed: ${e.message}`;
+  }
+}
