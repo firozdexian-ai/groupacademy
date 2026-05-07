@@ -68,6 +68,11 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
       default: m.TalentOutreachConsoleTab,
     })),
   ),
+  "talent-wa-channel": React.lazy(() =>
+    import("@/components/dashboard/talent/TalentMessagingChannelTab").then((m) => ({
+      default: m.TalentMessagingChannelTab,
+    })),
+  ),
   "talent-creator-economy": React.lazy(() =>
     import("@/components/dashboard/talent/CreatorEconomyTab").then((m) => ({ default: m.CreatorEconomyTab })),
   ),
@@ -428,6 +433,7 @@ const TAB_TITLES: Record<string, string> = {
   talent: "Talent Intel",
   "talent-upload": "Talent Upload",
   "talent-outreach": "Talent Outreach",
+  "talent-wa-channel": "Talent WhatsApp Line",
   "companies-wa-channel": "Employer WhatsApp Line",
   "community-wa-channel": "Community WhatsApp Line",
   "lead-hunter": "Lead Acquisition",
