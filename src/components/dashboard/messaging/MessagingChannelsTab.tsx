@@ -64,16 +64,21 @@ export function MessagingChannelsTab({
     return () => { supabase.removeChannel(ch); };
   }, [agentKey]);
 
+  const [accountId, setAccountId] = useState("");
+  const [verifying, setVerifying] = useState(false);
+  const [hasStarted, setHasStarted] = useState(false);
+
   const connectWhatsApp = async () => {
     if (!label.trim()) return toast.error("Label is required");
     setCreating(true);
     try {
       const { data, error } = await supabase.functions.invoke("unipile-connect", {
-        body: { agent_key: agentKey, label, region, provider: "whatsapp" },
+        body: { action: "start_hosted_auth", agent_key: agentKey, label, region, provider: "whatsapp" },
       });
       if (error) throw error;
       if (data?.url) {
         window.open(data.url, "_blank", "noopener");
+        setHasStarted(true);
         toast.success("Scan the QR in the new tab to link WhatsApp");
       } else {
         toast.error(data?.error || "Failed to start link");
@@ -85,15 +90,39 @@ export function MessagingChannelsTab({
     }
   };
 
+  const verifyAndSave = async () => {
+    if (!accountId.trim()) return toast.error("Paste the Unipile account_id first");
+    setVerifying(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("unipile-connect", {
+        body: { action: "verify_and_save", agent_key: agentKey, account_id: accountId.trim() },
+      });
+      if (error) throw error;
+      if (data?.ok) {
+        toast.success(`Connected${data.phone ? ` · ${data.phone}` : ""}`);
+        setAccountId("");
+        setHasStarted(false);
+      } else {
+        toast.error(data?.error || "Verification failed");
+      }
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setVerifying(false);
+    }
+  };
+
   const toggleAutoReply = async (id: string, val: boolean) => {
     const { error } = await supabase.from("messaging_channels").update({ auto_reply_enabled: val }).eq("id", id);
     if (error) toast.error(error.message);
   };
 
-  const removeChannel = async (id: string) => {
-    if (!confirm("Disconnect this channel?")) return;
-    const { error } = await supabase.from("messaging_channels").delete().eq("id", id);
-    if (error) toast.error(error.message);
+  const removeChannel = async () => {
+    if (!confirm("Disconnect this channel? The Unipile account will be removed.")) return;
+    const { data, error } = await supabase.functions.invoke("unipile-connect", {
+      body: { action: "delete", agent_key: agentKey },
+    });
+    if (error || data?.error) toast.error(error?.message || data?.error);
     else toast.success("Channel removed");
   };
 
@@ -129,6 +158,29 @@ export function MessagingChannelsTab({
           <p className="text-xs text-muted-foreground">
             Opens Unipile hosted QR. Scan from the WhatsApp app you want this agent to use.
           </p>
+
+          <div className="border-t pt-3 space-y-2">
+            <Label className="text-xs font-semibold uppercase text-muted-foreground">
+              Already scanned? Paste account ID
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              If the redirect didn't fire, copy the <code>account_id</code> from your Unipile dashboard and paste it here to finish linking.
+            </p>
+            <div className="flex gap-2">
+              <Input
+                placeholder="Unipile account_id (UUID)"
+                value={accountId}
+                onChange={(e) => setAccountId(e.target.value)}
+              />
+              <Button onClick={verifyAndSave} disabled={verifying} variant="secondary">
+                {verifying ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                Verify & save
+              </Button>
+            </div>
+            {hasStarted && (
+              <p className="text-xs text-muted-foreground">QR opened — complete the scan, then verify above if status doesn't flip automatically.</p>
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -160,7 +212,7 @@ export function MessagingChannelsTab({
                       <Switch checked={c.auto_reply_enabled} onCheckedChange={(v) => toggleAutoReply(c.id, v)} />
                       <span className="text-xs">AI</span>
                     </div>
-                    <Button variant="ghost" size="icon" onClick={() => removeChannel(c.id)}>
+                    <Button variant="ghost" size="icon" onClick={() => removeChannel()}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
