@@ -54,13 +54,17 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "agent_key is required" }), { status: 400, headers: corsHeaders });
     }
 
-    // 3. TARGETED CHANNEL LOOKUP (Prevents duplicate rows)
-    // We look for the existing seeded channel row first
-    const { data: existingChannel } = await admin
+    // 3. TARGETED UPSERT BY agent_key (UNIQUE constraint guarantees one row per agent)
+    // Prefer the row that already has a unipile_account_id, otherwise the most recent.
+    const { data: existingChannels } = await admin
       .from("messaging_channels")
-      .select("id, metadata")
+      .select("id, label, metadata, unipile_account_id, updated_at, created_at")
       .eq("agent_key", agent_key)
-      .maybeSingle();
+      .order("unipile_account_id", { ascending: false, nullsFirst: false })
+      .order("updated_at", { ascending: false, nullsFirst: false })
+      .limit(1);
+
+    const existingChannel = existingChannels?.[0];
 
     let channelId: string;
     let webhookSecret: string;
@@ -69,8 +73,7 @@ Deno.serve(async (req) => {
       channelId = existingChannel.id;
       webhookSecret = (existingChannel.metadata as any)?.webhook_secret || randomSecret();
 
-      // Update existing row with fresh secret and status
-      await admin
+      const { error: updErr } = await admin
         .from("messaging_channels")
         .update({
           status: "pending",
@@ -78,19 +81,23 @@ Deno.serve(async (req) => {
           metadata: { ...(existingChannel.metadata as any), webhook_secret: webhookSecret },
         })
         .eq("id", channelId);
+      if (updErr) throw updErr;
     } else {
-      // Fallback: Create if it really doesn't exist
+      // True first-time create. UNIQUE(agent_key) prevents future duplicates.
       webhookSecret = randomSecret();
       const { data: newChannel, error: insErr } = await admin
         .from("messaging_channels")
-        .insert({
-          agent_key,
-          provider,
-          label: label || agent_key,
-          status: "pending",
-          created_by: user.id,
-          metadata: { webhook_secret: webhookSecret },
-        })
+        .upsert(
+          {
+            agent_key,
+            provider,
+            label: label || agent_key,
+            status: "pending",
+            created_by: user.id,
+            metadata: { webhook_secret: webhookSecret },
+          },
+          { onConflict: "agent_key" },
+        )
         .select("id")
         .single();
 
