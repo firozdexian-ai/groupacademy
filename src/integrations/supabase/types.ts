@@ -6273,6 +6273,116 @@ export type Database = {
         }
         Relationships: []
       }
+      gig_escrow_accounts: {
+        Row: {
+          balance_credits: number
+          held_credits: number
+          project_id: string
+          refunded_credits: number
+          released_credits: number
+          updated_at: string
+        }
+        Insert: {
+          balance_credits?: number
+          held_credits?: number
+          project_id: string
+          refunded_credits?: number
+          released_credits?: number
+          updated_at?: string
+        }
+        Update: {
+          balance_credits?: number
+          held_credits?: number
+          project_id?: string
+          refunded_credits?: number
+          released_credits?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gig_escrow_accounts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "gig_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gig_escrow_ledger: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          delta: number
+          id: string
+          kind: string
+          milestone_id: string | null
+          project_id: string
+          reason: string | null
+          talent_id: string | null
+          tx_ref: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          delta: number
+          id?: string
+          kind: string
+          milestone_id?: string | null
+          project_id: string
+          reason?: string | null
+          talent_id?: string | null
+          tx_ref?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          delta?: number
+          id?: string
+          kind?: string
+          milestone_id?: string | null
+          project_id?: string
+          reason?: string | null
+          talent_id?: string | null
+          tx_ref?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gig_escrow_ledger_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "gig_project_milestones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gig_escrow_ledger_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "gig_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gig_escrow_ledger_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gig_escrow_ledger_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
+          {
+            foreignKeyName: "gig_escrow_ledger_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_weekly_leaderboard"
+            referencedColumns: ["talent_id"]
+          },
+        ]
+      }
       gig_match_digests: {
         Row: {
           channel: string
@@ -6392,6 +6502,305 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_weekly_leaderboard"
             referencedColumns: ["talent_id"]
+          },
+        ]
+      }
+      gig_project_assignments: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          id: string
+          milestone_id: string
+          role: string | null
+          split_pct: number
+          status: string
+          talent_id: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          id?: string
+          milestone_id: string
+          role?: string | null
+          split_pct?: number
+          status?: string
+          talent_id: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          id?: string
+          milestone_id?: string
+          role?: string | null
+          split_pct?: number
+          status?: string
+          talent_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gig_project_assignments_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "gig_project_milestones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gig_project_assignments_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gig_project_assignments_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
+          {
+            foreignKeyName: "gig_project_assignments_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_weekly_leaderboard"
+            referencedColumns: ["talent_id"]
+          },
+        ]
+      }
+      gig_project_invitations: {
+        Row: {
+          created_at: string
+          id: string
+          invited_by: string
+          milestone_id: string | null
+          note: string | null
+          project_id: string
+          responded_at: string | null
+          status: string
+          talent_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invited_by: string
+          milestone_id?: string | null
+          note?: string | null
+          project_id: string
+          responded_at?: string | null
+          status?: string
+          talent_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invited_by?: string
+          milestone_id?: string | null
+          note?: string | null
+          project_id?: string
+          responded_at?: string | null
+          status?: string
+          talent_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gig_project_invitations_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "gig_project_milestones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gig_project_invitations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "gig_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gig_project_invitations_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gig_project_invitations_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
+          {
+            foreignKeyName: "gig_project_invitations_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_weekly_leaderboard"
+            referencedColumns: ["talent_id"]
+          },
+        ]
+      }
+      gig_project_messages: {
+        Row: {
+          attachments: Json
+          body: string
+          created_at: string
+          id: string
+          project_id: string
+          sender_id: string
+        }
+        Insert: {
+          attachments?: Json
+          body: string
+          created_at?: string
+          id?: string
+          project_id: string
+          sender_id: string
+        }
+        Update: {
+          attachments?: Json
+          body?: string
+          created_at?: string
+          id?: string
+          project_id?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gig_project_messages_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "gig_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gig_project_milestones: {
+        Row: {
+          acceptance_criteria: Json
+          budget_credits: number
+          created_at: string
+          due_at: string | null
+          gig_id: string | null
+          gig_kind: string | null
+          id: string
+          project_id: string
+          seq: number
+          status: string
+          submission_id: string | null
+          summary: string | null
+          title: string
+          updated_at: string
+          verification_id: string | null
+        }
+        Insert: {
+          acceptance_criteria?: Json
+          budget_credits?: number
+          created_at?: string
+          due_at?: string | null
+          gig_id?: string | null
+          gig_kind?: string | null
+          id?: string
+          project_id: string
+          seq?: number
+          status?: string
+          submission_id?: string | null
+          summary?: string | null
+          title: string
+          updated_at?: string
+          verification_id?: string | null
+        }
+        Update: {
+          acceptance_criteria?: Json
+          budget_credits?: number
+          created_at?: string
+          due_at?: string | null
+          gig_id?: string | null
+          gig_kind?: string | null
+          id?: string
+          project_id?: string
+          seq?: number
+          status?: string
+          submission_id?: string | null
+          summary?: string | null
+          title?: string
+          updated_at?: string
+          verification_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gig_project_milestones_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "gig_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gig_projects: {
+        Row: {
+          budget_credits: number
+          category: string | null
+          company_id: string
+          created_at: string
+          created_by: string
+          currency_display: string
+          due_at: string | null
+          id: string
+          scope_doc: Json
+          starts_at: string | null
+          status: string
+          summary: string | null
+          title: string
+          updated_at: string
+          visibility: string
+        }
+        Insert: {
+          budget_credits?: number
+          category?: string | null
+          company_id: string
+          created_at?: string
+          created_by: string
+          currency_display?: string
+          due_at?: string | null
+          id?: string
+          scope_doc?: Json
+          starts_at?: string | null
+          status?: string
+          summary?: string | null
+          title: string
+          updated_at?: string
+          visibility?: string
+        }
+        Update: {
+          budget_credits?: number
+          category?: string | null
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          currency_display?: string
+          due_at?: string | null
+          id?: string
+          scope_doc?: Json
+          starts_at?: string | null
+          status?: string
+          summary?: string | null
+          title?: string
+          updated_at?: string
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gig_projects_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -12799,6 +13208,45 @@ export type Database = {
         }
         Relationships: []
       }
+      reviewer_calibration_items: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string | null
+          difficulty: string
+          id: string
+          is_active: boolean
+          prompt: string
+          reference_answer: string
+          rubric: Json
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          difficulty?: string
+          id?: string
+          is_active?: boolean
+          prompt: string
+          reference_answer: string
+          rubric?: Json
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          difficulty?: string
+          id?: string
+          is_active?: boolean
+          prompt?: string
+          reference_answer?: string
+          rubric?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       reviewer_credit_ledger: {
         Row: {
           assignment_id: string | null
@@ -15620,6 +16068,10 @@ export type Database = {
         }
         Returns: Json
       }
+      add_project_milestone: {
+        Args: { _payload: Json; _project_id: string }
+        Returns: string
+      }
       add_talent_service: {
         Args: { p_service: string; p_talent_id: string }
         Returns: undefined
@@ -15698,13 +16150,25 @@ export type Database = {
         Args: { p_admin_notes?: string; p_submission_id: string }
         Returns: Json
       }
+      award_milestone: {
+        Args: { _assignments: Json; _milestone_id: string }
+        Returns: Json
+      }
       boost_profile: { Args: never; Returns: Json }
       can_operate_messaging_channel: {
         Args: { _channel: string; _user: string }
         Returns: boolean
       }
+      cancel_gig_project: {
+        Args: { _project_id: string; _reason: string }
+        Returns: Json
+      }
       cancel_invoice: {
         Args: { p_invoice_id: string; p_reason?: string }
+        Returns: Json
+      }
+      cancel_milestone: {
+        Args: { _milestone_id: string; _reason: string }
         Returns: Json
       }
       charge_company_credits: {
@@ -15784,6 +16248,7 @@ export type Database = {
         }
         Returns: Json
       }
+      create_gig_project: { Args: { _payload: Json }; Returns: string }
       debit_instructor_credit: {
         Args: {
           _amount: number
@@ -15859,6 +16324,7 @@ export type Database = {
         Args: { p_enrollment_id: string }
         Returns: undefined
       }
+      fund_gig_project: { Args: { _project_id: string }; Returns: Json }
       generate_course_project: {
         Args: {
           p_completion_bonus?: number
@@ -15897,6 +16363,10 @@ export type Database = {
       }
       get_company_branded_catalog: { Args: { p_slug: string }; Returns: Json }
       get_company_detail: { Args: { p_company_name: string }; Returns: Json }
+      get_company_project_pipeline: {
+        Args: { _company_id: string }
+        Returns: Json
+      }
       get_countries_with_signal: {
         Args: { p_limit?: number }
         Returns: {
@@ -15995,6 +16465,7 @@ export type Database = {
       get_post_insights: { Args: { _post_id: string }; Returns: Json }
       get_public_talent_profile: { Args: { _handle: string }; Returns: Json }
       get_remote_friendly_summary: { Args: never; Returns: Json }
+      get_reviewer_program_health: { Args: never; Returns: Json }
       get_sourcing_stats: {
         Args: { p_company_id: string; p_window_days?: number }
         Returns: Json
@@ -16004,6 +16475,10 @@ export type Database = {
         Returns: number
       }
       get_talent_outcome_signal: { Args: { _talent_id: string }; Returns: Json }
+      get_talent_project_workload: {
+        Args: { _talent_id: string }
+        Returns: Json
+      }
       get_track_progress: { Args: { p_assignment_id: string }; Returns: Json }
       get_trending_jobs: {
         Args: { limit_n?: number }
@@ -16297,6 +16772,7 @@ export type Database = {
         Returns: Json
       }
       publish_gig_from_draft: { Args: { _draft_id: string }; Returns: string }
+      publish_milestone: { Args: { _milestone_id: string }; Returns: Json }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
@@ -16358,6 +16834,10 @@ export type Database = {
         Args: { p_admin_notes?: string; p_submission_id: string }
         Returns: Json
       }
+      release_milestone_funds: {
+        Args: { _milestone_id: string }
+        Returns: Json
+      }
       request_gig_verification: {
         Args: { _gig_kind: string; _submission_id: string }
         Returns: string
@@ -16365,6 +16845,10 @@ export type Database = {
       request_instructor_payout: {
         Args: { _amount: number; _details?: Json; _method: string }
         Returns: string
+      }
+      request_milestone_revision: {
+        Args: { _milestone_id: string; _notes: string }
+        Returns: Json
       }
       resolve_dispute: {
         Args: { _dispute_id: string; _notes: string; _verdict: string }
@@ -16392,6 +16876,10 @@ export type Database = {
       show_trgm: { Args: { "": string }; Returns: string[] }
       submit_calibration_attempt: {
         Args: { _answers: Json; _score: number }
+        Returns: Json
+      }
+      submit_milestone_deliverables: {
+        Args: { _milestone_id: string; _payload: Json }
         Returns: Json
       }
       submit_review_verdict: {

@@ -8,6 +8,7 @@ import { Sparkles } from "lucide-react";
 import { GigMatchmakerTab } from "./GigMatchmakerTab";
 import { GigVerificationQueueTab } from "./GigVerificationQueueTab";
 import { ReviewerProgramTab } from "./ReviewerProgramTab";
+import { ManagedProjectsTab } from "./ManagedProjectsTab";
 
 export default function GigOpsTab() {
   const { data: briefs, isLoading } = useQuery({
@@ -35,6 +36,7 @@ export default function GigOpsTab() {
           <TabsTrigger value="matchmaker">Matchmaker</TabsTrigger>
           <TabsTrigger value="verification">Verification</TabsTrigger>
           <TabsTrigger value="reviewers">Reviewer Program</TabsTrigger>
+          <TabsTrigger value="projects">Managed Projects</TabsTrigger>
         </TabsList>
 
         <TabsContent value="scoper" className="mt-3">
@@ -83,6 +85,10 @@ export default function GigOpsTab() {
 
         <TabsContent value="reviewers" className="mt-3">
           <ReviewerProgramTab />
+        </TabsContent>
+
+        <TabsContent value="projects" className="mt-3">
+          <ManagedProjectsTab />
         </TabsContent>
       </Tabs>
     </div>

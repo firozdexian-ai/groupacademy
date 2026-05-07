@@ -92,6 +92,8 @@ import NewGigWizard from "./pages/app/NewGigWizard";
 import GigAppeals from "./pages/app/GigAppeals";
 import GigDisputes from "./pages/app/GigDisputes";
 import ReviewerCockpit from "./pages/app/ReviewerCockpit";
+import MyProjects from "./pages/app/MyProjects";
+import ProjectRoom from "./pages/app/ProjectRoom";
 import MarketplaceGigDetail from "./pages/app/MarketplaceGigDetail";
 import Transactions from "./pages/app/Transactions";
 import Withdrawals from "./pages/app/Withdrawals";
@@ -484,6 +486,8 @@ export default function App() {
                     <Route path="gigs/appeals" element={<GigAppeals />} />
                     <Route path="gigs/disputes" element={<GigDisputes />} />
                     <Route path="reviewer" element={<ReviewerCockpit />} />
+                    <Route path="projects" element={<MyProjects />} />
+                    <Route path="projects/:projectId" element={<ProjectRoom />} />
                     <Route path="marketplace" element={<Navigate to="/app/gigs?tab=projects" replace />} />
                     <Route path="marketplace/:id" element={<MarketplaceGigDetail />} />
                     <Route path="my-gigs" element={<Navigate to="/app/gigs?tab=activity" replace />} />

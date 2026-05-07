@@ -22,6 +22,7 @@ import Gro10xCRM from "./pages/Gro10xCRM";
 import Gro10xOfferings from "./pages/Gro10xOfferings";
 import Gro10xSourcing from "./pages/sourcing/Gro10xSourcing";
 import Gro10xSourcingLists from "./pages/sourcing/Gro10xSourcingLists";
+import Gro10xProjects from "./pages/work/Gro10xProjects";
 // Notifications fold into the Atlas concierge thread — no standalone tab/route.
 
 /**
@@ -58,6 +59,7 @@ export function Gro10xRoutes() {
         <Route path="offerings" element={<Gro10xOfferings />} />
         <Route path="sourcing" element={<Gro10xSourcing />} />
         <Route path="sourcing/lists" element={<Gro10xSourcingLists />} />
+        <Route path="work/projects" element={<Gro10xProjects />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/gro10x" replace />} />
