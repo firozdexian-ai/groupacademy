@@ -76,7 +76,8 @@ Deno.serve(async (req) => {
       score: Math.round(((r.accuracy ?? 0) * 0.6 + (tierWeight[r.tier] ?? 0.4) * 40) * 100) / 100,
       ...(rMap.get(r.talent_id) || {}),
     }));
-    await admin.from("leaderboard_snapshots").upsert({ kind: "reviewer", period, category: null, payload: reviewerPayload, computed_at: new Date().toISOString() }, { onConflict: "kind,period" } as never);
+    await admin.from("leaderboard_snapshots").delete().eq("kind", "reviewer").eq("period", period).is("category", null);
+    await admin.from("leaderboard_snapshots").insert({ kind: "reviewer", period, category: null, payload: reviewerPayload });
 
     out[period] = { talents: talentPayload.length, companies: companyPayload.length, reviewers: reviewerPayload.length };
   }
