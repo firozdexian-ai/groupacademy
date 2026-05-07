@@ -6,8 +6,9 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Send, Loader2, Bot, User } from "lucide-react";
+import { Send, Loader2, Bot, User, MessageSquare, ShieldAlert, Users, Phone } from "lucide-react";
 
 interface Conversation {
   id: string;
@@ -19,6 +20,12 @@ interface Conversation {
   last_message_preview: string | null;
   unread_count: number;
   auto_reply_paused: boolean;
+  contact_id: string | null;
+  is_group: boolean;
+  messaging_channels?: {
+    agent_key: string;
+    phone_e164: string | null;
+  };
 }
 
 interface Message {
@@ -37,16 +44,26 @@ export default function AdminMessagingInbox() {
   const [loadingConvs, setLoadingConvs] = useState(true);
   const [composer, setComposer] = useState("");
   const [sending, setSending] = useState(false);
+  const [activeTab, setActiveTab] = useState("matched");
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const loadConvs = async () => {
-    // Safety: hide 1-on-1 chats with no resolved contact (prevents stranger DMs leaking into admin inbox)
-    const { data } = await supabase
+    setLoadingConvs(true);
+    let query = supabase
       .from("messaging_conversations")
-      .select("*")
-      .or("is_group.eq.true,contact_id.not.is.null")
-      .order("last_message_at", { ascending: false, nullsFirst: false })
-      .limit(100);
+      .select("*, messaging_channels(agent_key, phone_e164)")
+      .order("last_message_at", { ascending: false, nullsFirst: false });
+
+    // CTO Filter Logic
+    if (activeTab === "matched") {
+      query = query.not("contact_id", "is", null);
+    } else if (activeTab === "unmatched") {
+      query = query.is("contact_id", null).eq("is_group", false);
+    } else if (activeTab === "groups") {
+      query = query.eq("is_group", true);
+    }
+
+    const { data } = await query.limit(100);
     setConversations((data ?? []) as Conversation[]);
     setLoadingConvs(false);
   };
@@ -65,16 +82,21 @@ export default function AdminMessagingInbox() {
   useEffect(() => {
     loadConvs();
     const ch = supabase
-      .channel("messaging_inbox")
+      .channel("messaging_inbox_realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "messaging_conversations" }, () => loadConvs())
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "messaging_messages" }, (payload: any) => {
         if (payload.new?.conversation_id === activeId) loadMessages(activeId);
+        if (payload.new?.direction === "in") toast.info("New message received");
       })
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, [activeId]);
+    return () => {
+      supabase.removeChannel(ch);
+    };
+  }, [activeId, activeTab]);
 
-  useEffect(() => { if (activeId) loadMessages(activeId); }, [activeId]);
+  useEffect(() => {
+    if (activeId) loadMessages(activeId);
+  }, [activeId]);
 
   const active = conversations.find((c) => c.id === activeId);
 
@@ -86,12 +108,13 @@ export default function AdminMessagingInbox() {
         body: { conversation_id: activeId, text: composer.trim() },
       });
       if (error) throw error;
-      if (!data?.ok && data?.error) toast.error(data.error);
       setComposer("");
       await loadMessages(activeId);
     } catch (e: any) {
       toast.error(e.message);
-    } finally { setSending(false); }
+    } finally {
+      setSending(false);
+    }
   };
 
   const toggleHumanTakeover = async (paused: boolean) => {
@@ -101,72 +124,154 @@ export default function AdminMessagingInbox() {
   };
 
   return (
-    <div className="h-[calc(100vh-8rem)] grid grid-cols-1 md:grid-cols-[320px_1fr] gap-3 p-3">
-      <Card className="overflow-hidden flex flex-col">
-        <div className="p-3 border-b font-semibold">Conversations</div>
-        <ScrollArea className="flex-1">
-          {loadingConvs ? (
-            <div className="p-6 text-center"><Loader2 className="h-5 w-5 animate-spin inline" /></div>
-          ) : conversations.length === 0 ? (
-            <div className="p-6 text-sm text-muted-foreground text-center">No conversations yet.</div>
-          ) : conversations.map((c) => (
-            <button
-              key={c.id}
-              onClick={() => setActiveId(c.id)}
-              className={`w-full text-left p-3 border-b hover:bg-muted/50 ${activeId === c.id ? "bg-muted" : ""}`}
-            >
-              <div className="flex justify-between gap-2">
-                <span className="font-medium truncate">{c.peer_display_name || c.peer_handle || "Unknown"}</span>
-                {c.unread_count > 0 && <Badge>{c.unread_count}</Badge>}
-              </div>
-              <p className="text-xs text-muted-foreground truncate mt-1">{c.last_message_preview || "—"}</p>
-            </button>
-          ))}
-        </ScrollArea>
-      </Card>
+    <div className="h-[calc(100vh-6rem)] flex flex-col p-4 gap-4 bg-background">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold tracking-tight">Mission Control: Messaging</h1>
+          <p className="text-xs text-muted-foreground">Monitoring AI Agents and Stakeholder Conversations.</p>
+        </div>
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) => {
+            setActiveTab(v);
+            setActiveId(null);
+          }}
+          className="w-auto"
+        >
+          <TabsList className="bg-muted/50 border-none">
+            <TabsTrigger value="matched" className="text-xs gap-2">
+              <MessageSquare className="h-3 w-3" /> Matched
+            </TabsTrigger>
+            <TabsTrigger value="unmatched" className="text-xs gap-2">
+              <ShieldAlert className="h-3 w-3" /> Unmatched
+            </TabsTrigger>
+            <TabsTrigger value="groups" className="text-xs gap-2">
+              <Users className="h-3 w-3" /> Groups
+            </TabsTrigger>
+            <TabsTrigger value="all" className="text-xs">
+              All
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
 
-      <Card className="overflow-hidden flex flex-col">
-        {!active ? (
-          <div className="flex-1 flex items-center justify-center text-muted-foreground">Select a conversation</div>
-        ) : (
-          <>
-            <div className="p-3 border-b flex items-center justify-between">
-              <div>
-                <div className="font-semibold">{active.peer_display_name || active.peer_handle}</div>
-                <div className="text-xs text-muted-foreground">{active.external_chat_id}</div>
+      <div className="flex-1 grid grid-cols-1 md:grid-cols-[320px_1fr] gap-4 overflow-hidden">
+        {/* Sidebar: Conversation List */}
+        <Card className="flex flex-col border-muted/40 shadow-sm overflow-hidden">
+          <ScrollArea className="flex-1">
+            {loadingConvs ? (
+              <div className="p-10 text-center">
+                <Loader2 className="h-5 w-5 animate-spin mx-auto text-muted-foreground" />
               </div>
-              <div className="flex items-center gap-2 text-sm">
-                <span>Human takeover</span>
-                <Switch checked={active.auto_reply_paused} onCheckedChange={toggleHumanTakeover} />
-              </div>
+            ) : conversations.length === 0 ? (
+              <div className="p-10 text-center text-xs text-muted-foreground">No conversations in this view.</div>
+            ) : (
+              conversations.map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => setActiveId(c.id)}
+                  className={`w-full text-left p-3 border-b transition-colors hover:bg-muted/30 ${activeId === c.id ? "bg-primary/5 border-l-2 border-l-primary" : ""}`}
+                >
+                  <div className="flex justify-between items-start gap-2 mb-1">
+                    <span className="font-semibold text-sm truncate">
+                      {c.peer_display_name || c.peer_handle || "Unknown Sender"}
+                    </span>
+                    {c.unread_count > 0 && <Badge className="h-4 px-1.5 text-[10px]">{c.unread_count}</Badge>}
+                  </div>
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <Badge
+                      variant="outline"
+                      className="text-[9px] uppercase tracking-tighter px-1 h-3.5 border-muted-foreground/30"
+                    >
+                      {c.messaging_channels?.agent_key === "talent-outreach" ? "Talent Line" : "Employer Line"}
+                    </Badge>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground truncate">
+                    {c.last_message_preview || "No message history"}
+                  </p>
+                </button>
+              ))
+            )}
+          </ScrollArea>
+        </Card>
+
+        {/* Chat Thread */}
+        <Card className="flex flex-col border-muted/40 shadow-sm overflow-hidden">
+          {!active ? (
+            <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground bg-muted/5">
+              <Phone className="h-8 w-8 mb-2 opacity-20" />
+              <p className="text-xs">Select a secure thread to view activity</p>
             </div>
-            <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-2 bg-muted/20">
-              {messages.map((m) => (
-                <div key={m.id} className={`flex ${m.direction === "out" ? "justify-end" : "justify-start"}`}>
-                  <div className={`max-w-[75%] rounded-lg px-3 py-2 text-sm ${m.direction === "out" ? "bg-primary text-primary-foreground" : "bg-background border"}`}>
-                    {m.author === "agent" && <div className="flex items-center gap-1 text-xs opacity-70 mb-1"><Bot className="h-3 w-3" /> AI</div>}
-                    {m.author === "human_operator" && m.direction === "out" && <div className="flex items-center gap-1 text-xs opacity-70 mb-1"><User className="h-3 w-3" /> You</div>}
-                    <div className="whitespace-pre-wrap break-words">{m.body}</div>
-                    <div className="text-[10px] opacity-60 mt-1">{new Date(m.created_at).toLocaleTimeString()}</div>
+          ) : (
+            <>
+              <div className="p-3 border-b bg-muted/10 flex items-center justify-between">
+                <div>
+                  <div className="font-bold text-sm">{active.peer_display_name || active.peer_handle}</div>
+                  <div className="text-[10px] text-muted-foreground font-mono">{active.external_chat_id}</div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="takeover" className="text-[11px] font-medium">
+                      Human Takeover
+                    </Label>
+                    <Switch id="takeover" checked={active.auto_reply_paused} onCheckedChange={toggleHumanTakeover} />
                   </div>
                 </div>
-              ))}
-            </div>
-            <div className="p-3 border-t flex gap-2">
-              <Input
-                value={composer}
-                onChange={(e) => setComposer(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
-                placeholder="Type a message…"
-                disabled={sending}
-              />
-              <Button onClick={send} disabled={sending || !composer.trim()}>
-                {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-              </Button>
-            </div>
-          </>
-        )}
-      </Card>
+              </div>
+
+              <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 bg-background">
+                {messages.map((m) => (
+                  <div key={m.id} className={`flex ${m.direction === "out" ? "justify-end" : "justify-start"}`}>
+                    <div
+                      className={`max-w-[80%] rounded-xl px-4 py-2.5 text-sm shadow-sm ${
+                        m.direction === "out"
+                          ? "bg-primary text-primary-foreground rounded-tr-none"
+                          : "bg-muted/30 border border-muted/40 rounded-tl-none"
+                      }`}
+                    >
+                      {m.author === "agent" && (
+                        <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest opacity-70 mb-1.5">
+                          <Bot className="h-3 w-3" /> AI Workforce
+                        </div>
+                      )}
+                      {m.author === "human_operator" && m.direction === "out" && (
+                        <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest opacity-70 mb-1.5">
+                          <User className="h-3 w-3" /> Admin
+                        </div>
+                      )}
+                      <div className="whitespace-pre-wrap break-words leading-relaxed">{m.body}</div>
+                      <div
+                        className={`text-[9px] opacity-50 mt-2 font-mono ${m.direction === "out" ? "text-right" : "text-left"}`}
+                      >
+                        {new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="p-4 border-t bg-muted/5 flex gap-2">
+                <Input
+                  className="bg-background border-muted-foreground/20"
+                  value={composer}
+                  onChange={(e) => setComposer(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      send();
+                    }
+                  }}
+                  placeholder="Draft your response..."
+                  disabled={sending}
+                />
+                <Button onClick={send} disabled={sending || !composer.trim()} className="shadow-md">
+                  {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                </Button>
+              </div>
+            </>
+          )}
+        </Card>
+      </div>
     </div>
   );
 }
