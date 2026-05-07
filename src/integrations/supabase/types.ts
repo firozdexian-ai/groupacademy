@@ -10695,6 +10695,42 @@ export type Database = {
           },
         ]
       }
+      manual_payment_requests: {
+        Row: {
+          amount_bdt: number | null
+          created_at: string | null
+          id: string
+          processed_at: string | null
+          processed_by: string | null
+          requested_credits: number | null
+          status: string | null
+          talent_id: string
+          trx_id: string
+        }
+        Insert: {
+          amount_bdt?: number | null
+          created_at?: string | null
+          id?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          requested_credits?: number | null
+          status?: string | null
+          talent_id: string
+          trx_id: string
+        }
+        Update: {
+          amount_bdt?: number | null
+          created_at?: string | null
+          id?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          requested_credits?: number | null
+          status?: string | null
+          talent_id?: string
+          trx_id?: string
+        }
+        Relationships: []
+      }
       marketplace_bids: {
         Row: {
           ai_rationale: Json | null
