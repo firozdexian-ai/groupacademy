@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Send, Loader2, Bot, User, MessageSquare, ShieldAlert, Users, Phone } from "lucide-react";
+import { Send, Loader2, Bot, User, MessageSquare, ShieldAlert, Users, Phone, ListAll } from "lucide-react";
 
 interface Conversation {
   id: string;
@@ -45,7 +45,8 @@ export default function AdminMessagingInbox() {
   const [loadingConvs, setLoadingConvs] = useState(true);
   const [composer, setComposer] = useState("");
   const [sending, setSending] = useState(false);
-  const [activeTab, setActiveTab] = useState("matched");
+  // CTO Patch: Default to "all" so inbound Talent messages (which lack a B2B contact_id) are never hidden
+  const [activeTab, setActiveTab] = useState("all");
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const loadConvs = async () => {
@@ -55,14 +56,15 @@ export default function AdminMessagingInbox() {
       .select("*, messaging_channels(agent_key, phone_e164)")
       .order("last_message_at", { ascending: false, nullsFirst: false });
 
-    // CTO Filter Logic
-    if (activeTab === "matched") {
+    // CTO Filter Logic: Adjusted to accurately reflect B2B vs B2C routing
+    if (activeTab === "employers") {
       query = query.not("contact_id", "is", null);
-    } else if (activeTab === "unmatched") {
+    } else if (activeTab === "talents_unmatched") {
       query = query.is("contact_id", null).eq("is_group", false);
     } else if (activeTab === "groups") {
       query = query.eq("is_group", true);
     }
+    // "all" applies no filters
 
     const { data } = await query.limit(100);
     setConversations((data ?? []) as Conversation[]);
@@ -140,17 +142,17 @@ export default function AdminMessagingInbox() {
           className="w-auto"
         >
           <TabsList className="bg-muted/50 border-none">
-            <TabsTrigger value="matched" className="text-xs gap-2">
-              <MessageSquare className="h-3 w-3" /> Matched
+            <TabsTrigger value="all" className="text-xs gap-2">
+              <ListAll className="h-3 w-3" /> All Inbox
             </TabsTrigger>
-            <TabsTrigger value="unmatched" className="text-xs gap-2">
-              <ShieldAlert className="h-3 w-3" /> Unmatched
+            <TabsTrigger value="employers" className="text-xs gap-2">
+              <MessageSquare className="h-3 w-3" /> Employers
+            </TabsTrigger>
+            <TabsTrigger value="talents_unmatched" className="text-xs gap-2">
+              <ShieldAlert className="h-3 w-3" /> Talents / Unmatched
             </TabsTrigger>
             <TabsTrigger value="groups" className="text-xs gap-2">
               <Users className="h-3 w-3" /> Groups
-            </TabsTrigger>
-            <TabsTrigger value="all" className="text-xs">
-              All
             </TabsTrigger>
           </TabsList>
         </Tabs>
