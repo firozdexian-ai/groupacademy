@@ -177,6 +177,10 @@ import { Gro10xRoutes } from "./gro10x/Gro10xRoutes";
 import { IS_GRO10X } from "./lib/host";
 import PublicCompanyPage from "./pages/public/PublicCompanyPage";
 import CompanyBrandedCatalog from "./pages/public/CompanyBrandedCatalog";
+import PublicProjectsIndex from "./pages/public/PublicProjectsIndex";
+import PublicProjectDetail from "./pages/public/PublicProjectDetail";
+import PublicLeaderboard from "./pages/public/PublicLeaderboard";
+import CompanyPublicProjects from "./pages/public/CompanyPublicProjects";
 
 const queryClient = new QueryClient({
   defaultOptions: {
