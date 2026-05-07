@@ -6222,8 +6222,10 @@ export type Database = {
       }
       fin_payment_configs: {
         Row: {
+          account_details: Json
           created_at: string
           id: string
+          is_active: boolean
           label: string
           notes: string | null
           provider: string
@@ -6231,8 +6233,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          account_details?: Json
           created_at?: string
           id?: string
+          is_active?: boolean
           label: string
           notes?: string | null
           provider: string
@@ -6240,8 +6244,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          account_details?: Json
           created_at?: string
           id?: string
+          is_active?: boolean
           label?: string
           notes?: string | null
           provider?: string
