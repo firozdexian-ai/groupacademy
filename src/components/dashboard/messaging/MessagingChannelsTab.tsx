@@ -126,6 +126,23 @@ export function MessagingChannelsTab({
     else toast.success("Channel removed");
   };
 
+  const [reconciling, setReconciling] = useState(false);
+  const reconcile = async () => {
+    setReconciling(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("unipile-connect", {
+        body: { action: "reconcile", agent_key: agentKey },
+      });
+      if (error) throw error;
+      if (data?.ok) toast.success(`Reconciled${data.phone ? ` · ${data.phone}` : ""}`);
+      else toast.error(data?.error || "Reconcile failed");
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setReconciling(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       {(title || description) && (
