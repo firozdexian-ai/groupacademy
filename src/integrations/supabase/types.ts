@@ -2437,6 +2437,60 @@ export type Database = {
           },
         ]
       }
+      client_group_members: {
+        Row: {
+          added_at: string
+          added_by: string | null
+          contact_id: string | null
+          conversation_id: string
+          id: string
+          member_kind: string
+          removed_at: string | null
+          role: string
+          user_id: string | null
+          whatsapp_id: string
+        }
+        Insert: {
+          added_at?: string
+          added_by?: string | null
+          contact_id?: string | null
+          conversation_id: string
+          id?: string
+          member_kind: string
+          removed_at?: string | null
+          role?: string
+          user_id?: string | null
+          whatsapp_id: string
+        }
+        Update: {
+          added_at?: string
+          added_by?: string | null
+          contact_id?: string | null
+          conversation_id?: string
+          id?: string
+          member_kind?: string
+          removed_at?: string | null
+          role?: string
+          user_id?: string | null
+          whatsapp_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_group_members_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_group_members_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "messaging_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cohort_enrollments: {
         Row: {
           cohort_id: string
@@ -11036,13 +11090,20 @@ export type Database = {
           auto_reply_enabled: boolean
           created_at: string
           created_by: string | null
+          daily_outreach_cap: number
+          hourly_outreach_cap: number
           id: string
           label: string
           language: string | null
           metadata: Json
+          min_gap_seconds: number
           phone_e164: string | null
           provider: Database["public"]["Enums"]["messaging_provider"]
+          quiet_hours_end: number
+          quiet_hours_start: number
+          quiet_hours_tz: string
           rate_limit_per_min: number
+          reengage_window_days: number
           region: string | null
           status: Database["public"]["Enums"]["messaging_channel_status"]
           telegram_bot_id: string | null
@@ -11057,13 +11118,20 @@ export type Database = {
           auto_reply_enabled?: boolean
           created_at?: string
           created_by?: string | null
+          daily_outreach_cap?: number
+          hourly_outreach_cap?: number
           id?: string
           label: string
           language?: string | null
           metadata?: Json
+          min_gap_seconds?: number
           phone_e164?: string | null
           provider: Database["public"]["Enums"]["messaging_provider"]
+          quiet_hours_end?: number
+          quiet_hours_start?: number
+          quiet_hours_tz?: string
           rate_limit_per_min?: number
+          reengage_window_days?: number
           region?: string | null
           status?: Database["public"]["Enums"]["messaging_channel_status"]
           telegram_bot_id?: string | null
@@ -11078,13 +11146,20 @@ export type Database = {
           auto_reply_enabled?: boolean
           created_at?: string
           created_by?: string | null
+          daily_outreach_cap?: number
+          hourly_outreach_cap?: number
           id?: string
           label?: string
           language?: string | null
           metadata?: Json
+          min_gap_seconds?: number
           phone_e164?: string | null
           provider?: Database["public"]["Enums"]["messaging_provider"]
+          quiet_hours_end?: number
+          quiet_hours_start?: number
+          quiet_hours_tz?: string
           rate_limit_per_min?: number
+          reengage_window_days?: number
           region?: string | null
           status?: Database["public"]["Enums"]["messaging_channel_status"]
           telegram_bot_id?: string | null
@@ -11100,9 +11175,13 @@ export type Database = {
           assigned_human_user_id: string | null
           auto_reply_paused: boolean
           channel_id: string
+          company_id: string | null
+          contact_id: string | null
           created_at: string
           external_chat_id: string
+          group_kind: string | null
           id: string
+          is_group: boolean
           last_message_at: string | null
           last_message_preview: string | null
           metadata: Json
@@ -11115,9 +11194,13 @@ export type Database = {
           assigned_human_user_id?: string | null
           auto_reply_paused?: boolean
           channel_id: string
+          company_id?: string | null
+          contact_id?: string | null
           created_at?: string
           external_chat_id: string
+          group_kind?: string | null
           id?: string
+          is_group?: boolean
           last_message_at?: string | null
           last_message_preview?: string | null
           metadata?: Json
@@ -11130,9 +11213,13 @@ export type Database = {
           assigned_human_user_id?: string | null
           auto_reply_paused?: boolean
           channel_id?: string
+          company_id?: string | null
+          contact_id?: string | null
           created_at?: string
           external_chat_id?: string
+          group_kind?: string | null
           id?: string
+          is_group?: boolean
           last_message_at?: string | null
           last_message_preview?: string | null
           metadata?: Json
@@ -11147,6 +11234,20 @@ export type Database = {
             columns: ["channel_id"]
             isOneToOne: false
             referencedRelation: "messaging_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messaging_conversations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messaging_conversations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
             referencedColumns: ["id"]
           },
         ]
@@ -16906,6 +17007,10 @@ export type Database = {
       org_mark_overdue: { Args: never; Returns: number }
       org_team_mastery: {
         Args: { p_company_id: string; p_content_id?: string }
+        Returns: Json
+      }
+      outreach_can_send: {
+        Args: { p_channel_id: string; p_contact_id?: string }
         Returns: Json
       }
       process_instructor_payout: {
