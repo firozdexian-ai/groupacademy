@@ -143,7 +143,7 @@ export default function AdminMessagingInbox() {
         >
           <TabsList className="bg-muted/50 border-none">
             <TabsTrigger value="all" className="text-xs gap-2">
-              <ListAll className="h-3 w-3" /> All Inbox
+              <List className="h-3 w-3" /> All Inbox
             </TabsTrigger>
             <TabsTrigger value="employers" className="text-xs gap-2">
               <MessageSquare className="h-3 w-3" /> Employers
