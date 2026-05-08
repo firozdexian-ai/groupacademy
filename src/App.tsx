@@ -9,7 +9,6 @@ import { BootGate } from "@/components/BootGate";
 import { TalentProvider } from "@/contexts/TalentContext";
 import { ImpersonationProvider } from "@/contexts/ImpersonationContext";
 import { useTalent } from "@/hooks/useTalent";
-import { Navigate as RouterNavigate } from "react-router-dom";
 import ProfileBuilder from "@/pages/app/ProfileBuilder";
 
 // Components
