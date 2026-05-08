@@ -51,7 +51,7 @@ serve(async (req) => {
       .single();
 
     let systemPrompt =
-      agentConfig?.system_prompt || FALLBACK_PROMPTS[agentKey] || FALLBACK_PROMPTS["career-consultant"];
+      agentConfig?.system_prompt || GENERIC_FALLBACK;
 
     // CTO FIX: PHASE 3: Identity Context Injection (Curing AI Amnesia)
     // We grab the user's actual profile and secretly inject it into the AI's brain.
