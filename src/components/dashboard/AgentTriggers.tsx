@@ -133,6 +133,8 @@ export function AgentTriggers() {
       recipient_strategy: draft.recipient_strategy || "subject",
       template: draft.template,
       is_active: draft.is_active ?? true,
+      channel: draft.channel && draft.channel !== "auto" ? draft.channel : null,
+      cooldown_minutes: Number(draft.cooldown_minutes ?? 1440),
     });
     if (error) {
       toast({ title: "Save failed", description: error.message, variant: "destructive" });
@@ -140,7 +142,7 @@ export function AgentTriggers() {
     }
     toast({ title: "Trigger created" });
     setDialogOpen(false);
-    setDraft({ agent_id: "", event_kind: "talent.signup", recipient_strategy: "subject", template: "", is_active: true });
+    setDraft({ agent_id: "", event_kind: "talent.signup", recipient_strategy: "subject", template: "", is_active: true, channel: "auto", cooldown_minutes: 1440 });
     load();
   }
 
