@@ -11,9 +11,6 @@ Deno.serve(async (req) => {
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
   const limit = 25;
 
-  // Find quick-gig submissions without verification
-  const { data: pending } = await admin.rpc("execute_sql_safe", {}).catch(() => ({ data: null } as any));
-  // Fallback via direct query
   const { data: rows, error } = await admin
     .from("gig_submissions_unified_view")
     .select("submission_id, gig_kind, status")
@@ -21,13 +18,20 @@ Deno.serve(async (req) => {
     .limit(limit);
   if (error) {
     console.error("sweeper query error", error);
-    return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: corsHeaders });
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   let processed = 0;
   for (const r of rows ?? []) {
-    const { data: existing } = await admin.from("gig_verifications").select("id")
-      .eq("submission_id", r.submission_id).eq("gig_kind", r.gig_kind).maybeSingle();
+    const { data: existing } = await admin
+      .from("gig_verifications")
+      .select("id")
+      .eq("submission_id", r.submission_id)
+      .eq("gig_kind", r.gig_kind)
+      .maybeSingle();
     if (existing) continue;
     try {
       await admin.functions.invoke("ai-gig-verifier", {
