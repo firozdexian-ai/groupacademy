@@ -168,32 +168,75 @@ export default function Gro10xSourcing() {
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="flex-1 h-8 text-xs"
-                  onClick={() => setSaveTarget({ id: t.id, name: t.full_name })}
-                >
-                  <Bookmark className="h-3 w-3 mr-1" /> Save
-                </Button>
-                <Button
-                  size="sm"
-                  className="flex-1 h-8 text-xs"
-                  onClick={() => handleTrack(t.id)}
-                  disabled={upsertRel.isPending}
-                >
-                  <UserPlus className="h-3 w-3 mr-1" /> Track
-                </Button>
-                {t.public_handle && (
-                  <Link
-                    to={`/t/${t.public_handle}`}
-                    className="text-xs text-[#33E1E4] px-2"
-                  >
-                    View
-                  </Link>
-                )}
-              </div>
+              {(() => {
+                const isUnlocked = revealed[t.id] || unlockedSet?.has(t.id);
+                const contact = revealed[t.id];
+                const canAfford = balance >= unlockCost;
+                return (
+                  <>
+                    <div className="rounded-xl bg-black/20 border border-white/5 px-2.5 py-2 text-xs space-y-1">
+                      <div className="flex items-center gap-2 text-slate-300">
+                        <Mail className="h-3 w-3 shrink-0 text-slate-500" />
+                        <span className="truncate">
+                          {contact?.email ?? (isUnlocked ? "—" : "•••••••@•••••.com")}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-slate-300">
+                        <Phone className="h-3 w-3 shrink-0 text-slate-500" />
+                        <span className="truncate">
+                          {contact?.phone ?? (isUnlocked ? "—" : "+•• ••• ••• ••")}
+                        </span>
+                      </div>
+                      {(contact?.linkedin_url || !isUnlocked) && (
+                        <div className="flex items-center gap-2 text-slate-300">
+                          <Linkedin className="h-3 w-3 shrink-0 text-slate-500" />
+                          {contact?.linkedin_url ? (
+                            <a href={contact.linkedin_url} target="_blank" rel="noreferrer" className="truncate text-[#33E1E4]">
+                              {contact.linkedin_url.replace(/^https?:\/\//, "")}
+                            </a>
+                          ) : (
+                            <span className="truncate">linkedin.com/in/•••••••</span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Button size="sm" variant="outline" className="flex-1 h-8 text-xs"
+                        onClick={() => setSaveTarget({ id: t.id, name: t.full_name })}>
+                        <Bookmark className="h-3 w-3 mr-1" /> Save
+                      </Button>
+                      <Button size="sm" variant="outline" className="flex-1 h-8 text-xs"
+                        onClick={() => handleTrack(t.id)} disabled={upsertRel.isPending}>
+                        <UserPlus className="h-3 w-3 mr-1" /> Track
+                      </Button>
+                      {isUnlocked ? (
+                        <Button size="sm" disabled className="flex-1 h-8 text-xs bg-[#10D576]/20 text-[#10D576] hover:bg-[#10D576]/20">
+                          Unlocked
+                        </Button>
+                      ) : canAfford ? (
+                        <Button size="sm" className="flex-1 h-8 text-xs"
+                          onClick={() => handleUnlock(t)} disabled={unlockingId === t.id}>
+                          {unlockingId === t.id
+                            ? <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                            : <Lock className="h-3 w-3 mr-1" />}
+                          Unlock ({unlockCost} cr)
+                        </Button>
+                      ) : (
+                        <Button size="sm" variant="outline" className="flex-1 h-8 text-xs border-amber-400/40 text-amber-300 hover:bg-amber-400/10"
+                          onClick={() => setTopupOpen(true)}>
+                          <Wallet className="h-3 w-3 mr-1" /> Top up to unlock
+                        </Button>
+                      )}
+                    </div>
+                    {t.public_handle && (
+                      <Link to={`/t/${t.public_handle}`} className="text-[11px] text-[#33E1E4]">
+                        View profile →
+                      </Link>
+                    )}
+                  </>
+                );
+              })()}
             </Card>
           ))}
 
@@ -235,6 +278,13 @@ export default function Gro10xSourcing() {
           onClose={() => setSaveTarget(null)}
         />
       )}
+
+      <TelegramTopUpModal
+        open={topupOpen}
+        onOpenChange={setTopupOpen}
+        companyId={companyId}
+        defaultCredits={Math.max(100, unlockCost * 10)}
+      />
     </div>
   );
 }
