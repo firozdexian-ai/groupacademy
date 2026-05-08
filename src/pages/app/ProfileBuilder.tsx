@@ -128,8 +128,10 @@ export default function ProfileBuilder() {
             <Sparkles className="h-5 w-5 text-primary-foreground" />
           </div>
           <div className="flex-1 min-w-0">
-            <h1 className="text-sm font-semibold text-foreground">Aisha</h1>
-            <p className="text-xs text-muted-foreground">Profile Concierge · {readiness.percent}% complete</p>
+            <h1 className="text-sm font-semibold text-foreground">{coach?.name ?? "Aisha"}</h1>
+            <p className="text-xs text-muted-foreground">
+              {coach ? "Domain Coach" : "Profile Concierge"} · {readiness.percent}% complete
+            </p>
           </div>
         </div>
         <div className="mt-2 h-1.5 w-full rounded-full bg-muted overflow-hidden">
