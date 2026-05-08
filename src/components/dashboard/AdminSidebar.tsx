@@ -118,6 +118,7 @@ const navGroups: NavGroup[] = [
       { title: "Marketplace", icon: Store, value: "agents-marketplace" },
       { title: "Marketplace Payouts", icon: Coins, value: "agents-payouts" },
       { title: "Sessions Log", icon: MessageSquare, value: "agents-sessions" },
+      { title: "Proactive Engine", icon: Zap, value: "agent-outreach" },
       { title: "Agent Insights", icon: BarChart, value: "agents-insights" },
     ],
   },
