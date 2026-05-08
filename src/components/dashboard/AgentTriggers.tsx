@@ -311,6 +311,8 @@ export function AgentTriggers() {
                       <Badge variant="outline">{t.event_kind}</Badge>
                       <span className="font-medium text-sm truncate">{agentMap[t.agent_id]?.name || "(agent missing)"}</span>
                       <Badge variant="secondary" className="text-[10px]">{t.recipient_strategy}</Badge>
+                      <Badge variant="outline" className="text-[10px]">{t.channel || "auto"}</Badge>
+                      <Badge variant="outline" className="text-[10px]">{t.cooldown_minutes ?? 1440}m cd</Badge>
                       {t.last_fired_at && <span className="text-[10px] text-muted-foreground">last: {new Date(t.last_fired_at).toLocaleString()}</span>}
                     </div>
                     <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{t.template}</p>
