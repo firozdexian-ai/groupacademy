@@ -216,7 +216,7 @@ const OnboardingGuard = ({ children }: { children: React.ReactNode }) => {
   const onBuilder = location.pathname.startsWith("/app/profile-builder");
 
   if (needsOnboarding && !onBuilder) {
-    return <RouterNavigate to="/app/profile-builder" replace />;
+    return <Navigate to="/app/profile-builder" replace />;
   }
 
   return <>{children}</>;
