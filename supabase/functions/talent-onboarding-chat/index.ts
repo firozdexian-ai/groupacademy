@@ -115,6 +115,7 @@ serve(async (req) => {
 
     const conversation: any[] = [{ role: "system", content: systemPrompt }, ...incoming];
 
+    let handoff: { agent_key: string; instructor_id: string | null } | null = null;
     // Tool-calling loop (max 4 turns to be safe)
     for (let i = 0; i < 4; i++) {
       const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
