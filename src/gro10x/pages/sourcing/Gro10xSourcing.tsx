@@ -18,12 +18,19 @@ import { toast } from "sonner";
 
 export default function Gro10xSourcing() {
   const { companyId } = useActiveCompany();
+  const { balance } = useCompanyCredits();
+  const { data: unlockCost = 10 } = useUnlockCost();
+  const { data: unlockedSet } = useCompanyUnlocks(companyId);
+  const unlock = useUnlockTalent(companyId);
   const [keyword, setKeyword] = useState("");
   const [country, setCountry] = useState("");
   const [skillsInput, setSkillsInput] = useState("");
   const [appliedFilters, setAppliedFilters] = useState<{ keyword?: string; country?: string; skills?: string[] }>({});
   const [page, setPage] = useState(0);
   const [saveTarget, setSaveTarget] = useState<{ id: string; name: string } | null>(null);
+  const [revealed, setRevealed] = useState<Record<string, UnlockedContact>>({});
+  const [topupOpen, setTopupOpen] = useState(false);
+  const [unlockingId, setUnlockingId] = useState<string | null>(null);
 
   const { data, isLoading } = useTalentSearch(appliedFilters, page);
   const upsertRel = useUpsertRelationship();
@@ -43,12 +50,45 @@ export default function Gro10xSourcing() {
     toast.success("Added to talent pipeline");
   };
 
+  const handleUnlock = async (t: TalentSearchRow) => {
+    if (!companyId) return toast.error("No active company");
+    if (balance < unlockCost) {
+      setTopupOpen(true);
+      return;
+    }
+    setUnlockingId(t.id);
+    try {
+      const res = await unlock.mutateAsync(t.id);
+      if (res?.contact) {
+        setRevealed((m) => ({ ...m, [t.id]: res.contact! }));
+        toast.success(res.reused ? "Already unlocked" : `Unlocked for ${res.credits_spent} credits`);
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Unlock failed";
+      if (msg.toLowerCase().includes("insufficient")) setTopupOpen(true);
+      toast.error(msg);
+    } finally {
+      setUnlockingId(null);
+    }
+  };
+
   return (
     <div className={`min-h-screen ${GRO10X_BG} ${GRO10X_TEXT} pb-24`}>
       <div className="px-4 pt-4 space-y-3">
-        <h1 className="text-xl font-semibold">Sourcing</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-xl font-semibold">Sourcing</h1>
+          <button
+            onClick={() => setTopupOpen(true)}
+            className={`text-xs flex items-center gap-1 px-2 py-1 rounded-full border ${
+              balance < unlockCost ? "border-amber-400/40 text-amber-300" : "border-white/10 text-slate-300"
+            }`}
+          >
+            <Wallet className="h-3 w-3" />
+            {balance.toLocaleString()} cr
+          </button>
+        </div>
         <p className={`text-sm ${GRO10X_MUTED}`}>
-          Discover talent. Save to lists. Track in your pipeline.
+          Discover talent. Unlock contact for {unlockCost} credits — shared across your team.
         </p>
 
         <div className={`${GRO10X_PANEL} rounded-2xl p-3 space-y-2 border border-white/5`}>
