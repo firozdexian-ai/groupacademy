@@ -16569,6 +16569,16 @@ export type Database = {
             }
             Returns: Json
           }
+      add_portfolio_item: {
+        Args: {
+          p_description?: string
+          p_image_url?: string
+          p_tags?: string[]
+          p_title: string
+          p_url?: string
+        }
+        Returns: Json
+      }
       add_project_milestone: {
         Args: { _payload: Json; _project_id: string }
         Returns: string
@@ -16649,6 +16659,10 @@ export type Database = {
         }
         Returns: Json
       }
+      award_credits: {
+        Args: { p_amount: number; p_reason: string; p_talent_id: string }
+        Returns: Json
+      }
       award_gig_credits: {
         Args: { p_admin_notes?: string; p_submission_id: string }
         Returns: Json
@@ -16719,6 +16733,15 @@ export type Database = {
           upcoming_sessions: number
         }[]
       }
+      compose_feed_post: {
+        Args: {
+          p_link_url?: string
+          p_media_url?: string
+          p_tags?: string[]
+          p_text: string
+        }
+        Returns: Json
+      }
       compute_company_profile_completion: {
         Args: { c: Database["public"]["Tables"]["companies"]["Row"] }
         Returns: number
@@ -16752,6 +16775,15 @@ export type Database = {
         Returns: Json
       }
       create_gig_project: { Args: { _payload: Json }; Returns: string }
+      create_poll: {
+        Args: {
+          p_ends_at?: string
+          p_options: Json
+          p_question: string
+          p_tags?: string[]
+        }
+        Returns: Json
+      }
       debit_instructor_credit: {
         Args: {
           _amount: number
@@ -17423,6 +17455,10 @@ export type Database = {
       }
       search_public_talents: {
         Args: { p_filters?: Json; p_limit?: number; p_offset?: number }
+        Returns: Json
+      }
+      set_skill_level: {
+        Args: { p_level?: string; p_skill: string }
         Returns: Json
       }
       settle_review_panel: {
