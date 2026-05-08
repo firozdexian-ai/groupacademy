@@ -51,6 +51,7 @@ import {
   Mic,
   Languages,
   Phone,
+  Lock,
 } from "lucide-react";
 import {
   Sidebar,
@@ -98,6 +99,7 @@ const navGroups: NavGroup[] = [
       { title: "Contacts", icon: Users, value: "contacts" },
       { title: "Company Agents", icon: Bot, value: "company-agents" },
       { title: "WhatsApp Line", icon: Phone, value: "companies-wa-channel" },
+      { title: "Contact Unlocks", icon: Lock, value: "companies-unlocks" },
     ],
   },
   {
