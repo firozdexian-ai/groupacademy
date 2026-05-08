@@ -49,7 +49,7 @@ export function ReactionBar({ reactions, userReaction, onReact, disabled, inline
           size="sm"
           disabled={disabled}
           className={cn(
-            "flex-1 h-10 text-[10px] font-black italic gap-2 transition-all duration-300 rounded-[14px] px-3",
+            "flex-1 h-9 text-xs font-medium gap-2 transition-all duration-200 rounded-lg px-3",
             isActive
               ? cn(config.color, config.activeBg, "scale-105 border border-current/20 shadow-sm")
               : "text-muted-foreground/60 hover:bg-muted/40 hover:text-foreground",
@@ -86,7 +86,7 @@ export function ReactionBar({ reactions, userReaction, onReact, disabled, inline
   return (
     <div className="space-y-4 w-full animate-in fade-in duration-500">
       {totalReactions > 0 && (
-        <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 px-2">
+        <div className="flex items-center gap-2 text-muted-foreground/70 px-1">
           <div className="flex -space-x-2">
             {topReactions.map((type) => {
               const config = REACTION_CONFIG[type];
@@ -104,7 +104,9 @@ export function ReactionBar({ reactions, userReaction, onReact, disabled, inline
               );
             })}
           </div>
-          <span className="italic">{totalReactions.toLocaleString()} ENGAGEMENT_UNITS</span>
+          <span className="text-[11px] font-medium normal-case tracking-normal text-muted-foreground">
+            {totalReactions.toLocaleString()} {totalReactions === 1 ? "reaction" : "reactions"}
+          </span>
         </div>
       )}
       <div className="flex items-center gap-2 border-t-2 border-border/10 pt-4">{reactionButtons}</div>

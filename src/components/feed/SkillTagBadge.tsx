@@ -30,28 +30,26 @@ export function SkillTagBadge({ skills, maxVisible = 3, className }: SkillTagBad
             key={`${sanitizedSkill}-${index}`}
             title={sanitizedSkill}
             className={cn(
-              "group relative px-3 py-1 text-[9px] font-black uppercase italic tracking-[0.1em] rounded-lg transition-all duration-300",
-              "bg-primary/5 text-primary border-2 border-primary/10",
-              "hover:bg-primary hover:text-white hover:border-primary hover:scale-105 cursor-default shadow-sm",
-              "truncate max-w-[130px] flex items-center gap-1.5",
+              "px-2.5 py-1 text-xs font-medium rounded-md transition-colors",
+              "bg-primary/5 text-primary border border-primary/15",
+              "hover:bg-primary/10 cursor-default",
+              "truncate max-w-[160px] flex items-center gap-1.5",
             )}
           >
-            <Zap className="h-2.5 w-2.5 fill-current opacity-50 group-hover:opacity-100 transition-opacity" />
+            <Zap className="h-3 w-3 opacity-60" />
             <span className="truncate">{sanitizedSkill}</span>
           </div>
         );
       })}
 
-      {/* METRIC: Remaining Node Counter */}
       {remaining > 0 && (
         <span
           className={cn(
-            "px-2.5 py-1 text-[9px] font-black italic rounded-lg uppercase tracking-tighter",
-            "bg-muted/30 text-muted-foreground/60 border-2 border-dashed border-border/40",
-            "hover:bg-muted hover:text-muted-foreground transition-all duration-300",
+            "px-2 py-1 text-xs font-medium rounded-md",
+            "bg-muted/40 text-muted-foreground border border-dashed border-border/40",
           )}
         >
-          +{remaining} Nodes
+          +{remaining} more
         </span>
       )}
     </div>

@@ -129,7 +129,7 @@ export default function Feed() {
 
   return (
     <div
-      className="max-w-7xl mx-auto px-3 md:px-6 py-2 md:py-10 min-h-screen relative"
+      className="max-w-7xl mx-auto px-3 md:px-6 py-2 md:py-10 pb-32 md:pb-16 min-h-screen relative"
       ref={containerRef}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}

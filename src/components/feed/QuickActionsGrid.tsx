@@ -94,7 +94,15 @@ export function QuickActionsGrid() {
       <div className="px-1">
         <div className="grid grid-cols-5 gap-2">
           {actions.map((item) => {
-            const ResolvedIcon = item.icon && iconMap[item.icon] ? (iconMap[item.icon] as LucideIcon) : Bot;
+            const iconKey = item.icon || "";
+            const ResolvedIcon = (iconMap[iconKey] ||
+              iconMap[iconKey.toLowerCase()] ||
+              iconMap[iconKey.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase()] ||
+              Bot) as LucideIcon;
+            const isCssColor = (v?: string | null) =>
+              !!v && (v.startsWith("#") || v.startsWith("rgb") || v.startsWith("hsl"));
+            const bgStyle = isCssColor(item.bg_color) ? { backgroundColor: item.bg_color! } : undefined;
+            const iconColor = isCssColor(item.color) ? item.color! : undefined;
             return (
               <button
                 key={item.agent_key}
@@ -103,13 +111,13 @@ export function QuickActionsGrid() {
                 className="flex flex-col items-center gap-1.5 min-w-0 active:scale-95 transition-transform outline-none"
               >
                 <div
-                  className="h-11 w-11 rounded-xl flex items-center justify-center border border-border/40 bg-muted/40 overflow-hidden"
-                  style={item.bg_color ? { backgroundColor: item.bg_color } : {}}
+                  className="h-11 w-11 rounded-xl flex items-center justify-center border border-border/40 bg-primary/10 text-primary overflow-hidden"
+                  style={bgStyle}
                 >
                   {item.avatar_url ? (
                     <img src={item.avatar_url} alt="" className="h-full w-full object-cover" />
                   ) : (
-                    <ResolvedIcon className="h-5 w-5" style={{ color: item.color || undefined }} />
+                    <ResolvedIcon className="h-5 w-5" style={iconColor ? { color: iconColor } : undefined} />
                   )}
                 </div>
                 <span className="text-[10px] font-medium text-center text-muted-foreground truncate leading-tight w-full px-0.5">

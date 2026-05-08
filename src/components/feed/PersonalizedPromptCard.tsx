@@ -8,7 +8,6 @@ import {
   Sparkles,
   Loader2,
   Zap,
-  Target,
   ShieldCheck,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,11 +17,6 @@ import { useCredits } from "@/hooks/useCredits";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-
-/**
- * GroUp Academy: Contextual Conversion Node (PersonalizedPromptCard)
- * CTO Reference: Authoritative engine for dynamic task injection and credit-gated services.
- */
 
 type PromptType = "cv" | "assessment" | "jobs" | "portfolio";
 
@@ -48,56 +42,52 @@ export function PersonalizedPromptCard() {
     const prompts: Prompt[] = [];
     const servicesUsed = talent?.servicesUsed || [];
 
-    // PROTOCOL 1: Data Ingress (Highest Priority)
     if (!talent?.cvUrl) {
       prompts.push({
         type: "cv",
-        title: "INITIALIZE_CV_SYNC",
-        description: "Deploy CV artifact to unlock AI-orchestrated job matches.",
+        title: "Upload your CV",
+        description: "Add your CV so we can match you to the right roles.",
         icon: <FileText className="h-5 w-5" />,
-        action: "SYNC_NOW",
+        action: "Upload",
         path: "/app/profile/edit",
         priority: 1,
       });
     }
 
-    // PROTOCOL 2: Revenue Optimization (Gated Intelligence)
     const hasAssessment = servicesUsed.includes("career_assessment");
     if (talent?.cvUrl && !hasAssessment) {
       prompts.push({
         type: "assessment",
-        title: "NEURAL_SCORECARD",
-        description: "Execute deep-audit of skill gaps and marketplace readiness.",
+        title: "Career Scorecard",
+        description: "Get a deep audit of your skill gaps and market readiness.",
         icon: <ClipboardCheck className="h-5 w-5" />,
-        action: "EXECUTE",
+        action: "Start",
         path: "/app/services/assessment",
         priority: 2,
         cost: 50,
       });
     }
 
-    // PROTOCOL 3: Brand Infrastructure
     const hasPortfolio = servicesUsed.includes("portfolio_request");
     if (!hasPortfolio && balance >= 100) {
       prompts.push({
         type: "portfolio",
-        title: "PRO_PORTFOLIO_NODE",
-        description: "Provision a high-fidelity web artifact for your professional brand.",
+        title: "Pro Portfolio",
+        description: "Build a polished web portfolio for your professional brand.",
         icon: <Zap className="h-5 w-5" />,
-        action: "PROVISION",
+        action: "Create",
         path: "/app/services",
         priority: 3,
       });
     }
 
-    // PROTOCOL 4: Market Ingress (Intent Based)
     if (talent?.currentStatus?.includes("job_seeking")) {
       prompts.push({
         type: "jobs",
-        title: "ACTIVE_PIPELINE",
-        description: "View high-yield roles synchronized with your current skills.",
+        title: "Jobs for you",
+        description: "See top roles that match your current skills.",
         icon: <Briefcase className="h-5 w-5" />,
-        action: "INGRESS",
+        action: "View",
         path: "/app/jobs",
         priority: 4,
       });
@@ -109,21 +99,21 @@ export function PersonalizedPromptCard() {
   const handleAction = async (prompt: Prompt) => {
     if (prompt.type === "assessment" && prompt.cost) {
       if (balance < prompt.cost) {
-        toast.error("Protocol Fault: Insufficient fractional credit yield.");
+        toast.error("Not enough credits to start your scorecard.");
         return;
       }
 
       setLoading(prompt.type);
-      const toastId = toast.loading("Initializing neural scorecard protocol...");
+      const toastId = toast.loading("Starting your career scorecard…");
 
       try {
-        const success = await deductCredits("CAREER_ASSESSMENT", undefined, "Initialized AI Career Audit");
+        const success = await deductCredits("CAREER_ASSESSMENT", undefined, "Started AI Career Audit");
         if (success) {
-          toast.success("Intelligence Unlocked: Yield Deducted", { id: toastId });
+          toast.success("Scorecard unlocked", { id: toastId });
           navigate(prompt.path);
         }
       } catch (error) {
-        toast.error("Transmission Interrupted: Protocol Aborted", { id: toastId });
+        toast.error("Something went wrong. Please try again.", { id: toastId });
       } finally {
         setLoading(null);
       }
@@ -136,82 +126,69 @@ export function PersonalizedPromptCard() {
   if (prompts.length === 0) return null;
 
   return (
-    <div className="space-y-6 py-4 animate-in fade-in duration-700">
-      {/* EXECUTIVE HEADER */}
-      <div className="flex items-center justify-between px-2">
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <Sparkles className="h-5 w-5 text-primary animate-pulse relative z-10" />
-            <div className="absolute inset-0 bg-primary/30 blur-xl rounded-full scale-150" />
-          </div>
-          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 italic">
-            Strategic_Prompts
-          </span>
+    <div className="space-y-3 animate-in fade-in duration-500">
+      <div className="flex items-center justify-between px-1">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-primary" />
+          <span className="text-xs font-semibold text-foreground">Suggested for you</span>
         </div>
-        <Badge variant="outline" className="font-black text-[9px] border-primary/20 bg-primary/5 uppercase italic">
-          Nodes_Active
+        <Badge variant="outline" className="text-[10px] font-medium border-border/40">
+          {prompts.length} {prompts.length === 1 ? "action" : "actions"}
         </Badge>
       </div>
 
-      <div className="grid gap-4">
+      <div className="space-y-3">
         {prompts.map((prompt) => (
           <Card
             key={prompt.type}
             className={cn(
-              "group relative overflow-hidden transition-all duration-500 rounded-[28px]",
-              "border-2 border-primary/10 hover:border-primary/40 bg-card/30 backdrop-blur-md shadow-xl",
-              "hover:scale-[1.02] active:scale-[0.98] cursor-pointer transform-gpu",
+              "group relative overflow-hidden transition-all duration-300 rounded-2xl",
+              "border border-border/40 hover:border-primary/40 bg-card",
+              "hover:shadow-md cursor-pointer",
             )}
             onClick={() => handleAction(prompt)}
           >
-            {/* NEURAL GLOW INGRESS */}
-            <div className="absolute top-0 right-0 w-40 h-40 bg-primary/5 rounded-full blur-[60px] -mr-20 -mt-20 group-hover:bg-primary/15 transition-all duration-700" />
-
-            <CardContent className="p-6">
-              <div className="flex items-center gap-5 relative z-10">
-                {/* ICON NODE */}
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
                 <div
                   className={cn(
-                    "h-14 w-14 rounded-2xl flex items-center justify-center shrink-0 transition-all duration-500",
+                    "h-10 w-10 rounded-xl flex items-center justify-center shrink-0",
                     "bg-primary/10 text-primary border border-primary/20",
-                    "group-hover:rotate-6 group-hover:scale-110 shadow-lg group-hover:shadow-primary/10",
                   )}
                 >
                   {prompt.icon}
                 </div>
 
-                {/* PAYLOAD INFO */}
                 <div className="flex-1 min-w-0 text-left">
-                  <p className="font-black text-sm tracking-tighter uppercase italic text-foreground leading-tight">
+                  <p className="font-semibold text-sm text-foreground leading-tight">
                     {prompt.title}
                   </p>
-                  <p className="text-[11px] text-muted-foreground font-bold italic leading-relaxed mt-1 opacity-70 group-hover:opacity-100 transition-opacity">
-                    {prompt.description.toUpperCase()}
+                  <p className="text-xs text-muted-foreground leading-relaxed mt-1">
+                    {prompt.description}
                   </p>
-                </div>
 
-                {/* ACTION NODE */}
-                <div className="flex items-center gap-3">
-                  {prompt.cost && (
-                    <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-500">
-                      <ShieldCheck className="h-3 w-3 fill-current" />
-                      <span className="text-[10px] font-black italic tracking-tighter">{prompt.cost} CR</span>
-                    </div>
-                  )}
-                  <Button
-                    size="sm"
-                    className="h-10 px-5 rounded-xl font-black italic text-[10px] tracking-widest gap-2 shadow-2xl active:scale-90 transition-all uppercase"
-                    disabled={loading === prompt.type}
-                  >
-                    {loading === prompt.type ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <>
-                        {prompt.action}
-                        <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                      </>
+                  <div className="flex items-center gap-2 mt-3 flex-wrap">
+                    {prompt.cost && (
+                      <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400">
+                        <ShieldCheck className="h-3 w-3" />
+                        <span className="text-[10px] font-semibold">{prompt.cost} credits</span>
+                      </div>
                     )}
-                  </Button>
+                    <Button
+                      size="sm"
+                      className="h-8 px-3 rounded-lg font-semibold text-xs gap-1"
+                      disabled={loading === prompt.type}
+                    >
+                      {loading === prompt.type ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <>
+                          {prompt.action}
+                          <ChevronRight className="h-3.5 w-3.5" />
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </div>
             </CardContent>

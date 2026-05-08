@@ -74,7 +74,7 @@ export function CircularMatchBadge({ score, size = "md", className }: CircularMa
       {/* IDENTITY: Yield Label */}
       <div
         className={cn(
-          "absolute inset-0 flex items-center justify-center font-black italic tracking-tighter uppercase",
+          "absolute inset-0 flex items-center justify-center font-semibold tabular-nums",
           d.fontSize,
           variant.color,
         )}
