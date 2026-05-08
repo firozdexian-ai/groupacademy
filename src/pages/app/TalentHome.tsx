@@ -8,21 +8,27 @@ import {
   ChevronRight,
   Award,
   Eye,
-  MessageCircle,
 } from "lucide-react";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Progress } from "@/components/ui/progress";
 import { useTalent } from "@/hooks/useTalent";
 import { useTalentPitches } from "@/hooks/useTalentPitches";
 import { useSkillCredentials } from "@/hooks/useSkillCredentials";
 import { computeReadiness } from "@/lib/talentReadiness";
 import { formatDistanceToNow } from "date-fns";
+import {
+  GRO10X_BG,
+  GRO10X_PANEL,
+  GRO10X_TEXT,
+  GRO10X_MUTED,
+} from "@/gro10x/lib/tokens";
 
 /**
- * Talent Home Dashboard — mobile-first "/app/me".
- * Stack: Market Readiness · Pitches/Unlocks · Skill Summary.
+ * /app/me — Talent Home Dashboard.
+ * Mobile-first, follows the Gro10x golden standard:
+ *   shell  : bg-[#0B1220]
+ *   panel  : bg-[#0F172A] + border-white/5 + rounded-2xl
+ *   accent : #33E1E4 (cyan) · success #10D576 · warn amber-400
+ *   type   : text-slate-100 / text-slate-400 / micro 10–11px
  */
 export default function TalentHome() {
   const navigate = useNavigate();
@@ -35,192 +41,170 @@ export default function TalentHome() {
   const greeting = talent?.fullName?.split(" ")[0] || "there";
 
   return (
-    <div className="max-w-2xl mx-auto pb-24 px-3 pt-3 space-y-3">
-      <header className="px-1 py-1">
-        <p className="text-xs text-muted-foreground">Welcome back</p>
-        <h1 className="text-2xl font-bold tracking-tight">Hi {greeting} 👋</h1>
-      </header>
+    <div className={`min-h-screen ${GRO10X_BG} ${GRO10X_TEXT} pb-24`}>
+      <div className="max-w-2xl mx-auto px-4 pt-4 space-y-3">
+        <header className="px-1">
+          <p className={`text-[11px] uppercase tracking-wider ${GRO10X_MUTED}`}>Welcome back</p>
+          <h1 className="text-xl font-semibold mt-0.5">Hi {greeting} 👋</h1>
+        </header>
 
-      {/* === Card 1: Market Readiness === */}
-      {talentLoading ? (
-        <Skeleton className="h-40 w-full rounded-xl" />
-      ) : readiness.isLive ? (
-        <Card className="p-4 bg-gradient-to-br from-[hsl(var(--success)/0.12)] to-[hsl(var(--success)/0.04)] border-[hsl(var(--success)/0.3)]">
-          <div className="flex items-start gap-3">
-            <div className="h-10 w-10 rounded-full bg-[hsl(var(--success)/0.2)] flex items-center justify-center shrink-0">
-              <CheckCircle2 className="h-5 w-5 text-[hsl(var(--success))]" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h2 className="text-base font-bold">🟢 You are LIVE on the Gro10x Market</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Employers can discover and pitch you. Keep your profile fresh for better matches.
-              </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 text-xs gap-1.5"
-                  onClick={() => navigate(`/t/${talent?.id ?? ""}`)}
-                  disabled={!talent?.id}
-                >
-                  <Eye className="h-3.5 w-3.5" /> Preview public profile
-                </Button>
-                <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => navigate("/app/profile/edit")}>
-                  Edit profile
-                </Button>
+        {/* === Card 1: Market Readiness === */}
+        {talentLoading ? (
+          <Skeleton className="h-36 w-full rounded-2xl bg-white/5" />
+        ) : readiness.isLive ? (
+          <div className={`${GRO10X_PANEL} border border-[#10D576]/30 rounded-2xl p-4`}>
+            <div className="flex items-start gap-3">
+              <div className="h-9 w-9 rounded-full bg-[#10D576]/15 grid place-items-center shrink-0">
+                <CheckCircle2 className="h-4 w-4 text-[#10D576]" />
               </div>
-            </div>
-          </div>
-        </Card>
-      ) : (
-        <Card className="p-4 bg-gradient-to-br from-amber-500/10 to-amber-500/5 border-amber-500/40">
-          <div className="flex items-start gap-3">
-            <div className="h-10 w-10 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
-              <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-500" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h2 className="text-base font-bold">Hidden from Employers</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Add{" "}
-                <span className="font-semibold text-foreground">
-                  {readiness.missing.map((m) => m.label).join(", ")}
-                </span>{" "}
-                to go live on the Gro10x talent market.
-              </p>
-              <div className="mt-3 space-y-2">
-                <Progress value={readiness.percent} className="h-1.5" />
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] text-muted-foreground">{readiness.percent}% complete</span>
-                  <Button size="sm" className="h-8 text-xs" onClick={() => navigate("/app/profile/edit")}>
-                    Complete profile
-                  </Button>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-sm font-semibold">You are LIVE on the Gro10x market</h2>
+                <p className={`text-[11px] ${GRO10X_MUTED} mt-0.5`}>
+                  Employers can discover and pitch you. Keep your profile fresh for better matches.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    disabled={!talent?.id}
+                    onClick={() => navigate(`/t/${talent?.id ?? ""}`)}
+                    className="h-8 px-3 text-xs rounded-lg border border-white/10 hover:bg-white/5 inline-flex items-center gap-1.5 disabled:opacity-40"
+                  >
+                    <Eye className="h-3.5 w-3.5" /> Preview public profile
+                  </button>
+                  <button
+                    onClick={() => navigate("/app/profile/edit")}
+                    className="h-8 px-3 text-xs rounded-lg text-slate-300 hover:bg-white/5"
+                  >
+                    Edit profile
+                  </button>
                 </div>
               </div>
             </div>
           </div>
-        </Card>
-      )}
-
-      {/* === Card 2: The Dopamine Hit (Pitches/Unlocks) === */}
-      <Card className="p-4 border-[hsl(var(--primary)/0.25)] bg-gradient-to-br from-[hsl(var(--primary)/0.06)] to-transparent">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-full bg-[hsl(var(--primary)/0.15)] flex items-center justify-center">
-              <Sparkles className="h-4 w-4 text-[hsl(var(--primary))]" />
-            </div>
-            <div>
-              <h2 className="text-sm font-bold leading-tight">Employer Pitches</h2>
-              <p className="text-[11px] text-muted-foreground">
-                {pitchesLoading
-                  ? "Checking…"
-                  : pitches.length === 0
-                    ? "No pitches yet"
-                    : `${dispatchedCount} ${dispatchedCount === 1 ? "employer has" : "employers have"} reached out`}
-              </p>
+        ) : (
+          <div className={`${GRO10X_PANEL} border border-amber-400/30 rounded-2xl p-4`}>
+            <div className="flex items-start gap-3">
+              <div className="h-9 w-9 rounded-full bg-amber-400/15 grid place-items-center shrink-0">
+                <AlertTriangle className="h-4 w-4 text-amber-300" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-sm font-semibold">Hidden from employers</h2>
+                <p className={`text-[11px] ${GRO10X_MUTED} mt-0.5`}>
+                  Add{" "}
+                  <span className="font-semibold text-slate-100">
+                    {readiness.missing.map((m) => m.label).join(", ")}
+                  </span>{" "}
+                  to go live on the Gro10x talent market.
+                </p>
+                <div className="mt-3">
+                  <div className="h-1.5 w-full rounded-full bg-white/5 overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-[#2A7DDE] to-[#33E1E4]"
+                      style={{ width: `${readiness.percent}%` }}
+                    />
+                  </div>
+                  <div className="mt-2 flex items-center justify-between">
+                    <span className={`text-[10px] ${GRO10X_MUTED}`}>{readiness.percent}% complete</span>
+                    <button
+                      onClick={() => navigate("/app/profile/edit")}
+                      className="h-8 px-3 text-xs rounded-lg bg-[#33E1E4]/15 text-[#33E1E4] hover:bg-[#33E1E4]/25 font-medium"
+                    >
+                      Complete profile
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-          {pitches.length > 0 && (
-            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => navigate("/app/pitches")}>
-              View all <ChevronRight className="h-3.5 w-3.5" />
-            </Button>
+        )}
+
+        {/* === Card 2: Employer Pitches === */}
+        <div className={`${GRO10X_PANEL} border border-white/10 rounded-2xl p-4`}>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="h-8 w-8 rounded-full bg-[#33E1E4]/15 grid place-items-center shrink-0">
+                <Sparkles className="h-4 w-4 text-[#33E1E4]" />
+              </div>
+              <div className="min-w-0">
+                <h2 className="text-sm font-semibold leading-tight">Employer pitches</h2>
+                <p className={`text-[11px] ${GRO10X_MUTED}`}>
+                  {pitchesLoading
+                    ? "Checking…"
+                    : pitches.length === 0
+                      ? "No pitches yet"
+                      : `${dispatchedCount} ${dispatchedCount === 1 ? "employer has" : "employers have"} reached out`}
+                </p>
+              </div>
+            </div>
+            {pitches.length > 0 && (
+              <button
+                onClick={() => navigate("/app/pitches")}
+                className="h-7 px-2 text-xs rounded-md text-[#33E1E4] hover:bg-white/5 inline-flex items-center gap-0.5"
+              >
+                View all <ChevronRight className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+
+          {pitchesLoading ? (
+            <div className="space-y-2">
+              <Skeleton className="h-14 w-full rounded-xl bg-white/5" />
+              <Skeleton className="h-14 w-full rounded-xl bg-white/5" />
+            </div>
+          ) : pitches.length === 0 ? (
+            <p className={`text-xs ${GRO10X_MUTED} text-center py-4`}>
+              When employers unlock your profile, their pitch will appear here.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {pitches.slice(0, 3).map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => navigate("/app/pitches")}
+                  className="w-full text-left p-3 rounded-xl bg-black/20 hover:bg-white/5 border border-white/5 transition-colors"
+                >
+                  <div className="flex items-center gap-2 mb-1.5">
+                    {p.company_logo ? (
+                      <img src={p.company_logo} alt="" className="h-6 w-6 rounded object-cover" />
+                    ) : (
+                      <div className="h-6 w-6 rounded bg-white/5 grid place-items-center">
+                        <Building2 className="h-3 w-3 text-slate-400" />
+                      </div>
+                    )}
+                    <span className="text-xs font-semibold truncate flex-1 text-slate-100">
+                      {p.company_name || "An employer"}
+                    </span>
+                    <span className={`text-[10px] ${GRO10X_MUTED} shrink-0`}>
+                      {formatDistanceToNow(new Date(p.created_at), { addSuffix: true })}
+                    </span>
+                  </div>
+                  <p className={`text-xs ${GRO10X_MUTED} line-clamp-2`}>{p.message}</p>
+                </button>
+              ))}
+            </div>
           )}
         </div>
 
-        {pitchesLoading ? (
-          <div className="space-y-2">
-            <Skeleton className="h-16 w-full rounded-lg" />
-            <Skeleton className="h-16 w-full rounded-lg" />
-          </div>
-        ) : pitches.length === 0 ? (
-          <div className="text-center py-6 px-4">
-            <p className="text-sm text-muted-foreground">
-              When employers unlock your profile, their pitch will appear here.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {pitches.slice(0, 3).map((p) => (
-              <button
-                key={p.id}
-                onClick={() => navigate("/app/pitches")}
-                className="w-full text-left p-3 rounded-lg bg-card hover:bg-muted/40 border border-border/50 transition-colors"
-              >
-                <div className="flex items-center gap-2 mb-1.5">
-                  {p.company_logo ? (
-                    <img src={p.company_logo} alt="" className="h-6 w-6 rounded object-cover" />
-                  ) : (
-                    <div className="h-6 w-6 rounded bg-muted flex items-center justify-center">
-                      <Building2 className="h-3 w-3 text-muted-foreground" />
-                    </div>
-                  )}
-                  <span className="text-xs font-semibold truncate flex-1">
-                    {p.company_name || "An employer"}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground shrink-0">
-                    {formatDistanceToNow(new Date(p.created_at), { addSuffix: true })}
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground line-clamp-2">{p.message}</p>
-              </button>
-            ))}
-          </div>
-        )}
-      </Card>
-
-      {/* === Card 3: Skill Summary === */}
-      <Card className="p-4">
+        {/* === Card 3: Skill summary === */}
         <button
           onClick={() => navigate("/app/talent-mirror")}
-          className="w-full flex items-center justify-between text-left"
+          className={`w-full ${GRO10X_PANEL} border border-white/10 rounded-2xl p-4 flex items-center gap-3 hover:bg-white/5 text-left`}
         >
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-[hsl(var(--accent)/0.2)] flex items-center justify-center shrink-0">
-              <Award className="h-5 w-5 text-[hsl(var(--accent-foreground))]" />
-            </div>
-            <div>
-              <h2 className="text-sm font-bold leading-tight">Verified Skills</h2>
-              <p className="text-[11px] text-muted-foreground">
-                {credsLoading
-                  ? "Loading…"
-                  : credentials.length === 0
-                    ? "Earn your first credential by completing a course"
-                    : `${credentials.length} verified ${credentials.length === 1 ? "credential" : "credentials"}`}
-              </p>
-            </div>
+          <div className="h-9 w-9 rounded-full bg-[#2A7DDE]/15 grid place-items-center shrink-0">
+            <Award className="h-4 w-4 text-[#2A7DDE]" />
           </div>
-          <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold">Verified skills</p>
+            <p className={`text-[11px] ${GRO10X_MUTED}`}>
+              {credsLoading
+                ? "Loading…"
+                : credentials.length === 0
+                  ? "Take a quiz or scenario to earn your first credential"
+                  : `${credentials.length} verified · open Talent Mirror`}
+            </p>
+          </div>
+          <ChevronRight className="h-4 w-4 text-slate-500" />
         </button>
-
-        {!credsLoading && credentials.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {credentials.slice(0, 6).map((c) => (
-              <span
-                key={c.id}
-                className="px-2 py-1 rounded-md bg-muted text-[11px] font-medium capitalize"
-              >
-                {c.topic_tag.replace(/-/g, " ")}
-              </span>
-            ))}
-            {credentials.length > 6 && (
-              <span className="px-2 py-1 rounded-md bg-muted/60 text-[11px] text-muted-foreground">
-                +{credentials.length - 6} more
-              </span>
-            )}
-          </div>
-        )}
-      </Card>
-
-      {/* Quick links */}
-      <Card className="p-3">
-        <div className="grid grid-cols-2 gap-2">
-          <Button variant="outline" size="sm" className="h-9 justify-start gap-2 text-xs" onClick={() => navigate("/app/messages")}>
-            <MessageCircle className="h-3.5 w-3.5" /> Messages
-          </Button>
-          <Button variant="outline" size="sm" className="h-9 justify-start gap-2 text-xs" onClick={() => navigate("/app/pitches")}>
-            <Sparkles className="h-3.5 w-3.5" /> Pitches
-          </Button>
-        </div>
-      </Card>
+      </div>
     </div>
   );
 }
