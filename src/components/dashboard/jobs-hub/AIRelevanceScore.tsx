@@ -28,10 +28,10 @@ function scoreColor(score: number) {
 }
 
 function scoreLabel(score: number) {
-  if (score >= 80) return "OPTIMAL_MATCH";
-  if (score >= 60) return "STRONG_FIT";
-  if (score >= 40) return "MARGINAL_NODE";
-  return "LOW_RELEVANCE";
+  if (score >= 80) return "Excellent Match";
+  if (score >= 60) return "Strong Fit";
+  if (score >= 40) return "Possible Fit";
+  return "Low Relevance";
 }
 
 export function AIRelevanceScore({ applicationId, jobId, talentId, score, rationale, onScored }: Props) {
@@ -39,12 +39,12 @@ export function AIRelevanceScore({ applicationId, jobId, talentId, score, ration
 
   const runScore = async () => {
     if (!talentId) {
-      toast.error("Protocol Fault: No linked talent node detected.");
+      toast.error("No talent profile linked to this application.");
       return;
     }
 
     setLoading(true);
-    const toastId = toast.loading("Initializing neural matching protocol...");
+    const toastId = toast.loading("Scoring this match...");
 
     try {
       const { data, error } = await supabase.functions.invoke("score-job-match", {
@@ -52,14 +52,13 @@ export function AIRelevanceScore({ applicationId, jobId, talentId, score, ration
       });
 
       if (error) {
-        const msg = (data as any)?.error || error.message || "Logic Fault";
+        const msg = (data as any)?.error || error.message || "Something went wrong";
         throw new Error(msg);
       }
 
       const overall = Math.round(Number(data?.overall_match ?? data?.score ?? 0));
       const reco = data?.recommendation || data?.rationale || "";
 
-      // PERSIST TO REGISTRY
       const { error: upErr } = await supabase
         .from("job_applications")
         .update({
@@ -71,10 +70,10 @@ export function AIRelevanceScore({ applicationId, jobId, talentId, score, ration
 
       if (upErr) throw upErr;
 
-      toast.success(`Node Scored: ${overall}/100`, { id: toastId });
+      toast.success(`Match score: ${overall}/100`, { id: toastId });
       onScored?.(overall, reco);
     } catch (err: any) {
-      toast.error("Neural Error: " + err.message, { id: toastId });
+      toast.error("Couldn't score this match: " + err.message, { id: toastId });
     } finally {
       setLoading(false);
     }
@@ -86,16 +85,16 @@ export function AIRelevanceScore({ applicationId, jobId, talentId, score, ration
         <button
           onClick={runScore}
           disabled={loading}
-          title={rationale || "RE-CALIBRATE NODE"}
+          title={rationale || "Re-score this match"}
           className={cn(
-            "h-8 flex items-center gap-2 px-3 rounded-xl border-2 font-black uppercase italic text-[10px] tracking-widest transition-all active:scale-95 hover:shadow-lg",
+            "h-8 flex items-center gap-2 px-3 rounded-lg border font-semibold text-xs transition-all active:scale-95 hover:shadow-md",
             scoreColor(score),
             loading ? "animate-pulse opacity-50" : "",
           )}
         >
           {loading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Zap className="h-3 w-3 fill-current" />}
           <span>{score}%</span>
-          <span className="opacity-40 font-bold hidden sm:inline">| {scoreLabel(score)}</span>
+          <span className="opacity-60 hidden sm:inline">· {scoreLabel(score)}</span>
         </button>
       </div>
     );
@@ -105,12 +104,12 @@ export function AIRelevanceScore({ applicationId, jobId, talentId, score, ration
     <Button
       size="sm"
       variant="outline"
-      className="h-8 px-4 rounded-xl border-2 font-black uppercase text-[10px] tracking-widest gap-2 bg-muted/20 hover:bg-primary/10 hover:text-primary transition-all shadow-sm"
+      className="h-8 px-3 rounded-lg gap-2 hover:bg-primary/10 hover:text-primary transition-all"
       onClick={runScore}
       disabled={loading || !talentId}
     >
       {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Brain className="h-3.5 w-3.5" />}
-      <span>INITIALIZE_SCORING</span>
+      <span className="text-xs font-medium">Score this match</span>
     </Button>
   );
 }

@@ -122,10 +122,10 @@ export function JobCard({
             </div>
 
             <div className="flex-1 min-w-0 space-y-0.5">
-              <h3 className="font-black text-xs uppercase italic tracking-tighter line-clamp-1 group-hover:text-primary transition-colors">
-                {job.title.replace(" ", "_")}
+              <h3 className="font-semibold text-sm line-clamp-1 group-hover:text-primary transition-colors">
+                {job.title}
               </h3>
-              <p className="text-[9px] font-bold text-muted-foreground/60 uppercase truncate">{job.company_name}</p>
+              <p className="text-[11px] text-muted-foreground truncate">{job.company_name}</p>
               {whyChip && (
                 <p className="text-[9px] text-primary/70 italic line-clamp-1 pt-0.5">"{whyChip}"</p>
               )}
@@ -190,11 +190,11 @@ export function JobCard({
               )}
             </div>
             <div className="flex-1 min-w-0 space-y-1">
-              <h3 className="font-black text-lg uppercase italic tracking-tighter line-clamp-1 group-hover:text-primary transition-colors leading-none">
-                {job.title.replace(" ", "_")}
+              <h3 className="font-bold text-lg line-clamp-1 group-hover:text-primary transition-colors leading-tight">
+                {job.title}
               </h3>
               <div className="flex items-center gap-2">
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                <p className="text-xs text-muted-foreground">
                   {job.company_name}
                 </p>
                 {job.is_featured && <Zap className="h-3 w-3 text-amber-500 fill-current animate-pulse" />}
@@ -223,12 +223,17 @@ export function JobCard({
               <Brain className="h-12 w-12 text-primary" />
             </div>
             <Brain className="w-5 h-5 text-primary shrink-0 mt-0.5 fill-current opacity-60" />
-            <div className="space-y-1">
-              <p className="text-[9px] font-black uppercase italic tracking-widest text-primary/60 leading-none">
-                AI_Reasoning_Node
-              </p>
-              <p className="text-[11px] font-medium text-foreground/80 line-clamp-2 italic leading-relaxed">
-                "{matchInfo.reason}"
+            <div className="space-y-1 flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-primary/70 leading-none">
+                  Why this fits you
+                </p>
+                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-[10px] h-5 px-2 font-bold">
+                  {matchInfo.match_score}% match
+                </Badge>
+              </div>
+              <p className="text-xs text-foreground/80 line-clamp-2 leading-relaxed">
+                {matchInfo.reason}
               </p>
             </div>
           </div>
@@ -261,23 +266,22 @@ export function JobCard({
             </Badge>
           )}
           {job.is_featured && (
-            <Badge className="bg-amber-500 text-white border-none h-7 px-3 text-[9px] font-black uppercase italic tracking-widest shadow-lg shadow-amber-500/20">
-              <Star className="w-3 h-3 fill-current mr-1.5" /> Featured_Node
+            <Badge className="bg-amber-500 text-white border-none h-7 px-3 text-[10px] font-bold shadow-lg shadow-amber-500/20">
+              <Star className="w-3 h-3 fill-current mr-1.5" /> Featured
             </Badge>
           )}
         </div>
 
-        {/* HUD: FOOTER_TELEMETRY */}
-        <div className="flex items-center justify-between pt-4 mt-auto border-t-2 border-border/10">
-          <div className="flex items-center gap-2 text-[10px] font-black text-muted-foreground/60 uppercase tracking-widest italic">
-            <MapPin className="h-3.5 w-3.5 text-primary/40 shrink-0" />
-            <span className="truncate">{job.location || "REMOTE_OPS"}</span>
+        {/* Footer */}
+        <div className="flex items-center justify-between pt-4 mt-auto border-t border-border/10">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <MapPin className="h-3.5 w-3.5 text-primary/50 shrink-0" />
+            <span className="truncate">{job.location || "Remote"}</span>
           </div>
-          <div className="flex items-center gap-2 text-[10px] font-black text-muted-foreground/40 uppercase tracking-widest italic tabular-nums">
-            <Clock className="h-3.5 w-3.5 opacity-40" />
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground tabular-nums">
+            <Clock className="h-3.5 w-3.5 opacity-60" />
             <span>
-              SYNC_
-              {new Date(job.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }).toUpperCase()}
+              {new Date(job.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
             </span>
           </div>
         </div>
