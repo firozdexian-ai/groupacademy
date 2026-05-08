@@ -32,14 +32,14 @@ export function ShareSheet({ title, url, description, postId }: ShareSheetProps)
       setCopied(true);
       if (postId) recordShare(postId, "copy_link");
       toast({
-        title: "LINK_SYNC_SUCCESS",
-        description: "Node URL recorded to clipboard.",
+        title: "Link copied",
+        description: "The link is on your clipboard.",
       });
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       toast({
-        title: "SYNC_FAULT",
-        description: "Manual URL extraction required.",
+        title: "Couldn't copy link",
+        description: "Please copy the URL manually.",
         variant: "destructive",
       });
     }
@@ -77,24 +77,24 @@ export function ShareSheet({ title, url, description, postId }: ShareSheetProps)
         <Button
           variant="ghost"
           size="sm"
-          className="h-10 text-[10px] font-black uppercase italic tracking-[0.2em] gap-2 flex-1 hover:bg-primary/10 hover:text-primary transition-all active:scale-95 group"
+          className="h-9 text-xs font-medium gap-2 flex-1 hover:bg-primary/10 hover:text-primary transition-colors rounded-lg"
         >
-          <Share2 className="h-4 w-4 transition-transform group-hover:rotate-12" />
-          <span>Sync_Network</span>
+          <Share2 className="h-4 w-4" />
+          <span>Share</span>
         </Button>
       </SheetTrigger>
 
       <SheetContent
         side="bottom"
-        className="rounded-t-[40px] p-8 pb-12 border-t-4 border-primary/20 bg-background/95 backdrop-blur-xl"
+        className="rounded-t-3xl p-6 pb-10 border-t border-border/40 bg-background"
       >
-        <SheetHeader className="text-center mb-8">
-          <div className="mx-auto w-16 h-1.5 bg-muted/40 rounded-full mb-6" />
-          <SheetTitle className="text-2xl font-black uppercase italic tracking-tighter flex items-center justify-center gap-3">
-            <Zap className="h-6 w-6 text-primary fill-current" /> Initialize_Broadcast
+        <SheetHeader className="text-center mb-6">
+          <div className="mx-auto w-12 h-1 bg-muted rounded-full mb-4" />
+          <SheetTitle className="text-lg font-semibold flex items-center justify-center gap-2">
+            <Share2 className="h-5 w-5 text-primary" /> Share
           </SheetTitle>
-          <SheetDescription className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground opacity-60">
-            Select expansion node for broadcast synchronization
+          <SheetDescription className="text-xs text-muted-foreground">
+            Pick where you want to share this.
           </SheetDescription>
         </SheetHeader>
 
@@ -107,7 +107,7 @@ export function ShareSheet({ title, url, description, postId }: ShareSheetProps)
             <div className="h-16 w-16 rounded-[24px] bg-[#25D366] flex items-center justify-center shadow-[0_10px_30px_rgba(37,211,102,0.3)] group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 active:scale-90 border-4 border-white/10">
               <MessageCircle className="h-8 w-8 text-white fill-current" />
             </div>
-            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">
+            <span className="text-xs font-medium text-foreground">
               WhatsApp
             </span>
           </button>
@@ -120,7 +120,7 @@ export function ShareSheet({ title, url, description, postId }: ShareSheetProps)
             <div className="h-16 w-16 rounded-[24px] bg-[#0077b5] flex items-center justify-center shadow-[0_10px_30px_rgba(0,119,181,0.3)] group-hover:scale-110 group-hover:-rotate-3 transition-all duration-500 active:scale-90 border-4 border-white/10">
               <Linkedin className="h-8 w-8 text-white fill-current" />
             </div>
-            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">
+            <span className="text-xs font-medium text-foreground">
               LinkedIn
             </span>
           </button>
@@ -139,22 +139,22 @@ export function ShareSheet({ title, url, description, postId }: ShareSheetProps)
                 <Copy className="h-8 w-8 text-muted-foreground" />
               )}
             </div>
-            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic">
-              {copied ? "Sync_OK" : "Extract_URL"}
+            <span className="text-xs font-medium text-foreground">
+              {copied ? "Copied" : "Copy link"}
             </span>
           </button>
         </div>
 
         {/* SYSTEM OVERRIDE: Native Share */}
         {navigator.share && (
-          <div className="mt-10 pt-8 border-t-2 border-border/10">
+          <div className="mt-8 pt-6 border-t border-border/30">
             <Button
               onClick={handleExecutiveShare}
               variant="outline"
-              className="w-full h-14 rounded-2xl border-2 font-black text-[11px] uppercase tracking-[0.2em] gap-3 shadow-sm hover:bg-primary/5 hover:border-primary/20 transition-all active:scale-[0.98] italic"
+              className="w-full h-11 rounded-xl font-medium text-sm gap-2"
             >
               <Globe className="h-4 w-4" />
-              Institutional_Sharing_Protocol
+              More sharing options
             </Button>
           </div>
         )}
