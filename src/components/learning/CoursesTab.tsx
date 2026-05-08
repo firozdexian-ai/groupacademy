@@ -363,6 +363,15 @@ export function CoursesTab({ onOpenCourse, onOpenCompetition }: CoursesTabProps)
           <div className="grid gap-3 grid-cols-1 sm:grid-cols-2">
             {filteredCourses.map(renderCourseCard)}
           </div>
+          {showCourses && hasNextPage && (
+            <div ref={sentinelRef} className="py-4 flex justify-center">
+              {isFetchingNextPage ? (
+                <Skeleton className="h-8 w-32 rounded-lg" />
+              ) : (
+                <span className="text-[10px] text-muted-foreground">Loading more…</span>
+              )}
+            </div>
+          )}
         </section>
       )}
 
