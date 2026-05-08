@@ -170,6 +170,9 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   "agent-triggers": React.lazy(() =>
     import("@/components/dashboard/AgentTriggers").then((m) => ({ default: m.AgentTriggers })),
   ),
+  "agent-outreach": React.lazy(() =>
+    import("@/components/dashboard/AgentOutreachManager").then((m) => ({ default: m.AgentOutreachManager })),
+  ),
   "agent-marketplace": React.lazy(() =>
     import("@/components/dashboard/AgentMarketplaceReview").then((m) => ({ default: m.AgentMarketplaceReview })),
   ),
