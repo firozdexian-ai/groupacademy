@@ -154,17 +154,34 @@ serve(async (req) => {
 
       for (const tc of toolCalls) {
         let result: any = { ok: false, error: "unknown_tool" };
-        if (tc.function?.name === "update_talent_profile") {
-          try {
-            const args = JSON.parse(tc.function.arguments || "{}");
+        const fname = tc.function?.name;
+        try {
+          const args = JSON.parse(tc.function?.arguments || "{}");
+          if (fname === "update_talent_profile") {
             const { data: rpcData, error: rpcErr } = await userClient.rpc("update_talent_profile", {
               p_field: args.field,
               p_value: String(args.value ?? ""),
             });
             result = rpcErr ? { ok: false, error: rpcErr.message } : rpcData;
-          } catch (e) {
-            result = { ok: false, error: String(e) };
+          } else if (fname === "assign_career_coach") {
+            const { data: rpcData, error: rpcErr } = await userClient.rpc("assign_career_coach", {
+              p_profession_id: args.profession_id,
+              p_goal: args.goal ?? null,
+            });
+            result = rpcErr ? { ok: false, error: rpcErr.message } : rpcData;
+            if ((result as any)?.ok && (result as any)?.agent_key) {
+              (result as any).handoff = true;
+            }
+          } else if (fname === "search_professions") {
+            const { data: rows, error: pErr } = await userClient
+              .from("profession_categories")
+              .select("id, name")
+              .ilike("name", `%${String(args.query ?? "")}%`)
+              .limit(8);
+            result = pErr ? { ok: false, error: pErr.message } : { ok: true, results: rows ?? [] };
           }
+        } catch (e) {
+          result = { ok: false, error: String(e) };
         }
         conversation.push({
           role: "tool",
