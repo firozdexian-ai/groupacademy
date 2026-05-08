@@ -10701,38 +10701,55 @@ export type Database = {
       manual_payment_requests: {
         Row: {
           amount_bdt: number | null
+          company_id: string | null
           created_at: string | null
           id: string
+          notes: string | null
           processed_at: string | null
           processed_by: string | null
           requested_credits: number | null
+          requester_user_id: string | null
           status: string | null
-          talent_id: string
+          talent_id: string | null
           trx_id: string
         }
         Insert: {
           amount_bdt?: number | null
+          company_id?: string | null
           created_at?: string | null
           id?: string
+          notes?: string | null
           processed_at?: string | null
           processed_by?: string | null
           requested_credits?: number | null
+          requester_user_id?: string | null
           status?: string | null
-          talent_id: string
+          talent_id?: string | null
           trx_id: string
         }
         Update: {
           amount_bdt?: number | null
+          company_id?: string | null
           created_at?: string | null
           id?: string
+          notes?: string | null
           processed_at?: string | null
           processed_by?: string | null
           requested_credits?: number | null
+          requester_user_id?: string | null
           status?: string | null
-          talent_id?: string
+          talent_id?: string | null
           trx_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "manual_payment_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       marketplace_bids: {
         Row: {
@@ -14843,6 +14860,74 @@ export type Database = {
           },
         ]
       }
+      talent_contact_unlocks: {
+        Row: {
+          company_id: string
+          created_at: string
+          credits_spent: number
+          email: string | null
+          full_name: string | null
+          id: string
+          linkedin_url: string | null
+          phone: string | null
+          talent_id: string
+          unlocked_by: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          credits_spent?: number
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          linkedin_url?: string | null
+          phone?: string | null
+          talent_id: string
+          unlocked_by?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          credits_spent?: number
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          linkedin_url?: string | null
+          phone?: string | null
+          talent_id?: string
+          unlocked_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_contact_unlocks_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "talent_contact_unlocks_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "talent_contact_unlocks_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
+          {
+            foreignKeyName: "talent_contact_unlocks_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_weekly_leaderboard"
+            referencedColumns: ["talent_id"]
+          },
+        ]
+      }
       talent_credits: {
         Row: {
           balance: number
@@ -16692,6 +16777,10 @@ export type Database = {
         Returns: Json
       }
       get_company_public_projects: { Args: { _slug: string }; Returns: Json }
+      get_company_unlocked_talents: {
+        Args: { p_company_id: string }
+        Returns: string[]
+      }
       get_countries_with_signal: {
         Args: { p_limit?: number }
         Returns: {
@@ -16808,6 +16897,7 @@ export type Database = {
         Args: { _recipient: string }
         Returns: number
       }
+      get_talent_contact_unlock_cost: { Args: never; Returns: number }
       get_talent_outcome_signal: { Args: { _talent_id: string }; Returns: Json }
       get_talent_project_workload: {
         Args: { _talent_id: string }
@@ -17312,6 +17402,10 @@ export type Database = {
       }
       track_shared_job_click: {
         Args: { p_job_id: string; p_ref_code: string }
+        Returns: Json
+      }
+      unlock_talent_contact: {
+        Args: { p_company_id: string; p_talent_id: string }
         Returns: Json
       }
       unlock_talent_inbox: { Args: never; Returns: Json }
