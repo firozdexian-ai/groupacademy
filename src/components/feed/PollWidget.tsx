@@ -65,7 +65,7 @@ export function PollWidget({
   )?.optionId;
 
   return (
-    <div className="space-y-5 p-5 bg-card/30 border-2 border-border/40 rounded-[28px] shadow-xl backdrop-blur-md animate-in fade-in duration-500">
+    <div className="space-y-3 p-4 bg-card border border-border/40 rounded-2xl animate-in fade-in duration-300">
       <div className="space-y-3">
         {options.map((option) => {
           const result = getResultForOption(option.id);
@@ -100,8 +100,8 @@ export function PollWidget({
                     )}
                     <span
                       className={cn(
-                        "text-[15px] truncate font-black italic tracking-tight uppercase",
-                        isUserVote ? "text-primary" : "text-foreground/80",
+                        "text-sm truncate font-semibold",
+                        isUserVote ? "text-primary" : "text-foreground/90",
                       )}
                     >
                       {option.text}
@@ -109,11 +109,11 @@ export function PollWidget({
                   </div>
                   <div className="flex items-center gap-2">
                     {isUserVote && (
-                      <span className="text-[9px] font-black uppercase text-primary/40 tracking-[0.2em] italic">
-                        MY_VOTE
+                      <span className="text-[10px] font-medium text-primary/70">
+                        Your vote
                       </span>
                     )}
-                    <span className="text-xs font-black tabular-nums tracking-tighter">{result.percentage}%</span>
+                    <span className="text-xs font-semibold tabular-nums">{result.percentage}%</span>
                   </div>
                 </div>
                 {/* NEURAL PROGRESS OVERLAY */}
@@ -153,7 +153,7 @@ export function PollWidget({
                 >
                   {isSelected && <Check className="h-3.5 w-3.5 text-white stroke-[4px]" />}
                 </div>
-                <span className="font-bold text-[14px] uppercase italic tracking-tight">{option.text}</span>
+                <span className="font-medium text-sm">{option.text}</span>
               </div>
             </button>
           );
@@ -165,31 +165,28 @@ export function PollWidget({
           size="lg"
           onClick={handleVoteProtocol}
           disabled={!selectedOption || disabled}
-          className="w-full h-14 rounded-2xl font-black uppercase italic tracking-widest text-xs gap-3 shadow-2xl active:scale-95 transition-all"
+          className="w-full h-11 rounded-xl font-semibold text-sm gap-2"
         >
-          <Zap className="h-4 w-4 fill-current" />
-          Authorize Vote
+          <Zap className="h-4 w-4" />
+          Submit vote
         </Button>
       )}
 
-      {/* FOOTER TELEMETRY */}
       <div className="flex items-center justify-between pt-2 px-1 border-t border-border/10">
-        <div className="flex items-center gap-2">
-          <Badge
-            variant="outline"
-            className="h-6 gap-1.5 px-3 rounded-full font-black text-[9px] uppercase italic border-primary/20 bg-primary/5 text-primary"
-          >
-            <Users className="h-3 w-3" />
-            {totalVotes.toLocaleString()} NODES_SYNCED
-          </Badge>
-        </div>
+        <Badge
+          variant="outline"
+          className="h-6 gap-1.5 px-2.5 rounded-full text-[10px] font-medium border-border/40"
+        >
+          <Users className="h-3 w-3" />
+          {totalVotes.toLocaleString()} {totalVotes === 1 ? "vote" : "votes"}
+        </Badge>
         {pollEndsAt && (
-          <div className="flex items-center gap-2 text-[10px] font-black uppercase italic tracking-tighter text-muted-foreground/60">
-            <Timer className="h-3.5 w-3.5" />
+          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <Timer className="h-3 w-3" />
             <span>
               {isPollEnded
-                ? "PROTOCOL_CLOSED"
-                : `EXPIRES_IN: ${formatDistanceToNow(new Date(pollEndsAt)).toUpperCase()}`}
+                ? "Poll closed"
+                : `Ends in ${formatDistanceToNow(new Date(pollEndsAt))}`}
             </span>
           </div>
         )}
