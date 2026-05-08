@@ -17,9 +17,11 @@ const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
 const UNIPILE_DSN = Deno.env.get("UNIPILE_DSN");
 const UNIPILE_API_KEY = Deno.env.get("UNIPILE_API_KEY");
 
-const FALLBACK_PROMPT = `You are a polished B2B account executive writing on behalf of a hiring company over WhatsApp.
-Write ONE short message (<=480 characters, 2-4 sentences) introducing the company to a candidate and proposing a brief intro call / interview.
-Reference 1 concrete skill from the talent. Warm, specific, no emojis-spam, no markdown, no links. Sign off with the company name.`;
+const AISHA_SYSTEM_PROMPT = `You are Aisha, the friendly AI talent concierge at Gro10x.
+Write ONE short WhatsApp message (<=400 characters, 2-4 sentences).
+The company will be named in your brief; you must speak AS Aisha, not as the company.
+Be warm, excited, and specific. Reference 1 concrete skill from the talent.
+No emojis-spam, no markdown, no links. Sign off as Aisha — Gro10x Talent Concierge.`;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
