@@ -1175,6 +1175,77 @@ export type Database = {
           },
         ]
       }
+      agent_pitch_log: {
+        Row: {
+          company_id: string
+          created_at: string
+          dispatch_error: string | null
+          dispatched: boolean
+          external_chat_id: string | null
+          external_message_id: string | null
+          id: string
+          message: string
+          phone: string | null
+          sent_by: string
+          talent_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          dispatch_error?: string | null
+          dispatched?: boolean
+          external_chat_id?: string | null
+          external_message_id?: string | null
+          id?: string
+          message: string
+          phone?: string | null
+          sent_by: string
+          talent_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          dispatch_error?: string | null
+          dispatched?: boolean
+          external_chat_id?: string | null
+          external_message_id?: string | null
+          id?: string
+          message?: string
+          phone?: string | null
+          sent_by?: string
+          talent_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_pitch_log_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_pitch_log_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_pitch_log_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_talent_transaction_volume"
+            referencedColumns: ["talent_id"]
+          },
+          {
+            foreignKeyName: "agent_pitch_log_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "v_weekly_leaderboard"
+            referencedColumns: ["talent_id"]
+          },
+        ]
+      }
       agent_reviews: {
         Row: {
           agent_key: string

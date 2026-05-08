@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Search, Bookmark, UserPlus, MapPin, Award, Loader2, Lock, Mail, Phone, Linkedin, Wallet } from "lucide-react";
+import { Search, Bookmark, UserPlus, MapPin, Award, Loader2, Lock, Mail, Phone, Linkedin, Wallet, Sparkles } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { useTalentSearch, type TalentSearchRow } from "@/hooks/useTalentSearch";
 import { useActiveCompany } from "@/gro10x/hooks/useActiveCompany";
 import { useUpsertRelationship } from "@/hooks/useTalentRelationships";
@@ -31,6 +32,25 @@ export default function Gro10xSourcing() {
   const [revealed, setRevealed] = useState<Record<string, UnlockedContact>>({});
   const [topupOpen, setTopupOpen] = useState(false);
   const [unlockingId, setUnlockingId] = useState<string | null>(null);
+  const [pitchingId, setPitchingId] = useState<string | null>(null);
+
+  const handlePitch = async (talentId: string) => {
+    if (!companyId) return toast.error("No active company");
+    setPitchingId(talentId);
+    try {
+      const { data, error } = await supabase.functions.invoke("trigger-agent-pitch", {
+        body: { company_id: companyId, talent_id: talentId },
+      });
+      if (error) throw error;
+      const payload = data as { ok?: boolean; dispatched?: boolean; dispatch_error?: string };
+      if (payload?.dispatched) toast.success("AI pitch sent on WhatsApp");
+      else toast.error(`Pitch generated but not sent: ${payload?.dispatch_error ?? "unknown"}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Pitch failed");
+    } finally {
+      setPitchingId(null);
+    }
+  };
 
   const { data, isLoading } = useTalentSearch(appliedFilters, page);
   const upsertRel = useUpsertRelationship();
@@ -229,6 +249,17 @@ export default function Gro10xSourcing() {
                         </Button>
                       )}
                     </div>
+                    {isUnlocked && (
+                      <Button size="sm" variant="outline"
+                        className="w-full h-8 text-xs border-[#33E1E4]/40 text-[#33E1E4] hover:bg-[#33E1E4]/10"
+                        onClick={() => handlePitch(t.id)}
+                        disabled={pitchingId === t.id}>
+                        {pitchingId === t.id
+                          ? <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                          : <Sparkles className="h-3 w-3 mr-1" />}
+                        Pitch via AI (WhatsApp)
+                      </Button>
+                    )}
                     {t.public_handle && (
                       <Link to={`/t/${t.public_handle}`} className="text-[11px] text-[#33E1E4]">
                         View profile →
