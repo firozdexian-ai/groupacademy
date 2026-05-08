@@ -17051,6 +17051,7 @@ export type Database = {
           user_vote: string
         }[]
       }
+      get_gigs_hub_dashboard: { Args: never; Returns: Json }
       get_hiring_stats: {
         Args: { p_company_id: string; p_window_days?: number }
         Returns: Json
@@ -17442,6 +17443,15 @@ export type Database = {
             Args: { p_channel_id: string; p_contact_id?: string }
             Returns: Json
           }
+      place_gig_bid: {
+        Args: {
+          p_bid_amount: number
+          p_cover_letter?: string
+          p_estimated_days?: number
+          p_gig_id: string
+        }
+        Returns: Json
+      }
       process_instructor_payout: {
         Args: {
           _action: string
@@ -17569,6 +17579,7 @@ export type Database = {
         Args: { _appeal_id: string; _decision: string; _notes?: string }
         Returns: undefined
       }
+      save_gig: { Args: { p_gig_id: string }; Returns: Json }
       save_job: { Args: { p_job_id: string }; Returns: Json }
       school_id_for_content: { Args: { _content_id: string }; Returns: string }
       score_talent_job_mastery: {
