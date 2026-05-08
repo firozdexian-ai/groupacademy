@@ -98,6 +98,8 @@ export function AgentTriggers() {
     recipient_strategy: "subject",
     template: "",
     is_active: true,
+    channel: "auto",
+    cooldown_minutes: 1440,
   });
 
   const agentMap = useMemo(() => Object.fromEntries(agents.map(a => [a.id, a])), [agents]);
