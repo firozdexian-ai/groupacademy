@@ -99,19 +99,34 @@ export default function Gro10xBilling() {
       {/* Top-up packs */}
       <section className="px-4 mt-4">
         <h2 className="text-sm font-semibold mb-2">Top up</h2>
+        <p className="text-[11px] text-slate-400 mb-2">Manual bKash top-up — admin reviews and credits the shared wallet.</p>
         <div className="space-y-2">
           {TOPUP_PACKS.map((p) => {
             const usd = creditsToUSD(p.credits);
             return (
               <button
                 key={p.credits}
-                disabled={topupPending !== null}
-                onClick={() => startTopup(p.credits)}
-                className={`w-full text-left ${GRO10X_PANEL} border ${p.popular ? "border-[#33E1E4]/40" : "border-white/10"} rounded-2xl p-3 flex items-center gap-3 hover:bg-white/5 disabled:opacity-50`}
+                onClick={() => openTopup(p.credits)}
+                className={`w-full text-left ${GRO10X_PANEL} border ${p.popular ? "border-[#33E1E4]/40" : "border-white/10"} rounded-2xl p-3 flex items-center gap-3 hover:bg-white/5`}
               >
                 <div className="h-10 w-10 rounded-full bg-[#33E1E4]/10 grid place-items-center text-[#33E1E4]">
-                  {topupPending === p.credits ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-      </div>
+                  <Plus className="h-4 w-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold text-sm">{p.credits.toLocaleString()} credits</p>
+                    {p.popular && (
+                      <span className="text-[9px] uppercase tracking-wider bg-[#33E1E4]/15 text-[#33E1E4] px-1.5 py-0.5 rounded-full">Popular</span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-400 truncate">{formatMoney(usd, country, rates)}</p>
+                </div>
+                <span className="text-xs text-[#33E1E4] font-medium">Top up →</span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
 
       {instructorEarnings && (
         <section className="px-4 mt-3">
@@ -127,21 +142,6 @@ export default function Gro10xBilling() {
           </Link>
         </section>
       )}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="font-semibold text-sm">{p.credits.toLocaleString()} credits</p>
-                    {p.popular && (
-                      <span className="text-[9px] uppercase tracking-wider bg-[#33E1E4]/15 text-[#33E1E4] px-1.5 py-0.5 rounded-full">Popular</span>
-                    )}
-                  </div>
-                  <p className="text-[11px] text-slate-400 truncate">{formatMoney(usd, country, rates)}</p>
-                </div>
-                <span className="text-xs text-[#33E1E4] font-medium">Buy →</span>
-              </button>
-            );
-          })}
-        </div>
-      </section>
 
       {/* Ledger */}
       <section className="px-4 mt-6">
