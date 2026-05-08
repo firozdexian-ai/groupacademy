@@ -16869,6 +16869,10 @@ export type Database = {
         }
         Returns: Json
       }
+      cron_rebuild_stale_job_recs: {
+        Args: { _batch?: number }
+        Returns: number
+      }
       debit_instructor_credit: {
         Args: {
           _amount: number
@@ -17047,6 +17051,7 @@ export type Database = {
         Returns: Json
       }
       get_instructor_summary: { Args: { _user_id?: string }; Returns: Json }
+      get_jobs_hub_dashboard: { Args: { _talent_id: string }; Returns: Json }
       get_jobs_in_field: {
         Args: { _limit?: number; _talent_id: string }
         Returns: {
@@ -17112,6 +17117,15 @@ export type Database = {
         Returns: Json
       }
       get_public_talent_profile: { Args: { _handle: string }; Returns: Json }
+      get_ranked_jobs_for_talent: {
+        Args: { _cursor?: number; _limit?: number; _talent_id: string }
+        Returns: {
+          job: Json
+          match_reason: string
+          match_score: number
+          rank_score: number
+        }[]
+      }
       get_remote_friendly_summary: { Args: never; Returns: Json }
       get_reviewer_program_health: { Args: never; Returns: Json }
       get_sourcing_stats: {
@@ -17436,6 +17450,10 @@ export type Database = {
           msg_id: number
           read_ct: number
         }[]
+      }
+      rebuild_job_recs_for_talent: {
+        Args: { _limit?: number; _talent_id: string }
+        Returns: number
       }
       recompute_all_trust_scores: { Args: never; Returns: number }
       recompute_content_readiness: {

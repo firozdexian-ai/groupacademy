@@ -45,13 +45,9 @@ import { ProfileCompletenessGate } from "@/components/jobs/ProfileCompletenessGa
 import { CompanyCard } from "@/components/jobs/CompanyCard";
 import { CountryCard } from "@/components/jobs/CountryCard";
 import { CompanyDetailSheet } from "@/components/jobs/CompanyDetailSheet";
-import { useTrendingJobs } from "@/hooks/useTrendingJobs";
-import { useJobsInField } from "@/hooks/useJobsInField";
-import { useJobTypeCounts } from "@/hooks/useJobTypeCounts";
-import { useCompaniesWithSignal } from "@/hooks/useCompaniesWithSignal";
+import { InfiniteJobsList } from "@/components/jobs/InfiniteJobsList";
+import { useJobsHubDashboard } from "@/hooks/useJobsHubDashboard";
 import { useFollowedCompanies } from "@/hooks/useFollowedCompanies";
-import { useCountriesWithSignal } from "@/hooks/useCountriesWithSignal";
-import { useRemoteFriendly } from "@/hooks/useRemoteFriendly";
 import { JOB_COLLECTIONS } from "@/lib/constants/jobTypes";
 import { toast } from "sonner";
 import { useNextBestTool } from "@/hooks/useNextBestTool";
@@ -133,14 +129,17 @@ export default function JobsHub() {
     hot: false,
   });
 
-  const { data: trendingJobs = [], isLoading: loadingTrending } = useTrendingJobs(10);
-  const { data: jobsInField = [] } = useJobsInField(talent?.id, 5);
-  const { data: jobTypeCounts = {} } = useJobTypeCounts(talent?.country);
-
-  const { data: companiesSignal = [] } = useCompaniesWithSignal(null, 100);
+  // ── Single consolidated dashboard fetch (replaces 6 hooks) ──
+  const { data: dashboard, isLoading: loadingDashboard } = useJobsHubDashboard(talent?.id);
+  const trendingJobs = dashboard?.trending ?? [];
+  const loadingTrending = loadingDashboard;
+  const jobsInField = dashboard?.in_field ?? [];
+  const jobTypeCounts = dashboard?.type_counts ?? {};
+  const companiesSignal = dashboard?.companies ?? [];
+  const countriesSignal = dashboard?.countries ?? [];
+  const loadingCountries = loadingDashboard;
+  const remoteSummary = dashboard?.remote;
   const { followed, isFollowing, toggle: toggleFollow } = useFollowedCompanies();
-  const { data: countriesSignal = [], isLoading: loadingCountries } = useCountriesWithSignal(50);
-  const { data: remoteSummary } = useRemoteFriendly();
 
   const { data: collectionData, isLoading: loadingCollection } = useQuery({
     queryKey: ["jobs-collection"],
@@ -472,6 +471,17 @@ export default function JobsHub() {
               ))}
             </div>
           </section>
+
+          {/* Zero-latency matched feed (infinite scroll) */}
+          {talent?.id && (
+            <section className="space-y-3">
+              <h2 className="text-base font-semibold flex items-center gap-2">
+                <Brain className="h-4 w-4 text-primary" /> Matched for you
+                <Badge variant="secondary" className="text-[9px] ml-1">Free · instant</Badge>
+              </h2>
+              <InfiniteJobsList talentId={talent.id} />
+            </section>
+          )}
         </div>
       )}
 
