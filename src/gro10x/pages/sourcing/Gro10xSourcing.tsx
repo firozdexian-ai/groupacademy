@@ -249,6 +249,17 @@ export default function Gro10xSourcing() {
                         </Button>
                       )}
                     </div>
+                    {isUnlocked && (
+                      <Button size="sm" variant="outline"
+                        className="w-full h-8 text-xs border-[#33E1E4]/40 text-[#33E1E4] hover:bg-[#33E1E4]/10"
+                        onClick={() => handlePitch(t.id)}
+                        disabled={pitchingId === t.id}>
+                        {pitchingId === t.id
+                          ? <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                          : <Sparkles className="h-3 w-3 mr-1" />}
+                        Pitch via AI (WhatsApp)
+                      </Button>
+                    )}
                     {t.public_handle && (
                       <Link to={`/t/${t.public_handle}`} className="text-[11px] text-[#33E1E4]">
                         View profile →
