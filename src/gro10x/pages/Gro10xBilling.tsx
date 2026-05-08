@@ -4,14 +4,14 @@
  */
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, ArrowDownCircle, ArrowUpCircle, Plus, Loader2, AlertTriangle, GraduationCap } from "lucide-react";
+import { ArrowLeft, ArrowDownCircle, ArrowUpCircle, Plus, AlertTriangle, GraduationCap } from "lucide-react";
 import { useCompanyCredits } from "../hooks/useCompanyCredits";
 import { useCurrencyRates } from "@/hooks/useCurrencyRates";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { creditsToUSD, formatMoney, formatUSD } from "@/lib/currency";
 import { GRO10X_PANEL, GRO10X_MUTED } from "../lib/tokens";
-import { toast } from "sonner";
+import { TelegramTopUpModal } from "../components/TelegramTopUpModal";
 
 const TOPUP_PACKS = [
   { credits: 100, popular: false },
