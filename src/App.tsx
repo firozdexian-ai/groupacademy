@@ -9,7 +9,7 @@ import { BootGate } from "@/components/BootGate";
 import { TalentProvider } from "@/contexts/TalentContext";
 import { ImpersonationProvider } from "@/contexts/ImpersonationContext";
 import { useTalent } from "@/hooks/useTalent";
-import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
+import ProfileBuilder from "@/pages/app/ProfileBuilder";
 
 // Components
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -205,36 +205,18 @@ const JobApplyRedirect = () => {
   return <Navigate to={`/auth?returnTo=/app/jobs/${id}/apply`} replace />;
 };
 
-// Inline Guard Component to Force Onboarding
+// Force new talents into the conversational profile builder (Aisha)
 const OnboardingGuard = ({ children }: { children: React.ReactNode }) => {
-  const { talent, isTalentLoading, refreshTalent } = useTalent();
-  const [showWizard, setShowWizard] = useState(false);
+  const { talent, isTalentLoading } = useTalent();
   const location = useLocation();
 
-  useEffect(() => {
-    if (isTalentLoading) return;
-    if (talent && !talent.onboardingCompletedAt) {
-      setShowWizard(true);
-    } else if (talent?.onboardingCompletedAt) {
-      setShowWizard(false);
-    }
-  }, [talent, isTalentLoading, location.pathname]);
-
-  const handleComplete = async () => {
-    await refreshTalent();
-    setShowWizard(false);
-  };
-
-  // Avoid flicker until talent context hydrates
   if (isTalentLoading && !talent) return <>{children}</>;
 
-  if (showWizard) {
-    return (
-      <>
-        <div className="opacity-0 pointer-events-none h-0 overflow-hidden">{children}</div>
-        <OnboardingWizard onComplete={handleComplete} />
-      </>
-    );
+  const needsOnboarding = !!talent && !talent.onboardingCompletedAt;
+  const onBuilder = location.pathname.startsWith("/app/profile-builder");
+
+  if (needsOnboarding && !onBuilder) {
+    return <Navigate to="/app/profile-builder" replace />;
   }
 
   return <>{children}</>;
@@ -565,6 +547,7 @@ export default function App() {
                     <Route path="messages" element={<Messages />} />
                     <Route path="messages/:threadKey" element={<MessageThread />} />
                     <Route path="profile/edit" element={<ProfileEdit />} />
+                    <Route path="profile-builder" element={<ProfileBuilder />} />
                     <Route path="agents/:agentKey/profile" element={<AgentProfile />} />
                     <Route path="agents/:agentKey" element={<AgentChat />} />
                     <Route path="ai-general" element={<AIGeneral />} />

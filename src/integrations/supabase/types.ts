@@ -17505,6 +17505,10 @@ export type Database = {
           title: string
         }[]
       }
+      update_talent_profile: {
+        Args: { p_field: string; p_value: string }
+        Returns: Json
+      }
       upsert_direct_thread: {
         Args: { p_company_id: string; p_talent_id: string }
         Returns: string
