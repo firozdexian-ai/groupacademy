@@ -48,16 +48,7 @@ export function useContentHype(
       }
       return;
     }
-    const { data: tc } = await supabase
-      .from("talent_credits")
-      .select("balance, earned_balance, contact_bonus_balance")
-      .eq("talent_id", talent.id)
-      .maybeSingle();
-    const total = tc ? Number(tc.balance) + Number(tc.earned_balance) + Number(tc.contact_bonus_balance) : null;
-    toast({
-      title: "🔥 Hype sent · -1 credit",
-      description: total !== null ? `New balance: ${total.toFixed(1)} credits` : undefined,
-    });
+    toast({ title: "🔥 Hype sent · -1 credit" });
   }, [talent?.id, contentType, contentId, toast]);
 
   return { count, hype, isHyping };
