@@ -238,6 +238,20 @@ export function AgentTriggers() {
                     <SelectContent>{RECIPIENT_STRATEGIES.map(r => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label>Channel</Label>
+                    <Select value={draft.channel || "auto"} onValueChange={(v) => setDraft({ ...draft, channel: v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>{CHANNELS.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label>Cooldown (minutes)</Label>
+                    <Input type="number" min={1} value={String(draft.cooldown_minutes ?? 1440)}
+                      onChange={(e) => setDraft({ ...draft, cooldown_minutes: Number(e.target.value) })} />
+                  </div>
+                </div>
                 <div>
                   <Label>Template / intent</Label>
                   <Textarea
@@ -246,7 +260,7 @@ export function AgentTriggers() {
                     onChange={(e) => setDraft({ ...draft, template: e.target.value })}
                     placeholder="E.g. Welcome the new talent, point them to the career assessment as a first step."
                   />
-                  <p className="text-xs text-muted-foreground mt-1">The agent rewrites this naturally using the event payload.</p>
+                  <p className="text-xs text-muted-foreground mt-1">The agent rewrites this naturally using the event payload. WhatsApp falls back to in-app if no phone is on file.</p>
                 </div>
               </div>
               <DialogFooter>
