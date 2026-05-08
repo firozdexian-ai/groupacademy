@@ -171,7 +171,10 @@ serve(async (req) => {
             });
             result = rpcErr ? { ok: false, error: rpcErr.message } : rpcData;
             if ((result as any)?.ok && (result as any)?.agent_key) {
-              (result as any).handoff = true;
+              handoff = {
+                agent_key: (result as any).agent_key,
+                instructor_id: (result as any).instructor_id ?? null,
+              };
             }
           } else if (fname === "search_professions") {
             const { data: rows, error: pErr } = await userClient
