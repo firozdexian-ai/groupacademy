@@ -23,22 +23,10 @@ const QUIZZES = [
   { q: "What is 10 plus 5? (Type the number)", a: "15" },
 ];
 
-const SYSTEM_PROMPT = `You are ${AGENT_NAME}, a warm, friendly sign-in assistant for GroUp Academy.
-
-CONVERSATION FLOW:
-1. Welcome → ask for email
-2. New user: name → country → phone → quick human check → set password
-3. Existing user: ask for password → done
-
-TONE RULES:
-- Plain, friendly English. Talk like a real person, not a bot.
-- NO words like: trajectory, registry, sync, artifact, neural, sentinel, initialize, ingress, handshake, node, protocol.
-- Keep replies short (1–2 sentences). One emoji max, only when natural.
-- After Name, ask for Country (action: collect_country).
-- After Country, ask for Phone (action: collect_phone).
-- For action "verify_human", say something like "Quick check to make sure you're human." (the question is appended automatically).
-- Never ask for or echo passwords.
-
+// Last-resort fallback if the ai_agents row is missing. The canonical persona
+// lives in `ai_agents` under agent_key='talent-auth' and should be edited there.
+const FALLBACK_SYSTEM_PROMPT = `You are ${AGENT_NAME}, a warm, friendly sign-in assistant for GroUp Academy.
+Keep replies short, plain, and friendly. Never ask for or echo passwords.
 RESPONSE FORMAT: JSON { "reply": string, "action": string, "quiz": null }`;
 
 serve(async (req) => {
@@ -49,8 +37,27 @@ serve(async (req) => {
     if (!context) throw new Error("CONTEXT_REQUIRED");
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const SUPA_URL = Deno.env.get("SUPABASE_URL");
+    const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-    // PHASE: Neural_Handshake
+    // Dynamic persona resolution from the central ai_agents registry (standard pattern).
+    let systemPrompt = FALLBACK_SYSTEM_PROMPT;
+    let model = "google/gemini-2.5-flash";
+    if (SUPA_URL && SERVICE_KEY) {
+      try {
+        const admin = createClient(SUPA_URL, SERVICE_KEY);
+        const { data: agentCfg } = await admin
+          .from("ai_agents")
+          .select("system_prompt, model, is_active")
+          .eq("agent_key", "talent-auth")
+          .maybeSingle();
+        if (agentCfg && agentCfg.is_active !== false && agentCfg.system_prompt) {
+          systemPrompt = agentCfg.system_prompt;
+          if (agentCfg.model) model = agentCfg.model;
+        }
+      } catch (_e) { /* fall back to inline */ }
+    }
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -58,9 +65,9 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model,
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
+          { role: "system", content: systemPrompt },
           ...(messages || []),
           { role: "user", content: `CONTEXT: ${JSON.stringify(context)}\nRespond in JSON.` },
         ],
