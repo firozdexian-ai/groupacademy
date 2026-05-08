@@ -31,24 +31,23 @@ export function ImageUpload({ value, onUpload, onRemove, bucket = "course-covers
       if (!file.type.startsWith("image/")) {
         toast({
           variant: "destructive",
-          title: "SYNC_FAULT: Invalid Format",
-          description: "Deploy PNG, JPG, or WebP artifacts only.",
+          title: "Invalid file type",
+          description: "Please upload a PNG, JPG, or WebP image.",
         });
         return;
       }
 
-      // Academy Protocol: Volume Validation
       if (file.size > 5 * 1024 * 1024) {
         toast({
           variant: "destructive",
-          title: "SYNC_FAULT: Data Overflow",
-          description: "Artifact volume must not exceed 5MB.",
+          title: "File too large",
+          description: "Image must be 5MB or smaller.",
         });
         return;
       }
 
       const fileExt = file.name.split(".").pop();
-      const fileName = `ARTIFACT_${Math.random().toString(36).substring(2, 9)}_${Date.now()}.${fileExt}`;
+      const fileName = `image_${Math.random().toString(36).substring(2, 9)}_${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage.from(bucket).upload(fileName, file);
 
@@ -61,14 +60,14 @@ export function ImageUpload({ value, onUpload, onRemove, bucket = "course-covers
       onUpload(publicUrl);
 
       toast({
-        title: "INGRESS_COMPLETE",
-        description: "Visual artifact synchronized with registry.",
+        title: "Image uploaded",
+        description: "Your image is ready to use.",
       });
     } catch (err: any) {
-      console.error("INGRESS_FAULT:", err);
+      console.error("Image upload failed:", err);
       toast({
         variant: "destructive",
-        title: "SYNC_FAILED",
+        title: "Upload failed",
         description: err.message,
       });
     } finally {
