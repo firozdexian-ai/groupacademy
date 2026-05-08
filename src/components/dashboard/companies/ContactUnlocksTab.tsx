@@ -36,25 +36,30 @@ export function ContactUnlocksTab() {
       setLoading(true);
       const { data, error } = await supabase
         .from("talent_contact_unlocks")
-        .select("id, company_id, talent_id, credits_spent, full_name, email, phone, created_at, unlocked_by, companies:company_id(name)")
+        .select("id, company_id, talent_id, credits_spent, full_name, email, phone, created_at, unlocked_by")
         .order("created_at", { ascending: false })
         .limit(500);
       if (cancelled) return;
       if (error) { setLoading(false); return; }
 
+      const companyIds = Array.from(new Set((data ?? []).map((r: any) => r.company_id).filter(Boolean)));
       const userIds = Array.from(new Set((data ?? []).map((r: any) => r.unlocked_by).filter(Boolean)));
-      let emailMap: Record<string, string> = {};
-      if (userIds.length) {
-        const { data: profs } = await supabase
-          .from("profiles")
-          .select("id, email")
-          .in("id", userIds as string[]);
-        emailMap = Object.fromEntries((profs ?? []).map((p: any) => [p.id, p.email]));
-      }
+
+      const [{ data: comps }, { data: tls }] = await Promise.all([
+        companyIds.length
+          ? supabase.from("companies").select("id, name").in("id", companyIds as string[])
+          : Promise.resolve({ data: [] as any[] }),
+        userIds.length
+          ? supabase.from("talents").select("user_id, email").in("user_id", userIds as string[])
+          : Promise.resolve({ data: [] as any[] }),
+      ]);
+
+      const companyMap: Record<string, string> = Object.fromEntries((comps ?? []).map((c: any) => [c.id, c.name]));
+      const emailMap: Record<string, string> = Object.fromEntries((tls ?? []).map((t: any) => [t.user_id, t.email]));
 
       const enriched: UnlockRow[] = (data ?? []).map((r: any) => ({
         ...r,
-        company_name: r.companies?.name ?? r.company_id?.slice(0, 8),
+        company_name: companyMap[r.company_id] ?? r.company_id?.slice(0, 8),
         unlocker_email: r.unlocked_by ? emailMap[r.unlocked_by] ?? r.unlocked_by.slice(0, 8) : "—",
       }));
 
