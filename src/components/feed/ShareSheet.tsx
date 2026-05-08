@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Share2, Copy, Check, MessageCircle, Linkedin, Globe, Zap, ShieldCheck } from "lucide-react";
+import { Share2, Copy, Check, MessageCircle, Linkedin, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
