@@ -32,6 +32,25 @@ export default function Gro10xSourcing() {
   const [revealed, setRevealed] = useState<Record<string, UnlockedContact>>({});
   const [topupOpen, setTopupOpen] = useState(false);
   const [unlockingId, setUnlockingId] = useState<string | null>(null);
+  const [pitchingId, setPitchingId] = useState<string | null>(null);
+
+  const handlePitch = async (talentId: string) => {
+    if (!companyId) return toast.error("No active company");
+    setPitchingId(talentId);
+    try {
+      const { data, error } = await supabase.functions.invoke("trigger-agent-pitch", {
+        body: { company_id: companyId, talent_id: talentId },
+      });
+      if (error) throw error;
+      const payload = data as { ok?: boolean; dispatched?: boolean; dispatch_error?: string };
+      if (payload?.dispatched) toast.success("AI pitch sent on WhatsApp");
+      else toast.error(`Pitch generated but not sent: ${payload?.dispatch_error ?? "unknown"}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Pitch failed");
+    } finally {
+      setPitchingId(null);
+    }
+  };
 
   const { data, isLoading } = useTalentSearch(appliedFilters, page);
   const upsertRel = useUpsertRelationship();
