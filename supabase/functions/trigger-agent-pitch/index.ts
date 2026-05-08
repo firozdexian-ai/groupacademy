@@ -121,16 +121,17 @@ Deno.serve(async (req) => {
     if (UNIPILE_DSN && UNIPILE_API_KEY) {
       const { data: channel } = await admin
         .from("messaging_channels")
-        .select("id, unipile_account_id, provider, status")
+        .select("id, unipile_account_id, provider, status, agent_key")
         .eq("provider", "whatsapp")
         .eq("status", "connected")
+        .eq("agent_key", "talent-outreach")
         .not("unipile_account_id", "is", null)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
 
       if (!channel) {
-        dispatchError = "no_connected_whatsapp_channel";
+        dispatchError = "no_connected_aisha_whatsapp_channel";
       } else {
         const dsnBase = UNIPILE_DSN.startsWith("http") ? UNIPILE_DSN : `https://${UNIPILE_DSN}`;
         const r = await fetch(`${dsnBase}/api/v1/chats`, {
