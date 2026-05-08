@@ -16884,6 +16884,16 @@ export type Database = {
         Args: { p_company_id?: string; p_job_id?: string }
         Returns: Json
       }
+      get_feed_engagement: {
+        Args: { _post_ids: string[]; _talent_id?: string }
+        Returns: {
+          poll_counts: Json
+          post_id: string
+          reaction_counts: Json
+          user_reaction: string
+          user_vote: string
+        }[]
+      }
       get_hiring_stats: {
         Args: { p_company_id: string; p_window_days?: number }
         Returns: Json
