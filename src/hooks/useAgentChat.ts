@@ -43,6 +43,7 @@ export interface UseAgentChatReturn {
 
 export function useAgentChat(): UseAgentChatReturn {
   const { talent } = useTalent();
+  const queryClient = useQueryClient();
 
   const [session, setSession] = useState<AgentSession | null>(null);
   const [messages, setMessages] = useState<AgentMessage[]>([]);
