@@ -65,6 +65,7 @@ async function signAttachments(atts: ChatAttachment[]): Promise<ChatAttachment[]
 }
 
 export function useAdminChatThread(agentKey: string | null) {
+  const queryClient = useQueryClient();
   const [threadId, setThreadId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [loading, setLoading] = useState(false);
