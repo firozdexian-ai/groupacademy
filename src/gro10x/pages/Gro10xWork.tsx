@@ -36,9 +36,20 @@ export default function Gro10xWork() {
   return (
     <div className="max-w-md md:max-w-5xl mx-auto">
       <header className="sticky top-0 z-10 bg-[#0B1220]/95 backdrop-blur-md border-b border-white/5">
-        <div className="px-4 pt-3 pb-2">
-          <h1 className="text-xl font-semibold tracking-tight">Activities</h1>
-          <p className={`text-xs ${GRO10X_MUTED}`}>Hiring, talents and pipeline</p>
+        <div className="px-4 pt-3 pb-2 flex items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl font-semibold tracking-tight">Activities</h1>
+            <p className={`text-xs ${GRO10X_MUTED}`}>Hiring, talents and pipeline</p>
+          </div>
+          {tab === "hiring" && (
+            <button
+              onClick={() => navigate("/gro10x/c/recruiter")}
+              className="hidden md:inline-flex items-center gap-1 rounded-full bg-white/5 border border-white/10 text-slate-200 px-3 py-1.5 text-xs"
+              title="Ask Recruiter"
+            >
+              Ask AI
+            </button>
+          )}
         </div>
         <div className="px-4 pb-2 flex gap-2 items-center overflow-x-auto">
           <TabBtn active={tab === "hiring"}   onClick={() => setTab("hiring")}>Hiring</TabBtn>
