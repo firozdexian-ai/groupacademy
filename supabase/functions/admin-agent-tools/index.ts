@@ -74,6 +74,14 @@ serve(async (req) => {
     const dispatch = toolKey || inferTool(body);
     if (!dispatch) return j({ ok: false, error: "unknown_admin_tool" }, 400);
 
+    const schema = AdminSchemas[dispatch];
+    if (schema) {
+      const parsed = schema.safeParse(body);
+      if (!parsed.success) {
+        return j({ ok: false, error: "BAD_ARGS", tool: dispatch, issues: parsed.error.issues }, 400);
+      }
+    }
+
     switch (dispatch) {
       case "approve_payout": {
         const requestId = body.request_id;
