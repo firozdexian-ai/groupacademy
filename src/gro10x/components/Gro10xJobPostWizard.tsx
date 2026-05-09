@@ -89,7 +89,7 @@ export default function Gro10xJobPostWizard({ open, onClose }: Props) {
         is_active: form.publish,
         posted_by: user?.id ?? null,
         job_kind: "employer",
-        application_type: "internal",
+        application_type: "email",
       };
 
       const { data, error } = await supabase
