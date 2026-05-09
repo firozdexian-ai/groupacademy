@@ -65,8 +65,34 @@ export function JobsManageTab() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [purging, setPurging] = useState(false);
+  const queryClient = useQueryClient();
 
   const PAGE_SIZE = 20;
+
+  const purgeExpired = useCallback(async () => {
+    if (purging) return;
+    if (!confirm("Archive all jobs past their deadline (and inactive-stale jobs >90d old)?")) return;
+    setPurging(true);
+    try {
+      const { data, error } = await (supabase as any).rpc("archive_expired_jobs");
+      if (error) throw error;
+      const archived = Number(data ?? 0);
+      toast.success(`Purged ${archived} expired job${archived === 1 ? "" : "s"}`);
+      queryClient.invalidateQueries({ queryKey: ["admin-jobs"] });
+      queryClient.invalidateQueries({ queryKey: ["jobs-hub-dashboard"] });
+      // refresh local list
+      setPage(1);
+      setStatusFilter((f) => f);
+      // trigger reload via existing effect by toggling search
+      setSearchQuery((s) => s);
+      window.dispatchEvent(new Event("admin-jobs-refresh"));
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to purge expired jobs");
+    } finally {
+      setPurging(false);
+    }
+  }, [purging, queryClient]);
 
   const fetchEngagement = useCallback(async (jobIds: string[]) => {
     if (!jobIds.length) return;
