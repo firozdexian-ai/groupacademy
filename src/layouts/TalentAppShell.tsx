@@ -571,6 +571,9 @@ export function TalentAppShell() {
         currentBalance={balance}
       />
 
+      {/* GLOBAL: Floating AI Assistant — Career Coach by default, context-aware */}
+      <GlobalAIBubble />
+
       {/* --- HUD: MOBILE BOTTOM TAB BAR --- */}
       <nav
         className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-background border-t border-border px-2 flex items-center justify-around z-50 shadow-[0_-2px_8px_rgba(0,0,0,0.08)]"
