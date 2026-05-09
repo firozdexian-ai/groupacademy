@@ -335,7 +335,7 @@ export function BatchLinkedInJobUpload({
             </div>
           </DialogHeader>
 
-          <ScrollArea className="flex-1 pr-4">
+          <ScrollArea className="flex-1 min-h-0 px-10">
             {step === "upload" && (
               <div className="flex flex-col items-center justify-center py-20 gap-8 animate-in fade-in zoom-in-95">
                 {isProcessingFile ? (
