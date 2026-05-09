@@ -82,9 +82,10 @@ export default function JobAssessment() {
         .from("job_assessments")
         .select(`*, jobs (title, company_name)`)
         .eq("id", assessmentId)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
+      if (!data) throw new Error("Assessment not found");
 
       let questionsData: Question[] = [];
       if (data.questions) {
