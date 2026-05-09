@@ -44,6 +44,7 @@ export interface AgentRuntimeSubject {
 
 export function useAgentRuntime(subjectOverride?: AgentRuntimeSubject): UseAgentRuntimeReturn {
   const { talent } = useTalent();
+  const queryClient = useQueryClient();
   const subject: AgentRuntimeSubject | null =
     subjectOverride ?? (talent?.id ? { kind: "talent", id: talent.id } : null);
 
