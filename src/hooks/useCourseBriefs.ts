@@ -51,8 +51,13 @@ export function useCreateBrief() {
         .from("course_briefs" as any)
         .insert({ ...input, created_by: u.user!.id } as any)
         .select()
-        .single();
+        .maybeSingle();
       if (error) throw error;
+      if (!data) {
+        // Insert succeeded but RLS hid the row from us — surface a friendly hint
+        // instead of crashing the screen with "Cannot read properties of null".
+        throw new Error("Brief saved but could not be read back. Refresh the page to see it.");
+      }
       return data;
     },
     onSuccess: () => {
