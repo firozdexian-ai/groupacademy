@@ -24,6 +24,7 @@ interface RunRequest {
   agent_key: string;
   thread_id?: string;
   message: string;
+  context?: Record<string, unknown>;
 }
 
 serve(async (req) => {
