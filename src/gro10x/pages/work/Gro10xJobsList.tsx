@@ -1,110 +1,67 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
+import { useGro10xCompanyId } from "../../hooks/useGro10xCompanyId";
+import {
+  useEmployerJobsDashboard,
+  employerJobsQueryKey,
+  type EmployerJobRow,
+} from "../../hooks/useEmployerJobsDashboard";
 import { GRO10X_PANEL, GRO10X_MUTED } from "../../lib/tokens";
 import { Briefcase, Loader2, Pause, Play, X, Plus, Users } from "lucide-react";
 import { toast } from "sonner";
-
-interface Job {
-  id: string;
-  title: string;
-  location: string | null;
-  is_active: boolean;
-  created_at: string;
-  deadline: string | null;
-  applicant_count?: number;
-}
+import Gro10xJobPostWizard from "../../components/Gro10xJobPostWizard";
 
 export default function Gro10xJobsList() {
-  const { user } = useAuth();
-  const [companyId, setCompanyId] = useState<string | null>(null);
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState<string | null>(null);
+  const { data: companyId, isLoading: cidLoading } = useGro10xCompanyId();
+  const { data: jobs = [], isLoading } = useEmployerJobsDashboard(companyId);
+  const qc = useQueryClient();
   const [filter, setFilter] = useState<"all" | "active" | "draft">("all");
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [wizardOpen, setWizardOpen] = useState(false);
 
-  const load = useCallback(async () => {
-    if (!user?.id) return;
-    setLoading(true);
-    const { data: m } = await supabase
-      .from("company_members")
-      .select("company_id")
-      .eq("user_id", user.id)
-      .eq("status", "active")
-      .limit(1)
-      .maybeSingle();
-    const cid = m?.company_id ?? null;
-    setCompanyId(cid);
-    if (!cid) {
-      setJobs([]);
-      setLoading(false);
-      return;
-    }
-    const { data } = await supabase
-      .from("jobs")
-      .select("id, title, location, is_active, created_at, deadline")
-      .eq("company_id", cid)
-      .order("created_at", { ascending: false })
-      .limit(50);
-    const rows = (data ?? []) as Job[];
-
-    // Fetch applicant counts in one query
-    if (rows.length) {
-      const ids = rows.map((r) => r.id);
-      const { data: counts } = await supabase
-        .from("job_applications")
-        .select("job_id")
-        .in("job_id", ids);
-      const map = new Map<string, number>();
-      (counts ?? []).forEach((c: any) => {
-        map.set(c.job_id, (map.get(c.job_id) ?? 0) + 1);
-      });
-      rows.forEach((r) => (r.applicant_count = map.get(r.id) ?? 0));
-    }
-
-    setJobs(rows);
-    setLoading(false);
-  }, [user?.id]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  const toggleActive = async (job: Job) => {
-    setBusy(job.id);
-    try {
-      const tool = job.is_active ? "pause_job" : "publish_job";
+  const mutate = useMutation({
+    mutationFn: async ({ tool, job_id }: { tool: string; job_id: string }) => {
       const { data, error } = await supabase.functions.invoke("company-agent-tools", {
-        body: { tool_key: tool, args: { job_id: job.id } },
+        body: { tool_key: tool, args: { job_id } },
       });
       if (error || !data?.ok) {
-        toast.error(data?.error ?? error?.message ?? "Failed");
-        return;
+        throw new Error(data?.error ?? error?.message ?? "Failed");
       }
-      toast.success(job.is_active ? "Paused" : "Published");
-      await load();
-    } finally {
-      setBusy(null);
-    }
+      return data;
+    },
+    onMutate: ({ job_id }) => setBusyId(job_id),
+    onSettled: () => setBusyId(null),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: employerJobsQueryKey(companyId) });
+    },
+    onError: (err: any) => toast.error(err?.message ?? "Failed"),
+  });
+
+  const toggleActive = (job: EmployerJobRow) => {
+    mutate.mutate(
+      { tool: job.is_active ? "pause_job" : "publish_job", job_id: job.id },
+      {
+        onSuccess: () => {
+          toast.success(job.is_active ? "Paused" : "Published");
+          qc.invalidateQueries({ queryKey: employerJobsQueryKey(companyId) });
+        },
+      },
+    );
   };
 
-  const closeJob = async (job: Job) => {
+  const closeJob = (job: EmployerJobRow) => {
     if (!confirm(`Close "${job.title}"? It will stop accepting applications.`)) return;
-    setBusy(job.id);
-    try {
-      const { data, error } = await supabase.functions.invoke("company-agent-tools", {
-        body: { tool_key: "close_job", args: { job_id: job.id } },
-      });
-      if (error || !data?.ok) {
-        toast.error(data?.error ?? error?.message ?? "Failed");
-        return;
-      }
-      toast.success("Closed");
-      await load();
-    } finally {
-      setBusy(null);
-    }
+    mutate.mutate(
+      { tool: "close_job", job_id: job.id },
+      {
+        onSuccess: () => {
+          toast.success("Closed");
+          qc.invalidateQueries({ queryKey: employerJobsQueryKey(companyId) });
+        },
+      },
+    );
   };
 
   const visible = jobs.filter((j) => {
@@ -113,7 +70,9 @@ export default function Gro10xJobsList() {
     return true;
   });
 
-  if (!companyId && !loading) {
+  const showLoading = (cidLoading || isLoading) && !!companyId;
+
+  if (!cidLoading && !companyId) {
     return (
       <div className="px-4 py-10 text-center">
         <Briefcase className="h-10 w-10 mx-auto text-slate-500 mb-3" />
@@ -124,41 +83,34 @@ export default function Gro10xJobsList() {
 
   return (
     <div className="pb-6">
-      {/* Filter chips + new job CTA */}
       <div className="px-4 pt-3 pb-2 flex items-center gap-2">
-        <FilterChip active={filter === "all"} onClick={() => setFilter("all")}>
-          All
-        </FilterChip>
-        <FilterChip active={filter === "active"} onClick={() => setFilter("active")}>
-          Live
-        </FilterChip>
-        <FilterChip active={filter === "draft"} onClick={() => setFilter("draft")}>
-          Draft
-        </FilterChip>
-        <Link
-          to="/gro10x/c/recruiter"
+        <FilterChip active={filter === "all"} onClick={() => setFilter("all")}>All</FilterChip>
+        <FilterChip active={filter === "active"} onClick={() => setFilter("active")}>Live</FilterChip>
+        <FilterChip active={filter === "draft"} onClick={() => setFilter("draft")}>Draft</FilterChip>
+        <button
+          onClick={() => setWizardOpen(true)}
           className="ml-auto inline-flex items-center gap-1 rounded-full bg-[#33E1E4] text-[#06121A] px-3 py-1.5 text-xs font-semibold"
         >
-          <Plus className="h-3 w-3" /> New
-        </Link>
+          <Plus className="h-3 w-3" /> Post a Job
+        </button>
       </div>
 
-      {loading && (
+      {showLoading && (
         <div className="px-4 py-6 text-center text-sm text-slate-400 inline-flex items-center gap-2 w-full justify-center">
           <Loader2 className="h-4 w-4 animate-spin" /> Loading jobs…
         </div>
       )}
 
-      {!loading && visible.length === 0 && (
+      {!showLoading && visible.length === 0 && (
         <div className="px-4 py-10 text-center">
           <Briefcase className="h-10 w-10 mx-auto text-slate-500 mb-3" />
           <p className="text-sm text-slate-400 mb-3">No jobs yet.</p>
-          <Link
-            to="/gro10x/c/recruiter"
+          <button
+            onClick={() => setWizardOpen(true)}
             className="inline-flex items-center gap-1 rounded-full bg-[#33E1E4] text-[#06121A] px-4 py-2 text-xs font-semibold"
           >
-            <Plus className="h-3 w-3" /> Ask Recruiter to draft one
-          </Link>
+            <Plus className="h-3 w-3" /> Post your first job
+          </button>
         </div>
       )}
 
@@ -198,19 +150,18 @@ export default function Gro10xJobsList() {
                 className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full bg-[#33E1E4]/10 text-[#33E1E4] border border-[#33E1E4]/20"
               >
                 <Users className="h-3 w-3" />
-                {j.applicant_count ?? 0} applicant
-                {(j.applicant_count ?? 0) === 1 ? "" : "s"}
+                {j.applicant_count} applicant{j.applicant_count === 1 ? "" : "s"}
               </Link>
 
               <div className="ml-auto flex items-center gap-1">
                 <button
                   onClick={() => toggleActive(j)}
-                  disabled={busy === j.id}
+                  disabled={busyId === j.id}
                   className="rounded-full p-1.5 bg-white/5 border border-white/10 hover:bg-white/10 disabled:opacity-40"
                   aria-label={j.is_active ? "Pause" : "Publish"}
                   title={j.is_active ? "Pause" : "Publish (5 credits)"}
                 >
-                  {busy === j.id ? (
+                  {busyId === j.id ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   ) : j.is_active ? (
                     <Pause className="h-3.5 w-3.5" />
@@ -220,7 +171,7 @@ export default function Gro10xJobsList() {
                 </button>
                 <button
                   onClick={() => closeJob(j)}
-                  disabled={busy === j.id}
+                  disabled={busyId === j.id}
                   className="rounded-full p-1.5 bg-white/5 border border-white/10 hover:bg-white/10 disabled:opacity-40"
                   aria-label="Close"
                   title="Close job"
@@ -232,6 +183,8 @@ export default function Gro10xJobsList() {
           </li>
         ))}
       </ul>
+
+      <Gro10xJobPostWizard open={wizardOpen} onClose={() => setWizardOpen(false)} />
     </div>
   );
 }
