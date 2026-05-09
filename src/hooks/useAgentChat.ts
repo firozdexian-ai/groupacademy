@@ -248,6 +248,7 @@ export function useAgentChat(): UseAgentChatReturn {
         setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
 
         let assistantBuffer = "";
+        const invalidationKeys = new Set<string>();
 
         while (true) {
           const { done, value } = await reader.read();
@@ -262,6 +263,11 @@ export function useAgentChat(): UseAgentChatReturn {
               if (payload === "[DONE]") break;
               try {
                 const parsed = JSON.parse(payload);
+                // Tool-driven cache invalidation hint frame from ai-agent-chat
+                if (parsed?.type === "invalidations" && Array.isArray(parsed.keys)) {
+                  for (const k of parsed.keys) invalidationKeys.add(String(k));
+                  continue;
+                }
                 // BULLETPROOF PARSER SYNTAX HERE - No optional chaining
                 const token =
                   parsed.choices && parsed.choices && parsed.choices.delta ? parsed.choices.delta.content : null;
@@ -277,6 +283,13 @@ export function useAgentChat(): UseAgentChatReturn {
                 /* Fragmented JSON handling */
               }
             }
+          }
+        }
+
+        // Refresh affected lists after Swarm tool mutations
+        if (invalidationKeys.size > 0) {
+          for (const k of invalidationKeys) {
+            queryClient.invalidateQueries({ queryKey: [k] });
           }
         }
 
