@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useLocation } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { Sparkles, X, Send, Loader2, Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,26 +21,48 @@ import ReactMarkdown from "react-markdown";
 
 interface Msg { role: "user" | "assistant"; content: string }
 
-function deriveContext(pathname: string): Record<string, string> {
+// Slug → UUID cache so we don't hit the DB on every keystroke
+const slugIdCache = new Map<string, string>();
+
+async function resolveCourseIdFromSlug(slug: string): Promise<string | null> {
+  if (slugIdCache.has(slug)) return slugIdCache.get(slug)!;
+  const { data } = await supabase.from("content").select("id").eq("slug", slug).maybeSingle();
+  const id = (data as any)?.id ?? null;
+  if (id) slugIdCache.set(slug, id);
+  return id;
+}
+
+const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+
+async function deriveContext(pathname: string): Promise<Record<string, string>> {
   const ctx: Record<string, string> = {};
-  // /app/jobs/:id  /app/jobs/123  PublicJobDetail too
-  const job = pathname.match(/\/app\/jobs\/([0-9a-f-]{8,})/i);
+  // /app/jobs/:id and PublicJobDetail
+  const job = pathname.match(new RegExp(`/app/jobs/(${UUID})`, "i"));
   if (job) ctx.job_id = job[1];
-  // /app/gigs/marketplace/:id or /app/gigs/:id
-  const gig = pathname.match(/\/app\/gigs\/(?:marketplace\/)?([0-9a-f-]{8,})/i);
-  if (gig) {
+  // Marketplace gigs live at /app/marketplace/:id (canonical) and legacy /app/gigs/marketplace/:id
+  const mkt = pathname.match(new RegExp(`/app/marketplace/(${UUID})`, "i"));
+  if (mkt) { ctx.gig_id = mkt[1]; ctx.gig_kind = "marketplace"; }
+  const gig = pathname.match(new RegExp(`/app/gigs/(?:marketplace/)?(${UUID})`, "i"));
+  if (gig && !ctx.gig_id) {
     ctx.gig_id = gig[1];
     ctx.gig_kind = pathname.includes("/marketplace/") ? "marketplace" : "quick";
   }
-  // /app/learning/courses/:id  /app/courses/:id
-  const course = pathname.match(/\/(?:learning\/)?courses?\/([0-9a-f-]{8,})/i);
-  if (course) ctx.course_id = course[1];
+  // Course routes use SLUGS: /app/learning/courses/:slug. Resolve to UUID.
+  const courseSlug = pathname.match(/\/app\/learning\/courses\/([^/?#]+)/i);
+  if (courseSlug) {
+    const id = await resolveCourseIdFromSlug(courseSlug[1]);
+    if (id) ctx.course_id = id;
+  }
+  // Direct UUID-style course routes (defensive)
+  const courseId = pathname.match(new RegExp(`/courses?/(${UUID})`, "i"));
+  if (courseId && !ctx.course_id) ctx.course_id = courseId[1];
   return ctx;
 }
 
 export function GlobalAIBubble() {
   const { talent } = useTalent();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [agentKey, setAgentKey] = useState<string>("ai-general");
   const [agentName, setAgentName] = useState<string>("AI Assistant");
@@ -89,7 +112,7 @@ export function GlobalAIBubble() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) throw new Error("Not authenticated");
 
-      const ctx = deriveContext(location.pathname);
+      const ctx = await deriveContext(location.pathname);
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-agent-chat`, {
         method: "POST",
         headers: {
@@ -115,6 +138,7 @@ export function GlobalAIBubble() {
       if (!reader) throw new Error("No stream");
       const decoder = new TextDecoder();
       let buffer = "";
+      const invalidationKeys = new Set<string>();
       setMessages(prev => [...prev, { role: "assistant", content: "" }]);
 
       while (true) {
@@ -127,6 +151,11 @@ export function GlobalAIBubble() {
           if (payload === "[DONE]") break;
           try {
             const parsed = JSON.parse(payload);
+            // Tool-driven invalidation hint frame
+            if (parsed?.type === "invalidations" && Array.isArray(parsed.keys)) {
+              for (const k of parsed.keys) invalidationKeys.add(String(k));
+              continue;
+            }
             const tok = parsed.choices?.[0]?.delta?.content;
             if (tok) {
               buffer += tok;
@@ -139,6 +168,13 @@ export function GlobalAIBubble() {
           } catch { /* fragment */ }
         }
       }
+
+      // Refresh affected lists so the UI updates without a hard reload
+      if (invalidationKeys.size > 0) {
+        for (const k of invalidationKeys) {
+          queryClient.invalidateQueries({ queryKey: [k] });
+        }
+      }
     } catch (e: any) {
       console.error("[GlobalAIBubble]", e);
       toast.error(e?.message || "Chat failed");
@@ -146,7 +182,7 @@ export function GlobalAIBubble() {
     } finally {
       setStreaming(false);
     }
-  }, [input, messages, streaming, agentKey, location.pathname]);
+  }, [input, messages, streaming, agentKey, location.pathname, queryClient]);
 
   // Don't show if no talent (auth/onboarding)
   if (!talent?.id) return null;

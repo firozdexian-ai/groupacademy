@@ -54,8 +54,9 @@ export default function MarketplaceGigDetail() {
   const { data: gig, isLoading } = useQuery({
     queryKey: ["marketplace-gig", id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("marketplace_gigs").select("*").eq("id", id).single();
+      const { data, error } = await supabase.from("marketplace_gigs").select("*").eq("id", id).maybeSingle();
       if (error) throw error;
+      if (!data) throw new Error("Gig not found");
       return data;
     },
     enabled: !!id,

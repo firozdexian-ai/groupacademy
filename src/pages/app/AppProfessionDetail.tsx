@@ -82,7 +82,7 @@ export default function AppProfessionDetail() {
         .from("profession_categories")
         .select(`*, schools(name, academies(name))`)
         .eq("slug", slug)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       if (professionData) {

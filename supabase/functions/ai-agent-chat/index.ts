@@ -118,6 +118,17 @@ CRITICAL RULE: Use this context to personalize advice. Do not re-ask known facts
     // PHASE 5: Tool-calling loop (max 4 hops, non-stream) → final stream
     const convo: any[] = [{ role: "system", content: systemPrompt }, ...incomingMessages];
     let hops = 0;
+    const invalidations = new Set<string>();
+    // Maps a tool_key to React Query keys the client should invalidate.
+    const TOOL_INVALIDATIONS: Record<string, string[]> = {
+      place_gig_bid: ["gigs-hub", "marketplace-gig", "my-marketplace-bid", "ranked-gigs"],
+      save_gig: ["saved-items", "gigs-hub", "ranked-gigs"],
+      save_job: ["saved-items", "jobs-hub", "ranked-jobs"],
+      apply_to_job: ["jobs-hub", "applications", "ranked-jobs"],
+      enroll_course: ["learning-hub", "my-courses", "courses"],
+      follow_company: ["companies-with-signal", "followed-companies"],
+      submit_pitch: ["talent-pitches"],
+    };
 
     while (hops < MAX_TOOL_HOPS && tools.length > 0) {
       const hopRes = await fetch(AI_URL, {
@@ -181,6 +192,12 @@ CRITICAL RULE: Use this context to personalize advice. Do not re-ask known facts
           tool_call_id: call.id,
           content: JSON.stringify(toolResult).slice(0, 8000),
         });
+        // Collect invalidation hints from successful tool runs
+        const okFlag = toolResult && (toolResult.ok !== false) && !toolResult.error;
+        if (okFlag && meta) {
+          const keys = TOOL_INVALIDATIONS[meta.tool_key] || [];
+          for (const k of keys) invalidations.add(k);
+        }
       }
       hops++;
     }
@@ -200,7 +217,30 @@ CRITICAL RULE: Use this context to personalize advice. Do not re-ask known facts
       throw new Error("AI_GATEWAY_FAULT");
     }
 
-    return new Response(finalRes.body, {
+    // Inject an invalidations frame at the END of the SSE stream so the client
+    // can refresh React Query caches after tool-driven mutations.
+    const invKeys = Array.from(invalidations);
+    const transformed = new ReadableStream({
+      async start(controller) {
+        const reader = finalRes.body!.getReader();
+        const enc = new TextEncoder();
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            controller.enqueue(value);
+          }
+          if (invKeys.length > 0) {
+            controller.enqueue(enc.encode(`data: ${JSON.stringify({ type: "invalidations", keys: invKeys })}\n\n`));
+          }
+          controller.enqueue(enc.encode("data: [DONE]\n\n"));
+        } finally {
+          controller.close();
+        }
+      },
+    });
+
+    return new Response(transformed, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
     });
   } catch (err: any) {

@@ -1,13 +1,11 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { CheckCircle, ClipboardCheck, XCircle, AlertCircle, Trophy, RefreshCw, Zap, Target } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useQueryWithTimeout } from "@/hooks/useQueryWithTimeout";
-import { withTimeout } from "@/hooks/useQueryWithTimeout";
-import { TIMEOUTS } from "@/lib/timeoutConfig";
 import { cn } from "@/lib/utils";
 
 /**
@@ -57,7 +55,7 @@ export function AssessStage({
     isLoading,
     error: loadError,
     refetch,
-  } = useQueryWithTimeout({
+  } = useQuery<QuizQuestion[]>({
     queryKey: ["quiz-questions-adaptive", moduleId, contentId],
     queryFn: async () => {
       // 1) Try adaptive sampler (skill-aware)
@@ -117,10 +115,9 @@ export function AssessStage({
       }
 
       if (error) throw error;
-      return data as QuizQuestion[];
+      return (data as QuizQuestion[]) ?? [];
     },
     enabled: !!moduleId && !!contentId,
-    timeout: TIMEOUTS.DEFAULT,
   });
 
   const totalQuestions = questions.length;
@@ -149,23 +146,16 @@ export function AssessStage({
       const attemptPassed = Math.round((correctCount / totalQuestions) * 100) >= passThreshold;
 
       try {
-        // FIX: Await the Supabase call inside withTimeout to satisfy TS2739
-        await withTimeout(
-          (async () => {
-            const { error } = await supabase.from("quiz_attempts").insert({
-              student_id: studentId,
-              content_id: contentId,
-              enrollment_id: enrollmentId,
-              answers,
-              score: correctCount,
-              total_questions: totalQuestions,
-              passed: attemptPassed,
-            });
-            if (error) throw error;
-          })(),
-          TIMEOUTS.DEFAULT,
-          "REGISTRY_SYNC_TIMEOUT",
-        );
+        const { error } = await supabase.from("quiz_attempts").insert({
+          student_id: studentId,
+          content_id: contentId,
+          enrollment_id: enrollmentId,
+          answers,
+          score: correctCount,
+          total_questions: totalQuestions,
+          passed: attemptPassed,
+        });
+        if (error) throw error;
       } catch (error) {
         console.error("[AssessNode Sync Error]:", error);
       }
