@@ -460,3 +460,72 @@ async function discard_company_draft(ctx: Ctx, a: any) {
   if (error) return { ok: false, error: error.message };
   return { ok: true, result: { draft_id: a.draft_id, status: "discarded" } };
 }
+
+// ===================== Phase B3: ATS + Gig acceptance =====================
+
+const PIPELINE_STATUSES = new Set([
+  "submitted","sent_to_employer","viewed","shortlisted","rejected","withdrawn","hired",
+]);
+
+async function move_application_stage(ctx: Ctx, a: any) {
+  const appId = String(a.application_id ?? "").trim();
+  const to = String(a.to_status ?? "").trim();
+  if (!appId) return { ok: false, error: "application_id required" };
+  if (!PIPELINE_STATUSES.has(to)) return { ok: false, error: `Invalid stage: ${to}` };
+
+  // Verify the application belongs to a job in this company.
+  const { data: app } = await ctx.admin
+    .from("job_applications")
+    .select("id, job_id, application_status, jobs!inner(company_id, title)")
+    .eq("id", appId)
+    .maybeSingle();
+  if (!app || (app as any).jobs?.company_id !== ctx.companyId) {
+    return { ok: false, error: "Application not found in this company" };
+  }
+  const from = (app as any).application_status;
+
+  const { error } = await ctx.admin
+    .from("job_applications")
+    .update({ application_status: to })
+    .eq("id", appId);
+  if (error) return { ok: false, error: error.message };
+
+  // Best-effort notification (mirrors useEmployerPipeline.move)
+  try {
+    await fetch(`${SUPABASE_URL}/functions/v1/notify-application-status`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+        apikey: SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({ application_id: appId, status: to }),
+    });
+  } catch (_) { /* ignore */ }
+
+  return {
+    ok: true,
+    result: { application_id: appId, from, to, job_title: (app as any).jobs?.title ?? null },
+    user_message: `Moved applicant from "${from}" → "${to}".`,
+  };
+}
+
+async function accept_gig_bid(ctx: Ctx, a: any) {
+  const bidId = String(a.bid_id ?? "").trim();
+  if (!bidId) return { ok: false, error: "bid_id required" };
+
+  const { data, error } = await ctx.admin.rpc("accept_gig_bid", {
+    p_bid_id: bidId,
+    p_company_id: ctx.companyId,
+  });
+  if (error) return { ok: false, error: error.message };
+  if (data && typeof data === "object" && (data as any).ok === false) {
+    return { ok: false, error: (data as any).error ?? "ACCEPT_FAILED", balance: (data as any).balance };
+  }
+  return {
+    ok: true,
+    result: data ?? { accepted: true, bid_id: bidId },
+    user_message: `Bid accepted. Credits escrowed and contract created.`,
+  };
+}
+
