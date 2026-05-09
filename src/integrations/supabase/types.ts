@@ -17082,6 +17082,10 @@ export type Database = {
         Args: { p_company_id: string; p_window_days?: number }
         Returns: Json
       }
+      get_instructor_dashboard_v2: {
+        Args: { _user_id?: string }
+        Returns: Json
+      }
       get_instructor_earnings_summary: {
         Args: { _user_id?: string }
         Returns: Json
@@ -17647,6 +17651,7 @@ export type Database = {
         Args: { _answers: Json; _score: number }
         Returns: Json
       }
+      submit_course_for_review: { Args: { _content_id: string }; Returns: Json }
       submit_milestone_deliverables: {
         Args: { _milestone_id: string; _payload: Json }
         Returns: Json
