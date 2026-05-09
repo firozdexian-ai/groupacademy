@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useTalent } from "@/hooks/useTalent";
 import { toast } from "sonner";
@@ -43,6 +44,7 @@ export interface AgentRuntimeSubject {
 
 export function useAgentRuntime(subjectOverride?: AgentRuntimeSubject): UseAgentRuntimeReturn {
   const { talent } = useTalent();
+  const queryClient = useQueryClient();
   const subject: AgentRuntimeSubject | null =
     subjectOverride ?? (talent?.id ? { kind: "talent", id: talent.id } : null);
 
@@ -200,6 +202,12 @@ export function useAgentRuntime(subjectOverride?: AgentRuntimeSubject): UseAgent
             if (payload === "[DONE]") continue;
             try {
               const parsed = JSON.parse(payload);
+              if (parsed?.type === "invalidations" && Array.isArray(parsed.keys)) {
+                for (const k of parsed.keys as string[]) {
+                  queryClient.invalidateQueries({ queryKey: [k] });
+                }
+                continue;
+              }
               const token = parsed?.choices?.[0]?.delta?.content;
               if (typeof token === "string" && token.length) {
                 assistantBuffer += token;
@@ -227,7 +235,7 @@ export function useAgentRuntime(subjectOverride?: AgentRuntimeSubject): UseAgent
         setIsStreaming(false);
       }
     },
-    [isStreaming, thread, subject?.id, subject?.kind],
+    [isStreaming, thread, subject?.id, subject?.kind, queryClient],
   );
 
   const endSession = useCallback(async () => {

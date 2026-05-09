@@ -53,6 +53,7 @@ serve(async (req) => {
     // Company subjects must be requested explicitly and verified via company_members.
     let subjectKind = "talent";
     let subjectId: string | null = null;
+    let talentRow: any = null;
 
     if ((body as any).subject_kind === "company" && (body as any).subject_id) {
       const companyId = (body as any).subject_id as string;
@@ -69,11 +70,12 @@ serve(async (req) => {
     } else {
       const { data: talent } = await admin
         .from("talents")
-        .select("id")
+        .select("id, full_name, country")
         .eq("user_id", user.id)
         .maybeSingle();
       if (!talent) return json({ error: "NO_TALENT_PROFILE" }, 403);
       subjectId = talent.id;
+      talentRow = talent;
     }
 
     // Load agent
@@ -147,7 +149,7 @@ serve(async (req) => {
     // Resolve system prompt (A/B variant)
     const variant = agent.active_prompt_variant || "A";
     const variantPrompt = (agent.prompt_variants as any)?.[variant];
-    const systemPrompt = (variantPrompt || agent.system_prompt || "You are a helpful assistant.") + buildSubjectContext(talent);
+    const systemPrompt = (variantPrompt || agent.system_prompt || "You are a helpful assistant.") + buildSubjectContext(talentRow);
 
     // Load tools
     const allowedToolKeys: string[] = agent.allowed_tools || [];
@@ -159,13 +161,111 @@ serve(async (req) => {
       ? `${systemPrompt}\n\n## Knowledge Base Context\n${ragContext}`
       : systemPrompt;
 
-    const messages = [
+    const convo: any[] = [
       { role: "system", content: finalSystem },
       ...(history ?? []).map((m: any) => ({ role: m.role, content: m.content || "" })),
       { role: "user", content: body.message },
     ];
 
-    // Call Lovable AI Gateway with tool-calling
+    const aiToolSchema = tools.length
+      ? tools.map((t: any) => ({
+          type: "function",
+          function: {
+            name: String(t.tool_key).replace(/[^a-zA-Z0-9_-]/g, "_"),
+            description: t.description || `Execute ${t.tool_key}`,
+            parameters: t.input_schema || { type: "object", properties: {} },
+          },
+        }))
+      : undefined;
+    const toolKeyByFn: Record<string, string> = {};
+    for (const t of tools) {
+      toolKeyByFn[String(t.tool_key).replace(/[^a-zA-Z0-9_-]/g, "_")] = t.tool_key;
+    }
+
+    // Tool-call execution loop (company subject only — talent agents are streamed direct
+    // for now to preserve their existing behaviour). Mirrors ai-agent-chat T2 pattern.
+    const invalidations = new Set<string>();
+    const TOOL_INVALIDATIONS_COMPANY: Record<string, string[]> = {
+      create_job: ["employer-jobs-dashboard", "gro10x-jobs"],
+      publish_job: ["employer-jobs-dashboard", "gro10x-jobs", "jobs-hub"],
+      pause_job: ["employer-jobs-dashboard", "gro10x-jobs"],
+      close_job: ["employer-jobs-dashboard", "gro10x-jobs"],
+      save_to_shortlist: ["gro10x-shortlist"],
+      reveal_talent: ["gro10x-talent-unlocks", "gro10x-shortlist"],
+      update_company_profile: ["gro10x-company", "company-profile"],
+      invite_teammate: ["gro10x-teammates"],
+      publish_company_post: ["gro10x-feed", "company-feed"],
+      draft_company_post: ["gro10x-feed-drafts"],
+      discard_company_draft: ["gro10x-feed-drafts"],
+      start_topup: ["company-credits", "gro10x-billing"],
+    };
+
+    if (subjectKind === "company" && aiToolSchema) {
+      const MAX_HOPS = 4;
+      for (let hop = 0; hop < MAX_HOPS; hop++) {
+        const hopRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: agent.model || "google/gemini-3-flash-preview",
+            messages: convo,
+            tools: aiToolSchema,
+            tool_choice: "auto",
+            stream: false,
+          }),
+        });
+        if (!hopRes.ok) {
+          if (hopRes.status === 429) return json({ error: "Rate limit exceeded, please try again." }, 429);
+          if (hopRes.status === 402) return json({ error: "AI workspace credits exhausted." }, 402);
+          const txt = await hopRes.text();
+          console.error("[agent-runtime] hop fault", hopRes.status, txt);
+          break;
+        }
+        const hopJson = await hopRes.json();
+        const msg = hopJson.choices?.[0]?.message;
+        const toolCalls = msg?.tool_calls;
+        if (!toolCalls || toolCalls.length === 0) break;
+        convo.push({ role: "assistant", content: msg.content ?? "", tool_calls: toolCalls });
+        for (const call of toolCalls) {
+          const fnName = call.function?.name;
+          const toolKey = toolKeyByFn[fnName];
+          let parsedArgs: any = {};
+          try { parsedArgs = JSON.parse(call.function?.arguments ?? "{}"); } catch { /* ignore */ }
+          let toolResult: any;
+          if (!toolKey) {
+            toolResult = { ok: false, error: "tool_not_bound" };
+          } else {
+            try {
+              const r = await fetch(`${SUPABASE_URL}/functions/v1/company-agent-tools`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: authHeader!,
+                  apikey: SUPABASE_ANON_KEY,
+                },
+                body: JSON.stringify({ tool_key: toolKey, args: parsedArgs, company_id: subjectId }),
+              });
+              const txt = await r.text();
+              try { toolResult = JSON.parse(txt); } catch { toolResult = { ok: r.ok, raw: txt }; }
+            } catch (e: any) {
+              toolResult = { ok: false, error: String(e?.message || e) };
+            }
+          }
+          convo.push({
+            role: "tool",
+            tool_call_id: call.id,
+            content: JSON.stringify(toolResult).slice(0, 8000),
+          });
+          const okFlag = toolResult && toolResult.ok !== false && !toolResult.error;
+          if (okFlag) {
+            for (const k of TOOL_INVALIDATIONS_COMPANY[toolKey] || []) invalidations.add(k);
+          }
+        }
+      }
+    }
+
+    // Final streamed completion (no tools advertised on the final pass for company —
+    // the loop above already executed any required tools).
     const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -174,8 +274,8 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: agent.model || "google/gemini-3-flash-preview",
-        messages,
-        tools: tools.length ? tools.map(t => ({ type: "function", function: { name: t.tool_key, description: t.description, parameters: t.input_schema || { type: "object", properties: {} } } })) : undefined,
+        messages: convo,
+        tools: subjectKind === "company" ? undefined : aiToolSchema,
         stream: true,
       }),
     });
@@ -188,11 +288,13 @@ serve(async (req) => {
       return json({ error: "AI_GATEWAY_FAULT" }, 500);
     }
 
-    // Tee the stream: pass to client AND collect for persistence
+    // Tee the stream: pass to client AND collect for persistence. Append an
+    // invalidations frame at the end so the client can refresh React Query caches.
+    const invKeys = Array.from(invalidations);
     const { readable, writable } = new TransformStream();
     pipeAndPersist(aiResp.body!, writable, admin, {
       threadId: threadId!, agentId: agent.id, agentKey: agent.agent_key,
-      subjectKind, subjectId, variant, msgCost,
+      subjectKind, subjectId: subjectId!, variant, msgCost, invalidationKeys: invKeys,
     }).catch(err => console.error("[agent-runtime] persist error", err));
 
     return new Response(readable, {
@@ -216,6 +318,7 @@ function json(payload: unknown, status = 200) {
 }
 
 function buildSubjectContext(talent: any): string {
+  if (!talent) return "";
   const parts: string[] = ["", "## Caller Profile"];
   if (talent.full_name) parts.push(`Name: ${talent.full_name}`);
   if (talent.country) parts.push(`Country: ${talent.country}`);
@@ -277,7 +380,7 @@ async function pipeAndPersist(
   src: ReadableStream<Uint8Array>,
   dst: WritableStream<Uint8Array>,
   admin: any,
-  ctx: { threadId: string; agentId: string; agentKey: string; subjectKind: string; subjectId: string; variant: string; msgCost: number },
+  ctx: { threadId: string; agentId: string; agentKey: string; subjectKind: string; subjectId: string; variant: string; msgCost: number; invalidationKeys?: string[] },
 ) {
   const reader = src.getReader();
   const writer = dst.getWriter();
@@ -307,6 +410,17 @@ async function pipeAndPersist(
           if (typeof delta === "string") { assistantText += delta; tokensOut++; }
         } catch { /* partial */ }
       }
+    }
+
+    // Append invalidations frame after the upstream stream ends so the client
+    // can refresh React Query caches for any tools that mutated server state.
+    const invKeys = ctx.invalidationKeys ?? [];
+    if (invKeys.length > 0) {
+      try {
+        await writer.write(
+          encoder.encode(`data: ${JSON.stringify({ type: "invalidations", keys: invKeys })}\n\n`),
+        );
+      } catch { /* ignore */ }
     }
   } finally {
     try { await writer.close(); } catch { /* ignore */ }

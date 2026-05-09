@@ -17037,6 +17037,23 @@ export type Database = {
           snippet: string
         }[]
       }
+      get_employer_jobs_dashboard: {
+        Args: { p_company_id: string }
+        Returns: {
+          applicant_count: number
+          created_at: string
+          deadline: string
+          id: string
+          is_active: boolean
+          job_kind: string
+          location: string
+          salary_currency: string
+          salary_range_max: number
+          salary_range_min: number
+          title: string
+          vacancies: number
+        }[]
+      }
       get_employer_pipeline: {
         Args: { p_company_id?: string; p_job_id?: string }
         Returns: Json
