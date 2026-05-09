@@ -2,6 +2,7 @@
 // Verifies caller, resolves their active company (or company_id sent by runtime),
 // runs the requested tool, returns { ok, result, canvas? }.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { z } from "https://esm.sh/zod@3.23.8";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,6 +18,43 @@ interface ToolReq {
   args?: Record<string, unknown>;
   company_id?: string; // optional override from agent-runtime; we still verify membership
 }
+
+// ---------- Per-tool argument schemas (Phase Z0 hardening) ----------
+// Loose by default (passthrough) so tools that already do their own validation
+// don't break, but reject obviously bad shapes early so the LLM can self-correct.
+const uuid = z.string().uuid();
+const ToolSchemas: Record<string, z.ZodTypeAny> = {
+  create_job: z.object({
+    title: z.string().min(2).max(200),
+    description: z.string().min(10),
+  }).passthrough(),
+  publish_job: z.object({ job_id: uuid }).passthrough(),
+  list_my_jobs: z.object({ status: z.enum(["all","active","paused","draft"]).optional() }).passthrough(),
+  pause_job: z.object({ job_id: uuid }).passthrough(),
+  close_job: z.object({ job_id: uuid }).passthrough(),
+  get_job_applicants: z.object({ job_id: uuid }).passthrough(),
+  move_application_stage: z.object({
+    application_id: uuid,
+    stage: z.string().min(1),
+  }).passthrough(),
+  accept_gig_bid: z.object({ bid_id: uuid }).passthrough(),
+  search_talent: z.object({}).passthrough(),
+  reveal_talent: z.object({ talent_id: uuid }).passthrough(),
+  save_to_shortlist: z.object({ talent_id: uuid }).passthrough(),
+  list_shortlist: z.object({}).passthrough(),
+  get_credit_balance: z.object({}).passthrough(),
+  get_ledger: z.object({ days: z.number().int().min(1).max(90).optional() }).passthrough(),
+  start_topup: z.object({ amount: z.number().positive() }).passthrough(),
+  get_company_profile: z.object({}).passthrough(),
+  update_company_profile: z.object({}).passthrough(),
+  invite_teammate: z.object({ email: z.string().email() }).passthrough(),
+  list_teammates: z.object({}).passthrough(),
+  draft_company_post: z.object({ text_content: z.string().min(20).max(2000) }).passthrough(),
+  list_pending_drafts: z.object({}).passthrough(),
+  publish_company_post: z.object({ draft_id: uuid }).passthrough(),
+  discard_company_draft: z.object({ draft_id: uuid }).passthrough(),
+};
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -62,6 +100,13 @@ Deno.serve(async (req) => {
     }
 
     const args = body.args ?? {};
+    const schema = ToolSchemas[body.tool_key];
+    if (schema) {
+      const parsed = schema.safeParse(args);
+      if (!parsed.success) {
+        return j({ ok: false, error: "BAD_ARGS", tool: body.tool_key, issues: parsed.error.issues }, 400);
+      }
+    }
     const ctx = { admin, userId, companyId };
 
     switch (body.tool_key) {

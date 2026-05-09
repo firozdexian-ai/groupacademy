@@ -4,6 +4,9 @@ import { useMemo } from "react";
 import { useMyTrackAssignments, useTrackProgress } from "@/hooks/useLearningTracks";
 import { TrackProgressRing } from "@/components/learning/TrackProgressRing";
 import { GRO10X_PANEL, GRO10X_MUTED } from "@/gro10x/lib/tokens";
+import { IS_GRO10X } from "@/lib/host";
+
+const LEARN_HOME = IS_GRO10X ? "/gro10x/learn" : "/app/learning";
 
 export default function AppTrackDetail() {
   const { trackId } = useParams<{ trackId: string }>();
@@ -18,7 +21,7 @@ export default function AppTrackDetail() {
     return (
       <div className="max-w-md md:max-w-3xl mx-auto p-6 text-center">
         <p className="text-sm text-slate-400">No assignment found for this track.</p>
-        <Link to="/gro10x/learn" className="text-xs text-[#33E1E4] mt-2 inline-block">
+        <Link to={LEARN_HOME} className="text-xs text-[#33E1E4] mt-2 inline-block">
           ← Back to Learn
         </Link>
       </div>
@@ -30,7 +33,7 @@ export default function AppTrackDetail() {
   return (
     <div className="max-w-md md:max-w-3xl mx-auto pb-24">
       <header className="px-4 pt-4 pb-2">
-        <Link to="/gro10x/learn" className="inline-flex items-center gap-1 text-xs text-slate-400">
+        <Link to={LEARN_HOME} className="inline-flex items-center gap-1 text-xs text-slate-400">
           <ArrowLeft className="h-3 w-3" /> Back
         </Link>
         <div className="mt-3 flex items-start gap-4">

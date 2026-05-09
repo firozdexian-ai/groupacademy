@@ -8,6 +8,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { z } from "https://esm.sh/zod@3.23.8";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,6 +18,28 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+
+// ---------- Per-tool schemas (Phase Z0 hardening) ----------
+const uuid = z.string().uuid();
+const AdminSchemas: Record<string, z.ZodTypeAny> = {
+  approve_payout: z.object({
+    request_id: uuid,
+    notes: z.string().optional().nullable(),
+    fx_rate: z.number().positive().optional().nullable(),
+  }).passthrough(),
+  reject_payout: z.object({
+    request_id: uuid,
+    notes: z.string().optional().nullable(),
+  }).passthrough(),
+  award_credits: z.object({
+    talent_id: uuid,
+    amount: z.number().positive(),
+    reason: z.string().optional(),
+  }).passthrough(),
+  force_run_matchmaker: z.object({
+    gig_id: uuid.optional().nullable(),
+  }).passthrough(),
+};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -50,6 +73,14 @@ serve(async (req) => {
     // Fallback: dispatch by which keys are present in the body.
     const dispatch = toolKey || inferTool(body);
     if (!dispatch) return j({ ok: false, error: "unknown_admin_tool" }, 400);
+
+    const schema = AdminSchemas[dispatch];
+    if (schema) {
+      const parsed = schema.safeParse(body);
+      if (!parsed.success) {
+        return j({ ok: false, error: "BAD_ARGS", tool: dispatch, issues: parsed.error.issues }, 400);
+      }
+    }
 
     switch (dispatch) {
       case "approve_payout": {
