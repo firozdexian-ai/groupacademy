@@ -20,6 +20,16 @@ const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY") ?? "";
 
 const MAX_TOOL_HOPS = 4;
 
+// Map tool_key → React Query keys to invalidate on the admin client after a
+// successful mutation. The frontend (`useAdminChatThread`) reads the response
+// `invalidate` array and calls `queryClient.invalidateQueries` for each.
+const TOOL_INVALIDATIONS_ADMIN: Record<string, string[]> = {
+  approve_payout: ["admin-payout-requests", "instructor-payouts", "admin-credit-invoices"],
+  reject_payout: ["admin-payout-requests", "instructor-payouts"],
+  force_run_matchmaker: ["admin-gigs", "admin-marketplace-gigs", "admin-marketplace-bids"],
+  award_credits: ["admin-credit-invoices", "talent-credits", "admin-talents"],
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
