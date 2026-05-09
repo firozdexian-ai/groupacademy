@@ -20,24 +20,27 @@ const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
 // ---------- Per-tool schemas (Phase Z0 hardening) ----------
-const uuid = z.string().uuid();
+// Loose-by-default: only enforce types the downstream RPCs absolutely need.
+// Relying on uuid() at the wrapper layer was over-strict — RPCs already
+// validate ids and return clean errors that the LLM can self-correct on.
+const idLike = z.string().min(1);
 const AdminSchemas: Record<string, z.ZodTypeAny> = {
   approve_payout: z.object({
-    request_id: uuid,
+    request_id: idLike,
     notes: z.string().optional().nullable(),
     fx_rate: z.number().positive().optional().nullable(),
   }).passthrough(),
   reject_payout: z.object({
-    request_id: uuid,
+    request_id: idLike,
     notes: z.string().optional().nullable(),
   }).passthrough(),
   award_credits: z.object({
-    talent_id: uuid,
+    talent_id: idLike,
     amount: z.number().positive(),
     reason: z.string().optional(),
   }).passthrough(),
   force_run_matchmaker: z.object({
-    gig_id: uuid.optional().nullable(),
+    gig_id: idLike.optional().nullable(),
   }).passthrough(),
   archive_expired_jobs: z.object({}).passthrough(),
 };
