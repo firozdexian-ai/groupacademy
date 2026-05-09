@@ -21,7 +21,9 @@ import {
   Zap,
   Activity,
   ShieldCheck,
+  Flame,
 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { DashboardTableSkeleton } from "../DashboardSkeleton";
 import { JobFormDialog } from "./JobFormDialog";
@@ -63,8 +65,29 @@ export function JobsManageTab() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [purging, setPurging] = useState(false);
+  const queryClient = useQueryClient();
 
   const PAGE_SIZE = 20;
+
+  const purgeExpired = useCallback(async () => {
+    if (purging) return;
+    if (!confirm("Archive all jobs past their deadline (and inactive-stale jobs >90d old)?")) return;
+    setPurging(true);
+    try {
+      const { data, error } = await (supabase as any).rpc("archive_expired_jobs");
+      if (error) throw error;
+      const archived = Number(data ?? 0);
+      toast.success(`Purged ${archived} expired job${archived === 1 ? "" : "s"}`);
+      queryClient.invalidateQueries({ queryKey: ["admin-jobs"] });
+      queryClient.invalidateQueries({ queryKey: ["jobs-hub-dashboard"] });
+      loadJobs();
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to purge expired jobs");
+    } finally {
+      setPurging(false);
+    }
+  }, [purging, queryClient]);
 
   const fetchEngagement = useCallback(async (jobIds: string[]) => {
     if (!jobIds.length) return;
@@ -225,15 +248,27 @@ export function JobsManageTab() {
                 <Activity className="h-3.5 w-3.5" /> {totalCount} TOTAL_UNITS
               </Badge>
             </div>
-            <Button
-              onClick={() => {
-                setEditingJobId(null);
-                setDialogOpen(true);
-              }}
-              className="h-10 px-6 rounded-xl font-black uppercase text-[10px] tracking-widest gap-2 shadow-lg"
-            >
-              <Plus className="h-4 w-4" /> Deploy Units
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={purgeExpired}
+                disabled={purging}
+                className="h-10 px-5 rounded-xl border-2 border-amber-500/40 text-amber-600 hover:bg-amber-500/10 font-black uppercase text-[10px] tracking-widest gap-2"
+                title="Archive jobs past deadline or stale (>90d)"
+              >
+                <Flame className="h-4 w-4" />
+                {purging ? "Purging…" : "Purge Expired"}
+              </Button>
+              <Button
+                onClick={() => {
+                  setEditingJobId(null);
+                  setDialogOpen(true);
+                }}
+                className="h-10 px-6 rounded-xl font-black uppercase text-[10px] tracking-widest gap-2 shadow-lg"
+              >
+                <Plus className="h-4 w-4" /> Deploy Units
+              </Button>
+            </div>
           </div>
 
           {selected.size > 0 && (

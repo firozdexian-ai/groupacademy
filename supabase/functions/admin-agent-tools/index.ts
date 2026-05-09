@@ -39,6 +39,7 @@ const AdminSchemas: Record<string, z.ZodTypeAny> = {
   force_run_matchmaker: z.object({
     gig_id: uuid.optional().nullable(),
   }).passthrough(),
+  archive_expired_jobs: z.object({}).passthrough(),
 };
 
 serve(async (req) => {
@@ -140,6 +141,11 @@ serve(async (req) => {
         if (!r.ok) return j({ ok: false, error: `matchmaker_${r.status}`, result: parsed }, 400);
         return j({ ok: true, result: parsed });
       }
+      case "archive_expired_jobs": {
+        const { data, error } = await userClient.rpc("archive_expired_jobs");
+        if (error) return j({ ok: false, error: error.message }, 400);
+        return j({ ok: true, result: { archived: Number(data ?? 0) } });
+      }
       default:
         return j({ ok: false, error: `unknown_admin_tool:${dispatch}` }, 400);
     }
@@ -156,7 +162,8 @@ function inferTool(body: any): string | null {
     return body._reject ? "reject_payout" : "approve_payout";
   }
   if ("talent_id" in body && "amount" in body) return "award_credits";
-  if ("gig_id" in body || Object.keys(body).length === 0) return "force_run_matchmaker";
+  if ("gig_id" in body) return "force_run_matchmaker";
+  if (Object.keys(body).length === 0) return "archive_expired_jobs";
   return null;
 }
 

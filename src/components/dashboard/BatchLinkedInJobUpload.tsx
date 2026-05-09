@@ -315,11 +315,11 @@ export function BatchLinkedInJobUpload({
         }
       }}
     >
-      <DialogContent className="max-w-5xl max-h-[90vh] rounded-[40px] border-4 border-border/40 bg-background/95 backdrop-blur-2xl p-0 overflow-hidden shadow-2xl">
-        <div className="h-2 w-full bg-gradient-to-r from-primary via-blue-600 to-primary" />
+      <DialogContent className="max-w-5xl h-[85vh] max-h-[85vh] rounded-[40px] border-4 border-border/40 bg-background/95 backdrop-blur-2xl p-0 overflow-hidden shadow-2xl flex flex-col">
+        <div className="h-2 w-full bg-gradient-to-r from-primary via-blue-600 to-primary shrink-0" />
 
-        <div className="p-10 flex flex-col h-full overflow-hidden">
-          <DialogHeader className="mb-8">
+        <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+          <DialogHeader className="px-10 pt-8 pb-6 shrink-0">
             <div className="flex items-center gap-5">
               <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20">
                 <LinkedinIcon className="h-8 w-8 text-primary" />
@@ -335,7 +335,7 @@ export function BatchLinkedInJobUpload({
             </div>
           </DialogHeader>
 
-          <ScrollArea className="flex-1 pr-4">
+          <ScrollArea className="flex-1 min-h-0 px-10">
             {step === "upload" && (
               <div className="flex flex-col items-center justify-center py-20 gap-8 animate-in fade-in zoom-in-95">
                 {isProcessingFile ? (
@@ -545,7 +545,7 @@ export function BatchLinkedInJobUpload({
             )}
           </ScrollArea>
 
-          <div className="flex justify-between items-center pt-8 border-t border-border/10">
+          <div className="flex justify-between items-center gap-4 px-10 py-5 border-t-2 border-border/20 bg-background/95 backdrop-blur-xl shrink-0">
             {step === "preview" ? (
               <Button
                 variant="ghost"

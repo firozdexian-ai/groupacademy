@@ -28,6 +28,7 @@ const TOOL_INVALIDATIONS_ADMIN: Record<string, string[]> = {
   reject_payout: ["admin-payout-requests", "instructor-payouts"],
   force_run_matchmaker: ["admin-gigs", "admin-marketplace-gigs", "admin-marketplace-bids"],
   award_credits: ["admin-credit-invoices", "talent-credits", "admin-talents"],
+  archive_expired_jobs: ["admin-jobs", "jobs-hub-dashboard", "admin-jobs-list"],
 };
 
 serve(async (req) => {
