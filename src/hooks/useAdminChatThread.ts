@@ -243,15 +243,21 @@ export function useAdminChatThread(agentKey: string | null) {
           },
         });
 
-        if (error) throw error;
-
-        const payload = data as any;
-        if (payload?.error) {
-          const detail = payload.detail
+        // supabase.functions.invoke returns BOTH a non-null `error` and a `data`
+        // body when the edge function returned a 4xx/5xx with JSON. Prefer the
+        // body's error (it has actionable detail) and only fall back to the
+        // generic transport error.
+        const payload: any = data ?? null;
+        const bodyError = payload?.error;
+        if (bodyError) {
+          const detail = payload?.detail
             ? ` — ${typeof payload.detail === "string" ? payload.detail : JSON.stringify(payload.detail)}`
-            : "";
-          throw new Error(`${payload.error}${detail}`);
+            : payload?.issues
+              ? ` — ${JSON.stringify(payload.issues).slice(0, 300)}`
+              : "";
+          throw new Error(`${bodyError}${detail}`);
         }
+        if (error) throw error;
 
         // Ensure we properly map the 'reply' field from our new router structure
         const replyText = payload?.reply || payload?.content || "(no answer)";
@@ -269,9 +275,13 @@ export function useAdminChatThread(agentKey: string | null) {
         });
 
         // Phase D1 cache bridge: refresh admin tables after AI mutations.
-        const invalidateKeys: string[] = Array.isArray(payload?.invalidate) ? payload.invalidate : [];
-        for (const key of invalidateKeys) {
-          queryClient.invalidateQueries({ queryKey: [key] });
+        const invalidateKeys: unknown = payload?.invalidate;
+        if (Array.isArray(invalidateKeys)) {
+          for (const key of invalidateKeys) {
+            if (typeof key === "string" && key.length > 0) {
+              queryClient.invalidateQueries({ queryKey: [key] });
+            }
+          }
         }
       } catch (e: any) {
         const errMsg: ChatMsg = {

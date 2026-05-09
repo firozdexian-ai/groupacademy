@@ -19,28 +19,29 @@ interface ToolReq {
   company_id?: string; // optional override from agent-runtime; we still verify membership
 }
 
-// ---------- Per-tool argument schemas (Phase Z0 hardening) ----------
-// Loose by default (passthrough) so tools that already do their own validation
-// don't break, but reject obviously bad shapes early so the LLM can self-correct.
-const uuid = z.string().uuid();
+// ---------- Per-tool argument schemas (Phase Z0 hardening, relaxed) ----------
+// We deliberately do NOT enforce uuid() format here — LLMs sometimes pass
+// short ids or slugs and the underlying tables/RPCs already validate. We
+// only catch obviously bad shapes so the LLM can self-correct on retry.
+const idLike = z.string().min(1);
 const ToolSchemas: Record<string, z.ZodTypeAny> = {
   create_job: z.object({
     title: z.string().min(2).max(200),
     description: z.string().min(10),
   }).passthrough(),
-  publish_job: z.object({ job_id: uuid }).passthrough(),
+  publish_job: z.object({ job_id: idLike }).passthrough(),
   list_my_jobs: z.object({ status: z.enum(["all","active","paused","draft"]).optional() }).passthrough(),
-  pause_job: z.object({ job_id: uuid }).passthrough(),
-  close_job: z.object({ job_id: uuid }).passthrough(),
-  get_job_applicants: z.object({ job_id: uuid }).passthrough(),
+  pause_job: z.object({ job_id: idLike }).passthrough(),
+  close_job: z.object({ job_id: idLike }).passthrough(),
+  get_job_applicants: z.object({ job_id: idLike }).passthrough(),
   move_application_stage: z.object({
-    application_id: uuid,
+    application_id: idLike,
     stage: z.string().min(1),
   }).passthrough(),
-  accept_gig_bid: z.object({ bid_id: uuid }).passthrough(),
+  accept_gig_bid: z.object({ bid_id: idLike }).passthrough(),
   search_talent: z.object({}).passthrough(),
-  reveal_talent: z.object({ talent_id: uuid }).passthrough(),
-  save_to_shortlist: z.object({ talent_id: uuid }).passthrough(),
+  reveal_talent: z.object({ talent_id: idLike }).passthrough(),
+  save_to_shortlist: z.object({ talent_id: idLike }).passthrough(),
   list_shortlist: z.object({}).passthrough(),
   get_credit_balance: z.object({}).passthrough(),
   get_ledger: z.object({ days: z.number().int().min(1).max(90).optional() }).passthrough(),
@@ -51,8 +52,8 @@ const ToolSchemas: Record<string, z.ZodTypeAny> = {
   list_teammates: z.object({}).passthrough(),
   draft_company_post: z.object({ text_content: z.string().min(20).max(2000) }).passthrough(),
   list_pending_drafts: z.object({}).passthrough(),
-  publish_company_post: z.object({ draft_id: uuid }).passthrough(),
-  discard_company_draft: z.object({ draft_id: uuid }).passthrough(),
+  publish_company_post: z.object({ draft_id: idLike }).passthrough(),
+  discard_company_draft: z.object({ draft_id: idLike }).passthrough(),
 };
 
 
