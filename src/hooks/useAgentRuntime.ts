@@ -42,7 +42,22 @@ export interface AgentRuntimeSubject {
   id: string;
 }
 
-export function useAgentRuntime(subjectOverride?: AgentRuntimeSubject): UseAgentRuntimeReturn {
+/** Page-level context passed to the edge function so the agent knows what
+ * resource the user is currently looking at (job, applicant, gig, etc.). */
+export interface AgentRuntimeContext {
+  route?: string;
+  job_id?: string;
+  application_id?: string;
+  talent_id?: string;
+  gig_id?: string;
+  bid_id?: string;
+  [k: string]: unknown;
+}
+
+export function useAgentRuntime(
+  subjectOverride?: AgentRuntimeSubject,
+  contextProvider?: () => AgentRuntimeContext | undefined,
+): UseAgentRuntimeReturn {
   const { talent } = useTalent();
   const queryClient = useQueryClient();
   const subject: AgentRuntimeSubject | null =
