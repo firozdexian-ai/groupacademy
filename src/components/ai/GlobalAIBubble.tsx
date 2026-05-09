@@ -71,8 +71,14 @@ export function GlobalAIBubble() {
   const [streaming, setStreaming] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Resolve coach
+  // Resolve agent — Maestro on /app/instructor/*, otherwise the talent's coach.
   useEffect(() => {
+    const onInstructor = location.pathname.startsWith("/app/instructor");
+    if (onInstructor) {
+      setAgentKey("instructor_manager");
+      setAgentName("Maestro");
+      return;
+    }
     if (!talent?.id) return;
     let cancelled = false;
     (async () => {
@@ -91,10 +97,13 @@ export function GlobalAIBubble() {
           .eq("id", coachId)
           .maybeSingle();
         if (!cancelled && ai?.name) setAgentName(ai.name);
+      } else {
+        setAgentKey("ai-general");
+        setAgentName("AI Assistant");
       }
     })();
     return () => { cancelled = true; };
-  }, [talent?.id]);
+  }, [talent?.id, location.pathname]);
 
   // Auto-scroll
   useEffect(() => {
