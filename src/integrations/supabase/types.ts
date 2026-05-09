@@ -17128,6 +17128,22 @@ export type Database = {
         Returns: Json
       }
       get_public_talent_profile: { Args: { _handle: string }; Returns: Json }
+      get_ranked_gigs_for_talent: {
+        Args: { _cursor?: number; _limit?: number; _talent_id: string }
+        Returns: {
+          created_at: string
+          credits: number
+          deadline: string
+          description: string
+          gig_id: string
+          kind: string
+          match_score: number
+          rank_score: number
+          skill_category: string
+          status: string
+          title: string
+        }[]
+      }
       get_ranked_jobs_for_talent: {
         Args: { _cursor?: number; _limit?: number; _talent_id: string }
         Returns: {
