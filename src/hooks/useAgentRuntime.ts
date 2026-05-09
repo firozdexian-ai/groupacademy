@@ -166,6 +166,7 @@ export function useAgentRuntime(
               message: userMsg.content,
               subject_kind: subject?.kind,
               subject_id: subject?.id,
+              context: contextProvider?.() ?? undefined,
             }),
           },
         );
