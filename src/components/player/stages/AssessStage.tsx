@@ -146,23 +146,16 @@ export function AssessStage({
       const attemptPassed = Math.round((correctCount / totalQuestions) * 100) >= passThreshold;
 
       try {
-        // FIX: Await the Supabase call inside withTimeout to satisfy TS2739
-        await withTimeout(
-          (async () => {
-            const { error } = await supabase.from("quiz_attempts").insert({
-              student_id: studentId,
-              content_id: contentId,
-              enrollment_id: enrollmentId,
-              answers,
-              score: correctCount,
-              total_questions: totalQuestions,
-              passed: attemptPassed,
-            });
-            if (error) throw error;
-          })(),
-          TIMEOUTS.DEFAULT,
-          "REGISTRY_SYNC_TIMEOUT",
-        );
+        const { error } = await supabase.from("quiz_attempts").insert({
+          student_id: studentId,
+          content_id: contentId,
+          enrollment_id: enrollmentId,
+          answers,
+          score: correctCount,
+          total_questions: totalQuestions,
+          passed: attemptPassed,
+        });
+        if (error) throw error;
       } catch (error) {
         console.error("[AssessNode Sync Error]:", error);
       }
