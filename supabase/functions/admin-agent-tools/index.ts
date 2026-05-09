@@ -162,7 +162,8 @@ function inferTool(body: any): string | null {
     return body._reject ? "reject_payout" : "approve_payout";
   }
   if ("talent_id" in body && "amount" in body) return "award_credits";
-  if ("gig_id" in body || Object.keys(body).length === 0) return "force_run_matchmaker";
+  if ("gig_id" in body) return "force_run_matchmaker";
+  if (Object.keys(body).length === 0) return "archive_expired_jobs";
   return null;
 }
 
