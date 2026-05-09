@@ -7,6 +7,7 @@ import Gro10xShortlist from "./work/Gro10xShortlist";
 import Gro10xTalents from "./work/Gro10xTalents";
 import Gro10xCRM from "./Gro10xCRM";
 import Gro10xSourcing from "./sourcing/Gro10xSourcing";
+import { Gro10xOpenGigs } from "../components/Gro10xOpenGigs";
 
 type Tab = "hiring" | "talents" | "sourcing" | "crm";
 
@@ -62,6 +63,7 @@ export default function Gro10xWork() {
       {tab === "hiring" && (
         <>
           <Gro10xJobsList />
+          <Gro10xOpenGigs />
           <div className="px-4 pt-4">
             <p className={`text-[11px] uppercase tracking-wider ${GRO10X_MUTED} mb-2`}>Shortlist</p>
             <Gro10xShortlist />

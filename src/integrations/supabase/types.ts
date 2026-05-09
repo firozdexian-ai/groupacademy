@@ -16627,6 +16627,10 @@ export type Database = {
       }
     }
     Functions: {
+      accept_gig_bid: {
+        Args: { p_bid_id: string; p_company_id: string }
+        Returns: Json
+      }
       accept_lesson_answer: {
         Args: { _answer_id: string; _question_id: string }
         Returns: undefined
@@ -17037,6 +17041,7 @@ export type Database = {
           snippet: string
         }[]
       }
+      get_employer_gig_bids: { Args: { p_gig_id: string }; Returns: Json }
       get_employer_jobs_dashboard: {
         Args: { p_company_id: string }
         Returns: {
@@ -17056,6 +17061,10 @@ export type Database = {
       }
       get_employer_pipeline: {
         Args: { p_company_id?: string; p_job_id?: string }
+        Returns: Json
+      }
+      get_employer_pipeline_full: {
+        Args: { p_company_id?: string; p_job_id?: string; p_limit?: number }
         Returns: Json
       }
       get_feed_engagement: {

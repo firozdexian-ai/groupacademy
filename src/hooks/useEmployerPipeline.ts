@@ -39,43 +39,14 @@ export function useEmployerPipeline(opts: {
 
   const load = useCallback(async () => {
     setLoading(true);
-    let q = supabase
-      .from("job_applications")
-      .select(
-        "id, job_id, talent_id, ai_match_score, application_status, created_at, last_status_at, cv_url, cover_letter, sourced, sourced_relationship_id, jobs!inner(title, company_id, company_name), talents(full_name, headline)",
-      )
-      .order("last_status_at", { ascending: false })
-      .limit(500);
-
-    if (opts.jobId) q = q.eq("job_id", opts.jobId);
-    if (opts.companyId) q = q.eq("jobs.company_id", opts.companyId);
-
-    const { data } = await q;
-    const flat: PipelineApplication[] = (data ?? []).map((r: any) => ({
-      id: r.id,
-      job_id: r.job_id,
-      job_title: r.jobs?.title ?? null,
-      company_id: r.jobs?.company_id ?? null,
-      company_name: r.jobs?.company_name ?? null,
-      talent_id: r.talent_id,
-      talent_name: r.talents?.full_name ?? null,
-      talent_headline: r.talents?.headline ?? null,
-      ai_match_score: r.ai_match_score,
-      application_status: r.application_status,
-      created_at: r.created_at,
-      last_status_at: r.last_status_at,
-      cv_url: r.cv_url,
-      cover_letter: r.cover_letter,
-      sourced: r.sourced,
-      sourced_relationship_id: r.sourced_relationship_id,
-    }));
-    setApps(flat);
-
-    const { data: counts } = await supabase.rpc("get_employer_pipeline", {
+    const { data } = await supabase.rpc("get_employer_pipeline_full", {
       p_company_id: opts.companyId ?? null,
       p_job_id: opts.jobId ?? null,
+      p_limit: 500,
     });
-    setCounts((counts as Record<string, number>) ?? {});
+    const payload = (data ?? {}) as { apps?: PipelineApplication[]; counts?: Record<string, number> };
+    setApps((payload.apps ?? []) as PipelineApplication[]);
+    setCounts(payload.counts ?? {});
     setLoading(false);
   }, [opts.companyId, opts.jobId]);
 
