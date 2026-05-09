@@ -53,6 +53,7 @@ serve(async (req) => {
     // Company subjects must be requested explicitly and verified via company_members.
     let subjectKind = "talent";
     let subjectId: string | null = null;
+    let talentRow: any = null;
 
     if ((body as any).subject_kind === "company" && (body as any).subject_id) {
       const companyId = (body as any).subject_id as string;
@@ -69,11 +70,12 @@ serve(async (req) => {
     } else {
       const { data: talent } = await admin
         .from("talents")
-        .select("id")
+        .select("id, full_name, country")
         .eq("user_id", user.id)
         .maybeSingle();
       if (!talent) return json({ error: "NO_TALENT_PROFILE" }, 403);
       subjectId = talent.id;
+      talentRow = talent;
     }
 
     // Load agent
