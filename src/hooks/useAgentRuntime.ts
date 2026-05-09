@@ -235,7 +235,7 @@ export function useAgentRuntime(subjectOverride?: AgentRuntimeSubject): UseAgent
         setIsStreaming(false);
       }
     },
-    [isStreaming, thread, subject?.id, subject?.kind],
+    [isStreaming, thread, subject?.id, subject?.kind, queryClient],
   );
 
   const endSession = useCallback(async () => {
