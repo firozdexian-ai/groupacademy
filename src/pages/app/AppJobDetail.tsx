@@ -126,8 +126,9 @@ export default function AppJobDetail() {
     if (!id) return;
     setLoading(true);
     try {
-      const { data: jobData, error: jobError } = await supabase.from("jobs").select("*").eq("id", id).single();
+      const { data: jobData, error: jobError } = await supabase.from("jobs").select("*").eq("id", id).maybeSingle();
       if (jobError) throw jobError;
+      if (!jobData) { setLoading(false); return; }
       setJob(jobData as Job);
 
       if (talent?.id) {
