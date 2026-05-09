@@ -141,6 +141,11 @@ serve(async (req) => {
         if (!r.ok) return j({ ok: false, error: `matchmaker_${r.status}`, result: parsed }, 400);
         return j({ ok: true, result: parsed });
       }
+      case "archive_expired_jobs": {
+        const { data, error } = await userClient.rpc("archive_expired_jobs");
+        if (error) return j({ ok: false, error: error.message }, 400);
+        return j({ ok: true, result: { archived: Number(data ?? 0) } });
+      }
       default:
         return j({ ok: false, error: `unknown_admin_tool:${dispatch}` }, 400);
     }
