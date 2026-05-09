@@ -205,6 +205,9 @@ serve(async (req) => {
       draft_company_post: ["gro10x-feed-drafts"],
       discard_company_draft: ["gro10x-feed-drafts"],
       start_topup: ["company-credits", "gro10x-billing"],
+      // Phase B3: ATS + Gig acceptance
+      move_application_stage: ["employer-pipeline", "employer-jobs-dashboard"],
+      accept_gig_bid: ["employer-gig-bids", "gro10x-open-gigs", "company-credits"],
     };
 
     if (subjectKind === "company" && aiToolSchema) {
