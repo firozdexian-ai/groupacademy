@@ -317,7 +317,7 @@ export function useAgentChat(): UseAgentChatReturn {
         setIsStreaming(false);
       }
     },
-    [session, messages, isStreaming, saveTrajectory, perResponseCost, talent?.id],
+    [session, messages, isStreaming, saveTrajectory, perResponseCost, talent?.id, queryClient],
   );
 
   const endSession = useCallback(async () => {
