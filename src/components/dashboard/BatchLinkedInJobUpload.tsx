@@ -545,7 +545,7 @@ export function BatchLinkedInJobUpload({
             )}
           </ScrollArea>
 
-          <div className="flex justify-between items-center pt-8 border-t border-border/10">
+          <div className="flex justify-between items-center gap-4 px-10 py-5 border-t-2 border-border/20 bg-background/95 backdrop-blur-xl shrink-0">
             {step === "preview" ? (
               <Button
                 variant="ghost"
