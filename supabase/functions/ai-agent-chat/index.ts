@@ -118,6 +118,17 @@ CRITICAL RULE: Use this context to personalize advice. Do not re-ask known facts
     // PHASE 5: Tool-calling loop (max 4 hops, non-stream) → final stream
     const convo: any[] = [{ role: "system", content: systemPrompt }, ...incomingMessages];
     let hops = 0;
+    const invalidations = new Set<string>();
+    // Maps a tool_key to React Query keys the client should invalidate.
+    const TOOL_INVALIDATIONS: Record<string, string[]> = {
+      place_gig_bid: ["gigs-hub", "marketplace-gig", "my-marketplace-bid", "ranked-gigs"],
+      save_gig: ["saved-items", "gigs-hub", "ranked-gigs"],
+      save_job: ["saved-items", "jobs-hub", "ranked-jobs"],
+      apply_to_job: ["jobs-hub", "applications", "ranked-jobs"],
+      enroll_course: ["learning-hub", "my-courses", "courses"],
+      follow_company: ["companies-with-signal", "followed-companies"],
+      submit_pitch: ["talent-pitches"],
+    };
 
     while (hops < MAX_TOOL_HOPS && tools.length > 0) {
       const hopRes = await fetch(AI_URL, {
