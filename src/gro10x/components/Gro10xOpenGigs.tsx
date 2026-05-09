@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
-import { GRO10X_MUTED } from "../../lib/tokens";
+import { GRO10X_MUTED } from "../lib/tokens";
 import { Briefcase, ChevronRight } from "lucide-react";
 
 export function Gro10xOpenGigs() {
