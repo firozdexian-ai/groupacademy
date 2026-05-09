@@ -89,6 +89,7 @@ export default function Gigs() {
   const gigsLoading = dashLoading;
   const courseProjectsLoading = dashLoading;
 
+  const [deliverableDialog, setDeliverableDialog] = useState<string | null>(null);
   const [delivTitle, setDelivTitle] = useState("");
   const [delivDesc, setDelivDesc] = useState("");
   const [delivFiles, setDelivFiles] = useState<UploadedFile[]>([]);
@@ -114,7 +115,7 @@ export default function Gigs() {
       setDelivTitle("");
       setDelivDesc("");
       setDelivFiles([]);
-      queryClient.invalidateQueries({ queryKey: ["my-marketplace-contracts"] });
+      queryClient.invalidateQueries({ queryKey: ["gigs-hub-dashboard"] });
     },
   });
 
