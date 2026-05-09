@@ -63,6 +63,7 @@ export default function Gro10xWork() {
       {tab === "hiring" && (
         <>
           <Gro10xJobsList />
+          <Gro10xOpenGigs />
           <div className="px-4 pt-4">
             <p className={`text-[11px] uppercase tracking-wider ${GRO10X_MUTED} mb-2`}>Shortlist</p>
             <Gro10xShortlist />
