@@ -1,9 +1,13 @@
 /**
- * Phase 4.7 — Instructor Earnings dashboard tab content.
- * Used inline in InstructorShell when ?tab=earnings.
+ * Phase C2 — Instructor Earnings (V2).
+ * - Uses React Query keyed ["instructor-dashboard"] so the Phase T2 cache
+ *   invalidation bridge auto-refreshes after Maestro tool runs.
+ * - Hits the single-trip get_instructor_dashboard_v2 RPC.
+ * - Renders an "Awaiting Review" banner whenever an open payout request exists.
  */
-import { useEffect, useMemo, useState } from "react";
-import { Loader2, Wallet, TrendingUp, Banknote, Clock, ArrowRight } from "lucide-react";
+import { useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Loader2, Wallet, TrendingUp, Banknote, Clock, ArrowRight, Hourglass, Users, FileCheck2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -31,33 +35,85 @@ type Summary = {
   series: { month: string; credits: number }[];
   recent: SummaryRow[];
 };
+type OpenPayout = {
+  id: string; amount_credits: number; payout_method: string;
+  status: "pending" | "approved"; created_at: string;
+};
+type DashboardV2 = {
+  summary: Summary;
+  open_payout_requests: OpenPayout[];
+  pending_review_count: number;
+  active_students_count: number;
+  fetched_at: string;
+};
 
 export default function InstructorEarnings() {
-  const [summary, setSummary] = useState<Summary | null>(null);
-  const [loading, setLoading] = useState(true);
+  const qc = useQueryClient();
+  const { data, isLoading } = useQuery({
+    queryKey: ["instructor-dashboard"],
+    queryFn: async (): Promise<DashboardV2 | null> => {
+      const { data, error } = await supabase.rpc("get_instructor_dashboard_v2" as any);
+      if (error) throw error;
+      return (data as any) ?? null;
+    },
+  });
 
-  async function load() {
-    setLoading(true);
-    const { data, error } = await supabase.rpc("get_instructor_earnings_summary" as any);
-    if (!error && data) setSummary(data as any);
-    setLoading(false);
-  }
-  useEffect(() => { load(); }, []);
-
-  if (loading) {
+  if (isLoading) {
     return <div className="flex items-center justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
   }
-  if (!summary) {
+  if (!data || !data.summary) {
     return <Card className="p-4 text-sm text-muted-foreground">No earnings yet.</Card>;
   }
 
+  const summary = data.summary;
+  const openPayouts = data.open_payout_requests ?? [];
+  const totalPending = openPayouts.reduce((s, p) => s + Number(p.amount_credits || 0), 0);
+
   return (
     <div className="space-y-3">
+      {/* Awaiting Review banner */}
+      {openPayouts.length > 0 && (
+        <Card className="p-3 border-amber-400/50 bg-amber-50 dark:bg-amber-950/30">
+          <div className="flex items-start gap-2">
+            <Hourglass className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold text-amber-900 dark:text-amber-100">
+                Pending Payout — Awaiting Review
+              </p>
+              <p className="text-[11px] text-amber-800/90 dark:text-amber-200/80 mt-0.5">
+                {openPayouts.length} request{openPayouts.length === 1 ? "" : "s"} · {totalPending.toFixed(1)} credits (≈ ৳{Math.round(totalPending * 2)}) being processed by our team.
+              </p>
+              <div className="mt-2 space-y-1">
+                {openPayouts.slice(0, 3).map((p) => (
+                  <div key={p.id} className="flex items-center justify-between text-[10px] text-amber-900/80 dark:text-amber-100/80">
+                    <span className="capitalize">{p.payout_method} · {new Date(p.created_at).toLocaleDateString()}</span>
+                    <Badge variant="outline" className="text-[10px] border-amber-400/50">
+                      {p.status === "approved" ? "Approved · paying out" : "In review"}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
+
       <div className="grid grid-cols-2 gap-2">
         <Stat label="Lifetime" credits={summary.lifetime_credits} icon={<TrendingUp className="h-3.5 w-3.5" />} />
         <Stat label="This month" credits={summary.this_month_credits} icon={<Wallet className="h-3.5 w-3.5" />} />
         <Stat label="Available" credits={summary.available_credits} icon={<Banknote className="h-3.5 w-3.5 text-emerald-500" />} highlight />
         <Stat label="Pending" credits={summary.pending_credits} icon={<Clock className="h-3.5 w-3.5 text-amber-500" />} />
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <Card className="p-3">
+          <div className="flex items-center gap-1 text-[10px] text-muted-foreground"><Users className="h-3.5 w-3.5" />Active students</div>
+          <p className="text-lg font-semibold mt-1 tabular-nums">{data.active_students_count ?? 0}</p>
+        </Card>
+        <Card className="p-3">
+          <div className="flex items-center gap-1 text-[10px] text-muted-foreground"><FileCheck2 className="h-3.5 w-3.5" />Pending review</div>
+          <p className="text-lg font-semibold mt-1 tabular-nums">{data.pending_review_count ?? 0}</p>
+        </Card>
       </div>
 
       <Card className="p-3">
@@ -77,7 +133,10 @@ export default function InstructorEarnings() {
         </div>
       </Card>
 
-      <RequestPayoutSheet available={summary.available_credits} onDone={load} />
+      <RequestPayoutSheet
+        available={summary.available_credits}
+        onDone={() => qc.invalidateQueries({ queryKey: ["instructor-dashboard"] })}
+      />
 
       <Card className="p-3">
         <p className="text-xs font-medium mb-2">Recent activity</p>
