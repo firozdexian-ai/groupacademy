@@ -7,6 +7,7 @@ import Gro10xShortlist from "./work/Gro10xShortlist";
 import Gro10xTalents from "./work/Gro10xTalents";
 import Gro10xCRM from "./Gro10xCRM";
 import Gro10xSourcing from "./sourcing/Gro10xSourcing";
+import { Gro10xOpenGigs } from "../components/Gro10xOpenGigs";
 
 type Tab = "hiring" | "talents" | "sourcing" | "crm";
 
