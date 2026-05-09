@@ -283,7 +283,7 @@ export function useAdminChatThread(agentKey: string | null) {
         setSending(false);
       }
     },
-    [agentKey, threadId, messages, sending],
+    [agentKey, threadId, messages, sending, queryClient],
   );
 
   const clear = useCallback(async () => {
