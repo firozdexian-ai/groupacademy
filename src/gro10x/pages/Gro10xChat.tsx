@@ -1,10 +1,10 @@
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams, useLocation } from "react-router-dom";
 import { ArrowLeft, Send } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { useAuth } from "@/hooks/useAuth";
 import { useGro10xThreads } from "../hooks/useGro10xThreads";
-import { useAgentRuntime } from "@/hooks/useAgentRuntime";
+import { useAgentRuntime, type AgentRuntimeContext } from "@/hooks/useAgentRuntime";
 import { getAgentMeta } from "../lib/agents";
 import { GRO10X_PANEL } from "../lib/tokens";
 
@@ -12,16 +12,34 @@ import { GRO10X_PANEL } from "../lib/tokens";
  * Gro10x Chat — wires the Gro10x agent_key to the unified agent-runtime
  * with subject={kind:"company", id:companyId}. Bumps gro10x_agent_threads
  * after each exchange so the inbox stays sorted.
+ *
+ * Phase B3: derives page context (job_id, application_id, gig_id, bid_id,
+ * talent_id) from URL params + query string and forwards it to the runtime
+ * so the AI knows what the employer is looking at.
  */
 export default function Gro10xChat() {
   const { agentKey = "concierge" } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { companyId, bumpThread, markRead, pinAgent } = useGro10xThreads();
   const meta = getAgentMeta(agentKey);
 
   const subject = companyId ? ({ kind: "company", id: companyId } as const) : undefined;
-  const runtime = useAgentRuntime(subject as any);
+  const contextProvider = useCallback((): AgentRuntimeContext => {
+    const ctx: AgentRuntimeContext = { route: location.pathname + location.search };
+    const keys = ["job_id", "jobId", "application_id", "applicationId", "gig_id", "gigId", "bid_id", "bidId", "talent_id", "talentId"];
+    for (const k of keys) {
+      const v = searchParams.get(k);
+      if (v) {
+        const norm = k.replace(/Id$/, "_id");
+        ctx[norm] = v;
+      }
+    }
+    return ctx;
+  }, [location.pathname, location.search, searchParams]);
+  const runtime = useAgentRuntime(subject as any, contextProvider);
   const { messages, isStreaming, sendMessage, startOrResumeSession } = runtime;
 
   const [input, setInput] = useState("");
