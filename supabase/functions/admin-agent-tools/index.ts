@@ -39,6 +39,7 @@ const AdminSchemas: Record<string, z.ZodTypeAny> = {
   force_run_matchmaker: z.object({
     gig_id: uuid.optional().nullable(),
   }).passthrough(),
+  archive_expired_jobs: z.object({}).passthrough(),
 };
 
 serve(async (req) => {
