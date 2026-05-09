@@ -81,12 +81,7 @@ export function JobsManageTab() {
       toast.success(`Purged ${archived} expired job${archived === 1 ? "" : "s"}`);
       queryClient.invalidateQueries({ queryKey: ["admin-jobs"] });
       queryClient.invalidateQueries({ queryKey: ["jobs-hub-dashboard"] });
-      // refresh local list
-      setPage(1);
-      setStatusFilter((f) => f);
-      // trigger reload via existing effect by toggling search
-      setSearchQuery((s) => s);
-      window.dispatchEvent(new Event("admin-jobs-refresh"));
+      loadJobs();
     } catch (e: any) {
       toast.error(e?.message ?? "Failed to purge expired jobs");
     } finally {
