@@ -380,7 +380,7 @@ async function pipeAndPersist(
   src: ReadableStream<Uint8Array>,
   dst: WritableStream<Uint8Array>,
   admin: any,
-  ctx: { threadId: string; agentId: string; agentKey: string; subjectKind: string; subjectId: string; variant: string; msgCost: number },
+  ctx: { threadId: string; agentId: string; agentKey: string; subjectKind: string; subjectId: string; variant: string; msgCost: number; invalidationKeys?: string[] },
 ) {
   const reader = src.getReader();
   const writer = dst.getWriter();
@@ -410,6 +410,17 @@ async function pipeAndPersist(
           if (typeof delta === "string") { assistantText += delta; tokensOut++; }
         } catch { /* partial */ }
       }
+    }
+
+    // Append invalidations frame after the upstream stream ends so the client
+    // can refresh React Query caches for any tools that mutated server state.
+    const invKeys = ctx.invalidationKeys ?? [];
+    if (invKeys.length > 0) {
+      try {
+        await writer.write(
+          encoder.encode(`data: ${JSON.stringify({ type: "invalidations", keys: invKeys })}\n\n`),
+        );
+      } catch { /* ignore */ }
     }
   } finally {
     try { await writer.close(); } catch { /* ignore */ }
