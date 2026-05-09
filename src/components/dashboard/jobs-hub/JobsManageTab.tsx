@@ -21,7 +21,9 @@ import {
   Zap,
   Activity,
   ShieldCheck,
+  Flame,
 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { DashboardTableSkeleton } from "../DashboardSkeleton";
 import { JobFormDialog } from "./JobFormDialog";
