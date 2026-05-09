@@ -210,12 +210,23 @@ serve(async (req) => {
     return json({
       reply: "I tried to use my tools but kept looping. Please rephrase or break the request into smaller steps.",
       tool_invocations: toolInvocations,
+      invalidate: collectInvalidations(toolInvocations),
     }, 200);
   } catch (e: any) {
     console.error("[admin-agents-router] fault:", e);
     return json({ error: e?.message ?? String(e) }, 500);
   }
 });
+
+function collectInvalidations(invs: any[]): string[] {
+  const out = new Set<string>();
+  for (const inv of invs ?? []) {
+    if (!inv?.ok) continue;
+    const keys = TOOL_INVALIDATIONS_ADMIN[inv.tool] ?? [];
+    keys.forEach((k) => out.add(k));
+  }
+  return Array.from(out);
+}
 
 function json(b: unknown, status: number) {
   return new Response(JSON.stringify(b), {
