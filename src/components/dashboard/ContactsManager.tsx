@@ -23,7 +23,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
-import { LinkedInJsonUpload } from "./LinkedInJsonUpload";
+import { LinkedInJsonUpload } from "./talent/LinkedInJsonUpload";
 
 import {
   Users,

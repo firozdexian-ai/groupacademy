@@ -31,7 +31,7 @@ import {
   AlertTriangle,
   Loader2,
 } from "lucide-react";
-import { LinkedInJsonUpload } from "../LinkedInJsonUpload";
+import { LinkedInJsonUpload } from "../talent/LinkedInJsonUpload";
 import { IR_CONFIG } from "@/lib/irConfig";
 import { InvestorDetailSheet } from "./InvestorDetailSheet";
 import { cn } from "@/lib/utils";

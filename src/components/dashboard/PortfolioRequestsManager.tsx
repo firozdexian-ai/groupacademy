@@ -37,7 +37,7 @@ import {
   Award,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { TalentDetailDialog } from "./TalentDetailDialog";
+import { TalentDetailDialog } from "./talent/TalentDetailDialog";
 import { downloadFile } from "@/lib/downloadFile";
 
 // Define the strict union type for Portfolio Status [cite: 40, 43]
