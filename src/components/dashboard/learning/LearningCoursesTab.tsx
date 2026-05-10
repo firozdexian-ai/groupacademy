@@ -90,52 +90,14 @@ export function LearningCoursesTab() {
         </Button>
       </header>
 
-      {/* Dynamic Filters Bar */}
-      <div className="flex flex-col sm:flex-row gap-4 px-2">
-        <div className="flex items-center gap-2 text-muted-foreground">
+      {/* Unified Content Filters HUD */}
+      <div className="flex flex-col sm:flex-row gap-4 px-2 items-start">
+        <div className="flex items-center gap-2 text-muted-foreground pt-2">
           <Filter className="h-4 w-4" />
           <span className="text-[10px] font-black uppercase tracking-widest">Filters:</span>
         </div>
-        <div className="flex-1 flex gap-4 flex-wrap">
-          <Select value={filterType} onValueChange={setFilterType}>
-            <SelectTrigger className="w-[200px] h-10 rounded-xl font-bold text-xs uppercase tracking-widest border-2">
-              <SelectValue placeholder="Content Type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all" className="font-bold text-xs uppercase tracking-widest">
-                All Types
-              </SelectItem>
-              <SelectItem value="recorded_course" className="font-bold text-xs uppercase tracking-widest">
-                Recorded Course
-              </SelectItem>
-              <SelectItem value="batch_class" className="font-bold text-xs uppercase tracking-widest">
-                Batch Class
-              </SelectItem>
-              <SelectItem value="live_webinar" className="font-bold text-xs uppercase tracking-widest">
-                Live Webinar
-              </SelectItem>
-              <SelectItem value="free_video" className="font-bold text-xs uppercase tracking-widest">
-                Free Video
-              </SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="w-[200px] h-10 rounded-xl font-bold text-xs uppercase tracking-widest border-2">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all" className="font-bold text-xs uppercase tracking-widest">
-                All Status
-              </SelectItem>
-              <SelectItem value="published" className="font-bold text-xs uppercase tracking-widest text-emerald-500">
-                Published
-              </SelectItem>
-              <SelectItem value="draft" className="font-bold text-xs uppercase tracking-widest text-amber-500">
-                Unpublished
-              </SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="flex-1">
+          <ContentFilters values={filters} onChange={setFilters} />
         </div>
       </div>
 
