@@ -34,7 +34,7 @@ import {
 } from "lucide-react";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
-import { DashboardTableSkeleton } from "./DashboardSkeleton"; // FIXED: Restored missing import
+import { DashboardTableSkeleton } from "../DashboardSkeleton"; // FIXED: Restored missing import
 import { cn } from "@/lib/utils";
 
 /**

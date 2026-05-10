@@ -16649,6 +16649,7 @@ export type Database = {
           city: string | null
           country: string | null
           created_at: string | null
+          grade_id: string | null
           hired_at: string | null
           id: string
           probation_ends_at: string | null
@@ -16657,12 +16658,15 @@ export type Database = {
           specialization: Json | null
           status: string
           talent_id: string
+          team_id: string | null
           updated_at: string | null
+          user_id: string | null
         }
         Insert: {
           city?: string | null
           country?: string | null
           created_at?: string | null
+          grade_id?: string | null
           hired_at?: string | null
           id?: string
           probation_ends_at?: string | null
@@ -16671,12 +16675,15 @@ export type Database = {
           specialization?: Json | null
           status?: string
           talent_id: string
+          team_id?: string | null
           updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
           city?: string | null
           country?: string | null
           created_at?: string | null
+          grade_id?: string | null
           hired_at?: string | null
           id?: string
           probation_ends_at?: string | null
@@ -16685,9 +16692,18 @@ export type Database = {
           specialization?: Json | null
           status?: string
           talent_id?: string
+          team_id?: string | null
           updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "workforce_members_grade_id_fkey"
+            columns: ["grade_id"]
+            isOneToOne: false
+            referencedRelation: "hr_grades"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "workforce_members_reports_to_fkey"
             columns: ["reports_to"]
@@ -16715,6 +16731,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "v_weekly_leaderboard"
             referencedColumns: ["talent_id"]
+          },
+          {
+            foreignKeyName: "workforce_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "hr_teams"
+            referencedColumns: ["id"]
           },
         ]
       }
