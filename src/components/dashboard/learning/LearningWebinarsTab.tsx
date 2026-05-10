@@ -21,6 +21,7 @@ export function LearningWebinarsTab() {
   const { data, isLoading } = learningGraphQuery;
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<any>({ status: "draft", content_type: "live_webinar" });
+  const [sessionsRow, setSessionsRow] = useState<any>(null);
 
   // Filter for webinars only
   const webinars = data?.content?.filter((c) => c.content_type === "live_webinar") || [];
