@@ -21,6 +21,7 @@ export function LearningCohortsTab() {
   const { data, isLoading } = learningGraphQuery;
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<any>({ status: "upcoming" });
+  const [sessionsRow, setSessionsRow] = useState<any>(null);
 
   return (
     <div className="space-y-10 animate-in fade-in duration-1000 p-4 md:p-6">
