@@ -36,7 +36,7 @@ import {
 } from "lucide-react";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
-import { DashboardTableSkeleton, DashboardErrorState } from "./DashboardSkeleton";
+import { DashboardTableSkeleton, DashboardErrorState } from "../DashboardSkeleton";
 import { cn } from "@/lib/utils";
 
 /**

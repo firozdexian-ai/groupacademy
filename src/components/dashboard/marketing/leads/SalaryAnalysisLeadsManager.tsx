@@ -24,7 +24,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { format } from "date-fns";
-import { SalaryAnalysisCodeGenerator } from "../../SalaryAnalysisCodeGenerator";
+import { SalaryAnalysisCodeGenerator } from "./SalaryAnalysisCodeGenerator";
 import { TalentDetailDialog } from "../../talent/TalentDetailDialog";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";

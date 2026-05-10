@@ -43,7 +43,7 @@ import {
 } from "lucide-react";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
-import { DashboardTableSkeleton } from "./DashboardSkeleton";
+import { DashboardTableSkeleton } from "../DashboardSkeleton";
 import { BatchCompanyUpload } from "./BatchCompanyUpload";
 import { getDexianEmailLink, EMAIL_TEMPLATE_OPTIONS, DexianEmailTemplate } from "@/lib/companyOutreachTemplates";
 import { cn } from "@/lib/utils";

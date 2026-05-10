@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { MockInterviewCodeGenerator } from "../../MockInterviewCodeGenerator";
+import { MockInterviewCodeGenerator } from "./MockInterviewCodeGenerator";
 import { TalentDetailDialog } from "../../talent/TalentDetailDialog";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";

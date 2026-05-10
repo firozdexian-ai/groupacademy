@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { sanitizeIlike } from "@/lib/supabaseQuery";
 import { withTimeout } from "@/hooks/useQueryWithTimeout";
 import { TIMEOUTS } from "@/lib/timeoutConfig";
-import { DashboardTableSkeleton, DashboardErrorState } from "./DashboardSkeleton";
+import { DashboardTableSkeleton, DashboardErrorState } from "../DashboardSkeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -37,7 +37,7 @@ import {
   Award,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { TalentDetailDialog } from "./talent/TalentDetailDialog";
+import { TalentDetailDialog } from "./TalentDetailDialog";
 import { downloadFile } from "@/lib/downloadFile";
 
 // Define the strict union type for Portfolio Status [cite: 40, 43]

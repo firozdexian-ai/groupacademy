@@ -37,7 +37,7 @@ import ContentReadinessBadge, { type ModuleStats } from "@/components/dashboard/
 import ContentReadinessChecklist from "@/components/dashboard/learning/content-widgets/ContentReadinessChecklist";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { AIActionButton } from "@/components/dashboard/learning/content-widgets/ContentAIActions";
-import { AICoverImageSheet } from "@/components/dashboard/AICoverImageSheet";
+import { AICoverImageSheet } from "@/components/dashboard/learning/AICoverImageSheet";
 
 export default function ContentEdit() {
   const { id } = useParams();
