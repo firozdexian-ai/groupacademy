@@ -5,9 +5,9 @@ import { toast } from "sonner";
 // --- Global Type Defs ---
 export interface TalentWallet { id: string; balance: number; earned_balance: number; talent: { full_name: string; email: string }; }
 export interface CompanyWallet { id: string; balance: number; earned_balance: number; company: { name: string; type: string }; }
-export interface CreditInvoice { id: string; invoice_number: string; bundle_credits: number; currency: string; amount_paid: number; status: string; payment_method: string; created_at: string; talent_id: string; talent: { full_name: string }; }
+export interface CreditInvoice { id: string; invoice_number: string; bundle_credits: number; currency: string; bundle_price_usd: number; bundle_price_local: number; status: string; payment_method: string; created_at: string; talent_id: string; talent: { full_name: string }; }
 export interface WithdrawalRequest { id: string; talent_id: string; amount_credits: number; method: string; status: string; payout_details: string; created_at: string; talent: { full_name: string; email: string }; }
-export interface PayInfraConfig { id: string; provider: string; is_active: boolean; created_at: string; }
+export interface PayInfraConfig { id: string; provider: string; status: string; created_at: string; }
 
 export function useFinOpsGraph() {
   const queryClient = useQueryClient();
