@@ -9,7 +9,8 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2, Send, RefreshCw, Sparkles, BrainCircuit } from "lucide-react";
+import { Loader2, Send, RefreshCw, Sparkles, BrainCircuit, UserSearch, MessageSquareQuote } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface TalentRow {
   id: string;
@@ -34,7 +35,7 @@ interface CanSend {
   daily_cap?: number;
   hourly_used?: number;
   hourly_cap?: number;
-  is_quiet_hours?: boolean; // Updated to match Phase 6.1 SQL telemetry
+  is_quiet_hours?: boolean;
 }
 
 const TALENT_PRODUCTS = [
@@ -199,134 +200,229 @@ export function TalentOutreachConsoleTab() {
   };
 
   return (
-    <div className="p-4 space-y-4">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h2 className="text-xl font-semibold">Talent Outreach Console</h2>
-          <p className="text-sm text-muted-foreground">Deploying the AI Workforce to B2C Learners and Candidates.</p>
+    <div className="space-y-8 animate-in fade-in duration-500">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-muted/20 p-8 rounded-[40px] border-2 border-border/40 backdrop-blur-md">
+        <div className="space-y-1">
+          <div className="flex items-center gap-3 text-primary">
+            <UserSearch className="h-8 w-8" />
+            <h2 className="text-3xl font-black uppercase tracking-tighter italic leading-none">Outreach Console</h2>
+          </div>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 italic">
+            Deploying the AI Workforce to B2C Learners
+          </p>
         </div>
-        <Badge variant={channel?.status === "connected" ? "default" : "secondary"}>
-          TALENT LINE: {channel?.status?.toUpperCase() || "OFFLINE"}
-        </Badge>
-      </div>
 
-      <Card>
-        <CardContent className="py-3 flex flex-wrap gap-3 text-xs">
-          <Badge variant="outline">
-            Daily: {canSend?.daily_used ?? 0}/{channel?.daily_outreach_cap ?? 20}
+        <div className="flex flex-col items-end gap-2">
+          <Badge
+            variant={channel?.status === "connected" ? "default" : "secondary"}
+            className={cn(
+              "px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-xl",
+              channel?.status === "connected" ? "bg-primary text-primary-foreground" : "",
+            )}
+          >
+            TALENT LINE: {channel?.status?.toUpperCase() || "OFFLINE"}
           </Badge>
-          <Badge variant="outline">
-            Hourly: {canSend?.hourly_used ?? 0}/{channel?.hourly_outreach_cap ?? 6}
-          </Badge>
-          {canSend?.is_quiet_hours && (
-            <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-700 border-yellow-500/50">
-              Quiet Hours (Soft Warning)
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge
+              variant="outline"
+              className="text-[9px] uppercase tracking-widest border-2 bg-background/50 backdrop-blur"
+            >
+              Daily: {canSend?.daily_used ?? 0}/{channel?.daily_outreach_cap ?? 20}
             </Badge>
-          )}
-        </CardContent>
-      </Card>
+            <Badge
+              variant="outline"
+              className="text-[9px] uppercase tracking-widest border-2 bg-background/50 backdrop-blur"
+            >
+              Hourly: {canSend?.hourly_used ?? 0}/{channel?.hourly_outreach_cap ?? 6}
+            </Badge>
+            {canSend?.is_quiet_hours && (
+              <Badge
+                variant="secondary"
+                className="bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 text-[9px] uppercase tracking-widest"
+              >
+                Quiet Hours Active
+              </Badge>
+            )}
+          </div>
+        </div>
+      </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Card className="lg:col-span-1">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm">Talent Pool Queue</CardTitle>
-              <Button size="icon" variant="ghost" onClick={loadTalents}>
-                <RefreshCw className="h-4 w-4" />
+      <div className="grid grid-cols-1 lg:grid-cols-[350px_1fr] gap-6">
+        {/* Talent Queue Sidebar */}
+        <Card className="rounded-[32px] border-2 border-border/40 bg-card/30 backdrop-blur-xl shadow-lg flex flex-col h-[70vh] overflow-hidden">
+          <div className="h-1.5 w-full bg-gradient-to-r from-blue-400 to-indigo-500" />
+          <CardHeader className="p-5 border-b border-border/10 bg-muted/5">
+            <div className="flex items-center justify-between mb-3">
+              <CardTitle className="text-xs font-black uppercase tracking-widest flex items-center gap-2">
+                <UserSearch className="h-4 w-4 text-primary" /> Talent Pool
+              </CardTitle>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={loadTalents}
+                className="h-8 w-8 hover:bg-primary/10 hover:text-primary"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
               </Button>
             </div>
-            <Input
-              placeholder="Search by name..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="h-8 text-xs"
-            />
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by name..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-9 h-10 rounded-xl border-2 text-xs"
+              />
+            </div>
           </CardHeader>
-          <CardContent className="p-0 max-h-[480px] overflow-y-auto">
+          <CardContent className="p-2 flex-1 overflow-y-auto">
             {loading ? (
-              <div className="p-6 flex justify-center">
-                <Loader2 className="h-4 w-4 animate-spin" />
+              <div className="flex justify-center py-10">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground/50" />
+              </div>
+            ) : talents.length === 0 ? (
+              <div className="text-center py-10">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">
+                  No talents found
+                </p>
               </div>
             ) : (
-              talents.map((t) => (
-                <div
-                  key={t.id}
-                  onClick={() => setSelectedTalent(t)}
-                  className={`p-3 border-b cursor-pointer transition-colors ${
-                    selectedTalent?.id === t.id ? "bg-primary/5 border-l-2 border-l-primary" : "hover:bg-muted/30"
-                  }`}
-                >
-                  <div className="text-sm font-medium">{t.full_name}</div>
-                  <div className="text-xs text-muted-foreground">{t.profession}</div>
-                </div>
-              ))
+              <div className="space-y-1">
+                {talents.map((t) => {
+                  const isSelected = selectedTalent?.id === t.id;
+                  return (
+                    <button
+                      key={t.id}
+                      onClick={() => setSelectedTalent(t)}
+                      className={cn(
+                        "w-full text-left p-4 rounded-2xl transition-all border-2",
+                        isSelected
+                          ? "bg-primary text-primary-foreground border-primary shadow-md shadow-primary/20"
+                          : "bg-transparent border-transparent hover:bg-muted/50 hover:border-border/30",
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          "text-sm font-bold truncate",
+                          isSelected ? "text-primary-foreground" : "text-foreground",
+                        )}
+                      >
+                        {t.full_name}
+                      </div>
+                      <div
+                        className={cn(
+                          "text-[10px] uppercase tracking-wider truncate mt-1",
+                          isSelected ? "text-primary-foreground/80 font-medium" : "text-muted-foreground",
+                        )}
+                      >
+                        {t.profession}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             )}
           </CardContent>
         </Card>
 
-        <div className="lg:col-span-2">
-          <Card>
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <BrainCircuit className="h-4 w-4" /> AI Strategy & Composition
-                </CardTitle>
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2">
-                    <Switch checked={translateBangla} onCheckedChange={setTranslateBangla} />
-                    <Label className="text-xs">Bangla Mode</Label>
-                  </div>
-                  <Button size="sm" onClick={generateHooks} disabled={generating}>
-                    {generating ? (
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    ) : (
-                      <Sparkles className="h-4 w-4 mr-2" />
-                    )}
-                    Propose Best Hooks
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-xs">Target Product</Label>
-                  <Select value={product} onValueChange={setProduct}>
-                    <SelectTrigger className="h-8 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {TALENT_PRODUCTS.map((p) => (
-                        <SelectItem key={p.value} value={p.value}>
-                          {p.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="text-xs">Sender Persona</Label>
-                  <Input value={senderName} onChange={(e) => setSenderName(e.target.value)} className="h-8 text-xs" />
-                </div>
-              </div>
+        {/* AI Composer Main Area */}
+        <Card className="rounded-[32px] border-2 border-border/40 bg-card/30 backdrop-blur-xl shadow-lg flex flex-col h-[70vh] overflow-hidden relative">
+          <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full blur-3xl opacity-10 bg-primary pointer-events-none" />
+          <div className="h-1.5 w-full bg-gradient-to-r from-primary to-purple-500 z-10" />
 
-              <Textarea
-                rows={8}
-                placeholder="Draft message to talent..."
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-              />
-
-              <div className="flex items-center justify-between pt-2">
-                <span className="text-[11px] text-muted-foreground">{draft.length} characters</span>
-                <Button onClick={send} disabled={sending || !draft.trim()} className="px-8 shadow-lg shadow-primary/20">
-                  {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
-                  Send to Talent
+          <CardHeader className="p-6 border-b border-border/10 bg-muted/5 z-10">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <CardTitle className="text-lg font-black italic tracking-tight flex items-center gap-2">
+                <BrainCircuit className="h-5 w-5 text-primary" /> AI Strategy & Composition
+              </CardTitle>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 bg-muted/30 px-3 py-1.5 rounded-xl border border-border/50">
+                  <Switch checked={translateBangla} onCheckedChange={setTranslateBangla} />
+                  <Label className="text-[10px] font-black uppercase tracking-widest cursor-pointer">Bangla Mode</Label>
+                </div>
+                <Button
+                  onClick={generateHooks}
+                  disabled={generating || !selectedTalent}
+                  variant="secondary"
+                  className="rounded-xl h-10 px-5 font-bold uppercase tracking-wider text-[10px]"
+                >
+                  {generating ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <Sparkles className="h-4 w-4 mr-2 text-primary" />
+                  )}
+                  Propose Hooks
                 </Button>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardHeader>
+
+          <CardContent className="p-6 flex-1 flex flex-col gap-6 z-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                  Target Product
+                </Label>
+                <Select value={product} onValueChange={setProduct}>
+                  <SelectTrigger className="h-12 rounded-xl border-2 font-medium text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TALENT_PRODUCTS.map((p) => (
+                      <SelectItem key={p.value} value={p.value} className="text-xs">
+                        {p.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                  Sender Persona
+                </Label>
+                <Input
+                  value={senderName}
+                  onChange={(e) => setSenderName(e.target.value)}
+                  className="h-12 rounded-xl border-2 font-medium text-xs"
+                />
+              </div>
+            </div>
+
+            <div className="flex-1 flex flex-col gap-2 relative">
+              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+                <MessageSquareQuote className="h-3 w-3" /> Draft Message
+              </Label>
+              <Textarea
+                placeholder={
+                  selectedTalent ? `Write a message to ${selectedTalent.full_name}...` : "Select a talent to begin..."
+                }
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                disabled={!selectedTalent}
+                className="flex-1 rounded-2xl resize-none border-2 p-4 text-sm leading-relaxed focus-visible:ring-1"
+              />
+            </div>
+
+            <div className="flex items-center justify-between pt-2">
+              <span className="text-[10px] font-mono text-muted-foreground/70 uppercase tracking-widest">
+                {draft.length} chars
+              </span>
+              <Button
+                onClick={send}
+                disabled={sending || !draft.trim() || !selectedTalent}
+                className="h-14 px-10 rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all"
+              >
+                {sending ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <>
+                    <Send className="h-4 w-4 mr-2" /> Dispatch to Talent
+                  </>
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
