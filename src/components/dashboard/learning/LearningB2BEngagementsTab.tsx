@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Building2 } from "lucide-react";
 
-export default function B2BEngagementsTab() {
+export function LearningB2BEngagementsTab() {
   const { data, isLoading } = useQuery({
     queryKey: ["admin-b2b-engagements"],
     queryFn: async () => {
@@ -106,3 +106,5 @@ function Stat({ label, value }: { label: string; value: number | string }) {
     </div>
   );
 }
+
+export default LearningB2BEngagementsTab;

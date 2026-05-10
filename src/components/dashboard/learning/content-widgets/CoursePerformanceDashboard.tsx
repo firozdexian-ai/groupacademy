@@ -3,11 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { BarChart3, Download, Layers, Activity, Sparkles } from "lucide-react";
 import { useCoursePerformance, modulesToCsv } from "@/lib/coursePerformance";
-import KPIStrip from "./performance/KPIStrip";
-import EnrollmentFunnel from "./performance/EnrollmentFunnel";
-import ModuleDropoffTable from "./performance/ModuleDropoffTable";
-import PoolHealthCard from "./performance/PoolHealthCard";
-import RecentActivityList from "./performance/RecentActivityList";
+import KPIStrip from "../../performance/KPIStrip";
+import EnrollmentFunnel from "../../performance/EnrollmentFunnel";
+import ModuleDropoffTable from "../../performance/ModuleDropoffTable";
+import PoolHealthCard from "../../performance/PoolHealthCard";
+import RecentActivityList from "../../performance/RecentActivityList";
 
 interface Props {
   contentId: string;

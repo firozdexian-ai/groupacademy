@@ -89,7 +89,7 @@ function useDebounce<T>(value: T, delay: number): T {
   return debouncedValue;
 }
 
-export function EnrollmentsManager() {
+export function LearningEnrollmentsTab() {
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -565,3 +565,5 @@ function newStatusLabel(st: string) {
   if (st === "completed") return "COMPLETED_LOG";
   return st.toUpperCase();
 }
+
+export default LearningEnrollmentsTab;

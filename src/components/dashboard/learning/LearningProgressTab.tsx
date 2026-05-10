@@ -53,7 +53,7 @@ interface LearnerDetail {
   currentStage: number;
 }
 
-export function LearnerProgressManager() {
+export function LearningProgressTab() {
   const [selectedCourse, setSelectedCourse] = useState<string>("all");
 
   const { data: courses, isLoading: coursesLoading } = useQuery({
@@ -440,3 +440,5 @@ function DashboardLoadingSkeleton() {
     </div>
   );
 }
+
+export default LearningProgressTab;

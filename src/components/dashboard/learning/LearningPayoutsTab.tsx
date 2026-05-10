@@ -12,7 +12,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-export default function InstructorPayoutsTab() {
+export function LearningPayoutsTab() {
   return (
     <div className="space-y-3">
       <header className="flex items-center gap-2">
@@ -187,3 +187,5 @@ function StatementsPanel() {
     </div>
   );
 }
+
+export default LearningPayoutsTab;

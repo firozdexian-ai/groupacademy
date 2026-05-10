@@ -13,7 +13,7 @@ import { Plus, Briefcase, ExternalLink, Loader2 } from "lucide-react";
 import { useCourseBriefs, useCreateBrief, usePublishBrief } from "@/hooks/useCourseBriefs";
 import { Link } from "react-router-dom";
 
-export default function CourseBriefsTab() {
+export function LearningCourseBriefsTab() {
   const { data: briefs = [], isLoading } = useCourseBriefs();
   const create = useCreateBrief();
   const publish = usePublishBrief();
@@ -164,3 +164,5 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     </div>
   );
 }
+
+export default LearningCourseBriefsTab;

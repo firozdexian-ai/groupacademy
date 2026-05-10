@@ -1,5 +1,5 @@
 import { Card } from "@/components/ui/card";
-export default function B2BCoursesTab() {
+export function LearningB2BCoursesTab() {
   return (
     <Card className="p-6">
       <h2 className="text-xl font-semibold">B2B Courses</h2>
@@ -11,3 +11,5 @@ export default function B2BCoursesTab() {
     </Card>
   );
 }
+
+export default LearningB2BCoursesTab;

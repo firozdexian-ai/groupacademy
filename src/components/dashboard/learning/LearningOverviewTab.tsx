@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 
-export default function LearnOverviewTab() {
+export function LearningOverviewTab() {
   const { data } = useQuery({
     queryKey: ["learn-overview"],
     queryFn: async () => {
@@ -45,3 +45,5 @@ export default function LearnOverviewTab() {
     </div>
   );
 }
+
+export default LearningOverviewTab;

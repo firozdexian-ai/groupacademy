@@ -30,7 +30,7 @@ import {
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
 import { cn } from "@/lib/utils";
-import { ModuleResourceFileUpload } from "@/components/dashboard/ModuleResourceFileUpload";
+import { ModuleResourceFileUpload } from "@/components/dashboard/learning/modules/ModuleResourceFileUpload";
 import { BulkResourceUpload } from "@/components/dashboard/BulkResourceUpload";
 import { DraggableList } from "@/components/dashboard/common/DraggableList";
 import { GripVertical } from "lucide-react";

@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import CourseSessionsManager from "@/components/dashboard/CourseSessionsManager";
-import CoursePerformanceDashboard from "@/components/dashboard/CoursePerformanceDashboard";
+import CourseSessionsManager from "@/components/dashboard/learning/sessions/CourseSessionsManager";
+import CoursePerformanceDashboard from "@/components/dashboard/learning/content-widgets/CoursePerformanceDashboard";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,10 +33,10 @@ import { youtubeUrlSchema, whatsappUrlSchema } from "@/lib/validations";
 import { cn } from "@/lib/utils";
 import { EventDateTimeField } from "@/components/admin/EventDateTimeField";
 import { DEFAULT_EVENT_TZ } from "@/lib/eventTime";
-import ContentReadinessBadge, { type ModuleStats } from "@/components/dashboard/ContentReadinessBadge";
-import ContentReadinessChecklist from "@/components/dashboard/ContentReadinessChecklist";
+import ContentReadinessBadge, { type ModuleStats } from "@/components/dashboard/learning/content-widgets/ContentReadinessBadge";
+import ContentReadinessChecklist from "@/components/dashboard/learning/content-widgets/ContentReadinessChecklist";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
-import { AIActionButton } from "@/components/dashboard/ContentAIActions";
+import { AIActionButton } from "@/components/dashboard/learning/content-widgets/ContentAIActions";
 import { AICoverImageSheet } from "@/components/dashboard/AICoverImageSheet";
 
 export default function ContentEdit() {

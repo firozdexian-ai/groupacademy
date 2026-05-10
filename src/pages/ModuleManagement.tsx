@@ -46,7 +46,7 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import ResearchPromptDialog from "@/components/modules/ResearchPromptDialog";
-import { BatchContentGenerator } from "@/components/dashboard/BatchContentGenerator";
+import { BatchContentGenerator } from "@/components/dashboard/learning/content-widgets/BatchContentGenerator";
 import { DraggableList } from "@/components/dashboard/common/DraggableList";
 import { ItemBankAnalyticsPanel } from "@/components/learning/ItemBankAnalyticsPanel";
 import { useModuleReviewBadge } from "@/hooks/useModuleReviewBadge";

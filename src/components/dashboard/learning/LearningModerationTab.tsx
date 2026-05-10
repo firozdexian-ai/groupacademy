@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Flag } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-export default function ModerationTab() {
+export function LearningModerationTab() {
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -58,3 +58,5 @@ export default function ModerationTab() {
     </div>
   );
 }
+
+export default LearningModerationTab;

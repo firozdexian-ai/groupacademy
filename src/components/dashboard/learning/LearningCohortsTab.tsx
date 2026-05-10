@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Users, Calendar } from "lucide-react";
 
-export default function CohortsTab() {
+export function LearningCohortsTab() {
   const [rows, setRows] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -56,3 +56,5 @@ export default function CohortsTab() {
     </div>
   );
 }
+
+export default LearningCohortsTab;
