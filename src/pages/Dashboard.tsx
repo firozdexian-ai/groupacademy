@@ -77,29 +77,7 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   professions: React.lazy(() =>
     import("@/components/dashboard/ProfessionsManager").then((m) => ({ default: m.ProfessionsManager })),
   ),
-  "jobs-kpis": React.lazy(() =>
-    import("@/components/dashboard/JobsKPIDashboard").then((m) => ({ default: m.JobsKPIDashboard })),
-  ),
-  jobs: React.lazy(() => import("@/components/dashboard/JobsManager").then((m) => ({ default: m.JobsManager }))),
-  "jobs-hub": React.lazy(() => import("@/components/dashboard/jobs-hub/JobsHub").then((m) => ({ default: m.JobsHub }))),
-  applications: React.lazy(() =>
-    import("@/components/dashboard/JobApplicationsManager").then((m) => ({ default: m.JobApplicationsManager })),
-  ),
-  "applications-pipeline": React.lazy(() =>
-    import("@/components/dashboard/AdminApplicationsPipeline").then((m) => ({
-      default: m.AdminApplicationsPipeline,
-    })),
-  ),
-  "sourcing-admin": React.lazy(() =>
-    import("@/components/dashboard/AdminTalentSourcing").then((m) => ({
-      default: m.AdminTalentSourcing,
-    })),
-  ),
-  "sourcing-pipeline": React.lazy(() =>
-    import("@/components/dashboard/AdminSourcingPipeline").then((m) => ({
-      default: m.AdminSourcingPipeline,
-    })),
-  ),
+  // Jobs / ATS routes consolidated below (search "jobs-overview").
   companies: React.lazy(() =>
     import("@/components/dashboard/CompaniesManager").then((m) => ({ default: m.CompaniesManager })),
   ),
@@ -222,7 +200,7 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
     import("@/components/dashboard/AgentInsights").then((m) => ({ default: m.AgentInsights })),
   ),
   leads: React.lazy(() =>
-    import("@/components/dashboard/AssessmentLeadsManager").then((m) => ({ default: m.AssessmentLeadsManager })),
+    import("@/components/dashboard/jobs/JobsAssessmentLeadsTab").then((m) => ({ default: m.JobsAssessmentLeadsTab })),
   ),
   interviews: React.lazy(() =>
     import("@/components/dashboard/MockInterviewLeadsManager").then((m) => ({ default: m.MockInterviewLeadsManager })),
@@ -347,9 +325,15 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
     import("@/components/dashboard/gtm/GtmKnowledgeTab").then((m) => ({ default: m.GtmKnowledgeTab })),
   ),
   "ugc-overview": React.lazy(() => import("@/components/dashboard/ugc/UgcOverviewTab")),
-  "jobs-overview": React.lazy(() => import("@/components/dashboard/jobs/JobsOverviewTab")),
-  "jobs-upload": React.lazy(() => import("@/components/dashboard/jobs/JobsUploadApprovalTab")),
-  "jobs-assessments": React.lazy(() => import("@/components/dashboard/jobs/JobsAssessmentsTab")),
+  "jobs-overview": React.lazy(() => import("@/components/dashboard/jobs/JobsOverviewTab").then(m => ({ default: m.JobsOverviewTab ?? m.default }))),
+  "jobs-upload": React.lazy(() => import("@/components/dashboard/jobs/JobsUploadApprovalTab").then(m => ({ default: m.JobsUploadApprovalTab ?? m.default }))),
+  "jobs-hub": React.lazy(() => import("@/components/dashboard/jobs/hub/JobsHub").then(m => ({ default: m.JobsHub }))),
+  "jobs-applications": React.lazy(() => import("@/components/dashboard/jobs/JobsApplicationsTab").then(m => ({ default: m.JobsApplicationsTab }))),
+  "jobs-pipeline": React.lazy(() => import("@/components/dashboard/jobs/JobsKanbanPipelineTab").then(m => ({ default: m.JobsKanbanPipelineTab }))),
+  "jobs-sourcing": React.lazy(() => import("@/components/dashboard/jobs/JobsSourcingTab").then(m => ({ default: m.JobsSourcingTab }))),
+  "jobs-talent-crm": React.lazy(() => import("@/components/dashboard/jobs/JobsTalentCrmTab").then(m => ({ default: m.JobsTalentCrmTab }))),
+  "jobs-assessments": React.lazy(() => import("@/components/dashboard/jobs/JobsAssessmentsTab").then(m => ({ default: m.JobsAssessmentsTab ?? m.default }))),
+  "jobs-kpis": React.lazy(() => import("@/components/dashboard/jobs/JobsKpiTab").then(m => ({ default: m.JobsKpiTab }))),
   "learn-overview": React.lazy(() => import("@/components/dashboard/learn/LearnOverviewTab")),
   academies: React.lazy(() =>
     import("@/components/dashboard/learn/LearnSimpleTabs").then((m) => ({ default: m.AcademiesTab })),
@@ -435,9 +419,11 @@ const TAB_TITLES: Record<string, string> = {
   "lead-hunter": "Lead Acquisition",
   professions: "Taxonomies",
   "jobs-kpis": "Growth Analytics",
-  jobs: "Job Pipeline",
   "jobs-hub": "Jobs Hub",
-  applications: "Candidate Flow",
+  "jobs-applications": "Candidate Flow",
+  "jobs-pipeline": "Kanban Pipeline",
+  "jobs-sourcing": "Sourcing",
+  "jobs-talent-crm": "Talent CRM",
   companies: "Employer CRM",
   contacts: "B2B Contacts",
   "company-agents": "Internal Agents",
