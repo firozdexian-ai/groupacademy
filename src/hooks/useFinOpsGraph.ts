@@ -25,9 +25,9 @@ export function useFinOpsGraph() {
       ] = await Promise.all([
         supabase.from("talent_credits").select("id, balance, earned_balance, talent_id, talent:talents(full_name, email)").order("balance", { ascending: false }).limit(200),
         supabase.from("company_credits").select("id, balance, earned_balance, company_id, company:companies(name, type)").order("balance", { ascending: false }).limit(200),
-        supabase.from("credit_invoices").select("id, invoice_number, bundle_credits, currency, amount_paid, status, payment_method, created_at, talent_id, talent:talents(full_name)").order("created_at", { ascending: false }).limit(300),
+        supabase.from("credit_invoices").select("id, invoice_number, bundle_credits, currency, bundle_price_usd, bundle_price_local, status, payment_method, created_at, talent_id, talent:talents(full_name)").order("created_at", { ascending: false }).limit(300),
         supabase.from("withdrawal_requests").select("id, talent_id, amount_credits, method, status, payout_details, created_at, talent:talents(full_name, email)").order("created_at", { ascending: false }).limit(300),
-        supabase.from("fin_payment_configs").select("id, provider, is_active, created_at").order("created_at", { ascending: false }),
+        supabase.from("fin_payment_configs").select("id, provider, status, created_at").order("created_at", { ascending: false }),
       ]);
 
       // Throw first encountered error
