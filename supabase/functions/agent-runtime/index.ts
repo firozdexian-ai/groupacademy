@@ -173,9 +173,21 @@ serve(async (req) => {
     }
     const systemPrompt = baseSystem + subjectCtx;
 
-    // Load tools
-    const allowedToolKeys: string[] = agent.allowed_tools || [];
-    const tools = await loadTools(admin, allowedToolKeys, agent.agent_level);
+    // Load tools — admins use agent_tool_bindings as the source of truth (Step 4 wiring),
+    // every other subject kind keeps the legacy allowed_tools array on ai_agents.
+    let tools: any[] = [];
+    if (subjectKind === "admin") {
+      const { data: bindings } = await admin
+        .from("agent_tool_bindings")
+        .select("agent_tools!inner(tool_key, name, description, input_schema, default_credit_cost, min_level, handler_kind, handler_ref, is_active, status)")
+        .eq("agent_id", agent.id);
+      tools = (bindings ?? [])
+        .map((b: any) => b.agent_tools)
+        .filter((t: any) => t && t.is_active && (t.status ?? "available") === "available");
+    } else {
+      const allowedToolKeys: string[] = agent.allowed_tools || [];
+      tools = await loadTools(admin, allowedToolKeys, agent.agent_level);
+    }
 
     // RAG: retrieve KB chunks if KB exists for this agent
     const ragContext = await retrieveKbContext(admin, agent.id, body.message);
