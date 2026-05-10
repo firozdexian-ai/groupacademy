@@ -19,7 +19,7 @@ export interface OutreachLog {
   talent_id: string;
   status: string;
   channel: string;
-  created_at: string;
+  sent_at: string;
 }
 
 export function useGlobalCRMGraph() {
