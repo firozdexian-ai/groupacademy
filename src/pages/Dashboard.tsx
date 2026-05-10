@@ -331,6 +331,7 @@ const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
   "learning-moderation": React.lazy(() => import("@/components/dashboard/learning/LearningModerationTab").then(m => ({ default: m.LearningModerationTab }))),
   "learning-b2b-engagements": React.lazy(() => import("@/components/dashboard/learning/LearningB2BEngagementsTab").then(m => ({ default: m.LearningB2BEngagementsTab }))),
   "learning-payouts": React.lazy(() => import("@/components/dashboard/learning/LearningPayoutsTab").then(m => ({ default: m.LearningPayoutsTab }))),
+  "learning-json-importer": React.lazy(() => import("@/components/dashboard/learning/CourseJSONImporter").then(m => ({ default: m.CourseJSONImporter }))),
   "gigs-overview": React.lazy(() => import("@/components/dashboard/gigs/GigOverviewTab").then(m => ({ default: m.GigOverviewTab }))),
   "gigs-scoper": React.lazy(() => import("@/components/dashboard/gigs/GigOverviewTab").then(m => ({ default: m.GigOverviewTab }))),
   "gigs-quick-actions": React.lazy(() => import("@/components/dashboard/gigs/GigsQuickActionsTab").then(m => ({ default: m.GigsQuickActionsTab }))),
