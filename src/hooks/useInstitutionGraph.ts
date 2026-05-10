@@ -32,10 +32,11 @@ export function useInstitutionGraph() {
       queryKey: ["institution_rollups", institutionId],
       enabled: !!institutionId,
       queryFn: async () => {
+        const client = supabase as any;
         const [talents, programs, competitions] = await Promise.all([
-          supabase.from("talents").select("*", { count: "exact", head: true }).eq("institution_id" as any, institutionId as any),
-          supabase.from("study_abroad_programs").select("*", { count: "exact", head: true }).eq("institution_id" as any, institutionId as any),
-          supabase.from("competitions").select("*", { count: "exact", head: true }).eq("institution_id" as any, institutionId as any),
+          client.from("talents").select("id", { count: "exact", head: true }).eq("institution_id", institutionId),
+          client.from("study_abroad_programs").select("id", { count: "exact", head: true }).eq("institution_id", institutionId),
+          client.from("competitions").select("id", { count: "exact", head: true }).eq("institution_id", institutionId),
         ]);
         return {
           talents: talents.count || 0,
